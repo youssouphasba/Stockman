@@ -6706,16 +6706,26 @@ Tickets ouverts: {open_tickets} | Litiges en cours: {open_disputes}
 
         crit_prod_str = ", ".join([p['name'] for p in (out_of_stock + low_stock)[:10]])
 
+        forecast_str = "\n".join(forecast_risks[:10]) if forecast_risks else "Aucun risque immédiat détecté."
         summary = f"""
 --- INTELLIGENCE BUSINESS (30 DERNIERS JOURS) ---
 CA Total: {total_rev} FCFA | Dépenses: {total_exp} FCFA | Ventes: {len(sales)}
 Panier moyen: {(total_rev/len(sales) if sales else 0)} FCFA
 Paiements: {dict(pm_breakdown)}
 
---- PRÉVISIONS DE RUPTURE (BASÉES SUR LA VITESSE DE VENTE) ---\n{("\n".join(forecast_risks[:10])) if forecast_risks else "Aucun risque immédiat détecté."}\n
---- TOP PRODUITS ---\n{top_prod_str if top_prod_str else "Néant"}\n
---- STOCKS CRITIQUES ---\n{crit_prod_str if crit_prod_str else "Tous les stocks sont OK"}\n
---- CRM & FIDÉLITÉ ---\nTotal clients: {len(customers)}\nRègle fidélité: {loyalty.get('ratio', '?' )} FCFA = 1 point\n"""
+--- PRÉVISIONS DE RUPTURE (BASÉES SUR LA VITESSE DE VENTE) ---
+{forecast_str}
+
+--- TOP PRODUITS ---
+{top_prod_str if top_prod_str else "Néant"}
+
+--- STOCKS CRITIQUES ---
+{crit_prod_str if crit_prod_str else "Tous les stocks sont OK"}
+
+--- CRM & FIDÉLITÉ ---
+Total clients: {len(customers)}
+Règle fidélité: {loyalty.get('ratio', '?' )} FCFA = 1 point
+"""
         return summary
     except Exception as e:
         logger.error(f"Error generating AI summary: {e}")
