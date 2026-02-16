@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements or just the local dir if using pip install directly
-# Note: Since we don't have a requirements.txt yet, we'll create one or use a command.
-RUN pip install --no-cache-dir fastapi uvicorn motor pydantic-settings python-dotenv passlib[bcrypt] python-jose[cryptography] google-generativeai slowapi twilio
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
