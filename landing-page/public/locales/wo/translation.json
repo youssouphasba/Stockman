@@ -1,0 +1,156 @@
+{
+    "nav": {
+        "features": "Xarala",
+        "resources": "Jëfandikukaay",
+        "blog": "Blog",
+        "home": "Njaboot",
+        "free_trial": "Esaay Bu Kenn Fayul"
+    },
+    "hero": {
+        "title_start": "Ubbi kàttanu",
+        "title_end": "sa liggéey",
+        "subtitle": "Pexe njuubalu estok bu xereñ bu dëppoo ak Xel Mu Ñu Sos ngam automatiser say commande te yokk say wins.",
+        "cta": "Tambali Léegi"
+    },
+    "stats": {
+        "shops": "Boutique Yu Ñu Jox Mat",
+        "transactions": "Jëflante / Weer",
+        "satisfaction": "Kiliyã Yu Contane",
+        "support": "Dimbal Mung Fi"
+    },
+    "features": {
+        "title": "Say jumtukaay bës bu nekk",
+        "subtitle": "Kurelu tab yépp ngam saytu bepp wàll ci sa komérs.",
+        "dashboard": {
+            "title": "Tableau de Bord",
+            "desc": "Gis-gis bu yaa ci sa yëngu-yëngu, yëgle estok yu xaw a jeex, ak dugg ci AI bi."
+        },
+        "products": {
+            "title": "Mproduit",
+            "desc": "Njuubalu imanter, scan code-barres, rannale ci wàll, ak natt dayu estok."
+        },
+        "pos": {
+            "title": "Keese (POS)",
+            "desc": "Fay say kiliyã gaaw, génne ay reçu digital, te yeesal estok bi ci saa si."
+        },
+        "suppliers": {
+            "title": "Jaaykat yi",
+            "desc": "Kàyyeb jaaykat yi, taariixu commande yi, ak dugg ci Marketplace 'Bouton-ba-Bouton'."
+        },
+        "orders": {
+            "title": "Commande yi",
+            "desc": "Toppu commande jënd yi, nangu bagaas yi, te yeesal estok yi ci anam bu automatik."
+        },
+        "accounting": {
+            "title": "Kunta",
+            "desc": "Toppu bu leer ci njaay yi, depanse yi, ak natt wins bi ci diir bu nekk."
+        },
+        "clients": {
+            "title": "Kiliyã yi",
+            "desc": "Kàyyeb kiliyã yi, taariixu jënd yi, ak jumtukaay fidelite yu ñu bolle."
+        },
+        "settings": {
+            "title": "Paramètres",
+            "desc": "Jëmmal application bi, saytu jëfandikukat yi, ak paraametr boutique bi."
+        }
+    },
+    "showcase": {
+        "title": "Interface bi di soppi lépp",
+        "subtitle": "Design bu set, bu ñu defar ngam nga waññi sa waxtu.",
+        "app_interface": "Interface App"
+    },
+    "how_it_works": {
+        "title": "Tambali Gu Gaaw",
+        "subtitle": "Ñetti paaje yu yomb ngam soppi sa komérs.",
+        "step1": {
+            "title": "Sos sa Compte",
+            "desc": "Waccël application bi te paraametr sa boutique ci lu gën a néew 2 minit."
+        },
+        "step2": {
+            "title": "Scan say Produit",
+            "desc": "Jëfandikul kamera sa telefon ngam yokk sa estok gaaw."
+        },
+        "step3": {
+            "title": "Jaay te Toppu",
+            "desc": "Def say njaay yu njëkk te seet say statistig ñuy yéeg ci saa si."
+        }
+    },
+    "testimonials": {
+        "title": "Ñoñu wóolu nañu nu",
+        "subtitle": "Gis nañu no xamne Stockman di dimbali komérsã yi bës bu nekk.",
+        "t1": "Bi ma tambalee jëfandiku Stockman, ñàkkatuma xalis ndax estok bu jeex. AI bi daf may yëgal sa su nekk ci waxtu wi mu ware!",
+        "t2": "Application bi dafa yomb. Samay liggéeykat jàng nañu ko ci 10 minit. Njuubalu keese bi dafa mat sëkk.",
+        "t3": "Marketplace bi neex na ma! Mën naa nattale njëgg yi ci samay jaaykat te commande ci saa si. Waxtu bu bare laa ci gagné."
+    },
+    "pricing": {
+        "title": "Tann sa plan",
+        "subtitle": "Njëgg yu leer yu dëppoo ak dayu sa komérs.",
+        "month": "/weer",
+        "popular": "Siw",
+        "starter": {
+            "name": "Starter",
+            "cta": "Tambali",
+            "f1": "1 Jëfandikukat",
+            "f2": "Ba 100 produit",
+            "f3": "Njuubalu estok bu simple",
+            "f4": "Masinu Keese (POS)"
+        },
+        "business": {
+            "name": "Business",
+            "cta": "Esaay bu kenn fayul 14 fan",
+            "f1": "3 Jëfandikukat",
+            "f2": "Produit yu amul dayo",
+            "f3": "Dimbal Stockman AI",
+            "f4": "Marketplace & Commande",
+            "f5": "Analise yu xóot"
+        },
+        "enterprise": {
+            "name": "Entreprise",
+            "price": "Ci Devis",
+            "cta": "Jokkood",
+            "f1": "Jëfandikukat yu amul dayo",
+            "f2": "Boutique yu bari",
+            "f3": "API & Integrations",
+            "f4": "Dimbal 24/7",
+            "f5": "AI bu ñu jëmmal"
+        }
+    },
+    "faq": {
+        "title": "Laaj yi ñuy faral di laaj",
+        "q1": "Mën na dox te internet amul?",
+        "a1": "Waaw, Stockman mën na dox ci mode offline. Say données di nañu sãkronise su internet amee.",
+        "q2": "Samay données woor nañu?",
+        "a2": "Bu baax. Da ñuy jëfandiku criptage bu tollu ci bank yi ngam aar say xibaar komérs yépp."
+    },
+    "download": {
+        "title": "Pare nga ngam yéeg ci beneen pall?",
+        "subtitle": "Fekkasil junniy komérsã yu yeesal seen njuubalu.",
+        "secure": "Fay bu Woor",
+        "support": "Dimbal Pro",
+        "updates": "Yeesal bu Sàkk"
+    },
+    "footer": {
+        "desc": "Fagarru bi mat sëkk ngam komérsã u tey yi ci Afrik.",
+        "product": "Produit",
+        "support": "Dimbal",
+        "legal": "Yoon",
+        "help_center": "Beureubu Dimbal",
+        "contact": "Jokkood",
+        "community": "Mboolo",
+        "privacy": "Bàkku Sutura",
+        "terms": "Sartu Jëfandiku",
+        "legal_notice": "Yëgle Yoon",
+        "copyright": "© 2026 Stockman. Moal ñu ko moom."
+    },
+    "newsletter": {
+        "title": "Nekkël Expert ci Stock",
+        "desc": "Jokkood ak 5000+ komérsã te nga nangu sunu guide bu kenn fayul: \"10 njuumte yuy ray sa wins\".",
+        "placeholder": "Sa email liggéey...",
+        "cta": "Jël Guide bi",
+        "success": "Jërëjëf! Xoolal sa boîte email.",
+        "privacy": "Benn spam amul. Dindi sa bindu ci 1 clic."
+    },
+    "whatsapp": {
+        "message": "Salaam, bëggoon naa xam lu gën a bari ci Stockman!"
+    }
+}

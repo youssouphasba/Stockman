@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Stock Management",
+    "slug": "stock-management",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "stockmgmt",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

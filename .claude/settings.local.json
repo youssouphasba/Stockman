@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python -c:*)",
+      "Bash(npx expo start:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      "Bash(npx expo export:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(done)",
+      "Bash(grep:*)",
+      "Bash(npx expo install:*)"
+    ]
+  }
+}

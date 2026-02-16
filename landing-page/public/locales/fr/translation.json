@@ -1,0 +1,156 @@
+{
+    "nav": {
+        "features": "Fonctionnalités",
+        "resources": "Ressources",
+        "blog": "Blog",
+        "home": "Accueil",
+        "free_trial": "Essai Gratuit"
+    },
+    "hero": {
+        "title_start": "Libérez le potentiel de votre",
+        "title_end": "commerce",
+        "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
+        "cta": "Démarrer maintenant"
+    },
+    "stats": {
+        "shops": "Commerces équipés",
+        "transactions": "Transactions / mois",
+        "satisfaction": "Clients satisfaits",
+        "support": "Support disponible"
+    },
+    "features": {
+        "title": "Vos outils quotidiens",
+        "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
+        "dashboard": {
+            "title": "Accueil",
+            "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
+        },
+        "products": {
+            "title": "Produits",
+            "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
+        },
+        "pos": {
+            "title": "Caisse",
+            "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
+        },
+        "suppliers": {
+            "title": "Fournisseurs",
+            "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
+        },
+        "orders": {
+            "title": "Commandes",
+            "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
+        },
+        "accounting": {
+            "title": "Comptabilité",
+            "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
+        },
+        "clients": {
+            "title": "Clients",
+            "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
+        },
+        "settings": {
+            "title": "Réglages",
+            "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
+        }
+    },
+    "showcase": {
+        "title": "L'interface qui change tout",
+        "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
+        "app_interface": "Interface App"
+    },
+    "how_it_works": {
+        "title": "Démarrage rapide",
+        "subtitle": "Trois étapes simples pour transformer votre commerce.",
+        "step1": {
+            "title": "Créez votre compte",
+            "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
+        },
+        "step2": {
+            "title": "Scannez vos produits",
+            "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
+        },
+        "step3": {
+            "title": "Encaissez & Suivez",
+            "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
+        }
+    },
+    "testimonials": {
+        "title": "Ils nous font confiance",
+        "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
+        "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+        "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
+        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme."
+    },
+    "pricing": {
+        "title": "Choisissez votre plan",
+        "subtitle": "Des tarifs transparents adaptés à la taille de votre commerce.",
+        "month": "/mois",
+        "popular": "Populaire",
+        "starter": {
+            "name": "Starter",
+            "cta": "Commencer",
+            "f1": "1 Utilisateur",
+            "f2": "Jusqu'à 100 produits",
+            "f3": "Gestion de stock basique",
+            "f4": "Caisse enregistreuse"
+        },
+        "business": {
+            "name": "Business",
+            "cta": "Essai Gratuit 14j",
+            "f1": "3 Utilisateurs",
+            "f2": "Produits illimités",
+            "f3": "Assistant IA Stockman",
+            "f4": "Marketplace & Commandes",
+            "f5": "Analyses avancées"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Sur devis",
+            "cta": "Contacter",
+            "f1": "Utilisateurs illimités",
+            "f2": "Multi-boutiques",
+            "f3": "API & Intégrations",
+            "f4": "Support dédié 24/7",
+            "f5": "IA personnalisée"
+        }
+    },
+    "faq": {
+        "title": "Questions Fréquentes",
+        "q1": "Est-ce que ça marche sans internet ?",
+        "a1": "Oui, Stockman fonctionne en mode hors-ligne. Vos données sont synchronisées dès que vous retrouvez une connexion.",
+        "q2": "Mes données sont-elles sécurisées ?",
+        "a2": "Absolument. Nous utilisons un chiffrement de niveau bancaire pour protéger toutes vos informations commerciales."
+    },
+    "download": {
+        "title": "Prêt à passer au niveau supérieur ?",
+        "subtitle": "Rejoignez des milliers de commerçants qui ont modernisé leur gestion.",
+        "secure": "Paiements Sécurisés",
+        "support": "Support Pro",
+        "updates": "Mise à jour Continue"
+    },
+    "footer": {
+        "desc": "La solution tout-en-un pour les commerçants modernes en Afrique.",
+        "product": "Produit",
+        "support": "Support",
+        "legal": "Légal",
+        "help_center": "Centre d'aide",
+        "contact": "Contact",
+        "community": "Communauté",
+        "privacy": "Confidentialité",
+        "terms": "CGU",
+        "legal_notice": "Mentions légales",
+        "copyright": "© 2026 Stockman. Tous droits réservés."
+    },
+    "newsletter": {
+        "title": "Devenez un Expert du Stock",
+        "desc": "Rejoignez 5000+ commerçants et recevez gratuitement notre guide : \"Les 10 erreurs qui tuent votre rentabilité\".",
+        "placeholder": "Votre email pro...",
+        "cta": "Recevoir le Guide",
+        "success": "Merci ! Surveillez votre boîte mail.",
+        "privacy": "Pas de spam. Désinscription en 1 clic."
+    },
+    "whatsapp": {
+        "message": "Bonjour, je souhaite en savoir plus sur Stockman !"
+    }
+}

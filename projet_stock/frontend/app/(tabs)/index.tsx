@@ -1,0 +1,955 @@
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+  Modal,
+  Linking,
+  Dimensions,
+  Alert as RNAlert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { LineChart, PieChart } from 'react-native-chart-kit';
+import AnimatedCounter from '../../components/AnimatedCounter';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNetwork } from '../../hooks/useNetwork';
+import { cache, KEYS } from '../../services/cache';
+import {
+  dashboard as dashboardApi,
+  statistics as statisticsApi,
+  stock as stockApi,
+  settings as settingsApi,
+  inventory,
+  DashboardData,
+  StatisticsData,
+  StockMovement,
+  InventoryTask,
+  UserSettings,
+  API_URL,
+  getToken,
+} from '../../services/api';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+
+const screenWidth = Dimensions.get('window').width;
+
+type KpiCardProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string | number;
+  color: string;
+  isCurrency?: boolean;
+};
+
+
+export default function DashboardScreen() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { isConnected } = useNetwork();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [stats, setStats] = useState<StatisticsData | null>(null);
+  const [inventoryTasks, setInventoryTasks] = useState<InventoryTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // History modal
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all');
+
+  // Statistics modal
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [statsData, setStatsData] = useState<StatisticsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      if (isConnected) {
+        const [dashboardResult, settingsResult, statsResult, tasksResult] = await Promise.all([
+          dashboardApi.get(),
+          settingsApi.get(),
+          statisticsApi.get(),
+          inventory.getTasks('pending')
+        ]);
+        setData(dashboardResult);
+        setUserSettings(settingsResult);
+        setStats(statsResult);
+        setStatsData(statsResult);
+        setInventoryTasks(tasksResult);
+        await cache.set(KEYS.DASHBOARD, dashboardResult);
+      } else {
+        const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
+        if (cached) setData(cached);
+      }
+    } catch {
+      // If error (e.g. timeout), try cache
+      const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
+      if (cached) setData(cached);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isConnected, user?.active_store_id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  function onRefresh() {
+    setRefreshing(true);
+    loadData();
+  }
+
+  async function openHistoryModal() {
+    setShowHistoryModal(true);
+    setHistoryLoading(true);
+    setHistoryFilter('all');
+    try {
+      const result = await stockApi.getMovements();
+      setMovements(result);
+    } catch {
+      // silently fail
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function exportHistory() {
+    const token = await getToken();
+    if (!token) return;
+    Linking.openURL(`${API_URL}/export/movements/csv?token=${token}`);
+  }
+
+  async function openStatsModal() {
+    setShowStatsModal(true);
+    setStatsLoading(true);
+    try {
+      const result = await statisticsApi.get();
+      setStatsData(result);
+    } catch {
+      // silently fail
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  async function exportStats() {
+    const token = await getToken();
+    if (!token) return;
+    Linking.openURL(`${API_URL}/export/products/csv?token=${token}`);
+  }
+
+  function formatCurrency(val: number) {
+    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA';
+  }
+
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const filteredMovements = movements.filter((m) => historyFilter === 'all' || m.type === historyFilter);
+
+  // Module checks
+  const showAlerts = userSettings?.modules?.alerts ?? true;
+  const showStats = userSettings?.modules?.statistics ?? true;
+
+  const { colors, glassStyle } = useTheme();
+  const styles = getStyles(colors, glassStyle);
+
+  if (loading) {
+    return (
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  function KpiCard({ icon, label, value, color, isCurrency = false }: KpiCardProps) {
+    const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
+    const isNumber = !isNaN(numericValue);
+
+    return (
+      <View style={[styles.kpiCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+        <View style={[styles.kpiIcon, { backgroundColor: color + '20' }]}>
+          <Ionicons name={icon} size={22} color={color} />
+        </View>
+        {isNumber ? (
+          <AnimatedCounter
+            value={numericValue}
+            style={[styles.kpiValue, { color: colors.text }]}
+            suffix={isCurrency ? ' FCFA' : ''}
+          />
+        ) : (
+          <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
+        )}
+        <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>{label}</Text>
+      </View>
+    );
+  }
+
+  function StatusBadge({ label, count, color }: { label: string; count: number; color: string }) {
+    return (
+      <View style={[styles.statusBadge, { borderColor: color + '40' }]}>
+        <Text style={[styles.statusCount, { color }]}>{count}</Text>
+        <Text style={styles.statusLabel}>{label}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        <View style={styles.headerSection}>
+          <Text style={styles.greeting}>Bonjour, {user?.name}</Text>
+          <Text style={styles.subGreeting}>Voici l'état de vos stocks</Text>
+        </View>
+
+        {/* Urgence Stock Widget */}
+        {data?.critical_products && data.critical_products.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="warning-outline" size={20} color={colors.danger} />
+              <Text style={styles.sectionTitle}>Urgence Stock</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+              {data.critical_products.map(product => (
+                <View key={product.product_id} style={styles.stockUrgencyCard}>
+                  <Text style={styles.urgencyName} numberOfLines={1}>{product.name}</Text>
+                  <Text style={[styles.urgencyQty, { color: product.quantity === 0 ? colors.danger : colors.warning }]}>
+                    {product.quantity} {product.unit} restant(s)
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Ventes Récentes Widget */}
+        {data?.recent_sales && data.recent_sales.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="receipt-outline" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Ventes Récentes</Text>
+            </View>
+            <View style={styles.recentSalesList}>
+              {data.recent_sales.map(sale => (
+                <View key={sale.sale_id} style={styles.recentSaleItem}>
+                  <View style={styles.saleInfo}>
+                    <Text style={styles.saleDate}>{formatDate(sale.created_at)}</Text>
+                    <Text style={styles.saleItemsCount}>{sale.items.length} article(s)</Text>
+                  </View>
+                  <Text style={styles.saleAmount}>{sale.total_amount.toLocaleString()} FCFA</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={styles.kpiGrid}>
+          <KpiCard
+            icon="cash-outline"
+            label="CA du jour"
+            value={formatCurrency(data?.today_revenue ?? 0)}
+            color={colors.success}
+          />
+          <KpiCard
+            icon="trending-up-outline"
+            label="CA (30j)"
+            value={formatCurrency(data?.month_revenue ?? 0)}
+            color={colors.primary}
+          />
+          <KpiCard
+            icon="cube-outline"
+            label="Produits"
+            value={data?.total_products ?? 0}
+            color={colors.secondary}
+          />
+          <KpiCard
+            icon="wallet-outline"
+            label="Valeur stock"
+            value={formatCurrency(data?.total_stock_value ?? 0)}
+            color={colors.info}
+          />
+          {showAlerts && (
+            <KpiCard
+              icon="notifications-outline"
+              label="Alertes"
+              value={data?.unread_alerts ?? 0}
+              color={colors.warning}
+            />
+          )}
+        </View>
+
+        {stats?.stock_value_history && stats.stock_value_history.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Evolution Valeur Stock (7j)</Text>
+            <LineChart
+              data={{
+                labels: stats.stock_value_history.map(d => {
+                  const parts = d.date.split('-');
+                  return `${parts[2]}/${parts[1]}`;
+                }),
+                datasets: [
+                  {
+                    data: stats.stock_value_history.map(d => d.value),
+                    color: (opacity = 1) => colors.primary,
+                    strokeWidth: 2
+                  }
+                ]
+              }}
+              width={screenWidth - Spacing.md * 2}
+              height={220}
+              yAxisLabel=""
+              yAxisSuffix=" F"
+              yAxisInterval={1}
+              chartConfig={{
+                backgroundColor: colors.bgMid,
+                backgroundGradientFrom: colors.bgMid,
+                backgroundGradientTo: colors.bgMid,
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                labelColor: (opacity = 1) => colors.textSecondary,
+                style: {
+                  borderRadius: 16
+                },
+                propsForDots: {
+                  r: "6",
+                  strokeWidth: "2",
+                  stroke: colors.primary
+                }
+              }}
+              bezier
+              style={{
+                marginVertical: 8,
+                borderRadius: 16
+              }}
+            />
+          </View>
+        )}
+
+        {stats?.stock_by_category && stats.stock_by_category.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Répartition par Catégorie</Text>
+            <PieChart
+              data={stats.stock_by_category.map((c, i) => ({
+                name: c.name,
+                population: c.value,
+                color: [colors.primary, colors.secondary, colors.success, colors.warning, colors.danger, colors.info][i % 6] || colors.primary,
+                legendFontColor: colors.textSecondary,
+                legendFontSize: 12
+              }))}
+              width={screenWidth - Spacing.md * 2}
+              height={220}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              }}
+              accessor={"population"}
+              backgroundColor={"transparent"}
+              paddingLeft={"15"}
+              center={[10, 0]}
+              absolute
+            />
+          </View>
+        )}
+
+        {stats?.abc_analysis && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Analyse ABC (Priorités)</Text>
+            <View style={styles.abcContainer}>
+              <View style={[styles.abcCard, { borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
+                <Text style={[styles.abcClass, { color: colors.success }]}>Classe A</Text>
+                <Text style={styles.abcCount}>{stats.abc_analysis.A.length} produits</Text>
+                <Text style={styles.abcDesc}>80% de votre CA</Text>
+              </View>
+              <View style={[styles.abcCard, { borderLeftColor: colors.primary, borderLeftWidth: 4 }]}>
+                <Text style={[styles.abcClass, { color: colors.primary }]}>Classe B</Text>
+                <Text style={styles.abcCount}>{stats.abc_analysis.B.length} produits</Text>
+                <Text style={styles.abcDesc}>15% de votre CA</Text>
+              </View>
+              <View style={[styles.abcCard, { borderLeftColor: colors.textMuted, borderLeftWidth: 4 }]}>
+                <Text style={[styles.abcClass, { color: colors.textMuted }]}>Classe C</Text>
+                <Text style={styles.abcCount}>{stats.abc_analysis.C.length} produits</Text>
+                <Text style={styles.abcDesc}>5% de votre CA</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.abcFooter}
+              onPress={() => setShowStatsModal(true)}
+            >
+              <Text style={styles.abcFooterText}>Voir le détail par produit</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.primaryLight} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {stats?.reorder_recommendations && stats.reorder_recommendations.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Réapprovisionnement Intelligent</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{stats.reorder_recommendations.length}</Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reorderScroll}>
+              {stats.reorder_recommendations.map((item) => (
+                <View key={item.product_id} style={styles.reorderCard}>
+                  <View style={[styles.reorderStatus, { backgroundColor: item.priority === 'critical' ? colors.danger : colors.warning }]} />
+                  <Text style={styles.reorderName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.reorderMeta}>Stock: {item.current_quantity} (Seuil: {item.reorder_point})</Text>
+                  <Text style={styles.reorderSuggest}>Suggéré: +{item.suggested_quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.orderButton}
+                    onPress={() => router.push('/orders')}
+                  >
+                    <Ionicons name="cart-outline" size={16} color="#FFF" />
+                    <Text style={styles.orderButtonText}>Commander</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {inventoryTasks.length > 0 && (
+          <View style={[styles.section, { marginTop: Spacing.md }]}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Inventaire Tournant</Text>
+              <View style={[styles.badge, { backgroundColor: colors.info }]}>
+                <Text style={styles.badgeText}>{inventoryTasks.length}</Text>
+              </View>
+            </View>
+            <View style={styles.inventoryContainer}>
+              {inventoryTasks.slice(0, 3).map((task) => (
+                <View key={task.task_id} style={styles.inventoryItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inventoryProductName}>{task.product_name}</Text>
+                    <Text style={styles.inventoryMeta}>Attendu: {task.expected_quantity}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.countButton}
+                    onPress={() => {
+                      RNAlert.prompt(
+                        'Compter le stock',
+                        `Entrez la quantité réelle pour ${task.product_name}`,
+                        [
+                          { text: 'Annuler', style: 'cancel' },
+                          {
+                            text: 'Valider',
+                            onPress: async (val) => {
+                              if (val) {
+                                await inventory.submitResult(task.task_id, parseInt(val));
+                                loadData();
+                              }
+                            }
+                          }
+                        ],
+                        'plain-text',
+                        task.expected_quantity.toString()
+                      );
+                    }}
+                  >
+                    <Text style={styles.countButtonText}>Compter</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={styles.generateBtn}
+                onPress={async () => {
+                  await inventory.generateTasks();
+                  loadData();
+                }}
+              >
+                <Ionicons name="refresh-outline" size={16} color={colors.primary} />
+                <Text style={styles.generateBtnText}>Générer de nouvelles tâches</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {stats?.expiry_alerts && stats.expiry_alerts.length > 0 && (
+          <View style={[styles.section, { marginTop: Spacing.md }]}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Alertes Péremption (30j)</Text>
+              <View style={[styles.badge, { backgroundColor: colors.warning }]}>
+                <Text style={styles.badgeText}>{stats.expiry_alerts.length}</Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reorderScroll}>
+              {stats.expiry_alerts.map((item, i) => {
+                const expiryDate = new Date(item.expiry_date);
+                const daysRemaining = Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                return (
+                  <View key={`${item.product_id}-${i}`} style={styles.reorderCard}>
+                    <View style={[styles.reorderStatus, { backgroundColor: item.priority === 'critical' ? colors.danger : colors.warning }]} />
+                    <Text style={styles.reorderName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.reorderMeta}>Lot: {item.batch_number}</Text>
+                    <Text style={[styles.reorderSuggest, { color: item.priority === 'critical' ? colors.danger : colors.warning }]}>
+                      {daysRemaining <= 0 ? 'Périmé !' : `${daysRemaining} jours restants`}
+                    </Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={styles.statusSection}>
+          <Text style={styles.sectionTitle}>Statut des stocks</Text>
+          <View style={styles.statusRow}>
+            <StatusBadge label="Rupture" count={data?.out_of_stock_count ?? 0} color={colors.danger} />
+            <StatusBadge label="Stock bas" count={data?.low_stock_count ?? 0} color={colors.warning} />
+            <StatusBadge label="Surstock" count={data?.overstock_count ?? 0} color={colors.info} />
+          </View>
+        </View>
+
+        {data?.critical_products && data.critical_products.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Produits critiques</Text>
+            {data.critical_products.map((product) => (
+              <View key={product.product_id} style={styles.criticalItem}>
+                <View style={styles.criticalInfo}>
+                  <Text style={styles.criticalName}>{product.name}</Text>
+                  <Text style={styles.criticalQty}>
+                    {product.quantity} {product.unit}(s)
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.criticalBadge,
+                    { backgroundColor: product.quantity === 0 ? colors.danger + '20' : colors.warning + '20' },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.criticalBadgeText,
+                      { color: product.quantity === 0 ? colors.danger : colors.warning },
+                    ]}
+                  >
+                    {product.quantity === 0 ? 'Rupture' : 'Bas'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {data?.recent_alerts && data.recent_alerts.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Alertes récentes</Text>
+            {data.recent_alerts.slice(0, 3).map((alert) => (
+              <View key={alert.alert_id} style={styles.alertItem}>
+                <Ionicons
+                  name={
+                    alert.severity === 'critical'
+                      ? 'warning'
+                      : alert.severity === 'warning'
+                        ? 'alert-circle'
+                        : 'information-circle'
+                  }
+                  size={20}
+                  color={
+                    alert.severity === 'critical'
+                      ? colors.danger
+                      : alert.severity === 'warning'
+                        ? colors.warning
+                        : colors.info
+                  }
+                />
+                <View style={styles.alertInfo}>
+                  <Text style={styles.alertTitle}>{alert.title}</Text>
+                  <Text style={styles.alertMessage}>{alert.message}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Action buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionButton} onPress={openStatsModal}>
+            <Ionicons name="bar-chart-outline" size={20} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Statistiques</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={openHistoryModal}>
+            <Ionicons name="time-outline" size={20} color={colors.secondary} />
+            <Text style={styles.actionButtonText}>Historique</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: Spacing.xl }} />
+      </ScrollView>
+
+      {/* History Modal */}
+      <Modal visible={showHistoryModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Historique des mouvements</Text>
+              <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+                <TouchableOpacity onPress={exportHistory}>
+                  <Ionicons name="download-outline" size={24} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Filter chips */}
+            <View style={styles.filterRow}>
+              {(['all', 'in', 'out'] as const).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[styles.filterChip, historyFilter === f && styles.filterChipActive]}
+                  onPress={() => setHistoryFilter(f)}
+                >
+                  <Text style={[styles.filterChipText, historyFilter === f && styles.filterChipTextActive]}>
+                    {f === 'all' ? 'Tous' : f === 'in' ? 'Entrées' : 'Sorties'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {historyLoading ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
+            ) : (
+              <ScrollView style={styles.modalScroll}>
+                {filteredMovements.length === 0 ? (
+                  <Text style={styles.emptyText}>Aucun mouvement</Text>
+                ) : (
+                  filteredMovements.map((mov) => (
+                    <View key={mov.movement_id} style={styles.movementItem}>
+                      <View style={[styles.movementIcon, { backgroundColor: (mov.type === 'in' ? colors.success : colors.warning) + '20' }]}>
+                        <Ionicons
+                          name={mov.type === 'in' ? 'arrow-down-outline' : 'arrow-up-outline'}
+                          size={18}
+                          color={mov.type === 'in' ? colors.success : colors.warning}
+                        />
+                      </View>
+                      <View style={styles.movementInfo}>
+                        <Text style={styles.movementQty}>
+                          {mov.type === 'in' ? '+' : '-'}{mov.quantity} ({mov.previous_quantity} → {mov.new_quantity})
+                        </Text>
+                        {mov.reason ? <Text style={styles.movementReason}>{mov.reason}</Text> : null}
+                        <Text style={styles.movementDate}>{formatDate(mov.created_at)}</Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Statistics Modal */}
+      <Modal visible={showStatsModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Statistiques</Text>
+              <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+                <TouchableOpacity onPress={exportStats}>
+                  <Ionicons name="download-outline" size={24} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowStatsModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+
+            {statsLoading ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
+            ) : statsData ? (
+              <ScrollView style={styles.modalScroll}>
+                {/* Movements summary */}
+                <View style={styles.statsSection}>
+                  <Text style={styles.statsSectionTitle}>Mouvements (30 jours)</Text>
+                  <View style={styles.statsRow}>
+                    <View style={styles.statsCard}>
+                      <Ionicons name="arrow-down-outline" size={20} color={colors.success} />
+                      <Text style={[styles.statsCardValue, { color: colors.success }]}>{statsData.movements_summary.in}</Text>
+                      <Text style={styles.statsCardLabel}>Entrées</Text>
+                    </View>
+                    <View style={styles.statsCard}>
+                      <Ionicons name="arrow-up-outline" size={20} color={colors.warning} />
+                      <Text style={[styles.statsCardValue, { color: colors.warning }]}>{statsData.movements_summary.out}</Text>
+                      <Text style={styles.statsCardLabel}>Sorties</Text>
+                    </View>
+                    <View style={styles.statsCard}>
+                      <Ionicons name="swap-vertical-outline" size={20} color={colors.info} />
+                      <Text style={[styles.statsCardValue, { color: colors.info }]}>{statsData.movements_summary.net}</Text>
+                      <Text style={styles.statsCardLabel}>Net</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Stock by category */}
+                {statsData.stock_by_category.length > 0 && (
+                  <View style={styles.statsSection}>
+                    <Text style={styles.statsSectionTitle}>Stock par catégorie</Text>
+                    {(() => {
+                      const maxVal = Math.max(...statsData.stock_by_category.map((c) => c.count), 1);
+                      return statsData.stock_by_category.map((cat, i) => (
+                        <View key={i} style={styles.barRow}>
+                          <Text style={styles.barLabel} numberOfLines={1}>{cat.name}</Text>
+                          <View style={styles.barTrack}>
+                            <View style={[styles.barFill, { width: `${(cat.count / maxVal) * 100}%`, backgroundColor: colors.primary }]} />
+                          </View>
+                          <Text style={styles.barValue}>{cat.count}</Text>
+                        </View>
+                      ));
+                    })()}
+                  </View>
+                )}
+
+                {/* Status distribution */}
+                <View style={styles.statsSection}>
+                  <Text style={styles.statsSectionTitle}>Distribution des statuts</Text>
+                  {(() => {
+                    const entries = Object.entries(statsData.status_distribution);
+                    const maxVal = Math.max(...entries.map(([, v]) => v), 1);
+                    const statusColors: Record<string, string> = {
+                      normal: colors.success, low_stock: colors.warning, out_of_stock: colors.danger, overstock: colors.info,
+                    };
+                    const statusLabels: Record<string, string> = {
+                      normal: 'Normal', low_stock: 'Stock bas', out_of_stock: 'Rupture', overstock: 'Surstock',
+                    };
+                    return entries.map(([key, val]) => (
+                      <View key={key} style={styles.barRow}>
+                        <Text style={styles.barLabel}>{statusLabels[key] || key}</Text>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.barFill, { width: `${(val / maxVal) * 100}%`, backgroundColor: statusColors[key] || colors.primary }]} />
+                        </View>
+                        <Text style={styles.barValue}>{val}</Text>
+                      </View>
+                    ));
+                  })()}
+                </View>
+
+                {/* Top products by value */}
+                {statsData.top_products_by_value.length > 0 && (
+                  <View style={styles.statsSection}>
+                    <Text style={styles.statsSectionTitle}>Top produits (valeur)</Text>
+                    {statsData.top_products_by_value.map((prod, i) => (
+                      <View key={i} style={styles.topProductRow}>
+                        <Text style={styles.topProductRank}>#{i + 1}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.topProductName}>{prod.name}</Text>
+                          <Text style={styles.topProductSub}>{prod.quantity} unités</Text>
+                        </View>
+                        <Text style={styles.topProductValue}>{prod.value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* ABC Analysis Details */}
+                {statsData.abc_analysis && (
+                  <View style={styles.statsSection}>
+                    <Text style={styles.statsSectionTitle}>Détail de l'Analyse ABC</Text>
+
+                    {/* Class A */}
+                    {statsData.abc_analysis.A.length > 0 && (
+                      <View style={{ marginBottom: Spacing.md }}>
+                        <Text style={[styles.abcClassTitle, { color: colors.success }]}>Classe A (Top Priorité)</Text>
+                        {statsData.abc_analysis.A.slice(0, 5).map((item, i) => (
+                          <View key={i} style={styles.abcDetailRow}>
+                            <Text style={styles.abcDetailName}>{item.name}</Text>
+                            <Text style={styles.abcDetailValue}>{item.percentage.toFixed(1)}% du CA</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Class B */}
+                    {statsData.abc_analysis.B.length > 0 && (
+                      <View style={{ marginBottom: Spacing.md }}>
+                        <Text style={[styles.abcClassTitle, { color: colors.primary }]}>Classe B (Important)</Text>
+                        {statsData.abc_analysis.B.slice(0, 5).map((item, i) => (
+                          <View key={i} style={styles.abcDetailRow}>
+                            <Text style={styles.abcDetailName}>{item.name}</Text>
+                            <Text style={styles.abcDetailValue}>{item.percentage.toFixed(1)}%</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Class C */}
+                    {statsData.abc_analysis.C.length > 0 && (
+                      <View>
+                        <Text style={[styles.abcClassTitle, { color: colors.textMuted }]}>Classe C (Faible Impact)</Text>
+                        <Text style={styles.abcDetailName}>Et {statsData.abc_analysis.C.length} autres produits...</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Orders stats */}
+                <View style={styles.statsSection}>
+                  <Text style={styles.statsSectionTitle}>Commandes</Text>
+                  <View style={styles.statsRow}>
+                    <View style={styles.statsCard}>
+                      <Text style={[styles.statsCardValue, { color: colors.warning }]}>{statsData.orders_stats.pending}</Text>
+                      <Text style={styles.statsCardLabel}>En attente</Text>
+                    </View>
+                    <View style={styles.statsCard}>
+                      <Text style={[styles.statsCardValue, { color: colors.success }]}>{statsData.orders_stats.completed}</Text>
+                      <Text style={styles.statsCardLabel}>Livrées</Text>
+                    </View>
+                    <View style={styles.statsCard}>
+                      <Text style={[styles.statsCardValue, { color: colors.primary }]}>{formatCurrency(statsData.orders_stats.total_value)}</Text>
+                      <Text style={styles.statsCardLabel}>Valeur totale</Text>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+    </LinearGradient>
+  );
+}
+
+
+const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+  gradient: { flex: 1 },
+  container: { flex: 1 },
+  content: { padding: Spacing.md, paddingBottom: 40 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerSection: { marginBottom: Spacing.lg, paddingHorizontal: Spacing.xs },
+  greeting: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
+  subGreeting: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 4 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.lg },
+  kpiCard: {
+    ...glassStyle,
+    width: (screenWidth - Spacing.md * 3) / 2,
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  kpiIcon: { width: 48, height: 48, borderRadius: BorderRadius.full, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.sm },
+  kpiValue: { fontSize: FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs },
+  kpiLabel: { fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center' },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
+  statusSection: { backgroundColor: colors.bgMid, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.xl },
+  statusRow: { flexDirection: 'row', gap: Spacing.sm },
+  abcContainer: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: Spacing.sm },
+  abcCard: { ...glassStyle, flex: 1, padding: Spacing.sm, backgroundColor: colors.glass },
+  abcClass: { fontSize: FontSize.sm, fontWeight: 'bold', marginBottom: 2 },
+  abcCount: { fontSize: FontSize.md, fontWeight: '700', color: colors.text },
+  abcDesc: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  abcFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, gap: Spacing.xs },
+  abcFooterText: { fontSize: FontSize.sm, color: colors.primaryLight, fontWeight: '500' },
+  abcHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  abcTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+  abcBadge: { backgroundColor: colors.primary + '20', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.full },
+  abcBadgeText: { color: colors.primaryLight, fontSize: FontSize.xs, fontWeight: '700' },
+  abcChartPlaceholder: { height: 180, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderStyle: 'dashed', borderWidth: 1, borderColor: colors.divider },
+  abcDetailRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  abcDetailItem: { alignItems: 'center' },
+  abcDetailLabel: { fontSize: FontSize.xs, color: colors.textSecondary, marginBottom: 4 },
+  abcDetailValue: { fontSize: FontSize.sm, color: colors.text, fontWeight: '700' },
+  abcDetailName: { fontSize: FontSize.sm, color: colors.text, flex: 1 },
+  abcClassTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs },
+  statusBadge: { flex: 1, alignItems: 'center', padding: Spacing.sm, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass },
+  statusCount: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+  statusLabel: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 4 },
+  section: { ...glassStyle, padding: Spacing.md, marginBottom: Spacing.md },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+  criticalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  criticalInfo: { flex: 1 },
+  criticalName: { fontSize: FontSize.md, fontWeight: '600', color: colors.text },
+  criticalQty: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  criticalBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: BorderRadius.sm },
+  criticalBadgeText: { fontSize: FontSize.xs, fontWeight: '700' },
+  alertItem: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  alertInfo: { flex: 1 },
+  alertTitle: { fontSize: FontSize.sm, fontWeight: '600', color: colors.text },
+  alertMessage: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 },
+  badge: { backgroundColor: colors.danger, borderRadius: BorderRadius.full, paddingHorizontal: 8, paddingVertical: 2 },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  actionButton: { flex: 1, ...glassStyle, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  actionButtonText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.text },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: colors.bgMid, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.lg, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  modalTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+  modalScroll: { maxHeight: 600 },
+  emptyText: { fontSize: FontSize.sm, color: colors.textMuted, textAlign: 'center', paddingVertical: Spacing.xl },
+  filterRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
+  filterChipActive: { backgroundColor: colors.primary + '30', borderColor: colors.primary },
+  filterChipText: { fontSize: FontSize.sm, color: colors.textSecondary },
+  filterChipTextActive: { color: colors.primaryLight, fontWeight: '600' },
+  movementItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  movementIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  movementInfo: { flex: 1 },
+  movementQty: { fontSize: FontSize.md, fontWeight: '600', color: colors.text },
+  movementReason: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  movementDate: { fontSize: FontSize.xs, color: colors.textMuted, marginTop: 2 },
+  statsSection: { marginBottom: Spacing.lg },
+  statsSectionTitle: { fontSize: FontSize.sm, fontWeight: '700', color: colors.primaryLight, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 1 },
+  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+  statsCard: { flex: 1, ...glassStyle, padding: Spacing.md, alignItems: 'center' },
+  statsCardValue: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+  statsCardLabel: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: Spacing.xs, textAlign: 'center' },
+  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+  barLabel: { width: 80, fontSize: FontSize.xs, color: colors.textSecondary, marginRight: Spacing.sm },
+  barTrack: { flex: 1, height: 16, backgroundColor: colors.glass, borderRadius: 8, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 8 },
+  barValue: { width: 36, fontSize: FontSize.xs, color: colors.text, textAlign: 'right', marginLeft: Spacing.sm, fontWeight: '600' },
+  topProductRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  topProductRank: { fontSize: FontSize.md, fontWeight: '700', color: colors.primary, width: 28 },
+  topProductName: { fontSize: FontSize.md, fontWeight: '600', color: colors.text },
+  topProductSub: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 },
+  topProductValue: { fontSize: FontSize.md, fontWeight: '700', color: colors.success },
+  inventoryContainer: { backgroundColor: colors.glass, borderRadius: BorderRadius.lg, padding: Spacing.md, marginTop: Spacing.xs },
+  inventoryItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  inventoryProductName: { color: colors.text, fontSize: FontSize.md, fontWeight: '600' },
+  inventoryMeta: { color: colors.textSecondary, fontSize: FontSize.xs, marginTop: 2 },
+  countButton: { backgroundColor: colors.primary, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md },
+  countButtonText: { color: colors.text, fontSize: FontSize.sm, fontWeight: '700' },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, marginTop: Spacing.xs },
+  generateBtnText: { color: colors.primary, fontSize: FontSize.sm, fontWeight: '600', marginLeft: Spacing.xs },
+  sectionContainer: { marginTop: Spacing.lg, marginBottom: Spacing.xs },
+  horizontalScroll: { paddingRight: Spacing.lg },
+  stockUrgencyCard: { ...glassStyle, padding: Spacing.md, marginRight: Spacing.sm, width: 160, borderLeftWidth: 4, borderLeftColor: colors.danger },
+  urgencyName: { fontSize: FontSize.sm, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  urgencyQty: { fontSize: FontSize.xs, fontWeight: '600' },
+  recentSalesList: { gap: Spacing.sm },
+  recentSaleItem: { ...glassStyle, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
+  saleInfo: { flex: 1 },
+  saleDate: { fontSize: FontSize.sm, fontWeight: '600', color: colors.text },
+  saleItemsCount: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 },
+  saleAmount: { fontSize: FontSize.md, fontWeight: '700', color: colors.primaryLight },
+  orderButton: { backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: 8, borderRadius: BorderRadius.md },
+  orderButtonText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  reorderScroll: { gap: Spacing.md, paddingBottom: Spacing.sm },
+  reorderCard: { ...glassStyle, width: 200, padding: Spacing.md, backgroundColor: colors.glass },
+  reorderStatus: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 4, borderTopLeftRadius: BorderRadius.lg, borderBottomLeftRadius: BorderRadius.lg },
+  reorderName: { fontSize: FontSize.md, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  reorderMeta: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
+  reorderSuggest: { fontSize: 14, color: colors.primaryLight, fontWeight: '600', marginBottom: Spacing.md },
+});
+

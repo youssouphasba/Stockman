@@ -1,0 +1,162 @@
+{
+    "nav": {
+        "features": "Features",
+        "resources": "Resources",
+        "blog": "Blog",
+        "home": "Log In",
+        "free_trial": "Free Trial"
+    },
+    "hero": {
+        "title_start": "Unleash the potential of your",
+        "title_end": "business",
+        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
+        "cta": "Start Now"
+    },
+    "stats": {
+        "shops": "Shops Equipped",
+        "transactions": "Transactions / Month",
+        "satisfaction": "Satisfied Clients",
+        "support": "Support Available"
+    },
+    "features": {
+        "title": "Your Daily Tools",
+        "subtitle": "A complete suite to manage every aspect of your business.",
+        "dashboard": {
+            "title": "Home",
+            "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
+        },
+        "products": {
+            "title": "Products",
+            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
+        },
+        "pos": {
+            "title": "POS",
+            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
+        },
+        "suppliers": {
+            "title": "Suppliers",
+            "desc": "Supplier directory, order history, and access to 'Button-to-Button' Marketplace."
+        },
+        "orders": {
+            "title": "Orders",
+            "desc": "Track purchase orders, receive goods, and automatically update stock."
+        },
+        "accounting": {
+            "title": "Accounting",
+            "desc": "Precise tracking of sales, expenses, and automatic profitability calculation."
+        },
+        "clients": {
+            "title": "Clients",
+            "desc": "Customer database, purchase history, and integrated loyalty tools."
+        },
+        "settings": {
+            "title": "Settings",
+            "desc": "App customization, user management, and shop configuration."
+        }
+    },
+    "showcase": {
+        "title": "The Interface That Changes Everything",
+        "subtitle": "Clean design, built to save you time.",
+        "app_interface": "App Interface"
+    },
+    "how_it_works": {
+        "title": "Quick Start",
+        "subtitle": "Three simple steps to transform your shop.",
+        "step1": {
+            "title": "Create Account",
+            "desc": "Download the app and configure your shop in under 2 minutes."
+        },
+        "step2": {
+            "title": "Scan Products",
+            "desc": "Use your phone camera to quickly add your stock."
+        },
+        "step3": {
+            "title": "Sell & Track",
+            "desc": "Make your first sales and watch your stats grow in real-time."
+        },
+        "step1_title": "Create Account",
+        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
+        "step2_title": "Scan Products",
+        "step2_desc": "Use your phone camera to quickly add your inventory.",
+        "step3_title": "Sell & Track",
+        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+    },
+    "testimonials": {
+        "title": "They Trust Us",
+        "subtitle": "Discover how Stockman helps merchants daily.",
+        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
+        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
+        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+    },
+    "pricing": {
+        "title": "Choose Your Plan",
+        "subtitle": "Transparent pricing adapted to your business size.",
+        "month": "/month",
+        "popular": "Popular",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 User",
+            "f2": "Up to 100 products",
+            "f3": "Basic Stock Management",
+            "f4": "Cash Register",
+            "cta": "Start"
+        },
+        "business": {
+            "name": "Business",
+            "f1": "3 Users",
+            "f2": "Unlimited Products",
+            "f3": "Stockman AI Assistant",
+            "f4": "Marketplace & Orders",
+            "f5": "Advanced Analytics",
+            "cta": "14-Day Free Trial"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Custom Quote",
+            "f1": "Unlimited Users",
+            "f2": "Multi-Shop Manager",
+            "f3": "API & Integrations",
+            "f4": "Dedicated 24/7 Support",
+            "f5": "Custom AI",
+            "cta": "Contact Us"
+        }
+    },
+    "faq": {
+        "title": "Frequently Asked Questions",
+        "q1": "Does it work without internet?",
+        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
+        "q2": "Is my data secure?",
+        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+    },
+    "download": {
+        "title": "Ready to Level Up?",
+        "subtitle": "Join thousands of merchants who have modernized their management.",
+        "secure": "Secure Payments",
+        "support": "Pro Support",
+        "updates": "Continuous Updates"
+    },
+    "footer": {
+        "desc": "The all-in-one solution for modern merchants in Africa.",
+        "product": "Product",
+        "support": "Support",
+        "legal": "Legal",
+        "help_center": "Help Center",
+        "contact": "Contact",
+        "community": "Community",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "legal_notice": "Legal Notice",
+        "copyright": "© 2026 Stockman. All rights reserved."
+    },
+    "newsletter": {
+        "title": "Become a Stock Expert",
+        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
+        "success": "Thanks! Check your inbox.",
+        "placeholder": "Your email...",
+        "cta": "Get the Guide",
+        "privacy": "No spam. Unsubscribe in 1 click."
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
+    }
+}

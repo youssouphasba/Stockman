@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Stockman",
+    "slug": "stockman",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "stockman",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "83fa27c4-f1c0-45aa-9256-096ec479ced6"
+      }
+    }
+  }
+}

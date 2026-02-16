@@ -1,0 +1,156 @@
+{
+    "nav": {
+        "features": "Özellikler",
+        "resources": "Kaynaklar",
+        "blog": "Blog",
+        "home": "Ana Sayfa",
+        "free_trial": "Ücretsiz Deneme"
+    },
+    "hero": {
+        "title_start": "İşletmenizin potansiyelini",
+        "title_end": "ortaya çıkarın",
+        "subtitle": "Siparişlerinizi otomatikleştirmek ve karlarınızı maksimize etmek için yapay zeka destekli akıllı stok yönetim çözümü.",
+        "cta": "Şimdi Başla"
+    },
+    "stats": {
+        "shops": "Donanımlı Mağazalar",
+        "transactions": "İşlem / Ay",
+        "satisfaction": "Memnun Müşteriler",
+        "support": "Mevcut Destek"
+    },
+    "features": {
+        "title": "Günlük Araçlarınız",
+        "subtitle": "İşinizin her yönünü yönetmek için eksiksiz bir sekme paketi.",
+        "dashboard": {
+            "title": "Panel",
+            "desc": "Faaliyetinize genel bakış, kritik stok uyarıları ve yapay zeka asistanına hızlı erişim."
+        },
+        "products": {
+            "title": "Ürünler",
+            "desc": "Envanter yönetimi, barkod tarama, kategori organizasyonu ve stok değerleme."
+        },
+        "pos": {
+            "title": "Kasa (POS)",
+            "desc": "Müşterilerinizi hızlıca ödeyin, dijital makbuzlar oluşturun ve stoğu gerçek zamanlı güncelleyin."
+        },
+        "suppliers": {
+            "title": "Tedarikçiler",
+            "desc": "Tedarikçi rehberi, sipariş geçmişi ve 'Düğmeden-Düğmeye' Pazaryerine erişim."
+        },
+        "orders": {
+            "title": "Siparişler",
+            "desc": "Satın alma siparişlerini takip edin, malları teslim alın ve stokları otomatik güncelleyin."
+        },
+        "accounting": {
+            "title": "Muhasebe",
+            "desc": "Satışların, giderlerin hassas takibi ve döneme göre otomatik karlılık hesaplaması."
+        },
+        "clients": {
+            "title": "Müşteriler",
+            "desc": "Müşteri veritabanı, satın alma geçmişi ve entegre sadakat araçları."
+        },
+        "settings": {
+            "title": "Ayarlar",
+            "desc": "Uygulama özelleştirme, kullanıcı yönetimi ve mağaza yapılandırması."
+        }
+    },
+    "showcase": {
+        "title": "Her şeyi değiştiren arayüz",
+        "subtitle": "Size zaman kazandırmak için tasarlanmış temiz bir tasarım.",
+        "app_interface": "Uygulama Arayüzü"
+    },
+    "how_it_works": {
+        "title": "Hızlı Başlangıç",
+        "subtitle": "İşletmenizi dönüştürmek için üç basit adım.",
+        "step1": {
+            "title": "Hesap Oluştur",
+            "desc": "Uygulamayı indirin ve mağazanızı 2 dakikadan kısa sürede kurun."
+        },
+        "step2": {
+            "title": "Ürünleri Tara",
+            "desc": "Stoğunuzu hızlıca eklemek için telefon kameranızı kullanın."
+        },
+        "step3": {
+            "title": "Sat ve Takip Et",
+            "desc": "İlk satışlarınızı yapın ve istatistiklerinizin gerçek zamanlı yükselişini izleyin."
+        }
+    },
+    "testimonials": {
+        "title": "Bize güveniyorlar",
+        "subtitle": "Stockman'ın tüccarlara her gün nasıl yardım ettiğini keşfedin.",
+        "t1": "Stockman kullandığımdan beri, stoksuzluk yüzünden para kaybetmiyorum. Yapay zeka beni her zaman doğru zamanda uyarıyor!",
+        "t2": "Uygulama çok basit. Çalışanlarım 10 dakikada öğrendi. Kasa yönetimi mükemmel.",
+        "t3": "Pazaryerine bayılıyorum! Tedarikçilerimden fiyatları karşılaştırıp doğrudan sipariş verebiliyorum. Büyük zaman tasarrufu."
+    },
+    "pricing": {
+        "title": "Planınızı seçin",
+        "subtitle": "İşletmenizin boyutuna uygun şeffaf fiyatlar.",
+        "month": "/ay",
+        "popular": "Popüler",
+        "starter": {
+            "name": "Başlangıç",
+            "cta": "Başla",
+            "f1": "1 Kullanıcı",
+            "f2": "100 ürüne kadar",
+            "f3": "Temel stok yönetimi",
+            "f4": "Yazar Kasa (POS)"
+        },
+        "business": {
+            "name": "İş",
+            "cta": "14 Gün Ücretsiz Deneme",
+            "f1": "3 Kullanıcı",
+            "f2": "Sınırsız ürün",
+            "f3": "Stockman YZ Asistanı",
+            "f4": "Pazaryeri ve Siparişler",
+            "f5": "Gelişmiş analizler"
+        },
+        "enterprise": {
+            "name": "Kurumsal",
+            "price": "Özel Fiyat",
+            "cta": "İletişime Geç",
+            "f1": "Sınırsız kullanıcı",
+            "f2": "Çoklu mağaza",
+            "f3": "API ve Entegrasyonlar",
+            "f4": "7/24 Özel Destek",
+            "f5": "Özel Yapay Zeka"
+        }
+    },
+    "faq": {
+        "title": "Sıkça Sorulan Sorular",
+        "q1": "İnternetsiz çalışır mı?",
+        "a1": "Evet, Stockman çevrimdışı modda çalışır. Verileriniz bağlantı bulduğunuz anda senkronize olur.",
+        "q2": "Verilerim güvende mi?",
+        "a2": "Kesinlikle. Tüm ticari bilgilerinizi korumak için banka düzeyinde şifreleme kullanıyoruz."
+    },
+    "download": {
+        "title": "Sonraki seviyeye hazır mısınız?",
+        "subtitle": "Yönetimlerini modernize eden binlerce tüccara katılın.",
+        "secure": "Güvenli Ödemeler",
+        "support": "Pro Destek",
+        "updates": "Sürekli Güncelleme"
+    },
+    "footer": {
+        "desc": "Afrika'daki modern tüccarlar için hepsi bir arada çözüm.",
+        "product": "Ürün",
+        "support": "Destek",
+        "legal": "Yasal",
+        "help_center": "Yardım Merkezi",
+        "contact": "İletişim",
+        "community": "Topluluk",
+        "privacy": "Gizlilik Politikası",
+        "terms": "Hizmet Şartları",
+        "legal_notice": "Yasal Uyarı",
+        "copyright": "© 2026 Stockman. Tüm hakları saklıdır."
+    },
+    "newsletter": {
+        "title": "Stok Uzmanı Olun",
+        "desc": "5000+ tüccara katılın ve ücretsiz rehberimizi alın: \"Karlılığınızı öldüren 10 hata\".",
+        "placeholder": "İş e-postanız...",
+        "cta": "Rehberi Al",
+        "success": "Teşekkürler! Gelen kutunuzu kontrol edin.",
+        "privacy": "Spam yok. 1 tıkla abonelikten çık."
+    },
+    "whatsapp": {
+        "message": "Merhaba, Stockman hakkında daha fazla bilgi almak istiyorum!"
+    }
+}

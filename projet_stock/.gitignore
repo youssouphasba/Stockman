@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+.metro-cache/
+dist/
+web-build/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+mongo_data/
+.DS_Store

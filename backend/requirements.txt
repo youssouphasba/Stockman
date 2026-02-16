@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+motor
+pydantic-settings
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+google-generativeai
+slowapi
+twilio
+httpx
+pydantic[email]
+python-multipart

@@ -1,0 +1,156 @@
+{
+    "nav": {
+        "features": "Funktionen",
+        "resources": "Ressourcen",
+        "blog": "Blog",
+        "home": "Startseite",
+        "free_trial": "Kostenlos testen"
+    },
+    "hero": {
+        "title_start": "Entfalten Sie das Potenzial Ihres",
+        "title_end": "Geschäfts",
+        "subtitle": "Die intelligente, KI-gestützte Lagerverwaltungslösung zur Automatisierung Ihrer Bestellungen und Maximierung Ihrer Gewinne.",
+        "cta": "Jetzt starten"
+    },
+    "stats": {
+        "shops": "Ausgestattete Geschäfte",
+        "transactions": "Transaktionen / Monat",
+        "satisfaction": "Zufriedene Kunden",
+        "support": "Support verfügbar"
+    },
+    "features": {
+        "title": "Ihre täglichen Werkzeuge",
+        "subtitle": "Eine komplette Suite von Tabs zur Verwaltung jedes Aspekts Ihres Unternehmens.",
+        "dashboard": {
+            "title": "Dashboard",
+            "desc": "Überblick über Ihre Aktivität, kritische Bestandsalarme und schneller Zugriff auf den KI-Assistenten."
+        },
+        "products": {
+            "title": "Produkte",
+            "desc": "Bestandsverwaltung, Barcode-Scan, Organisation nach Kategorien und Bestandsbewertung."
+        },
+        "pos": {
+            "title": "Kasse",
+            "desc": "Kassieren Sie Kunden schnell ab, erstellen Sie digitale Belege und aktualisieren Sie den Bestand in Echtzeit."
+        },
+        "suppliers": {
+            "title": "Lieferanten",
+            "desc": "Lieferantenverzeichnis, Bestellhistorie und Zugang zum 'Button-to-Button' Marktplatz."
+        },
+        "orders": {
+            "title": "Bestellungen",
+            "desc": "Verfolgen Sie Bestellungen, nehmen Sie Waren an und aktualisieren Sie Bestände automatisch."
+        },
+        "accounting": {
+            "title": "Buchhaltung",
+            "desc": "Präzise Verfolgung von Verkäufen, Ausgaben und automatische Rentabilitätsberechnung nach Zeitraum."
+        },
+        "clients": {
+            "title": "Kunden",
+            "desc": "Kundendatenbank, Kaufhistorie und integrierte Treueinstrumente."
+        },
+        "settings": {
+            "title": "Einstellungen",
+            "desc": "App-Anpassung, Benutzerverwaltung und Shop-Konfiguration."
+        }
+    },
+    "showcase": {
+        "title": "Die Schnittstelle, die alles ändert",
+        "subtitle": "Ein sauberes Design, das Ihnen Zeit spart.",
+        "app_interface": "App-Oberfläche"
+    },
+    "how_it_works": {
+        "title": "Schnellstart",
+        "subtitle": "Drei einfache Schritte, um Ihr Geschäft zu transformieren.",
+        "step1": {
+            "title": "Konto erstellen",
+            "desc": "Laden Sie die App herunter und richten Sie Ihren Shop in weniger als 2 Minuten ein."
+        },
+        "step2": {
+            "title": "Produkte scannen",
+            "desc": "Verwenden Sie Ihre Handykamera, um Ihren Bestand schnell hinzuzufügen."
+        },
+        "step3": {
+            "title": "Verkaufen & Verfolgen",
+            "desc": "Tätigen Sie Ihre ersten Verkäufe und sehen Sie Ihre Statistiken in Echtzeit steigen."
+        }
+    },
+    "testimonials": {
+        "title": "Sie vertrauen uns",
+        "subtitle": "Entdecken Sie, wie Stockman Händlern täglich hilft.",
+        "t1": "Seit ich Stockman benutze, verliere ich kein Geld mehr durch Lagerbestände. Die KI warnt mich immer zur richtigen Zeit!",
+        "t2": "Die App ist so einfach. Meine Mitarbeiter haben sie in 10 Minuten gelernt. Das Kassenmanagement ist perfekt.",
+        "t3": "Ich liebe den Marktplatz! Ich kann Preise von meinen Lieferanten vergleichen und direkt bestellen. Große Zeitersparnis."
+    },
+    "pricing": {
+        "title": "Wählen Sie Ihren Plan",
+        "subtitle": "Transparente Preise, angepasst an Ihre Unternehmensgröße.",
+        "month": "/Monat",
+        "popular": "Beliebt",
+        "starter": {
+            "name": "Starter",
+            "cta": "Starten",
+            "f1": "1 Benutzer",
+            "f2": "Bis zu 100 Produkte",
+            "f3": "Grundlegende Lagerverwaltung",
+            "f4": "Registrierkasse (POS)"
+        },
+        "business": {
+            "name": "Business",
+            "cta": "14 Tage kostenlos testen",
+            "f1": "3 Benutzer",
+            "f2": "Unbegrenzte Produkte",
+            "f3": "Stockman KI-Assistent",
+            "f4": "Marktplatz & Bestellungen",
+            "f5": "Erweiterte Analysen"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Auf Anfrage",
+            "cta": "Kontaktieren",
+            "f1": "Unbegrenzte Benutzer",
+            "f2": "Multi-Shops",
+            "f3": "API & Integrationen",
+            "f4": "Dedizierter 24/7 Support",
+            "f5": "Benutzerdefinierte KI"
+        }
+    },
+    "faq": {
+        "title": "Häufig gestellte Fragen",
+        "q1": "Funktioniert es offline?",
+        "a1": "Ja, Stockman funktioniert im Offline-Modus. Ihre Daten werden synchronisiert, sobald Sie eine Verbindung finden.",
+        "q2": "Sind meine Daten sicher?",
+        "a2": "Absolut. Wir verwenden Verschlüsselung auf Bankenniveau, um alle Ihre Geschäftsinformationen zu schützen."
+    },
+    "download": {
+        "title": "Bereit für das nächste Level?",
+        "subtitle": "Schließen Sie sich Tausenden von Händlern an, die ihr Management modernisiert haben.",
+        "secure": "Sichere Zahlungen",
+        "support": "Pro Support",
+        "updates": "Kontinuierliche Updates"
+    },
+    "footer": {
+        "desc": "Die All-in-One-Lösung für moderne Händler in Afrika.",
+        "product": "Produkt",
+        "support": "Support",
+        "legal": "Rechtlich",
+        "help_center": "Hilfezentrum",
+        "contact": "Kontakt",
+        "community": "Community",
+        "privacy": "Datenschutzrichtlinie",
+        "terms": "Nutzungsbedingungen",
+        "legal_notice": "Impressum",
+        "copyright": "© 2026 Stockman. Alle Rechte vorbehalten."
+    },
+    "newsletter": {
+        "title": "Werden Sie ein Aktienexperte",
+        "desc": "Schließen Sie sich über 5000 Händlern an und erhalten Sie unseren kostenlosen Leitfaden: \"10 Fehler, die Ihre Rentabilität töten\".",
+        "placeholder": "Ihre geschäftliche E-Mail...",
+        "cta": "Leitfaden erhalten",
+        "success": "Danke! Überprüfen Sie Ihren Posteingang.",
+        "privacy": "Kein Spam. Abmeldung mit 1 Klick."
+    },
+    "whatsapp": {
+        "message": "Hallo, ich möchte mehr über Stockman erfahren!"
+    }
+}

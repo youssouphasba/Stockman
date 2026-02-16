@@ -1,0 +1,4119 @@
+python : C:\Users\Utilisat
+eur\projet_stock\backend\s
+erver.py:121: 
+DeprecationWarning: 
+Au caractère Ligne:1 : 1
++ python server.py > 
+startup_log_v6.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (C  
+  :\Users\Utilis...cati   
+ onWarning: :String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+        on_event is 
+deprecated, use lifespan 
+event handlers instead.
+
+        Read more about 
+it in the
+        [FastAPI docs for 
+Lifespan Events](https://f
+astapi.tiangolo.com/advanc
+ed/events/).
+        
+  @app.on_event("startup")
+C:\Users\Utilisateur\proje
+t_stock\backend\server.py:
+2786: DeprecationWarning: 
+`regex` has been 
+deprecated, please use 
+`pattern` instead
+  sort_by: str = 
+Query("name", regex="^(nam
+e|total_spent|last_purchas
+e|visits)$"),
+2026-02-13 03:50:38,569 - 
+__main__ - INFO - CORS 
+Policy: PERMISSIVE 
+(Development/Testing)
+C:\Users\Utilisateur\proje
+t_stock\backend\server.py:
+7402: DeprecationWarning: 
+        on_event is 
+deprecated, use lifespan 
+event handlers instead.
+
+        Read more about 
+it in the
+        [FastAPI docs for 
+Lifespan Events](https://f
+astapi.tiangolo.com/advanc
+ed/events/).
+        
+  
+@app.on_event("shutdown")
+INFO:     Will watch for 
+changes in these 
+directories: ['C:\\Users\\
+Utilisateur\\projet_stock\
+\backend']
+INFO:     Uvicorn running 
+on http://0.0.0.0:8000 
+(Press CTRL+C to quit)
+INFO:     Started 
+reloader process [27712] 
+using StatReload
+2026-02-13 03:50:44,147 - 
+__mp_main__ - INFO - CORS 
+Policy: PERMISSIVE 
+(Development/Testing)
+2026-02-13 03:50:45,667 - 
+server - INFO - CORS 
+Policy: PERMISSIVE 
+(Development/Testing)
+INFO:     Started server 
+process [1280]
+INFO:     Waiting for 
+application startup.
+2026-02-13 03:50:46,237 - 
+server - INFO - Database 
+indexes and configs 
+initialized successfully
+2026-02-13 03:50:46,591 - 
+server - INFO - 
+Migration: store_id + 
+is_active backfill 
+completed
+2026-02-13 03:50:46,592 - 
+server - INFO - Checking 
+for stock and expiry 
+alerts...
+INFO:     Application 
+startup complete.
+INFO:     192.168.1.73:44390 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44428 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44390 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44428 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44420 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44420 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44428 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/products?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44390 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44390 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44428 - "GET /api/suppliers?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44420 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+2026-02-13 03:52:01,411 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:44428 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:44412 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/customers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/suppliers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44412 - "GET /api/replenishment/suggestions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 5758, in ge
+t_replenishment_suggestion
+s
+    velocity_map = 
+defaultdict(float)
+                   
+^^^^^^^^^^^
+NameError: name 
+'defaultdict' is not 
+defined
+INFO:     192.168.1.73:44470 - "GET /api/credit-notes?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44456 - "GET /api/returns?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44444 - "GET /api/orders/filter-suppliers HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/orders?start_date=2026-01-14T02%3A52%3A07.799Z&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44404 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57762 - "GET /api/cgu HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58630 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58622 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58608 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58638 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58630 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58638 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58608 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58622 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58626 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58630 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58608 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+2026-02-13 03:52:44,492 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:58626 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58626 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58326 - "POST /api/auth/logout HTTP/1.1" 200 OK
+2026-02-13 03:53:05,957 - 
+passlib.handlers.bcrypt - 
+WARNING - (trapped) error 
+reading bcrypt version
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\pa
+sslib\handlers\bcrypt.py",
+ line 620, in 
+_load_backend_mixin
+    version = _bcrypt.__ab
+out__.__version__
+              
+^^^^^^^^^^^^^^^^^
+AttributeError: module 
+'bcrypt' has no attribute 
+'__about__'
+INFO:     192.168.1.73:58326 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58362 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58330 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58344 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58326 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58344 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58354 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58326 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58362 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58330 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58344 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58354 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58326 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58344 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58362 - "GET /api/suppliers?skip=0&limit=100 HTTP/1.1" 200 OK
+2026-02-13 03:53:07,080 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:58330 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:58354 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58326 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35930 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53958 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53944 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53956 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53944 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53932 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53956 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53958 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53932 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53944 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/suppliers?skip=0&limit=100 HTTP/1.1" 200 OK
+2026-02-13 03:54:19,542 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:53932 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:53956 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57980 - "GET /api/returns?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57968 - "GET /api/orders/filter-suppliers HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57996 - "GET /api/credit-notes?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/orders?start_date=2026-01-14T02%3A54%3A26.267Z&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57980 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57968 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58008 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57996 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57968 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/suppliers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57968 - "GET /api/replenishment/suggestions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 5758, in ge
+t_replenishment_suggestion
+s
+    velocity_map = 
+defaultdict(float)
+                   
+^^^^^^^^^^^
+NameError: name 
+'defaultdict' is not 
+defined
+INFO:     192.168.1.73:57996 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57980 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57980 - "GET /api/customers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/cgu HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50528 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50502 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50538 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50502 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50504 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50528 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50538 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50504 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50528 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+2026-02-13 03:54:41,533 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:53928 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/privacy HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34822 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34842 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34858 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34830 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34842 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34820 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34830 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34822 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34820 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34858 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34822 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+2026-02-13 03:54:58,072 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:34820 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34820 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47212 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47206 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47202 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47210 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/customers/cust_87f2d1a4e81d/sales HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/customers/cust_87f2d1a4e81d/debt-history HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/customers/cust_27f16a3d5350/sales HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/customers/cust_27f16a3d5350/debt-history HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/suppliers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:42982 - "GET /api/replenishment/suggestions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 5758, in ge
+t_replenishment_suggestion
+s
+    velocity_map = 
+defaultdict(float)
+                   
+^^^^^^^^^^^
+NameError: name 
+'defaultdict' is not 
+defined
+INFO:     192.168.1.73:38758 - "GET /api/marketplace/suppliers HTTP/1.1" 200 OK
+INFO:     192.168.1.73:38758 - "GET /api/marketplace/suppliers/user_f7689525a7ae HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55296 - "POST /api/conversations?partner_id=user_f7689525a7ae&partner_name=senlab HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55296 - "GET /api/conversations/conv_7d194fb5c4b1/messages?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55296 - "POST /api/conversations/conv_7d194fb5c4b1/messages HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55296 - "GET /api/conversations/conv_7d194fb5c4b1/messages?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55296 - "GET /api/marketplace/suppliers/user_f7689525a7ae HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59796 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59784 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59806 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59788 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59772 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59784 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59784 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34382 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34382 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34394 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:34396 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34396 - "GET /api/supplier/clients HTTP/1.1" 200 OK
+INFO:     192.168.1.73:34382 - "GET /api/supplier/orders?start_date=2026-01-14T02:56:32.461Z& HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49868 - "GET /api/supplier/catalog HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49868 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:49874 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/catalog HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/orders?start_date=2026-01-14T02:56:40.330Z& HTTP/1.1" 200 OK
+INFO:     192.168.1.73:37574 - "GET /api/supplier/clients HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:37574 - "GET /api/supplier/clients HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/orders?start_date=2026-01-14T02:56:44.702Z& HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/catalog HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49874 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:37574 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:58012 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49650 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49650 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49650 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:55604 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55634 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55644 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55620 - "GET /api/products?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55604 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55604 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39518 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39518 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:39532 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39550 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39562 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39540 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39532 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39532 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56126 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56126 - "GET /api/supplier/dashboard HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 4965, in 
+get_supplier_dashboard
+    if created and 
+created >= month_start:
+                   
+^^^^^^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:56140 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "GET /api/supplier/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47318 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:47316 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:56128 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/supplier/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:52882 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/supplier/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:54650 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:54666 - "GET /api/suppliers?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:54650 - "GET /api/supplier/ratings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/supplier/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "GET /api/supplier/profile HTTP/1.1" 200 OK
+INFO:     192.168.1.73:55924 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44952 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     192.168.1.73:44254 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53702 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:51922 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35526 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49182 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49190 - "GET /api/products?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49202 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49212 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49208 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49182 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49190 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49190 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49212 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49202 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49212 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49182 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49208 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49190 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49182 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49202 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49208 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49190 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+2026-02-13 04:05:42,983 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:49182 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:49182 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57584 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57554 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57586 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57570 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57554 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/customers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57554 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57584 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57554 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57554 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57584 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/conversations HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57540 - "GET /api/conversations/conv_7d194fb5c4b1/messages?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50902 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50902 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50906 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/suppliers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50902 - "GET /api/replenishment/suggestions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 5758, in ge
+t_replenishment_suggestion
+s
+    velocity_map = 
+defaultdict(float)
+                   
+^^^^^^^^^^^
+NameError: name 
+'defaultdict' is not 
+defined
+INFO:     192.168.1.73:50906 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50914 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50932 - "GET /api/promotions HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50926 - "GET /api/customers?sort_by=name&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50906 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50914 - "GET /api/returns?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50926 - "GET /api/credit-notes?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50906 - "GET /api/orders/filter-suppliers HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/orders?start_date=2026-01-14T03%3A06%3A15.703Z&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50886 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57404 - "GET /api/credit-notes?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57392 - "GET /api/returns?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57380 - "GET /api/orders/filter-suppliers HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57372 - "GET /api/orders?start_date=2026-01-14T03%3A06%3A27.147Z&skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:57404 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43880 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43890 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43904 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43868 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43884 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:43868 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41890 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41856 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41888 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41872 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41856 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41858 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41872 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41890 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41888 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41858 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:41890 - "GET /api/sales/forecast HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 6335, in 
+get_sales_forecast
+    is_last_7 = sale_date 
+>= seven_days_ago if 
+sale_date else False
+                ^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+TypeError: can't compare 
+offset-naive and 
+offset-aware datetimes
+2026-02-13 04:07:43,941 - 
+server - ERROR - Smart 
+reminders - inventory 
+check error: can't 
+subtract offset-naive and 
+offset-aware datetimes
+INFO:     192.168.1.73:41858 - "GET /api/smart-reminders HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53944 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:53928 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45140 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45152 - "GET /api/customers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45140 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45168 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45152 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45152 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45152 - "GET /api/suppliers?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:45140 - "GET /api/replenishment/suggestions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in 
+ASGI application
+Traceback (most recent 
+call last):
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\protocols\http\h11_i
+mpl.py", line 408, in 
+run_asgi
+    result = await app(  
+# type: 
+ignore[func-returns-value]
+             ^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^
+        self.scope, 
+self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\uv
+icorn\middleware\proxy_hea
+ders.py", line 84, in 
+__call__
+    return await 
+self.app(scope, receive, 
+send)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\applications.py", 
+line 1054, in __call__
+    await 
+super().__call__(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\applications.py", 
+line 123, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 186, in __call__
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\errors.
+py", line 164, in __call__
+    await self.app(scope, 
+receive, _send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\cors.py
+", line 85, in __call__
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\middleware\excepti
+ons.py", line 65, in 
+__call__
+    await wrap_app_handlin
+g_exceptions(self.app, 
+conn)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+756, in __call__
+    await self.middleware_
+stack(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+776, in app
+    await 
+route.handle(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+297, in handle
+    await self.app(scope, 
+receive, send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+77, in app
+    await wrap_app_handlin
+g_exceptions(app, 
+request)(scope, receive, 
+send)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 64, in 
+wrapped_app
+    raise exc
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\_exception_handler
+.py", line 53, in 
+wrapped_app
+    await app(scope, 
+receive, sender)
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\st
+arlette\routing.py", line 
+72, in app
+    response = await 
+func(request)
+               
+^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+278, in app
+    raw_response = await 
+run_endpoint_function(
+                   ^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+        
+dependant=dependant, 
+values=values, 
+is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Utilisate
+ur\AppData\Roaming\Python\
+Python314\site-packages\fa
+stapi\routing.py", line 
+191, in 
+run_endpoint_function
+    return await 
+dependant.call(**values)
+           ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\Utilisate
+ur\projet_stock\backend\se
+rver.py", line 5758, in ge
+t_replenishment_suggestion
+s
+    velocity_map = 
+defaultdict(float)
+                   
+^^^^^^^^^^^
+NameError: name 
+'defaultdict' is not 
+defined
+INFO:     192.168.1.73:33922 - "GET /api/sales?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:33932 - "GET /api/expenses?days=30&skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:33918 - "GET /api/accounting/stats?days=30 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:33922 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     192.168.1.73:33932 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:33922 - "GET /api/products?skip=0&limit=500 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:59452 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39946 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39958 - "GET /api/inventory/tasks?status=pending HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39960 - "GET /api/user/notifications?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39938 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39956 - "GET /api/statistics HTTP/1.1" 200 OK
+INFO:     192.168.1.73:39946 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50670 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50664 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50664 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "PUT /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     192.168.1.73:50314 - "GET /api/suppliers?skip=0&limit=100 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:48514 - "GET /api/settings HTTP/1.1" 200 OK
+WARNING:  StatReload 
+detected changes in 
+'server.py'. Reloading...
+INFO:     192.168.1.73:35582 - "GET /api/products?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35586 - "GET /api/categories HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35606 - "GET /api/alerts?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35600 - "GET /api/customers?skip=0&limit=200 HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35582 - "GET /api/alert-rules HTTP/1.1" 200 OK
+INFO:     192.168.1.73:35578 - "GET /api/dashboard HTTP/1.1" 200 OK

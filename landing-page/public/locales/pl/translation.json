@@ -1,0 +1,156 @@
+{
+    "nav": {
+        "features": "Funkcje",
+        "resources": "Zasoby",
+        "blog": "Blog",
+        "home": "Strona główna",
+        "free_trial": "Darmowa Wersja Próbna"
+    },
+    "hero": {
+        "title_start": "Odblokuj potencjał swojego",
+        "title_end": "biznesu",
+        "subtitle": "Inteligentne rozwiązanie do zarządzania zapasami oparte na sztucznej inteligencji, aby zautomatyzować zamówienia i zmaksymalizować zyski.",
+        "cta": "Zacznij Teraz"
+    },
+    "stats": {
+        "shops": "Wyposażone Sklepy",
+        "transactions": "Transakcje / Miesiąc",
+        "satisfaction": "Zadowoleni Klienci",
+        "support": "Wsparcie Dostępne"
+    },
+    "features": {
+        "title": "Twoje codzienne narzędzia",
+        "subtitle": "Kompletny zestaw zakładek do zarządzania każdym aspektem Twojego biznesu.",
+        "dashboard": {
+            "title": "Pulpit",
+            "desc": "Przegląd Twojej aktywności, krytyczne alerty o zapasach i szybki dostęp do asystenta AI."
+        },
+        "products": {
+            "title": "Produkty",
+            "desc": "Zarządzanie zapasami, skanowanie kodów kreskowych, organizacja wg kategorii i wycena zapasów."
+        },
+        "pos": {
+            "title": "Kasa (POS)",
+            "desc": "Szybka obsługa klientów, generowanie cyfrowych paragonów i aktualizacja zapasów w czasie rzeczywistym."
+        },
+        "suppliers": {
+            "title": "Dostawcy",
+            "desc": "Katalog dostawców, historia zamówień i dostęp do rynku 'Button-to-Button'."
+        },
+        "orders": {
+            "title": "Zamówienia",
+            "desc": "Śledź zamówienia zakupu, przyjmuj towary i automatycznie aktualizuj zapasy."
+        },
+        "accounting": {
+            "title": "Księgowość",
+            "desc": "Dokładne śledzenie sprzedaży, wydatków i automatyczne obliczanie rentowności w danym okresie."
+        },
+        "clients": {
+            "title": "Klienci",
+            "desc": "Baza klientów, historia zakupów i zintegrowane narzędzia lojalnościowe."
+        },
+        "settings": {
+            "title": "Ustawienia",
+            "desc": "Dostosowanie aplikacji, zarządzanie użytkownikami i konfiguracja sklepu."
+        }
+    },
+    "showcase": {
+        "title": "Interfejs, który zmienia wszystko",
+        "subtitle": "Czysty design, stworzony, aby zaoszczędzić Twój czas.",
+        "app_interface": "Interfejs Aplikacji"
+    },
+    "how_it_works": {
+        "title": "Szybki Start",
+        "subtitle": "Trzy proste kroki, aby przekształcić Twój biznes.",
+        "step1": {
+            "title": "Utwórz Konto",
+            "desc": "Pobierz aplikację i skonfiguruj swój sklep w mniej niż 2 minuty."
+        },
+        "step2": {
+            "title": "Skanuj Produkty",
+            "desc": "Użyj aparatu w telefonie, aby szybko dodać zapasy."
+        },
+        "step3": {
+            "title": "Sprzedawaj i Śledź",
+            "desc": "Dokonaj pierwszych sprzedaży i obserwuj statystyki w czasie rzeczywistym."
+        }
+    },
+    "testimonials": {
+        "title": "Ufają nam",
+        "subtitle": "Odkryj, jak Stockman codziennie pomaga handlowcom.",
+        "t1": "Odkąd używam Stockman, nie tracę już pieniędzy przez braki magazynowe. AI zawsze ostrzega mnie w odpowiednim momencie!",
+        "t2": "Aplikacja jest tak prosta. Moi pracownicy nauczyli się jej w 10 minut. Zarządzanie kasą jest idealne.",
+        "t3": "Uwielbiam rynek! Mogę porównywać ceny od moich dostawców i zamawiać bezpośrednio. Ogromna oszczędność czasu."
+    },
+    "pricing": {
+        "title": "Wybierz swój plan",
+        "subtitle": "Przejrzyste ceny dostosowane do wielkości Twojego biznesu.",
+        "month": "/miesiąc",
+        "popular": "Popularny",
+        "starter": {
+            "name": "Starter",
+            "cta": "Zacznij",
+            "f1": "1 Użytkownik",
+            "f2": "Do 100 produktów",
+            "f3": "Podstawowe zarządzanie zapasami",
+            "f4": "Kasa fiskalna (POS)"
+        },
+        "business": {
+            "name": "Biznes",
+            "cta": "14-dniowa darmowa próba",
+            "f1": "3 Użytkowników",
+            "f2": "Nielimitowane produkty",
+            "f3": "Asystent Stockman AI",
+            "f4": "Rynek i Zamówienia",
+            "f5": "Zaawansowane analizy"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Wycena indywidualna",
+            "cta": "Skontaktuj się",
+            "f1": "Nielimitowani użytkownicy",
+            "f2": "Wiele sklepów",
+            "f3": "API i Integracje",
+            "f4": "Dedykowane wsparcie 24/7",
+            "f5": "Niestandardowe AI"
+        }
+    },
+    "faq": {
+        "title": "Często Zadawane Pytania",
+        "q1": "Czy działa bez internetu?",
+        "a1": "Tak, Stockman działa w trybie offline. Twoje dane synchronizują się, gdy tylko znajdziesz połączenie.",
+        "q2": "Czy moje dane są bezpieczne?",
+        "a2": "Absolutnie. Używamy szyfrowania na poziomie bankowym, aby chronić wszystkie Twoje informacje biznesowe."
+    },
+    "download": {
+        "title": "Gotowy na wyższy poziom?",
+        "subtitle": "Dołącz do tysięcy handlowców, którzy zmodernizowali swoje zarządzanie.",
+        "secure": "Bezpieczne Płatności",
+        "support": "Wsparcie Pro",
+        "updates": "Ciągłe Aktualizacje"
+    },
+    "footer": {
+        "desc": "Kompleksowe rozwiązanie dla nowoczesnych handlowców w Afryce.",
+        "product": "Produkt",
+        "support": "Wsparcie",
+        "legal": "Prawne",
+        "help_center": "Centrum Pomocy",
+        "contact": "Kontakt",
+        "community": "Społeczność",
+        "privacy": "Polityka Prywatności",
+        "terms": "Warunki Usługi",
+        "legal_notice": "Nota Prawna",
+        "copyright": "© 2026 Stockman. Wszelkie prawa zastrzeżone."
+    },
+    "newsletter": {
+        "title": "Zostań Ekspertem Magazynowym",
+        "desc": "Dołącz do 5000+ handlowców i otrzymaj nasz darmowy przewodnik: \"10 błędów zabijających Twoją rentowność\".",
+        "placeholder": "Twój email firmowy...",
+        "cta": "Pobierz Przewodnik",
+        "success": "Dzięki! Sprawdź swoją skrzynkę odbiorczą.",
+        "privacy": "Bez spamu. Wypisz się 1 kliknięciem."
+    },
+    "whatsapp": {
+        "message": "Cześć, chciałbym dowiedzieć się więcej o Stockman!"
+    }
+}
