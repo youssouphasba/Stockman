@@ -22,10 +22,10 @@ class TwilioService:
             logger.warning("Twilio credentials missing. WhatsApp messages will only be logged.")
 
     async def send_whatsapp_otp(self, phone: str, otp: str) -> bool:
-        \"\"\"
+        """
         Send an OTP via WhatsApp.
         Phone should be in E.164 format (ex: +221771234567).
-        \"\"\"
+        """
         # Ensure phone has the whatsapp: prefix for Twilio
         to_whatsapp_number = f"whatsapp:{phone}" if not phone.startswith("whatsapp:") else phone
         

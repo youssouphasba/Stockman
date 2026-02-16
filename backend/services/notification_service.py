@@ -19,9 +19,9 @@ class NotificationService:
             self.headers["Authorization"] = f"Bearer {access_token}"
 
     async def send_push_notification(self, expo_tokens: List[str], title: str, body: str, data: Optional[Dict[str, Any]] = None):
-        \"\"\"
+        """
         Send a push notification to one or more Expo Push Tokens.
-        \"\"\"
+        """
         if not expo_tokens:
             return
 
@@ -61,9 +61,9 @@ class NotificationService:
             return None
 
     async def notify_user(self, db, user_id: str, title: str, body: str, data: Optional[Dict[str, Any]] = None):
-        \"\"\"
+        """
         Helper to notify a user by their user_id by fetching their registered tokens.
-        \"\"\"
+        """
         user_doc = await db.users.find_one({"user_id": user_id}, {"push_tokens": 1})
         if user_doc and "push_tokens" in user_doc:
             tokens = user_doc["push_tokens"]
