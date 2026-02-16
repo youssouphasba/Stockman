@@ -8921,7 +8921,7 @@ app.include_router(api_router)
 app.include_router(admin_router, prefix="/api", dependencies=[Depends(require_superadmin)])
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
-_is_production = os.environ.get("ENV", "development") == "production"
+_is_production = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "development")) == "production"
 _raw_origins = os.environ.get("ALLOWED_ORIGIN", "")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
@@ -8954,7 +8954,7 @@ if __name__ == "__main__":
             logger.info(f"ROUTE: {route.methods} {route.path}")
     import uvicorn
     import uvicorn
-    is_dev = os.environ.get("ENV", "development") != "production"
+    is_dev = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "development")) != "production"
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
