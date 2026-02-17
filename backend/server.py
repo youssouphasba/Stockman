@@ -79,6 +79,10 @@ app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# App routers
+api_router = APIRouter(prefix="/api")
+admin_router = APIRouter(prefix="/admin")
+
 @app.get("/")
 async def root():
     return {"message": "Stockman Backend is live", "timestamp": datetime.now(timezone.utc)}
@@ -95,10 +99,6 @@ async def add_process_time_header(request: Request, call_next):
     
     response.headers["X-Process-Time"] = str(process_time)
     return response
-
-# App routers
-api_router = APIRouter(prefix="/api")
-admin_router = APIRouter(prefix="/admin")
 
 # Models
 class CGU(BaseModel):
