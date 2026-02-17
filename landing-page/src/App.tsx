@@ -164,7 +164,7 @@ function Landing() {
         <div className="pricing-grid">
           <div className="pricing-card glass-card">
             <h3>{t('pricing.starter.name')}</h3>
-            <div className="price">0 <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
+            <div className="price">{t('pricing.starter.price')} <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
             <ul className="pricing-features">
               <li><span className="check-icon">✓</span> {t('pricing.starter.f1')}</li>
               <li><span className="check-icon">✓</span> {t('pricing.starter.f2')}</li>
@@ -177,7 +177,7 @@ function Landing() {
           <div className="pricing-card glass-card popular">
             <div className="popular-tag">{t('pricing.popular')}</div>
             <h3>{t('pricing.business.name')}</h3>
-            <div className="price">15.000 <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
+            <div className="price">{t('pricing.business.price')} <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
             <ul className="pricing-features">
               <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
               <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>
