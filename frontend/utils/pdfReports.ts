@@ -144,7 +144,7 @@ export async function generateSalePdf(sale: Sale, store: Store, currency?: strin
     ref,
     date,
     recipientLabel: "Client",
-    recipientName: sale.customer_id || "Client Divers",
+    recipientName: sale.customer_name || sale.customer_id || "Client Divers",
     itemsHtml,
     total: sale.total_amount,
     currency,

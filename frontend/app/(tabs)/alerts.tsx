@@ -96,7 +96,7 @@ export default function AlertsScreen() {
   const loadData = useCallback(async () => {
     try {
       const result = await alertsApi.list();
-      setAlertList(result.items ?? result as any);
+      setAlertList(result?.items || []);
     } catch {
       // silently fail
     } finally {
@@ -199,7 +199,7 @@ export default function AlertsScreen() {
     );
   }
 
-  const unread = alertList.filter((a) => !a.is_read).length;
+  const unread = (alertList || []).filter((a) => !a.is_read).length;
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>

@@ -199,7 +199,11 @@ export default function POSScreen() {
                     Alert.alert('Succès', 'Vente à crédit enregistrée avec succès.');
                 }
             } else {
-                setLastSale(result);
+                const saleWithCustomer = {
+                    ...result,
+                    customer_name: selectedCustomer?.name || 'Passant'
+                };
+                setLastSale(saleWithCustomer);
                 setShowReceiptModal(true);
             }
 

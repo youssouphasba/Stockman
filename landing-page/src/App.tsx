@@ -36,7 +36,7 @@ function Landing() {
         description={t('hero.subtitle')}
       />
       <nav className="navbar">
-        <div className="container">
+        <div className="container nav-container">
           <div className="logo">
             <span className="text-gradient">Stockman</span>
           </div>
@@ -44,12 +44,44 @@ function Landing() {
             <span /><span /><span />
           </button>
           <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            <a href="#features" className="nav-link" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
-            <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>{t('nav.resources')}</Link>
-            <LanguageSwitcher />
+            <button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Fermer">✕</button>
+            <div className="mobile-menu-header">
+              <span className="text-gradient" style={{ fontSize: '1.3rem', fontWeight: 800 }}>Stockman</span>
+            </div>
+            {/* Desktop-only links */}
+            <a href="#features" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
+            <Link to="/blog" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.resources')}</Link>
+            {/* Mobile-only sections */}
+            <div className="mobile-menu-section">
+              <span className="mobile-menu-label">{t('nav.features')}</span>
+              <Link to="/dashboard" className="nav-link" onClick={() => setMenuOpen(false)}>🏠 {t('feature_pages.dashboard.title')}</Link>
+              <Link to="/products" className="nav-link" onClick={() => setMenuOpen(false)}>📦 {t('feature_pages.products.title')}</Link>
+              <Link to="/pos" className="nav-link" onClick={() => setMenuOpen(false)}>🧮 {t('feature_pages.pos.title')}</Link>
+              <Link to="/accounting" className="nav-link" onClick={() => setMenuOpen(false)}>📊 {t('feature_pages.accounting.title')}</Link>
+              <Link to="/suppliers" className="nav-link" onClick={() => setMenuOpen(false)}>🚚 {t('feature_pages.suppliers.title')}</Link>
+              <Link to="/orders" className="nav-link" onClick={() => setMenuOpen(false)}>📝 {t('feature_pages.orders.title')}</Link>
+              <Link to="/clients" className="nav-link" onClick={() => setMenuOpen(false)}>👥 {t('feature_pages.clients.title')}</Link>
+              <Link to="/settings" className="nav-link" onClick={() => setMenuOpen(false)}>⚙️ {t('feature_pages.settings.title')}</Link>
+            </div>
+            <div className="mobile-menu-section">
+              <span className="mobile-menu-label">{t('nav.resources')}</span>
+              <a href="#pricing" className="nav-link" onClick={() => setMenuOpen(false)}>💰 {t('pricing.title')}</a>
+              <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>📰 Blog</Link>
+              <Link to="/about" className="nav-link" onClick={() => setMenuOpen(false)}>💡 {t('about.seo_title')}</Link>
+              <Link to="/help" className="nav-link" onClick={() => setMenuOpen(false)}>❓ {t('footer.help_center')}</Link>
+            </div>
+            <div className="mobile-menu-section">
+              <span className="mobile-menu-label">{t('footer.legal')}</span>
+              <Link to="/terms" className="nav-link" onClick={() => setMenuOpen(false)}>📜 {t('footer.terms')}</Link>
+              <Link to="/privacy" className="nav-link" onClick={() => setMenuOpen(false)}>🔒 {t('footer.privacy')}</Link>
+            </div>
+            <div className="mobile-menu-section">
+              <LanguageSwitcher />
+            </div>
             <a href="#contact" className="btn-secondary nav-login" onClick={() => setMenuOpen(false)}>{t('nav.login')}</a>
             <a href="#contact" className="btn-primary" onClick={() => setMenuOpen(false)}>{t('nav.free_trial')}</a>
           </div>
+          {menuOpen && <div className="nav-overlay" onClick={() => setMenuOpen(false)} />}
         </div>
       </nav>
 

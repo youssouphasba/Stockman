@@ -1265,7 +1265,7 @@ export type Customer = {
 
 export type SaleItem = {
   product_id: string;
-  product_name: string;
+  product_name?: string;
   quantity: number;
   selling_price: number;
   total: number;
@@ -1279,6 +1279,7 @@ export type Sale = {
   total_amount: number;
   payment_method: string;
   customer_id?: string;
+  customer_name?: string;
   created_at: string;
 };
 

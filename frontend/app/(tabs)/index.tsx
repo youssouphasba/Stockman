@@ -230,7 +230,7 @@ export default function DashboardScreen() {
           isCurrency
         />
         <KpiCard
-          icon="alert-circle-outline"
+          icon="card-outline"
           label={t('dashboard.month_revenue')}
           value={data?.month_revenue ?? 0}
           color={colors.primary}

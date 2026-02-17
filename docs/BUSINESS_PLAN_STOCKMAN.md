@@ -75,7 +75,7 @@ Stockman digitalise entièrement la gestion commerciale avec une interface simpl
 | **Siège social** | France |
 | **Activité** | Édition de logiciel SaaS de gestion commerciale |
 | **Date de création** | 2026 |
-| **Fondateur** | [Fondateur] — Développeur Full-Stack & Entrepreneur |
+| **Fondateur** | Youssoupha Saer BA — Développeur Full-Stack & Entrepreneur |
 | **Secteur** | Tech / FinTech / RetailTech |
 | **Marchés** | Sénégal (prioritaire), France, puis Afrique de l'Ouest |
 

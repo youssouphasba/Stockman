@@ -217,6 +217,7 @@ async def run_startup_migrations():
             )
         logger.info("Background Migration: store_id + is_active backfill completed")
         asyncio.create_task(check_alerts_loop())
+        asyncio.create_task(check_ai_anomalies_loop())
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
@@ -1599,8 +1600,17 @@ class BroadcastMessage(BaseModel):
 @admin_router.post("/broadcast")
 async def admin_broadcast(data: BroadcastMessage):
     """Send broadcast message to all users"""
-    tokens = await db.push_tokens.find({"is_active": True}).to_list(None)
-    unique_tokens = list(set([t["expo_push_token"] for t in tokens]))
+    # Get all unique tokens from all users
+    users_with_tokens = await db.users.find({"push_tokens": {"$exists": True, "$ne": []}}, {"push_tokens": 1}).to_list(None)
+    all_tokens = []
+    for u in users_with_tokens:
+        all_tokens.extend(u.get("push_tokens", []))
+    
+    unique_tokens = list(set(all_tokens))
+    logger.info(f"BROADCAST: {data.title} - {data.message} to {len(unique_tokens)} devices")
+    
+    if unique_tokens:
+        await notification_service.send_push_notification(unique_tokens, data.title, data.message)
     logger.info(f"BROADCAST: {data.title} - {data.message} to {len(unique_tokens)} devices")
     
     # Save to communication history
@@ -2107,30 +2117,23 @@ Sois direct, utilise des chiffres concrets. Pas de formules de politesse."""
         logger.error(f"AI daily-summary error: {e}")
         raise HTTPException(status_code=500, detail="Impossible de générer le résumé")
 
-@api_router.get("/ai/detect-anomalies")
-async def ai_detect_anomalies(user: User = Depends(require_auth)):
-    """Use Gemini to detect anomalies in sales, stock and margins"""
+async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None) -> List[dict]:
+    """Core logic for AI anomaly detection, returns list of anomaly objects"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        return []
 
     try:
-        owner_id = get_owner_id(user)
-        store_id = user.active_store_id
         now = datetime.now(timezone.utc)
-
-        # Gather data for analysis
-        query = {"user_id": owner_id}
+        query = {"user_id": user_id}
         if store_id:
             query["store_id"] = store_id
+        
         products = await db.products.find(query, {"_id": 0}).to_list(1000)
-
         seven_days_ago = now - timedelta(days=7)
         thirty_days_ago = now - timedelta(days=30)
-
         sales_30 = await db.sales.find({**query, "created_at": {"$gte": thirty_days_ago}}).to_list(10000)
 
-        # Daily revenue
         daily_rev = defaultdict(float)
         daily_count = defaultdict(int)
         product_sales_7d = defaultdict(int)
@@ -2153,7 +2156,6 @@ async def ai_detect_anomalies(user: User = Depends(require_auth)):
                     else:
                         product_sales_prev[pid] += qty
 
-        # Build analysis data
         avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
         revenue_data = [f"{d}: {r:.0f} FCFA ({c} ventes)" for d, r, c in
                         sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
@@ -2172,33 +2174,24 @@ async def ai_detect_anomalies(user: User = Depends(require_auth)):
 
             pid = p["product_id"]
             s7 = product_sales_7d.get(pid, 0)
-            s_prev_daily = product_sales_prev.get(pid, 0) / 23.0  # ~23 remaining days
+            s_prev_daily = product_sales_prev.get(pid, 0) / 23.0
             s7_daily = s7 / 7.0
             if s_prev_daily > 0 and s7_daily > s_prev_daily * 3:
-                volume_changes.append(f"- {p['name']}: pic x{s7_daily/s_prev_daily:.1f} (de {s_prev_daily:.1f}/j à {s7_daily:.1f}/j)")
+                volume_changes.append(f"- {p['name']}: pic x{s7_daily/s_prev_daily:.1f}")
             elif s_prev_daily > 1 and s7_daily < s_prev_daily * 0.3:
-                volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f} (de {s_prev_daily:.1f}/j à {s7_daily:.1f}/j)")
+                volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f}")
 
         prompt = f"""Tu es un analyste business expert. Analyse ces données d'un commerce et détecte les ANOMALIES.
-
-CA quotidien (14 derniers jours) :
-{chr(10).join(revenue_data) if revenue_data else "Aucune donnée"}
+CA quotidien (14 derniers jours) : {chr(10).join(revenue_data) if revenue_data else "Aucune"}
 CA moyen journalier : {avg_daily_rev:.0f} FCFA
+Changements de volume inhabituels : {chr(10).join(volume_changes[:15]) if volume_changes else "Aucun"}
+Marges anormales : {chr(10).join(margin_issues[:15]) if margin_issues else "Normales"}
+Produits : {len(products)}
+Ruptures : {len([p for p in products if p.get('quantity', 0) == 0])}
 
-Changements de volume inhabituels (7j vs précédent) :
-{chr(10).join(volume_changes[:15]) if volume_changes else "Aucun changement notable"}
-
-Marges anormales :
-{chr(10).join(margin_issues[:15]) if margin_issues else "Toutes les marges sont normales"}
-
-Nombre total de produits : {len(products)}
-Produits en rupture : {len([p for p in products if p.get('quantity', 0) == 0])}
-
-Réponds en JSON (sans markdown) avec ce format :
-[
-  {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}}
-]
-Maximum 5 anomalies, classées par sévérité. Si aucune anomalie, retourne un tableau vide []."""
+Réponds UNIQUEMENT en JSON (sans markdown) avec ce format :
+[ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
+Maximum 5 anomalies."""
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -2206,13 +2199,18 @@ Maximum 5 anomalies, classées par sévérité. Si aucune anomalie, retourne un 
         text = response.text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        anomalies = json.loads(text)
-        return {"anomalies": anomalies}
-    except json.JSONDecodeError:
-        return {"anomalies": []}
+        return json.loads(text)
     except Exception as e:
-        logger.error(f"AI detect-anomalies error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible d'analyser les anomalies")
+        logger.error(f"Internal anomaly check error: {e}")
+        return []
+
+@api_router.get("/ai/detect-anomalies")
+async def ai_detect_anomalies(user: User = Depends(require_auth)):
+    """Use Gemini to detect anomalies in sales, stock and margins"""
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    anomalies = await detect_anomalies_internal(owner_id, store_id)
+    return {"anomalies": anomalies}
 
 @api_router.post("/ai/basket-suggestions")
 async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(require_auth)):
@@ -2675,35 +2673,48 @@ async def admin_active_sessions():
 api_router.include_router(admin_router)
 
 
-async def register_push_token(reg: PushTokenRegistration, user: User = Depends(require_auth)):
-    await db.push_tokens.update_one(
-        {"user_id": user.user_id, "token": reg.token},
-        {"$set": {"user_id": user.user_id, "token": reg.token, "updated_at": datetime.now(timezone.utc)}},
-        upsert=True
-    )
-    return {"message": "Token enregistré"}
+# Removed register_push_token and send_push_notification shadows
 
-async def send_push_notification(user_id: str, title: str, message: str, data: dict = None):
-    # Get tokens for user
-    tokens_cursor = db.push_tokens.find({"user_id": user_id})
-    tokens = await tokens_cursor.to_list(None)
-    
-    if not tokens:
-        return
-    
-    import httpx
-    async with httpx.AsyncClient() as client:
-        for t in tokens:
-            try:
-                payload = {
-                    "to": t["token"],
-                    "title": title,
-                    "body": message,
-                    "data": data or {}
-                }
-                await client.post("https://exp.host/--/api/v2/push/send", json=payload)
-            except Exception as e:
-                logger.error(f"Error sending push: {e}")
+async def check_ai_anomalies_loop():
+    """Background loop to periodically run AI anomaly detection (every 6h)"""
+    while True:
+        try:
+            logger.info("Starting global AI anomaly detection check...")
+            # Run for all shopkeepers with active stores
+            users = await db.users.find({"role": "shopkeeper", "active_store_id": {"$ne": None}}).to_list(None)
+            for u in users:
+                user_id = u["user_id"]
+                store_id = u["active_store_id"]
+                anomalies = await detect_anomalies_internal(user_id, store_id)
+                
+                for anomaly in anomalies:
+                    # Check if similar active alert already exists
+                    existing = await db.alerts.find_one({
+                        "user_id": user_id,
+                        "type": f"ai_{anomaly['type']}",
+                        "title": anomaly["title"],
+                        "is_dismissed": False
+                    })
+                    
+                    if not existing:
+                        alert = Alert(
+                            user_id=user_id,
+                            store_id=store_id,
+                            type=f"ai_{anomaly['type']}",
+                            title=anomaly["title"],
+                            message=anomaly["description"],
+                            severity=anomaly["severity"]
+                        )
+                        await db.alerts.insert_one(alert.model_dump())
+                        # Push notification for critical/warning anomalies
+                        if anomaly["severity"] in ["critical", "warning"]:
+                            await notification_service.notify_user(db, user_id, f"🚨 AI: {alert.title}", alert.message)
+            
+            logger.info("Global AI anomaly detection check completed")
+        except Exception as e:
+            logger.error(f"AI anomalies loop error: {e}")
+        
+        await asyncio.sleep(1800)  # Check every 30 minutes
 
 async def check_alerts_loop():
     while True:
@@ -2712,7 +2723,8 @@ async def check_alerts_loop():
             # 1. Low stock alerts
             async for product in db.products.find({"quantity": {"$lte": 10}}): # Simplified threshold for now
                 if product.get("min_stock") and product["quantity"] <= product["min_stock"]:
-                    await send_push_notification(
+                    await notification_service.notify_user(
+                        db,
                         product["user_id"],
                         "Stock Bas",
                         f"Le produit {product['name']} est presque épuisé ({product['quantity']} restants)."
@@ -2722,7 +2734,8 @@ async def check_alerts_loop():
             now = datetime.now(timezone.utc)
             seven_days_later = now + timedelta(days=7)
             async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
-                await send_push_notification(
+                await notification_service.notify_user(
+                    db,
                     batch["user_id"],
                     "Expiration Proche",
                     f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}."
@@ -2731,7 +2744,7 @@ async def check_alerts_loop():
         except Exception as e:
             logger.error(f"Alerts loop error: {e}")
         
-        await asyncio.sleep(3600) # Check every hour
+        await asyncio.sleep(300) # Check every 5 minutes
 
 
 async def require_shopkeeper(request: Request) -> User:
@@ -4698,7 +4711,7 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     {"$set": {"is_dismissed": True}}
                 )
                 await db.alerts.insert_one(alert.model_dump())
-                await send_push_notification(user_id, alert.title, alert.message)
+                await notification_service.notify_user(db, user_id, alert.title, alert.message)
 
 async def check_slow_moving(user_id: str):
     """Check for products with no 'out' movement in the last 30 days"""
@@ -4735,7 +4748,7 @@ async def check_slow_moving(user_id: str):
                     severity="info"
                 )
                 await db.alerts.insert_one(alert.model_dump())
-                await send_push_notification(user_id, alert.title, alert.message)
+                await notification_service.notify_user(db, user_id, alert.title, alert.message)
 
 @api_router.get("/alerts")
 async def get_alerts(
@@ -4840,44 +4853,7 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
     result.pop("_id", None)
     return UserSettings(**result)
 
-# ===================== PUSH TOKEN ROUTES =====================
-
-@api_router.post("/push-tokens")
-async def register_push_token(token_data: dict, user: User = Depends(require_auth)):
-    expo_push_token = token_data.get("expo_push_token")
-    device_type = token_data.get("device_type", "unknown")
-    
-    if not expo_push_token:
-        raise HTTPException(status_code=400, detail="expo_push_token requis")
-    
-    # Update or create token
-    await db.push_tokens.update_one(
-        {"expo_push_token": expo_push_token},
-        {
-            "$set": {
-                "user_id": user.user_id,
-                "expo_push_token": expo_push_token,
-                "device_type": device_type,
-                "is_active": True,
-                "updated_at": datetime.now(timezone.utc)
-            },
-            "$setOnInsert": {
-                "token_id": f"token_{uuid.uuid4().hex[:12]}",
-                "created_at": datetime.now(timezone.utc)
-            }
-        },
-        upsert=True
-    )
-    
-    return {"message": "Token enregistré"}
-
-@api_router.delete("/push-tokens/{token}")
-async def unregister_push_token(token: str, user: User = Depends(require_auth)):
-    await db.push_tokens.update_one(
-        {"expo_push_token": token, "user_id": user.user_id},
-        {"$set": {"is_active": False}}
-    )
-    return {"message": "Token désactivé"}
+# Removed redundant push-token routes (unified in /notifications/register-token)
 
 # ===================== DASHBOARD ROUTES =====================
 
@@ -5688,6 +5664,14 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
     if not result:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     
+    # Notify shopkeeper of status change
+    await notification_service.notify_user(
+        db,
+        result["user_id"],
+        "Mise à jour Marketplace",
+        f"Votre commande {order_id} est passée au statut: {status_data.status}"
+    )
+    
     return {"message": "Statut mis à jour"}
 
 @api_router.delete("/orders/{order_id}")
@@ -6409,7 +6393,8 @@ async def supplier_update_order_status(order_id: str, status_data: OrderStatusUp
     )
 
     # Send push notification to shopkeeper
-    await send_push_notification(
+    await notification_service.notify_user(
+        db,
         order["user_id"],
         "Commande mise à jour",
         f"Votre commande {order_id} est maintenant: {status_data.status}"
@@ -6663,33 +6648,7 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
 
     return {"message": "Notation enregistrée", "rating_average": round(avg, 1)}
 
-# ===================== PUSH NOTIFICATION HELPER =====================
-
-async def send_push_notification(user_id: str, title: str, body: str):
-    """Send push notification via Expo Push API"""
-    tokens = await db.push_tokens.find({"user_id": user_id, "is_active": True}, {"_id": 0}).to_list(10)
-    if not tokens:
-        return
-
-    try:
-        import httpx
-        messages = []
-        for t in tokens:
-            messages.append({
-                "to": t["expo_push_token"],
-                "title": title,
-                "body": body,
-                "sound": "default"
-            })
-
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                "https://exp.host/--/api/v2/push/send",
-                json=messages,
-                headers={"Content-Type": "application/json"}
-            )
-    except Exception as e:
-        logger.error(f"Push notification error: {e}")
+# Removed helper send_push_notification shadow
 
 # ===================== LATE DELIVERY CHECK =====================
 
@@ -6725,7 +6684,7 @@ async def check_late_deliveries_internal(user_id: str):
                 severity="warning"
             )
             await db.alerts.insert_one(alert.model_dump())
-            await send_push_notification(user_id, alert.title, alert.message)
+            await notification_service.notify_user(db, user_id, alert.title, alert.message)
 
 @api_router.post("/check-late-deliveries")
 async def check_late_deliveries(user: User = Depends(require_auth)):

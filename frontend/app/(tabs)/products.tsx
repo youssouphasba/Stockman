@@ -330,6 +330,7 @@ export default function ProductsScreen() {
   }
 
   const filtered = useMemo(() => {
+    if (!productList) return [];
     return productList.filter((p) => {
       const searchTerms = debouncedSearch.toLowerCase();
       const matchesSearch = p.name.toLowerCase().includes(searchTerms) ||

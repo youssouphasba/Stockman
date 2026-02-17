@@ -29,6 +29,15 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
+.landing-page {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--background);
