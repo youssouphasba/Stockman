@@ -7,8 +7,12 @@ import { SyncAction, syncService } from './sync';
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
-  // 1. In development, prioritize the host URI from Expo Go / Dev Client
-  // This is the most reliable way to find the PC on the local network
+  // 1. If explicitly set in environment, always use it (prod builds via eas.json)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. In development, use the host URI from Expo Go / Dev Client
   if (__DEV__) {
     const hostUri = Constants.expoConfig?.hostUri;
     if (hostUri) {
@@ -16,11 +20,6 @@ const getApiUrl = () => {
       const url = `http://${ip}:8000`;
       return url;
     }
-  }
-
-  // 2. If explicitly set in environment (prod or if dynamic fails), use it
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
   }
 
   // 3. Absolute fallback
@@ -1788,8 +1787,10 @@ export type MarketplaceCatalogProduct = CatalogProductData & {
 
 export type SubscriptionData = {
   plan: 'trial' | 'premium';
-  status: 'active' | 'expired';
+  status: 'active' | 'expired' | 'cancelled';
   trial_ends_at: string;
+  subscription_end?: string;
+  subscription_provider: 'none' | 'revenuecat' | 'cinetpay';
   remaining_days: number;
   is_trial: boolean;
 };
@@ -1805,6 +1806,7 @@ export const profile = {
 };
 
 export const subscription = {
-  getDetails: () => request<SubscriptionData>('/subscription'),
-  subscribe: () => request<{ payment_url: string }>('/payment/subscribe', { method: 'POST' }),
+  getDetails: () => request<SubscriptionData>('/subscription/me'),
+  initCinetPay: () => request<{ payment_url: string }>('/payment/cinetpay/init', { method: 'POST' }),
+  sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
 };
