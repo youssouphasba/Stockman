@@ -12,7 +12,9 @@
             "node": "20.18.1",
             "distribution": "internal",
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app"
+                "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": ""
             },
             "android": {
                 "buildType": "apk",

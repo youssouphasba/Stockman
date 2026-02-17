@@ -16,7 +16,7 @@ def force_reset():
     client = MongoClient(MONGO_URL)
     db = client["stock_management"]
     
-    email = "contact@tontetic.fr"
+    email = "contact@stockman.pro"
     password = "admin1234"
     
     print(f"Hashing password '{password}'...", file=sys.stderr)

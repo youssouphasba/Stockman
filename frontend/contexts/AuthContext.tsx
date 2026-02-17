@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { auth as authApi, stores as storesApi, getToken, setToken, removeToken, User } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { initPurchases } from '../services/purchases';
 
 type AuthState = {
   user: User | null;
@@ -75,6 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         const userData = await authApi.me();
         setUser(userData);
+        if (Platform.OS !== 'web') {
+          initPurchases(userData.user_id).catch(console.warn);
+        }
       }
     } catch {
       await removeToken();
@@ -87,6 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.login(email, password);
     await setToken(response.access_token);
     setUser(response.user);
+    if (Platform.OS !== 'web') {
+      initPurchases(response.user.user_id).catch(console.warn);
+    }
   }
 
   async function register(

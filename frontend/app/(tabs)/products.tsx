@@ -1780,7 +1780,7 @@ export default function ProductsScreen() {
                 {editingProduct && (
                   <TouchableOpacity
                     style={[styles.actionBtn, { marginVertical: Spacing.sm, backgroundColor: colors.info + '15', borderColor: colors.info, borderWidth: 1 }]}
-                    onPress={() => generateProductLabelPdf(editingProduct, user?.name || "Tontetic Store")}
+                    onPress={() => generateProductLabelPdf(editingProduct, user?.name || "Stockman")}
                   >
                     <Ionicons name="pricetag-outline" size={18} color={colors.info} />
                     <Text style={[styles.actionText, { color: colors.info }]}>Imprimer l'étiquette (Barcode/RFID)</Text>

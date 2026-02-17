@@ -40,6 +40,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import PremiumGate from '../../components/PremiumGate';
 import PeriodSelector from '../../components/PeriodSelector';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 import {
@@ -493,7 +494,9 @@ export default function AccountingScreen() {
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
-    if (loading) {
+    const isLocked = user?.plan !== 'premium';
+
+    if (loading && !isLocked) {
         return (
             <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
                 <View style={styles.loadingContainer}>
@@ -510,6 +513,18 @@ export default function AccountingScreen() {
     const paymentColors = [colors.success, colors.primary, colors.warning, colors.info, colors.danger];
 
     return (
+        <PremiumGate
+            featureName="Comptabilité"
+            description="Suivez vos revenus, dépenses et marges en temps réel. Générez des rapports financiers détaillés et exportez-les en PDF."
+            benefits={[
+                'Tableau de bord financier complet',
+                'Suivi des dépenses et des revenus',
+                'Rapports PDF exportables',
+                'Graphiques et analyses détaillées',
+            ]}
+            icon="calculator-outline"
+            locked={isLocked}
+        >
         <View style={styles.container}>
             <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
                 <ScrollView
@@ -1111,6 +1126,7 @@ export default function AccountingScreen() {
             </Modal>
 
         </View >
+        </PremiumGate>
     );
 }
 

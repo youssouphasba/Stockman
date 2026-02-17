@@ -16,7 +16,7 @@ def debug_user():
     client = MongoClient("mongodb://localhost:27017")
     db = client["stock_management"]
     
-    email = "contact@tontetic.fr"
+    email = "contact@stockman.pro"
     user = db.users.find_one({"email": email})
     
     if not user:

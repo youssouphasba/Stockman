@@ -35,4 +35,4 @@ Conformément au RGPD, vous disposez des droits suivants :
 Vous pouvez exercer ces droits directement depuis l'onglet **Paramètres** de l'application.
 
 ## 6. Contact
-Pour toute question, contactez notre support via l'application ou à l'adresse contact@stockman.com.
+Pour toute question, contactez notre support via l'application ou à l'adresse contact@stockman.pro.

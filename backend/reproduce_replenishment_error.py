@@ -2,7 +2,7 @@ import requests
 import json
 
 BASE_URL = "http://localhost:8000/api"
-EMAIL = "contact@tontetic.fr"
+EMAIL = "contact@stockman.pro"
 PASSWORD = "admin1234"
 
 def reproduce():

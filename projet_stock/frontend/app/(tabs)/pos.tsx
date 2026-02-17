@@ -143,7 +143,7 @@ export default function POSScreen() {
                     </style>
                 </head>
                 <body>
-                    <h1>Tontetic Stock</h1>
+                    <h1>Stockman</h1>
                     <div class="header">
                         Reçu de vente<br>
                         Date: ${date}<br>

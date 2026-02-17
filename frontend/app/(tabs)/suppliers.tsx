@@ -43,11 +43,14 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Linking } from 'react-native';
 import OrderCreationModal from '../../components/OrderCreationModal';
 import ChatModal from '../../components/ChatModal';
+import PremiumGate from '../../components/PremiumGate';
+import { useAuth } from '../../contexts/AuthContext';
 
 
 export default function SuppliersScreen() {
   const { colors, glassStyle } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
   const router = useRouter();
@@ -522,7 +525,9 @@ export default function SuppliersScreen() {
     return stars;
   }
 
-  if (loading) {
+  const isLocked = user?.plan !== 'premium';
+
+  if (loading && !isLocked) {
     return (
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
@@ -533,6 +538,18 @@ export default function SuppliersScreen() {
   }
 
   return (
+    <PremiumGate
+      featureName="Fournisseurs"
+      description="Gérez vos fournisseurs, passez des commandes et suivez vos relations commerciales efficacement."
+      benefits={[
+        'Gestion complète des fournisseurs',
+        'Historique des commandes et factures',
+        'Communication intégrée (chat, appels)',
+        'Suggestions de réapprovisionnement IA',
+      ]}
+      icon="people-outline"
+      locked={isLocked}
+    >
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
         style={styles.container}
@@ -1903,6 +1920,7 @@ export default function SuppliersScreen() {
       />
 
     </LinearGradient>
+    </PremiumGate>
   );
 
   function getStatusColor(status: string, colors: any) {

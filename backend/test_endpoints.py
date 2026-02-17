@@ -5,7 +5,7 @@ import json
 BASE_URL = "http://localhost:8000/api"
 # Use known credentials or create a test user if needed.
 # For now, let's try with the same credentials as debug_login.py
-EMAIL = "contact@tontetic.fr"
+EMAIL = "contact@stockman.pro"
 PASSWORD = "admin1234"
 
 def test_endpoints():

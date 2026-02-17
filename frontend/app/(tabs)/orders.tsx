@@ -49,6 +49,7 @@ import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfReports';
 import { formatCurrency } from '../../utils/format';
 import { useAuth } from '../../contexts/AuthContext';
+import PremiumGate from '../../components/PremiumGate';
 
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
@@ -601,7 +602,9 @@ export default function OrdersScreen() {
     }
   }
 
-  if (loading) {
+  const isLocked = user?.plan !== 'premium';
+
+  if (loading && !isLocked) {
     return (
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
@@ -618,6 +621,18 @@ export default function OrdersScreen() {
   }
 
   return (
+    <PremiumGate
+      featureName="Commandes"
+      description="Créez et suivez vos commandes fournisseurs. Gérez les livraisons, retours et avoirs en toute simplicité."
+      benefits={[
+        'Création et suivi des commandes',
+        'Gestion des livraisons et retours',
+        'Historique complet des transactions',
+        'Bons de commande PDF exportables',
+      ]}
+      icon="cart-outline"
+      locked={isLocked}
+    >
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
         style={styles.container}
@@ -1787,6 +1802,7 @@ export default function OrdersScreen() {
         steps={GUIDES.orders.steps}
       />
     </LinearGradient >
+    </PremiumGate>
   );
 }
 

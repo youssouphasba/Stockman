@@ -304,7 +304,19 @@ async def create_indexes_and_init():
 
         asyncio.create_task(init_rag_and_migrations())
 
-        # Database indexes and configs initialization moved to background task (init_rag_and_migrations)
+        # Daily subscription expiry checker
+        async def check_expired_subscriptions():
+            while True:
+                await asyncio.sleep(86400)  # Run every 24h
+                now = datetime.now(timezone.utc)
+                result = await db.users.update_many(
+                    {"plan": "premium", "subscription_provider": "cinetpay", "subscription_end": {"$lt": now}},
+                    {"$set": {"plan": "starter", "subscription_status": "expired"}}
+                )
+                if result.modified_count:
+                    logger.info(f"Expired {result.modified_count} CinetPay subscriptions")
+        asyncio.create_task(check_expired_subscriptions())
+
     except Exception as e:
         logger.error(f"Error in startup: {e}")
 
@@ -463,8 +475,11 @@ class User(UserBase):
     parent_user_id: Optional[str] = None
     active_store_id: Optional[str] = None # The store currently being managed
     store_ids: List[str] = [] # List of stores this user has access to
-    plan: str = "trial" # "trial", "premium"
-    subscription_status: str = "active" # "active", "expired"
+    plan: str = "starter" # "starter", "premium"
+    subscription_status: str = "active" # "active", "expired", "cancelled"
+    subscription_provider: str = "none" # "none", "revenuecat", "cinetpay"
+    subscription_provider_id: Optional[str] = None
+    subscription_end: Optional[datetime] = None
     trial_ends_at: Optional[datetime] = None
     currency: str = "XOF" # Default currency (FCFA)
     business_type: Optional[str] = None
@@ -1762,6 +1777,27 @@ class AiChatMessage(BaseModel):
     content: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+AI_STARTER_WEEKLY_LIMIT = 14
+
+async def check_ai_limit(user: User):
+    """Starter plan: 14 AI requests/week. Premium: unlimited."""
+    if user.plan == "premium":
+        return
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    count = await db.ai_usage.count_documents({
+        "user_id": user.user_id,
+        "created_at": {"$gte": week_ago}
+    })
+    if count >= AI_STARTER_WEEKLY_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Limite atteinte ({AI_STARTER_WEEKLY_LIMIT} requêtes/semaine). Passez à Premium pour un accès illimité."
+        )
+
+async def track_ai_usage(user_id: str):
+    """Track an AI request for rate limiting."""
+    await db.ai_usage.insert_one({"user_id": user_id, "created_at": datetime.now(timezone.utc)})
+
 @api_router.get("/ai/history")
 async def get_ai_history(user: User = Depends(require_auth)):
     """Retrieve AI chat history for the user"""
@@ -1791,10 +1827,12 @@ async def _save_ai_message(user_id: str, role: str, content: str):
 
 @api_router.post("/ai/support")
 async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
+    await check_ai_limit(user)
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée sur le serveur")
-    
+
+    await track_ai_usage(user.user_id)
     # Save User Message
     await _save_ai_message(user.user_id, "user", prompt.message)
 
@@ -3073,7 +3111,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         await db.stores.insert_one(store.model_dump())
         
         role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
-        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=60)
+        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=90)  # 3 months free trial
         user_doc = {
             "user_id": user_id,
             "email": user_data.email,
@@ -3085,7 +3123,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "role": role,
             "active_store_id": store_id,
             "store_ids": [store_id],
-            "plan": "trial",
+            "plan": "starter",
             "subscription_status": "active",
             "trial_ends_at": trial_ends_at,
             "currency": user_data.currency or get_currency_from_phone(user_data.phone or ""),
@@ -3174,7 +3212,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             role=role,
             active_store_id=store_id,
             store_ids=[store_id],
-            plan="trial",
+            plan="starter",
             subscription_status="active",
             trial_ends_at=trial_ends_at,
             currency=user_doc["currency"]
@@ -3270,8 +3308,11 @@ async def login(request: Request, user_data: UserLogin, response: Response):
             role=user_doc.get("role", "shopkeeper"),
             active_store_id=active_store_id,
             store_ids=store_ids,
-            plan=user_doc.get("plan", "trial"),
+            plan=user_doc.get("plan", "starter"),
             subscription_status=user_doc.get("subscription_status", "active"),
+            subscription_provider=user_doc.get("subscription_provider", "none"),
+            subscription_provider_id=user_doc.get("subscription_provider_id"),
+            subscription_end=user_doc.get("subscription_end"),
             trial_ends_at=user_doc.get("trial_ends_at"),
             currency=user_doc.get("currency", "XOF"),
             phone=user_doc.get("phone"),
@@ -9143,22 +9184,30 @@ async def export_user_data(user: User = Depends(require_auth)):
 @api_router.get("/subscription/me")
 async def get_subscription_info(user: User = Depends(require_auth)):
     """Get current user subscription and trial status"""
-    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "plan": 1, "trial_ends_at": 1, "subscription_status": 1})
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {
+        "_id": 0, "plan": 1, "trial_ends_at": 1, "subscription_status": 1,
+        "subscription_provider": 1, "subscription_end": 1,
+    })
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     # Calculate remaining days
     remaining_days = 0
-    if user_doc.get("trial_ends_at"):
+    if user_doc.get("plan") == "premium" and user_doc.get("subscription_end"):
+        delta = user_doc["subscription_end"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
+        remaining_days = max(0, delta.days)
+    elif user_doc.get("trial_ends_at"):
         delta = user_doc["trial_ends_at"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
-        
+
     return {
-        "plan": user_doc.get("plan", "trial"),
+        "plan": user_doc.get("plan", "starter"),
         "status": user_doc.get("subscription_status", "active"),
         "trial_ends_at": user_doc.get("trial_ends_at"),
+        "subscription_end": user_doc.get("subscription_end"),
+        "subscription_provider": user_doc.get("subscription_provider", "none"),
         "remaining_days": remaining_days,
-        "is_trial": user_doc.get("plan") == "trial"
+        "is_trial": bool(user_doc.get("trial_ends_at") and remaining_days > 0),
     }
 
 @api_router.delete("/profile")
@@ -9219,27 +9268,155 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
     return {"message": "Compte et données supprimés définitivement. Au revoir."}
 
 # ===================== PAYMENT ROUTES =====================
-from services import payment as payment_service
+from services.payment import (
+    create_cinetpay_session,
+    verify_cinetpay_transaction,
+    verify_revenuecat_webhook,
+    PREMIUM_PRICE_XOF,
+)
 
-@api_router.post("/payment/subscribe")
-async def subscribe(user: User = Depends(require_auth)):
-    """Initiate subscription process"""
+@api_router.post("/payment/cinetpay/init")
+async def init_cinetpay_payment(user: User = Depends(require_auth)):
+    """Initialize a CinetPay Mobile Money payment."""
     try:
         user_dict = user.model_dump()
-        result = await payment_service.create_payment_session(user_dict)
-        return result
+        result = await create_cinetpay_session(user_dict)
+        # Store transaction for webhook lookup
+        await db.payment_transactions.insert_one({
+            "transaction_id": result["transaction_id"],
+            "user_id": user.user_id,
+            "amount": PREMIUM_PRICE_XOF,
+            "currency": "XOF",
+            "provider": "cinetpay",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc),
+        })
+        return {"payment_url": result["payment_url"]}
     except Exception as e:
-        logger.error(f"Payment Init Error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation du paiement")
+        logger.error(f"CinetPay Init Error: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation du paiement Mobile Money")
+
+@api_router.post("/webhooks/cinetpay")
+async def cinetpay_webhook(request: Request):
+    """Handle CinetPay payment notifications."""
+    body = await request.json()
+    transaction_id = body.get("cpm_trans_id", "")
+    if not transaction_id:
+        raise HTTPException(status_code=400, detail="Missing transaction_id")
+
+    txn_record = await db.payment_transactions.find_one({"transaction_id": transaction_id})
+    if not txn_record:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if txn_record.get("status") == "completed":
+        return {"status": "already_processed"}
+
+    # Verify with CinetPay API
+    verification = await verify_cinetpay_transaction(transaction_id)
+    cp_data = verification.get("data", {})
+
+    if cp_data.get("status") == "ACCEPTED" and int(cp_data.get("amount", 0)) >= PREMIUM_PRICE_XOF:
+        user_id = txn_record["user_id"]
+        sub_end = datetime.now(timezone.utc) + timedelta(days=30)
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "plan": "premium",
+                "subscription_status": "active",
+                "subscription_provider": "cinetpay",
+                "subscription_provider_id": transaction_id,
+                "subscription_end": sub_end,
+            }}
+        )
+        await db.payment_transactions.update_one(
+            {"transaction_id": transaction_id},
+            {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc)}}
+        )
+        logger.info(f"CinetPay payment OK for user {user_id}, txn {transaction_id}")
+        return {"status": "ok"}
+    else:
+        await db.payment_transactions.update_one(
+            {"transaction_id": transaction_id},
+            {"$set": {"status": "failed", "provider_status": cp_data.get("status")}}
+        )
+        logger.warning(f"CinetPay payment FAILED for txn {transaction_id}: {cp_data.get('status')}")
+        return {"status": "payment_failed"}
+
+@api_router.post("/webhooks/revenuecat")
+async def revenuecat_webhook(request: Request):
+    """Handle RevenueCat server-to-server notifications."""
+    auth_header = request.headers.get("Authorization", "")
+    if not verify_revenuecat_webhook(auth_header):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    body = await request.json()
+    event = body.get("event", {})
+    event_type = event.get("type", "")
+    app_user_id = event.get("app_user_id", "")
+
+    if not app_user_id:
+        return {"status": "ignored", "reason": "no app_user_id"}
+
+    activate_events = {"INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "NON_RENEWING_PURCHASE"}
+    deactivate_events = {"EXPIRATION", "BILLING_ISSUE"}
+    cancel_events = {"CANCELLATION"}
+
+    if event_type in activate_events:
+        expiration_ms = event.get("expiration_at_ms")
+        sub_end = (
+            datetime.fromtimestamp(expiration_ms / 1000, tz=timezone.utc)
+            if expiration_ms
+            else datetime.now(timezone.utc) + timedelta(days=30)
+        )
+        await db.users.update_one(
+            {"user_id": app_user_id},
+            {"$set": {
+                "plan": "premium",
+                "subscription_status": "active",
+                "subscription_provider": "revenuecat",
+                "subscription_end": sub_end,
+            }}
+        )
+        logger.info(f"RevenueCat {event_type} for user {app_user_id}")
+    elif event_type in deactivate_events:
+        await db.users.update_one(
+            {"user_id": app_user_id},
+            {"$set": {"plan": "starter", "subscription_status": "expired"}}
+        )
+        logger.info(f"RevenueCat {event_type} - deactivated user {app_user_id}")
+    elif event_type in cancel_events:
+        await db.users.update_one(
+            {"user_id": app_user_id},
+            {"$set": {"subscription_status": "cancelled"}}
+        )
+        logger.info(f"RevenueCat CANCELLATION for user {app_user_id}")
+
+    return {"status": "ok"}
+
+@api_router.post("/subscription/sync")
+async def sync_subscription(user: User = Depends(require_auth)):
+    """Manual sync fallback - check if subscription is still active."""
+    user_doc = await db.users.find_one({"user_id": user.user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404)
+    sub_end = user_doc.get("subscription_end")
+    if sub_end and user_doc.get("plan") == "premium":
+        if sub_end.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            await db.users.update_one(
+                {"user_id": user.user_id},
+                {"$set": {"plan": "starter", "subscription_status": "expired"}}
+            )
+            return {"plan": "starter", "status": "expired"}
+    return {"plan": user_doc.get("plan", "starter"), "status": user_doc.get("subscription_status", "active")}
 
 @api_router.get("/payment/success")
-async def payment_success(session_id: Optional[str] = None, user_id: Optional[str] = None):
-    """Callback for successful payment."""
+async def payment_success():
+    """Callback after successful payment."""
     return HTMLResponse(content="""
         <html>
-            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                <h1 style="color: green;">Paiement Réussi !</h1>
-                <p>Votre abonnement est actif.</p>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d0e12; color: white;">
+                <h1 style="color: #34C759;">Paiement Réussi !</h1>
+                <p>Votre abonnement Premium est maintenant actif.</p>
+                <p style="color: #888;">Vous pouvez fermer cette page et retourner dans l'application.</p>
                 <script>setTimeout(function() { window.close(); }, 3000);</script>
             </body>
         </html>
@@ -9247,71 +9424,16 @@ async def payment_success(session_id: Optional[str] = None, user_id: Optional[st
 
 @api_router.get("/payment/cancel")
 async def payment_cancel():
+    """Callback after cancelled payment."""
     return HTMLResponse(content="""
-        <html><body style="font-family: sans-serif; text-align: center; padding: 50px;"><h1 style="color: red;">Paiement Annulé</h1></body></html>
-    """)
-
-@api_router.get("/payment/mock-mm-gateway")
-async def mock_mm_gateway(txn: str, user_id: str):
-    """Simulates a Mobile Money Payment Page (Aggregator)."""
-    return HTMLResponse(content=f"""
         <html>
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Paiement Sécurisé</title>
-                <style>
-                    body {{ font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }}
-                    .card {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }}
-                    h1 {{ color: #333; font-size: 20px; }}
-                    .amount {{ font-size: 24px; font-weight: bold; color: #2563EB; margin: 20px 0; }}
-                    .btn {{ display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; color: white; transition: opacity 0.2s; }}
-                    .btn:hover {{ opacity: 0.9; }}
-                    .wave {{ background-color: #1DA1F2; }}
-                    .om {{ background-color: #FF7900; }}
-                    .yas {{ background-color: #9C27B0; }}
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>Confirmer le paiement</h1>
-                    <p>Premium Stockman (1 mois)</p>
-                    <div class="amount">2 000 FCFA</div>
-                    <p>Choisissez votre moyen de paiement :</p>
-                    <button class="btn wave" onclick="confirm('Wave')">Payer avec Wave</button>
-                    <button class="btn om" onclick="confirm('Orange Money')">Payer avec Orange Money</button>
-                    <button class="btn yas" onclick="confirm('Yas')">Payer avec Yas</button>
-                </div>
-                <script>
-                    async function confirm(method) {{
-                        const btn = event.target;
-                        btn.innerHTML = "Traitement en cours...";
-                        btn.disabled = true;
-                        try {{
-                            await fetch(`/api/payment/mock-webhook?user_id={user_id}&txn={txn}&method=${{method}}`, {{ method: 'POST' }});
-                            window.location.href = '/api/payment/success';
-                        }} catch (e) {{
-                            alert("Erreur de connexion");
-                            btn.disabled = false;
-                        }}
-                    }}
-                </script>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d0e12; color: white;">
+                <h1 style="color: #FF3B30;">Paiement Annulé</h1>
+                <p>Aucun montant n'a été débité.</p>
+                <script>setTimeout(function() { window.close(); }, 3000);</script>
             </body>
         </html>
     """)
-
-@api_router.post("/payment/mock-webhook")
-async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney"):
-    """Simulate the webhook call from the provider"""
-    logger.info(f"PAYMENT VALIDATED: {method} for {user_id}")
-    await db.users.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "plan": "premium",
-            "subscription_status": "active",
-            "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
-        }}
-    )
-    return {"status": "ok"}
 
 # ===================== SETTINGS ROUTES & MODELS =====================
 

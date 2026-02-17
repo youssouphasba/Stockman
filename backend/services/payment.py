@@ -1,108 +1,87 @@
 import os
+import json
 import logging
-from datetime import datetime, timedelta
-# import stripe # Uncomment when installed
 import uuid
+from datetime import datetime, timezone, timedelta
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
-# Mock Stripe for now to avoid crashing if library is missing
-class MockStripe:
-    api_key = None
-    class Checkout:
-        class Session:
-            @staticmethod
-            def create(**kwargs):
-                return {
-                    "id": f"cs_test_{uuid.uuid4().hex}",
-                    "url": "https://example.com/checkout_mock?success=true" 
-                }
-stripe = MockStripe()
+# CinetPay configuration
+CINETPAY_API_KEY = os.environ.get("CINETPAY_API_KEY", "")
+CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID", "")
+CINETPAY_SECRET_KEY = os.environ.get("CINETPAY_SECRET_KEY", "")
+BASE_URL = os.environ.get("API_URL", "https://stockman-production-149d.up.railway.app")
 
-# Configuration
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
-if STRIPE_SECRET_KEY:
-    try:
-        import stripe as real_stripe
-        stripe = real_stripe
-        stripe.api_key = STRIPE_SECRET_KEY
-    except ImportError:
-        logger.warning("Stripe library not installed. Using Mock.")
+# RevenueCat webhook secret
+REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 
-# Mobile Money Aggregator Config (e.g. CinetPay, PayTech)
-MM_API_KEY = os.environ.get("MM_API_KEY")
-MM_SITE_ID = os.environ.get("MM_SITE_ID")
-BASE_URL = os.environ.get("API_URL", "http://localhost:8000")
+# Pricing (per month, after 3-month free trial)
+PRICES = {
+    "starter": {"XOF": 1000, "EUR": 399},   # 1000 FCFA or 3.99€
+    "premium": {"XOF": 2500, "EUR": 799},    # 2500 FCFA or 7.99€
+}
+PREMIUM_PRICE_XOF = 2500  # backward compat
 
-async def create_payment_session(user: dict, plan_id: str = "premium"):
-    """
-    Creates a payment session based on user currency.
-    Returns: {"payment_url": "..."}
-    """
-    currency = user.get("currency", "XOF")
-    email = user.get("email")
-    user_id = user.get("user_id")
 
-    # 1. EUROPE (EUR) -> STRIPE
-    if currency == "EUR":
-        try:
-            # Price ID should be in env or config, hardcoded for demo
-            price_id = "price_123456789" # Replace with real Stripe Price ID
-            
-            checkout_session = stripe.Checkout.Session.create(
-                customer_email=email,
-                payment_method_types=['card'],
-                line_items=[
-                    {
-                        # 'price': price_id, # Use real price ID in prod
-                        'price_data': {
-                            'currency': 'eur',
-                            'product_data': {
-                                'name': 'Stockman Premium',
-                            },
-                            'unit_amount': 499, # 4.99 EUR
-                            'recurring': {
-                                'interval': 'month',
-                            },
-                        },
-                        'quantity': 1,
-                    },
-                ],
-                mode='subscription',
-                success_url=f"{BASE_URL}/api/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=f"{BASE_URL}/api/payment/cancel",
-                metadata={
-                    "user_id": user_id,
-                    "plan_id": plan_id
-                }
-            )
-            return {"payment_url": checkout_session["url"]}
-        except Exception as e:
-            logger.error(f"Stripe Error: {e}")
-            raise e
+async def create_cinetpay_session(user: dict) -> dict:
+    """Initialize a CinetPay payment session for Mobile Money."""
+    transaction_id = f"stk_{uuid.uuid4().hex[:16]}"
 
-    # 2. AFRICA (XOF/XAF) -> MOBILE MONEY
+    payload = {
+        "apikey": CINETPAY_API_KEY,
+        "site_id": CINETPAY_SITE_ID,
+        "transaction_id": transaction_id,
+        "amount": PREMIUM_PRICE_XOF,
+        "currency": "XOF",
+        "description": "Stockman Premium - 1 mois",
+        "notify_url": f"{BASE_URL}/api/webhooks/cinetpay",
+        "return_url": f"{BASE_URL}/api/payment/success",
+        "cancel_url": f"{BASE_URL}/api/payment/cancel",
+        "channels": "MOBILE_MONEY",
+        "metadata": json.dumps({"user_id": user["user_id"]}),
+        "customer_name": user.get("name", ""),
+        "customer_email": user.get("email", ""),
+        "customer_phone_number": user.get("phone", ""),
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api-checkout.cinetpay.com/v2/payment",
+            json=payload,
+            timeout=15.0,
+        )
+        data = resp.json()
+
+    if data.get("code") == "201":
+        return {
+            "payment_url": data["data"]["payment_url"],
+            "transaction_id": transaction_id,
+        }
     else:
-        # Mocking a Mobile Money Aggregator (like CinetPay/Wave)
-        # In production, you would make an HTTP POST to the aggregator
-        
-        transaction_id = f"txn_{uuid.uuid4().hex[:12]}"
-        amount = 2000 # 2000 FCFA
-        
-        # Simulating external provider URL
-        # For now, we return a "success" URL directly to test the flow
-        # In real life, this would be the aggregator's payment page
-        mock_payment_url = f"{BASE_URL}/api/payment/mock-mm-gateway?txn={transaction_id}&user_id={user_id}"
-        
-        logger.info(f"Generated Mobile Money Link for {user_id}: {mock_payment_url}")
-        return {"payment_url": mock_payment_url}
+        logger.error(f"CinetPay init error: {data}")
+        raise Exception(f"CinetPay error: {data.get('message', 'Unknown error')}")
 
-async def process_webhook(provider: str, payload: dict):
-    """
-    Handle webhooks from Stripe or MM providers to update user subscription
-    """
-    if provider == "stripe":
-        pass # verify signature, update user.subscription_status
-    elif provider == "mobile_money":
-        pass
-    return {"status": "processed"}
+
+async def verify_cinetpay_transaction(transaction_id: str) -> dict:
+    """Check transaction status with CinetPay API."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api-checkout.cinetpay.com/v2/payment/check",
+            json={
+                "apikey": CINETPAY_API_KEY,
+                "site_id": CINETPAY_SITE_ID,
+                "transaction_id": transaction_id,
+            },
+            timeout=10.0,
+        )
+        return resp.json()
+
+
+def verify_revenuecat_webhook(auth_header: str) -> bool:
+    """Verify RevenueCat webhook authorization header."""
+    if not REVENUECAT_WEBHOOK_SECRET:
+        logger.warning("REVENUECAT_WEBHOOK_SECRET not set, skipping verification")
+        return True
+    return auth_header == f"Bearer {REVENUECAT_WEBHOOK_SECRET}"
