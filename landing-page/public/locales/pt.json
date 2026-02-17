@@ -1,27 +1,27 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
+        "features": "Funcionalidades",
+        "resources": "Recursos",
         "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "Entrar"
+        "home": "Entrar",
+        "login": "Entrar",
+        "free_trial": "Teste Gratuito"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "Liberte o potencial do seu",
+        "title_end": "negócio",
+        "subtitle": "A solução inteligente de gestão de stock com IA para automatizar encomendas e maximizar lucros.",
+        "cta": "Começar Agora"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "Lojas Equipadas",
+        "transactions": "Transações / Mês",
+        "satisfaction": "Clientes Satisfeitos",
+        "support": "Suporte Disponível"
     },
     "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
+        "title": "Suas Ferramentas Diárias",
+        "subtitle": "Um conjunto completo para gerir todos os aspetos do seu negócio.",
         "dashboard": {
             "title": "Home",
             "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -104,6 +99,7 @@
         },
         "business": {
             "name": "Business",
+            "price": "2500",
             "f1": "3 Users",
             "f2": "Unlimited Products",
             "f3": "Stockman AI Assistant",
@@ -118,16 +114,15 @@
             "f2": "Multi-Shop Manager",
             "f3": "API & Integrations",
             "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
             "cta": "Contact Us"
         }
     },
     "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work without internet?",
-        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+        "title": "Perguntas Frequentes",
+        "q1": "Funciona sem internet?",
+        "a1": "Sim, o Stockman funciona offline. Os seus dados são sincronizados assim que a ligação volta.",
+        "q2": "Os meus dados estão seguros?",
+        "a2": "Com certeza. Utilizamos encriptação de nível bancário para proteger todas as informações do seu negócio."
     },
     "download": {
         "title": "Ready to Level Up?",
@@ -157,9 +152,6 @@
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
     },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
-    },
     "contact": {
         "title": "Contacte-nos",
         "subtitle": "Uma pergunta? Uma parceria? Escreva-nos.",
@@ -170,6 +162,9 @@
         "success_title": "Mensagem enviada!",
         "success_desc": "Nossa equipa responderá em 24 horas.",
         "send_another": "Enviar outra mensagem"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "Utilizamos cookies para melhorar a sua experiência. Ao continuar, aceita a nossa política de privacidade.",
@@ -197,109 +192,6 @@
         "marketplace": "Marketplace",
         "marketplace_yes": "✅ Acesso direto a fornecedores",
         "marketplace_no": "❌ Contacto físico"
-    },
-    "about": {
-        "seo_title": "Sobre Nós",
-        "seo_desc": "Descubra a equipa por trás do Stockman e a nossa missão de digitalizar o comércio em África.",
-        "home": "Início",
-        "mission_start": "Nossa Missão:",
-        "mission_highlight": "Digitalizar África",
-        "mission_desc": "Acreditamos que cada comerciante, pequeno ou grande, merece as melhores ferramentas para ter sucesso. O Stockman não é apenas um software — é o seu parceiro de crescimento.",
-        "team_title": "A Equipa",
-        "team_subtitle": "Apaixonados ao serviço dos empreendedores.",
-        "member1_image": "👨🏿‍💼",
-        "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Co-Fundador",
-        "member1_bio": "Antigo comerciante, criou o Stockman para resolver os seus próprios problemas de gestão.",
-        "member2_image": "👩🏾‍💻",
-        "member2_name": "Awa Diop",
-        "member2_role": "CTO & Tech Lead",
-        "member2_bio": "Engenheira apaixonada por IA e acessibilidade digital em África.",
-        "member3_image": "🎧",
-        "member3_name": "David N'Guessan",
-        "member3_role": "Responsável de Suporte",
-        "member3_bio": "Sempre à escuta para acompanhar os nossos utilizadores rumo ao sucesso.",
-        "values_title": "Os Nossos Valores",
-        "value1_title": "🔍 Simplicidade",
-        "value1_desc": "A tecnologia deve ser acessível a todos, sem formação complexa.",
-        "value2_title": "🤝 Proximidade",
-        "value2_desc": "Estamos aqui, compreendemos as vossas realidades e desafios.",
-        "value3_title": "🚀 Inovação",
-        "value3_desc": "Melhoramos o Stockman todos os dias graças ao vosso feedback."
-    },
-    "blog": {
-        "seo_title": "Blog & Recursos",
-        "seo_desc": "Dicas e truques para gerir o seu comércio, otimizar o stock e aumentar as vendas.",
-        "page_title": "Centro de Recursos",
-        "page_subtitle": "Conselhos de especialistas para comerciantes modernos.",
-        "read_more": "Ler mais →",
-        "not_found": "Artigo não encontrado 😕",
-        "back_to_blog": "Voltar ao blog",
-        "back_to_articles": "← Voltar aos artigos",
-        "published_on": "PUBLICADO EM",
-        "liked_article": "Gostou deste artigo?",
-        "try_stockman": "Experimente o Stockman para pôr estas dicas em prática.",
-        "start_trial": "Começar o teste gratuito",
-        "posts": {
-            "abandonner-cahier-stock": {
-                "title": "Porquê abandonar o caderno para a gestão de stock?",
-                "excerpt": "O caderno tem os seus limites. Descubra como o digital pode salvar o seu negócio de erros de cálculo e perdas.",
-                "date": "12 Fev 2026",
-                "content": "<p>Muitos comerciantes ainda usam um caderno para registar vendas e stock. É um método tradicional, mas com riscos sérios.</p><h3>1. Erros de cálculo</h3><p>Um simples erro de adição pode falsear toda a sua contabilidade. Com software como o Stockman, os cálculos são automáticos e sem erros.</p><h3>2. Perda de dados</h3><p>Um caderno pode ser perdido, roubado ou destruído por um incêndio. Os seus dados no Stockman são guardados na cloud e acessíveis em qualquer lugar.</p><h3>3. Sem visão global</h3><p>É difícil saber qual produto vende mais folheando páginas. O Stockman dá-lhe essa informação num clique.</p><h3>Conclusão</h3><p>Passar ao digital não é uma despesa, é um investimento que lhe poupa tempo e dinheiro desde o primeiro mês.</p>"
-            },
-            "eviter-ruptures-fetes": {
-                "title": "Como evitar rupturas de stock durante as festas?",
-                "excerpt": "Natal e Tabaski são períodos críticos. Prepare o seu stock com antecedência com os nossos conselhos.",
-                "date": "10 Jan 2026",
-                "content": "<p>Rupturas de stock durante as festas significam perda direta de receita. Veja como evitá-las.</p><h3>Antecipe a procura</h3><p>Use o histórico de vendas do ano passado para prever as quantidades a encomendar.</p><h3>Encomende cedo</h3><p>Os fornecedores ficam sobrecarregados. Faça as encomendas 2 a 3 semanas antes do habitual.</p><h3>Use os alertas do Stockman</h3><p>Configure limiares de alerta para ser notificado quando um produto começa a faltar.</p>"
-            },
-            "augmenter-marge-2026": {
-                "title": "3 dicas para aumentar a sua margem em 2026",
-                "excerpt": "Faturação é bom, mas margem é melhor! Aprenda a otimizar os seus custos e preços.",
-                "date": "05 Jan 2026",
-                "content": "<p>Aumentar preços não é a única forma de ganhar mais. Veja como trabalhar a sua margem.</p><h3>1. Reduza as perdas</h3><p>Produtos expirados ou roubados custam caro. Um acompanhamento rigoroso do stock reduz estas perdas em 30%.</p><h3>2. Negoceie com os seus fornecedores</h3><p>Ao agrupar encomendas via Marketplace Stockman, pode obter melhores preços.</p><h3>3. Fidelize os seus clientes</h3><p>Um cliente fiel custa menos a adquirir do que um novo. Use o programa de fidelização para os fazer voltar.</p>"
-            }
-        }
-    },
-    "help": {
-        "hero_start": "Como podemos",
-        "hero_highlight": "ajudá-lo",
-        "search_placeholder": "Procurar uma resposta...",
-        "no_results": "Nenhum resultado encontrado para \"{{term}}\"",
-        "need_more": "Precisa de mais ajuda?",
-        "email_support": "✉️ Suporte por Email",
-        "whatsapp_chat": "💬 Chat WhatsApp",
-        "getting_started": {
-            "title": "Primeiros Passos",
-            "q1": "Como criar uma conta?",
-            "a1": "Descarregue a aplicação e siga as instruções no ecrã. Demora menos de 2 minutos.",
-            "q2": "Posso usar a app sem internet?",
-            "a2": "Sim, o Stockman funciona offline e sincroniza os dados assim que a ligação voltar."
-        },
-        "account_billing": {
-            "title": "Conta & Faturação",
-            "q1": "Como mudar a minha palavra-passe?",
-            "a1": "Vá a Definições > Segurança > Alterar palavra-passe.",
-            "q2": "Como funciona o teste gratuito?",
-            "a2": "Recebe automaticamente 14 dias de teste gratuito com todas as funcionalidades desbloqueadas ao registar-se."
-        },
-        "technical_support": {
-            "title": "Suporte Técnico",
-            "q1": "A aplicação não abre, o que fazer?",
-            "a1": "Verifique a sua ligação à internet e certifique-se de que tem a última atualização. Se o problema persistir, reinstale a aplicação.",
-            "q2": "Como contactar o suporte?",
-            "a2": "Pode escrever-nos pelo formulário abaixo ou diretamente no WhatsApp."
-        }
-    },
-    "terms": {
-        "title": "Termos e Condições de Utilização",
-        "version": "Versão \"Ultimate\" 3.0 - Última atualização: 13 de Fevereiro de 2026",
-        "content": "<p>Bem-vindo ao <strong>Stockman</strong>.<br/>Estes Termos e Condições de Utilização (doravante \"Termos\") constituem um contrato legal vinculativo entre o Utilizador e o Editor da solução Stockman.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO I: DISPOSIÇÕES GERAIS</h3><h4>Artigo 1: Definições</h4><ul><li><strong>Plataforma</strong>: Refere-se à infraestrutura de software completa do Stockman.</li><li><strong>Utilizador</strong>: Entidade ou indivíduo que utiliza os serviços para fins profissionais.</li><li><strong>Editor</strong>: Stockman Inc., proprietário e operador do Stockman.</li><li><strong>Loja</strong>: Instância lógica criada por um Utilizador para gerir as suas atividades.</li></ul><h4>Artigo 2: Objeto dos Serviços</h4><p>O Stockman é uma solução ERP especializada em gestão de stock, ponto de venda e relação com clientes. É fornecido como serviço (SaaS).</p><h4>Artigo 3: Aceitação dos Termos</h4><p>O acesso à Plataforma está condicionado à aceitação plena e completa destes Termos.</p><h4>Artigo 4: Capacidade e Uso Profissional</h4><p>O Stockman é uma ferramenta estritamente profissional. O Utilizador garante que usa o serviço para a sua atividade comercial.</p><h4>Artigo 5: Modificação dos Termos</h4><p>O Editor reserva-se o direito de modificar estes Termos a qualquer momento. O uso continuado do Serviço após modificação constitui aceitação.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO II: ACESSO E GESTÃO DE CONTAS</h3><h4>Artigos 6-10</h4><p>O Utilizador compromete-se a fornecer dados verídicos. É responsável pela segurança da sua palavra-passe. O Proprietário pode criar acessos para os seus funcionários. O Utilizador aceita o sistema de funções (Admin, Vendedor, Gestor).</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO III-IX: OPERAÇÕES, DADOS, IA, SEGURANÇA</h3><p>A IA pode produzir erros. As previsões são probabilidades. Os dados são guardados diariamente. O Editor garante o exercício dos direitos RGPD. Qualquer litígio será submetido à lei da sede social do Editor.</p>"
-    },
-    "privacy": {
-        "title": "Política de Privacidade",
-        "version": "Última atualização: 13 de Fevereiro de 2026",
-        "content": "<p>Bem-vindo ao Stockman. A proteção dos seus dados pessoais é uma prioridade para nós.</p><h3>1. Recolha de Dados</h3><p>Recolhemos: informações de identificação (nome, email, telefone), dados profissionais (loja, inventário, transações), dados técnicos (IP, dispositivo, logs).</p><h3>2. Utilização dos Dados</h3><p>Os seus dados são utilizados exclusivamente para: gestão do seu stock e vendas, segurança da sua conta, melhoria dos nossos serviços e cumprimento das nossas obrigações legais.</p><h3>3. Armazenamento e Segurança</h3><p>Os seus dados são armazenados em servidores seguros (MongoDB Atlas) e encriptados em repouso. Utilizamos o protocolo HTTPS para todas as transferências.</p><h3>4. Partilha de Dados</h3><p>Não vendemos nem alugamos os seus dados. Podem ser partilhados apenas com os nossos prestadores técnicos e autoridades se exigido por lei.</p><h3>5. Os Seus Direitos (RGPD)</h3><p>Tem os direitos de acesso, retificação, eliminação e portabilidade. Exerça estes direitos a partir do separador Definições da aplicação.</p><h3>6. Contacto</h3><p>Para qualquer questão, contacte-nos através da aplicação ou em <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     },
     "feature_pages": {
         "back_home": "Voltar ao início",
@@ -531,5 +423,108 @@
                 }
             }
         }
+    },
+    "about": {
+        "seo_title": "Sobre Nós",
+        "seo_desc": "Descubra a equipa por trás do Stockman e a nossa missão de digitalizar o comércio em África.",
+        "home": "Início",
+        "mission_start": "Nossa Missão:",
+        "mission_highlight": "Digitalizar África",
+        "mission_desc": "Acreditamos que cada comerciante, pequeno ou grande, merece as melhores ferramentas para ter sucesso. O Stockman não é apenas um software — é o seu parceiro de crescimento.",
+        "team_title": "A Equipa",
+        "team_subtitle": "Apaixonados ao serviço dos empreendedores.",
+        "member1_image": "👨🏿‍💼",
+        "member1_name": "Jean-Marc Koffi",
+        "member1_role": "CEO & Co-Fundador",
+        "member1_bio": "Antigo comerciante, criou o Stockman para resolver os seus próprios problemas de gestão.",
+        "member2_image": "👩🏾‍💻",
+        "member2_name": "Awa Diop",
+        "member2_role": "CTO & Tech Lead",
+        "member2_bio": "Engenheira apaixonada por IA e acessibilidade digital em África.",
+        "member3_image": "🎧",
+        "member3_name": "David N'Guessan",
+        "member3_role": "Responsável de Suporte",
+        "member3_bio": "Sempre à escuta para acompanhar os nossos utilizadores rumo ao sucesso.",
+        "values_title": "Os Nossos Valores",
+        "value1_title": "🔍 Simplicidade",
+        "value1_desc": "A tecnologia deve ser acessível a todos, sem formação complexa.",
+        "value2_title": "🤝 Proximidade",
+        "value2_desc": "Estamos aqui, compreendemos as vossas realidades e desafios.",
+        "value3_title": "🚀 Inovação",
+        "value3_desc": "Melhoramos o Stockman todos os dias graças ao vosso feedback."
+    },
+    "blog": {
+        "seo_title": "Blog & Recursos",
+        "seo_desc": "Dicas e truques para gerir o seu comércio, otimizar o stock e aumentar as vendas.",
+        "page_title": "Centro de Recursos",
+        "page_subtitle": "Conselhos de especialistas para comerciantes modernos.",
+        "read_more": "Ler mais →",
+        "not_found": "Artigo não encontrado 😕",
+        "back_to_blog": "Voltar ao blog",
+        "back_to_articles": "← Voltar aos artigos",
+        "published_on": "PUBLICADO EM",
+        "liked_article": "Gostou deste artigo?",
+        "try_stockman": "Experimente o Stockman para pôr estas dicas em prática.",
+        "start_trial": "Começar o teste gratuito",
+        "posts": {
+            "abandonner-cahier-stock": {
+                "title": "Porquê abandonar o caderno para a gestão de stock?",
+                "excerpt": "O caderno tem os seus limites. Descubra como o digital pode salvar o seu negócio de erros de cálculo e perdas.",
+                "date": "12 Fev 2026",
+                "content": "<p>Muitos comerciantes ainda usam um caderno para registar vendas e stock. É um método tradicional, mas com riscos sérios.</p><h3>1. Erros de cálculo</h3><p>Um simples erro de adição pode falsear toda a sua contabilidade. Com software como o Stockman, os cálculos são automáticos e sem erros.</p><h3>2. Perda de dados</h3><p>Um caderno pode ser perdido, roubado ou destruído por um incêndio. Os seus dados no Stockman são guardados na cloud e acessíveis em qualquer lugar.</p><h3>3. Sem visão global</h3><p>É difícil saber qual produto vende mais folheando páginas. O Stockman dá-lhe essa informação num clique.</p><h3>Conclusão</h3><p>Passar ao digital não é uma despesa, é um investimento que lhe poupa tempo e dinheiro desde o primeiro mês.</p>"
+            },
+            "eviter-ruptures-fetes": {
+                "title": "Como evitar rupturas de stock durante as festas?",
+                "excerpt": "Natal e Tabaski são períodos críticos. Prepare o seu stock com antecedência com os nossos conselhos.",
+                "date": "10 Jan 2026",
+                "content": "<p>Rupturas de stock durante as festas significam perda direta de receita. Veja como evitá-las.</p><h3>Antecipe a procura</h3><p>Use o histórico de vendas do ano passado para prever as quantidades a encomendar.</p><h3>Encomende cedo</h3><p>Os fornecedores ficam sobrecarregados. Faça as encomendas 2 a 3 semanas antes do habitual.</p><h3>Use os alertas do Stockman</h3><p>Configure limiares de alerta para ser notificado quando um produto começa a faltar.</p>"
+            },
+            "augmenter-marge-2026": {
+                "title": "3 dicas para aumentar a sua margem em 2026",
+                "excerpt": "Faturação é bom, mas margem é melhor! Aprenda a otimizar os seus custos e preços.",
+                "date": "05 Jan 2026",
+                "content": "<p>Aumentar preços não é a única forma de ganhar mais. Veja como trabalhar a sua margem.</p><h3>1. Reduza as perdas</h3><p>Produtos expirados ou roubados custam caro. Um acompanhamento rigoroso do stock reduz estas perdas em 30%.</p><h3>2. Negoceie com os seus fornecedores</h3><p>Ao agrupar encomendas via Marketplace Stockman, pode obter melhores preços.</p><h3>3. Fidelize os seus clientes</h3><p>Um cliente fiel custa menos a adquirir do que um novo. Use o programa de fidelização para os fazer voltar.</p>"
+            }
+        }
+    },
+    "help": {
+        "hero_start": "Como podemos",
+        "hero_highlight": "ajudá-lo",
+        "search_placeholder": "Procurar uma resposta...",
+        "no_results": "Nenhum resultado encontrado para \"{{term}}\"",
+        "need_more": "Precisa de mais ajuda?",
+        "email_support": "✉️ Suporte por Email",
+        "whatsapp_chat": "💬 Chat WhatsApp",
+        "getting_started": {
+            "title": "Primeiros Passos",
+            "q1": "Como criar uma conta?",
+            "a1": "Descarregue a aplicação e siga as instruções no ecrã. Demora menos de 2 minutos.",
+            "q2": "Posso usar a app sem internet?",
+            "a2": "Sim, o Stockman funciona offline e sincroniza os dados assim que a ligação voltar."
+        },
+        "account_billing": {
+            "title": "Conta & Faturação",
+            "q1": "Como mudar a minha palavra-passe?",
+            "a1": "Vá a Definições > Segurança > Alterar palavra-passe.",
+            "q2": "Como funciona o teste gratuito?",
+            "a2": "Recebe automaticamente 14 dias de teste gratuito com todas as funcionalidades desbloqueadas ao registar-se."
+        },
+        "technical_support": {
+            "title": "Suporte Técnico",
+            "q1": "A aplicação não abre, o que fazer?",
+            "a1": "Verifique a sua ligação à internet e certifique-se de que tem a última atualização. Se o problema persistir, reinstale a aplicação.",
+            "q2": "Como contactar o suporte?",
+            "a2": "Pode escrever-nos pelo formulário abaixo ou diretamente no WhatsApp."
+        }
+    },
+    "terms": {
+        "title": "Termos e Condições de Utilização",
+        "version": "Versão \"Ultimate\" 3.0 - Última atualização: 13 de Fevereiro de 2026",
+        "content": "<p>Bem-vindo ao <strong>Stockman</strong>.<br/>Estes Termos e Condições de Utilização (doravante \"Termos\") constituem um contrato legal vinculativo entre o Utilizador e o Editor da solução Stockman.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO I: DISPOSIÇÕES GERAIS</h3><h4>Artigo 1: Definições</h4><ul><li><strong>Plataforma</strong>: Refere-se à infraestrutura de software completa do Stockman.</li><li><strong>Utilizador</strong>: Entidade ou indivíduo que utiliza os serviços para fins profissionais.</li><li><strong>Editor</strong>: Stockman Inc., proprietário e operador do Stockman.</li><li><strong>Loja</strong>: Instância lógica criada por um Utilizador para gerir as suas atividades.</li></ul><h4>Artigo 2: Objeto dos Serviços</h4><p>O Stockman é uma solução ERP especializada em gestão de stock, ponto de venda e relação com clientes. É fornecido como serviço (SaaS).</p><h4>Artigo 3: Aceitação dos Termos</h4><p>O acesso à Plataforma está condicionado à aceitação plena e completa destes Termos.</p><h4>Artigo 4: Capacidade e Uso Profissional</h4><p>O Stockman é uma ferramenta estritamente profissional. O Utilizador garante que usa o serviço para a sua atividade comercial.</p><h4>Artigo 5: Modificação dos Termos</h4><p>O Editor reserva-se o direito de modificar estes Termos a qualquer momento. O uso continuado do Serviço após modificação constitui aceitação.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO II: ACESSO E GESTÃO DE CONTAS</h3><h4>Artigos 6-10</h4><p>O Utilizador compromete-se a fornecer dados verídicos. É responsável pela segurança da sua palavra-passe. O Proprietário pode criar acessos para os seus funcionários. O Utilizador aceita o sistema de funções (Admin, Vendedor, Gestor).</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO III-IX: OPERAÇÕES, DADOS, IA, SEGURANÇA</h3><p>A IA pode produzir erros. As previsões são probabilidades. Os dados são guardados diariamente. O Editor garante o exercício dos direitos RGPD. Qualquer litígio será submetido à lei da sede social do Editor.</p>"
+    },
+    "privacy": {
+        "title": "Política de Privacidade",
+        "version": "Última atualização: 13 de Fevereiro de 2026",
+        "content": "<p>Bem-vindo ao Stockman. A proteção dos seus dados pessoais é uma prioridade para nós.</p><h3>1. Recolha de Dados</h3><p>Recolhemos: informações de identificação (nome, email, telefone), dados profissionais (loja, inventário, transações), dados técnicos (IP, dispositivo, logs).</p><h3>2. Utilização dos Dados</h3><p>Os seus dados são utilizados exclusivamente para: gestão do seu stock e vendas, segurança da sua conta, melhoria dos nossos serviços e cumprimento das nossas obrigações legais.</p><h3>3. Armazenamento e Segurança</h3><p>Os seus dados são armazenados em servidores seguros (MongoDB Atlas) e encriptados em repouso. Utilizamos o protocolo HTTPS para todas as transferências.</p><h3>4. Partilha de Dados</h3><p>Não vendemos nem alugamos os seus dados. Podem ser partilhados apenas com os nossos prestadores técnicos e autoridades se exigido por lei.</p><h3>5. Os Seus Direitos (RGPD)</h3><p>Tem os direitos de acesso, retificação, eliminação e portabilidade. Exerça estes direitos a partir do separador Definições da aplicação.</p><h3>6. Contacto</h3><p>Para qualquer questão, contacte-nos através da aplicação ou em <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     }
 }

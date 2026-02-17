@@ -201,7 +201,7 @@ export default function DashboardScreen() {
       await settingsApi.update({ dashboard_layout: layout });
     } catch {
       // Revert if API fails
-      RNAlert.alert('Erreur', 'Impossible de mettre à jour vos préférences.');
+      RNAlert.alert(t('common.error'), t('common.preferences_error'));
     }
   }
 
@@ -211,27 +211,27 @@ export default function DashboardScreen() {
       <View style={styles.kpiGrid}>
         <KpiCard
           icon="cash-outline"
-          label={t('dashboard.today_revenue') || 'CA du jour'}
+          label={t('dashboard.today_revenue')}
           value={data?.today_revenue ?? 0}
           color={colors.success}
           isCurrency
         />
         <KpiCard
           icon="receipt-outline"
-          label={t('dashboard.today_sales') || 'Ventes jour'}
+          label={t('dashboard.today_sales')}
           value={data?.today_sales_count ?? 0}
           color={colors.info}
         />
         <KpiCard
           icon="cube-outline"
-          label={t('dashboard.stock_value') || 'Valeur stock'}
+          label={t('dashboard.stock_value')}
           value={data?.total_stock_value ?? 0}
           color={colors.warning}
           isCurrency
         />
         <KpiCard
           icon="alert-circle-outline"
-          label={t('dashboard.month_revenue') || 'Ventes mois'}
+          label={t('dashboard.month_revenue')}
           value={data?.month_revenue ?? 0}
           color={colors.primary}
           isCurrency
@@ -305,7 +305,7 @@ export default function DashboardScreen() {
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   const filteredMovements = movements.filter((m) => historyFilter === 'all' || m.type === historyFilter);
@@ -450,7 +450,7 @@ export default function DashboardScreen() {
         {/* Profitability Analysis — NEW */}
         {userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('dashboard.profitability_analysis') || 'Analyse de Rentabilité'}</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.profitability_analysis')}</Text>
             <BarChart
               data={{
                 labels: stats.profit_by_category.map(c => c.name),
@@ -507,7 +507,7 @@ export default function DashboardScreen() {
                           { color: product.quantity === 0 ? colors.danger : colors.warning },
                         ]}
                       >
-                        {product.quantity === 0 ? 'Rupture' : 'Bas'}
+                        {product.quantity === 0 ? t('dashboard.out_of_stock') : t('dashboard.low_stock')}
                       </Text>
                     </View>
                   </View>
@@ -519,7 +519,7 @@ export default function DashboardScreen() {
                     onPress={() => setShowAllCritical(!showAllCritical)}
                   >
                     <Text style={styles.seeMoreText}>
-                      {showAllCritical ? t('dashboard.see_less') : t('dashboard.see_more_count', { count: data.critical_products.length - 5, defaultValue: `Voir les ${data.critical_products.length - 5} autres produits critiques` })}
+                      {showAllCritical ? t('dashboard.see_less') : t('dashboard.see_more_count', { count: data.critical_products.length - 5 })}
                     </Text>
                     <Ionicons name={showAllCritical ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                   </TouchableOpacity>
@@ -545,7 +545,7 @@ export default function DashboardScreen() {
         {/* Alertes récentes */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Alertes récentes</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.recent_alerts')}</Text>
             {data.recent_alerts.slice(0, 3).map((alert) => (
               <View key={alert.alert_id} style={styles.alertItem}>
                 <Ionicons
@@ -648,7 +648,7 @@ export default function DashboardScreen() {
         {/* Répartition par Catégorie */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_category_chart) && stats?.stock_by_category && stats.stock_by_category.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Répartition par Catégorie</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.category_distribution')}</Text>
             <PieChart
               data={stats.stock_by_category.map((c, i) => ({
                 name: c.name,
@@ -676,29 +676,29 @@ export default function DashboardScreen() {
         {/* Analyse ABC */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_abc_analysis) && stats?.abc_analysis && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Analyse ABC (Priorités)</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.abc_analysis')}</Text>
             <View style={styles.abcContainer}>
               <View style={[styles.abcCard, { borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
-                <Text style={[styles.abcClass, { color: colors.success }]}>Classe A</Text>
+                <Text style={[styles.abcClass, { color: colors.success }]}>{t('dashboard.class_a')}</Text>
                 <Text style={styles.abcCount}>{stats.abc_analysis.A.length} produits</Text>
-                <Text style={styles.abcDesc}>80% de votre CA</Text>
+                <Text style={styles.abcDesc}>{t('dashboard.class_a_desc')}</Text>
               </View>
               <View style={[styles.abcCard, { borderLeftColor: colors.primary, borderLeftWidth: 4 }]}>
-                <Text style={[styles.abcClass, { color: colors.primary }]}>Classe B</Text>
+                <Text style={[styles.abcClass, { color: colors.primary }]}>{t('dashboard.class_b')}</Text>
                 <Text style={styles.abcCount}>{stats.abc_analysis.B.length} produits</Text>
-                <Text style={styles.abcDesc}>15% de votre CA</Text>
+                <Text style={styles.abcDesc}>{t('dashboard.class_b_desc')}</Text>
               </View>
               <View style={[styles.abcCard, { borderLeftColor: colors.textMuted, borderLeftWidth: 4 }]}>
-                <Text style={[styles.abcClass, { color: colors.textMuted }]}>Classe C</Text>
+                <Text style={[styles.abcClass, { color: colors.textMuted }]}>{t('dashboard.class_c')}</Text>
                 <Text style={styles.abcCount}>{stats.abc_analysis.C.length} produits</Text>
-                <Text style={styles.abcDesc}>5% de votre CA</Text>
+                <Text style={styles.abcDesc}>{t('dashboard.class_c_desc')}</Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.abcFooter}
               onPress={() => setShowStatsModal(true)}
             >
-              <Text style={styles.abcFooterText}>Voir le détail par produit</Text>
+              <Text style={styles.abcFooterText}>{t('dashboard.see_detail_product')}</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.primaryLight} />
             </TouchableOpacity>
           </View>
@@ -708,7 +708,7 @@ export default function DashboardScreen() {
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_reorder) && stats?.reorder_recommendations && stats.reorder_recommendations.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Réapprovisionnement Intelligent</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.smart_replenishment')}</Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{stats.reorder_recommendations.length}</Text>
               </View>
@@ -725,7 +725,7 @@ export default function DashboardScreen() {
                     onPress={() => router.push('/orders')}
                   >
                     <Ionicons name="cart-outline" size={16} color="#FFF" />
-                    <Text style={styles.orderButtonText}>Commander</Text>
+                    <Text style={styles.orderButtonText}>{t('dashboard.order_btn')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -737,7 +737,7 @@ export default function DashboardScreen() {
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_inventory_tasks) && inventoryTasks.length > 0 && (
           <View style={[styles.section, { marginTop: Spacing.md }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Inventaire Tournant</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.rotating_inventory')}</Text>
               <View style={[styles.badge, { backgroundColor: colors.info }]}>
                 <Text style={styles.badgeText}>{inventoryTasks.length}</Text>
               </View>
@@ -753,12 +753,12 @@ export default function DashboardScreen() {
                     style={styles.countButton}
                     onPress={() => {
                       RNAlert.prompt(
-                        'Compter le stock',
-                        `Entrez la quantité réelle pour ${task.product_name}`,
+                        t('dashboard.count_stock'),
+                        t('dashboard.enter_actual_qty', { name: task.product_name }),
                         [
-                          { text: 'Annuler', style: 'cancel' },
+                          { text: t('common.cancel'), style: 'cancel' },
                           {
-                            text: 'Valider',
+                            text: t('common.validate'),
                             onPress: async (val: string | undefined) => {
                               if (val) {
                                 await inventory.submitResult(task.task_id, parseInt(val));
@@ -772,7 +772,7 @@ export default function DashboardScreen() {
                       );
                     }}
                   >
-                    <Text style={styles.countButtonText}>Compter</Text>
+                    <Text style={styles.countButtonText}>{t('dashboard.count_btn')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -784,7 +784,7 @@ export default function DashboardScreen() {
                 }}
               >
                 <Ionicons name="refresh-outline" size={16} color={colors.primary} />
-                <Text style={styles.generateBtnText}>Générer de nouvelles tâches</Text>
+                <Text style={styles.generateBtnText}>{t('dashboard.generate_tasks')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -794,7 +794,7 @@ export default function DashboardScreen() {
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_expiry_alerts) && stats?.expiry_alerts && stats.expiry_alerts.length > 0 && (
           <View style={[styles.section, { marginTop: Spacing.md }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Alertes Péremption (30j)</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.expiry_alerts')}</Text>
               <View style={[styles.badge, { backgroundColor: colors.warning }]}>
                 <Text style={styles.badgeText}>{stats.expiry_alerts.length}</Text>
               </View>
@@ -808,9 +808,9 @@ export default function DashboardScreen() {
                   <View key={`${item.product_id}-${i}`} style={styles.reorderCard}>
                     <View style={[styles.reorderStatus, { backgroundColor: item.priority === 'critical' ? colors.danger : colors.warning }]} />
                     <Text style={styles.reorderName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.reorderMeta}>Lot: {item.batch_number}</Text>
+                    <Text style={styles.reorderMeta}>{t('common.batch') || 'Lot'}: {item.batch_number}</Text>
                     <Text style={[styles.reorderSuggest, { color: item.priority === 'critical' ? colors.danger : colors.warning }]}>
-                      {daysRemaining <= 0 ? 'Périmé !' : `${daysRemaining} jours restants`}
+                      {daysRemaining <= 0 ? t('dashboard.expired') : t('dashboard.days_remaining', { count: daysRemaining })}
                     </Text>
                   </View>
                 );
@@ -823,11 +823,11 @@ export default function DashboardScreen() {
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionButton} onPress={openStatsModal}>
             <Ionicons name="bar-chart-outline" size={20} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Statistiques</Text>
+            <Text style={styles.actionButtonText}>{t('dashboard.stats')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={openHistoryModal}>
             <Ionicons name="time-outline" size={20} color={colors.secondary} />
-            <Text style={styles.actionButtonText}>Historique</Text>
+            <Text style={styles.actionButtonText}>{t('dashboard.history')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -839,7 +839,7 @@ export default function DashboardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Historique des mouvements</Text>
+              <Text style={styles.modalTitle}>{t('dashboard.movement_history')}</Text>
               <View style={{ flexDirection: 'row', gap: Spacing.md }}>
                 <TouchableOpacity onPress={exportHistory}>
                   <Ionicons name="download-outline" size={24} color={colors.primary} />
@@ -873,7 +873,7 @@ export default function DashboardScreen() {
                   onPress={() => setHistoryFilter(f)}
                 >
                   <Text style={[styles.filterChipText, historyFilter === f && styles.filterChipTextActive]}>
-                    {f === 'all' ? 'Tous' : f === 'in' ? 'Entrées' : 'Sorties'}
+                    {f === 'all' ? t('common.all') : f === 'in' ? t('dashboard.entries') : t('dashboard.exits')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -884,7 +884,7 @@ export default function DashboardScreen() {
             ) : (
               <ScrollView style={styles.modalScroll}>
                 {filteredMovements.length === 0 ? (
-                  <Text style={styles.emptyText}>Aucun mouvement</Text>
+                  <Text style={styles.emptyText}>{t('dashboard.no_movements')}</Text>
                 ) : (
                   filteredMovements.map((mov) => (
                     <View key={mov.movement_id} style={styles.movementItem}>
@@ -898,7 +898,7 @@ export default function DashboardScreen() {
                       <View style={styles.movementInfo}>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.movementQty, { fontWeight: 'bold', marginBottom: 2 }]}>
-                            {mov.product_name || 'Produit inconnu'}
+                            {mov.product_name || t('common.unknown_product')}
                           </Text>
                           <Text style={styles.movementQty}>
                             {mov.type === 'in' ? '+' : '-'}{mov.quantity} ({mov.previous_quantity} → {mov.new_quantity})
@@ -922,8 +922,8 @@ export default function DashboardScreen() {
           <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.header}>
               <View>
-                <Text style={styles.greeting}>Bonjour,</Text>
-                <Text style={styles.username}>{user?.name || 'Commerçant'}</Text>
+                <Text style={styles.greeting}>{t('dashboard.greeting', { name: '' })}</Text>
+                <Text style={styles.username}>{user?.name || t('common.merchant')}</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => setShowGuide(true)}>
@@ -938,7 +938,7 @@ export default function DashboardScreen() {
               </View>
             </View>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Statistiques</Text>
+              <Text style={styles.modalTitle}>{t('dashboard.stats')}</Text>
               <View style={{ flexDirection: 'row', gap: Spacing.md }}>
                 <TouchableOpacity onPress={exportStats}>
                   <Ionicons name="download-outline" size={24} color={colors.primary} />
@@ -956,22 +956,22 @@ export default function DashboardScreen() {
               <ScrollView style={styles.modalScroll}>
                 {/* Movements summary */}
                 <View style={styles.statsSection}>
-                  <Text style={styles.statsSectionTitle}>{t('dashboard.movements_30d') || 'Mouvements (30 jours)'}</Text>
+                  <Text style={styles.statsSectionTitle}>{t('dashboard.movements_30d')}</Text>
                   <View style={styles.statsRow}>
                     <View style={styles.statsCard}>
                       <Ionicons name="arrow-down-outline" size={20} color={colors.success} />
                       <Text style={[styles.statsCardValue, { color: colors.success }]}>{statsData.movements_summary.in}</Text>
-                      <Text style={styles.statsCardLabel}>Entrées</Text>
+                      <Text style={styles.statsCardLabel}>{t('dashboard.entries')}</Text>
                     </View>
                     <View style={styles.statsCard}>
                       <Ionicons name="arrow-up-outline" size={20} color={colors.warning} />
                       <Text style={[styles.statsCardValue, { color: colors.warning }]}>{statsData.movements_summary.out}</Text>
-                      <Text style={styles.statsCardLabel}>Sorties</Text>
+                      <Text style={styles.statsCardLabel}>{t('dashboard.exits')}</Text>
                     </View>
                     <View style={styles.statsCard}>
                       <Ionicons name="swap-vertical-outline" size={20} color={colors.info} />
                       <Text style={[styles.statsCardValue, { color: colors.info }]}>{statsData.movements_summary.net}</Text>
-                      <Text style={styles.statsCardLabel}>Net</Text>
+                      <Text style={styles.statsCardLabel}>{t('dashboard.net')}</Text>
                     </View>
                   </View>
                 </View>
@@ -979,7 +979,7 @@ export default function DashboardScreen() {
                 {/* Stock by category */}
                 {statsData.stock_by_category.length > 0 && (
                   <View style={styles.statsSection}>
-                    <Text style={styles.statsSectionTitle}>Stock par catégorie</Text>
+                    <Text style={styles.statsSectionTitle}>{t('dashboard.stock_by_category')}</Text>
                     {(() => {
                       const maxVal = Math.max(...statsData.stock_by_category.map((c) => c.count), 1);
                       return statsData.stock_by_category.map((cat, i) => (
@@ -997,7 +997,7 @@ export default function DashboardScreen() {
 
                 {/* Status distribution */}
                 <View style={styles.statsSection}>
-                  <Text style={styles.statsSectionTitle}>Distribution des statuts</Text>
+                  <Text style={styles.statsSectionTitle}>{t('dashboard.status_distribution')}</Text>
                   {(() => {
                     const entries = Object.entries(statsData.status_distribution);
                     const maxVal = Math.max(...entries.map(([, v]) => v), 1);
@@ -1005,7 +1005,7 @@ export default function DashboardScreen() {
                       normal: colors.success, low_stock: colors.warning, out_of_stock: colors.danger, overstock: colors.info,
                     };
                     const statusLabels: Record<string, string> = {
-                      normal: 'Normal', low_stock: 'Stock bas', out_of_stock: 'Rupture', overstock: 'Surstock',
+                      normal: t('products.status_normal'), low_stock: t('products.status_low'), out_of_stock: t('products.status_out'), overstock: t('products.status_over'),
                     };
                     return entries.map(([key, val]) => (
                       <View key={key} style={styles.barRow}>
@@ -1022,15 +1022,15 @@ export default function DashboardScreen() {
                 {/* Top products by value */}
                 {statsData.top_products_by_value.length > 0 && (
                   <View style={styles.statsSection}>
-                    <Text style={styles.statsSectionTitle}>Top produits (valeur)</Text>
+                    <Text style={styles.statsSectionTitle}>{t('dashboard.top_products_value')}</Text>
                     {statsData.top_products_by_value.map((prod, i) => (
                       <View key={i} style={styles.topProductRow}>
                         <Text style={styles.topProductRank}>#{i + 1}</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.topProductName}>{prod.name}</Text>
-                          <Text style={styles.topProductSub}>{prod.quantity} unités</Text>
+                          <Text style={styles.topProductSub}>{t('products.product_count', { count: prod.quantity })}</Text>
                         </View>
-                        <Text style={styles.topProductValue}>{prod.value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</Text>
+                        <Text style={styles.topProductValue}>{formatCurrency(prod.value)}</Text>
                       </View>
                     ))}
                   </View>
@@ -1039,12 +1039,12 @@ export default function DashboardScreen() {
                 {/* ABC Analysis Details */}
                 {statsData.abc_analysis && (
                   <View style={styles.statsSection}>
-                    <Text style={styles.statsSectionTitle}>{t('dashboard.abc_analysis') || 'Détail de l\'Analyse ABC'}</Text>
+                    <Text style={styles.statsSectionTitle}>{t('dashboard.abc_analysis')}</Text>
 
                     {/* Class A */}
                     {statsData.abc_analysis.A.length > 0 && (
                       <View style={{ marginBottom: Spacing.md }}>
-                        <Text style={[styles.abcClassTitle, { color: colors.success }]}>{t('dashboard.class_a') || 'Classe A (Top Priorité)'}</Text>
+                        <Text style={[styles.abcClassTitle, { color: colors.success }]}>{t('dashboard.class_a')}</Text>
                         {statsData.abc_analysis.A.slice(0, 5).map((item, i) => (
                           <View key={i} style={styles.abcDetailRow}>
                             <Text style={styles.abcDetailName}>{item.name}</Text>
@@ -1057,7 +1057,7 @@ export default function DashboardScreen() {
                     {/* Class B */}
                     {statsData.abc_analysis.B.length > 0 && (
                       <View style={{ marginBottom: Spacing.md }}>
-                        <Text style={[styles.abcClassTitle, { color: colors.primary }]}>{t('dashboard.class_b') || 'Classe B (Important)'}</Text>
+                        <Text style={[styles.abcClassTitle, { color: colors.primary }]}>{t('dashboard.class_b')}</Text>
                         {statsData.abc_analysis.B.slice(0, 5).map((item, i) => (
                           <View key={i} style={styles.abcDetailRow}>
                             <Text style={styles.abcDetailName}>{item.name}</Text>
@@ -1070,8 +1070,8 @@ export default function DashboardScreen() {
                     {/* Class C */}
                     {statsData.abc_analysis.C.length > 0 && (
                       <View>
-                        <Text style={[styles.abcClassTitle, { color: colors.textMuted }]}>{t('dashboard.class_c') || 'Classe C (Faible Impact)'}</Text>
-                        <Text style={styles.abcDetailName}>Et {statsData.abc_analysis.C.length} autres produits...</Text>
+                        <Text style={[styles.abcClassTitle, { color: colors.textMuted }]}>{t('dashboard.class_c')}</Text>
+                        <Text style={styles.abcDetailName}>{t('dashboard.other_products_count', { count: statsData.abc_analysis.C.length })}</Text>
                       </View>
                     )}
                   </View>
@@ -1079,19 +1079,19 @@ export default function DashboardScreen() {
 
                 {/* Orders stats */}
                 <View style={styles.statsSection}>
-                  <Text style={styles.statsSectionTitle}>Commandes</Text>
+                  <Text style={styles.statsSectionTitle}>{t('tabs.orders')}</Text>
                   <View style={styles.statsRow}>
                     <View style={styles.statsCard}>
                       <Text style={[styles.statsCardValue, { color: colors.warning }]}>{statsData.orders_stats.pending}</Text>
-                      <Text style={styles.statsCardLabel}>En attente</Text>
+                      <Text style={styles.statsCardLabel}>{t('orders.status_pending')}</Text>
                     </View>
                     <View style={styles.statsCard}>
                       <Text style={[styles.statsCardValue, { color: colors.success }]}>{statsData.orders_stats.completed}</Text>
-                      <Text style={styles.statsCardLabel}>Livrées</Text>
+                      <Text style={styles.statsCardLabel}>{t('orders.status_completed')}</Text>
                     </View>
                     <View style={styles.statsCard}>
                       <Text style={[styles.statsCardValue, { color: colors.primary }]}>{formatCurrency(statsData.orders_stats.total_value)}</Text>
-                      <Text style={styles.statsCardLabel}>Valeur totale</Text>
+                      <Text style={styles.statsCardLabel}>{t('common.total_value')}</Text>
                     </View>
                   </View>
                 </View>
@@ -1113,7 +1113,7 @@ export default function DashboardScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { height: '60%', marginTop: 'auto' }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Messages de l'administrateur</Text>
+                <Text style={styles.modalTitle}>{t('dashboard.admin_messages')}</Text>
                 <TouchableOpacity onPress={() => setShowNotifModal(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>

@@ -1,23 +1,23 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
+        "features": "Funkcje",
+        "resources": "Zasoby",
         "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "Zaloguj się"
+        "home": "Zaloguj się",
+        "login": "Zaloguj się",
+        "free_trial": "Wypróbuj za darmo"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "Uwolnij potencjał swojej",
+        "title_end": "firmy",
+        "subtitle": "Inteligentne rozwiązanie do zarządzania zapasami oparte na AI, automatyzujące zamówienia i zwiększające zyski.",
+        "cta": "Zacznij teraz"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "Wyposażone sklepy",
+        "transactions": "Transakcje / Miesiąc",
+        "satisfaction": "Zadowoleni klienci",
+        "support": "Dostępne wsparcie"
     },
     "features": {
         "title": "Your Daily Tools",
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -104,22 +99,22 @@
         },
         "business": {
             "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "price": "2500",
+            "f1": "3 Użytkowników",
+            "f2": "Nieograniczona liczba produktów",
+            "f3": "Asystent AI Stockman",
+            "f4": "Marketplace i zamówienia",
+            "f5": "Zaawansowana analityka",
+            "cta": "14 dni za darmo"
         },
         "enterprise": {
             "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "price": "Wycena indywidualna",
+            "f1": "Nielimitowani użytkownicy",
+            "f2": "Zarządzanie wieloma sklepami",
+            "f3": "API i integracje",
+            "f4": "Dedykowane wsparcie 24/7",
+            "cta": "Skontaktuj się z nami"
         }
     },
     "faq": {
@@ -157,9 +152,6 @@
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
     },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
-    },
     "contact": {
         "title": "Skontaktuj się",
         "subtitle": "Pytanie? Współpraca? Napisz do nas.",
@@ -170,6 +162,9 @@
         "success_title": "Wiadomość wysłana!",
         "success_desc": "Nasz zespół odpowie w ciągu 24 godzin.",
         "send_another": "Wyślij kolejną"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "Używamy plików cookie, aby poprawić Twoje doświadczenie. Kontynuując, akceptujesz naszą politykę prywatności.",

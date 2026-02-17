@@ -12,6 +12,7 @@
   --warning: #FF9500;
   --danger: #FF3B30;
   --glass: rgba(255, 255, 255, 0.03);
+  --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
   --gradient: linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #FF2D55 100%);
   --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -480,4 +481,208 @@ ul {
   border-color: rgba(0, 122, 255, 0.3);
   transform: translateY(-5px);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 122, 255, 0.1);
+}
+
+/* ====== Missing utility classes ====== */
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.text-light {
+  color: var(--text-muted);
+}
+
+/* ====== Newsletter ====== */
+.newsletter-section {
+  padding: var(--spacing-xl) 0;
+}
+
+.newsletter-card {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.newsletter-content h3 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.newsletter-content p {
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.newsletter-form {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.newsletter-form input {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.newsletter-form button {
+  white-space: nowrap;
+}
+
+.privacy-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-sm);
+}
+
+/* ====== Team & Values (About page) ====== */
+.team-section {
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.team-card {
+  text-align: center;
+}
+
+.team-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-sm);
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.team-role {
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.value-item {
+  text-align: center;
+}
+
+.value-item span {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ====== Form elements ====== */
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+/* ====== Mobile overrides (360px+) ====== */
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 2.5rem;
+    letter-spacing: -1px;
+  }
+
+  .section-title h2 {
+    font-size: 1.8rem;
+  }
+
+  .price {
+    font-size: 2.2rem;
+  }
+
+  .newsletter-form {
+    flex-direction: column;
+  }
+
+  .whatsapp-float {
+    width: 50px;
+    height: 50px;
+    bottom: 20px;
+    right: 16px;
+    font-size: 24px;
+  }
+
+  .testimonials-grid,
+  .features-grid,
+  .pricing-grid,
+  .footer-grid,
+  .team-grid,
+  .values-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-grid {
+    flex-direction: column;
+  }
+
+  .step-card {
+    min-width: unset;
+  }
+
+  .download-banner {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .stat-item h3 {
+    font-size: 1.8rem;
+  }
+
+  .faq-item {
+    padding: var(--spacing-md);
+  }
 }

@@ -252,7 +252,7 @@ export default function ProductsScreen() {
       Linking.openURL(url);
     } catch (error) {
       console.error(error);
-      RNAlert.alert('Erreur', 'Impossible d\'exporter l\'historique');
+      RNAlert.alert(t('common.error'), t('products.error_export_history'));
     }
   };
 
@@ -373,11 +373,11 @@ export default function ProductsScreen() {
     const expiry = new Date(expiryDate);
     const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'Expiré';
-    if (diffDays === 0) return 'Expire aujourd\'hui';
-    if (diffDays === 1) return 'Expire demain';
-    if (diffDays <= 7) return `Expire dans ${diffDays} j.`;
-    return `Expire le ${expiry.toLocaleDateString()}`;
+    if (diffDays < 0) return t('products.expired');
+    if (diffDays === 0) return t('products.expiry_today');
+    if (diffDays === 1) return t('products.expiry_tomorrow');
+    if (diffDays <= 7) return t('products.expiry_in_days', { count: diffDays });
+    return t('products.expiry_date', { date: expiry.toLocaleDateString() });
   }
 
   const handleExportCSV = async () => {
@@ -391,7 +391,7 @@ export default function ProductsScreen() {
       Linking.openURL(url);
     } catch (error) {
       console.error(error);
-      RNAlert.alert('Erreur', 'Impossible d\'exporter les produits');
+      RNAlert.alert(t('common.error'), t('products.error_export_products'));
     }
   };
 
@@ -572,7 +572,7 @@ export default function ProductsScreen() {
   async function handleAdjustStock(product: Product, actualQuantityText: string) {
     const actualQuantity = parseInt(actualQuantityText);
     if (isNaN(actualQuantity)) {
-      RNAlert.alert("Erreur", "Veuillez entrer une quantité valide");
+      RNAlert.alert(t('common.error'), t('products.error_invalid_quantity'));
       return;
     }
 
@@ -598,7 +598,11 @@ export default function ProductsScreen() {
       }
     };
 
-    const msg = `Ajuster le stock pour ${product.name} ?\nAncienne quantité : ${product.quantity}\nNouvelle quantité : ${actualQuantity}`;
+    const msg = t('products.confirm_adjust_stock', {
+      name: product.name,
+      oldQty: product.quantity,
+      newQty: actualQuantity
+    });
 
     if (Platform.OS === 'web') {
       if (window.confirm(msg)) {
@@ -606,11 +610,11 @@ export default function ProductsScreen() {
       }
     } else {
       RNAlert.alert(
-        "Confirmation d'inventaire",
+        t('products.confirm_inventory'),
         msg,
         [
-          { text: "Annuler", style: "cancel" },
-          { text: "Confirmer", onPress: performAdjust }
+          { text: t('common.cancel'), style: "cancel" },
+          { text: t('common.confirm'), onPress: performAdjust }
         ]
       );
     }
@@ -1008,9 +1012,9 @@ export default function ProductsScreen() {
               setSelectedProductIds(new Set());
               setIsSelectionMode(false);
               await loadData();
-              RNAlert.alert('Succès', 'Produits supprimés');
+              RNAlert.alert(t('common.success'), t('products.success_deleted'));
             } catch (error) {
-              RNAlert.alert('Erreur', 'Certains produits n\'ont pas pu être supprimés');
+              RNAlert.alert(t('common.error'), t('products.error_delete_failed'));
               await loadData();
             } finally {
               setLoading(false);
@@ -1032,9 +1036,9 @@ export default function ProductsScreen() {
       setSelectedProductIds(new Set());
       setIsSelectionMode(false);
       await loadData();
-      RNAlert.alert('Succès', 'Catégories mises à jour');
+      RNAlert.alert(t('common.success'), t('products.success_categories_updated'));
     } catch (error) {
-      RNAlert.alert('Erreur', 'Impossible de mettre à jour les catégories');
+      RNAlert.alert(t('common.error'), t('products.error_categories_update_failed'));
     } finally {
       setLoading(false);
     }
@@ -1046,7 +1050,7 @@ export default function ProductsScreen() {
       : filtered;
 
     if (list.length === 0) {
-      RNAlert.alert('Info', 'Aucun produit à exporter');
+      RNAlert.alert(t('common.info'), t('products.error_no_products_to_export'));
       return;
     }
 
@@ -1083,7 +1087,7 @@ export default function ProductsScreen() {
           </style>
         </head>
         <body>
-          <h1>${user?.name || 'Ma Boutique'} - Catalogue Produits</h1>
+          <h1>${user?.name || t('common.my_store')} - ${t('products.catalog_title')}</h1>
           <div class="grid">
             ${list.map(p => `
               <div class="card">
@@ -1113,7 +1117,7 @@ export default function ProductsScreen() {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      RNAlert.alert('Erreur', 'Impossible de générer le catalogue');
+      RNAlert.alert(t('common.error'), t('products.error_export_catalog_failed'));
     }
   }
 
@@ -1174,13 +1178,13 @@ export default function ProductsScreen() {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      RNAlert.alert('Erreur', 'Impossible de générer l\'étiquette');
+      RNAlert.alert(t('common.error'), t('products.error_print_label_failed'));
     }
   }
 
   async function exportInventoryPdf() {
     if (filtered.length === 0) {
-      RNAlert.alert('Info', 'Aucun produit à exporter');
+      RNAlert.alert(t('common.info'), t('products.error_no_products_to_export'));
       return;
     }
     const totalValue = filtered.reduce((s, p) => s + p.quantity * p.purchase_price, 0);
@@ -1189,9 +1193,9 @@ export default function ProductsScreen() {
 
     try {
       await generateAndSharePdf({
-        storeName: user?.name || 'Mon Commerce',
-        reportTitle: 'RAPPORT D\'INVENTAIRE',
-        subtitle: `${filtered.length} produits`,
+        storeName: user?.name || t('common.my_store'),
+        reportTitle: t('products.inventory_report_title'),
+        subtitle: t('products.product_count', { count: filtered.length }),
         kpis: [
           { label: 'Produits', value: filtered.length.toString() },
           { label: 'Valeur stock', value: `${totalValue.toLocaleString()} F` },
@@ -1258,8 +1262,8 @@ export default function ProductsScreen() {
                   setInventoryValues({});
                 }
                 RNAlert.alert(
-                  isInventoryMode ? "Mode Normal" : "Mode Inventaire",
-                  isInventoryMode ? "Retour au mode normal." : "Mode Inventaire actif. Saisissez le stock réel pour chaque produit."
+                  isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
+                  isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
                 );
               }}
             >
@@ -1310,7 +1314,7 @@ export default function ProductsScreen() {
           <Ionicons name="search-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un produit..."
+            placeholder={t('products.search_placeholder')}
             placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -1328,25 +1332,25 @@ export default function ProductsScreen() {
               style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
               onPress={() => setFilterType('all')}
             >
-              <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>Tous</Text>
+              <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]}
               onPress={() => setFilterType('out_of_stock')}
             >
-              <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>En Rupture</Text>
+              <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]}
               onPress={() => setFilterType('low_stock')}
             >
-              <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>Stock Bas</Text>
+              <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]}
               onPress={() => setFilterType('overstock')}
             >
-              <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>Surstock</Text>
+              <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -1358,7 +1362,7 @@ export default function ProductsScreen() {
               onPress={() => setSelectedCategory(null)}
             >
               <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>
-                Tous
+                {t('common.all')}
               </Text>
             </TouchableOpacity>
             {categoryList.map((cat) => (
@@ -1389,7 +1393,7 @@ export default function ProductsScreen() {
         {/* Valuation Card */}
         <View style={styles.valuationCard}>
           <View style={styles.valuationInfo}>
-            <Text style={styles.valuationLabel}>Valeur Totale du Stock</Text>
+            <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
             <Text style={styles.valuationValue}>
               {productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0).toLocaleString()} FCFA
             </Text>
@@ -1399,16 +1403,16 @@ export default function ProductsScreen() {
           </View>
         </View>
 
-        <Text style={styles.resultCount}>{filtered.length} produit(s)</Text>
+        <Text style={styles.resultCount}>{t('products.product_count', { count: filtered.length })}</Text>
 
         {filtered.length === 0 ? (
           <EmptyState
-            title={debouncedSearch ? "Aucun résultat" : "Aucun produit"}
+            title={debouncedSearch ? t('common.no_results') : t('products.no_products')}
             message={debouncedSearch
-              ? `Nous n'avons trouvé aucun produit correspondant à "${debouncedSearch}".`
-              : "Commencez par ajouter votre premier produit pour organiser votre stock."}
+              ? t('products.no_results_for', { query: debouncedSearch })
+              : t('products.no_products_desc')}
             icon={debouncedSearch ? "search-outline" : "cube-outline"}
-            actionLabel={debouncedSearch ? "Effacer la recherche" : "Ajouter un produit"}
+            actionLabel={debouncedSearch ? t('common.clear_search') : t('products.add_product')}
             onAction={() => {
               if (debouncedSearch) {
                 setSearch('');
@@ -1480,11 +1484,11 @@ export default function ProductsScreen() {
                 {isInventoryMode ? (
                   <View style={styles.inventoryReconciliation}>
                     <View style={styles.inventoryInfo}>
-                      <Text style={styles.detailLabel}>Stock Actuel</Text>
+                      <Text style={styles.detailLabel}>{t('products.current_stock')}</Text>
                       <Text style={styles.detailValue}>{product.quantity}</Text>
                     </View>
                     <View style={styles.inventoryInputContainer}>
-                      <Text style={styles.detailLabel}>Stock Réel</Text>
+                      <Text style={styles.detailLabel}>{t('products.actual_stock')}</Text>
                       <TextInput
                         style={styles.inventoryInput}
                         keyboardType="numeric"
@@ -1515,13 +1519,13 @@ export default function ProductsScreen() {
                   <>
                     <View style={styles.productDetails}>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Stock</Text>
+                        <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
                         <Text style={styles.detailValue}>
-                          {product.quantity} {product.unit}(s)
+                          {product.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: product.quantity })}
                         </Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Tendance / Prévision</Text>
+                        <Text style={styles.detailLabel}>{t('products.trend_forecast')}</Text>
                         {(() => {
                           const forecast = forecastData?.products?.find((f: any) => f.product_id === product.product_id);
                           if (!forecast) {
@@ -1541,7 +1545,7 @@ export default function ProductsScreen() {
                         })()}
                       </View>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Valeur Stock</Text>
+                        <Text style={styles.detailLabel}>{t('products.stock_value')}</Text>
                         <Text style={styles.detailValue}>{(product.quantity * product.purchase_price).toLocaleString()} FCFA</Text>
                       </View>
                     </View>
@@ -1549,11 +1553,11 @@ export default function ProductsScreen() {
                     {/* Variants display */}
                     {product.has_variants && product.variants && product.variants.length > 0 && (
                       <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
-                        <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>Variantes</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{t('products.variants')}</Text>
                         {product.variants.map(v => (
                           <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {product.unit}(s){v.selling_price != null ? ` · ${v.selling_price.toLocaleString()} F` : ''}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${v.selling_price.toLocaleString()} F` : ''}</Text>
                           </View>
                         ))}
                       </View>
@@ -1600,7 +1604,7 @@ export default function ProductsScreen() {
                               }}
                             >
                               <Ionicons name="remove-circle-outline" size={16} color={colors.warning} />
-                              <Text style={[styles.actionText, { color: colors.warning }]}>-Stock</Text>
+                              <Text style={[styles.actionText, { color: colors.warning }]}>{t('products.remove_stock')}</Text>
                             </TouchableOpacity>
                           </>
                         )}
@@ -1664,7 +1668,7 @@ export default function ProductsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</Text>
+              <Text style={styles.modalTitle}>{editingProduct ? t('products.edit_product') : t('products.add_product')}</Text>
               <TouchableOpacity onPress={() => { setShowAddModal(false); setEditingProduct(null); }}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -1682,20 +1686,20 @@ export default function ProductsScreen() {
                   {imageUploading ? (
                     <View style={styles.imagePlaceholder}>
                       <ActivityIndicator size="large" color={colors.primary} />
-                      <Text style={[styles.imagePlaceholderText, { marginTop: 8 }]}>Upload en cours...</Text>
+                      <Text style={[styles.imagePlaceholderText, { marginTop: 8 }]}>{t('products.uploading')}</Text>
                     </View>
                   ) : formImage ? (
                     <Image source={{ uri: uploads.getFullUrl(formImage) || formImage }} style={styles.imagePreview} />
                   ) : (
                     <View style={styles.imagePlaceholder}>
                       <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
-                      <Text style={styles.imagePlaceholderText}>Ajouter une photo</Text>
+                      <Text style={styles.imagePlaceholderText}>{t('products.add_photo')}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
-                    <FormField label="Nom *" value={formName} onChangeText={setFormName} placeholder="Nom du produit" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_name')} value={formName} onChangeText={setFormName} placeholder={t('products.field_name_placeholder')} colors={colors} styles={styles} />
                   </View>
                   <TouchableOpacity
                     style={[styles.scanBtnMini, { backgroundColor: colors.primary + '15' }]}
@@ -1712,13 +1716,13 @@ export default function ProductsScreen() {
                 {/* AI hint for categorization */}
                 {!formCategoryName && formName.trim().length > 0 && !aiCatLoading && (
                   <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 4, marginTop: -2 }}>
-                    Astuce : appuyez sur ✨ pour catégoriser automatiquement
+                    {t('products.ai_cat_hint')}
                   </Text>
                 )}
                 <View>
                   <View style={styles.inputRowWithAction}>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.formLabel, { marginBottom: 5 }]}>Description</Text>
+                      <Text style={[styles.formLabel, { marginBottom: 5 }]}>{t('products.field_description')}</Text>
                     </View>
                     <TouchableOpacity
                       onPress={handleAiDescription}
@@ -1730,7 +1734,7 @@ export default function ProductsScreen() {
                       ) : (
                         <Ionicons name="sparkles" size={13} color={!formName.trim() ? colors.textMuted : colors.primary} />
                       )}
-                      <Text style={{ fontSize: 11, color: !formName.trim() ? colors.textMuted : colors.primary, fontWeight: '600' }}>Générer</Text>
+                      <Text style={{ fontSize: 11, color: !formName.trim() ? colors.textMuted : colors.primary, fontWeight: '600' }}>{t('common.generate')}</Text>
                     </TouchableOpacity>
                   </View>
                   <TextInput
@@ -1746,7 +1750,7 @@ export default function ProductsScreen() {
                       textAlignVertical: 'top',
                       marginBottom: 15,
                     }}
-                    placeholder="Description du produit (optionnel)"
+                    placeholder={t('products.field_description_placeholder')}
                     placeholderTextColor={colors.textMuted}
                     value={formDescription}
                     onChangeText={setFormDescription}
@@ -1756,7 +1760,7 @@ export default function ProductsScreen() {
                 </View>
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
-                    <FormField label="SKU" value={formSku} onChangeText={setFormSku} placeholder="Référence ou Code-barres" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_sku')} value={formSku} onChangeText={setFormSku} placeholder={t('products.field_sku_placeholder')} colors={colors} styles={styles} />
                   </View>
                   <TouchableOpacity style={styles.scanBtnMini} onPress={() => openScanner('form')}>
                     <Ionicons name="barcode-outline" size={24} color={colors.text} />
@@ -1765,7 +1769,7 @@ export default function ProductsScreen() {
 
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
-                    <FormField label="Tag RFID" value={formRfidTag} onChangeText={setFormRfidTag} placeholder="ID Tag RFID (optionnel)" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_rfid')} value={formRfidTag} onChangeText={setFormRfidTag} placeholder={t('products.field_rfid_placeholder')} colors={colors} styles={styles} />
                   </View>
                   <TouchableOpacity
                     style={[styles.scanBtnMini, { backgroundColor: colors.info + '20' }]}
@@ -1783,14 +1787,14 @@ export default function ProductsScreen() {
                     onPress={() => generateProductLabelPdf(editingProduct, user?.name || "Stockman")}
                   >
                     <Ionicons name="pricetag-outline" size={18} color={colors.info} />
-                    <Text style={[styles.actionText, { color: colors.info }]}>Imprimer l'étiquette (Barcode/RFID)</Text>
+                    <Text style={[styles.actionText, { color: colors.info }]}>{t('products.print_label_rfid')}</Text>
                   </TouchableOpacity>
                 )}
 
                 <View style={styles.formRow}>
                   <View style={[styles.formHalf, { flex: 1 }]}>
                     <FormField
-                      label="Date d'expiration"
+                      label={t('products.field_expiry')}
                       value={formExpiryDate}
                       onChangeText={setFormExpiryDate}
                       placeholder="AAAA-MM-JJ"
@@ -1802,10 +1806,10 @@ export default function ProductsScreen() {
 
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
-                    <FormField label="Quantité" value={formQuantity} onChangeText={setFormQuantity} keyboardType="numeric" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_quantity')} value={formQuantity} onChangeText={setFormQuantity} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                   <View style={styles.formHalf}>
-                    <Text style={[styles.formLabel, { marginBottom: 5 }]}>Unité</Text>
+                    <Text style={[styles.formLabel, { marginBottom: 5 }]}>{t('products.field_unit')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
                       {PRODUCT_UNITS.map(u => (
                         <TouchableOpacity
@@ -1821,7 +1825,7 @@ export default function ProductsScreen() {
                             borderColor: formUnit === u ? colors.primary : colors.glassBorder
                           }}
                         >
-                          <Text style={{ color: formUnit === u ? '#fff' : colors.text, fontSize: 13 }}>{u}</Text>
+                          <Text style={{ color: formUnit === u ? '#fff' : colors.text, fontSize: 13 }}>{t(`products.unit_${u.toLowerCase().replace('é', 'e')}`)}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -1829,10 +1833,10 @@ export default function ProductsScreen() {
                 </View>
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
-                    <FormField label="Prix achat" value={formPurchasePrice} onChangeText={setFormPurchasePrice} keyboardType="numeric" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_purchase_price')} value={formPurchasePrice} onChangeText={setFormPurchasePrice} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                   <View style={styles.formHalf}>
-                    <FormField label="Prix vente" value={formSellingPrice} onChangeText={setFormSellingPrice} keyboardType="numeric" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_selling_price')} value={formSellingPrice} onChangeText={setFormSellingPrice} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                 </View>
                 {editingProduct && (
@@ -1846,24 +1850,24 @@ export default function ProductsScreen() {
                     ) : (
                       <Ionicons name="sparkles" size={13} color={colors.primary} />
                     )}
-                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>Suggérer un prix</Text>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>{t('products.suggest_price')}</Text>
                   </TouchableOpacity>
                 )}
                 {aiPriceReasoning !== '' && (
                   <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                       <Ionicons name="sparkles" size={13} color={colors.primary} />
-                      <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Conseil IA</Text>
+                      <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('products.ai_advice')}</Text>
                     </View>
                     <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{aiPriceReasoning}</Text>
                   </View>
                 )}
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
-                    <FormField label="Stock min" value={formMinStock} onChangeText={setFormMinStock} keyboardType="numeric" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_min_stock')} value={formMinStock} onChangeText={setFormMinStock} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                   <View style={styles.formHalf}>
-                    <FormField label="Stock max" value={formMaxStock} onChangeText={setFormMaxStock} keyboardType="numeric" colors={colors} styles={styles} />
+                    <FormField label={t('products.field_max_stock')} value={formMaxStock} onChangeText={setFormMaxStock} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                 </View>
 
@@ -1882,7 +1886,7 @@ export default function ProductsScreen() {
                       color={formHasVariants ? colors.primary : colors.textMuted}
                     />
                     <Text style={{ color: colors.text, fontSize: FontSize.sm, fontWeight: '600' }}>
-                      Ce produit a des variantes (taille, couleur...)
+                      {t('products.has_variants_label')}
                     </Text>
                   </TouchableOpacity>
 
@@ -1893,7 +1897,7 @@ export default function ProductsScreen() {
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: colors.text, fontSize: FontSize.sm, fontWeight: '600' }}>{v.name}</Text>
                             <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                              Qté: {v.quantity} {v.purchase_price != null ? `| Achat: ${v.purchase_price}` : ''} {v.selling_price != null ? `| Vente: ${v.selling_price}` : ''}
+                              {t('products.qty')}: {v.quantity} {v.purchase_price != null ? `| ${t('products.purchase')}: ${v.purchase_price}` : ''} {v.selling_price != null ? `| ${t('products.selling')}: ${v.selling_price}` : ''}
                             </Text>
                           </View>
                           <TouchableOpacity onPress={() => openVariantForm(idx)} style={{ padding: 4 }}>
@@ -1909,7 +1913,7 @@ export default function ProductsScreen() {
                         <View style={{ marginTop: Spacing.sm, gap: 8 }}>
                           <TextInput
                             style={{ backgroundColor: colors.bgDark, color: colors.text, borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: colors.glassBorder }}
-                            placeholder="Nom de la variante (ex: Rouge, Taille M)"
+                            placeholder={t('products.variant_name_placeholder')}
                             placeholderTextColor={colors.textMuted}
                             value={varName}
                             onChangeText={setVarName}
@@ -1917,7 +1921,7 @@ export default function ProductsScreen() {
                           <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TextInput
                               style={{ flex: 1, backgroundColor: colors.bgDark, color: colors.text, borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: colors.glassBorder }}
-                              placeholder="Quantité"
+                              placeholder={t('products.field_quantity')}
                               placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               value={varQty}
@@ -1925,7 +1929,7 @@ export default function ProductsScreen() {
                             />
                             <TextInput
                               style={{ flex: 1, backgroundColor: colors.bgDark, color: colors.text, borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: colors.glassBorder }}
-                              placeholder="SKU (optionnel)"
+                              placeholder={t('products.field_sku_optional')}
                               placeholderTextColor={colors.textMuted}
                               value={varSku}
                               onChangeText={setVarSku}
@@ -1934,7 +1938,7 @@ export default function ProductsScreen() {
                           <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TextInput
                               style={{ flex: 1, backgroundColor: colors.bgDark, color: colors.text, borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: colors.glassBorder }}
-                              placeholder="Prix achat (optionnel)"
+                              placeholder={t('products.field_purchase_price_optional')}
                               placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               value={varPurchasePrice}
@@ -1942,7 +1946,7 @@ export default function ProductsScreen() {
                             />
                             <TextInput
                               style={{ flex: 1, backgroundColor: colors.bgDark, color: colors.text, borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: colors.glassBorder }}
-                              placeholder="Prix vente (optionnel)"
+                              placeholder={t('products.field_selling_price_optional')}
                               placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               value={varSellingPrice}
@@ -1954,13 +1958,13 @@ export default function ProductsScreen() {
                               onPress={() => { setShowVariantForm(false); resetVariantForm(); }}
                               style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: colors.glass, alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }}
                             >
-                              <Text style={{ color: colors.textMuted, fontWeight: '600' }}>Annuler</Text>
+                              <Text style={{ color: colors.textMuted, fontWeight: '600' }}>{t('common.cancel')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={saveVariant}
                               style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center' }}
                             >
-                              <Text style={{ color: '#fff', fontWeight: '600' }}>{editingVariantIdx !== null ? 'Modifier' : 'Ajouter'}</Text>
+                              <Text style={{ color: '#fff', fontWeight: '600' }}>{editingVariantIdx !== null ? t('common.edit') : t('common.add')}</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1970,14 +1974,14 @@ export default function ProductsScreen() {
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.sm, paddingVertical: 8 }}
                         >
                           <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-                          <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>Ajouter une variante</Text>
+                          <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>{t('products.add_variant')}</Text>
                         </TouchableOpacity>
                       )}
 
                       {formVariants.length > 0 && (
                         <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.primary + '10', borderRadius: 6 }}>
                           <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                            Stock total (somme des variantes) : {formVariants.reduce((s, v) => s + v.quantity, 0)} {formUnit}(s)
+                            {t('products.total_stock_variants_label', { count: formVariants.reduce((s, v) => s + v.quantity, 0), unit: t(formUnit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: formVariants.reduce((s, v) => s + v.quantity, 0) }) })}
                           </Text>
                         </View>
                       )}
@@ -2379,7 +2383,7 @@ export default function ProductsScreen() {
       <BulkImportModal
         visible={showBulkImportModal}
         onClose={() => setShowBulkImportModal(false)}
-        onSuccess={() => fetchProducts()}
+        onSuccess={() => loadData()}
       />
 
       <ScreenGuide

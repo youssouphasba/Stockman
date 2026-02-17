@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -20,8 +21,10 @@ import { useNotifications } from '../../hooks/useNotifications';
 import ChatModal from '../../components/ChatModal';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user, hasPermission, isSuperAdmin } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   // Register for push notifications
@@ -141,7 +144,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Accueil',
+            title: t('tabs.home'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -150,7 +153,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="products"
           options={{
-            title: 'Produits',
+            title: t('tabs.products'),
             href: hideStock ? null : '/products',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="cube-outline" size={size} color={color} />
@@ -160,7 +163,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="pos"
           options={{
-            title: 'Caisse',
+            title: t('tabs.pos'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="calculator-outline" size={size} color={color} />
             ),
@@ -169,7 +172,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="accounting"
           options={{
-            title: 'Compta',
+            title: t('tabs.accounting'),
             href: hideAccounting ? null : '/accounting',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="bar-chart-outline" size={size} color={color} />
@@ -179,7 +182,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="suppliers"
           options={{
-            title: 'Fourn.',
+            title: t('tabs.suppliers'),
             href: hideSuppliers ? null : '/suppliers',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="people-outline" size={size} color={color} />
@@ -189,7 +192,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="crm"
           options={{
-            title: 'Clients',
+            title: t('tabs.crm'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person-add-outline" size={size} color={color} />
             ),
@@ -198,7 +201,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="orders"
           options={{
-            title: 'Cmd',
+            title: t('tabs.orders'),
             href: hideOrders ? null : '/orders',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
@@ -208,14 +211,14 @@ export default function TabLayout() {
         <Tabs.Screen
           name="alerts"
           options={{
-            title: 'Alertes',
+            title: t('tabs.alerts'),
             href: null,
           }}
         />
         <Tabs.Screen
           name="settings"
           options={{
-            title: 'Réglages',
+            title: t('tabs.settings'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),
@@ -224,21 +227,21 @@ export default function TabLayout() {
         <Tabs.Screen
           name="users"
           options={{
-            title: 'Utilisateurs',
+            title: t('tabs.users'),
             href: null,
           }}
         />
         <Tabs.Screen
           name="activity"
           options={{
-            title: 'Activité',
+            title: t('tabs.activity'),
             href: null,
           }}
         />
         <Tabs.Screen
           name="admin"
           options={{
-            title: 'Admin',
+            title: t('tabs.admin'),
             href: (isSuperAdmin ? '/(admin)' : null) as any,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="shield-checkmark-outline" size={size} color={color} />
@@ -248,7 +251,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="subscription"
           options={{
-            title: 'Abonnement',
+            title: t('tabs.subscription'),
             href: null,
           }}
         />

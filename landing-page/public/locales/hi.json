@@ -1,23 +1,23 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
-        "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "लॉग इन"
+        "features": "विशेषताएँ",
+        "resources": "संसाधन",
+        "blog": "ब्लॉग",
+        "home": "लॉग इन",
+        "login": "लॉग इन",
+        "free_trial": "मुफ्त परीक्षण"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "अपने व्यवसाय की",
+        "title_end": "क्षमता को अनलॉक करें",
+        "subtitle": "ऑर्डर को स्वचालित करने और लाभ को अधिकतम करने के लिए स्मार्ट एआई-पावर्ड स्टॉक प्रबंधन समाधान।",
+        "cta": "अभी शुरू करें"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "सज्जित दुकानें",
+        "transactions": "लेनदेन / माह",
+        "satisfaction": "संतुष्ट ग्राहक",
+        "support": "उपलब्ध सहायता"
     },
     "features": {
         "title": "Your Daily Tools",
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -103,23 +98,23 @@
             "cta": "Start"
         },
         "business": {
-            "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "name": "बिज़नेस",
+            "price": "2500",
+            "f1": "3 उपयोगकर्ता",
+            "f2": "असीमित उत्पाद",
+            "f3": "Stockman AI सहायक",
+            "f4": "मार्केटप्लेस और ऑर्डर",
+            "f5": "उन्नत विश्लेषण",
+            "cta": "14-दिन का मुफ्त परीक्षण"
         },
         "enterprise": {
-            "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "name": "एंटरप्राइज",
+            "price": "कस्टम कोट",
+            "f1": "असीमित उपयोगकर्ता",
+            "f2": "मल्टी-शॉप मैनेजर",
+            "f3": "API और इंटीग्रेशन",
+            "f4": "समर्पित 24/7 सहायता",
+            "cta": "हमसे संपर्क करें"
         }
     },
     "faq": {
@@ -157,9 +152,6 @@
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
     },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
-    },
     "contact": {
         "title": "संपर्क करें",
         "subtitle": "कोई सवाल? साझेदारी? हमें लिखें।",
@@ -170,6 +162,9 @@
         "success_title": "संदेश भेजा गया!",
         "success_desc": "हमारी टीम 24 घंटे में जवाब देगी।",
         "send_another": "एक और संदेश भेजें"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "हम आपके अनुभव को बेहतर बनाने के लिए कुकीज़ का उपयोग करते हैं। जारी रखकर, आप हमारी गोपनीयता नीति स्वीकार करते हैं।",

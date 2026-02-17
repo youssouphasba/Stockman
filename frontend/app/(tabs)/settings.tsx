@@ -61,12 +61,12 @@ export default function SettingsScreen() {
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data, null, 2));
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Exporter mes données' });
+        await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: t('settings.export_data') });
       } else {
-        RNAlert.alert('Succès', 'Données exportées : ' + fileUri);
+        RNAlert.alert(t('common.success'), t('settings.export_success') + ' ' + fileUri);
       }
     } catch (e) {
-      RNAlert.alert('Erreur', "Echec de l'export des données.");
+      RNAlert.alert(t('common.error'), t('settings.export_error'));
     } finally {
       setLoading(false);
     }
@@ -89,18 +89,18 @@ export default function SettingsScreen() {
 
   const handleSubmitDispute = async () => {
     if (!disputeSubject.trim() || !disputeDesc.trim()) {
-      RNAlert.alert('Erreur', 'Veuillez remplir le sujet et la description.');
+      RNAlert.alert(t('common.error'), t('settings.report_subject_required'));
       return;
     }
     try {
       await disputes.create({ subject: disputeSubject, description: disputeDesc, type: disputeType });
-      RNAlert.alert('✅ Envoyé', 'Votre signalement a été envoyé à l\'administrateur.');
+      RNAlert.alert('✅ ' + t('common.success'), t('settings.report_sent'));
       setShowDisputeForm(false);
       setDisputeSubject('');
       setDisputeDesc('');
       setDisputeType('other');
     } catch {
-      RNAlert.alert('Erreur', 'Impossible d\'envoyer le signalement.');
+      RNAlert.alert(t('common.error'), t('settings.report_error'));
     }
   };
 
@@ -158,23 +158,23 @@ export default function SettingsScreen() {
       }
     } else {
       RNAlert.alert(
-        'Déconnexion',
-        'Voulez-vous vraiment vous déconnecter ?',
+        t('settings.logout'),
+        t('settings.logout_confirm'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Déconnexion', style: 'destructive', onPress: () => logout() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('settings.logout_btn'), style: 'destructive', onPress: () => logout() },
         ]
       );
     }
   }
 
   const moduleLabels: Record<string, string> = {
-    stock_management: 'Gestion de stock',
-    alerts: 'Alertes',
-    rules: 'Règles d\'alerte',
-    statistics: 'Statistiques',
-    history: 'Historique',
-    export: 'Export',
+    stock_management: t('settings.module_stock'),
+    alerts: t('settings.module_alerts'),
+    rules: t('settings.module_alert_rules'),
+    statistics: t('settings.module_stats'),
+    history: t('settings.module_history'),
+    export: t('settings.module_export'),
   };
 
   if (loading) {
@@ -204,7 +204,7 @@ export default function SettingsScreen() {
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
               <TouchableOpacity onPress={() => setShowPasswordModal(true)}>
-                <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '600' }}>Changer le mot de passe</Text>
+                <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{t('settings.change_password')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -217,7 +217,7 @@ export default function SettingsScreen() {
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.dark_mode')}</Text>
-              <Text style={styles.settingDesc}>Basculer entre thème clair et sombre</Text>
+              <Text style={styles.settingDesc}>{t('settings.dark_mode_desc')}</Text>
             </View>
             <Switch
               value={isDark}
@@ -230,7 +230,7 @@ export default function SettingsScreen() {
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.simple_mode')}</Text>
-              <Text style={styles.settingDesc}>Interface allégée pour débutants</Text>
+              <Text style={styles.settingDesc}>{t('settings.simple_mode_desc')}</Text>
             </View>
             <Switch
               value={settingsData?.simple_mode ?? true}
@@ -243,7 +243,7 @@ export default function SettingsScreen() {
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
-              <Text style={styles.settingDesc}>Recevoir les alertes de stock</Text>
+              <Text style={styles.settingDesc}>{t('settings.notifications_desc')}</Text>
             </View>
             <Switch
               value={settingsData?.push_notifications ?? true}
@@ -275,8 +275,8 @@ export default function SettingsScreen() {
                   <Ionicons name="people" size={20} color="#fff" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.settingLabel}>Utilisateurs & Permissions</Text>
-                  <Text style={styles.settingDesc}>Gérez les accès de vos employés</Text>
+                  <Text style={styles.settingLabel}>{t('settings.users_permissions')}</Text>
+                  <Text style={styles.settingDesc}>{t('settings.users_permissions_desc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
               </TouchableOpacity>
@@ -286,7 +286,7 @@ export default function SettingsScreen() {
 
         {/* Modules */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Modules actifs</Text>
+          <Text style={styles.sectionTitle}>{t('settings.modules')}</Text>
           {settingsData && Object.entries(settingsData.modules).map(([key, enabled]) => (
             <View key={key} style={styles.settingRow}>
               <Text style={styles.settingLabel}>{moduleLabels[key] ?? key}</Text>
@@ -302,9 +302,9 @@ export default function SettingsScreen() {
 
         {/* Reminder Rules */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Règles des Rappels</Text>
+          <Text style={styles.sectionTitle}>{t('settings.reminders')}</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
-            Personnalisez les seuils et activez/désactivez chaque type de rappel intelligent
+            {t('settings.reminders_desc')}
           </Text>
           <ReminderRulesSettingsComponent
             rules={settingsData?.reminder_rules ?? {
@@ -325,28 +325,27 @@ export default function SettingsScreen() {
 
         {/* Synchronisation */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Données & Synchronisation</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>État de la connexion</Text>
+              <Text style={styles.settingLabel}>{t('settings.connection_status')}</Text>
               <Text style={styles.settingDesc}>
-                {isOnline ? 'En ligne' : 'Hors ligne'}
+                {isOnline ? t('settings.online') : t('settings.offline')}
               </Text>
             </View>
             <View style={[styles.statusDot, { backgroundColor: isOnline ? colors.success : colors.danger }]} />
           </View>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Dernière synchronisation</Text>
+              <Text style={styles.settingLabel}>{t('settings.last_sync')}</Text>
               <Text style={styles.settingDesc}>{lastSyncLabel}</Text>
             </View>
           </View>
           {pendingCount > 0 && (
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Actions en attente</Text>
+                <Text style={styles.settingLabel}>{t('settings.pending_actions')}</Text>
                 <Text style={styles.settingDesc}>
-                  {pendingCount} modification{pendingCount > 1 ? 's' : ''} en attente de synchronisation
+                  {pendingCount === 1 ? t('settings.pending_actions_desc', { count: pendingCount }) : t('settings.pending_actions_desc_plural', { count: pendingCount })}
                 </Text>
               </View>
               <View style={[styles.pendingBadge, { backgroundColor: colors.warning + '20' }]}>
@@ -362,7 +361,7 @@ export default function SettingsScreen() {
             >
               <Ionicons name="download-outline" size={18} color={isOnline ? colors.primary : colors.textMuted} />
               <Text style={{ color: isOnline ? colors.primary : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                Pré-charger
+                {t('settings.prefetch')}
               </Text>
             </TouchableOpacity>
             {pendingCount > 0 && (
@@ -373,7 +372,7 @@ export default function SettingsScreen() {
               >
                 <Ionicons name="sync-outline" size={18} color={isOnline ? colors.success : colors.textMuted} />
                 <Text style={{ color: isOnline ? colors.success : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                  {syncStatus === 'syncing' ? 'Synchro...' : 'Synchroniser'}
+                  {syncStatus === 'syncing' ? t('settings.syncing') : t('settings.sync_now')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -391,8 +390,8 @@ export default function SettingsScreen() {
               <Ionicons name="card-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Mon Abonnement</Text>
-              <Text style={styles.settingDesc}>Gérer votre offre et voir vos jours d'essai</Text>
+              <Text style={styles.settingLabel}>{t('settings.my_subscription')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.subscription_desc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -406,8 +405,8 @@ export default function SettingsScreen() {
               <Ionicons name="sparkles" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Assistant IA (Header)</Text>
-              <Text style={styles.settingDesc}>Cliquez sur les étincelles en haut à droite</Text>
+              <Text style={styles.settingLabel}>{t('settings.ai_assistant')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.ai_assistant_desc')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.supportRow} onPress={() => setShowHelpCenter(true)}>
@@ -415,8 +414,8 @@ export default function SettingsScreen() {
               <Ionicons name="book-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Centre d'Aide</Text>
-              <Text style={styles.settingDesc}>Guide complet de toutes les fonctionnalités</Text>
+              <Text style={styles.settingLabel}>{t('settings.help_center')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.help_center_desc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -425,8 +424,8 @@ export default function SettingsScreen() {
               <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Contacter l'administrateur</Text>
-              <Text style={styles.settingDesc}>Envoyer un message de support</Text>
+              <Text style={styles.settingLabel}>{t('settings.contact_admin')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.contact_admin_desc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -441,14 +440,14 @@ export default function SettingsScreen() {
                 <Ionicons name="flag-outline" size={20} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>Signaler un problème</Text>
-                <Text style={styles.settingDesc}>Produit défectueux, litige, plainte...</Text>
+                <Text style={styles.settingLabel}>{t('settings.report_problem')}</Text>
+                <Text style={styles.settingDesc}>{t('settings.report_problem_desc')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           ) : (
             <View style={{ gap: 10 }}>
-              <Text style={[styles.settingDesc, { marginBottom: 4 }]}>Type de problème :</Text>
+              <Text style={[styles.settingDesc, { marginBottom: 4 }]}>{t('settings.problem_type')} :</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   {[{ id: 'payment', label: '💳 Paiement' }, { id: 'product', label: '📦 Produit' }, { id: 'service', label: '🛠️ Service' }, { id: 'delivery', label: '🚚 Livraison' }, { id: 'other', label: '❓ Autre' }].map(t => (
@@ -459,17 +458,17 @@ export default function SettingsScreen() {
                   ))}
                 </View>
               </ScrollView>
-              <TextInput value={disputeSubject} onChangeText={setDisputeSubject} placeholder="Sujet du signalement"
+              <TextInput value={disputeSubject} onChangeText={setDisputeSubject} placeholder={t('settings.problem_subject')}
                 placeholderTextColor={colors.textMuted} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
-              <TextInput value={disputeDesc} onChangeText={setDisputeDesc} placeholder="Décrivez le problème en détail..."
+              <TextInput value={disputeDesc} onChangeText={setDisputeDesc} placeholder={t('settings.problem_desc_placeholder')}
                 placeholderTextColor={colors.textMuted} multiline numberOfLines={4}
                 style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, minHeight: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', textAlignVertical: 'top' }} />
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity onPress={() => setShowDisputeForm(false)} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center' }}>
-                  <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Annuler</Text>
+                  <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>Envoyer</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send') || 'Envoyer'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -482,8 +481,8 @@ export default function SettingsScreen() {
 
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Connexion par Code PIN</Text>
-              <Text style={styles.settingDesc}>Sécuriser l'accès avec un code à 4 chiffres</Text>
+              <Text style={styles.settingLabel}>{t('settings.pin_login')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.pin_login_desc')}</Text>
             </View>
             <TouchableOpacity
               onPress={() => isPinSet ? togglePin(false) : router.push('/pin')}
@@ -521,7 +520,7 @@ export default function SettingsScreen() {
             style={[styles.aboutRow, { marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.md }]}
             onPress={() => router.push('/terms')}
           >
-            <Text style={[styles.aboutLabel, { color: colors.primary }]}>Conditions Générales (CGU)</Text>
+            <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.terms')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </TouchableOpacity>
 
@@ -529,30 +528,30 @@ export default function SettingsScreen() {
             style={[styles.aboutRow, { marginTop: Spacing.sm }]}
             onPress={() => router.push('/privacy')}
           >
-            <Text style={[styles.aboutLabel, { color: colors.primary }]}>Politique de Confidentialité</Text>
+            <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.privacy')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* GDPR - Danger Zone */}
         <View style={[styles.card, { borderColor: colors.danger + '30', borderWidth: 1 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.danger }]}>Zone de Danger (RGPD)</Text>
+          <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('settings.danger_zone')}</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Gérez vos données personnelles conformément au droit à la portabilité et à l'oubli.
+            {t('settings.danger_zone_desc')}
           </Text>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleExportData}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Exporter mes données</Text>
-              <Text style={styles.settingDesc}>Télécharger une copie complète de vos données (JSON)</Text>
+              <Text style={styles.settingLabel}>{t('settings.export_data')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.export_data_desc')}</Text>
             </View>
             <Ionicons name="download-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={() => setShowDeleteModal(true)}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingLabel, { color: colors.danger }]}>Supprimer mon compte</Text>
-              <Text style={styles.settingDesc}>Action irréversible. Efface toutes les données.</Text>
+              <Text style={[styles.settingLabel, { color: colors.danger }]}>{t('settings.delete_account')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.delete_account_desc')}</Text>
             </View>
             <Ionicons name="trash-outline" size={24} color={colors.danger} />
           </TouchableOpacity>
@@ -561,7 +560,7 @@ export default function SettingsScreen() {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-          <Text style={styles.logoutText}>Se déconnecter</Text>
+          <Text style={styles.logoutText}>{t('settings.logout_btn')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: Spacing.xxl }} />

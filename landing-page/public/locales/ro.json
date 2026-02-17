@@ -1,23 +1,23 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
+        "features": "Funcționalități",
+        "resources": "Resurse",
         "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "Conectare"
+        "home": "Conectare",
+        "login": "Conectare",
+        "free_trial": "Încearcă gratuit"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "Dezlănțuie potențialul",
+        "title_end": "afacerii tale",
+        "subtitle": "Soluția inteligentă de gestionare a stocurilor bazată pe AI pentru a automatiza comenzile și a maximiza profiturile.",
+        "cta": "Începe acum"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "Magazine echipate",
+        "transactions": "Tranzacții / Lună",
+        "satisfaction": "Clienți satisfăcuți",
+        "support": "Suport disponibil"
     },
     "features": {
         "title": "Your Daily Tools",
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -104,22 +99,22 @@
         },
         "business": {
             "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "price": "2500",
+            "f1": "3 Utilizatori",
+            "f2": "Produse nelimitate",
+            "f3": "Asistent AI Stockman",
+            "f4": "Marketplace și Comenzi",
+            "f5": "Analize avansate",
+            "cta": "14 zile gratuit"
         },
         "enterprise": {
             "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "price": "Ofertă personalizată",
+            "f1": "Utilizatori nelimitați",
+            "f2": "Manager multi-magazin",
+            "f3": "API și Integrări",
+            "f4": "Suport dedicat 24/7",
+            "cta": "Contactează-ne"
         }
     },
     "faq": {
@@ -157,9 +152,6 @@
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
     },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
-    },
     "contact": {
         "title": "Contactați-ne",
         "subtitle": "O întrebare? Un parteneriat? Scrieți-ne.",
@@ -170,6 +162,9 @@
         "success_title": "Mesaj trimis!",
         "success_desc": "Echipa noastră va răspunde în 24 de ore.",
         "send_another": "Trimite alt mesaj"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "Folosim cookie-uri pentru a vă îmbunătăți experiența. Continuând, acceptați politica noastră de confidențialitate.",

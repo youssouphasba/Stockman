@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
@@ -13,6 +14,7 @@ type Props = {
 
 export default function TipCard({ tip, onDismiss, onNavigate }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(15)).current;
 
@@ -48,7 +50,7 @@ export default function TipCard({ tip, onDismiss, onNavigate }: Props) {
       <View style={styles.headerRow}>
         <Ionicons name="bulb-outline" size={14} color={colors.primary} />
         <Text style={[styles.headerText, { color: colors.primary }]}>
-          Astuce du jour
+          {t('common.tip_of_the_day')}
         </Text>
         <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="close" size={16} color={colors.textMuted} />
@@ -61,9 +63,9 @@ export default function TipCard({ tip, onDismiss, onNavigate }: Props) {
           <Ionicons name={tip.icon} size={20} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.tipTitle, { color: colors.text }]}>{tip.title}</Text>
+          <Text style={[styles.tipTitle, { color: colors.text }]}>{t(tip.title)}</Text>
           <Text style={[styles.tipDesc, { color: colors.textSecondary }]}>
-            {tip.description}
+            {t(tip.description)}
           </Text>
         </View>
       </View>
@@ -75,7 +77,7 @@ export default function TipCard({ tip, onDismiss, onNavigate }: Props) {
           onPress={() => onNavigate(tip.deepLink!)}
         >
           <Text style={[styles.linkText, { color: colors.primary }]}>
-            Voir cette fonctionnalité
+            {t('common.see_feature')}
           </Text>
           <Ionicons name="arrow-forward" size={14} color={colors.primary} />
         </TouchableOpacity>

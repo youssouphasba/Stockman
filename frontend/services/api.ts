@@ -1328,6 +1328,7 @@ export type Promotion = {
   description: string;
   discount_percentage?: number;
   points_required?: number;
+  target_tier?: string;
   is_active: boolean;
 };
 

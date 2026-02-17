@@ -1,27 +1,27 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
-        "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "登录"
+        "features": "核心功能",
+        "resources": "资源中心",
+        "blog": "官方博客",
+        "home": "登录",
+        "login": "登录",
+        "free_trial": "免费试用"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "释放您的",
+        "title_end": "业务潜力",
+        "subtitle": "基于AI的智能库存管理解决方案，实现订单自动化并最大化利润。",
+        "cta": "立即开始"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "已入驻店铺",
+        "transactions": "月交易额",
+        "satisfaction": "满意客户",
+        "support": "全天候支持"
     },
     "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
+        "title": "您的日常工具",
+        "subtitle": "管理业务各个方面的完整套件。",
         "dashboard": {
             "title": "Home",
             "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -103,23 +98,23 @@
             "cta": "Start"
         },
         "business": {
-            "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "name": "商务版",
+            "price": "2500",
+            "f1": "3 位用户",
+            "f2": "无限商品数量",
+            "f3": "Stockman AI 助手",
+            "f4": "市场与订单管理",
+            "f5": "高级数据分析",
+            "cta": "14天免费试用"
         },
         "enterprise": {
-            "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "name": "企业版",
+            "price": "定制报价",
+            "f1": "无限用户",
+            "f2": "多店连锁管理",
+            "f3": "API 与集成",
+            "f4": "专属 24/7 支持",
+            "cta": "联系我们"
         }
     },
     "faq": {
@@ -157,9 +152,6 @@
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
     },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
-    },
     "contact": {
         "title": "联系我们",
         "subtitle": "有问题？合作？写信给我们。",
@@ -170,6 +162,9 @@
         "success_title": "消息已发送！",
         "success_desc": "我们的团队将在24小时内回复。",
         "send_another": "发送另一条消息"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "我们使用Cookie改善您的体验。继续使用即表示您接受我们的隐私政策。",

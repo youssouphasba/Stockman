@@ -228,7 +228,8 @@
   }
 
   .features-grid,
-  .pricing-grid {
+  .pricing-grid,
+  .testimonials-grid {
     grid-template-columns: 1fr;
   }
 
@@ -238,6 +239,42 @@
 
   .step-card {
     min-width: unset;
+  }
+
+  .section-title h2 {
+    font-size: 2rem;
+  }
+
+  .hero h1 {
+    letter-spacing: -1px;
+  }
+
+  .hero {
+    padding-top: 80px;
+    min-height: auto;
+  }
+
+  .stats-grid {
+    gap: var(--spacing-md);
+  }
+
+  .stat-item h3 {
+    font-size: 2rem;
+  }
+
+  .download-banner {
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin: var(--spacing-lg);
+    border-radius: 16px;
+  }
+
+  .price {
+    font-size: 2.5rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
   }
 }
 

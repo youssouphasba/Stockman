@@ -1,27 +1,27 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
+        "features": "Xarala yi",
+        "resources": "Luy dimbali",
         "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "Dugg"
+        "home": "Dugg",
+        "login": "Dugg",
+        "free_trial": "Natt bi weesu"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "Ubbi xéwal yi ci sa",
+        "title_end": "njaay",
+        "subtitle": "Kollëré ci wàllu xibaar ak kàttanug IA ngir saytu sa tééré yi ak yokk sa kër gi.",
+        "cta": "Dore léegi"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "Sutura yi am",
+        "transactions": "Njaay yi / Weer",
+        "satisfaction": "Kiliyan yu bég",
+        "support": "Ndimbal am na"
     },
     "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
+        "title": "Sa jumtukaayu bés bu ne",
+        "subtitle": "Mbooloom jumtukaay ngir saytu lépp lu jëm ci sa njaay.",
         "dashboard": {
             "title": "Home",
             "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -104,50 +99,50 @@
         },
         "business": {
             "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "price": "2500",
+            "f1": "3 Jëfandikookat",
+            "f2": "Mbiddu yu dul jeex",
+            "f3": "Stockman IA Dimbalikat",
+            "f4": "Luma & Ndigal",
+            "f5": "Saytu yu xóot",
+            "cta": "14 fan natt bu weesu"
         },
         "enterprise": {
             "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "price": "Njeeg yu nu natt",
+            "f1": "Jëfandikookat yu dul jeex",
+            "f2": "Saytukat botik yu bari",
+            "f3": "API & Méngale",
+            "f4": "Dimbali 24/7",
+            "cta": "Woo nu"
         }
     },
     "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work without internet?",
-        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+        "title": "Laaj yi bari",
+        "q1": "Ndax dina liggéey te amul internet?",
+        "a1": "Waaw, Stockman dina liggéey offline. Sa mbiddu dina méngale bu internet dikkee.",
+        "q2": "Ndax sa mbiddu am na kaaraange?",
+        "a2": "Waaw. Danu jëfandikoo xarala yu tar ngir aar mbiddu sa njaay."
     },
     "download": {
-        "title": "Ready to Level Up?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
-        "secure": "Secure Payments",
-        "support": "Pro Support",
-        "updates": "Continuous Updates"
+        "title": "Ndax pare nga ngir yokk sa njaay?",
+        "subtitle": "Bokkël ci junney jaaykat yi yeesal nanu seen saytu.",
+        "secure": "Fay bu am kaaraange",
+        "support": "Dimbali bu pro",
+        "updates": "Yeesal yu dul tàgg"
     },
     "footer": {
-        "desc": "The all-in-one solution for modern merchants in Africa.",
-        "product": "Product",
-        "support": "Support",
-        "legal": "Legal",
-        "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
+        "desc": "Luy dimbali jaaykat yi yeesal seen njaay ci Afrique.",
+        "product": "Luy jaay",
+        "support": "Dimbali",
+        "legal": "Yoon",
+        "help_center": "Kër Dimbali bi",
+        "contact": "Woo nu",
+        "community": "Mbooloo mi",
+        "privacy": "Aar mbiddu",
+        "terms": "Sartu jëfandikoo",
+        "legal_notice": "Xibaaru yoon",
+        "copyright": "© 2026 Stockman. Lu nu aar la."
     },
     "newsletter": {
         "title": "Become a Stock Expert",
@@ -156,9 +151,6 @@
         "placeholder": "Your email...",
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
-    },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
     },
     "contact": {
         "title": "Woo nu",
@@ -170,6 +162,9 @@
         "success_title": "Bataaxal bi yónnee na!",
         "success_desc": "Sunu ekip dina tontu ci 24 waxtu.",
         "send_another": "Yónne beneen bataaxal"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "Danu jëfandikoo cookies ngir gëna baax sa xarala. Soo demee, dangay nangu sunu politique de confidentialité.",
@@ -199,21 +194,21 @@
         "marketplace_no": "❌ Physical outreach"
     },
     "feature_pages": {
-        "back_home": "Back to Home",
-        "why_use": "Why use {{title}}?",
-        "discover_interface": "Discover the interface in detail",
-        "cta_title": "Ready to optimize your management?",
-        "cta_button": "Start the free trial",
+        "back_home": "Delloo ci kër ga",
+        "why_use": "Lu tax ngay jëfandikoo {{title}}?",
+        "discover_interface": "Xoolal xarala yi bu baax",
+        "cta_title": "Ndax pare nga ngir baaxal sa saytu?",
+        "cta_button": "Dore natt bi weesu",
         "dashboard": {
-            "title": "Dashboard",
-            "subtitle": "Manage your activity at a glance",
-            "description": "The dashboard is your control tower. It doesn't just display numbers — it gives you a clear and actionable view of your business health. With AI integration, it analyzes your sales in real time to identify growth opportunities and risks (stockouts, overstock). This is where you make the decisions that matter.",
-            "f1_title": "Real-Time Statistics",
-            "f1_desc": "Track your revenue, profits and number of sales down to the second.",
-            "f2_title": "Smart Alerts",
-            "f2_desc": "Get notified immediately about out-of-stock products or items nearing expiration.",
-            "f3_title": "AI Assistant",
-            "f3_desc": "Ask your business assistant questions directly from the home screen for instant analysis.",
+            "title": "Xoolukaay",
+            "subtitle": "Saytul sa njaay ci sa bët",
+            "description": "Xoolukaay bi mooy sa kër njiit. Du wone rek ay mbiddu — mu ngi lay jox xibaar yu leer ngir sa njaay dox. Ak IA, dina saytu sa njaay ci sa waxtu ngir xam luy yokk sa kër gi. Fi la ngay jëlee ndigal yu am solo.",
+            "f1_title": "Mbiddu yu gaaw",
+            "f1_desc": "Topal sa xaalis, sa yokkuté ak sa njaay ci sa sigoŋ.",
+            "f2_title": "Artu yu am xel",
+            "f2_desc": "Xamël léegi mbiddu yu jeex wala mbiddu yu bëgg a dakk.",
+            "f3_title": "Dimbalikat IA",
+            "f3_desc": "Laajal sa dimbalikat njaay laaj yi la soxal ci xoolukaay bi.",
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",

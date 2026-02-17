@@ -1,27 +1,27 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
-        "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "تسجيل الدخول"
+        "features": "المميزات",
+        "resources": "الموارد",
+        "blog": "المدونة",
+        "home": "تسجيل الدخول",
+        "login": "تسجيل الدخول",
+        "free_trial": "تجربة مجانية"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "أطلق العنان لإمكانيات",
+        "title_end": "عملك",
+        "subtitle": "حل إدارة المخزون الذكي المدعوم بالذكاء الاصطناعي لأتمتة طلباتك وتعظيم أرباحك.",
+        "cta": "ابدأ الآن"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "متاجر مجهزة",
+        "transactions": "عملية / شهر",
+        "satisfaction": "عملاء راضون",
+        "support": "دعم متاح"
     },
     "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
+        "title": "أدواتك اليومية",
+        "subtitle": "مجموعة كاملة لإدارة كل جانب من جوانب عملك.",
         "dashboard": {
             "title": "Home",
             "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
@@ -56,9 +56,9 @@
         }
     },
     "showcase": {
-        "title": "The Interface That Changes Everything",
-        "subtitle": "Clean design, built to save you time.",
-        "app_interface": "App Interface"
+        "title": "الواجهة التي تغير كل شيء",
+        "subtitle": "تصميم أنيق، صُمم ليوفر لك الوقت.",
+        "app_interface": "واجهة التطبيق"
     },
     "how_it_works": {
         "title": "Quick Start",
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -103,51 +98,51 @@
             "cta": "Start"
         },
         "business": {
-            "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "name": "بيزنس",
+            "price": "2500",
+            "f1": "3 مستخدمين",
+            "f2": "منتجات غير محدودة",
+            "f3": "مساعد ستوكمان بالذكاء الاصطناعي",
+            "f4": "السوق والطلبات",
+            "f5": "تحليلات متقدمة",
+            "cta": "تجربة مجانية لمدة 14 يوماً"
         },
         "enterprise": {
-            "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "name": "إنتربرايز",
+            "price": "عرض سعر مخصص",
+            "f1": "مستخدمين غير محدودين",
+            "f2": "مدير متاجر متعددة",
+            "f3": "واجهة برمجة التطبيقات والتكامل",
+            "f4": "دعم مخصص على مدار الساعة",
+            "cta": "اتصل بنا"
         }
     },
     "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work without internet?",
-        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+        "title": "الأسئلة الشائعة",
+        "q1": "هل يعمل بدون إنترنت؟",
+        "a1": "نعم، يعمل ستوكمان بدون اتصال. تتم مزامنة بياناتك بمجرد عودة الاتصال.",
+        "q2": "هل بياناتي آمنة؟",
+        "a2": "بالتأكيد. نحن نستخدم تشفيراً على مستوى البنوك لحماية جميع معلومات عملك."
     },
     "download": {
-        "title": "Ready to Level Up?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
-        "secure": "Secure Payments",
-        "support": "Pro Support",
-        "updates": "Continuous Updates"
+        "title": "جاهز للانتقال للمستوى التالي؟",
+        "subtitle": "انضم إلى آلاف التجار الذين قاموا بتحديث إدارتهم.",
+        "secure": "دفع آمن",
+        "support": "دعم احترافي",
+        "updates": "تحديثات مستمرة"
     },
     "footer": {
-        "desc": "The all-in-one solution for modern merchants in Africa.",
-        "product": "Product",
-        "support": "Support",
-        "legal": "Legal",
-        "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
+        "desc": "الحل الشامل للتجار المعاصرين في أفريقيا.",
+        "product": "المنتج",
+        "support": "الدعم",
+        "legal": "قانوني",
+        "help_center": "مركز المساعدة",
+        "contact": "اتصل بنا",
+        "community": "المجتمع",
+        "privacy": "سياسة الخصوصية",
+        "terms": "شروط الخدمة",
+        "legal_notice": "إشعار قانوني",
+        "copyright": "© 2026 ستوكمان. جميع الحقوق محفوظة."
     },
     "newsletter": {
         "title": "Become a Stock Expert",
@@ -156,9 +151,6 @@
         "placeholder": "Your email...",
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
-    },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
     },
     "contact": {
         "title": "اتصل بنا",
@@ -170,6 +162,9 @@
         "success_title": "تم إرسال الرسالة!",
         "success_desc": "فريقنا سيرد خلال 24 ساعة.",
         "send_another": "إرسال رسالة أخرى"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "نستخدم ملفات تعريف الارتباط لتحسين تجربتك. بالاستمرار، تقبل سياسة الخصوصية.",
@@ -199,21 +194,21 @@
         "marketplace_no": "❌ Physical outreach"
     },
     "feature_pages": {
-        "back_home": "Back to Home",
-        "why_use": "Why use {{title}}?",
-        "discover_interface": "Discover the interface in detail",
-        "cta_title": "Ready to optimize your management?",
-        "cta_button": "Start the free trial",
+        "back_home": "العودة للرئيسية",
+        "why_use": "لماذا تستخدم {{title}}؟",
+        "discover_interface": "اكتشف الواجهة بالتفصيل",
+        "cta_title": "جاهز لتحسين إدارتك؟",
+        "cta_button": "ابدأ التجربة المجانية",
         "dashboard": {
-            "title": "Dashboard",
-            "subtitle": "Manage your activity at a glance",
-            "description": "The dashboard is your control tower. It doesn't just display numbers — it gives you a clear and actionable view of your business health. With AI integration, it analyzes your sales in real time to identify growth opportunities and risks (stockouts, overstock). This is where you make the decisions that matter.",
-            "f1_title": "Real-Time Statistics",
-            "f1_desc": "Track your revenue, profits and number of sales down to the second.",
-            "f2_title": "Smart Alerts",
-            "f2_desc": "Get notified immediately about out-of-stock products or items nearing expiration.",
-            "f3_title": "AI Assistant",
-            "f3_desc": "Ask your business assistant questions directly from the home screen for instant analysis.",
+            "title": "لوحة القيادة",
+            "subtitle": "إدارة نشاطك بلمحة واحدة",
+            "description": "لوحة القيادة هي برج المراقبة الخاص بك. فهي لا تعرض الأرقام فحسب - بل تمنحك رؤية واضحة وقابلة للتنفيذ لصحة عملك. ومع دمج الذكاء الاصطناعي، فإنها تحلل مبيعاتك في الوقت الفعلي لتحديد فرص النمو والمخاطر (نفاد المخزون، زيادة المخزون). هذا هو المكان الذي تتخذ فيه القرارات المهمة.",
+            "f1_title": "إحصائيات فورية",
+            "f1_desc": "تتبع إيراداتك وأرباحك وعدد مبيعاتك بالثانية.",
+            "f2_title": "تنبيهات ذكية",
+            "f2_desc": "احصل على إشعارات فورية حول المنتجات التي نفدت من المخزون أو العناصر التي اقترب تاريخ انتهاء صلاحيتها.",
+            "f3_title": "مساعد الذكاء الاصطناعي",
+            "f3_desc": "اطرح الأسئلة على مساعد عملك مباشرة من الشاشة الرئيسية للحصول على تحليل فوري.",
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",

@@ -27,9 +27,9 @@ function About() {
             </nav>
 
             <header className="hero about-hero">
-                <div className="container" style={{ textAlign: 'center', paddingTop: '60px' }}>
+                <div className="container" style={{ textAlign: 'center', paddingTop: '40px' }}>
                     <h1>{t('about.mission_start')} <span className="text-gradient">{t('about.mission_highlight')}</span></h1>
-                    <p style={{ maxWidth: '700px', margin: '20px auto', fontSize: '1.2rem', color: 'var(--text-muted)' }}>
+                    <p style={{ maxWidth: '700px', margin: '20px auto', fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', color: 'var(--text-muted)' }}>
                         {t('about.mission_desc')}
                     </p>
                 </div>
@@ -53,9 +53,9 @@ function About() {
                 </div>
             </section>
 
-            <section className="container values-section" style={{ margin: '80px auto' }}>
-                <div className="glass-card" style={{ padding: '40px', background: 'rgba(0, 122, 255, 0.05)' }}>
-                    <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>{t('about.values_title')}</h2>
+            <section className="container values-section" style={{ margin: 'var(--spacing-xl) auto' }}>
+                <div className="glass-card" style={{ background: 'rgba(0, 122, 255, 0.05)' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>{t('about.values_title')}</h2>
                     <div className="values-grid">
                         <div className="value-item">
                             <h3>{t('about.value1_title')}</h3>

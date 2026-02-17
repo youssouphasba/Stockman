@@ -1,27 +1,27 @@
 {
     "nav": {
-        "features": "Features",
-        "resources": "Resources",
+        "features": "Özellikler",
+        "resources": "Kaynaklar",
         "blog": "Blog",
-        "home": "Log In",
-        "free_trial": "Free Trial",
-        "login": "Giriş Yap"
+        "home": "Giriş Yap",
+        "login": "Oturum Aç",
+        "free_trial": "Ücretsiz Deneme"
     },
     "hero": {
-        "title_start": "Unleash the potential of your",
-        "title_end": "business",
-        "subtitle": "The smart AI-powered stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+        "title_start": "Potansiyelinizi ortaya çıkarın",
+        "title_end": "işletme",
+        "subtitle": "Siparişleri otomatikleştirmek ve kârı maksimize etmek için akıllı yapay zeka destekli stok yönetim çözümü.",
+        "cta": "Hemen Başla"
     },
     "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+        "shops": "Donanımlı Mağazalar",
+        "transactions": "İşlem / Ay",
+        "satisfaction": "Memnun Müşteriler",
+        "support": "Destek Mevcut"
     },
     "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
+        "title": "Günlük Araçlarınız",
+        "subtitle": "İşletmenizin her yönünü yönetmek için eksiksiz bir paket.",
         "dashboard": {
             "title": "Home",
             "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
@@ -56,9 +56,9 @@
         }
     },
     "showcase": {
-        "title": "The Interface That Changes Everything",
-        "subtitle": "Clean design, built to save you time.",
-        "app_interface": "App Interface"
+        "title": "Her Şeyi Değiştiren Arayüz",
+        "subtitle": "Zaman kazanmanız için temiz bir tasarım.",
+        "app_interface": "Uygulama Arayüzü"
     },
     "how_it_works": {
         "title": "Quick Start",
@@ -74,13 +74,7 @@
         "step3": {
             "title": "Sell & Track",
             "desc": "Make your first sales and watch your stats grow in real-time."
-        },
-        "step1_title": "Create Account",
-        "step1_desc": "Download the app and configure your shop in less than 2 minutes.",
-        "step2_title": "Scan Products",
-        "step2_desc": "Use your phone camera to quickly add your inventory.",
-        "step3_title": "Sell & Track",
-        "step3_desc": "Make your first sales and watch your stats grow in real-time."
+        }
     },
     "testimonials": {
         "title": "They Trust Us",
@@ -96,6 +90,7 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
+            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -103,51 +98,51 @@
             "cta": "Start"
         },
         "business": {
-            "name": "Business",
-            "f1": "3 Users",
-            "f2": "Unlimited Products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics",
-            "cta": "14-Day Free Trial"
+            "name": "İşletme",
+            "price": "2500",
+            "f1": "3 Kullanıcı",
+            "f2": "Sınırsız Ürün",
+            "f3": "Stockman Yapay Zeka Asistanı",
+            "f4": "Pazaryeri ve Siparişler",
+            "f5": "Gelişmiş Analitik",
+            "cta": "14 Günlük Ücretsiz Deneme"
         },
         "enterprise": {
-            "name": "Enterprise",
-            "price": "Custom Quote",
-            "f1": "Unlimited Users",
-            "f2": "Multi-Shop Manager",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI",
-            "cta": "Contact Us"
+            "name": "Kurumsal",
+            "price": "Özel Teklif",
+            "f1": "Sınırsız Kullanıcı",
+            "f2": "Çoklu Mağaza Yöneticisi",
+            "f3": "API ve Entegrasyonlar",
+            "f4": "Özel 24/7 Destek",
+            "cta": "Bize Ulaşın"
         }
     },
     "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work without internet?",
-        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+        "title": "Sıkça Sorulan Sorular",
+        "q1": "İnternetsiz çalışır mı?",
+        "a1": "Evet, Stockman çevrimdışı çalışır. Bağlantı geri geldiğinde verileriniz eşitlenir.",
+        "q2": "Verilerim güvende mi?",
+        "a2": "Kesinlikle. Tüm işletme bilgilerinizi korumak için banka düzeyinde şifreleme kullanıyoruz."
     },
     "download": {
-        "title": "Ready to Level Up?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
-        "secure": "Secure Payments",
-        "support": "Pro Support",
-        "updates": "Continuous Updates"
+        "title": "Seviye Atlamaya Hazır mısınız?",
+        "subtitle": "Yönetimlerini modernize eden binlerce tüccara katılın.",
+        "secure": "Güvenli Ödemeler",
+        "support": "Profesyonel Destek",
+        "updates": "Sürekli Güncellemeler"
     },
     "footer": {
-        "desc": "The all-in-one solution for modern merchants in Africa.",
-        "product": "Product",
-        "support": "Support",
-        "legal": "Legal",
-        "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
+        "desc": "Afrika'daki modern tüccarlar için hepsi bir arada çözüm.",
+        "product": "Ürün",
+        "support": "Destek",
+        "legal": "Yasal",
+        "help_center": "Yardım Merkezi",
+        "contact": "İletişim",
+        "community": "Topluluk",
+        "privacy": "Gizlilik Politikası",
+        "terms": "Hizmet Şartları",
+        "legal_notice": "Yasal Uyarı",
+        "copyright": "© 2026 Stockman. Tüm hakları saklıdır."
     },
     "newsletter": {
         "title": "Become a Stock Expert",
@@ -156,9 +151,6 @@
         "placeholder": "Your email...",
         "cta": "Get the Guide",
         "privacy": "No spam. Unsubscribe in 1 click."
-    },
-    "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
     },
     "contact": {
         "title": "Bize Ulaşın",
@@ -170,6 +162,9 @@
         "success_title": "Mesaj gönderildi!",
         "success_desc": "Ekibimiz 24 saat içinde yanıt verecek.",
         "send_another": "Başka mesaj gönder"
+    },
+    "whatsapp": {
+        "message": "Hello, I want to know more about Stockman!"
     },
     "cookie": {
         "message": "Deneyiminizi iyileştirmek için çerezler kullanıyoruz. Devam ederek gizlilik politikamızı kabul etmiş olursunuz.",
@@ -199,21 +194,21 @@
         "marketplace_no": "❌ Physical outreach"
     },
     "feature_pages": {
-        "back_home": "Back to Home",
-        "why_use": "Why use {{title}}?",
-        "discover_interface": "Discover the interface in detail",
-        "cta_title": "Ready to optimize your management?",
-        "cta_button": "Start the free trial",
+        "back_home": "Ana Sayfaya Dön",
+        "why_use": "Neden {{title}} kullanmalıyım?",
+        "discover_interface": "Arayüzü detaylı keşfedin",
+        "cta_title": "Yönetiminizi optimize etmeye hazır mısınız?",
+        "cta_button": "Ücretsiz denemeyi başlat",
         "dashboard": {
-            "title": "Dashboard",
-            "subtitle": "Manage your activity at a glance",
-            "description": "The dashboard is your control tower. It doesn't just display numbers — it gives you a clear and actionable view of your business health. With AI integration, it analyzes your sales in real time to identify growth opportunities and risks (stockouts, overstock). This is where you make the decisions that matter.",
-            "f1_title": "Real-Time Statistics",
-            "f1_desc": "Track your revenue, profits and number of sales down to the second.",
-            "f2_title": "Smart Alerts",
-            "f2_desc": "Get notified immediately about out-of-stock products or items nearing expiration.",
-            "f3_title": "AI Assistant",
-            "f3_desc": "Ask your business assistant questions directly from the home screen for instant analysis.",
+            "title": "Panel",
+            "subtitle": "Aktivitenizi bir bakışta yönetin",
+            "description": "Panel sizin kontrol kulenizdir. Sadece sayıları göstermekle kalmaz, aynı zamanda işletmenizin sağlığına ilişkin net ve uygulanabilir bir görüş sunar. Yapay zeka entegrasyonu ile büyüme fırsatlarını ve riskleri (stok tükenmesi, aşırı stok) belirlemek için satışlarınızı gerçek zamanlı olarak analiz eder. Burası, önemli kararları verdiğiniz yerdir.",
+            "f1_title": "Gerçek Zamanlı İstatistikler",
+            "f1_desc": "Gelirinizi, kârınızı ve satış sayınızı saniyesine kadar takip edin.",
+            "f2_title": "Akıllı Uyarılar",
+            "f2_desc": "Stokta kalmayan ürünler veya son kullanma tarihi yaklaşan ürünler hakkında anında bildirim alın.",
+            "f3_title": "Yapay Zeka Asistanı",
+            "f3_desc": "Anında analiz için doğrudan ana ekrandan işletme asistanınıza sorular sorun.",
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",

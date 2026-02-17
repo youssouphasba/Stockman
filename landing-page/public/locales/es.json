@@ -22,14 +22,38 @@
     "features": {
         "title": "Tus herramientas diarias",
         "subtitle": "Una suite completa de pestañas para gestionar cada aspecto de tu negocio.",
-        "dashboard": { "title": "Inicio", "desc": "Vista general de tu actividad, alertas de stock críticas y acceso rápido al asistente IA." },
-        "products": { "title": "Productos", "desc": "Gestión de inventario, escaneo de códigos de barras, organización por categorías y valoración del stock." },
-        "pos": { "title": "TPV", "desc": "Cobra a tus clientes rápidamente, genera recibos digitales y actualiza el stock en tiempo real." },
-        "suppliers": { "title": "Proveedores", "desc": "Directorio de proveedores, historial de pedidos y acceso al Marketplace \"Bouton-à-Bouton\"." },
-        "orders": { "title": "Pedidos", "desc": "Seguimiento de órdenes de compra, recepción de mercancías y actualización automática de stocks." },
-        "accounting": { "title": "Contabilidad", "desc": "Seguimiento preciso de ventas, gastos y cálculo automático de la rentabilidad por período." },
-        "clients": { "title": "Clientes", "desc": "Base de datos de clientes, historial de compras y herramientas de fidelización integradas." },
-        "settings": { "title": "Ajustes", "desc": "Personalización de la aplicación, gestión de usuarios y configuración de tu tienda." }
+        "dashboard": {
+            "title": "Inicio",
+            "desc": "Vista general de tu actividad, alertas de stock críticas y acceso rápido al asistente IA."
+        },
+        "products": {
+            "title": "Productos",
+            "desc": "Gestión de inventario, escaneo de códigos de barras, organización por categorías y valoración del stock."
+        },
+        "pos": {
+            "title": "TPV",
+            "desc": "Cobra a tus clientes rápidamente, genera recibos digitales y actualiza el stock en tiempo real."
+        },
+        "suppliers": {
+            "title": "Proveedores",
+            "desc": "Directorio de proveedores, historial de pedidos y acceso al Marketplace \"Bouton-à-Bouton\"."
+        },
+        "orders": {
+            "title": "Pedidos",
+            "desc": "Seguimiento de órdenes de compra, recepción de mercancías y actualización automática de stocks."
+        },
+        "accounting": {
+            "title": "Contabilidad",
+            "desc": "Seguimiento preciso de ventas, gastos y cálculo automático de la rentabilidad por período."
+        },
+        "clients": {
+            "title": "Clientes",
+            "desc": "Base de datos de clientes, historial de compras y herramientas de fidelización integradas."
+        },
+        "settings": {
+            "title": "Ajustes",
+            "desc": "Personalización de la aplicación, gestión de usuarios y configuración de tu tienda."
+        }
     },
     "showcase": {
         "title": "La interfaz que lo cambia todo",
@@ -39,9 +63,18 @@
     "how_it_works": {
         "title": "Inicio rápido",
         "subtitle": "Tres pasos sencillos para transformar tu negocio.",
-        "step1": { "title": "Crea tu cuenta", "desc": "Descarga la app y configura tu tienda en menos de 2 minutos." },
-        "step2": { "title": "Escanea tus productos", "desc": "Usa la cámara de tu teléfono para añadir tu inventario rápidamente." },
-        "step3": { "title": "Vende y haz seguimiento", "desc": "Realiza tus primeras ventas y observa cómo crecen tus estadísticas en tiempo real." }
+        "step1": {
+            "title": "Crea tu cuenta",
+            "desc": "Descarga la app y configura tu tienda en menos de 2 minutos."
+        },
+        "step2": {
+            "title": "Escanea tus productos",
+            "desc": "Usa la cámara de tu teléfono para añadir tu inventario rápidamente."
+        },
+        "step3": {
+            "title": "Vende y haz seguimiento",
+            "desc": "Realiza tus primeras ventas y observa cómo crecen tus estadísticas en tiempo real."
+        }
     },
     "testimonials": {
         "title": "Confían en nosotros",
@@ -55,9 +88,34 @@
         "subtitle": "Precios transparentes adaptados al tamaño de tu negocio.",
         "month": "/mes",
         "popular": "Popular",
-        "starter": { "name": "Starter", "f1": "1 Usuario", "f2": "Hasta 100 productos", "f3": "Gestión de stock básica", "f4": "Caja registradora", "cta": "Empezar" },
-        "business": { "name": "Business", "f1": "3 Usuarios", "f2": "Productos ilimitados", "f3": "Asistente IA Stockman", "f4": "Marketplace y Pedidos", "f5": "Análisis avanzados", "cta": "Prueba gratuita 14 días" },
-        "enterprise": { "name": "Enterprise", "price": "Presupuesto personalizado", "f1": "Usuarios ilimitados", "f2": "Multi-tienda", "f3": "API e Integraciones", "f4": "Soporte dedicado 24/7", "f5": "IA personalizada", "cta": "Contáctenos" }
+        "starter": {
+            "name": "Starter",
+            "price": "1000",
+            "f1": "1 Usuario",
+            "f2": "Hasta 100 productos",
+            "f3": "Gestión de stock básica",
+            "f4": "Caja registradora",
+            "cta": "Empezar"
+        },
+        "business": {
+            "name": "Business",
+            "price": "2500",
+            "f1": "3 Usuarios",
+            "f2": "Productos ilimitados",
+            "f3": "Asistente IA Stockman",
+            "f4": "Marketplace y Pedidos",
+            "f5": "Análisis avanzados",
+            "cta": "Prueba gratuita 14 días"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Presupuesto personalizado",
+            "f1": "Usuarios ilimitados",
+            "f2": "Multi-tienda",
+            "f3": "API e Integraciones",
+            "f4": "Soporte dedicado 24/7",
+            "cta": "Contáctenos"
+        }
     },
     "faq": {
         "title": "Preguntas frecuentes",
@@ -145,104 +203,224 @@
             "title": "Panel de control",
             "subtitle": "Gestiona tu actividad de un vistazo",
             "description": "El panel de control es tu torre de control. No se limita a mostrar cifras: te ofrece una visión clara y accionable de la salud de tu negocio. Gracias a la integración de IA, analiza tus ventas en tiempo real para identificar oportunidades de crecimiento y riesgos (roturas, sobrestock). Aquí es donde tomas las decisiones que importan.",
-            "f1_title": "Estadísticas en tiempo real", "f1_desc": "Sigue tu facturación, beneficios y número de ventas al segundo.",
-            "f2_title": "Alertas inteligentes", "f2_desc": "Recibe notificaciones inmediatas sobre productos agotados o próximos a caducar.",
-            "f3_title": "Asistente IA", "f3_desc": "Haz preguntas a tu asistente de negocio directamente desde la pantalla principal para obtener análisis instantáneos.",
+            "f1_title": "Estadísticas en tiempo real",
+            "f1_desc": "Sigue tu facturación, beneficios y número de ventas al segundo.",
+            "f2_title": "Alertas inteligentes",
+            "f2_desc": "Recibe notificaciones inmediatas sobre productos agotados o próximos a caducar.",
+            "f3_title": "Asistente IA",
+            "f3_desc": "Haz preguntas a tu asistente de negocio directamente desde la pantalla principal para obtener análisis instantáneos.",
             "gallery": {
-                "kpi": { "image": "/assets/screenshots/dashboard-kpi.jpg", "title": "Vista general y KPIs", "description": "Sigue tus indicadores clave de rendimiento en tiempo real al abrir la app." },
-                "stats": { "image": "/assets/screenshots/dashboard-stats.jpg", "title": "Estadísticas globales", "description": "Visualiza de un vistazo tu facturación, beneficios y tendencias de ventas." },
-                "charts": { "image": "/assets/screenshots/dashboard-sales-chart.jpg", "title": "Gráficos de rendimiento", "description": "Sigue la evolución del valor de tu stock y analiza tus picos de ventas." },
-                "analysis": { "image": "/assets/screenshots/dashboard-analysis.jpg", "title": "Análisis ABC y reaprovisionamiento", "description": "Identifica tus productos más rentables y recibe sugerencias de pedido." },
-                "history": { "image": "/assets/screenshots/dashboard-history.jpg", "title": "Historial de movimientos", "description": "Mantén un registro de cada entrada y salida de stock con trazabilidad total." }
+                "kpi": {
+                    "image": "/assets/screenshots/dashboard-kpi.jpg",
+                    "title": "Vista general y KPIs",
+                    "description": "Sigue tus indicadores clave de rendimiento en tiempo real al abrir la app."
+                },
+                "stats": {
+                    "image": "/assets/screenshots/dashboard-stats.jpg",
+                    "title": "Estadísticas globales",
+                    "description": "Visualiza de un vistazo tu facturación, beneficios y tendencias de ventas."
+                },
+                "charts": {
+                    "image": "/assets/screenshots/dashboard-sales-chart.jpg",
+                    "title": "Gráficos de rendimiento",
+                    "description": "Sigue la evolución del valor de tu stock y analiza tus picos de ventas."
+                },
+                "analysis": {
+                    "image": "/assets/screenshots/dashboard-analysis.jpg",
+                    "title": "Análisis ABC y reaprovisionamiento",
+                    "description": "Identifica tus productos más rentables y recibe sugerencias de pedido."
+                },
+                "history": {
+                    "image": "/assets/screenshots/dashboard-history.jpg",
+                    "title": "Historial de movimientos",
+                    "description": "Mantén un registro de cada entrada y salida de stock con trazabilidad total."
+                }
             }
         },
         "products": {
             "title": "Gestión de productos",
             "subtitle": "Tu inventario, perfectamente organizado",
             "description": "Gestión de inventario profesional sin complejidad. Ya tengas 10 o 10 000 referencias, Stockman te permite organizarlas con precisión. El escáner de códigos de barras integrado convierte tu teléfono en un terminal de inventario ultrarrápido.",
-            "f1_title": "Escaneo de códigos de barras", "f1_desc": "Usa la cámara de tu teléfono para añadir productos o hacer un inventario rápido.",
-            "f2_title": "Organización flexible", "f2_desc": "Crea categorías, marcas y variantes para estructurar tu catálogo.",
-            "f3_title": "Valoración del stock", "f3_desc": "Conoce en todo momento el valor total de tu inventario (precio de compra y precio de venta).",
+            "f1_title": "Escaneo de códigos de barras",
+            "f1_desc": "Usa la cámara de tu teléfono para añadir productos o hacer un inventario rápido.",
+            "f2_title": "Organización flexible",
+            "f2_desc": "Crea categorías, marcas y variantes para estructurar tu catálogo.",
+            "f3_title": "Valoración del stock",
+            "f3_desc": "Conoce en todo momento el valor total de tu inventario (precio de compra y precio de venta).",
             "gallery": {
-                "list": { "image": "/assets/screenshots/products-list.jpg", "title": "Lista de productos", "description": "Accede rápidamente a todo tu catálogo con búsqueda y filtros avanzados." },
-                "create": { "image": "/assets/screenshots/products-create-1.jpg", "title": "Creación sencilla", "description": "Añade un producto en segundos con toda su información esencial." },
-                "variants": { "image": "/assets/screenshots/products-create-2.jpg", "title": "Detalles y variantes", "description": "Gestiona tallas, colores y precios específicos para cada variante." },
-                "thresholds": { "image": "/assets/screenshots/products-create-3.jpg", "title": "Stock y umbrales", "description": "Define alertas de stock bajo para no quedarte sin mercancía." }
+                "list": {
+                    "image": "/assets/screenshots/products-list.jpg",
+                    "title": "Lista de productos",
+                    "description": "Accede rápidamente a todo tu catálogo con búsqueda y filtros avanzados."
+                },
+                "create": {
+                    "image": "/assets/screenshots/products-create-1.jpg",
+                    "title": "Creación sencilla",
+                    "description": "Añade un producto en segundos con toda su información esencial."
+                },
+                "variants": {
+                    "image": "/assets/screenshots/products-create-2.jpg",
+                    "title": "Detalles y variantes",
+                    "description": "Gestiona tallas, colores y precios específicos para cada variante."
+                },
+                "thresholds": {
+                    "image": "/assets/screenshots/products-create-3.jpg",
+                    "title": "Stock y umbrales",
+                    "description": "Define alertas de stock bajo para no quedarte sin mercancía."
+                }
             }
         },
         "pos": {
             "title": "Caja registradora",
             "subtitle": "Cobra a tus clientes con facilidad",
             "description": "Ofrece una experiencia de cobro fluida y moderna. Nuestro TPV táctil está diseñado para la rapidez: añade artículos, gestiona descuentos y maneja múltiples métodos de pago en segundos.",
-            "f1_title": "Carrito rápido", "f1_desc": "Interfaz táctil optimizada para añadir productos al carrito en un instante.",
-            "f2_title": "Recibos digitales", "f2_desc": "Envía recibos por WhatsApp, SMS o Email directamente a tus clientes.",
-            "f3_title": "Multi-pago", "f3_desc": "Acepta efectivo, Mobile Money o tarjeta y controla todo en tu caja.",
+            "f1_title": "Carrito rápido",
+            "f1_desc": "Interfaz táctil optimizada para añadir productos al carrito en un instante.",
+            "f2_title": "Recibos digitales",
+            "f2_desc": "Envía recibos por WhatsApp, SMS o Email directamente a tus clientes.",
+            "f3_title": "Multi-pago",
+            "f3_desc": "Acepta efectivo, Mobile Money o tarjeta y controla todo en tu caja.",
             "gallery": {
-                "sale": { "image": "/assets/screenshots/pos-overview.jpg", "title": "Interfaz de ventas", "description": "Añade productos al carrito, gestiona cantidades y descuentos con fluidez." },
-                "receipt": { "image": "/assets/screenshots/pos-receipt-qr.jpg", "title": "Recibo y código QR", "description": "Genera un recibo instantáneo con un código QR que tus clientes pueden escanear." }
+                "sale": {
+                    "image": "/assets/screenshots/pos-overview.jpg",
+                    "title": "Interfaz de ventas",
+                    "description": "Añade productos al carrito, gestiona cantidades y descuentos con fluidez."
+                },
+                "receipt": {
+                    "image": "/assets/screenshots/pos-receipt-qr.jpg",
+                    "title": "Recibo y código QR",
+                    "description": "Genera un recibo instantáneo con un código QR que tus clientes pueden escanear."
+                }
             }
         },
         "suppliers": {
             "title": "Proveedores y Marketplace",
             "subtitle": "Tu aprovisionamiento simplificado",
             "description": "Convierte tu aprovisionamiento en una ventaja competitiva. Stockman centraliza tus proveedores y te abre las puertas de su Marketplace exclusivo. Compara precios en tiempo real y haz pedidos directamente.",
-            "f1_title": "Directorio de proveedores", "f1_desc": "Centraliza los contactos de todos tus proveedores y el historial de tus intercambios.",
-            "f2_title": "Pedidos automatizados", "f2_desc": "Genera órdenes de compra en un clic basándote en tus necesidades de stock.",
-            "f3_title": "Comparador de precios", "f3_desc": "Encuentra el proveedor más barato para cada producto con nuestro comparador integrado.",
+            "f1_title": "Directorio de proveedores",
+            "f1_desc": "Centraliza los contactos de todos tus proveedores y el historial de tus intercambios.",
+            "f2_title": "Pedidos automatizados",
+            "f2_desc": "Genera órdenes de compra en un clic basándote en tus necesidades de stock.",
+            "f3_title": "Comparador de precios",
+            "f3_desc": "Encuentra el proveedor más barato para cada producto con nuestro comparador integrado.",
             "gallery": {
-                "marketplace": { "image": "/assets/screenshots/suppliers-marketplace.jpg", "title": "Marketplace integrado", "description": "Accede a una amplia red de proveedores verificados y compara precios." },
-                "catalog": { "image": "/assets/screenshots/suppliers-details-catalog.jpg", "title": "Catálogo de proveedores", "description": "Consulta los productos disponibles de cada proveedor y sus condiciones." },
-                "order": { "image": "/assets/screenshots/suppliers-order-creation.jpg", "title": "Realización de pedidos", "description": "Crea y envía tus pedidos de reaprovisionamiento en unos pocos clics." }
+                "marketplace": {
+                    "image": "/assets/screenshots/suppliers-marketplace.jpg",
+                    "title": "Marketplace integrado",
+                    "description": "Accede a una amplia red de proveedores verificados y compara precios."
+                },
+                "catalog": {
+                    "image": "/assets/screenshots/suppliers-details-catalog.jpg",
+                    "title": "Catálogo de proveedores",
+                    "description": "Consulta los productos disponibles de cada proveedor y sus condiciones."
+                },
+                "order": {
+                    "image": "/assets/screenshots/suppliers-order-creation.jpg",
+                    "title": "Realización de pedidos",
+                    "description": "Crea y envía tus pedidos de reaprovisionamiento en unos pocos clics."
+                }
             }
         },
         "orders": {
             "title": "Seguimiento de pedidos",
             "subtitle": "Del pedido a la entrega",
             "description": "Mantén el control total sobre tu cadena de suministro. Desde la orden de compra hasta la recepción en tienda, sigue cada paso. El stock se actualiza automáticamente al recibir la mercancía.",
-            "f1_title": "Seguimiento de estado", "f1_desc": "Visualiza el estado de cada pedido: Pendiente, Enviado, Recibido o Cancelado.",
-            "f2_title": "Recepción fácil", "f2_desc": "Confirma la recepción de mercancías y actualiza automáticamente las cantidades en stock.",
-            "f3_title": "Historial completo", "f3_desc": "Encuentra todos tus pedidos anteriores para facilitar el reaprovisionamiento.",
+            "f1_title": "Seguimiento de estado",
+            "f1_desc": "Visualiza el estado de cada pedido: Pendiente, Enviado, Recibido o Cancelado.",
+            "f2_title": "Recepción fácil",
+            "f2_desc": "Confirma la recepción de mercancías y actualiza automáticamente las cantidades en stock.",
+            "f3_title": "Historial completo",
+            "f3_desc": "Encuentra todos tus pedidos anteriores para facilitar el reaprovisionamiento.",
             "gallery": {
-                "tracking": { "image": "/assets/screenshots/orders-tracking.jpg", "title": "Seguimiento en tiempo real", "description": "Visualiza el estado de avance de cada pedido a proveedores." }
+                "tracking": {
+                    "image": "/assets/screenshots/orders-tracking.jpg",
+                    "title": "Seguimiento en tiempo real",
+                    "description": "Visualiza el estado de avance de cada pedido a proveedores."
+                }
             }
         },
         "accounting": {
             "title": "Contabilidad simplificada",
             "subtitle": "Tus finanzas bajo control",
             "description": "Tu contabilidad se hace sola. Cada venta, cada gasto alimenta automáticamente tus libros contables. Sigue tu flujo de caja y genera tu cuenta de resultados en un clic.",
-            "f1_title": "Cuenta de resultados", "f1_desc": "Visualiza tus ingresos, costes y beneficio neto en el período que elijas.",
-            "f2_title": "Seguimiento de gastos", "f2_desc": "Registra tus gastos (alquiler, electricidad, salarios) para un cálculo preciso de la rentabilidad.",
-            "f3_title": "Exportación PDF/Excel", "f3_desc": "Descarga tus datos contables para tu contable o tus archivos personales.",
+            "f1_title": "Cuenta de resultados",
+            "f1_desc": "Visualiza tus ingresos, costes y beneficio neto en el período que elijas.",
+            "f2_title": "Seguimiento de gastos",
+            "f2_desc": "Registra tus gastos (alquiler, electricidad, salarios) para un cálculo preciso de la rentabilidad.",
+            "f3_title": "Exportación PDF/Excel",
+            "f3_desc": "Descarga tus datos contables para tu contable o tus archivos personales.",
             "gallery": {
-                "overview": { "image": "/assets/screenshots/accounting-overview.jpg", "title": "Vista contable global", "description": "Analiza tu rentabilidad con indicadores claros y precisos." },
-                "expenses": { "image": "/assets/screenshots/accounting-expense-create.jpg", "title": "Gestión de gastos", "description": "Añade fácilmente tus costes fijos y variables." },
-                "reports": { "image": "/assets/screenshots/accounting-details-charts.jpg", "title": "Informes y gráficos", "description": "Visualiza la evolución de tus finanzas a lo largo del tiempo." }
+                "overview": {
+                    "image": "/assets/screenshots/accounting-overview.jpg",
+                    "title": "Vista contable global",
+                    "description": "Analiza tu rentabilidad con indicadores claros y precisos."
+                },
+                "expenses": {
+                    "image": "/assets/screenshots/accounting-expense-create.jpg",
+                    "title": "Gestión de gastos",
+                    "description": "Añade fácilmente tus costes fijos y variables."
+                },
+                "reports": {
+                    "image": "/assets/screenshots/accounting-details-charts.jpg",
+                    "title": "Informes y gráficos",
+                    "description": "Visualiza la evolución de tus finanzas a lo largo del tiempo."
+                }
             }
         },
         "clients": {
             "title": "Gestión de clientes (CRM)",
             "subtitle": "Fideliza a tu clientela",
             "description": "Convierte a tus clientes ocasionales en habituales fieles. El CRM integrado registra cada interacción e historial de compras. Gestiona deudas y créditos para no perder nunca más dinero en cuentas pendientes.",
-            "f1_title": "Fichas de clientes", "f1_desc": "Historial completo de compras, datos de contacto y preferencias de cada cliente.",
-            "f2_title": "Deudas y créditos", "f2_desc": "Sigue las cuentas pendientes de los clientes y sabe exactamente quién te debe dinero.",
-            "f3_title": "Marketing WhatsApp", "f3_desc": "Envía mensajes promocionales dirigidos directamente por WhatsApp.",
+            "f1_title": "Fichas de clientes",
+            "f1_desc": "Historial completo de compras, datos de contacto y preferencias de cada cliente.",
+            "f2_title": "Deudas y créditos",
+            "f2_desc": "Sigue las cuentas pendientes de los clientes y sabe exactamente quién te debe dinero.",
+            "f3_title": "Marketing WhatsApp",
+            "f3_desc": "Envía mensajes promocionales dirigidos directamente por WhatsApp.",
             "gallery": {
-                "details": { "image": "/assets/screenshots/clients-details.jpg", "title": "Ficha detallada del cliente", "description": "Toda la información del cliente, historial de compras y saldos de crédito/deuda." },
-                "campaigns": { "image": "/assets/screenshots/clients-campaign-whatsapp.jpg", "title": "Campañas WhatsApp", "description": "Crea y envía campañas promocionales dirigidas a tus grupos de clientes." }
+                "details": {
+                    "image": "/assets/screenshots/clients-details.jpg",
+                    "title": "Ficha detallada del cliente",
+                    "description": "Toda la información del cliente, historial de compras y saldos de crédito/deuda."
+                },
+                "campaigns": {
+                    "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
+                    "title": "Campañas WhatsApp",
+                    "description": "Crea y envía campañas promocionales dirigidas a tus grupos de clientes."
+                }
             }
         },
         "settings": {
             "title": "Ajustes y configuración",
             "subtitle": "Adapta Stockman a tus necesidades",
             "description": "Configura Stockman para que se adapte a tu estructura: gestiona los derechos de acceso de tus empleados, añade nuevos puntos de venta y accede a un soporte reactivo.",
-            "f1_title": "Gestión de usuarios", "f1_desc": "Crea cuentas para tus empleados y define sus permisos (vendedor, gerente, admin).",
-            "f2_title": "Multi-tienda", "f2_desc": "Añade y gestiona varios puntos de venta desde una sola cuenta de administrador.",
-            "f3_title": "Personalización", "f3_desc": "Cambia la moneda, el idioma y las preferencias de visualización de la app.",
+            "f1_title": "Gestión de usuarios",
+            "f1_desc": "Crea cuentas para tus empleados y define sus permisos (vendedor, gerente, admin).",
+            "f2_title": "Multi-tienda",
+            "f2_desc": "Añade y gestiona varios puntos de venta desde una sola cuenta de administrador.",
+            "f3_title": "Personalización",
+            "f3_desc": "Cambia la moneda, el idioma y las preferencias de visualización de la app.",
             "gallery": {
-                "team": { "image": "/assets/screenshots/settings-employees.jpg", "title": "Gestión de equipo", "description": "Gestiona a tus empleados, sus roles y sus accesos." },
-                "notifications": { "image": "/assets/screenshots/settings-notifications.jpg", "title": "Centro de notificaciones", "description": "Configura tus alertas de stock y recordatorios importantes." },
-                "security": { "image": "/assets/screenshots/settings-support-security.jpg", "title": "Soporte y seguridad", "description": "Accede a la ayuda en línea y protege tu cuenta." },
-                "guide": { "image": "/assets/screenshots/settings-guide.jpg", "title": "Guía completa", "description": "Aprende a dominar todas las funcionalidades de Stockman." }
+                "team": {
+                    "image": "/assets/screenshots/settings-employees.jpg",
+                    "title": "Gestión de equipo",
+                    "description": "Gestiona a tus empleados, sus roles y sus accesos."
+                },
+                "notifications": {
+                    "image": "/assets/screenshots/settings-notifications.jpg",
+                    "title": "Centro de notificaciones",
+                    "description": "Configura tus alertas de stock y recordatorios importantes."
+                },
+                "security": {
+                    "image": "/assets/screenshots/settings-support-security.jpg",
+                    "title": "Soporte y seguridad",
+                    "description": "Accede a la ayuda en línea y protege tu cuenta."
+                },
+                "guide": {
+                    "image": "/assets/screenshots/settings-guide.jpg",
+                    "title": "Guía completa",
+                    "description": "Aprende a dominar todas las funcionalidades de Stockman."
+                }
             }
         }
     },
@@ -255,13 +433,25 @@
         "mission_desc": "Creemos que cada comerciante, pequeño o grande, merece las mejores herramientas para tener éxito. Stockman no es solo un software, es tu socio de crecimiento.",
         "team_title": "El equipo",
         "team_subtitle": "Apasionados al servicio de los emprendedores.",
-        "member1_image": "👨🏿‍💼", "member1_name": "Jean-Marc Koffi", "member1_role": "CEO y cofundador", "member1_bio": "Antiguo comerciante, creó Stockman para resolver sus propios problemas de gestión.",
-        "member2_image": "👩🏾‍💻", "member2_name": "Awa Diop", "member2_role": "CTO y Tech Lead", "member2_bio": "Ingeniera apasionada por la IA y la accesibilidad digital en África.",
-        "member3_image": "🎧", "member3_name": "David N'Guessan", "member3_role": "Responsable de soporte", "member3_bio": "Siempre a la escucha para acompañar a nuestros usuarios hacia el éxito.",
+        "member1_image": "👨🏿‍💼",
+        "member1_name": "Jean-Marc Koffi",
+        "member1_role": "CEO y cofundador",
+        "member1_bio": "Antiguo comerciante, creó Stockman para resolver sus propios problemas de gestión.",
+        "member2_image": "👩🏾‍💻",
+        "member2_name": "Awa Diop",
+        "member2_role": "CTO y Tech Lead",
+        "member2_bio": "Ingeniera apasionada por la IA y la accesibilidad digital en África.",
+        "member3_image": "🎧",
+        "member3_name": "David N'Guessan",
+        "member3_role": "Responsable de soporte",
+        "member3_bio": "Siempre a la escucha para acompañar a nuestros usuarios hacia el éxito.",
         "values_title": "Nuestros valores",
-        "value1_title": "🔍 Simplicidad", "value1_desc": "La tecnología debe ser accesible para todos, sin formación compleja.",
-        "value2_title": "🤝 Proximidad", "value2_desc": "Estamos aquí, entendemos vuestras realidades y vuestros desafíos.",
-        "value3_title": "🚀 Innovación", "value3_desc": "Mejoramos Stockman cada día gracias a vuestros comentarios."
+        "value1_title": "🔍 Simplicidad",
+        "value1_desc": "La tecnología debe ser accesible para todos, sin formación compleja.",
+        "value2_title": "🤝 Proximidad",
+        "value2_desc": "Estamos aquí, entendemos vuestras realidades y vuestros desafíos.",
+        "value3_title": "🚀 Innovación",
+        "value3_desc": "Mejoramos Stockman cada día gracias a vuestros comentarios."
     },
     "blog": {
         "seo_title": "Blog y recursos",
@@ -307,18 +497,24 @@
         "whatsapp_chat": "💬 Chat WhatsApp",
         "getting_started": {
             "title": "Primeros pasos",
-            "q1": "¿Cómo creo una cuenta?", "a1": "Descarga la app y sigue las instrucciones en pantalla. Tarda menos de 2 minutos.",
-            "q2": "¿Puedo usar la app sin internet?", "a2": "Sí, Stockman funciona sin conexión y sincroniza tus datos en cuanto vuelve la conexión."
+            "q1": "¿Cómo creo una cuenta?",
+            "a1": "Descarga la app y sigue las instrucciones en pantalla. Tarda menos de 2 minutos.",
+            "q2": "¿Puedo usar la app sin internet?",
+            "a2": "Sí, Stockman funciona sin conexión y sincroniza tus datos en cuanto vuelve la conexión."
         },
         "account_billing": {
             "title": "Cuenta y facturación",
-            "q1": "¿Cómo cambio mi contraseña?", "a1": "Ve a Ajustes > Seguridad > Cambiar contraseña.",
-            "q2": "¿Cómo funciona la prueba gratuita?", "a2": "Obtienes automáticamente 14 días de prueba gratuita con todas las funcionalidades desbloqueadas al registrarte."
+            "q1": "¿Cómo cambio mi contraseña?",
+            "a1": "Ve a Ajustes > Seguridad > Cambiar contraseña.",
+            "q2": "¿Cómo funciona la prueba gratuita?",
+            "a2": "Obtienes automáticamente 14 días de prueba gratuita con todas las funcionalidades desbloqueadas al registrarte."
         },
         "technical_support": {
             "title": "Soporte técnico",
-            "q1": "La app no se abre, ¿qué hago?", "a1": "Comprueba tu conexión a internet y asegúrate de tener la última actualización. Si el problema persiste, reinstala la app.",
-            "q2": "¿Cómo contacto con soporte?", "a2": "Puedes escribirnos a través del formulario de abajo o directamente por WhatsApp."
+            "q1": "La app no se abre, ¿qué hago?",
+            "a1": "Comprueba tu conexión a internet y asegúrate de tener la última actualización. Si el problema persiste, reinstala la app.",
+            "q2": "¿Cómo contacto con soporte?",
+            "a2": "Puedes escribirnos a través del formulario de abajo o directamente por WhatsApp."
         }
     },
     "terms": {

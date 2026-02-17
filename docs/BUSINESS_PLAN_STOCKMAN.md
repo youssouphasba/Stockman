@@ -42,7 +42,7 @@ Le branding de Stockman s'appuie sur une figure héroïque, **Stockman**, le sup
 En Afrique de l'Ouest, en France et dans la diaspora, **plus de 80% des petits commerçants** gèrent leur stock et leurs ventes sur papier ou de mémoire. Cela entraîne des pertes financières considérables, des ruptures de stock fréquentes, une absence de visibilité sur la rentabilité réelle et une impossibilité d'obtenir du crédit bancaire faute de preuves de revenus.
 
 ### La solution
-Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, et un support technique réactif.
+Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, un **assistant IA intelligent** (Gemini), un **système de paiement réel** (RevenueCat + CinetPay Mobile Money), et un support technique réactif. L'application est disponible en **14 langues** dont le Wolof et le Peul.
 
 ### Le marché
 - **Sénégal** : +300 000 commerces et boutiques enregistrés (source : ANSD)
@@ -50,8 +50,10 @@ Stockman digitalise entièrement la gestion commerciale avec une interface simpl
 - **Afrique de l'Ouest** : +10 millions de commerces informels (opportunité d'expansion)
 
 ### Modèle de revenus
-- **Essai gratuit** de 2 mois pour chaque nouvel inscrit
-- **Abonnement mensuel** : 2 000 FCFA (~3,05 €) au Sénégal | 4,99 € en France
+- **Essai gratuit de 3 mois** pour chaque nouvel inscrit (accès Premium complet)
+- **Plan Starter** : 1 000 FCFA (~1,52 €) au Sénégal | 3,99 € en Europe — POS, Stock, Dashboard
+- **Plan Premium** : 2 500 FCFA (~3,80 €) au Sénégal | 7,99 € en Europe — Tout illimité (CRM, Comptabilité, Fournisseurs, IA illimitée)
+- **Paiements intégrés** : RevenueCat (Google Play / App Store) + CinetPay (Mobile Money : Orange Money, Wave, MTN)
 - Revenus récurrents (MRR) avec forte prévisibilité
 
 ### Besoin de financement
@@ -174,22 +176,25 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Notifications | Alerte à chaque nouveau message |
 | Historique | Toutes les conversations archivées et consultables |
 
-#### 🤖 Intelligence Artificielle Intégrée
+#### 🤖 Intelligence Artificielle Intégrée (Google Gemini 2.0 Flash)
 | Fonctionnalité | Description |
 |----------------|-------------|
-| Assistant IA | Chatbot intelligent qui répond aux questions sur le stock, les ventes, la comptabilité |
-| Prédictions de vente | Analyse des tendances pour anticiper la demande |
+| Assistant IA conversationnel | Chatbot intelligent alimenté par Gemini, avec accès aux données réelles du commerçant (RAG) |
+| Prédictions de vente | Analyse des tendances historiques pour anticiper la demande |
+| Analyse ABC automatique | Classification produits (A: 80% CA, B: 15%, C: 5%) |
 | Suggestions de réappro | Recommandations automatiques de commandes basées sur l'IA |
 | Analyse de rentabilité | Identification des produits les plus/moins rentables |
 | Rapports intelligents | Résumés automatiques de l'activité et recommandations |
+| Rate limiting intelligent | 14 requêtes/semaine (Starter) ou illimité (Premium) |
 
-#### 🌍 Localisation & Accessibilité — Wolof
+#### 🌍 Localisation & Accessibilité — 14 Langues
 | Fonctionnalité | Description |
 |----------------|-------------|
-| Traduction Wolof | Interface entièrement traduite en Wolof pour le marché sénégalais |
+| **14 langues natives** | Français, Anglais, Espagnol, Allemand, Portugais, Italien, Russe, Chinois, Hindi, Polonais, Roumain, Turc, Wolof, Peul (Pulaar), Arabe |
+| Traduction Wolof & Peul | Interface et guides traduits dans les langues locales ouest-africaines |
 | Audio explicatifs Wolof | Guides audio en Wolof pour chaque fonctionnalité, accessibles depuis l'app |
-| Multi-langue | Français, Wolof (+ langues africaines à venir) |
 | Accessibilité | Pensé pour les utilisateurs peu familiers avec le digital |
+| Landing page multilingue | Site vitrine stockman.pro traduit dans les 14 langues |
 
 #### 📚 Guides & Formation Intégrés
 | Fonctionnalité | Description |
@@ -214,15 +219,59 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 
 ### 4.2 Avantages technologiques
 
-- **React Native** : Application native iOS et Android depuis une seule codebase
-- **Intelligence Artificielle** : Modèles IA pour prédictions, suggestions et assistant conversationnel
-- **Backend Python/FastAPI** : Performances élevées, API moderne, traitement IA intégré
-- **MongoDB Atlas** : Base de données cloud, scalable, sécurisée
-- **Sync Hors-ligne** : Architecture "offline-first" pour les zones à faible connectivité
-- **Localisation Wolof** : Traductions et audio guides en langue locale — unique sur le marché
+- **React Native (Expo)** : Application native iOS et Android depuis une seule codebase, déployée via EAS Build
+- **Intelligence Artificielle (Gemini)** : Assistant IA conversationnel, prédictions de vente, suggestions de réapprovisionnement, analyse ABC — avec rate limiting intelligent (14 req/semaine Starter, illimité Premium)
+- **Backend Python/FastAPI** : Performances élevées, API REST moderne, 100+ endpoints, déployé sur **Railway** (production)
+- **MongoDB Atlas** : Base de données cloud, scalable, sécurisée, avec agrégations avancées
+- **Sync Hors-ligne** : Architecture "offline-first" pour les zones à faible connectivité, cache intelligent avec AsyncStorage
+- **Localisation 14 langues** : Traductions complètes en 14 langues (FR, EN, ES, DE, PT, IT, RU, ZH, HI, PL, RO, TR, WO, FF, AR) — unique sur le marché
+- **Paiements réels** : Double infrastructure RevenueCat (Google Play / App Store) + CinetPay (Mobile Money : Orange Money, Wave, MTN MoMo)
+- **Feature Gating (PremiumGate)** : Système de verrouillage intelligent des modules Premium avec écran d'upgrade intégré
 - **Console Admin** : Dashboard d'administration complet avec 12 modules (monitoring, litiges, sécurité, communication)
+- **Landing Page responsive** : Site vitrine `stockman.pro` avec SEO, blog, comparatif, newsletter, cookie RGPD — optimisé mobile
 
-### 4.3 Captures d'écran (à insérer)
+### 4.3 Implémentations réalisées (Q1 2026)
+
+> **Tout le développement ci-dessous a été réalisé et est en production.**
+
+#### Infrastructure de paiement réel
+| Composant | Détail |
+|-----------|--------|
+| **RevenueCat** | SDK intégré pour Google Play / App Store billing, webhooks backend pour INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION |
+| **CinetPay** | Paiement Mobile Money (Orange Money, Wave, MTN MoMo) via API checkout, webhooks de notification, vérification automatique |
+| **Gestion d'abonnement** | Collection MongoDB `payment_transactions`, expiry cron quotidien, endpoint `/subscription/me` |
+| **Double canal** | Les utilisateurs choisissent : paiement via store (RevenueCat) ou Mobile Money (CinetPay) |
+
+#### Système de plans et Feature Gating
+| Élément | Détail |
+|---------|--------|
+| **PremiumGate** | Composant React Native qui verrouille les modules Premium (Comptabilité, CRM, Fournisseurs, Commandes) pour les utilisateurs Starter |
+| **Écran d'upgrade** | Interface élégante avec icône, description et bouton "Passer à Premium" intégré dans chaque module verrouillé |
+| **Rate Limiting IA** | 14 requêtes/semaine pour Starter, illimité pour Premium — géré côté backend |
+| **Essai gratuit 3 mois** | Accès Premium complet pendant 3 mois, puis basculement automatique sur Starter |
+
+#### Intelligence Artificielle (Gemini 2.0 Flash)
+| Fonctionnalité | Détail |
+|----------------|--------|
+| **Assistant conversationnel** | Chat IA contextuel qui répond aux questions sur le stock, les ventes, la comptabilité |
+| **Prédictions de vente** | Analyse des tendances historiques pour anticiper la demande |
+| **Analyse ABC** | Classification automatique des produits (A: 80% CA, B: 15%, C: 5%) |
+| **Suggestions de réappro** | Recommandations basées sur les tendances et seuils configurés |
+| **RAG (Retrieval-Augmented Generation)** | L'IA accède aux données réelles du commerçant pour des réponses personnalisées |
+
+#### Landing Page professionnelle (stockman.pro)
+| Élément | Détail |
+|---------|--------|
+| **Site React** | Single-page application avec routing (Accueil, À propos, Blog, Fonctionnalités, CGU, Confidentialité) |
+| **SEO complet** | Balises meta, sitemap.xml, robots.txt, Open Graph, structured data |
+| **14 langues** | Traduction complète de tout le site avec sélecteur de langue |
+| **Responsive** | Design adapté mobile (480px), tablette (768px), desktop — glassmorphism dark theme |
+| **Newsletter** | Collecte d'emails avec consentement RGPD |
+| **Comparatif concurrents** | Tableau interactif Stockman vs concurrence |
+| **Blog intégré** | Articles SEO sur la gestion de stock et l'entrepreneuriat |
+| **Cookie Banner RGPD** | Bandeau de consentement conforme |
+
+### 4.4 Captures d'écran (à insérer)
 
 - Dashboard principal avec KPIs
 - Gestion de stock avec indicateurs visuels
@@ -237,8 +286,8 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 
 | Zone | Nombre de commerces | TAM annuel |
 |------|---------------------|------------|
-| **Sénégal** | ~300 000 | 300 000 × 24 000 FCFA/an = **7,2 Mds FCFA** (≈ 11 M€) |
-| **France** (tous petits vendeurs) | ~500 000 commerces de détail + micro-entrepreneurs | 500 000 × 59,88 €/an = **30 M€** |
+| **Sénégal** | ~300 000 | 300 000 × 30 000 FCFA/an = **9 Mds FCFA** (≈ 13,7 M€) |
+| **France** (tous petits vendeurs) | ~500 000 commerces de détail + micro-entrepreneurs | 500 000 × 95,88 €/an = **48 M€** |
 | **Afrique de l'Ouest** (Côte d'Ivoire, Mali, Cameroun, etc.) | ~10 000 000 | >**100 M€** |
 
 ### 5.2 Marché Adressable Accessible (SAM)
@@ -331,11 +380,11 @@ Cible réaliste avec les moyens actuels :
 | **🛍️ Marketplace fournisseurs** | ✅ Intégré | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **💬 Messagerie commerçant/fournisseur** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **📦 Suivi de commandes** | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| **🌍 Traduction Wolof** | ✅ + Audio | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **🌍 14 langues + Wolof** | ✅ + Audio | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **📚 Guides intégrés** | ✅ + Audio | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Mode hors-ligne complet | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Support en français | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Prix petits commerçants | **3€/mois** | 29$/mois | 89$/mois | 24€+/mois | Gratuit? | Gratuit (pubs) |
+| Prix petits commerçants | **1 000 FCFA / 3,99€** | 29$/mois | 89$/mois | 24€+/mois | Gratuit? | Gratuit (pubs) |
 
 ### 6.5 Positionnement Stockman
 
@@ -375,8 +424,10 @@ Cible réaliste avec les moyens actuels :
 | 6 | **📚 Guides intégrés** — Tutoriels, vidéos, guides métier dans l'app | ❌ Aucun concurrent mobile |
 | 7 | **📱 Mode hors-ligne complet** — Stock, POS, tout fonctionne sans internet | ❌ Aucun concurrent |
 | 8 | **🛒 POS + Stock + CRM** — Tout-en-un dans une seule app | ⚠️ Odoo uniquement (24€+/mois) |
-| 9 | **💰 3€/mois** — Le prix le plus bas du marché pour ce niveau de fonctionnalités | ❌ Concurrents : 29-89$/mois |
+| 9 | **💰 Dès 1 000 FCFA/mois** — Le prix le plus bas du marché pour ce niveau de fonctionnalités | ❌ Concurrents : 29-89$/mois |
 | 10 | **🇸🇳🇫🇷 Double marché** — Adapté Sénégal ET France dans la même app | ❌ Aucun concurrent |
+| 11 | **💳 Paiements réels intégrés** — RevenueCat (stores) + CinetPay (Mobile Money) | ⚠️ Limité chez les concurrents |
+| 12 | **🔒 Feature Gating intelligent** — Modules Premium verrouillés avec upgrade intégré | ❌ Aucun concurrent à ce prix |
 
 ### Notre avantage concurrentiel durable
 
@@ -506,7 +557,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 └──────────┬──────────┘
            ▼
 ┌─────────────────────┐
-│  ESSAI GRATUIT       │  2 mois d'utilisation complète
+│  ESSAI GRATUIT       │  3 mois d'utilisation Premium complète
 │  3 000 utilisateurs  │
 └──────────┬──────────┘
            ▼
@@ -529,14 +580,18 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | Composant | Technologie | Coût mensuel |
 |-----------|-------------|-------------|
-| **Hébergement backend** | Serveur VPS (Hetzner/OVH) | 25 € |
+| **Hébergement backend** | Railway (Production, Docker) | 5-20 € |
 | **Base de données** | MongoDB Atlas (M10) | 57 € |
+| **IA / Assistant** | Google Gemini API (gemini-2.0-flash) | ~10 € |
+| **Paiements stores** | RevenueCat (gratuit < 2,5K$ MRR) | 0 € |
+| **Paiements Mobile Money** | CinetPay (commission par transaction) | Variable |
+| **SMS / OTP** | Twilio (vérification téléphone) | ~5 € |
 | **CDN / Assets** | Cloudflare | 0 € |
 | **Notifications push** | Expo Push (gratuit jusqu'à 10K) | 0 € |
-| **Email transactionnel** | SendGrid (gratuit 100/jour) | 0 € |
+| **Build mobile** | EAS Build (Expo) | 0 € (free tier) |
 | **Monitoring** | UptimeRobot + Sentry | 0 € |
 | **Store (App Store + Play Store)** | Licences annuelles | 8 €/mois amorti |
-| **Total infra** | | **~90 €/mois** |
+| **Total infra** | | **~100 €/mois** |
 
 ### 10.2 Organisation opérationnelle
 
@@ -663,8 +718,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | | Positif | Négatif |
 |---|---------|---------|
-| **Interne** | **Forces (Strengths)**<br>• **Produit All-in-One** : Stock + POS + CRM + Marketplace + IA<br>• **Accessibilité** : Mode hors-ligne, traduction Wolof, audio guides<br>• **Prix disruptif** : 3€/mois vs 30€+ concurrence<br>• **Tech agile** : Stack moderne (React Native/FastAPI), IA intégrée | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : Équipe réduite au lancement<br>• **Marque inconnue** : Nécessite un effort marketing initial important<br>• **Dépendance technique** : Risque si le fondateur est indisponible<br>• **Cashburn initial** : Besoin de financement pour l'acquisition |
-| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** : Facilite le paiement de l'abonnement<br>• **Soutien étatique** : Programmes de digitalisation (SN2025)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Square ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer |
+| **Interne** | **Forces (Strengths)**<br>• **Produit All-in-One opérationnel** : Stock + POS + CRM + Marketplace + IA + Comptabilité — tout est développé et en production<br>• **Paiements réels** : RevenueCat (stores) + CinetPay (Mobile Money) — infrastructure de monétisation prête<br>• **14 langues** : Couverture linguistique massive incluant Wolof et Peul<br>• **Prix disruptif** : Dès 1 000 FCFA/mois vs 30€+ concurrence<br>• **Tech agile** : Stack moderne (React Native/FastAPI/Railway), IA Gemini intégrée<br>• **Feature Gating** : Modèle freemium intelligent avec PremiumGate | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : Équipe réduite au lancement<br>• **Marque inconnue** : Nécessite un effort marketing initial important<br>• **Dépendance technique** : Risque si le fondateur est indisponible<br>• **Cashburn initial** : Besoin de financement pour l'acquisition |
+| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** : CinetPay intégré, paiement en 2 clics<br>• **Soutien étatique** : Programmes de digitalisation (SN2025)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes<br>• **IA accessible** : Différenciation forte grâce à l'assistant Gemini | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Square ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer |
 
 ### 13.3 Analyse PESTEL (Politique, Économique, Sociologique, Technologique, Écologique, Légal)
 
@@ -744,18 +799,30 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 ### An 1 : Fondation (2026)
 
-| Trimestre | Objectifs |
-|-----------|-----------|
-| **Q1** | ✅ MVP complet (POS, Stock, CRM, Dashboard, Alertes) |
-| **Q2** | Lancement Sénégal, 500 premiers utilisateurs, itérations UX |
-| **Q3** | Lancement France, programme de parrainage, formations terrain |
-| **Q4** | 1 500 utilisateurs payants, optimisation performance, comptabilité avancée |
+| Trimestre | Objectifs | Statut |
+|-----------|-----------|--------|
+| **Q1** | ✅ MVP complet (POS, Stock, CRM, Dashboard, Alertes, Comptabilité) | **Fait** |
+| **Q1** | ✅ Assistant IA (Gemini) avec prédictions et suggestions | **Fait** |
+| **Q1** | ✅ Système de paiement réel : RevenueCat + CinetPay Mobile Money | **Fait** |
+| **Q1** | ✅ Plans Starter/Premium avec Feature Gating (PremiumGate) | **Fait** |
+| **Q1** | ✅ Localisation complète : 14 langues (app + landing page) | **Fait** |
+| **Q1** | ✅ Landing page responsive stockman.pro (SEO, blog, comparatif, newsletter) | **Fait** |
+| **Q1** | ✅ Déploiement backend production (Railway + Docker) | **Fait** |
+| **Q1** | ✅ Console Admin super-admin (12 modules) | **Fait** |
+| **Q1** | ✅ Vérification téléphone OTP (Twilio) | **Fait** |
+| **Q1** | ✅ Mode hors-ligne complet avec sync automatique | **Fait** |
+| **Q1** | ✅ Guides interactifs intégrés par écran | **Fait** |
+| **Q1** | ✅ Centre d'aide et support IA in-app | **Fait** |
+| **Q1** | ✅ Messagerie commerçant/fournisseur temps réel | **Fait** |
+| **Q2** | Lancement Sénégal, 500 premiers utilisateurs, itérations UX | En cours |
+| **Q3** | Lancement France, programme de parrainage, formations terrain | Planifié |
+| **Q4** | 1 500 utilisateurs payants, optimisation performance | Planifié |
 
 ### An 2 : Croissance (2027)
 
 | Trimestre | Objectifs |
 |-----------|-----------|
-| **Q1** | Intégration paiements (Wave, Orange Money), plan Premium |
+| **Q1** | Intégration paiements directs (Wave, Orange Money encaissements commerçant) |
 | **Q2** | Expansion Côte d'Ivoire et Mali, recrutement équipe |
 | **Q3** | Marketplace fournisseurs (évolution et monétisation), rapports avancés IA |
 | **Q4** | 5 000 utilisateurs payants, partenariats banques/micro-crédit |
@@ -775,14 +842,21 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 ### A. Détail du pricing comparatif
 
-| | Stockman | Loyverse | Square | Vend |
-|--|----------|----------|--------|------|
-| Prix SN | 2 000 FCFA | Gratuit | N/A | N/A |
-| Prix FR | 4,99 € | Gratuit | Gratuit + commission | 99 € |
-| Mode hors-ligne | ✅ | ❌ | ❌ | ❌ |
-| CRM | ✅ | ❌ | ❌ | ✅ |
-| Multi-magasin | ✅ | ✅ | ✅ | ✅ |
-| Support français | ✅ | ❌ | ❌ | ❌ |
+| | Stockman Starter | Stockman Premium | Loyverse | Square | Vend |
+|--|------------------|------------------|----------|--------|------|
+| Prix SN | 1 000 FCFA | 2 500 FCFA | Gratuit | N/A | N/A |
+| Prix EU | 3,99 € | 7,99 € | Gratuit | Gratuit + commission | 99 € |
+| Essai gratuit | 3 mois | 3 mois | N/A | N/A | 14 jours |
+| Mode hors-ligne | ✅ | ✅ | ❌ | ❌ | ❌ |
+| POS | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CRM | ❌ | ✅ | ❌ | ❌ | ✅ |
+| IA intégrée | 14 req/sem | ✅ Illimité | ❌ | ❌ | ❌ |
+| Comptabilité | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Marketplace fournisseurs | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Multi-magasin | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Paiement Mobile Money | ✅ CinetPay | ✅ CinetPay | ❌ | ❌ | ❌ |
+| 14 langues | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Support français | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ### B. Calcul du CAC (Coût d'Acquisition Client)
 
