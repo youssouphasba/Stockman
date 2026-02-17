@@ -161,6 +161,7 @@ ul {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .cookie-content p {
@@ -203,17 +204,17 @@ ul {
 .comparison-table {
   width: 100%;
   border-collapse: separate;
-  /* Changed for better spacing control */
   border-spacing: 0;
-  min-width: 600px;
+  table-layout: fixed;
 }
 
 .comparison-table th,
 .comparison-table td {
-  padding: 24px;
-  /* INCREASED PADDING from 16px */
+  padding: 20px;
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .comparison-table th {
@@ -235,6 +236,43 @@ ul {
 .comparison-table td.cross {
   color: var(--danger);
   opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .comparison-table th,
+  .comparison-table td {
+    padding: 12px 8px;
+    font-size: 0.85rem;
+  }
+
+  .comparison-table th {
+    font-size: 0.9rem;
+  }
+
+  .comparison-table th.highlight {
+    font-size: 0.95rem;
+  }
+
+  .comparison-card {
+    padding: var(--spacing-sm);
+  }
+
+  .comparison-card h2 {
+    font-size: 1.3rem;
+  }
+
+  .cookie-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .cookie-content p {
+    font-size: 0.8rem;
+  }
+
+  .blog-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Blog Cards */

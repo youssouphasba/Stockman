@@ -226,6 +226,19 @@
   .gallery-item {
     flex-direction: column !important;
   }
+
+  .features-grid,
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-card {
+    padding: var(--spacing-lg);
+  }
+
+  .step-card {
+    min-width: unset;
+  }
 }
 
 /* Showcase Section */
