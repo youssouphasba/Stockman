@@ -230,9 +230,13 @@ async def create_indexes_and_init():
             global rag_service
             try:
                 api_key = os.environ.get("GOOGLE_API_KEY")
-                if api_key:
+                if api_key and RAGService:
                     rag_service = RAGService(api_key, ROOT_DIR)
-                    if not rag_service.load_index():
+                    try:
+                        loaded = await rag_service.load_index()
+                    except Exception:
+                        loaded = False
+                    if not loaded:
                         logger.info("Building RAG index in background...")
                         await rag_service.index_documents()
                     logger.info("RAG Service initialized")
