@@ -37,7 +37,10 @@ logger = logging.getLogger(__name__)
 from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
-from services.rag_service import RAGService
+try:
+    from services.rag_service import RAGService
+except Exception:
+    RAGService = None
 
 # RAG Service (initialized later if API key exists)
 rag_service = None
@@ -1938,7 +1941,7 @@ async def ai_suggest_category(data: dict = Body(...), user: User = Depends(requi
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2001,7 +2004,7 @@ async def ai_generate_description(data: dict = Body(...), user: User = Depends(r
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2032,7 +2035,7 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe."""
 @api_router.get("/ai/daily-summary")
 async def ai_daily_summary(user: User = Depends(require_auth)):
     """Generate a daily AI-powered business summary"""
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2065,7 +2068,7 @@ Sois direct, utilise des chiffres concrets. Pas de formules de politesse."""
 @api_router.get("/ai/detect-anomalies")
 async def ai_detect_anomalies(user: User = Depends(require_auth)):
     """Use Gemini to detect anomalies in sales, stock and margins"""
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2232,7 +2235,7 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
 @api_router.get("/ai/replenishment-advice")
 async def ai_replenishment_advice(user: User = Depends(require_auth)):
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2287,7 +2290,7 @@ async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_
     if not product_id:
         raise HTTPException(status_code=400, detail="product_id required")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2399,7 +2402,7 @@ async def ai_scan_invoice(data: dict = Body(...), user: User = Depends(require_a
     if not image_base64:
         raise HTTPException(status_code=400, detail="image (base64) required")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
@@ -2456,7 +2459,7 @@ async def ai_voice_to_text(data: dict = Body(...), user: User = Depends(require_
     if not audio_base64:
         raise HTTPException(status_code=400, detail="audio (base64) required")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
 
