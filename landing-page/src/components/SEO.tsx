@@ -8,7 +8,7 @@ interface SEOProps {
     image?: string;
 }
 
-const SEO = ({ title, description, url = 'https://stockman.app', image = 'https://stockman.app/og-image.jpg' }: SEOProps) => {
+const SEO = ({ title, description, url = 'https://stockman.pro', image = 'https://stockman.pro/og-image.jpg' }: SEOProps) => {
     const { i18n } = useTranslation();
     const languages = ['en', 'fr', 'es', 'de', 'it', 'ar', 'tr', 'wo', 'ff', 'pt', 'ru', 'zh', 'hi', 'pl', 'ro'];
 
@@ -22,9 +22,9 @@ const SEO = ({ title, description, url = 'https://stockman.app', image = 'https:
             <link rel="canonical" href={url} />
 
             {/* Hreflang for international SEO */}
-            <link rel="alternate" href="https://stockman.app" hrefLang="x-default" />
+            <link rel="alternate" href="https://stockman.pro" hrefLang="x-default" />
             {languages.map(lang => (
-                <link key={lang} rel="alternate" href={`https://stockman.app/?lang=${lang}`} hrefLang={lang} />
+                <link key={lang} rel="alternate" href={`https://stockman.pro/?lang=${lang}`} hrefLang={lang} />
             ))}
 
             {/* Facebook tags */}
