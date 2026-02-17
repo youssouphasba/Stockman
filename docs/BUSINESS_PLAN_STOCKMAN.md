@@ -386,7 +386,7 @@ Cible réaliste avec les moyens actuels :
 4. **Wolof natif** : Seule application de gestion commerciale traduite en Wolof avec audio explicatifs
 5. **Marketplace fournisseurs + messagerie** : Seule solution qui connecte commerçants et grossistes avec messagerie directe
 6. **Guides & formation intégrés** : Tutoriels, vidéos et guides métier dans l'app pour accompagner les débutants
-7. **Pricing imbattable** : 3€/mois vs 29-89$/mois chez les concurrents spécialisés
+7. **Pricing imbattable** : Offre Starter à 0 FCFA et Business à 15 000 FCFA (vs 29-89$/mois chez les concurrents)
 8. **Accompagnement terrain** : Agents locaux (1 000 FCFA/vendeur amené) pour former les commerçants
 9. **Double marché** : Adapté autant au boutiquier sénégalais qu'au vendeur de marché français
 10. **Scalabilité** : Architecture cloud permettant une expansion rapide dans toute l'Afrique
@@ -397,10 +397,11 @@ Cible réaliste avec les moyens actuels :
 
 ### 8.1 Source de revenus principale : Abonnement SaaS
 
-| Marché | Prix mensuel | Prix annuel | Essai gratuit |
-|--------|-------------|-------------|---------------|
-| **Sénégal** | 2 000 FCFA (≈ 3,05 €) | 24 000 FCFA (≈ 36,60 €) | 2 mois |
-| **France** | 4,99 € | 59,88 € | 2 mois |
+| Plan | Prix mensuel | Limites / Conditions | Gestion & Paiement |
+|------|-------------|----------------------|--------------------|
+| **Starter** | **0 FCFA** | 1 Utilisateur, 100 produits, Stock & Caisse | Gratuit (Mobile) |
+| **Business** | **15 000 FCFA** | 3 Utilisateurs, Produits illimités, Assistant IA, Marketplace | **RevenueCat** (In-App Purchase) / Wave |
+| **Enterprise** | **Sur devis** | Utilisateurs illimités, Multi-boutiques, Support 24/7 | Facturation Directe |
 
 ### 8.2 Sources de revenus secondaires (déjà en place ou An 2-3)
 
@@ -706,7 +707,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 ### 14.2 Mix Marketing (4P)
 
 *   **Produit** : Appli mobile Freemium. Design "Consumer" (aussi beau qu'Instagram) mais fonctionnalités "Business".
-*   **Prix** : Stratégie de pénétration. Prix psychologique bas (2000 FCFA / 4.99€) pour casser la barrière à l'entrée.
+*   **Prix** : Stratégie de pénétration avec offre Starter à **0 FCFA** pour capturer la masse, et offre Business à **15 000 FCFA** pour la rentabilité.
 *   **Place (Distribution)** :
     *   Directe : Play Store / App Store.
     *   Terrain : Réseau d'agents ambassadeurs (porte-à-porte).
@@ -725,8 +726,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 *   **Flux de trésorerie** : Les encaissements sont immédiats (Mobile Money / Carte), les décaissements (serveurs, salaires) sont mensuels. Pas de décalage de trésorerie.
 
 ### 15.2 Indicateurs de Rentabilité SaaS
-*   **Marge Brute** : Estimée à **85%**. (Coût serveur par utilisateur très faible, < 0.10€).
-*   **Point Mort (Break-even)** : Atteint dès **250 utilisateurs payants** (couvre les frais fixes frugaux de 850€/mois).
+*   **Marge Brute** : Estimée à **90%** (SaaS).
+*   **Point Mort (Break-even)** : Atteint dès **60 utilisateurs Business** payants (couvre les frais fixes de ~850€/mois).
 *   **Magic Number** : Objectif > 0.75 (Pour 1€ investi en marketing, 0.75€ de ARR généré la première année).
 
 ### 15.3 Valorisation Potentielle (Sortie)
