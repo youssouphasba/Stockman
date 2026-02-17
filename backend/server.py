@@ -163,24 +163,77 @@ async def update_privacy(privacy_data: PrivacyPolicy):
     )
     return {"message": "Politique de confidentialité mise à jour avec succès"}
 
+async def run_startup_migrations():
+    """Background migration: backfill store_id and is_active on documents missing it"""
+    try:
+        logger.info("Starting background migrations...")
+        users = await db.users.find({"active_store_id": {"$ne": None}}, {"user_id": 1, "active_store_id": 1, "_id": 0}).to_list(None)
+        for u in users:
+            uid = u["user_id"]
+            sid = u["active_store_id"]
+            # Backfill products, stock_movements, alerts, batches
+            await db.products.update_many(
+                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
+                {"$set": {"store_id": sid}}
+            )
+            await db.stock_movements.update_many(
+                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
+                {"$set": {"store_id": sid}}
+            )
+            await db.alerts.update_many(
+                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
+                {"$set": {"store_id": sid}}
+            )
+            await db.batches.update_many(
+                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
+                {"$set": {"store_id": sid}}
+            )
+            # Fix simple_mode for existing users
+            await db.user_settings.update_many(
+                {"user_id": uid, "simple_mode": True},
+                {"$set": {"simple_mode": False}}
+            )
+        # Backfill is_active on products missing it
+        await db.products.update_many(
+            {"is_active": {"$exists": False}},
+            {"$set": {"is_active": True}}
+        )
+        # Backfill store_id on sales
+        for u in users:
+            uid = u["user_id"]
+            sid = u["active_store_id"]
+            await db.sales.update_many(
+                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
+                {"$set": {"store_id": sid}}
+            )
+        logger.info("Background Migration: store_id + is_active backfill completed")
+        asyncio.create_task(check_alerts_loop())
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
+
 @app.on_event("startup")
 async def create_indexes_and_init():
     """Create essential indexes and initialize dynamic configs"""
     global rag_service
     try:
-        # Initialize RAG Service
-        api_key = os.environ.get("GOOGLE_API_KEY")
-        if api_key:
+        # Initialize RAG Service in background
+        async def init_rag_and_migrations():
+            global rag_service
             try:
-                rag_service = RAGService(api_key, ROOT_DIR)
-                # Ensure index exists or create it (non-blocking if possible, but here we do it sync for simplicity of MVP)
-                # In prod, this should be a background task or persistent
-                if not rag_service.load_index():
-                     logger.info("Building RAG index...")
-                     await rag_service.index_documents()
-                logger.info("RAG Service initialized")
+                api_key = os.environ.get("GOOGLE_API_KEY")
+                if api_key:
+                    rag_service = RAGService(api_key, ROOT_DIR)
+                    if not rag_service.load_index():
+                        logger.info("Building RAG index in background...")
+                        await rag_service.index_documents()
+                    logger.info("RAG Service initialized")
+                
+                # Run Migration in background
+                await run_startup_migrations()
             except Exception as e:
-                logger.error(f"Failed to init RAG Service: {e}")
+                logger.error(f"Background initialization failed: {e}")
+
+        asyncio.create_task(init_rag_and_migrations())
 
         # Indexes ... (existing logic)
         await db.users.create_index("user_id", unique=True)
@@ -240,55 +293,6 @@ async def create_indexes_and_init():
         logger.info("Database indexes and configs initialized successfully")
     except Exception as e:
         logger.error(f"Error in startup: {e}")
-
-    # Migration: backfill store_id on documents missing it
-    try:
-        users = await db.users.find({"active_store_id": {"$ne": None}}, {"user_id": 1, "active_store_id": 1, "_id": 0}).to_list(None)
-        for u in users:
-            uid = u["user_id"]
-            sid = u["active_store_id"]
-            # Backfill products
-            await db.products.update_many(
-                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
-                {"$set": {"store_id": sid}}
-            )
-            # Backfill stock_movements
-            await db.stock_movements.update_many(
-                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
-                {"$set": {"store_id": sid}}
-            )
-            # Backfill alerts
-            await db.alerts.update_many(
-                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
-                {"$set": {"store_id": sid}}
-            )
-            # Backfill batches
-            await db.batches.update_many(
-                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
-                {"$set": {"store_id": sid}}
-            )
-            # Fix simple_mode for existing users
-            await db.user_settings.update_many(
-                {"user_id": uid, "simple_mode": True},
-                {"$set": {"simple_mode": False}}
-            )
-        # Backfill is_active on products missing it (globally, not per-user)
-        await db.products.update_many(
-            {"is_active": {"$exists": False}},
-            {"$set": {"is_active": True}}
-        )
-        # Backfill store_id on sales missing it
-        for u in users:
-            uid = u["user_id"]
-            sid = u["active_store_id"]
-            await db.sales.update_many(
-                {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
-                {"$set": {"store_id": sid}}
-            )
-        logger.info("Migration: store_id + is_active backfill completed")
-        asyncio.create_task(check_alerts_loop())
-    except Exception as e:
-        logger.error(f"Migration error: {e}")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
