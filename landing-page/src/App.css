@@ -551,3 +551,53 @@ footer {
   transform: translateY(-3px);
   color: white;
 }
+
+/* Legal pages TOC */
+.legal-toc {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.legal-toc-title {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.legal-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legal-toc-list li {
+  margin: 0;
+}
+
+.legal-toc-sub {
+  padding-left: 20px;
+}
+
+.legal-toc-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.legal-toc-link:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
