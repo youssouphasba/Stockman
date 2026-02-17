@@ -3259,21 +3259,28 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         active_store_id = store_id
         store_ids = [store_id]
         
-    user = User(
-        user_id=user_doc["user_id"],
-        email=user_doc["email"],
-        name=user_doc["name"],
-        picture=user_doc.get("picture"),
-        created_at=user_doc["created_at"],
-        auth_type=user_doc.get("auth_type", "email"),
-        role=user_doc.get("role", "shopkeeper"),
-        active_store_id=active_store_id,
-        store_ids=store_ids,
-        plan=user_doc.get("plan", "trial"),
-        subscription_status=user_doc.get("subscription_status", "active"),
-        trial_ends_at=user_doc.get("trial_ends_at"),
-        currency=user_doc.get("currency", "XOF")
-    )
+    try:
+        user = User(
+            user_id=user_doc["user_id"],
+            email=user_doc["email"],
+            name=user_doc.get("name", "Utilisateur"),
+            picture=user_doc.get("picture"),
+            created_at=user_doc.get("created_at", datetime.now(timezone.utc)),
+            auth_type=user_doc.get("auth_type", "email"),
+            role=user_doc.get("role", "shopkeeper"),
+            active_store_id=active_store_id,
+            store_ids=store_ids,
+            plan=user_doc.get("plan", "trial"),
+            subscription_status=user_doc.get("subscription_status", "active"),
+            trial_ends_at=user_doc.get("trial_ends_at"),
+            currency=user_doc.get("currency", "XOF"),
+            phone=user_doc.get("phone"),
+            country_code=user_doc.get("country_code", "SN"),
+            is_phone_verified=user_doc.get("is_phone_verified", False),
+        )
+    except Exception as e:
+        logger.error(f"Login User build failed: {e} - doc keys: {list(user_doc.keys())}")
+        raise HTTPException(status_code=500, detail=f"Erreur construction profil: {str(e)}")
     return TokenResponse(access_token=access_token, user=user)
 
 @api_router.get("/auth/me")

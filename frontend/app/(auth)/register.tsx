@@ -47,10 +47,8 @@ export default function RegisterScreen() {
       setError('Veuillez remplir tous les champs (nom, email, mot de passe, téléphone)');
       return;
     }
-    if (!phone.trim().startsWith('+')) {
-      setError('Le numéro de téléphone doit inclure l\'indicatif pays (ex: +221...)');
-      return;
-    }
+    // Combine country dial code + local number
+    const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`;
     if (password.length < 6) {
       setError('Le mot de passe doit contenir au moins 6 caractères');
       return;
@@ -71,7 +69,7 @@ export default function RegisterScreen() {
         password,
         name.trim(),
         selectedRole,
-        phone.trim(),
+        fullPhone,
         selectedCountry.currency,
         businessType,
         howDidYouHear,
