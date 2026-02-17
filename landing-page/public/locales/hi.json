@@ -1,156 +1,82 @@
 {
     "nav": {
-        "features": "विशेषताएँ",
-        "resources": "संसाधन",
+        "features": "विशेषताएं",
+        "pricing": "कीमतें",
+        "about": "हमारे बारे में",
         "blog": "ब्लॉग",
-        "home": "लॉग इन",
-        "login": "लॉग इन",
-        "free_trial": "मुफ्त परीक्षण"
+        "contact": "संपर्क",
+        "login": "लॉगिन",
+        "get_started": "अभी शुरू करें"
     },
     "hero": {
-        "title_start": "अपने व्यवसाय की",
-        "title_end": "क्षमता को अनलॉक करें",
-        "subtitle": "ऑर्डर को स्वचालित करने और लाभ को अधिकतम करने के लिए स्मार्ट एआई-पावर्ड स्टॉक प्रबंधन समाधान।",
-        "cta": "अभी शुरू करें"
+        "badge": "अफ्रीका में लॉजिस्टिक्स में नंबर 1 🌍",
+        "title_start": "अपने",
+        "title_highlight": "स्टोर",
+        "title_end": "को प्रो की तरह प्रबंधित करें",
+        "desc": "एकीकृत POS सिस्टम, इन्वेंट्री प्रबंधन और लेखांकन। सरल, कुशल और कहीं भी उपलब्ध - बिना इंटरनेट के भी।",
+        "cta_primary": "मुफ्त में आजमाएं",
+        "cta_secondary": "डेमो देखें",
+        "trust": "5000+ से अधिक व्यापारियों का भरोसा"
+    },
+    "features_main": {
+        "title": "विकास के लिए आपकी ज़रूरत की हर चीज़",
+        "subtitle": "मैन्युअल नोटों को अलविदा कहें। डिजिटल प्रबंधन अपनाएं।",
+        "f1_title": "स्टॉक प्रबंधन",
+        "f1_desc": "वास्तविक समय में अपने उत्पादों को ट्रैक करें और स्टॉक खत्म होने के अलर्ट प्राप्त करें।",
+        "f2_title": "कैश रजिस्टर (POS)",
+        "f2_desc": "ग्राहकों को जल्दी सेवा दें और WhatsApp के माध्यम से डिजिटल रसीदें भेजें।",
+        "f3_title": "लेखांकन (Accounting)",
+        "f3_desc": "अपनी आय, लागत और लाभ को स्वचालित रूप से देखें।",
+        "f4_title": "ऑफलाइन मोड",
+        "f4_desc": "बिना इंटरनेट के भी बिक्री जारी रखें। कनेक्शन वापस आने पर डेटा सिंक हो जाएगा।",
+        "f5_title": "आर्टिफिशियल इंटेलिजेंस (AI)",
+        "f5_desc": "बिक्री के पीक समय का पूर्वानुमान लगाएं और अपनी खरीदारी को अनुकूलित करें।",
+        "f6_title": "मार्केटप्लेस",
+        "f6_desc": "सर्वोत्तम कीमतों पर सीधे सर्वोत्तम थोक विक्रेताओं से ऑर्डर करें।"
     },
     "stats": {
-        "shops": "सज्जित दुकानें",
-        "transactions": "लेनदेन / माह",
-        "satisfaction": "संतुष्ट ग्राहक",
-        "support": "उपलब्ध सहायता"
-    },
-    "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite to manage every aspect of your business.",
-        "dashboard": {
-            "title": "Home",
-            "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
-        },
-        "products": {
-            "title": "Products",
-            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
-        },
-        "pos": {
-            "title": "POS",
-            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
-        },
-        "suppliers": {
-            "title": "Suppliers",
-            "desc": "Supplier directory, order history, and access to 'Button-to-Button' Marketplace."
-        },
-        "orders": {
-            "title": "Orders",
-            "desc": "Track purchase orders, receive goods, and automatically update stock."
-        },
-        "accounting": {
-            "title": "Accounting",
-            "desc": "Precise tracking of sales, expenses, and automatic profitability calculation."
-        },
-        "clients": {
-            "title": "Clients",
-            "desc": "Customer database, purchase history, and integrated loyalty tools."
-        },
-        "settings": {
-            "title": "Settings",
-            "desc": "App customization, user management, and shop configuration."
-        }
-    },
-    "showcase": {
-        "title": "The Interface That Changes Everything",
-        "subtitle": "Clean design, built to save you time.",
-        "app_interface": "App Interface"
-    },
-    "how_it_works": {
-        "title": "Quick Start",
-        "subtitle": "Three simple steps to transform your shop.",
-        "step1": {
-            "title": "Create Account",
-            "desc": "Download the app and configure your shop in under 2 minutes."
-        },
-        "step2": {
-            "title": "Scan Products",
-            "desc": "Use your phone camera to quickly add your stock."
-        },
-        "step3": {
-            "title": "Sell & Track",
-            "desc": "Make your first sales and watch your stats grow in real-time."
-        }
-    },
-    "testimonials": {
-        "title": "They Trust Us",
-        "subtitle": "Discover how Stockman helps merchants daily.",
-        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+        "merchants": "सक्रिय व्यापारी",
+        "transactions": "मासिक लेनदेन",
+        "availability": "अपटाइम",
+        "support": "24/7 सहायता"
     },
     "pricing": {
-        "title": "Choose Your Plan",
-        "subtitle": "Transparent pricing adapted to your business size.",
-        "month": "/month",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "price": "1000",
-            "f1": "1 User",
-            "f2": "Up to 100 products",
-            "f3": "Basic Stock Management",
-            "f4": "Cash Register",
-            "cta": "Start"
-        },
-        "business": {
-            "name": "बिज़नेस",
-            "price": "2500",
-            "f1": "3 उपयोगकर्ता",
-            "f2": "असीमित उत्पाद",
-            "f3": "Stockman AI सहायक",
-            "f4": "मार्केटप्लेस और ऑर्डर",
-            "f5": "उन्नत विश्लेषण",
-            "cta": "14-दिन का मुफ्त परीक्षण"
-        },
-        "enterprise": {
-            "name": "एंटरप्राइज",
-            "price": "कस्टम कोट",
-            "f1": "असीमित उपयोगकर्ता",
-            "f2": "मल्टी-शॉप मैनेजर",
-            "f3": "API और इंटीग्रेशन",
-            "f4": "समर्पित 24/7 सहायता",
-            "cta": "हमसे संपर्क करें"
-        }
-    },
-    "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work without internet?",
-        "a1": "Yes, Stockman works offline. Your data syncs as soon as connection returns.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
-    },
-    "download": {
-        "title": "Ready to Level Up?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
-        "secure": "Secure Payments",
-        "support": "Pro Support",
-        "updates": "Continuous Updates"
+        "title": "सरल कीमतें, कोई छुपा हुआ शुल्क नहीं",
+        "subtitle": "मुफ्त में शुरू करें, अपनी गति से बढ़ें।",
+        "free_title": "स्टार्ट",
+        "free_price": "0 FCFA",
+        "free_desc": "छोटे बिक्री केंद्रों के लिए",
+        "premium_title": "प्रीमियम",
+        "premium_price": "5,000 FCFA",
+        "premium_desc": "आपके व्यवसाय के लिए पूरी शक्ति",
+        "feature_pos": "एकीकृत कैश रजिस्टर",
+        "feature_stock": "स्टॉक प्रबंधन",
+        "feature_accounting": "लेखांकन",
+        "feature_multi_user": "असीमित कर्मचारी",
+        "feature_ai": "AI विश्लेषण",
+        "cta": "प्लान चुनें"
     },
     "footer": {
-        "desc": "The all-in-one solution for modern merchants in Africa.",
-        "product": "Product",
-        "support": "Support",
-        "legal": "Legal",
-        "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
+        "desc": "अफ्रीका में व्यापार के डिजिटलीकरण के लिए नंबर 1 समाधान।",
+        "product": "उत्पाद",
+        "company": "कंपनी",
+        "support": "सहायता",
+        "legal": "कानूनी",
+        "help_center": "सहायता केंद्र",
+        "contact": "संपर्क",
+        "community": "समुदाय",
+        "privacy": "गोपनीयता नीति",
+        "terms": "उपयोग की शर्तें",
+        "legal_notice": "कानूनी नोटिस",
+        "copyright": "© 2026 Stockman. सर्वाधिकार सुरक्षित।"
     },
     "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
-        "success": "Thanks! Check your inbox.",
-        "placeholder": "Your email...",
-        "cta": "Get the Guide",
-        "privacy": "No spam. Unsubscribe in 1 click."
+        "title": "स्टॉक विशेषज्ञ बनें",
+        "desc": "5000+ व्यापारियों से जुड़ें और हमारी मुफ्त गाइड प्राप्त करें: \"आपकी लाभप्रदता को खत्म करने वाली 10 गलतियां\"।",
+        "success": "धन्यवाद! अपना इनबॉक्स देखें।",
+        "placeholder": "आपका ईमेल...",
+        "cta": "गाइड प्राप्त करें",
+        "privacy": "कोई स्पैम नहीं। 1 क्लिक में अनसब्सक्राइब करें।"
     },
     "contact": {
         "title": "संपर्क करें",
@@ -160,371 +86,371 @@
         "message": "आपका संदेश",
         "submit": "संदेश भेजें",
         "success_title": "संदेश भेजा गया!",
-        "success_desc": "हमारी टीम 24 घंटे में जवाब देगी।",
+        "success_desc": "हमारी टीम 24 घंटे के भीतर जवाब देगी।",
         "send_another": "एक और संदेश भेजें"
     },
     "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
+        "message": "नमस्ते, मैं Stockman के बारे में और जानना चाहता हूँ!"
     },
     "cookie": {
         "message": "हम आपके अनुभव को बेहतर बनाने के लिए कुकीज़ का उपयोग करते हैं। जारी रखकर, आप हमारी गोपनीयता नीति स्वीकार करते हैं।",
         "accept": "स्वीकार करें"
     },
     "comparison": {
-        "title": "Why choose Stockman?",
-        "feature": "Feature",
-        "notebook": "Notebook / Excel 📝",
-        "stock_mgmt": "Stock Management",
-        "stock_yes": "✅ Automatic & Real-time",
-        "stock_no": "❌ Manual & Error-prone",
-        "alerts": "Stockout Alerts",
-        "alerts_yes": "✅ AI Notifications",
-        "alerts_no": "❌ None",
-        "pos": "POS (Cash Register)",
-        "pos_yes": "✅ Built-in & Fast",
-        "pos_no": "❌ Separate calculator",
-        "backup": "Backup",
-        "backup_yes": "✅ Secure Cloud",
-        "backup_no": "❌ Risk of loss (theft, fire)",
-        "financial": "Financial Report",
-        "financial_yes": "✅ In 1 click (P&L, Margin)",
-        "financial_no": "❌ Long and tedious calculations",
-        "marketplace": "Marketplace",
-        "marketplace_yes": "✅ Direct supplier access",
-        "marketplace_no": "❌ Physical outreach"
+        "title": "Stockman क्यों चुनें?",
+        "feature": "विशेषता",
+        "notebook": "नोटबुक / एक्सेल 📝",
+        "stock_mgmt": "स्टॉक प्रबंधन",
+        "stock_yes": "✅ स्वचालित और वास्तविक समय",
+        "stock_no": "❌ मैन्युअल और त्रुटिपूर्ण",
+        "alerts": "स्टॉकआउट अलर्ट",
+        "alerts_yes": "✅ AI सूचनाएं",
+        "alerts_no": "❌ कोई नहीं",
+        "pos": "कैश रजिस्टर (POS)",
+        "pos_yes": "✅ एकीकृत और तेज़",
+        "pos_no": "❌ अलग कैलकुलेटर",
+        "backup": "बैकअप",
+        "backup_yes": "✅ सुरक्षित क्लाउड",
+        "backup_no": "❌ खोने का खतरा (चोरी, आग)",
+        "financial": "वित्तीय रिपोर्ट",
+        "financial_yes": "✅ 1 क्लिक में (लाभ-हानि, मार्जिन)",
+        "financial_no": "❌ लंबी और उबाऊ गणना",
+        "marketplace": "मार्केटप्लेस",
+        "marketplace_yes": "✅ आपूर्तिकर्ताओं तक सीधी पहुंच",
+        "marketplace_no": "❌ भौतिक खोज"
     },
     "feature_pages": {
-        "back_home": "Back to Home",
-        "why_use": "Why use {{title}}?",
-        "discover_interface": "Discover the interface in detail",
-        "cta_title": "Ready to optimize your management?",
-        "cta_button": "Start the free trial",
+        "back_home": "होमपेज पर वापस जाएं",
+        "why_use": "{{title}} का उपयोग क्यों करें?",
+        "discover_interface": "इंटरफ़ेस को विस्तार से जानें",
+        "cta_title": "क्या आप अपने प्रबंधन को अनुकूलित करने के लिए तैयार हैं?",
+        "cta_button": "मुफ्त ट्रायल शुरू करें",
         "dashboard": {
-            "title": "Dashboard",
-            "subtitle": "Manage your activity at a glance",
-            "description": "The dashboard is your control tower. It doesn't just display numbers — it gives you a clear and actionable view of your business health. With AI integration, it analyzes your sales in real time to identify growth opportunities and risks (stockouts, overstock). This is where you make the decisions that matter.",
-            "f1_title": "Real-Time Statistics",
-            "f1_desc": "Track your revenue, profits and number of sales down to the second.",
-            "f2_title": "Smart Alerts",
-            "f2_desc": "Get notified immediately about out-of-stock products or items nearing expiration.",
-            "f3_title": "AI Assistant",
-            "f3_desc": "Ask your business assistant questions directly from the home screen for instant analysis.",
+            "title": "डैशबोर्ड",
+            "subtitle": "एक नज़र में अपनी गतिविधि प्रबंधित करें",
+            "description": "डैशबोर्ड आपका नियंत्रण टॉवर है। यह केवल नंबर नहीं दिखाता — यह आपको आपके व्यवसाय के स्वास्थ्य का स्पष्ट और व्यावहारिक दृश्य देता है। AI एकीकरण के साथ, यह विकास के अवसरों और जोखिमों (स्टॉकआउट, ओवरस्टॉक) की पहचान करने के लिए वास्तविक समय में आपकी बिक्री का विश्लेषण करता है। यहीं आप वे निर्णय लेते हैं जो मायने रखते हैं।",
+            "f1_title": "वास्तविक समय के आंकड़े",
+            "f1_desc": "हर सेकंड अपने राजस्व, लाभ और बिक्री की संख्या को ट्रैक करें।",
+            "f2_title": "स्मार्ट अलर्ट",
+            "f2_desc": "स्टॉक से बाहर होने वाले उत्पादों या समाप्ति के करीब के आइटम के बारे में तुरंत सूचना प्राप्त करें।",
+            "f3_title": "AI सहायक",
+            "f3_desc": "त्वरित विश्लेषण के लिए सीधे होम स्क्रीन से अपने व्यावसायिक सहायक से प्रश्न पूछें।",
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",
-                    "title": "Overview & KPIs",
-                    "description": "Track your key performance indicators in real time as soon as you open the app."
+                    "title": "अवलोकन और KPIs",
+                    "description": "ऐप खोलते ही वास्तविक समय में अपने मुख्य प्रदर्शन संकेतकों को ट्रैक करें।"
                 },
                 "stats": {
                     "image": "/assets/screenshots/dashboard-stats.jpg",
-                    "title": "Global Statistics",
-                    "description": "See your revenue, profits and sales trends at a glance."
+                    "title": "वैश्विक आंकड़े",
+                    "description": "एक नज़र में अपना राजस्व, लाभ और बिक्री के रुझान देखें।"
                 },
                 "charts": {
                     "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-                    "title": "Performance Charts",
-                    "description": "Track the evolution of your stock value and analyze your sales peaks."
+                    "title": "प्रदर्शन चार्ट",
+                    "description": "अपने स्टॉक मूल्य के विकास को ट्रैक करें और अपनी बिक्री के पीक समय का विश्लेषण करें।"
                 },
                 "analysis": {
                     "image": "/assets/screenshots/dashboard-analysis.jpg",
-                    "title": "ABC Analysis & Restocking",
-                    "description": "Identify your most profitable products and receive order suggestions."
+                    "title": "ABC विश्लेषण और पुनः पूर्ति (Restocking)",
+                    "description": "अपने सबसे अधिक लाभदायक उत्पादों की पहचान करें और ऑर्डर सुझाव प्राप्त करें।"
                 },
                 "history": {
                     "image": "/assets/screenshots/dashboard-history.jpg",
-                    "title": "Movement History",
-                    "description": "Keep a record of every stock entry and exit with full traceability."
+                    "title": "मूवमेंट इतिहास",
+                    "description": "पूर्ण ट्रैसेबिलिटी के साथ हर स्टॉक एंट्री और एग्जिट का रिकॉर्ड रखें।"
                 }
             }
         },
         "products": {
-            "title": "Product Management",
-            "subtitle": "Your inventory, perfectly organized",
-            "description": "Professional inventory management without the complexity. Whether you have 10 or 10,000 items, Stockman lets you organize them with precision. The built-in barcode scanner turns your phone into an ultra-fast inventory terminal.",
-            "f1_title": "Barcode Scanning",
-            "f1_desc": "Use your phone camera to add products or do a quick inventory count.",
-            "f2_title": "Flexible Organization",
-            "f2_desc": "Create categories, brands and variants to structure your catalog.",
-            "f3_title": "Stock Valuation",
-            "f3_desc": "Know the total value of your inventory at any time (purchase price and selling price).",
+            "title": "उत्पाद प्रबंधन",
+            "subtitle": "आपकी इन्वेंट्री, पूरी तरह से व्यवस्थित",
+            "description": "बिना किसी जटिलता के पेशेवर इन्वेंट्री प्रबंधन। चाहे आपके पास 10 आइटम हों या 10,000, Stockman आपको उन्हें सटीकता के साथ व्यवस्थित करने देता है। बिल्ट-इन बारकोड स्कैनर आपके फोन को एक अल्ट्रा-फास्ट इन्वेंट्री टर्मिनल में बदल देता है।",
+            "f1_title": "बारकोड स्कैनिंग",
+            "f1_desc": "उत्पादों को जोड़ने या त्वरित इन्वेंट्री गणना करने के लिए अपने फोन के कैमरे का उपयोग करें।",
+            "f2_title": "लचीला संगठन",
+            "f2_desc": "अपने कैटलॉग को संचरित करने के लिए श्रेणियां, ब्रांड और वेरिएंट बनाएं।",
+            "f3_title": "स्टॉक मूल्यांकन",
+            "f3_desc": "किसी भी समय अपनी इन्वेंट्री का कुल मूल्य जानें (खरीद मूल्य और बिक्री मूल्य)।",
             "gallery": {
                 "list": {
                     "image": "/assets/screenshots/products-list.jpg",
-                    "title": "Product List",
-                    "description": "Quickly access your entire catalog with search and advanced filters."
+                    "title": "उत्पाद सूची",
+                    "description": "सर्च और उन्नत फ़िल्टर के साथ अपने संपूर्ण कैटलॉग तक त्वरित पहुँच प्राप्त करें।"
                 },
                 "create": {
                     "image": "/assets/screenshots/products-create-1.jpg",
-                    "title": "Simple Creation",
-                    "description": "Add a product in seconds with all its essential information."
+                    "title": "सरल निर्माण",
+                    "description": "कुछ ही सेकंड में उत्पाद को उसकी सभी आवश्यक जानकारी के साथ जोड़ें।"
                 },
                 "variants": {
                     "image": "/assets/screenshots/products-create-2.jpg",
-                    "title": "Details & Variants",
-                    "description": "Manage sizes, colors and specific prices for each variant."
+                    "title": "विवरण और वेरिएंट",
+                    "description": "प्रत्येक वेरिएंट के लिए आकार, रंग और विशिष्ट कीमतों का प्रबंधन करें।"
                 },
                 "thresholds": {
                     "image": "/assets/screenshots/products-create-3.jpg",
-                    "title": "Stock & Thresholds",
-                    "description": "Set low stock alerts so you never run out of goods."
+                    "title": "स्टॉक और थ्रेशोल्ड",
+                    "description": "कम स्टॉक अलर्ट सेट करें ताकि आपका माल कभी खत्म न हो।"
                 }
             }
         },
         "pos": {
-            "title": "Cash Register",
-            "subtitle": "Process customer payments with ease",
-            "description": "Deliver a smooth and modern checkout experience. Our touch-based POS is built for speed: add items, manage discounts and handle multiple payment methods in seconds.",
-            "f1_title": "Quick Cart",
-            "f1_desc": "Touch-optimized interface to add products to the cart in the blink of an eye.",
-            "f2_title": "Digital Receipts",
-            "f2_desc": "Send receipts via WhatsApp, SMS or Email directly to your customers.",
-            "f3_title": "Multi-Payment",
-            "f3_desc": "Accept cash, Mobile Money or card payments and track everything in your register.",
+            "title": "कैश रजिस्टर",
+            "subtitle": "ग्राहकों का भुगतान आसानी से प्रोसेस करें",
+            "description": "एक सहज और आधुनिक चेकआउट अनुभव प्रदान करें। हमारा टच-आधारित POS गति के लिए बनाया गया है: आइटम जोड़ें, छूट प्रबंधित करें और कुछ ही सेकंड में कई भुगतान विधियों को संभालें।",
+            "f1_title": "क्विक कार्ट",
+            "f1_desc": "पलक झपकते ही उत्पादों को कार्ट में जोड़ने के लिए टच-ऑप्टिमाइज्ड इंटरफेस।",
+            "f2_title": "डिजिटल रसीदें",
+            "f2_desc": "सीधे अपने ग्राहकों को WhatsApp, SMS या ईमेल के माध्यम से रसीदें भेजें।",
+            "f3_title": "मल्टी-पेमेंट",
+            "f3_desc": "नकद, मोबाइल मनी या कार्ड भुगतान स्वीकार करें और अपने रजिस्टर में सब कुछ ट्रैक करें।",
             "gallery": {
                 "sale": {
                     "image": "/assets/screenshots/pos-overview.jpg",
-                    "title": "Sales Interface",
-                    "description": "Add products to the cart, manage quantities and discounts seamlessly."
+                    "title": "बिक्री इंटरफ़ेस",
+                    "description": "कार्ट में उत्पाद जोड़ें, मात्रा और छूट को सहजता से प्रबंधित करें।"
                 },
                 "receipt": {
                     "image": "/assets/screenshots/pos-receipt-qr.jpg",
-                    "title": "Receipt & QR Code",
-                    "description": "Generate an instant receipt with a QR code your customers can scan."
+                    "title": "रसीद और QR कोड",
+                    "description": "एक त्वरित रसीद तैयार करें जिसे आपके ग्राहक स्कैन कर सकें।"
                 }
             }
         },
         "suppliers": {
-            "title": "Suppliers & Marketplace",
-            "subtitle": "Your procurement simplified",
-            "description": "Turn your procurement into a competitive advantage. Stockman centralizes your suppliers and opens the doors to its exclusive Marketplace. Compare prices in real time and place orders directly.",
-            "f1_title": "Supplier Directory",
-            "f1_desc": "Centralize contact details for all your suppliers and the history of your exchanges.",
-            "f2_title": "Automated Orders",
-            "f2_desc": "Generate purchase orders in one click based on your stock needs.",
-            "f3_title": "Price Comparator",
-            "f3_desc": "Find the cheapest supplier for each product with our built-in comparator.",
+            "title": "आपूर्तिकर्ता और मार्केटप्लेस",
+            "subtitle": "आपकी खरीद प्रक्रिया सरल हुई",
+            "description": "अपनी खरीद प्रक्रिया को प्रतिस्पर्धात्मक लाभ में बदलें। Stockman आपके आपूर्तिकर्ताओं को केंद्रित करता है और इसके विशेष मार्केटप्लेस के दरवाजे खोलता है। वास्तविक समय में कीमतों की तुलना करें और सीधे ऑर्डर दें।",
+            "f1_title": "आपूर्तिकर्ता निर्देशिका",
+            "f1_desc": "अपने सभी आपूर्तिकर्ताओं के संपर्क विवरण और अपने बीच हुए संपर्क के इतिहास को केंद्रित करें।",
+            "f2_title": "स्वचालित ऑर्डर",
+            "f2_desc": "अपनी स्टॉक आवश्यकताओं के आधार पर एक क्लिक में खरीद ऑर्डर जेनरेट करें।",
+            "f3_title": "कीमत तुलना",
+            "f3_desc": "हमारे बिल्ट-इन कंपैरेटर के साथ प्रत्येक उत्पाद के लिए सबसे सस्ता आपूर्तिकर्ता खोजें।",
             "gallery": {
                 "marketplace": {
                     "image": "/assets/screenshots/suppliers-marketplace.jpg",
-                    "title": "Built-in Marketplace",
-                    "description": "Access a wide network of verified suppliers and compare prices."
+                    "title": "बिल्ट-इन मार्केटप्लेस",
+                    "description": "सत्यापित आपूर्तिकर्ताओं के विस्तृत नेटवर्क तक पहुंचें और कीमतों की तुलना करें।"
                 },
                 "catalog": {
                     "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-                    "title": "Supplier Catalog",
-                    "description": "Browse available products from each supplier and their terms."
+                    "title": "आपूर्तिकर्ता कैटलॉग",
+                    "description": "प्रत्येक आपूर्तिकर्ता के उपलब्ध उत्पादों और उनकी शर्तों को ब्राउज़ करें।"
                 },
                 "order": {
                     "image": "/assets/screenshots/suppliers-order-creation.jpg",
-                    "title": "Order Placement",
-                    "description": "Create and send your restocking orders in just a few clicks."
+                    "title": "ऑर्डर देना",
+                    "description": "कुछ ही क्लिक में अपनी पुनः पूर्ति (restocking) ऑर्डर बनाएं और भेजें।"
                 }
             }
         },
         "orders": {
-            "title": "Order Tracking",
-            "subtitle": "From order to delivery",
-            "description": "Keep full control over your supply chain. From the purchase order to in-store reception, track every step. Stock is automatically updated upon receipt.",
-            "f1_title": "Status Tracking",
-            "f1_desc": "View the status of each order: Pending, Shipped, Received or Cancelled.",
-            "f2_title": "Easy Reception",
-            "f2_desc": "Confirm goods reception and automatically update stock quantities.",
-            "f3_title": "Complete History",
-            "f3_desc": "Find all your past orders to simplify restocking.",
+            "title": "ऑर्डर ट्रैकिंग",
+            "subtitle": "ऑर्डर से डिलीवरी तक",
+            "description": "अपनी आपूर्ति श्रृंखला पर पूर्ण नियंत्रण रखें। खरीद ऑर्डर से लेकर स्टोर में प्राप्ति तक, हर कदम को ट्रैक करें। प्राप्ति पर स्टॉक स्वचालित रूप से अपडेट हो जाता है।",
+            "f1_title": "स्टेटस ट्रैकिंग",
+            "f1_desc": "प्रत्येक ऑर्डर का स्टेटस देखें: लंबित, शिप किया गया, प्राप्त किया गया या रद्द किया गया।",
+            "f2_title": "आसान प्राप्ति",
+            "f2_desc": "माल प्राप्ति की पुष्टि करें और स्टॉक की मात्रा को स्वचालित रूप से अपडेट करें।",
+            "f3_title": "पूर्ण इतिहास",
+            "f3_desc": "पुनः पूर्ति को सरल बनाने के लिए अपने सभी पिछले ऑर्डर खोजें।",
             "gallery": {
                 "tracking": {
                     "image": "/assets/screenshots/orders-tracking.jpg",
-                    "title": "Real-Time Tracking",
-                    "description": "View the progress status of each supplier order."
+                    "title": "वास्तविक समय ट्रैकिंग",
+                    "description": "प्रत्येक आपूर्तिकर्ता ऑर्डर की प्रगति स्थिति देखें।"
                 }
             }
         },
         "accounting": {
-            "title": "Simplified Accounting",
-            "subtitle": "Your finances under control",
-            "description": "Your accounting runs itself. Every sale, every expense automatically feeds your accounting journals. Track your cash flow and generate your Income Statement in one click.",
-            "f1_title": "Income Statement",
-            "f1_desc": "View your revenue, costs and net profit for any period you choose.",
-            "f2_title": "Expense Tracking",
-            "f2_desc": "Record your expenses (rent, electricity, salaries) for accurate profitability calculations.",
-            "f3_title": "PDF/Excel Export",
-            "f3_desc": "Download your accounting data for your accountant or personal archives.",
+            "title": "सरल लेखांकन",
+            "subtitle": "आपका वित्त नियंत्रण में",
+            "description": "आपका लेखांकन खुद चलता है। हर बिक्री, हर खर्च स्वचालित रूप से आपके लेखांकन जर्नल में दर्ज होता है। अपने कैश फ्लो को ट्रैक करें और एक क्लिक में अपना आय विवरण (Income Statement) तैयार करें।",
+            "f1_title": "आय विवरण (Income Statement)",
+            "f1_desc": "अपनी पसंद की किसी भी अवधि के लिए अपना राजस्व, लागत और शुद्ध लाभ देखें।",
+            "f2_title": "खर्च ट्रैकिंग",
+            "f2_desc": "सटीक लाभप्रदता गणना के लिए अपने खर्च (किराया, बिजली, वेतन) रिकॉर्ड करें।",
+            "f3_title": "PDF/Excel एक्सपोर्ट",
+            "f3_desc": "अपने अकाउंटेंट या व्यक्तिगत संग्रह के लिए अपना लेखा डेटा डाउनलोड करें।",
             "gallery": {
                 "overview": {
                     "image": "/assets/screenshots/accounting-overview.jpg",
-                    "title": "Global Accounting View",
-                    "description": "Analyze your profitability with clear and precise indicators."
+                    "title": "वैश्विक लेखा दृश्य",
+                    "description": "स्पष्ट और सटीक संकेतकों के साथ अपनी लाभप्रदता का विश्लेषण करें।"
                 },
                 "expenses": {
                     "image": "/assets/screenshots/accounting-expense-create.jpg",
-                    "title": "Expense Management",
-                    "description": "Easily add your fixed and variable costs."
+                    "title": "व्यय प्रबंधन",
+                    "description": "अपनी स्थिर और परिवर्तनीय लागतों को आसानी से जोड़ें।"
                 },
                 "reports": {
                     "image": "/assets/screenshots/accounting-details-charts.jpg",
-                    "title": "Reports & Charts",
-                    "description": "Visualize the evolution of your finances over time."
+                    "title": "रिपोर्ट और चार्ट",
+                    "description": "समय के साथ अपने वित्त के विकास की कल्पना करें।"
                 }
             }
         },
         "clients": {
-            "title": "Customer Management (CRM)",
-            "subtitle": "Build customer loyalty",
-            "description": "Turn occasional customers into loyal regulars. The built-in CRM records every interaction and purchase history. Manage debts and credits so you never lose money on tabs again.",
-            "f1_title": "Customer Profiles",
-            "f1_desc": "Complete purchase history, contact details and preferences for each customer.",
-            "f2_title": "Debts & Credits",
-            "f2_desc": "Track customer tabs and know exactly who owes you money.",
-            "f3_title": "WhatsApp Marketing",
-            "f3_desc": "Send targeted promotional messages directly on WhatsApp.",
+            "title": "ग्राहक प्रबंधन (CRM)",
+            "subtitle": "ग्राहक वफादारी बनाएं",
+            "description": "अनियमित ग्राहकों को वफादार नियमितों में बदलें। बिल्ट-इन CRM हर बातचीत और खरीदारी के इतिहास को रिकॉर्ड करता है। कर्ज और क्रेडिट प्रबंधित करें ताकि आप कभी भी उधार के कारण पैसे न खोएं।",
+            "f1_title": "ग्राहक प्रोफाइल",
+            "f1_desc": "प्रत्येक ग्राहक के लिए पूर्ण खरीदारी इतिहास, संपर्क विवरण और प्राथमिकताएं।",
+            "f2_title": "कर्ज और क्रेडिट",
+            "f2_desc": "ग्राहकों के उधार को ट्रैक करें और ठीक से जानें कि आप पर किसका पैसा बकाया है।",
+            "f3_title": "WhatsApp मार्केटिंग",
+            "f3_desc": "सीधे WhatsApp पर लक्षित प्रचार संदेश भेजें।",
             "gallery": {
                 "details": {
                     "image": "/assets/screenshots/clients-details.jpg",
-                    "title": "Detailed Customer Profile",
-                    "description": "All customer info, purchase history and credit/debt balances."
+                    "title": "विस्तृत ग्राहक प्रोफ़ाइल",
+                    "description": "ग्राहक की सभी जानकारी, खरीदारी का इतिहास और क्रेडिट/डेबिट बैलेंस।"
                 },
                 "campaigns": {
                     "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-                    "title": "WhatsApp Campaigns",
-                    "description": "Create and send targeted promotional campaigns to your customer groups."
+                    "title": "WhatsApp अभियान",
+                    "description": "अपने ग्राहक समूहों के लिए लक्षित प्रचार अभियान बनाएं और भेजें।"
                 }
             }
         },
         "settings": {
-            "title": "Settings & Configuration",
-            "subtitle": "Adapt Stockman to your needs",
-            "description": "Configure Stockman to fit your structure: manage access rights for your staff, add new points of sale and access responsive support.",
-            "f1_title": "User Management",
-            "f1_desc": "Create accounts for your employees and define their permissions (seller, manager, admin).",
-            "f2_title": "Multi-Store",
-            "f2_desc": "Add and manage multiple points of sale from a single admin account.",
-            "f3_title": "Customization",
-            "f3_desc": "Change the currency, language and display preferences of the app.",
+            "title": "सेटिंग्स और कॉन्फ़िगरेशन",
+            "subtitle": "Stockman को अपनी आवश्यकताओं के अनुसार ढालें",
+            "description": "Stockman को अपनी संरचना के अनुसार कॉन्फ़िगर करें: अपने कर्मचारियों के लिए एक्सेस अधिकार प्रबंधित करें, नए बिक्री केंद्र जोड़ें और उत्तरदायी सहायता प्राप्त करें।",
+            "f1_title": "उपयोगकर्ता प्रबंधन",
+            "f1_desc": "अपने कर्मचारियों के लिए खाते बनाएं और उनकी अनुमतियां (विक्रेता, प्रबंधक, व्यवस्थापक) परिभाषित करें।",
+            "f2_title": "मल्टी-स्टोर",
+            "f2_desc": "एक ही व्यवस्थापक खाते से कई बिक्री केंद्र जोड़ें और प्रबंधित करें।",
+            "f3_title": "अनुकूलन",
+            "f3_desc": "ऐप की मुद्रा, भाषा और प्रदर्शन प्राथमिकताएं बदलें।",
             "gallery": {
                 "team": {
                     "image": "/assets/screenshots/settings-employees.jpg",
-                    "title": "Team Management",
-                    "description": "Manage your employees, their roles and their access."
+                    "title": "टीम प्रबंधन",
+                    "description": "अपने कर्मचारियों, उनकी भूमिकाओं और उनकी पहुंच का प्रबंधन करें।"
                 },
                 "notifications": {
                     "image": "/assets/screenshots/settings-notifications.jpg",
-                    "title": "Notification Center",
-                    "description": "Configure your stock alerts and important reminders."
+                    "title": "सूचना केंद्र",
+                    "description": "अपने स्टॉक अलर्ट और महत्वपूर्ण रिमाइंडर कॉन्फ़िगर करें।"
                 },
                 "security": {
                     "image": "/assets/screenshots/settings-support-security.jpg",
-                    "title": "Support & Security",
-                    "description": "Access online help and secure your account."
+                    "title": "सहायता और सुरक्षा",
+                    "description": "ऑनलाइन सहायता प्राप्त करें और अपना खाता सुरक्षित करें।"
                 },
                 "guide": {
                     "image": "/assets/screenshots/settings-guide.jpg",
-                    "title": "Complete Guide",
-                    "description": "Learn to master all the features of Stockman."
+                    "title": "संपूर्ण गाइड",
+                    "description": "Stockman की सभी विशेषताओं में महारत हासिल करना सीखें।"
                 }
             }
         }
     },
     "about": {
-        "seo_title": "About Us",
-        "seo_desc": "Discover the team behind Stockman and our mission to digitalize commerce in Africa.",
-        "home": "Home",
-        "mission_start": "Our Mission:",
-        "mission_highlight": "Digitalize Africa",
-        "mission_desc": "We believe that every merchant, small or large, deserves the best tools to succeed. Stockman is not just software — it's your growth partner.",
-        "team_title": "The Team",
-        "team_subtitle": "Passionate people serving entrepreneurs.",
+        "seo_title": "हमारे बारे में",
+        "seo_desc": "Stockman के पीछे की टीम और अफ्रीका में व्यापार को डिजिटल बनाने के हमारे मिशन की खोज करें।",
+        "home": "होम",
+        "mission_start": "हमारा मिशन:",
+        "mission_highlight": "अफ्रीका को डिजिटल बनाना",
+        "mission_desc": "हमारा मानना है कि हर व्यापारी, चाहे छोटा हो या बड़ा, सफल होने के लिए सर्वोत्तम उपकरणों का हकदार है। Stockman केवल सॉफ्टवेयर नहीं है — यह आपका विकास भागीदार है।",
+        "team_title": "टीम",
+        "team_subtitle": "उद्यमियों की सेवा करने वाले उत्साही लोग।",
         "member1_image": "👨🏿‍💼",
         "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Co-Founder",
-        "member1_bio": "A former merchant, he created Stockman to solve his own management challenges.",
+        "member1_role": "CEO और सह-संस्थापक",
+        "member1_bio": "एक पूर्व व्यापारी, उन्होंने अपनी प्रबंधन चुनौतियों को हल करने के लिए Stockman बनाया।",
         "member2_image": "👩🏾‍💻",
         "member2_name": "Awa Diop",
-        "member2_role": "CTO & Tech Lead",
-        "member2_bio": "An engineer passionate about AI and digital accessibility in Africa.",
+        "member2_role": "CTO और टेक लीड",
+        "member2_bio": "अफ्रीका में AI और डिजिटल पहुंच के प्रति उत्साही इंजीनियर।",
         "member3_image": "🎧",
         "member3_name": "David N'Guessan",
-        "member3_role": "Support Manager",
-        "member3_bio": "Always listening to help our users achieve success.",
-        "values_title": "Our Values",
-        "value1_title": "🔍 Simplicity",
-        "value1_desc": "Technology should be accessible to everyone, without complex training.",
-        "value2_title": "🤝 Proximity",
-        "value2_desc": "We are based here — we understand your realities and challenges.",
-        "value3_title": "🚀 Innovation",
-        "value3_desc": "We improve Stockman every day thanks to your feedback."
+        "member3_role": "सहायता प्रबंधक",
+        "member3_bio": "हमारे उपयोगकर्ताओं को सफलता प्राप्त करने में मदद करने के लिए हमेशा तत्पर।",
+        "values_title": "हमारे मूल्य",
+        "value1_title": "🔍 सरलता",
+        "value1_desc": "बिना जटिल प्रशिक्षण के तकनीक सभी के लिए सुलभ होनी चाहिए।",
+        "value2_title": "🤝 निकटता",
+        "value2_desc": "हम यहीं आधारित हैं — हम आपकी वास्तविकताओं और चुनौतियों को समझते हैं।",
+        "value3_title": "🚀 नवाचार",
+        "value3_desc": "आपकी प्रतिक्रिया की बदौलत हम हर दिन Stockman में सुधार करते हैं।"
     },
     "blog": {
-        "seo_title": "Blog & Resources",
-        "seo_desc": "Tips and tricks to manage your business, optimize your stock and increase your sales.",
-        "page_title": "Resource Center",
-        "page_subtitle": "Expert advice for modern merchants.",
-        "read_more": "Read more →",
-        "not_found": "Article not found 😕",
-        "back_to_blog": "Back to blog",
-        "back_to_articles": "← Back to articles",
-        "published_on": "PUBLISHED ON",
-        "liked_article": "Did you enjoy this article?",
-        "try_stockman": "Try Stockman to put these tips into practice.",
-        "start_trial": "Start the free trial",
+        "seo_title": "ब्लॉग और संसाधन",
+        "seo_desc": "अपने व्यवसाय को प्रबंधित करने, अपने स्टॉक को अनुकूलित करने और अपनी बिक्री बढ़ाने के लिए टिप्स और ट्रिक्स।",
+        "page_title": "संसाधन केंद्र",
+        "page_subtitle": "आधुनिक व्यापारियों के लिए विशेषज्ञ सलाह।",
+        "read_more": "और पढ़ें →",
+        "not_found": "लेख नहीं मिला 😕",
+        "back_to_blog": "ब्लॉग पर वापस जाएं",
+        "back_to_articles": "← लेखों पर वापस जाएं",
+        "published_on": "प्रकाशित हुआ",
+        "liked_article": "क्या आपको यह लेख पसंद आया?",
+        "try_stockman": "इन युक्तियों को व्यवहार में लाने के लिए Stockman आज़माएं।",
+        "start_trial": "मुफ्त ट्रायल शुरू करें",
         "posts": {
             "abandonner-cahier-stock": {
-                "title": "Why ditch the notebook for stock management?",
-                "excerpt": "The notebook has its limits. Discover how going digital can save your business from calculation errors and losses.",
-                "date": "12 Feb 2026",
-                "content": "<p>Many merchants still use a notebook to record their sales and stock. It's a traditional method, but it carries serious risks.</p><h3>1. Calculation errors</h3><p>A simple addition mistake can throw off your entire accounting. With software like Stockman, calculations are automatic and error-free.</p><h3>2. Data loss</h3><p>A notebook can be lost, stolen or destroyed by fire. Your data on Stockman is backed up in the cloud and accessible anywhere.</p><h3>3. No big picture</h3><p>It's hard to know which product sells best by flipping through pages. Stockman gives you this information in one click.</p><h3>Conclusion</h3><p>Going digital is not an expense — it's an investment that saves you time and money from the very first month.</p>"
+                "title": "स्टॉक प्रबंधन के लिए नोटबुक क्यों छोड़ें?",
+                "excerpt": "नोटबुक की अपनी सीमाएं हैं। जानें कि कैसे डिजिटल होने से आपका व्यवसाय गणना की त्रुटियों और नुकसान से बच सकता है।",
+                "date": "12 फरवरी 2026",
+                "content": "<p>कई व्यापारी अभी भी अपनी बिक्री और स्टॉक रिकॉर्ड करने के लिए नोटबुक का उपयोग करते हैं। यह एक पारंपरिक तरीका है, लेकिन इसमें गंभीर जोखिम हैं।</p><h3>1. गणना की त्रुटियां</h3><p>जोड़ने की एक साधारण गलती आपके पूरे लेखांकन को खराब कर सकती है। Stockman जैसे सॉफ्टवेयर के साथ, गणना स्वचालित और त्रुटि मुक्त होती है।</p><h3>2. डेटा हानि</h3><p>एक नोटबुक खो सकती है, चोरी हो सकती है या आग से नष्ट हो सकती है। Stockman पर आपका डेटा क्लाउड में बैकअप किया जाता है और कहीं भी सुलभ है।</p><h3>3. कोई बड़ी तस्वीर नहीं</h3><p>पन्ने पलटते हुए यह जानना मुश्किल है कि कौन सा उत्पाद सबसे अच्छा बिकता है। Stockman आपको यह जानकारी एक क्लिक में देता है।</p><h3>निष्कर्ष</h3><p>डिजिटल जाना कोई खर्च नहीं है — यह एक निवेश है जो आपको पहले महीने से ही समय और पैसा बचाता है।</p>"
             },
             "eviter-ruptures-fetes": {
-                "title": "How to avoid stockouts during the holidays?",
-                "excerpt": "Christmas and Tabaski are critical periods. Prepare your stock in advance with our expert tips.",
-                "date": "10 Jan 2026",
-                "content": "<p>Stockouts during the holidays mean a direct loss of revenue. Here's how to avoid them.</p><h3>Anticipate demand</h3><p>Use last year's sales history to forecast the quantities you need to order.</p><h3>Order early</h3><p>Suppliers are often overwhelmed. Place your orders 2 to 3 weeks earlier than usual.</p><h3>Use Stockman alerts</h3><p>Set up alert thresholds to be notified as soon as a product starts running low.</p>"
+                "title": "त्योहारों के दौरान स्टॉकआउट से कैसे बचें?",
+                "excerpt": "क्रिसमस और तबास्की महत्वपूर्ण अवधि हैं। हमारे विशेषज्ञ सुझावों के साथ अपने स्टॉक को पहले से तैयार करें।",
+                "date": "10 जनवरी 2026",
+                "content": "<p>त्योहारों के दौरान स्टॉकआउट का मतलब राजस्व की सीधी हानि है। यहां बताया गया है कि उनसे कैसे बचा जाए।</p><h3>मांग का पूर्वानुमान</h3><p>ऑर्डर करने के लिए आवश्यक मात्रा का पूर्वानुमान लगाने के लिए पिछले वर्ष के बिक्री इतिहास का उपयोग करें।</p><h3>जल्दी ऑर्डर करें</h3><p>आपूर्तिकर्ता अक्सर व्यस्त रहते हैं। अपने ऑर्डर सामान्य से 2 से 3 सप्ताह पहले दें।</p><h3>Stockman अलर्ट का उपयोग करें</h3><p>जैसे ही उत्पाद कम होने लगे, सूचित होने के लिए अलर्ट थ्रेशोल्ड सेट करें।</p>"
             },
             "augmenter-marge-2026": {
-                "title": "3 tips to increase your margin in 2026",
-                "excerpt": "Revenue is good, but margin is better! Learn how to optimize your costs and prices.",
-                "date": "05 Jan 2026",
-                "content": "<p>Raising prices isn't the only way to earn more. Here's how to work on your margin.</p><h3>1. Reduce losses</h3><p>Expired or stolen products are costly. Rigorous stock tracking can reduce these losses by 30%.</p><h3>2. Negotiate with your suppliers</h3><p>By consolidating your orders through the Stockman Marketplace, you can get better rates.</p><h3>3. Build customer loyalty</h3><p>A loyal customer costs less to acquire than a new one. Use the loyalty program to keep them coming back.</p>"
+                "title": "2026 में अपना मुनाफा (Margin) बढ़ाने के 3 टिप्स",
+                "excerpt": "राजस्व अच्छा है, लेकिन मुनाफा बेहतर है! अपनी लागत और कीमतों को अनुकूलित करना सीखें।",
+                "date": "05 जनवरी 2026",
+                "content": "<p>कीमतें बढ़ाना ही अधिक कमाने का एकमात्र तरीका नहीं है। यहां बताया गया है कि अपने मुनाफे पर कैसे काम किया जाए।</p><h3>1. नुकसान कम करें</h3><p>समाप्त या चोरी हुए उत्पाद महंगे होते हैं। कठोर स्टॉक ट्रैकिंग इन नुकसानों को 30% तक कम कर सकती है।</p><h3>2. अपने आपूर्तिकर्ताओं के साथ बातचीत करें</h3><p>Stockman मार्केटप्लेस के माध्यम से अपने ऑर्डर को समेकित करके, आप बेहतर दरें प्राप्त कर सकते हैं।</p><h3>3. ग्राहक वफादारी बनाएं</h3><p>एक वफादार ग्राहक प्राप्त करना नए ग्राहक की तुलना में सस्ता है। उन्हें वापस लाने के लिए वफादारी कार्यक्रम का उपयोग करें।</p>"
             }
         }
     },
     "help": {
-        "hero_start": "How can we",
-        "hero_highlight": "help you",
-        "search_placeholder": "Search for an answer...",
-        "no_results": "No results found for \"{{term}}\"",
-        "need_more": "Need more help?",
-        "email_support": "✉️ Email Support",
-        "whatsapp_chat": "💬 WhatsApp Chat",
+        "hero_start": "हम आपकी",
+        "hero_highlight": "कैसे मदद",
+        "search_placeholder": "उत्तर खोजें...",
+        "no_results": "\"{{term}}\" के लिए कोई परिणाम नहीं मिला",
+        "need_more": "और मदद चाहिए?",
+        "email_support": "✉️ ईमेल सहायता",
+        "whatsapp_chat": "💬 WhatsApp चैट",
         "getting_started": {
-            "title": "Getting Started",
-            "q1": "How do I create an account?",
-            "a1": "Download the app and follow the on-screen instructions. It takes less than 2 minutes.",
-            "q2": "Can I use the app without internet?",
-            "a2": "Yes, Stockman works offline and syncs your data as soon as the connection is back."
+            "title": "शुरू करना",
+            "q1": "मैं खाता कैसे बनाऊं?",
+            "a1": "ऐप डाउनलोड करें और ऑन-स्क्रीन निर्देशों का पालन करें। इसमें 2 मिनट से भी कम समय लगता है।",
+            "q2": "क्या मैं इंटरनेट के बिना ऐप का उपयोग कर सकता हूं?",
+            "a2": "हाँ, Stockman ऑफलाइन काम करता है और कनेक्शन वापस आने पर आपके डेटा को सिंक करता है।"
         },
         "account_billing": {
-            "title": "Account & Billing",
-            "q1": "How do I change my password?",
-            "a1": "Go to Settings > Security > Change Password.",
-            "q2": "How does the free trial work?",
-            "a2": "You automatically get a 14-day free trial with all features unlocked upon registration."
+            "title": "खाता और बिलिंग",
+            "q1": "मैं अपना पासवर्ड कैसे बदलूं?",
+            "a1": "सेटिंग्स > सुरक्षा > पासवर्ड बदलें पर जाएं।",
+            "q2": "मुफ्त ट्रायल कैसे काम करता?",
+            "a2": "पंजीकरण पर आपको स्वचालित रूप से 14 दिनों का मुफ्त ट्रायल मिलता है जिसमें सभी सुविधाएं अनलॉक होती हैं।"
         },
         "technical_support": {
-            "title": "Technical Support",
-            "q1": "The app won't open, what should I do?",
-            "a1": "Check your internet connection and make sure you have the latest update. If the problem persists, reinstall the app.",
-            "q2": "How do I contact support?",
-            "a2": "You can write to us via the form below or directly on WhatsApp."
+            "title": "तकनीकी सहायता",
+            "q1": "ऐप नहीं खुलेगा, मुझे क्या करना चाहिए?",
+            "a1": "अपना इंटरनेट कनेक्शन जांचें और सुनिश्चित करें कि आपके पास नवीनतम अपडेट है। यदि समस्या बनी रहती है, तो ऐप को फिर से इंस्टॉल करें।",
+            "q2": "मैं सहायता के लिए कैसे संपर्क करूँ?",
+            "a2": "आप नीचे दिए गए फॉर्म के माध्यम से या सीधे WhatsApp पर हमें लिख सकते हैं।"
         }
     },
     "terms": {
-        "title": "Terms and Conditions of Use",
-        "version": "\"Ultimate\" Version 3.0 - Last updated: February 13, 2026",
-        "content": "<p>Welcome to <strong>Stockman</strong>.<br/>These Terms and Conditions of Use (hereinafter \"Terms\") constitute a binding legal framework between the User and the Publisher of the Stockman solution.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE I: GENERAL PROVISIONS</h3><h4>Article 1: Definitions</h4><ul><li><strong>Platform</strong>: Refers to the complete Stockman software infrastructure.</li><li><strong>User</strong>: Entity or individual using the services for professional purposes.</li><li><strong>Publisher</strong>: Stockman Inc., owner and operator of Stockman.</li><li><strong>Shop / Store</strong>: Logical instance created by a User to manage their activities.</li></ul><h4>Article 2: Purpose of Services</h4><p>Stockman is an ERP solution specialized in stock management, point of sale and customer relations. It is provided as a service (SaaS).</p><h4>Article 3: Acceptance of Terms</h4><p>Access to the Platform is conditional upon full and complete acceptance of these Terms.</p><h4>Article 4: Capacity and Professional Use</h4><p>Stockman is a strictly professional tool. The User warrants that they use the service for their commercial activity.</p><h4>Article 5: Modification of Terms</h4><p>The Publisher reserves the right to modify these Terms at any time. Continued use of the Service after modification constitutes acceptance.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE II: ACCESS AND ACCOUNT MANAGEMENT</h3><h4>Article 6: Registration</h4><p>The User agrees to provide truthful data during registration.</p><h4>Article 7: Credential Security</h4><p>The User is responsible for safeguarding their password.</p><h4>Article 8: Profile Management</h4><p>The User may modify their information. This data must remain professional.</p><h4>Article 9: Staff Accounts</h4><p>The Owner may create access for their employees and assumes responsibility for their actions.</p><h4>Article 10: Permissions</h4><p>The User accepts the role system (Admin, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE III: COMMERCIAL OPERATIONS</h3><h4>Articles 11-18</h4><p>The User is responsible for creating their product listings, inventory, sales and returns. Stockman provides a theoretical stock status. The Publisher is not responsible for discrepancies.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLES IV-IX: DATA, AI, SECURITY</h3><p>AI may produce errors. Predictions are probabilities. Data is backed up daily. The Publisher guarantees the exercise of GDPR rights. Any dispute shall be subject to the law of the Publisher's registered office.</p>"
+        "title": "उपयोग के नियम और शर्तें",
+        "version": "\"Ultimate\" संस्करण 3.0 - अंतिम अपडेट: 13 फरवरी, 2026",
+        "content": "<p><strong>Stockman</strong> में आपका स्वागत है।<br/>ये उपयोग के नियम और शर्तें (इसके बाद \"शर्तें\") उपयोगकर्ता और Stockman समाधान के प्रकाशक के बीच एक बाध्यकारी कानूनी ढांचा बनाती हैं।</p><h3 style='margin-top:30px;color:var(--primary)'>शीर्षक I: सामान्य प्रावधान</h3><h4>अनुच्छेद 1: परिभाषाएँ</h4><ul><li><strong>प्लेटफॉर्म</strong>: संपूर्ण Stockman सॉफ्टवेयर इन्फ्रास्ट्रक्चर को संदर्भित करता है।</li><li><strong>उपयोगकर्ता</strong>: व्यावसायिक उद्देश्यों के लिए सेवाओं का उपयोग करने वाला संस्थान या व्यक्ति।</li><li><strong>प्रकाशक</strong>: Stockman Inc., Stockman का मालिक और संचालक।</li><li><strong>दुकान / स्टोर</strong>: अपनी गतिविधियों के प्रबंधन के लिए उपयोगकर्ता द्वारा बनाई गई तार्किक इकाई (Logical Instance)।</li></ul><h4>अनुच्छेद 2: सेवाओं का उद्देश्य</h4><p>Stockman एक ERP समाधान है जो स्टॉक प्रबंधन, बिक्री केंद्र (POS) और ग्राहक संबंधों में विशेषज्ञता रखता है। यह एक सेवा (SaaS) के रूप में प्रदान किया जाता है।</p><h4>अनुच्छेद 3: शर्तों की स्वीकृति</h4><p>प्लेटफ़ॉर्म तक पहुंच इन शर्तों की पूर्ण और पूरी स्वीकृति पर निर्भर है।</p><h4>अनुच्छेद 4: क्षमता और व्यावसायिक उपयोग</h4><p>Stockman एक सख्त व्यावसायिक उपकरण है। उपयोगकर्ता गारंटी देता है कि वे अपनी व्यावसायिक गतिविधि के लिए सेवा का उपयोग करते हैं।</p><h4>अनुच्छेद 5: शर्तों में संशोधन</h4><p>प्रकाशक किसी भी समय इन शर्तों को संशोधित करने का अधिकार सुरक्षित रखता है। संशोधन के बाद सेवा का निरंतर उपयोग स्वीकृति माना जाता है।</p><h3 style='margin-top:30px;color:var(--primary)'>शीर्षक II: पहुंच और खाता प्रबंधन</h3><h4>अनुच्छेद 6: पंजीकरण</h4><p>उपयोगकर्ता पंजीकरण के दौरान सत्य डेटा प्रदान करने के लिए सहमत है।</p><h4>अनुच्छेद 7: क्रेडेंशियल सुरक्षा</h4><p>उपयोगकर्ता अपने पासवर्ड की सुरक्षा के लिए जिम्मेदार है।</p><h4>अनुच्छेद 8: प्रोफाइल प्रबंधन</h4><p>उपयोगकर्ता अपनी जानकारी को संशोधित कर सकता है। यह डेटा व्यावसायिक रहना चाहिए।</p><h4>अनुच्छेद 9: कर्मचारी खाते</h4><p>मालिक अपने कर्मचारियों के लिए एक्सेस बना सकता है और उनके कार्यों की जिम्मेदारी लेता है।</p><h4>अनुच्छेद 10: अनुमतियां</h4><p>उपयोगकर्ता भूमिका प्रणाली (व्यवस्थापक, विक्रेता, प्रबंधक) को स्वीकार करता है।</p><h3 style='margin-top:30px;color:var(--primary)'>शीर्षक III: वाणिज्यिक संचालन</h3><h4>अनुच्छेद 11-18</h4><p>उपयोगकर्ता अपने उत्पाद लिस्टिंग, इन्वेंट्री, बिक्री और रिटर्न बनाने के लिए जिम्मेदार है। Stockman एक सैद्धांतिक स्टॉक स्थिति प्रदान करता है। विसंगतियों के लिए प्रकाशक जिम्मेदार नहीं है।</p><h3 style='margin-top:30px;color:var(--primary)'>शीर्षक IV-IX: डेटा, AI, सुरक्षा</h3><p>AI त्रुटियां उत्पन्न कर सकता है। भविष्यवाणियां संभावनाएं हैं। डेटा का दैनिक बैकअप लिया जाता है। प्रकाशक GDPR अधिकारों के प्रयोग की गारंटी देता है। कोई भी विवाद प्रकाशक के पंजीकृत कार्यालय के कानून के अधीन होगा।</p>"
     },
     "privacy": {
-        "title": "Privacy Policy",
-        "version": "Last updated: February 13, 2026",
-        "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+        "title": "गोपनीयता नीति",
+        "version": "अंतिम अपडेट: 13 फरवरी, 2026",
+        "content": "<p>Stockman में आपका स्वागत है। आपके व्यक्तिगत डेटा की सुरक्षा हमारे लिए प्राथमिकता है।</p><h3>1. डेटा संग्रह</h3><p>हम संग्रह करते हैं: पहचान की जानकारी (नाम, ईमेल, फोन), व्यावसायिक डेटा (स्टोर, इन्वेंट्री, लेनदेन), तकनीकी डेटा (IP, डिवाइस, लॉग)।</p><h3>2. डेटा उपयोग</h3><p>आपका डेटा विशेष रूप से निम्न के लिए उपयोग किया जाता है: आपके स्टॉक और बिक्री का प्रबंधन करना, आपके खाते को सुरक्षित करना, हमारी सेवाओं में सुधार करना और हमारे कानूनी दायित्वों का पालन करना।</p><h3>3. भंडारण और सुरक्षा</h3><p>आपका डेटा सुरक्षित सर्वर (MongoDB Atlas) पर संग्रहीत है और एन्क्रिप्टेड है। हम सभी स्थानान्तरण के लिए HTTPS प्रोटोकॉल का उपयोग करते हैं।</p><h3>4. डेटा साझाकरण</h3><p>हम आपका डेटा बेचते या किराए पर नहीं देते हैं। यह केवल हमारे तकनीकी सेवा प्रदाताओं और अधिकारियों के साथ साझा किया जा सकता है यदि कानून द्वारा आवश्यक हो।</p><h3>5. आपके अधिकार (GDPR)</h3><p>आपके पास पहुंच, सुधार, मिटाने और पोर्टेबिलिटी के अधिकार हैं। ऐप के सेटिंग्स टैब से इन अधिकारों का प्रयोग करें।</p><h3>6. संपर्क</h3><p>किसी भी प्रश्न के लिए, ऐप के माध्यम से या <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a> पर हमसे संपर्क करें।</p>"
     }
 }

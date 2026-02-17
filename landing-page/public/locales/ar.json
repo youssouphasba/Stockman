@@ -1,530 +1,459 @@
 {
     "nav": {
         "features": "المميزات",
-        "resources": "الموارد",
+        "pricing": "الأسعار",
+        "about": "من نحن",
         "blog": "المدونة",
-        "home": "تسجيل الدخول",
+        "contact": "اتصل بنا",
         "login": "تسجيل الدخول",
-        "free_trial": "تجربة مجانية"
+        "get_started": "ابدأ الآن"
     },
     "hero": {
-        "title_start": "أطلق العنان لإمكانيات",
-        "title_end": "عملك",
-        "subtitle": "حل إدارة المخزون الذكي المدعوم بالذكاء الاصطناعي لأتمتة طلباتك وتعظيم أرباحك.",
-        "cta": "ابدأ الآن"
+        "badge": "رقم 1 في الخدمات اللوجستية في أفريقيا 🌍",
+        "title_start": "أدر",
+        "title_highlight": "متجرك",
+        "title_end": "مثل المحترفين",
+        "desc": "نظام نقاط بيع متكامل، إدارة المخزون والمحاسبة. بسيط، فعال ومتاح في أي مكان - حتى بدون إنترنت.",
+        "cta_primary": "جربه مجاناً",
+        "cta_secondary": "شاهد العرض التجريبي",
+        "trust": "يثق بنا أكثر من 5000 تاجر"
+    },
+    "features_main": {
+        "title": "كل ما تحتاجه للنمو",
+        "subtitle": "وداعاً للملاحظات اليدوية. انتقل إلى الإدارة الرقمية.",
+        "f1_title": "إدارة المخزون",
+        "f1_desc": "تتبع منتجاتك في الوقت الفعلي واحصل على تنبيهات عند نفاذ الكمية.",
+        "f2_title": "نقطة البيع (POS)",
+        "f2_desc": "اخدم زبائنك بسرعة وأرسل إيصالات رقمية عبر واتساب.",
+        "f3_title": "المحاسبة",
+        "f3_desc": "شاهد أرباحك وتكاليفك وإيراداتك بشكل آلي.",
+        "f4_title": "وضع عدم الاتصال",
+        "f4_desc": "واصل البيع حتى في حالة انقطاع الإنترنت. ستتم المزامنة لاحقاً.",
+        "f5_title": "الذكاء الاصطناعي",
+        "f5_desc": "توقع ذروة المبيعات وحسن طلباتك من الموردين.",
+        "f6_title": "سوق الجملة (Marketplace)",
+        "f6_desc": "اطلب مباشرة من أفضل تجار الجملة بأفضل الأسعار."
     },
     "stats": {
-        "shops": "متاجر مجهزة",
-        "transactions": "عملية / شهر",
-        "satisfaction": "عملاء راضون",
-        "support": "دعم متاح"
-    },
-    "features": {
-        "title": "أدواتك اليومية",
-        "subtitle": "مجموعة كاملة لإدارة كل جانب من جوانب عملك.",
-        "dashboard": {
-            "title": "Home",
-            "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
-        },
-        "products": {
-            "title": "Products",
-            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
-        },
-        "pos": {
-            "title": "POS",
-            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
-        },
-        "suppliers": {
-            "title": "Suppliers",
-            "desc": "Supplier directory, order history, and access to 'Button-to-Button' Marketplace."
-        },
-        "orders": {
-            "title": "Orders",
-            "desc": "Track purchase orders, receive goods, and automatically update stock."
-        },
-        "accounting": {
-            "title": "Accounting",
-            "desc": "Precise tracking of sales, expenses, and automatic profitability calculation."
-        },
-        "clients": {
-            "title": "Clients",
-            "desc": "Customer database, purchase history, and integrated loyalty tools."
-        },
-        "settings": {
-            "title": "Settings",
-            "desc": "App customization, user management, and shop configuration."
-        }
-    },
-    "showcase": {
-        "title": "الواجهة التي تغير كل شيء",
-        "subtitle": "تصميم أنيق، صُمم ليوفر لك الوقت.",
-        "app_interface": "واجهة التطبيق"
-    },
-    "how_it_works": {
-        "title": "Quick Start",
-        "subtitle": "Three simple steps to transform your shop.",
-        "step1": {
-            "title": "Create Account",
-            "desc": "Download the app and configure your shop in under 2 minutes."
-        },
-        "step2": {
-            "title": "Scan Products",
-            "desc": "Use your phone camera to quickly add your stock."
-        },
-        "step3": {
-            "title": "Sell & Track",
-            "desc": "Make your first sales and watch your stats grow in real-time."
-        }
-    },
-    "testimonials": {
-        "title": "They Trust Us",
-        "subtitle": "Discover how Stockman helps merchants daily.",
-        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+        "merchants": "تاجر نشط",
+        "transactions": "عملية شهرياً",
+        "availability": "وقت التشغيل",
+        "support": "دعم 24/7"
     },
     "pricing": {
-        "title": "Choose Your Plan",
-        "subtitle": "Transparent pricing adapted to your business size.",
-        "month": "/month",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "price": "1000",
-            "f1": "1 User",
-            "f2": "Up to 100 products",
-            "f3": "Basic Stock Management",
-            "f4": "Cash Register",
-            "cta": "Start"
-        },
-        "business": {
-            "name": "بيزنس",
-            "price": "2500",
-            "f1": "3 مستخدمين",
-            "f2": "منتجات غير محدودة",
-            "f3": "مساعد ستوكمان بالذكاء الاصطناعي",
-            "f4": "السوق والطلبات",
-            "f5": "تحليلات متقدمة",
-            "cta": "تجربة مجانية لمدة 14 يوماً"
-        },
-        "enterprise": {
-            "name": "إنتربرايز",
-            "price": "عرض سعر مخصص",
-            "f1": "مستخدمين غير محدودين",
-            "f2": "مدير متاجر متعددة",
-            "f3": "واجهة برمجة التطبيقات والتكامل",
-            "f4": "دعم مخصص على مدار الساعة",
-            "cta": "اتصل بنا"
-        }
-    },
-    "faq": {
-        "title": "الأسئلة الشائعة",
-        "q1": "هل يعمل بدون إنترنت؟",
-        "a1": "نعم، يعمل ستوكمان بدون اتصال. تتم مزامنة بياناتك بمجرد عودة الاتصال.",
-        "q2": "هل بياناتي آمنة؟",
-        "a2": "بالتأكيد. نحن نستخدم تشفيراً على مستوى البنوك لحماية جميع معلومات عملك."
-    },
-    "download": {
-        "title": "جاهز للانتقال للمستوى التالي؟",
-        "subtitle": "انضم إلى آلاف التجار الذين قاموا بتحديث إدارتهم.",
-        "secure": "دفع آمن",
-        "support": "دعم احترافي",
-        "updates": "تحديثات مستمرة"
+        "title": "أسعار بسيطة، دون مفاجآت",
+        "subtitle": "ابدأ مجاناً، وانمو بالسرعة التي تناسبك.",
+        "free_title": "البداية",
+        "free_price": "0 فرنك",
+        "free_desc": "لنقاط البيع الصغيرة",
+        "premium_title": "بريميوم",
+        "premium_price": "5,000 فرنك",
+        "premium_desc": "القوة الكاملة لعملك",
+        "feature_pos": "نقطة بيع متكاملة",
+        "feature_stock": "إدارة المخزون",
+        "feature_accounting": "المحاسبة",
+        "feature_multi_user": "موظفون غير محدودون",
+        "feature_ai": "تحليلات الذكاء الاصطناعي",
+        "cta": "اختر الخطة"
     },
     "footer": {
-        "desc": "الحل الشامل للتجار المعاصرين في أفريقيا.",
+        "desc": "الحل رقم 1 لرقمنة التجارة في أفريقيا.",
         "product": "المنتج",
+        "company": "الشركة",
         "support": "الدعم",
         "legal": "قانوني",
         "help_center": "مركز المساعدة",
         "contact": "اتصل بنا",
         "community": "المجتمع",
         "privacy": "سياسة الخصوصية",
-        "terms": "شروط الخدمة",
+        "terms": "شروط الاستخدام",
         "legal_notice": "إشعار قانوني",
-        "copyright": "© 2026 ستوكمان. جميع الحقوق محفوظة."
+        "copyright": "© 2026 Stockman. جميع الحقوق محفوظة."
     },
     "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
-        "success": "Thanks! Check your inbox.",
-        "placeholder": "Your email...",
-        "cta": "Get the Guide",
-        "privacy": "No spam. Unsubscribe in 1 click."
+        "title": "كن خبيراً في إدارة المخزون",
+        "desc": "انضم إلى أكثر من 5000 تاجر واحصل على دليلنا المجاني: \"الأخطاء العشرة التي تقتل ربحيتك\".",
+        "success": "شكراً لك! تحقق من بريدك الوارد.",
+        "placeholder": "بريدك الإلكتروني...",
+        "cta": "احصل على الدليل",
+        "privacy": "لا توجد رسائل مزعجة. إلغاء الاشتراك بنقرة واحدة."
     },
     "contact": {
         "title": "اتصل بنا",
-        "subtitle": "سؤال؟ شراكة؟ اكتب لنا.",
+        "subtitle": "سؤال؟ شراكة؟ راسلنا.",
         "name": "اسمك",
         "email": "بريدك الإلكتروني",
         "message": "رسالتك",
         "submit": "إرسال الرسالة",
         "success_title": "تم إرسال الرسالة!",
-        "success_desc": "فريقنا سيرد خلال 24 ساعة.",
+        "success_desc": "سيرد فريقنا عليك في غضون 24 ساعة.",
         "send_another": "إرسال رسالة أخرى"
     },
     "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
+        "message": "مرحبًا، أود معرفة المزيد عن Stockman!"
     },
     "cookie": {
-        "message": "نستخدم ملفات تعريف الارتباط لتحسين تجربتك. بالاستمرار، تقبل سياسة الخصوصية.",
-        "accept": "قبول"
+        "message": "نحن نستخدم ملفات تعريف الارتباط لتحسين تجربتك. من خلال الاستمرار، فإنك توافق على سياسة الخصوصية الخاصة بنا.",
+        "accept": "أوافق"
     },
     "comparison": {
-        "title": "Why choose Stockman?",
-        "feature": "Feature",
-        "notebook": "Notebook / Excel 📝",
-        "stock_mgmt": "Stock Management",
-        "stock_yes": "✅ Automatic & Real-time",
-        "stock_no": "❌ Manual & Error-prone",
-        "alerts": "Stockout Alerts",
-        "alerts_yes": "✅ AI Notifications",
-        "alerts_no": "❌ None",
-        "pos": "POS (Cash Register)",
-        "pos_yes": "✅ Built-in & Fast",
-        "pos_no": "❌ Separate calculator",
-        "backup": "Backup",
-        "backup_yes": "✅ Secure Cloud",
-        "backup_no": "❌ Risk of loss (theft, fire)",
-        "financial": "Financial Report",
-        "financial_yes": "✅ In 1 click (P&L, Margin)",
-        "financial_no": "❌ Long and tedious calculations",
-        "marketplace": "Marketplace",
-        "marketplace_yes": "✅ Direct supplier access",
-        "marketplace_no": "❌ Physical outreach"
+        "title": "لماذا تختار Stockman؟",
+        "feature": "الميزة",
+        "notebook": "الدفتر / إكسيل 📝",
+        "stock_mgmt": "إدارة المخزون",
+        "stock_yes": "✅ آلي وفي الوقت الفعلي",
+        "stock_no": "❌ يدوي ومعرض للأخطاء",
+        "alerts": "تنبيهات نفاذ المخزون",
+        "alerts_yes": "✅ إشعارات الذكاء الاصطناعي",
+        "alerts_no": "❌ لا يوجد",
+        "pos": "نقطة البيع (POS)",
+        "pos_yes": "✅ مدمجة وسريعة",
+        "pos_no": "❌ آلة حاسبة منفصلة",
+        "backup": "نسخة احتياطية",
+        "backup_yes": "✅ سحابة آمنة",
+        "backup_no": "❌ خطر الفقدان (سرقة، حريق)",
+        "financial": "تقرير مالي",
+        "financial_yes": "✅ بنقرة واحدة (أرباح وخسائر، هامش)",
+        "financial_no": "❌ حسابات طويلة ومملة",
+        "marketplace": "سوق الجملة",
+        "marketplace_yes": "✅ وصول مباشر للموردين",
+        "marketplace_no": "❌ بحث ميداني شاق"
     },
     "feature_pages": {
-        "back_home": "العودة للرئيسية",
+        "back_home": "العودة إلى الصفحة الرئيسية",
         "why_use": "لماذا تستخدم {{title}}؟",
         "discover_interface": "اكتشف الواجهة بالتفصيل",
-        "cta_title": "جاهز لتحسين إدارتك؟",
-        "cta_button": "ابدأ التجربة المجانية",
+        "cta_title": "هل أنت مستعد لتحسين إدارتك؟",
+        "cta_button": "ابدأ الفترة التجريبية المجانية",
         "dashboard": {
-            "title": "لوحة القيادة",
-            "subtitle": "إدارة نشاطك بلمحة واحدة",
-            "description": "لوحة القيادة هي برج المراقبة الخاص بك. فهي لا تعرض الأرقام فحسب - بل تمنحك رؤية واضحة وقابلة للتنفيذ لصحة عملك. ومع دمج الذكاء الاصطناعي، فإنها تحلل مبيعاتك في الوقت الفعلي لتحديد فرص النمو والمخاطر (نفاد المخزون، زيادة المخزون). هذا هو المكان الذي تتخذ فيه القرارات المهمة.",
+            "title": "لوحة التحكم",
+            "subtitle": "أدر نشاطك بلمحة بصر",
+            "description": "لوحة التحكم هي برج المراقبة الخاص بك. هي لا تعرض الأرقام فحسب - بل تمنحك رؤية واضحة وعملية لصحة عملك. بفضل تكامل الذكاء الاصطناعي، تحلل مبيعاتك في الوقت الفعلي لتحديد فرص النمو والمخاطر (نفاذ المخزون، زيادة المخزون). هذا هو المكان الذي تتخذ فيه القرارات المهمة.",
             "f1_title": "إحصائيات فورية",
-            "f1_desc": "تتبع إيراداتك وأرباحك وعدد مبيعاتك بالثانية.",
+            "f1_desc": "تتبع إيراداتك وأرباحك وعدد مبيعاتك لحظة بلحظة.",
             "f2_title": "تنبيهات ذكية",
-            "f2_desc": "احصل على إشعارات فورية حول المنتجات التي نفدت من المخزون أو العناصر التي اقترب تاريخ انتهاء صلاحيتها.",
+            "f2_desc": "احصل على إشعارات فورية حول المنتجات التي نفذت أو التي اقتربت ميعاد انتهاء صلاحيتها.",
             "f3_title": "مساعد الذكاء الاصطناعي",
-            "f3_desc": "اطرح الأسئلة على مساعد عملك مباشرة من الشاشة الرئيسية للحصول على تحليل فوري.",
+            "f3_desc": "اطرح الأسئلة على مساعد عملك مباشرة من الشاشة الرئيسية للحصول على تحليلات فورية.",
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",
-                    "title": "Overview & KPIs",
-                    "description": "Track your key performance indicators in real time as soon as you open the app."
+                    "title": "نظرة عامة ومؤشرات الأداء",
+                    "description": "تتبع مؤشرات الأداء الرئيسية في الوقت الفعلي بمجرد فتح التطبيق."
                 },
                 "stats": {
                     "image": "/assets/screenshots/dashboard-stats.jpg",
-                    "title": "Global Statistics",
-                    "description": "See your revenue, profits and sales trends at a glance."
+                    "title": "إحصائيات شاملة",
+                    "description": "شاهد إيراداتك وأرباحك واتجاهات المبيعات بلمحة بصر."
                 },
                 "charts": {
                     "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-                    "title": "Performance Charts",
-                    "description": "Track the evolution of your stock value and analyze your sales peaks."
+                    "title": "مخططات الأداء",
+                    "description": "تتبع تطور قيمة مخزونك وحلل ذروة مبيعاتك."
                 },
                 "analysis": {
                     "image": "/assets/screenshots/dashboard-analysis.jpg",
-                    "title": "ABC Analysis & Restocking",
-                    "description": "Identify your most profitable products and receive order suggestions."
+                    "title": "تحليل ABC وإعادة التموين",
+                    "description": "حدد المنتجات الأكثر ربحية واحصل على اقتراحات للطلبات."
                 },
                 "history": {
                     "image": "/assets/screenshots/dashboard-history.jpg",
-                    "title": "Movement History",
-                    "description": "Keep a record of every stock entry and exit with full traceability."
+                    "title": "سجل الحركات",
+                    "description": "احتفظ بسجل لكل عملية دخول وخروج للمخزون مع إمكانية التتبع الكاملة."
                 }
             }
         },
         "products": {
-            "title": "Product Management",
-            "subtitle": "Your inventory, perfectly organized",
-            "description": "Professional inventory management without the complexity. Whether you have 10 or 10,000 items, Stockman lets you organize them with precision. The built-in barcode scanner turns your phone into an ultra-fast inventory terminal.",
-            "f1_title": "Barcode Scanning",
-            "f1_desc": "Use your phone camera to add products or do a quick inventory count.",
-            "f2_title": "Flexible Organization",
-            "f2_desc": "Create categories, brands and variants to structure your catalog.",
-            "f3_title": "Stock Valuation",
-            "f3_desc": "Know the total value of your inventory at any time (purchase price and selling price).",
+            "title": "إدارة المنتجات",
+            "subtitle": "مخزونك، منظم بشكل مثالي",
+            "description": "إدارة مخزون احترافية دون تعقيد. سواء كان لديك 10 أو 10,000 قطعة، يتيح لك Stockman تنظيمها بدقة. يحول ماسح الباركود المدمج هاتفك إلى محطة جرد فائقة السرعة.",
+            "f1_title": "مسح الباركود",
+            "f1_desc": "استخدم كاميرا هاتفك لإضافة المنتجات أو إجراء جرد سريع للمخزون.",
+            "f2_title": "تنظيم مرن",
+            "f2_desc": "أنشئ فئات وعلامات تجارية وأنواع لتنظيم كتالوج المنتجات الخاص بك.",
+            "f3_title": "تقييم المخزون",
+            "f3_desc": "اعرف القيمة الإجمالية لمخزونك في أي وقت (سعر الشراء وسعر البيع).",
             "gallery": {
                 "list": {
                     "image": "/assets/screenshots/products-list.jpg",
-                    "title": "Product List",
-                    "description": "Quickly access your entire catalog with search and advanced filters."
+                    "title": "قائمة المنتجات",
+                    "description": "احصل على وصول سريع إلى كتالوجك بالكامل مع ميزة البحث والفلاتر المتقدمة."
                 },
                 "create": {
                     "image": "/assets/screenshots/products-create-1.jpg",
-                    "title": "Simple Creation",
-                    "description": "Add a product in seconds with all its essential information."
+                    "title": "إضافة بسيطة",
+                    "description": "أضف منتجًا في ثوانٍ مع كامل معلوماته الأساسية."
                 },
                 "variants": {
                     "image": "/assets/screenshots/products-create-2.jpg",
-                    "title": "Details & Variants",
-                    "description": "Manage sizes, colors and specific prices for each variant."
+                    "title": "التفاصيل والأنواع",
+                    "description": "إدارة الأحجام والألوان والأسعار الخاصة لكل نوع."
                 },
                 "thresholds": {
                     "image": "/assets/screenshots/products-create-3.jpg",
-                    "title": "Stock & Thresholds",
-                    "description": "Set low stock alerts so you never run out of goods."
+                    "title": "المخزون والحدود",
+                    "description": "قم بتعيين تنبيهات انخفاض المخزون حتى لا تنفذ بضائعك أبدًا."
                 }
             }
         },
         "pos": {
-            "title": "Cash Register",
-            "subtitle": "Process customer payments with ease",
-            "description": "Deliver a smooth and modern checkout experience. Our touch-based POS is built for speed: add items, manage discounts and handle multiple payment methods in seconds.",
-            "f1_title": "Quick Cart",
-            "f1_desc": "Touch-optimized interface to add products to the cart in the blink of an eye.",
-            "f2_title": "Digital Receipts",
-            "f2_desc": "Send receipts via WhatsApp, SMS or Email directly to your customers.",
-            "f3_title": "Multi-Payment",
-            "f3_desc": "Accept cash, Mobile Money or card payments and track everything in your register.",
+            "title": "نقطة البيع (الكاشير)",
+            "subtitle": "عمليات دفع العملاء ب سهولة",
+            "description": "قدم تجربة محاسبة سلسة وحديثة. تم تصميم نقطة البيع التي تعمل باللمس لدينا من أجل السرعة: أضف العناصر، وقم بإدارة الخصومات، وتعامل مع طرق دفع متعددة في ثوانٍ.",
+            "f1_title": "عربة تسوق سريعة",
+            "f1_desc": "واجهة محسّنة للمس لإضافة المنتجات إلى العربة في غمضة عين.",
+            "f2_title": "إيصالات رقمية",
+            "f2_desc": "أرسل الإيصالات عبر WhatsApp أو SMS أو البريد الإلكتروني مباشرة إلى عملائك.",
+            "f3_title": "طرق دفع متعددة",
+            "f3_desc": "يقبل المدفوعات النقدية أو Mobile Money أو البطاقات وتتبع كل شيء في السجل الخاص بك.",
             "gallery": {
                 "sale": {
                     "image": "/assets/screenshots/pos-overview.jpg",
-                    "title": "Sales Interface",
-                    "description": "Add products to the cart, manage quantities and discounts seamlessly."
+                    "title": "واجهة المبيعات",
+                    "description": "أضف المنتجات إلى العربة، وقم بإدارة الكميات والخصومات بسلاسة."
                 },
                 "receipt": {
                     "image": "/assets/screenshots/pos-receipt-qr.jpg",
-                    "title": "Receipt & QR Code",
-                    "description": "Generate an instant receipt with a QR code your customers can scan."
+                    "title": "الإيصال ورمز QR",
+                    "description": "أنشئ إيصالًا فوريًا برمز QR يمكن لعملائك مسحه ضوئيًا."
                 }
             }
         },
         "suppliers": {
-            "title": "Suppliers & Marketplace",
-            "subtitle": "Your procurement simplified",
-            "description": "Turn your procurement into a competitive advantage. Stockman centralizes your suppliers and opens the doors to its exclusive Marketplace. Compare prices in real time and place orders directly.",
-            "f1_title": "Supplier Directory",
-            "f1_desc": "Centralize contact details for all your suppliers and the history of your exchanges.",
-            "f2_title": "Automated Orders",
-            "f2_desc": "Generate purchase orders in one click based on your stock needs.",
-            "f3_title": "Price Comparator",
-            "f3_desc": "Find the cheapest supplier for each product with our built-in comparator.",
+            "title": "الموردون والسوق",
+            "subtitle": "تبسيط عمليات الشراء الخاصة بك",
+            "description": "حول مشترياتك إلى ميزة تنافسية. يجمع Stockman مورديك ويفتح أبواب سوقه الحصري. قارن الأسعار في الوقت الفعلي وقم بتقديم الطلبات مباشرة.",
+            "f1_title": "دليل الموردين",
+            "f1_desc": "مركز تفاصيل الاتصال لجميع مورديك وتاريخ معاملاتك معهم.",
+            "f2_title": "طلبات مؤتمتة",
+            "f2_desc": "أنشئ أوامر الشراء بنقرة واحدة بناءً على احتياجات مخزونك.",
+            "f3_title": "مقارن الأسعار",
+            "f3_desc": "ابحث عن أرخص مورد لكل منتج من خلال المقارن المدمج لدينا.",
             "gallery": {
                 "marketplace": {
                     "image": "/assets/screenshots/suppliers-marketplace.jpg",
-                    "title": "Built-in Marketplace",
-                    "description": "Access a wide network of verified suppliers and compare prices."
+                    "title": "سوق داخلي",
+                    "description": "الوصول إلى شبكة واسعة من الموردين المعتمدين ومقارنة الأسعار."
                 },
                 "catalog": {
                     "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-                    "title": "Supplier Catalog",
-                    "description": "Browse available products from each supplier and their terms."
+                    "title": "كتالوج المورد",
+                    "description": "تصفح المنتجات المتاحة من كل مورد وشروطهم."
                 },
                 "order": {
                     "image": "/assets/screenshots/suppliers-order-creation.jpg",
-                    "title": "Order Placement",
-                    "description": "Create and send your restocking orders in just a few clicks."
+                    "title": "تقديم الطلب",
+                    "description": "أنشئ وأرسل طلبات إعادة التموين الخاصة بك في بضع نقرات فقط."
                 }
             }
         },
         "orders": {
-            "title": "Order Tracking",
-            "subtitle": "From order to delivery",
-            "description": "Keep full control over your supply chain. From the purchase order to in-store reception, track every step. Stock is automatically updated upon receipt.",
-            "f1_title": "Status Tracking",
-            "f1_desc": "View the status of each order: Pending, Shipped, Received or Cancelled.",
-            "f2_title": "Easy Reception",
-            "f2_desc": "Confirm goods reception and automatically update stock quantities.",
-            "f3_title": "Complete History",
-            "f3_desc": "Find all your past orders to simplify restocking.",
+            "title": "تتبع الطلبات",
+            "subtitle": "من الطلب إلى التسليم",
+            "description": "حافظ على سيطرة كاملة على سلسلة التوريد الخاصة بك. من أمر الشراء إلى الاستلام في المتجر، تتبع كل خطوة. يتم تحديث المخزون تلقائيًا عند الاستلام.",
+            "f1_title": "تتبع الحالة",
+            "f1_desc": "شاهد حالة كل طلب: قيد الانتظار، تم الشحن، تم الاستلام، أو ملغى.",
+            "f2_title": "استلام سهل",
+            "f2_desc": "تأكيد استلام البضائع وتحديث كميات المخزون تلقائيًا.",
+            "f3_title": "تاريخ كامل",
+            "f3_desc": "ابحث عن جميع طلباتك السابقة لتبسيط إعادة التموين.",
             "gallery": {
                 "tracking": {
                     "image": "/assets/screenshots/orders-tracking.jpg",
-                    "title": "Real-Time Tracking",
-                    "description": "View the progress status of each supplier order."
+                    "title": "تتبع في الوقت الفعلي",
+                    "description": "شاهد حالة تقدم كل طلب مورد."
                 }
             }
         },
         "accounting": {
-            "title": "Simplified Accounting",
-            "subtitle": "Your finances under control",
-            "description": "Your accounting runs itself. Every sale, every expense automatically feeds your accounting journals. Track your cash flow and generate your Income Statement in one click.",
-            "f1_title": "Income Statement",
-            "f1_desc": "View your revenue, costs and net profit for any period you choose.",
-            "f2_title": "Expense Tracking",
-            "f2_desc": "Record your expenses (rent, electricity, salaries) for accurate profitability calculations.",
-            "f3_title": "PDF/Excel Export",
-            "f3_desc": "Download your accounting data for your accountant or personal archives.",
+            "title": "محاسبة مبسطة",
+            "subtitle": "أموالك تحت السيطرة",
+            "description": "محاسبتك تدير نفسها. كل عملية بيع، وكل نفقة تغذي تلقائيًا دفاتر المحاسبة الخاصة بك. تتبع تدفقك النقدي وأنشئ بيان الدخل الخاص بك بنقرة واحدة.",
+            "f1_title": "بيان الدخل",
+            "f1_desc": "شاهد إيراداتك وتكاليفك وصافي ربحك لأي فترة تختارها.",
+            "f2_title": "تتبع النفقات",
+            "f2_desc": "سجل نفقاتك (الإيجار، الكهرباء، الرواتب) لحسابات الربحية الدقيقة.",
+            "f3_title": "تصدير PDF/Excel",
+            "f3_desc": "قم بتنزيل بيانات المحاسبة الخاصة بك لمحاسبك أو لأرشيفك الشخصي.",
             "gallery": {
                 "overview": {
                     "image": "/assets/screenshots/accounting-overview.jpg",
-                    "title": "Global Accounting View",
-                    "description": "Analyze your profitability with clear and precise indicators."
+                    "title": "عرض محاسبي شامل",
+                    "description": "حلل ربحيتك بمؤشرات واضحة ودقيقة."
                 },
                 "expenses": {
                     "image": "/assets/screenshots/accounting-expense-create.jpg",
-                    "title": "Expense Management",
-                    "description": "Easily add your fixed and variable costs."
+                    "title": "إدارة النفقات",
+                    "description": "أضف تكاليفك الثابتة والمتغيرة ب سهولة."
                 },
                 "reports": {
                     "image": "/assets/screenshots/accounting-details-charts.jpg",
-                    "title": "Reports & Charts",
-                    "description": "Visualize the evolution of your finances over time."
+                    "title": "التقارير والمخططات",
+                    "description": "تخيل تطور أموالك بمرور الوقت."
                 }
             }
         },
         "clients": {
-            "title": "Customer Management (CRM)",
-            "subtitle": "Build customer loyalty",
-            "description": "Turn occasional customers into loyal regulars. The built-in CRM records every interaction and purchase history. Manage debts and credits so you never lose money on tabs again.",
-            "f1_title": "Customer Profiles",
-            "f1_desc": "Complete purchase history, contact details and preferences for each customer.",
-            "f2_title": "Debts & Credits",
-            "f2_desc": "Track customer tabs and know exactly who owes you money.",
-            "f3_title": "WhatsApp Marketing",
-            "f3_desc": "Send targeted promotional messages directly on WhatsApp.",
+            "title": "إدارة العملاء (CRM)",
+            "subtitle": "بناء ولاء العملاء",
+            "description": "حول العملاء العابرين إلى عملاء دائمين مخلصين. يسجل نظام CRM المدمج كل تفاعل وتاريخ شراء. أدر الديون والائتمانات حتى لا تفقد الأموال أبدًا بسبب \"الشكك\" مرة أخرى.",
+            "f1_title": "ملفات العملاء",
+            "f1_desc": "تاريخ شراء كامل وتفاصيل الاتصال والتفضيلات لكل عميل.",
+            "f2_title": "الديون والائتمانات",
+            "f2_desc": "تتبع ديون العملاء واعرف بالضبط من يدين لك بالمال.",
+            "f3_title": "تسويق واتساب",
+            "f3_desc": "أرسل رسائل ترويجية مستهدفة مباشرة على WhatsApp.",
             "gallery": {
                 "details": {
                     "image": "/assets/screenshots/clients-details.jpg",
-                    "title": "Detailed Customer Profile",
-                    "description": "All customer info, purchase history and credit/debt balances."
+                    "title": "ملف عميل مفصل",
+                    "description": "جميع معلومات العميل وتاريخ الشراء وأرصدة الائتمان/الديون."
                 },
                 "campaigns": {
                     "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-                    "title": "WhatsApp Campaigns",
-                    "description": "Create and send targeted promotional campaigns to your customer groups."
+                    "title": "حملات WhatsApp",
+                    "description": "أنشئ وأرسل حملات ترويجية مستهدفة إلى مجموعات عملائك."
                 }
             }
         },
         "settings": {
-            "title": "Settings & Configuration",
-            "subtitle": "Adapt Stockman to your needs",
-            "description": "Configure Stockman to fit your structure: manage access rights for your staff, add new points of sale and access responsive support.",
-            "f1_title": "User Management",
-            "f1_desc": "Create accounts for your employees and define their permissions (seller, manager, admin).",
-            "f2_title": "Multi-Store",
-            "f2_desc": "Add and manage multiple points of sale from a single admin account.",
-            "f3_title": "Customization",
-            "f3_desc": "Change the currency, language and display preferences of the app.",
+            "title": "الإعدادات والتكوين",
+            "subtitle": "طوع Stockman لاحتياجاتك",
+            "description": "قم بتكوين Stockman ليتناسب مع هيكلك: أدر حقوق الوصول لموظفيك، وأضف نقاط بيع جديدة واحصل على دعم مستجيب.",
+            "f1_title": "إدارة المستخدمين",
+            "f1_desc": "أنشئ حسابات لموظفيك وحدد أذوناتهم (بائع، مدير، مسؤول).",
+            "f2_title": "متاجر متعددة",
+            "f2_desc": "أضف وأدر نقاط بيع متعددة من حساب مسؤول واحد.",
+            "f3_title": "التخصيص",
+            "f3_desc": "غير العملة واللغة وتفضيلات العرض في التطبيق.",
             "gallery": {
                 "team": {
                     "image": "/assets/screenshots/settings-employees.jpg",
-                    "title": "Team Management",
-                    "description": "Manage your employees, their roles and their access."
+                    "title": "إدارة الفريق",
+                    "description": "إدارة موظفيك وأدوارهم وصلاحياتهم."
                 },
                 "notifications": {
                     "image": "/assets/screenshots/settings-notifications.jpg",
-                    "title": "Notification Center",
-                    "description": "Configure your stock alerts and important reminders."
+                    "title": "مركز الإشعارات",
+                    "description": "تكوين تنبيهات المخزون والتذكيرات الهامة."
                 },
                 "security": {
                     "image": "/assets/screenshots/settings-support-security.jpg",
-                    "title": "Support & Security",
-                    "description": "Access online help and secure your account."
+                    "title": "الدعم والأمان",
+                    "description": "الوصول إلى المساعدة عبر الإنترنت وتأمين حسابك."
                 },
                 "guide": {
                     "image": "/assets/screenshots/settings-guide.jpg",
-                    "title": "Complete Guide",
-                    "description": "Learn to master all the features of Stockman."
+                    "title": "الدليل الكامل",
+                    "description": "تعلم كيفية إتقان جميع ميزات Stockman."
                 }
             }
         }
     },
     "about": {
-        "seo_title": "About Us",
-        "seo_desc": "Discover the team behind Stockman and our mission to digitalize commerce in Africa.",
-        "home": "Home",
-        "mission_start": "Our Mission:",
-        "mission_highlight": "Digitalize Africa",
-        "mission_desc": "We believe that every merchant, small or large, deserves the best tools to succeed. Stockman is not just software — it's your growth partner.",
-        "team_title": "The Team",
-        "team_subtitle": "Passionate people serving entrepreneurs.",
+        "seo_title": "من نحن",
+        "seo_desc": "اكتشف الفريق الذي يقف وراء Stockman ومهمتنا في رقمنة التجارة في أفريقيا.",
+        "home": "الرئيسية",
+        "mission_start": "مهمتنا:",
+        "mission_highlight": "رقمنة أفريقيا",
+        "mission_desc": "نحن نؤمن بأن كل تاجر، س واء كان صغيراً أو كبيراً، يستحق أفضل الأدوات للنجاح. Stockman ليس مجرد برنامج - إنه شريك في نموك.",
+        "team_title": "الفريق",
+        "team_subtitle": "أفراد شغوفون بخدمة رواد الأعمال.",
         "member1_image": "👨🏿‍💼",
-        "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Co-Founder",
-        "member1_bio": "A former merchant, he created Stockman to solve his own management challenges.",
+        "member1_name": "جان مارك كوفي",
+        "member1_name_orig": "Jean-Marc Koffi",
+        "member1_role": "الرئيس التنفيذي والمؤسس المشارك",
+        "member1_bio": "تاجر سابق، أنشأ Stockman لحل تحديات الإدارة الخاصة به.",
         "member2_image": "👩🏾‍💻",
-        "member2_name": "Awa Diop",
-        "member2_role": "CTO & Tech Lead",
-        "member2_bio": "An engineer passionate about AI and digital accessibility in Africa.",
+        "member2_name": "آوا ديوب",
+        "member2_name_orig": "Awa Diop",
+        "member2_role": "المدير التقني وقائد الفريق",
+        "member2_bio": "مهندسة شغوفة بالذكاء الاصطناعي والتحول الرقمي في أفريقيا.",
         "member3_image": "🎧",
-        "member3_name": "David N'Guessan",
-        "member3_role": "Support Manager",
-        "member3_bio": "Always listening to help our users achieve success.",
-        "values_title": "Our Values",
-        "value1_title": "🔍 Simplicity",
-        "value1_desc": "Technology should be accessible to everyone, without complex training.",
-        "value2_title": "🤝 Proximity",
-        "value2_desc": "We are based here — we understand your realities and challenges.",
-        "value3_title": "🚀 Innovation",
-        "value3_desc": "We improve Stockman every day thanks to your feedback."
+        "member3_name": "ديفيد نغيسان",
+        "member3_name_orig": "David N'Guessan",
+        "member3_role": "مدير الدعم",
+        "member3_bio": "مستعد دائماً للاستماع لمساعدة مستخدمينا في تحقيق النجاح.",
+        "values_title": "قيمنا",
+        "value1_title": "🔍 البساطة",
+        "value1_desc": "يجب أن تكون التكنولوجيا متاحة للجميع، دون الحاجة لتدريب معقد.",
+        "value2_title": "🤝 القرب",
+        "value2_desc": "نحن موجودون هنا - نحن نفهم واقعك وتحدياتك.",
+        "value3_title": "🚀 الابتكار",
+        "value3_desc": "نحن نعمل على تحسين Stockman كل يوم بفضل ملاحظاتكم."
     },
     "blog": {
-        "seo_title": "Blog & Resources",
-        "seo_desc": "Tips and tricks to manage your business, optimize your stock and increase your sales.",
-        "page_title": "Resource Center",
-        "page_subtitle": "Expert advice for modern merchants.",
-        "read_more": "Read more →",
-        "not_found": "Article not found 😕",
-        "back_to_blog": "Back to blog",
-        "back_to_articles": "← Back to articles",
-        "published_on": "PUBLISHED ON",
-        "liked_article": "Did you enjoy this article?",
-        "try_stockman": "Try Stockman to put these tips into practice.",
-        "start_trial": "Start the free trial",
+        "seo_title": "المدونة والمصادر",
+        "seo_desc": "نصائح وحيل لإدارة عملك، وتحسين مخزونك وزيادة مبيعاتك.",
+        "page_title": "مركز المصادر",
+        "page_subtitle": "نصائح من الخبراء للتجار العصريين.",
+        "read_more": "اقرأ المزيد ←",
+        "not_found": "المقال غير موجود 😕",
+        "back_to_blog": "العودة للمدونة",
+        "back_to_articles": "← العودة إلى المقالات",
+        "published_on": "نُشر في",
+        "liked_article": "هل أعجبك هذا المقال؟",
+        "try_stockman": "جرب Stockman لتطبيق هذه النصائح عملياً.",
+        "start_trial": "ابدأ الفترة التجريبية المجانية",
         "posts": {
             "abandonner-cahier-stock": {
-                "title": "Why ditch the notebook for stock management?",
-                "excerpt": "The notebook has its limits. Discover how going digital can save your business from calculation errors and losses.",
-                "date": "12 Feb 2026",
-                "content": "<p>Many merchants still use a notebook to record their sales and stock. It's a traditional method, but it carries serious risks.</p><h3>1. Calculation errors</h3><p>A simple addition mistake can throw off your entire accounting. With software like Stockman, calculations are automatic and error-free.</p><h3>2. Data loss</h3><p>A notebook can be lost, stolen or destroyed by fire. Your data on Stockman is backed up in the cloud and accessible anywhere.</p><h3>3. No big picture</h3><p>It's hard to know which product sells best by flipping through pages. Stockman gives you this information in one click.</p><h3>Conclusion</h3><p>Going digital is not an expense — it's an investment that saves you time and money from the very first month.</p>"
+                "title": "لماذا يجب التخلص من الدفتر في إدارة المخزون؟",
+                "excerpt": "الدفتر له حدود. اكتشف كيف يمكن للتحول الرقمي أن ينقذ عملك من أخطاء الحساب والخسائر.",
+                "date": "12 فبراير 2026",
+                "content": "<p>لا يزال العديد من التجار يستخدمون دفتراً لتسجيل مبيعاتهم ومخزونهم. إنها طريقة تقليدية، لكنها تحمل مخاطر جسيمة.</p><h3>1. أخطاء الحساب</h3><p>خطأ بسيط في الجمع يمكن أن يفسد كل حساباتك. مع برنامج مثل Stockman، الحسابات آلية وخالية من الأخطاء.</p><h3>2. فقدان البيانات</h3><p>يمكن أن يفقد الدفتر أو يسرق أو يتلف بسبب الحريق. يتم نسخ بياناتك في Stockman احتياطياً في السحابة ويمكن الوصول إليها في أي مكان.</p><h3>3. غياب الرؤية الشاملة</h3><p>من الصعب معرفة المنتج الذي يباع بشكل أفضل من خلال تصفح الصفحات. يمنحك Stockman هذه المعلومات بنقرة واحدة.</p><h3>الخلاصة</h3><p>التحول الرقمي ليس عبئاً - إنه استثمار يوفر لك الوقت والمال من الشهر الأول.</p>"
             },
             "eviter-ruptures-fetes": {
-                "title": "How to avoid stockouts during the holidays?",
-                "excerpt": "Christmas and Tabaski are critical periods. Prepare your stock in advance with our expert tips.",
-                "date": "10 Jan 2026",
-                "content": "<p>Stockouts during the holidays mean a direct loss of revenue. Here's how to avoid them.</p><h3>Anticipate demand</h3><p>Use last year's sales history to forecast the quantities you need to order.</p><h3>Order early</h3><p>Suppliers are often overwhelmed. Place your orders 2 to 3 weeks earlier than usual.</p><h3>Use Stockman alerts</h3><p>Set up alert thresholds to be notified as soon as a product starts running low.</p>"
+                "title": "كيف تتجنب نفاذ المخزون خلال الأعياد؟",
+                "excerpt": "عيد الميلاد وعيد الأضحى فترات حرجة. قم بإعداد مخزونك مسبقاً بمساعدة نصائح خبرائنا.",
+                "date": "10 يناير 2026",
+                "content": "<p>نفاذ المخزون خلال الأعياد يعني خسارة مباشرة في الإيرادات. إليك كيفية تجنب ذلك.</p><h3>توقع الطلب</h3><p>استخدم سجل مبيعات العام الماضي لتوقع الكميات التي تحتاج لطلبها.</p><h3>اطلب مبكرًا</h3><p>غالباً ما يكون الموردون مثقلين بالأعمال. قدم طلباتك قبل أسبوعين إلى ثلاثة أسابيع من المعتاد.</p><h3>استخدم تنبيهات Stockman</h3><p>قم بتعيين حدود التنبيه ليتم إخطارك بمجرد أن يبدأ المنتج في النفاذ.</p>"
             },
             "augmenter-marge-2026": {
-                "title": "3 tips to increase your margin in 2026",
-                "excerpt": "Revenue is good, but margin is better! Learn how to optimize your costs and prices.",
-                "date": "05 Jan 2026",
-                "content": "<p>Raising prices isn't the only way to earn more. Here's how to work on your margin.</p><h3>1. Reduce losses</h3><p>Expired or stolen products are costly. Rigorous stock tracking can reduce these losses by 30%.</p><h3>2. Negotiate with your suppliers</h3><p>By consolidating your orders through the Stockman Marketplace, you can get better rates.</p><h3>3. Build customer loyalty</h3><p>A loyal customer costs less to acquire than a new one. Use the loyalty program to keep them coming back.</p>"
+                "title": "3 نصائح لزيادة هامش ربحك في عام 2026",
+                "excerpt": "الإيرادات جيدة، لكن الهامش أفضل! تعلم كيفية تحسين تكاليفك وأسعارك.",
+                "date": "05 يناير 2026",
+                "content": "<p>رفع الأسعار ليس الطريقة الوحيدة لكسب المزيد. إليك كيفية العمل على هامش ربحك.</p><h3>1. تقليل الخسائر</h3><p>المنتجات منتهية الصلاحية أو المسروقة مكلفة. تتبع المخزون الصارم يمكن أن يقلل من هذه الخسائر بنسبة 30%.</p><h3>2. التفاوض مع الموردين</h3><p>من خلال توحيد طلباتك عبر سوق Stockman، يمكنك الحصول على أسعار أفضل.</p><h3>3. بناء ولاء العملاء</h3><p>تكلفة اكتساب عميل مخلص أقل من تكلفة اكتساب عميل جديد. استخدم برنامج الولاء لجعلهم يعودون.</p>"
             }
         }
     },
     "help": {
-        "hero_start": "How can we",
-        "hero_highlight": "help you",
-        "search_placeholder": "Search for an answer...",
-        "no_results": "No results found for \"{{term}}\"",
-        "need_more": "Need more help?",
-        "email_support": "✉️ Email Support",
-        "whatsapp_chat": "💬 WhatsApp Chat",
+        "hero_start": "كيف يمكننا",
+        "hero_highlight": "مساعدتك",
+        "search_placeholder": "ابحث عن إجابة...",
+        "no_results": "لم يتم العثور على نتائج لـ \"{{term}}\"",
+        "need_more": "هل تحتاج لمزيد من المساعدة؟",
+        "email_support": "✉️ دعم البريد الإلكتروني",
+        "whatsapp_chat": "💬 دردشة واتساب",
         "getting_started": {
-            "title": "Getting Started",
-            "q1": "How do I create an account?",
-            "a1": "Download the app and follow the on-screen instructions. It takes less than 2 minutes.",
-            "q2": "Can I use the app without internet?",
-            "a2": "Yes, Stockman works offline and syncs your data as soon as the connection is back."
+            "title": "البداية",
+            "q1": "كيف أنشئ حسابًا؟",
+            "a1": "قم بتنزيل التطبيق واتبع التعليمات التي تظهر على الشاشة. يستغرق الأمر أقل من دقيقتين.",
+            "q2": "هل يمكنني استخدام التطبيق بدون إنترنت؟",
+            "a2": "نعم، يعمل Stockman في وضع عدم الاتصال ويقوم بمزامنة بياناتك بمجرد عودة الاتصال."
         },
         "account_billing": {
-            "title": "Account & Billing",
-            "q1": "How do I change my password?",
-            "a1": "Go to Settings > Security > Change Password.",
-            "q2": "How does the free trial work?",
-            "a2": "You automatically get a 14-day free trial with all features unlocked upon registration."
+            "title": "الحساب والفوترة",
+            "q1": "كيف يمكنني تغيير كلمة المرور الخاصة بي؟",
+            "a1": "انتقل إلى الإعدادات > الأمان > تغيير كلمة المرور.",
+            "q2": "كيف تعمل الفترة التجريبية المجانية؟",
+            "a2": "تحصل تلقائيًا على فترة تجريبية مجانية لمدة 14 يومًا مع فتح جميع الميزات عند التسجيل."
         },
         "technical_support": {
-            "title": "Technical Support",
-            "q1": "The app won't open, what should I do?",
-            "a1": "Check your internet connection and make sure you have the latest update. If the problem persists, reinstall the app.",
-            "q2": "How do I contact support?",
-            "a2": "You can write to us via the form below or directly on WhatsApp."
+            "title": "الدعم الفني",
+            "q1": "التطبيق لا يفتح، ماذا أفعل؟",
+            "a1": "تحقق من اتصالك بالإنترنت وتأكد من حصولك على أحدث إصدار. إذا استمرت المشكلة، فقم بإعادة تثبيت التطبيق.",
+            "q2": "كيف أتصل بالدعم؟",
+            "a2": "يمكنك مراسلتنا من خلال النموذج أدناه أو مباشرة عبر واتساب."
         }
     },
     "terms": {
-        "title": "Terms and Conditions of Use",
-        "version": "\"Ultimate\" Version 3.0 - Last updated: February 13, 2026",
-        "content": "<p>Welcome to <strong>Stockman</strong>.<br/>These Terms and Conditions of Use (hereinafter \"Terms\") constitute a binding legal framework between the User and the Publisher of the Stockman solution.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE I: GENERAL PROVISIONS</h3><h4>Article 1: Definitions</h4><ul><li><strong>Platform</strong>: Refers to the complete Stockman software infrastructure.</li><li><strong>User</strong>: Entity or individual using the services for professional purposes.</li><li><strong>Publisher</strong>: Stockman Inc., owner and operator of Stockman.</li><li><strong>Shop / Store</strong>: Logical instance created by a User to manage their activities.</li></ul><h4>Article 2: Purpose of Services</h4><p>Stockman is an ERP solution specialized in stock management, point of sale and customer relations. It is provided as a service (SaaS).</p><h4>Article 3: Acceptance of Terms</h4><p>Access to the Platform is conditional upon full and complete acceptance of these Terms.</p><h4>Article 4: Capacity and Professional Use</h4><p>Stockman is a strictly professional tool. The User warrants that they use the service for their commercial activity.</p><h4>Article 5: Modification of Terms</h4><p>The Publisher reserves the right to modify these Terms at any time. Continued use of the Service after modification constitutes acceptance.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE II: ACCESS AND ACCOUNT MANAGEMENT</h3><h4>Article 6: Registration</h4><p>The User agrees to provide truthful data during registration.</p><h4>Article 7: Credential Security</h4><p>The User is responsible for safeguarding their password.</p><h4>Article 8: Profile Management</h4><p>The User may modify their information. This data must remain professional.</p><h4>Article 9: Staff Accounts</h4><p>The Owner may create access for their employees and assumes responsibility for their actions.</p><h4>Article 10: Permissions</h4><p>The User accepts the role system (Admin, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE III: COMMERCIAL OPERATIONS</h3><h4>Articles 11-18</h4><p>The User is responsible for creating their product listings, inventory, sales and returns. Stockman provides a theoretical stock status. The Publisher is not responsible for discrepancies.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLES IV-IX: DATA, AI, SECURITY</h3><p>AI may produce errors. Predictions are probabilities. Data is backed up daily. The Publisher guarantees the exercise of GDPR rights. Any dispute shall be subject to the law of the Publisher's registered office.</p>"
+        "title": "شروط وأحكام الاستخدام",
+        "version": "إصدار \"Ultimate\" الصادر بتاريخ 13 فبراير 2026",
+        "content": "<p>مرحباً بكم في <strong>Stockman</strong>.<br/>تشكل شروط وأحكام الاستخدام هذه (يشار إليها لاحقاً بـ \"الشروط\") إطاراً قانونياً ملزماً بين المستخدم والناشر لحل Stockman.</p><h3 style='margin-top:30px;color:var(--primary)'>الباب الأول: أحكام عامة</h3><h4>المادة 1: تعريفات</h4><ul><li><strong>المنصة</strong>: تشير إلى البنية التحتية الكاملة لبرنامج Stockman.</li><li><strong>المستخدم</strong>: الكيان أو الفرد الذي يستخدم الخدمات لأغراض مهنية.</li><li><strong>الناشر</strong>: شركة Stockman Inc.، المالك والمشغل لـ Stockman.</li><li><strong>المحل / المتجر</strong>: الكيان المنطقي الذي ينشئه المستخدم لإدارة أنشطته.</li></ul><h4>المادة 2: غرض الخدمات</h4><p>Stockman هو حل لتخطيط موارد المؤسسات (ERP) متخصص في إدارة المخزون ونقاط البيع وعلاقات العملاء. يتم تقديمه كخدمة (SaaS).</p><h4>المادة 3: قبول الشروط</h4><p>الوصول إلى المنصة مشروط بالقبول الكامل والكامل لهذه الشروط.</p><h4>المادة 4: الأهلية والاستخدام المهني</h4><p>Stockman هي أداة مهنية بحتة. يضمن المستخدم استخدام الخدمة لنشاطه التجاري.</p><h4>المادة 5: تعديل الشروط</h4><p>يحتفظ الناشر بالحق في تعديل هذه الشروط في أي وقت. استمرار استخدام الخدمة بعد التعديل يعتبر قبولاً.</p><h3 style='margin-top:30px;color:var(--primary)'>الباب الثاني: الوصول وإدارة الحساب</h3><h4>المادة 6: التسجيل</h4><p>يوافق المستخدم على تقديم بيانات صادقة أثناء التسجيل.</p><h4>المادة 7: أمن أوراق الاعتماد</h4><p>المستخدم مسؤول عن حماية كلمة المرور الخاصة به.</p><h4>المادة 8: إدارة الملف الشخصي</h4><p>يمكن للمستخدم تعديل معلوماته. يجب أن تظل هذه البيانات مهنية.</p><h4>المادة 9: حسابات الموظفين</h4><p>يمكن للمالك إنشاء وصول لموظفيه ويتحمل المسؤولية عن أفعالهم.</p><h4>المادة 10: الأذونات</h4><p>يقبل المستخدم نظام الأدوار (مسؤول، بائع، مدير).</p><h3 style='margin-top:30px;color:var(--primary)'>الباب الثالث: العمليات التجارية</h3><h4>المواد 11-18</h4><p>المستخدم مسؤول عن إنشاء قوائم منتجاته ومخزونه ومبيعاته ومرتجعاه. يوفر Stockman حالة مخزون نظرية. الناشر غير مسؤول عن أي فروق.</p><h3 style='margin-top:30px;color:var(--primary)'>الأبواب IV-IX: البيانات، الذكاء الاصطناعي، الأمن</h3><p>قد ينتج الذكاء الاصطناعي أخطاء. التوقعات هي احتمالات. يتم نسخ البيانات احتياطياً يومياً. يضمن الناشر ممارسة حقوق القانون العام لحماية البيانات (GDPR). يخضع أي نزاع لقانون المقر المسجل للناشر.</p>"
     },
     "privacy": {
-        "title": "Privacy Policy",
-        "version": "Last updated: February 13, 2026",
-        "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+        "title": "سياسة الخصوصية",
+        "version": "آخر تحديث: 13 فبراير 2026",
+        "content": "<p>مرحباً بكم في Stockman. إن حماية بياناتكم الشخصية هي أولوية بالنسبة لنا.</p><h3>1. جمع البيانات</h3><p>نقوم بجمع: معلومات التعريف (الاسم، البريد الإلكتروني، الهاتف)، البيانات المهنية (المتجر، المخزون، المعاملات)، البيانات التقنية (IP، الجهاز، السجلات).</p><h3>2. استخدام البيانات</h3><p>تُستخدم بياناتكم حصرياً لـ: إدارة مخزونكم ومبيعاتكم، تأمين حسابكم، تحسين خدماتنا والامتثال لالتزاماتنا القانونية.</p><h3>3. التخزين والأمان</h3><p>يتم تخزين بياناتكم على خوادم آمنة (MongoDB Atlas) وتشفيرها. نحن نستخدم بروتوكول HTTPS لجميع عمليات النقل.</p><h3>4. مشاركة البيانات</h3><p>نحن لا نبيع أو نؤجر بياناتكم. يمكن مشاركتها فقط مع مقدمي الخدمات التقنية لدينا والسلطات إذا كان القانون يقتضي ذلك.</p><h3>5. حقوقكم (RGPD)</h3><p>لديك حقوق الوصول والتصحيح والمحو وقابلية النقل. مارس هذه الحقوق من علامة تبويب الإعدادات في التطبيق.</p><h3>6. الاتصال</h3><p>لأي استفسار، تواصل معنا عبر التطبيق أو على <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     }
 }

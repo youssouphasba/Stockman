@@ -1,142 +1,68 @@
 {
     "nav": {
         "features": "Xarala yi",
-        "resources": "Luy dimbali",
+        "pricing": "Njeg yi",
+        "about": "Lu nu soxal",
         "blog": "Blog",
-        "home": "Dugg",
-        "login": "Dugg",
-        "free_trial": "Natt bi weesu"
+        "contact": "Woo nu",
+        "login": "Ubbi sa sët",
+        "get_started": "Dore léegi"
     },
     "hero": {
-        "title_start": "Ubbi xéwal yi ci sa",
-        "title_end": "njaay",
-        "subtitle": "Kollëré ci wàllu xibaar ak kàttanug IA ngir saytu sa tééré yi ak yokk sa kër gi.",
-        "cta": "Dore léegi"
+        "badge": "Numéro 1 ci logistique bi ci Afrik 🌍",
+        "title_start": "Saytul",
+        "title_highlight": "sa dëkkaay njaay",
+        "title_end": "ni njiit",
+        "desc": "POS bu mat, saytu mbiddu ak kote njaay. Yomb na, am na doole te mën nga ko jëfandikoo fépp - ba ci lu amul internet.",
+        "cta_primary": "Natt ko feyeer",
+        "cta_secondary": "Xoolal natt bi",
+        "trust": "Lu ëpp 5000 njaaykat nangu nanu ko"
+    },
+    "features_main": {
+        "title": "Lépp lu la soxal ngir yokkuté",
+        "subtitle": "Bayyil bind ci kaye yi. Jëlal saytu bu xarala.",
+        "f1_title": "Saytu mbiddu",
+        "f1_desc": "Topal sa mbiddu yi ci sa waxtu te xam bala nu jeex.",
+        "f2_title": "POS (Caisse)",
+        "f2_desc": "Teru sa kilyan yi ci gaawaay te yónne leen resit ci WhatsApp.",
+        "f3_title": "Kote njaay (Accounting)",
+        "f3_desc": "Xoolal sa yokkuté, sa njaay ak sa mën-mën ci léegi.",
+        "f4_title": "Lu amul internet",
+        "f4_desc": "Wéyal sa njaay ba ci lu amul internet. Boo amee internet lépp dina simay.",
+        "f5_title": "IA (Xel bu xarala)",
+        "f5_desc": "Xamël kaxu njaay yi te baaxal sa ndeyjoor.",
+        "f6_title": "Marketplace",
+        "f6_desc": "Jëndal sa mbiddu yi ci grossiste yi gën a baax te am njeeg yu yomb."
     },
     "stats": {
-        "shops": "Sutura yi am",
-        "transactions": "Njaay yi / Weer",
-        "satisfaction": "Kiliyan yu bég",
-        "support": "Ndimbal am na"
-    },
-    "features": {
-        "title": "Sa jumtukaayu bés bu ne",
-        "subtitle": "Mbooloom jumtukaay ngir saytu lépp lu jëm ci sa njaay.",
-        "dashboard": {
-            "title": "Home",
-            "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
-        },
-        "products": {
-            "title": "Products",
-            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
-        },
-        "pos": {
-            "title": "POS",
-            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
-        },
-        "suppliers": {
-            "title": "Suppliers",
-            "desc": "Supplier directory, order history, and access to 'Button-to-Button' Marketplace."
-        },
-        "orders": {
-            "title": "Orders",
-            "desc": "Track purchase orders, receive goods, and automatically update stock."
-        },
-        "accounting": {
-            "title": "Accounting",
-            "desc": "Precise tracking of sales, expenses, and automatic profitability calculation."
-        },
-        "clients": {
-            "title": "Clients",
-            "desc": "Customer database, purchase history, and integrated loyalty tools."
-        },
-        "settings": {
-            "title": "Settings",
-            "desc": "App customization, user management, and shop configuration."
-        }
-    },
-    "showcase": {
-        "title": "The Interface That Changes Everything",
-        "subtitle": "Clean design, built to save you time.",
-        "app_interface": "App Interface"
-    },
-    "how_it_works": {
-        "title": "Quick Start",
-        "subtitle": "Three simple steps to transform your shop.",
-        "step1": {
-            "title": "Create Account",
-            "desc": "Download the app and configure your shop in under 2 minutes."
-        },
-        "step2": {
-            "title": "Scan Products",
-            "desc": "Use your phone camera to quickly add your stock."
-        },
-        "step3": {
-            "title": "Sell & Track",
-            "desc": "Make your first sales and watch your stats grow in real-time."
-        }
-    },
-    "testimonials": {
-        "title": "They Trust Us",
-        "subtitle": "Discover how Stockman helps merchants daily.",
-        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+        "merchants": "Njaaykat yu nekk ci biir",
+        "transactions": "Njaay ci weer bi",
+        "availability": "Dox bi",
+        "support": "Ndimal 24/7"
     },
     "pricing": {
-        "title": "Choose Your Plan",
-        "subtitle": "Transparent pricing adapted to your business size.",
-        "month": "/month",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "price": "1000",
-            "f1": "1 User",
-            "f2": "Up to 100 products",
-            "f3": "Basic Stock Management",
-            "f4": "Cash Register",
-            "cta": "Start"
-        },
-        "business": {
-            "name": "Business",
-            "price": "2500",
-            "f1": "3 Jëfandikookat",
-            "f2": "Mbiddu yu dul jeex",
-            "f3": "Stockman IA Dimbalikat",
-            "f4": "Luma & Ndigal",
-            "f5": "Saytu yu xóot",
-            "cta": "14 fan natt bu weesu"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Njeeg yu nu natt",
-            "f1": "Jëfandikookat yu dul jeex",
-            "f2": "Saytukat botik yu bari",
-            "f3": "API & Méngale",
-            "f4": "Dimbali 24/7",
-            "cta": "Woo nu"
-        }
-    },
-    "faq": {
-        "title": "Laaj yi bari",
-        "q1": "Ndax dina liggéey te amul internet?",
-        "a1": "Waaw, Stockman dina liggéey offline. Sa mbiddu dina méngale bu internet dikkee.",
-        "q2": "Ndax sa mbiddu am na kaaraange?",
-        "a2": "Waaw. Danu jëfandikoo xarala yu tar ngir aar mbiddu sa njaay."
-    },
-    "download": {
-        "title": "Ndax pare nga ngir yokk sa njaay?",
-        "subtitle": "Bokkël ci junney jaaykat yi yeesal nanu seen saytu.",
-        "secure": "Fay bu am kaaraange",
-        "support": "Dimbali bu pro",
-        "updates": "Yeesal yu dul tàgg"
+        "title": "Njeeg yu leer, amul lën-lën",
+        "subtitle": "Doreal feyeer, yokkul ni la neexee.",
+        "free_title": "Dore",
+        "free_price": "0 FCFA",
+        "free_desc": "Ngir njaaykat yu ndaw yi",
+        "premium_title": "Premium",
+        "premium_price": "5,000 FCFA",
+        "premium_desc": "Doole bi mat ngir sa njaay",
+        "feature_pos": "POS bu mat",
+        "feature_stock": "Saytu mbiddu",
+        "feature_accounting": "Kote njaay",
+        "feature_multi_user": "Liggeeykat yu ëpp",
+        "feature_ai": "Saytu IA",
+        "cta": "Tannal sa plan"
     },
     "footer": {
-        "desc": "Luy dimbali jaaykat yi yeesal seen njaay ci Afrique.",
-        "product": "Luy jaay",
-        "support": "Dimbali",
+        "desc": "Solisyon numéro 1 ngir baaxal njaay ci Afrik.",
+        "product": "Mbiddu",
+        "company": "Kër gi",
+        "support": "Ndimal",
         "legal": "Yoon",
-        "help_center": "Kër Dimbali bi",
+        "help_center": "Kër ndimal",
         "contact": "Woo nu",
         "community": "Mbooloo mi",
         "privacy": "Aar mbiddu",
@@ -145,12 +71,12 @@
         "copyright": "© 2026 Stockman. Lu nu aar la."
     },
     "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
-        "success": "Thanks! Check your inbox.",
-        "placeholder": "Your email...",
-        "cta": "Get the Guide",
-        "privacy": "No spam. Unsubscribe in 1 click."
+        "title": "Nekkaltal njiit ci saytu mbiddu",
+        "desc": "Bokkal ak 5000+ njaaykat te jëlal sunu teere ndimal: \"10 njuumte yu lay yàkkal sa njaay\".",
+        "success": "Jërëjëf! Xoolal sa email.",
+        "placeholder": "Sa email...",
+        "cta": "Jëlal teere bi",
+        "privacy": "Spam amul fi. Mën nga dakkal ci 1 bës."
     },
     "contact": {
         "title": "Woo nu",
@@ -164,34 +90,34 @@
         "send_another": "Yónne beneen bataaxal"
     },
     "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
+        "message": "Assalamu alaykum, bëgg naa gën a xam lu soxal Stockman!"
     },
     "cookie": {
         "message": "Danu jëfandikoo cookies ngir gëna baax sa xarala. Soo demee, dangay nangu sunu politique de confidentialité.",
         "accept": "Nangu"
     },
     "comparison": {
-        "title": "Why choose Stockman?",
-        "feature": "Feature",
-        "notebook": "Notebook / Excel 📝",
-        "stock_mgmt": "Stock Management",
-        "stock_yes": "✅ Automatic & Real-time",
-        "stock_no": "❌ Manual & Error-prone",
-        "alerts": "Stockout Alerts",
-        "alerts_yes": "✅ AI Notifications",
-        "alerts_no": "❌ None",
-        "pos": "POS (Cash Register)",
-        "pos_yes": "✅ Built-in & Fast",
-        "pos_no": "❌ Separate calculator",
-        "backup": "Backup",
-        "backup_yes": "✅ Secure Cloud",
-        "backup_no": "❌ Risk of loss (theft, fire)",
-        "financial": "Financial Report",
-        "financial_yes": "✅ In 1 click (P&L, Margin)",
-        "financial_no": "❌ Long and tedious calculations",
+        "title": "Lu tax ngay tann Stockman?",
+        "feature": "Xarala",
+        "notebook": "Kaye / Excel 📝",
+        "stock_mgmt": "Saytu mbiddu",
+        "stock_yes": "✅ Ci sa waxtu te yomb",
+        "stock_no": "❌ Bind ak njuumte",
+        "alerts": "Artu mbiddu",
+        "alerts_yes": "✅ IA mooy yegal",
+        "alerts_no": "❌ Amul",
+        "pos": "POS (Caisse)",
+        "pos_yes": "✅ Da gaaw te mat",
+        "pos_no": "❌ Salkilatris doŋŋ",
+        "backup": "Aar xibaar",
+        "backup_yes": "✅ Cloud bu mat",
+        "backup_no": "❌ Mën na reer (sàcc, tàkk)",
+        "financial": "Rapport njaay",
+        "financial_yes": "✅ Ci 1 bës (P&L, Yokkuté)",
+        "financial_no": "❌ Coono bu réy ci kote",
         "marketplace": "Marketplace",
-        "marketplace_yes": "✅ Direct supplier access",
-        "marketplace_no": "❌ Physical outreach"
+        "marketplace_yes": "✅ Grossiste yi ci sa loxo",
+        "marketplace_no": "❌ Dokkante bi ci mbedd bi"
     },
     "feature_pages": {
         "back_home": "Delloo ci kër ga",
@@ -212,319 +138,330 @@
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",
-                    "title": "Overview & KPIs",
-                    "description": "Track your key performance indicators in real time as soon as you open the app."
+                    "title": "Xoolukaay bu mat",
+                    "description": "Topal sa liggeey ci sa waxtu boo ubbee aplikasyon bi."
                 },
                 "stats": {
                     "image": "/assets/screenshots/dashboard-stats.jpg",
-                    "title": "Global Statistics",
-                    "description": "See your revenue, profits and sales trends at a glance."
+                    "title": "Mbiddu yu mat",
+                    "description": "Xoolal sa xaalis ak sa yokkuté ci sa bët."
                 },
                 "charts": {
                     "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-                    "title": "Performance Charts",
-                    "description": "Track the evolution of your stock value and analyze your sales peaks."
+                    "title": "Xaye yu leer",
+                    "description": "Topal ni sa mbiddu di doxé te xool waxtu bi njaay di ëppé."
                 },
                 "analysis": {
                     "image": "/assets/screenshots/dashboard-analysis.jpg",
-                    "title": "ABC Analysis & Restocking",
-                    "description": "Identify your most profitable products and receive order suggestions."
+                    "title": "Saytu ABC & Jënd",
+                    "description": "Xamël mbiddu yi la gën a jox xaalis te jëlal ndigal ngir jënd."
                 },
                 "history": {
                     "image": "/assets/screenshots/dashboard-history.jpg",
-                    "title": "Movement History",
-                    "description": "Keep a record of every stock entry and exit with full traceability."
+                    "title": "Téere xarala",
+                    "description": "Dencal bépp mbiddu buy duggu wala buy génnu ci sa stock."
                 }
             }
         },
         "products": {
-            "title": "Product Management",
-            "subtitle": "Your inventory, perfectly organized",
-            "description": "Professional inventory management without the complexity. Whether you have 10 or 10,000 items, Stockman lets you organize them with precision. The built-in barcode scanner turns your phone into an ultra-fast inventory terminal.",
-            "f1_title": "Barcode Scanning",
-            "f1_desc": "Use your phone camera to add products or do a quick inventory count.",
-            "f2_title": "Flexible Organization",
-            "f2_desc": "Create categories, brands and variants to structure your catalog.",
-            "f3_title": "Stock Valuation",
-            "f3_desc": "Know the total value of your inventory at any time (purchase price and selling price).",
+            "title": "Saytu mbiddu",
+            "subtitle": "Sa stock, ubbil ko ni la neexee",
+            "description": "Saytul sa mbiddu yi ni njiit te amul coono. Soo amee 10 wala 10,000 mbiddu, Stockman dina la dimbali nga tëral leen bu baax. Saytukaay borkood (barcode) bi ci biir dina def sa telefon mu nekk xarala bu gaaw.",
+            "f1_title": "Scanner Barcode",
+            "f1_desc": "Jëfandikool sa kamera telefon ngir yokk ay mbiddu wala jàng mbiddu yi ci gaawaay.",
+            "f2_title": "Tëralin bu mat",
+            "f2_desc": "Sosal ay kategóri, ay marka ak ay cét ngir baaxal sa kër njaay.",
+            "f3_title": "Njeegu stock bi",
+            "f3_desc": "Xamël njeegu sa stock bi lépp (njeegu jënd ak njeegu njaay).",
             "gallery": {
                 "list": {
                     "image": "/assets/screenshots/products-list.jpg",
-                    "title": "Product List",
-                    "description": "Quickly access your entire catalog with search and advanced filters."
+                    "title": "Limu mbiddu yi",
+                    "description": "Gaawal jëlee sa mbiddu yi ci lëkkalekaay bi ak seetukaay bu xarala."
                 },
                 "create": {
                     "image": "/assets/screenshots/products-create-1.jpg",
-                    "title": "Simple Creation",
-                    "description": "Add a product in seconds with all its essential information."
+                    "title": "Sosal bu yomb",
+                    "description": "Yokkul sa mbiddu ci sigoŋ yi ak lépp lu mu soxal."
                 },
                 "variants": {
                     "image": "/assets/screenshots/products-create-2.jpg",
-                    "title": "Details & Variants",
-                    "description": "Manage sizes, colors and specific prices for each variant."
+                    "title": "Cét yi ak detay",
+                    "description": "Saytul li réy, kulër yi ak njeeg yi wuute."
                 },
                 "thresholds": {
                     "image": "/assets/screenshots/products-create-3.jpg",
-                    "title": "Stock & Thresholds",
-                    "description": "Set low stock alerts so you never run out of goods."
+                    "title": "Stock ak artu",
+                    "description": "Tëralal ay artu ngir mbiddu bu néew ba nga bañ a reer sa njaay."
                 }
             }
         },
         "pos": {
-            "title": "Cash Register",
-            "subtitle": "Process customer payments with ease",
-            "description": "Deliver a smooth and modern checkout experience. Our touch-based POS is built for speed: add items, manage discounts and handle multiple payment methods in seconds.",
-            "f1_title": "Quick Cart",
-            "f1_desc": "Touch-optimized interface to add products to the cart in the blink of an eye.",
-            "f2_title": "Digital Receipts",
-            "f2_desc": "Send receipts via WhatsApp, SMS or Email directly to your customers.",
-            "f3_title": "Multi-Payment",
-            "f3_desc": "Accept cash, Mobile Money or card payments and track everything in your register.",
+            "title": "POS (Caisse)",
+            "subtitle": "Fey kilyan yi ci yomb",
+            "description": "Jox kilyan yi yoonu fey bu bees te gaaw. Sunu POS bi gaaw na lool: yokkul mbiddu yi, saytu rabat yi te fey ci ay fason yu bari ci sigoŋ yu néew.",
+            "f1_title": "Panniyé bu gaaw",
+            "f1_desc": "Ubbi sa panniyé te yokk mbiddu yi ci sa bët.",
+            "f2_title": "Resit digital",
+            "f2_desc": "Yónne resit yi ci WhatsApp, SMS wala Email sa kilyan yi.",
+            "f3_title": "Feyin yu bari",
+            "f3_desc": "Nangul xaalis, Mobile Money wala kart te topal lépp ci téere bi.",
             "gallery": {
                 "sale": {
                     "image": "/assets/screenshots/pos-overview.jpg",
-                    "title": "Sales Interface",
-                    "description": "Add products to the cart, manage quantities and discounts seamlessly."
+                    "title": "Buntu njaay bi",
+                    "description": "Yokkul mbiddu yi ci panniyé bi, saytul li nga bëgg ak rabat yi."
                 },
                 "receipt": {
                     "image": "/assets/screenshots/pos-receipt-qr.jpg",
-                    "title": "Receipt & QR Code",
-                    "description": "Generate an instant receipt with a QR code your customers can scan."
+                    "title": "Resit ak Code QR",
+                    "description": "Sosal resit bu gaaw ak code QR bu kilyan yi mën a scan."
                 }
             }
         },
         "suppliers": {
-            "title": "Suppliers & Marketplace",
-            "subtitle": "Your procurement simplified",
-            "description": "Turn your procurement into a competitive advantage. Stockman centralizes your suppliers and opens the doors to its exclusive Marketplace. Compare prices in real time and place orders directly.",
-            "f1_title": "Supplier Directory",
-            "f1_desc": "Centralize contact details for all your suppliers and the history of your exchanges.",
-            "f2_title": "Automated Orders",
-            "f2_desc": "Generate purchase orders in one click based on your stock needs.",
-            "f3_title": "Price Comparator",
-            "f3_desc": "Find the cheapest supplier for each product with our built-in comparator.",
+            "title": "Grossiste yi ak Marketplace",
+            "subtitle": "Sa jënd yomb na léegi",
+            "description": "Defal sa jënd mu nekk doole ngir nga raw sa moroom yi. Stockman dina la lëkkalé ak sa grossiste yi te ubbil la sunu Marketplace bu mat. Nattal njeeg yi te jënd ci kër gi.",
+            "f1_title": "Limu grossiste yi",
+            "f1_desc": "Dencal lépp lu jëm ci sa grossiste yi ak istoriku sa njaay ak nu.",
+            "f2_title": "Jënd bu gaaw",
+            "f2_desc": "Sosal ay mbataaxal jënd ci 1 bës ni sa stock soxalee.",
+            "f3_title": "Natt njeeg",
+            "f3_desc": "Seetal ba xam an moy grossiste bi gën a yomb ngir bépp mbiddu.",
             "gallery": {
                 "marketplace": {
                     "image": "/assets/screenshots/suppliers-marketplace.jpg",
-                    "title": "Built-in Marketplace",
-                    "description": "Access a wide network of verified suppliers and compare prices."
+                    "title": "Marketplace bi ci biir",
+                    "description": "Bokkal ak mbooloo grossiste yi nu aar te nattal njeeg yi."
                 },
                 "catalog": {
                     "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-                    "title": "Supplier Catalog",
-                    "description": "Browse available products from each supplier and their terms."
+                    "title": "Xibaaru grossiste",
+                    "description": "Xoolal mbiddu yi grossiste bi am ak sarti jëndam."
                 },
                 "order": {
                     "image": "/assets/screenshots/suppliers-order-creation.jpg",
-                    "title": "Order Placement",
-                    "description": "Create and send your restocking orders in just a few clicks."
+                    "title": "Liggeey njaay",
+                    "description": "Sosal te yónne sa jënd mbiddu ci sigoŋ yu néew."
                 }
             }
         },
         "orders": {
-            "title": "Order Tracking",
-            "subtitle": "From order to delivery",
-            "description": "Keep full control over your supply chain. From the purchase order to in-store reception, track every step. Stock is automatically updated upon receipt.",
-            "f1_title": "Status Tracking",
-            "f1_desc": "View the status of each order: Pending, Shipped, Received or Cancelled.",
-            "f2_title": "Easy Reception",
-            "f2_desc": "Confirm goods reception and automatically update stock quantities.",
-            "f3_title": "Complete History",
-            "f3_desc": "Find all your past orders to simplify restocking.",
+            "title": "Topal jënd bi",
+            "subtitle": "Dore ko ci jënd ba mu dugg ci dëkkaay bi",
+            "description": "Amal sa loxo ci bépp mbiddu buy dugg. Dore ko ci bon de commande ba ci njaay bi, topal lépp. Sa stock dina simay sàssu mbiddu bi dugee.",
+            "f1_title": "Topal dox bi",
+            "f1_desc": "Xoolal njaay bi: mu ngi fey, mu ngi njaay, mu ngi duggu wala dakk na.",
+            "f2_title": "Duggal bu yomb",
+            "f2_desc": "Nangul mbiddu yi te yokkul sa stock ci sigoŋ bi.",
+            "f3_title": "Istoriku bu mat",
+            "f3_desc": "Seetal bépp jënd bu fi amon ngir gën a yombal sa liggeey.",
             "gallery": {
                 "tracking": {
                     "image": "/assets/screenshots/orders-tracking.jpg",
-                    "title": "Real-Time Tracking",
-                    "description": "View the progress status of each supplier order."
+                    "title": "Topal bu mat",
+                    "description": "Xoolal njaay bi dore ba mu jéex ci sa grossiste."
                 }
             }
         },
         "accounting": {
-            "title": "Simplified Accounting",
-            "subtitle": "Your finances under control",
-            "description": "Your accounting runs itself. Every sale, every expense automatically feeds your accounting journals. Track your cash flow and generate your Income Statement in one click.",
-            "f1_title": "Income Statement",
-            "f1_desc": "View your revenue, costs and net profit for any period you choose.",
-            "f2_title": "Expense Tracking",
-            "f2_desc": "Record your expenses (rent, electricity, salaries) for accurate profitability calculations.",
-            "f3_title": "PDF/Excel Export",
-            "f3_desc": "Download your accounting data for your accountant or personal archives.",
+            "title": "Kote njaay bu yomb",
+            "subtitle": "Sa xaalis ci sa loxo",
+            "description": "Sa kote njaay boppam mooy liggeeyal boppam. Bépp njaay, bépp depans dina dugg ci téere bi léegi. Topal sa xaalis te sosal sa bilan ci 1 bës.",
+            "f1_title": "Bilan (Profit & Loss)",
+            "f1_desc": "Xoolal sa yokkuté, sa njaay ak sa mën-mën ci bépp waxtu.",
+            "f2_title": "Topal depans yi",
+            "f2_desc": "Bindal sa depans (fey kër, kuraan, liggeeykat) ngir xam ni sa njaay di doxé.",
+            "f3_title": "Génne PDF/Excel",
+            "f3_desc": "Wàccal sa mbiddu kote ngir jox ko sa saytukat wala ngir denc ko.",
             "gallery": {
                 "overview": {
                     "image": "/assets/screenshots/accounting-overview.jpg",
-                    "title": "Global Accounting View",
-                    "description": "Analyze your profitability with clear and precise indicators."
+                    "title": "Xaralu kote bi",
+                    "description": "Saytul sa yokkuté ak ay xaye yu leer te dëggu."
                 },
                 "expenses": {
                     "image": "/assets/screenshots/accounting-expense-create.jpg",
-                    "title": "Expense Management",
-                    "description": "Easily add your fixed and variable costs."
+                    "title": "Saytu depans",
+                    "description": "Yokkul sa depans yi ci yomb."
                 },
                 "reports": {
                     "image": "/assets/screenshots/accounting-details-charts.jpg",
-                    "title": "Reports & Charts",
-                    "description": "Visualize the evolution of your finances over time."
+                    "title": "Rappór ak xaye",
+                    "description": "Xoolal sa xaalis ni muy doxé ci sigoŋ bi."
                 }
             }
         },
         "clients": {
-            "title": "Customer Management (CRM)",
-            "subtitle": "Build customer loyalty",
-            "description": "Turn occasional customers into loyal regulars. The built-in CRM records every interaction and purchase history. Manage debts and credits so you never lose money on tabs again.",
-            "f1_title": "Customer Profiles",
-            "f1_desc": "Complete purchase history, contact details and preferences for each customer.",
-            "f2_title": "Debts & Credits",
-            "f2_desc": "Track customer tabs and know exactly who owes you money.",
-            "f3_title": "WhatsApp Marketing",
-            "f3_desc": "Send targeted promotional messages directly on WhatsApp.",
+            "title": "Saytu kilyan (CRM)",
+            "subtitle": "Dencal sa kilyan",
+            "description": "Defal sa kilyan yi nu nekk kilyan yu dëggu. CRM bi dina denc bépp istoriku njaay. Saytul bor yi ak xaalis bi nu la yorel ba nga bañ a reerate xaalis ci \"bor\".",
+            "f1_title": "Xibaaru kilyan",
+            "f1_desc": "Istoriku njaay bu mat, nimero telefon ak lu neex kilyan bi.",
+            "f2_title": "Bor ak keredit",
+            "f2_desc": "Topal boru kilyan yi te xamël kan mooy fay te kan mooy yor xaalis bi.",
+            "f3_title": "Marketing WhatsApp",
+            "f3_desc": "Yónne bataaxali njaay sa kilyan yi ci WhatsApp.",
             "gallery": {
                 "details": {
                     "image": "/assets/screenshots/clients-details.jpg",
-                    "title": "Detailed Customer Profile",
-                    "description": "All customer info, purchase history and credit/debt balances."
+                    "title": "Xibaaru kilyan bu mat",
+                    "description": "Lépp lu mu soxal kilyan bi, sa njaayam ak borom."
                 },
                 "campaigns": {
                     "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-                    "title": "WhatsApp Campaigns",
-                    "description": "Create and send targeted promotional campaigns to your customer groups."
+                    "title": "WhatsApp njaay",
+                    "description": "Sosal te yónne ay bataaxal njaay ci mbooloo kilyan yi."
                 }
             }
         },
         "settings": {
-            "title": "Settings & Configuration",
-            "subtitle": "Adapt Stockman to your needs",
-            "description": "Configure Stockman to fit your structure: manage access rights for your staff, add new points of sale and access responsive support.",
-            "f1_title": "User Management",
-            "f1_desc": "Create accounts for your employees and define their permissions (seller, manager, admin).",
-            "f2_title": "Multi-Store",
-            "f2_desc": "Add and manage multiple points of sale from a single admin account.",
-            "f3_title": "Customization",
-            "f3_desc": "Change the currency, language and display preferences of the app.",
+            "title": "Paramétrage",
+            "subtitle": "Defal Stockman ni nga ko bëggé",
+            "description": "Tëralal Stockman ni sa liggeey baaxee: saytul sa liggeeykat yi, yokkul ay dëkkaay njaay yu bees te am ndimal bu gaaw.",
+            "f1_title": "Saytu liggeeykat",
+            "f1_desc": "Ubbi ay sët ngir sa liggeeykat yi te tëralal leen li nu mën a def (vendeur, manager, admin).",
+            "f2_title": "Bari dëkkaay njaay",
+            "f2_desc": "Yokkul te saytul ay dëkkaay njaay yu bari ci 1 sët.",
+            "f3_title": "Tëralin",
+            "f3_desc": "Soppal xaalis bi, làkk bi ak ni aplikasyon bi di wonee.",
             "gallery": {
                 "team": {
                     "image": "/assets/screenshots/settings-employees.jpg",
-                    "title": "Team Management",
-                    "description": "Manage your employees, their roles and their access."
+                    "title": "Saytu ekip bi",
+                    "description": "Saytul sa liggeeykat yi, sunu role ak lu nu mën a ubbi."
                 },
                 "notifications": {
                     "image": "/assets/screenshots/settings-notifications.jpg",
-                    "title": "Notification Center",
-                    "description": "Configure your stock alerts and important reminders."
+                    "title": "Kër artu",
+                    "description": "Tëralal sa artu mbiddu ak fattali yi am solo."
                 },
                 "security": {
                     "image": "/assets/screenshots/settings-support-security.jpg",
-                    "title": "Support & Security",
-                    "description": "Access online help and secure your account."
+                    "title": "Ndimal ak Aar",
+                    "description": "Ubbi ndimal ci kër gi te aar sa sët."
                 },
                 "guide": {
                     "image": "/assets/screenshots/settings-guide.jpg",
-                    "title": "Complete Guide",
-                    "description": "Learn to master all the features of Stockman."
+                    "title": "Teere ndimal",
+                    "description": "Jàngël lépp lu Stockman mën a def."
                 }
             }
         }
     },
     "about": {
-        "seo_title": "About Us",
-        "seo_desc": "Discover the team behind Stockman and our mission to digitalize commerce in Africa.",
-        "home": "Home",
-        "mission_start": "Our Mission:",
-        "mission_highlight": "Digitalize Africa",
-        "mission_desc": "We believe that every merchant, small or large, deserves the best tools to succeed. Stockman is not just software — it's your growth partner.",
-        "team_title": "The Team",
-        "team_subtitle": "Passionate people serving entrepreneurs.",
+        "seo_title": "Lu nu soxal",
+        "seo_desc": "Xamël ekip Stockman bi ak liggeey bi nu yor ngir digitaliser njaay bi ci Afrik.",
+        "home": "Kër ga",
+        "mission_start": "Sunu liggeey:",
+        "mission_highlight": "Digitaliser Afrik",
+        "mission_desc": "Danu gëm ne bépp njaaykat, bu ndaw wala bu réy, am na sàrtu am xarala yu gën a baax ngir raw. Stockman du logicel doŋŋ — mooy sa liggeeykat ngir yokkuté sa njaay.",
+        "team_title": "Ekip bi",
+        "team_subtitle": "Liggeeykat yu am pass-pass ngir njaaykat yi.",
         "member1_image": "👨🏿‍💼",
         "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Co-Founder",
-        "member1_bio": "A former merchant, he created Stockman to solve his own management challenges.",
+        "member1_role": "CEO & Sosal-kat",
+        "member1_bio": "Njaaykat bu jëkk, dafa sos Stockman ngir saytu sa jàfe-jàfe njaay.",
         "member2_image": "👩🏾‍💻",
         "member2_name": "Awa Diop",
-        "member2_role": "CTO & Tech Lead",
-        "member2_bio": "An engineer passionate about AI and digital accessibility in Africa.",
+        "member2_role": "CTO & Njiit xarala",
+        "member2_bio": "Injénieur bu am pass-pass ci IA ak digital bi ci Afrik.",
         "member3_image": "🎧",
         "member3_name": "David N'Guessan",
-        "member3_role": "Support Manager",
-        "member3_bio": "Always listening to help our users achieve success.",
-        "values_title": "Our Values",
-        "value1_title": "🔍 Simplicity",
-        "value1_desc": "Technology should be accessible to everyone, without complex training.",
-        "value2_title": "🤝 Proximity",
-        "value2_desc": "We are based here — we understand your realities and challenges.",
-        "value3_title": "🚀 Innovation",
-        "value3_desc": "We improve Stockman every day thanks to your feedback."
+        "member3_role": "Njiit ndimal",
+        "member3_bio": "Dafa nekk fi waxtu wu ne ngir dimbali sunu jëfandikookat yi.",
+        "values_title": "Sunu gëm-gëm",
+        "value1_title": "🔍 Yombal",
+        "value1_desc": "Xarala bi dafa wara yomb ba kii nekk mën na ko jëfandikoo.",
+        "value2_title": "🤝 Dokkante",
+        "value2_desc": "Fi lu nu dëkk — danu xam sa dund ak sa jàfe-jàfe.",
+        "value3_title": "🚀 Xarala mu bees",
+        "value3_desc": "Danuy gën a baaxal Stockman bépp bës ndax sa bataaxal yi.",
+        "mission_vision": "Sosal njaay bu bees, bu mat te sukkandiku ci xaralam.",
+        "values_list": [
+            {
+                "title": "Simplisité",
+                "desc": "Logiciel bu yomb te gaaw."
+            },
+            {
+                "title": "Dokkanté",
+                "desc": "Dëkk fi ak yeen waxtu wu ne."
+            }
+        ]
     },
     "blog": {
-        "seo_title": "Blog & Resources",
-        "seo_desc": "Tips and tricks to manage your business, optimize your stock and increase your sales.",
-        "page_title": "Resource Center",
-        "page_subtitle": "Expert advice for modern merchants.",
-        "read_more": "Read more →",
-        "not_found": "Article not found 😕",
-        "back_to_blog": "Back to blog",
-        "back_to_articles": "← Back to articles",
-        "published_on": "PUBLISHED ON",
-        "liked_article": "Did you enjoy this article?",
-        "try_stockman": "Try Stockman to put these tips into practice.",
-        "start_trial": "Start the free trial",
+        "seo_title": "Blog ak ndimal",
+        "seo_desc": "Xarala ak ndimal ngir saytu sa njaay, baaxal sa mbiddu te yokk sa njaay.",
+        "page_title": "Kër xibaar",
+        "page_subtitle": "Ndigal yu njiit ngir njaaykat yu bees yi.",
+        "read_more": "Jàng ko léegi →",
+        "not_found": "Mbiddu bi amul fi 😕",
+        "back_to_blog": "Delloo ci Blog bi",
+        "back_to_articles": "← Delloo ci mbiddu yi",
+        "published_on": "PUBLIÉ LE",
+        "liked_article": "Ndax mbiddu bi neex na la?",
+        "try_stockman": "Nattal Stockman ngir jëfandikoo ndigal yii.",
+        "start_trial": "Dore natt bi feyeer",
         "posts": {
             "abandonner-cahier-stock": {
-                "title": "Why ditch the notebook for stock management?",
-                "excerpt": "The notebook has its limits. Discover how going digital can save your business from calculation errors and losses.",
-                "date": "12 Feb 2026",
-                "content": "<p>Many merchants still use a notebook to record their sales and stock. It's a traditional method, but it carries serious risks.</p><h3>1. Calculation errors</h3><p>A simple addition mistake can throw off your entire accounting. With software like Stockman, calculations are automatic and error-free.</p><h3>2. Data loss</h3><p>A notebook can be lost, stolen or destroyed by fire. Your data on Stockman is backed up in the cloud and accessible anywhere.</p><h3>3. No big picture</h3><p>It's hard to know which product sells best by flipping through pages. Stockman gives you this information in one click.</p><h3>Conclusion</h3><p>Going digital is not an expense — it's an investment that saves you time and money from the very first month.</p>"
+                "title": "Lu tax ngay bayyi kaye bi ngir saytu sa mbiddu?",
+                "excerpt": "Kaye bi am na limite. Xamël ni digital bi mën a denc sa liggeey ci njuumte ak reer.",
+                "date": "12 Féw 2026",
+                "content": "<p>Njaaykat yu bari danuy jëfandikoo kaye ngir bind njaay ak mbiddu. Da yàgg, waaye am na risku bu réy.</p><h3>1. Njuumte kote</h3><p>Njuumte bu néew ci kote mën na wàcc sa njaay lépp. Ak logicel ni Stockman, mbiddu kote yi danuy gaaw te amul njuumte.</p><h3>2. Reer mbiddu</h3><p>Kaye mën na reer, sàcc ko wala mu tàkk ci lakku. Sa mbiddu ci Stockman danu ko denc ci cloud bi te mën nga ko xool lépp fula neex.</p><h3>3. Amul xoolukaay bu mat</h3><p>Dafa jafe nga xam nan moy mbiddu bi gën a njaay boo fëkké xub yi rek. Stockman dina la ko jox ci 1 bës.</p><h3>Bile bëj</h3><p>Duggal xarala du mbus — mooy jënd bi lay dencal waxtu ak xaalis dore ko ci weer bu jëkk bi.</p>"
             },
             "eviter-ruptures-fetes": {
-                "title": "How to avoid stockouts during the holidays?",
-                "excerpt": "Christmas and Tabaski are critical periods. Prepare your stock in advance with our expert tips.",
+                "title": "Naka ngay daw njuumte mbiddu ci fët yi?",
+                "excerpt": "Noël ak Tabaski waxtu yu am solo nanu. Pareel sa mbiddu bala waxtu wi ak sunu ndigal yi.",
                 "date": "10 Jan 2026",
-                "content": "<p>Stockouts during the holidays mean a direct loss of revenue. Here's how to avoid them.</p><h3>Anticipate demand</h3><p>Use last year's sales history to forecast the quantities you need to order.</p><h3>Order early</h3><p>Suppliers are often overwhelmed. Place your orders 2 to 3 weeks earlier than usual.</p><h3>Use Stockman alerts</h3><p>Set up alert thresholds to be notified as soon as a product starts running low.</p>"
+                "content": "<p>Njuumte mbiddu ci fët yi mooy reer xaalis bu bari. Ni ngay daw loolu.</p><h3>Doxal njaay bi</h3><p>Xoolal lu nga njaayon weer bi weesu ngir xam lu mu la soxal njaay bi di ñëw.</p><h3>Jëndal ci gaawaay</h3><p>Grossiste yi danuy am liggeey bu bari. Jëndal sa mbiddu yi 2 wala 3 simenn bala fët bi dore.</p><h3>Jëfandikool artu Stockman</h3><p>Tëralal ay artu ngir Stockman yeegal la sàssu mbiddu bi néewé.</p>"
             },
             "augmenter-marge-2026": {
-                "title": "3 tips to increase your margin in 2026",
-                "excerpt": "Revenue is good, but margin is better! Learn how to optimize your costs and prices.",
+                "title": "3 ndigal ngir yokk sa yokkuté ci 2026",
+                "excerpt": "Njaay baax na, waaye yokkuté mooy gën! Jàngal ni ngay baaxal xaalisu jënd ak njeegu njaay.",
                 "date": "05 Jan 2026",
-                "content": "<p>Raising prices isn't the only way to earn more. Here's how to work on your margin.</p><h3>1. Reduce losses</h3><p>Expired or stolen products are costly. Rigorous stock tracking can reduce these losses by 30%.</p><h3>2. Negotiate with your suppliers</h3><p>By consolidating your orders through the Stockman Marketplace, you can get better rates.</p><h3>3. Build customer loyalty</h3><p>A loyal customer costs less to acquire than a new one. Use the loyalty program to keep them coming back.</p>"
+                "content": "<p>Yokkuté njeeg du doŋŋ moy yoonu yokkuté. Xoolal ni ngay liggeeyal sa mën-mën.</p><h3>1. Wàccal reer bi</h3><p>Mbiddu yu dakk wala yu nu sàcc am na njeeg bu réy. Soo topé sa stock bu baax mën nga wàcc reer bi ba 30%.</p><h3>2. Dokkanté ak sa grossiste</h3><p>Boo jëndé mbiddu yu bari ci Stockman Marketplace, mën nga am njeeg yu gën a baax.</p><h3>3. Dencal sa kilyan</h3><p>Kilyan bu dëggu mooy gën njariñ kilyan bu bees. Jëfandikool porogram keredit ngir kilyan bi delloo si.</p>"
             }
         }
     },
     "help": {
-        "hero_start": "How can we",
-        "hero_highlight": "help you",
-        "search_placeholder": "Search for an answer...",
-        "no_results": "No results found for \"{{term}}\"",
-        "need_more": "Need more help?",
-        "email_support": "✉️ Email Support",
+        "hero_start": "Naka la nu la mën a",
+        "hero_highlight": "dimbali",
+        "search_placeholder": "Seetal tontu...",
+        "no_results": "Amul tontu ngir \"{{term}}\"",
+        "need_more": "Ndax soxal nga beneen ndimal?",
+        "email_support": "✉️ Ndimal Email",
         "whatsapp_chat": "💬 WhatsApp Chat",
         "getting_started": {
-            "title": "Getting Started",
-            "q1": "How do I create an account?",
-            "a1": "Download the app and follow the on-screen instructions. It takes less than 2 minutes.",
-            "q2": "Can I use the app without internet?",
-            "a2": "Yes, Stockman works offline and syncs your data as soon as the connection is back."
+            "title": "Dore liggeey bi",
+            "q1": "Naka laay sosee sët?",
+            "a1": "Wàccal aplikasyon bi te topal xibaar yi ci bët bi. Du mat 2 minit.",
+            "q2": "Ndax mën na jëfandikoo aplikasyon bi te amul internet?",
+            "a2": "Waaw, Stockman mu ngi liggeey ci mode offline te dina simay sa mbiddu yi sàssu internet bi delloo si."
         },
         "account_billing": {
-            "title": "Account & Billing",
-            "q1": "How do I change my password?",
-            "a1": "Go to Settings > Security > Change Password.",
-            "q2": "How does the free trial work?",
-            "a2": "You automatically get a 14-day free trial with all features unlocked upon registration."
+            "title": "Sët ak fey bi",
+            "q1": "Naka laay soppé kod bi?",
+            "a1": "Démal ci Paramètres > Sécurité > Changer mot de passe.",
+            "q2": "Naka la natt feyeer bi di doxé?",
+            "a2": "Dina nu la jox 14 bës yu feyeer ak bépp xarala yu bees boo sosee sa sët."
         },
         "technical_support": {
-            "title": "Technical Support",
-            "q1": "The app won't open, what should I do?",
-            "a1": "Check your internet connection and make sure you have the latest update. If the problem persists, reinstall the app.",
-            "q2": "How do I contact support?",
-            "a2": "You can write to us via the form below or directly on WhatsApp."
+            "title": "Ndimal xarala",
+            "q1": "Aplikasyon bi ubbul, lu may def?",
+            "a1": "Xoolal sa internet te xamël ne am nga xarala bu bees bi. Soo nekké ci jàfe-jàfe, wàccalat ko.",
+            "q2": "Naka laay woo ndimal bi?",
+            "a2": "Mën nga nu bind ci xub bi ci suuf wala ci WhatsApp léegi."
         }
     },
     "terms": {
-        "title": "Terms and Conditions of Use",
-        "version": "\"Ultimate\" Version 3.0 - Last updated: February 13, 2026",
-        "content": "<p>Welcome to <strong>Stockman</strong>.<br/>These Terms and Conditions of Use (hereinafter \"Terms\") constitute a binding legal framework between the User and the Publisher of the Stockman solution.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE I: GENERAL PROVISIONS</h3><h4>Article 1: Definitions</h4><ul><li><strong>Platform</strong>: Refers to the complete Stockman software infrastructure.</li><li><strong>User</strong>: Entity or individual using the services for professional purposes.</li><li><strong>Publisher</strong>: Stockman Inc., owner and operator of Stockman.</li><li><strong>Shop / Store</strong>: Logical instance created by a User to manage their activities.</li></ul><h4>Article 2: Purpose of Services</h4><p>Stockman is an ERP solution specialized in stock management, point of sale and customer relations. It is provided as a service (SaaS).</p><h4>Article 3: Acceptance of Terms</h4><p>Access to the Platform is conditional upon full and complete acceptance of these Terms.</p><h4>Article 4: Capacity and Professional Use</h4><p>Stockman is a strictly professional tool. The User warrants that they use the service for their commercial activity.</p><h4>Article 5: Modification of Terms</h4><p>The Publisher reserves the right to modify these Terms at any time. Continued use of the Service after modification constitutes acceptance.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE II: ACCESS AND ACCOUNT MANAGEMENT</h3><h4>Article 6: Registration</h4><p>The User agrees to provide truthful data during registration.</p><h4>Article 7: Credential Security</h4><p>The User is responsible for safeguarding their password.</p><h4>Article 8: Profile Management</h4><p>The User may modify their information. This data must remain professional.</p><h4>Article 9: Staff Accounts</h4><p>The Owner may create access for their employees and assumes responsibility for their actions.</p><h4>Article 10: Permissions</h4><p>The User accepts the role system (Admin, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE III: COMMERCIAL OPERATIONS</h3><h4>Articles 11-18</h4><p>The User is responsible for creating their product listings, inventory, sales and returns. Stockman provides a theoretical stock status. The Publisher is not responsible for discrepancies.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLES IV-IX: DATA, AI, SECURITY</h3><p>AI may produce errors. Predictions are probabilities. Data is backed up daily. The Publisher guarantees the exercise of GDPR rights. Any dispute shall be subject to the law of the Publisher's registered office.</p>"
+        "title": "Sarti jëfandikoo",
+        "version": "Version \"Ultimate\" 3.0 - 13 Féw 2026",
+        "content": "<p>Dalal ak jàmm ci <strong>Stockman</strong>.<br/>Sartu jëfandikoo yii (nu koy woowé \"Sart\") mooy yoonu liggeey bi nekk diggënte Jëfandikookat bi ak Sosal-kat Stockman bi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE I: SARTI LIGGEEY</h3><h4>Marticle 1: Lu nu tekki</h4><ul><li><strong>Plateforme</strong>: Bépp xaralu Stockman.</li><li><strong>Jëfandikookat</strong>: Kër liggeey wala nit kiy jëfandikoo Stockman ngir liggeeyam.</li><li><strong>Sosal-kat</strong>: Stockman Inc., mooy borom Stockman.</li><li><strong>Boutique</strong>: Kër njaay bi liggeey bi koy doxal.</li></ul><h4>Marticle 2: Li nu bëgg</h4><p>Stockman mooy solisyon ERP ngir saytu mbiddu yi, POS ak kilyan yi. Dox na ni liggeey (SaaS).</p><h4>Marticle 3: Nangu sart yi</h4><p>Soo bëggé doxal Stockman foog nga nangu sart yi lépp.</p><h4>Marticle 4: Liggeey doŋŋ</h4><p>Stockman amul beneen njariñ ludul liggeey. Jëfandikookat bi dafa wara liggeeyal boppam.</p><h4>Marticle 5: Soppi sart yi</h4><p>Sosal-kat bi mën na soppi sart yi bépp bës. Soo wéyalé sa liggeey, dangay nangu sart yu bees yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE II: UBBI SËT</h3><h4>Marticle 6: Bindu</h4><p>Jëfandikookat bi dafa wara bind mbiddu yu dëggu.</p><h4>Marticle 7: Aar kod bi</h4><p>Nit ki mooy denc kodam ba nit bañ ko xam.</p><h4>Marticle 8: Saytu sët bi</h4><p>Nit ki mën na soppi mbiddu yi nekk ci sët am.</p><h4>Marticle 9: Sëtu liggeeykat yi</h4><p>Borom sët bi mën na ubbi ay sët ngir liggeeykat yi te mooy njiit ci liggeeyam.</p><h4>Marticle 10: Ndigal</h4><p>Am na ay role yu wuute (Administrator, Vendeur, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE III: NJAAY MI</h3><h4>Marticle 11-18</h4><p>Jëfandikookat bi mooy bind mbiddu yi, njaay mi ak mbiddu yu delloo si. Stockman xaye la lay jox. Sosal-kat bi nekkul njiit ci njuumte yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE IV-IX: MBIDDU, IA, AAR</h3><p>IA mën na am njuumte. Mbiddu yi danu ko denc bu baax. Yoonu RGPD mu ngi liggeey. Yoonu Sénégal wala dëkk Sosal-kat bi mooy dox boo amee deñ-kumpa.</p>"
     },
     "privacy": {
-        "title": "Privacy Policy",
-        "version": "Last updated: February 13, 2026",
-        "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+        "title": "Aar mbiddu",
+        "version": "13 Féw 2026",
+        "content": "<p>Dalal ak jàmm ci Stockman. Aar sa mbiddu nit mooy sunu liggeey bu jëkk.</p><h3>1. Mbiddu yi nu denc</h3><p>Danu denc: sa tur, email, telefon, mbiddu sa shop, njaay ak mbiddu xarala (IP, xarala).</p><h3>2. Njariñu mbiddu yi</h3><p>Sa mbiddu ngir: saytu sa stock, aar sa sët, baaxal sunu liggeey ak yoon.</p><h3>3. Denc ak Aar</h3><p>Sa mbiddu danuxu denc ci MongoDB Atlas te dëjj nanu ko (encrypted). HTTPS lo nu jëfandikoo.</p><h3>4. Bokk mbiddu yi</h3><p>Danu jëndul wala nuy luyee sa mbiddu. Ak sunu partenaire xarala rek la nu koy bokkal bala yoon woo nu.</p><h3>5. Sa sàrtu (RGPD)</h3><p>Mën nga xool, soppi wala dakkal sa mbiddu ci aplikasyon bi ci Paramètres.</p><h3>6. Woo nu</h3><p>Soo amee laaj, woo nu ci aplikasyon bi wala ci <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     }
 }

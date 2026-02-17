@@ -137,20 +137,20 @@
         "support": "Support",
         "legal": "Legal",
         "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
+        "contact": "Contacto",
+        "community": "Comunidade",
+        "privacy": "Política de Privacidade",
+        "terms": "Termos de Serviço",
+        "legal_notice": "Aviso Legal",
+        "copyright": "© 2026 Stockman. Todos os direitos reservados."
     },
     "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
-        "success": "Thanks! Check your inbox.",
-        "placeholder": "Your email...",
-        "cta": "Get the Guide",
-        "privacy": "No spam. Unsubscribe in 1 click."
+        "title": "Torne-se um Especialista em Stock",
+        "desc": "Junte-se a mais de 5000 comerciantes e receba o nosso guia gratuito: \"Os 10 Erros que Matam a sua Rentabilidade\".",
+        "success": "Obrigado! Verifique a sua caixa de entrada.",
+        "placeholder": "O seu email...",
+        "cta": "Receber o Guia",
+        "privacy": "Sem spam. Cancelar subscrição em 1 clique."
     },
     "contact": {
         "title": "Contacte-nos",
@@ -164,7 +164,7 @@
         "send_another": "Enviar outra mensagem"
     },
     "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
+        "message": "Olá, gostaria de saber mais sobre o Stockman!"
     },
     "cookie": {
         "message": "Utilizamos cookies para melhorar a sua experiência. Ao continuar, aceita a nossa política de privacidade.",

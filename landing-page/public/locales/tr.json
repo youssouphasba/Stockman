@@ -23,36 +23,36 @@
         "title": "Günlük Araçlarınız",
         "subtitle": "İşletmenizin her yönünü yönetmek için eksiksiz bir paket.",
         "dashboard": {
-            "title": "Home",
-            "desc": "Overview of your activity, critical stock alerts, and quick access to AI assistant."
+            "title": "Panel",
+            "desc": "Faaliyetlerinize genel bakış, kritik stok uyarıları ve yapay zeka asistanına hızlı erişim."
         },
         "products": {
-            "title": "Products",
-            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
+            "title": "Ürünler",
+            "desc": "Envanter yönetimi, barkod tarama, kategori organizasyonu ve stok değerleme."
         },
         "pos": {
-            "title": "POS",
-            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
+            "title": "POS (Kasa)",
+            "desc": "Müşterilerden hızlıca ödeme alın, dijital makbuzlar oluşturun ve stoğu gerçek zamanlı güncelleyin."
         },
         "suppliers": {
-            "title": "Suppliers",
-            "desc": "Supplier directory, order history, and access to 'Button-to-Button' Marketplace."
+            "title": "Tedarikçiler",
+            "desc": "Tedarikçi dizini, sipariş geçmişi ve 'Pazaryeri'ne erişim."
         },
         "orders": {
-            "title": "Orders",
-            "desc": "Track purchase orders, receive goods, and automatically update stock."
+            "title": "Siparişler",
+            "desc": "Satın alma siparişlerini takip edin, malları kabul edin ve stoğu otomatik güncelleyin."
         },
         "accounting": {
-            "title": "Accounting",
-            "desc": "Precise tracking of sales, expenses, and automatic profitability calculation."
+            "title": "Muhasebe",
+            "desc": "Satışların, giderlerin kesin takibi ve otomatik kârlılık hesaplaması."
         },
         "clients": {
-            "title": "Clients",
-            "desc": "Customer database, purchase history, and integrated loyalty tools."
+            "title": "Müşteriler",
+            "desc": "Müşteri veritabanı, satın alma geçmişi ve entegre sadakat araçları."
         },
         "settings": {
-            "title": "Settings",
-            "desc": "App customization, user management, and shop configuration."
+            "title": "Ayarlar",
+            "desc": "Uygulama özelleştirme, kullanıcı yönetimi ve mağaza yapılandırması."
         }
     },
     "showcase": {
@@ -61,41 +61,41 @@
         "app_interface": "Uygulama Arayüzü"
     },
     "how_it_works": {
-        "title": "Quick Start",
-        "subtitle": "Three simple steps to transform your shop.",
+        "title": "Hızlı Başlangıç",
+        "subtitle": "Mağazanızı dönüştürmek için üç basit adım.",
         "step1": {
-            "title": "Create Account",
-            "desc": "Download the app and configure your shop in under 2 minutes."
+            "title": "Hesap Oluştur",
+            "desc": "Uygulamayı indirin ve mağazanızı 2 dakikadan kısa sürede yapılandırın."
         },
         "step2": {
-            "title": "Scan Products",
-            "desc": "Use your phone camera to quickly add your stock."
+            "title": "Ürünleri Tara",
+            "desc": "Stoğunuzu hızlıca eklemek için telefonunuzun kamerasını kullanın."
         },
         "step3": {
-            "title": "Sell & Track",
-            "desc": "Make your first sales and watch your stats grow in real-time."
+            "title": "Sat & Takip Et",
+            "desc": "İlk satışlarınızı yapın ve istatistiklerinizin gerçek zamanlı büyümesini izleyin."
         }
     },
     "testimonials": {
-        "title": "They Trust Us",
-        "subtitle": "Discover how Stockman helps merchants daily.",
-        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+        "title": "Bize Güveniyorlar",
+        "subtitle": "Stockman'ın tüccarlara günlük olarak nasıl yardımcı olduğunu keşfedin.",
+        "t1": "Stockman kullandığımdan beri stok yetersizliği nedeniyle artık para kaybetmiyorum. Yapay zeka beni her zaman doğru zamanda uyarıyor!",
+        "t2": "Uygulama çok basit. Çalışanlarım 10 dakikada öğrendi. POS yönetimi mükemmel.",
+        "t3": "Pazaryerini seviyorum! Tedarikçi fiyatlarını karşılaştırabiliyor ve doğrudan sipariş verebiliyorum. Büyük zaman tasarrufu."
     },
     "pricing": {
-        "title": "Choose Your Plan",
-        "subtitle": "Transparent pricing adapted to your business size.",
-        "month": "/month",
-        "popular": "Popular",
+        "title": "Planınızı Seçin",
+        "subtitle": "İşletme büyüklüğünüze uyarlanmış şeffaf fiyatlandırma.",
+        "month": "/ay",
+        "popular": "Popüler",
         "starter": {
             "name": "Starter",
             "price": "1000",
-            "f1": "1 User",
-            "f2": "Up to 100 products",
-            "f3": "Basic Stock Management",
-            "f4": "Cash Register",
-            "cta": "Start"
+            "f1": "1 Kullanıcı",
+            "f2": "100 ürüne kadar",
+            "f3": "Temel Stok Yönetimi",
+            "f4": "Yazarkasa",
+            "cta": "Başlat"
         },
         "business": {
             "name": "İşletme",
@@ -145,12 +145,12 @@
         "copyright": "© 2026 Stockman. Tüm hakları saklıdır."
     },
     "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"The 10 Errors Killing Your Profitability\".",
-        "success": "Thanks! Check your inbox.",
-        "placeholder": "Your email...",
-        "cta": "Get the Guide",
-        "privacy": "No spam. Unsubscribe in 1 click."
+        "title": "Stok Uzmanı Olun",
+        "desc": "5000'den fazla tüccara katılın ve ücretsiz kılavuzumuzu alın: \"Karlılığınızı Öldüren 10 Hata\".",
+        "success": "Teşekkürler! Gelen kutunuzu kontrol edin.",
+        "placeholder": "E-postanız...",
+        "cta": "Kılavuzu Al",
+        "privacy": "Spam yok. Tek tıkla abonelikten çıkın."
     },
     "contact": {
         "title": "Bize Ulaşın",
@@ -159,39 +159,39 @@
         "email": "E-postanız",
         "message": "Mesajınız",
         "submit": "Mesaj Gönder",
-        "success_title": "Mesaj gönderildi!",
+        "success_title": "Messaggio gönderildi!",
         "success_desc": "Ekibimiz 24 saat içinde yanıt verecek.",
         "send_another": "Başka mesaj gönder"
     },
     "whatsapp": {
-        "message": "Hello, I want to know more about Stockman!"
+        "message": "Merhaba, Stockman hakkında daha fazla bilgi almak istiyorum!"
     },
     "cookie": {
         "message": "Deneyiminizi iyileştirmek için çerezler kullanıyoruz. Devam ederek gizlilik politikamızı kabul etmiş olursunuz.",
         "accept": "Kabul Et"
     },
     "comparison": {
-        "title": "Why choose Stockman?",
-        "feature": "Feature",
-        "notebook": "Notebook / Excel 📝",
-        "stock_mgmt": "Stock Management",
-        "stock_yes": "✅ Automatic & Real-time",
-        "stock_no": "❌ Manual & Error-prone",
-        "alerts": "Stockout Alerts",
-        "alerts_yes": "✅ AI Notifications",
-        "alerts_no": "❌ None",
-        "pos": "POS (Cash Register)",
-        "pos_yes": "✅ Built-in & Fast",
-        "pos_no": "❌ Separate calculator",
-        "backup": "Backup",
-        "backup_yes": "✅ Secure Cloud",
-        "backup_no": "❌ Risk of loss (theft, fire)",
-        "financial": "Financial Report",
-        "financial_yes": "✅ In 1 click (P&L, Margin)",
-        "financial_no": "❌ Long and tedious calculations",
-        "marketplace": "Marketplace",
-        "marketplace_yes": "✅ Direct supplier access",
-        "marketplace_no": "❌ Physical outreach"
+        "title": "Neden Stockman?",
+        "feature": "Özellik",
+        "notebook": "Defter / Excel 📝",
+        "stock_mgmt": "Stok Yönetimi",
+        "stock_yes": "✅ Otomatik & Gerçek Zamanlı",
+        "stock_no": "❌ Manuel & Hataya Açık",
+        "alerts": "Stok Tükenme Uyarıları",
+        "alerts_yes": "✅ Yapay Zeka Bildirimleri",
+        "alerts_no": "❌ Yok",
+        "pos": "Satış Noktası (Kasa)",
+        "pos_yes": "✅ Entegre & Hızlı",
+        "pos_no": "❌ Ayrı hesap makinesi",
+        "backup": "Yedekleme",
+        "backup_yes": "✅ Güvenli Bulut",
+        "backup_no": "❌ Kayıp riski (hırsızlık, yangın)",
+        "financial": "Finansal Rapor",
+        "financial_yes": "✅ 1 Tıkla (Kâr/Zarar, Marj)",
+        "financial_no": "❌ Uzun ve sıkıcı hesaplamalar",
+        "marketplace": "Pazaryeri",
+        "marketplace_yes": "✅ Doğrudan tedarikçi erişimi",
+        "marketplace_no": "❌ Fiziksel arayış"
     },
     "feature_pages": {
         "back_home": "Ana Sayfaya Dön",
@@ -212,319 +212,321 @@
             "gallery": {
                 "kpi": {
                     "image": "/assets/screenshots/dashboard-kpi.jpg",
-                    "title": "Overview & KPIs",
-                    "description": "Track your key performance indicators in real time as soon as you open the app."
+                    "title": "Genel Bakış & KPI'lar",
+                    "description": "Uygulamayı açar açmaz temel performans göstergelerinizi gerçek zamanlı olarak takip edin."
                 },
                 "stats": {
                     "image": "/assets/screenshots/dashboard-stats.jpg",
-                    "title": "Global Statistics",
-                    "description": "See your revenue, profits and sales trends at a glance."
+                    "title": "Genel İstatistikler",
+                    "description": "Gelirinizi, kârınızı ve satış trendlerinizi bir bakışta görün."
                 },
                 "charts": {
                     "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-                    "title": "Performance Charts",
-                    "description": "Track the evolution of your stock value and analyze your sales peaks."
+                    "title": "Performans Grafikleri",
+                    "description": "Stok değerinizin evrimini takip edin ve satış zirvelerinizi analiz edin."
                 },
                 "analysis": {
                     "image": "/assets/screenshots/dashboard-analysis.jpg",
-                    "title": "ABC Analysis & Restocking",
-                    "description": "Identify your most profitable products and receive order suggestions."
+                    "title": "ABC Analizi & Stok Yenileme",
+                    "description": "En kârlı ürünlerinizi belirleyin ve sipariş önerileri alın."
                 },
                 "history": {
                     "image": "/assets/screenshots/dashboard-history.jpg",
-                    "title": "Movement History",
-                    "description": "Keep a record of every stock entry and exit with full traceability."
+                    "title": "Hareket Geçmişi",
+                    "description": "Tam izlenebilirlik ile her stok giriş ve çıkışının kaydını tutun."
                 }
             }
         },
         "products": {
-            "title": "Product Management",
-            "subtitle": "Your inventory, perfectly organized",
-            "description": "Professional inventory management without the complexity. Whether you have 10 or 10,000 items, Stockman lets you organize them with precision. The built-in barcode scanner turns your phone into an ultra-fast inventory terminal.",
-            "f1_title": "Barcode Scanning",
-            "f1_desc": "Use your phone camera to add products or do a quick inventory count.",
-            "f2_title": "Flexible Organization",
-            "f2_desc": "Create categories, brands and variants to structure your catalog.",
-            "f3_title": "Stock Valuation",
-            "f3_desc": "Know the total value of your inventory at any time (purchase price and selling price).",
+            "title": "Ürün Yönetimi",
+            "subtitle": "Envanteriniz, mükemmel şekilde organize edilmiş",
+            "description": "Karmaşıklık olmadan profesyonel envanter yönetimi. İster 10 ister 10.000 ürününüz olsun, Stockman bunları hassasiyetle organize etmenizi sağlar. Yerleşik barkod tarayıcı, telefonunuzu ultra hızlı bir envanter terminaline dönüştürür.",
+            "f1_title": "Barkod Tarama",
+            "f1_desc": "Ürün eklemek veya hızlı bir envanter sayımı yapmak için telefonunuzun kamerasını kullanın.",
+            "f2_title": "Esnek Organizasyon",
+            "f2_desc": "Kataloğunuzu yapılandırmak için kategoriler, markalar ve varyantlar oluşturun.",
+            "f3_title": "Stok Değerleme",
+            "f3_desc": "Envanterinizin toplam değerini (alış fiyatı ve satış fiyatı) istediğiniz zaman bilin.",
             "gallery": {
                 "list": {
                     "image": "/assets/screenshots/products-list.jpg",
-                    "title": "Product List",
-                    "description": "Quickly access your entire catalog with search and advanced filters."
+                    "title": "Ürün Listesi",
+                    "description": "Arama ve gelişmiş filtrelerle tüm kataloğunuza hızla erişin."
                 },
                 "create": {
                     "image": "/assets/screenshots/products-create-1.jpg",
-                    "title": "Simple Creation",
-                    "description": "Add a product in seconds with all its essential information."
+                    "title": "Basit Oluşturma",
+                    "description": "Tümü temel bilgileriyle birlikte saniyeler içinde bir ürün ekleyin."
                 },
                 "variants": {
                     "image": "/assets/screenshots/products-create-2.jpg",
-                    "title": "Details & Variants",
-                    "description": "Manage sizes, colors and specific prices for each variant."
+                    "title": "Detaylar & Varyantlar",
+                    "description": "Her varyant için boyutları, renkleri ve özel fiyatları yönetin."
                 },
                 "thresholds": {
                     "image": "/assets/screenshots/products-create-3.jpg",
-                    "title": "Stock & Thresholds",
-                    "description": "Set low stock alerts so you never run out of goods."
+                    "title": "Stok & Eşikler",
+                    "description": "Mallarınızın asla bitmemesi için düşük stok uyarıları ayarlayın."
                 }
             }
         },
         "pos": {
-            "title": "Cash Register",
-            "subtitle": "Process customer payments with ease",
-            "description": "Deliver a smooth and modern checkout experience. Our touch-based POS is built for speed: add items, manage discounts and handle multiple payment methods in seconds.",
-            "f1_title": "Quick Cart",
-            "f1_desc": "Touch-optimized interface to add products to the cart in the blink of an eye.",
-            "f2_title": "Digital Receipts",
-            "f2_desc": "Send receipts via WhatsApp, SMS or Email directly to your customers.",
-            "f3_title": "Multi-Payment",
-            "f3_desc": "Accept cash, Mobile Money or card payments and track everything in your register.",
+            "title": "Yazarkasa",
+            "subtitle": "Müşterilerinizden kolayca ödeme alın",
+            "description": "Sorunsuz ve modern bir ödeme deneyimi sunun. Dokunmatik tabanlı POS'umuz hız için üretilmiştir: saniyeler içinde ürün ekleyin, indirimleri yönetin ve birden fazla ödeme yöntemini idare edin.",
+            "f1_title": "Hızlı Sepet",
+            "f1_desc": "Göz açıp kapayıncaya kadar sepete ürün eklemek için dokunmatik olarak optimize edilmiş arayüz.",
+            "f2_title": "Dijital Makbuzlar",
+            "f2_desc": "WhatsApp, SMS veya E-posta yoluyla makbuzları doğrudan müşterilerinize gönderin.",
+            "f3_title": "Çoklu Ödeme",
+            "f3_desc": "Nakit, Mobil Para veya kart ödemelerini kabul edin ve kasanızdaki her şeyi takip edin.",
             "gallery": {
                 "sale": {
                     "image": "/assets/screenshots/pos-overview.jpg",
-                    "title": "Sales Interface",
-                    "description": "Add products to the cart, manage quantities and discounts seamlessly."
+                    "title": "Satış Arayüzü",
+                    "description": "Sepete ürün ekleyin, miktarları ve indirimleri sorunsuz bir şekilde yönetin."
                 },
                 "receipt": {
                     "image": "/assets/screenshots/pos-receipt-qr.jpg",
-                    "title": "Receipt & QR Code",
-                    "description": "Generate an instant receipt with a QR code your customers can scan."
+                    "title": "Makbuz & QR Kod",
+                    "description": "Müşterilerinizin tarayabileceği bir QR kodu ile anında makbuz oluşturun."
                 }
             }
         },
         "suppliers": {
-            "title": "Suppliers & Marketplace",
-            "subtitle": "Your procurement simplified",
-            "description": "Turn your procurement into a competitive advantage. Stockman centralizes your suppliers and opens the doors to its exclusive Marketplace. Compare prices in real time and place orders directly.",
-            "f1_title": "Supplier Directory",
-            "f1_desc": "Centralize contact details for all your suppliers and the history of your exchanges.",
-            "f2_title": "Automated Orders",
-            "f2_desc": "Generate purchase orders in one click based on your stock needs.",
-            "f3_title": "Price Comparator",
-            "f3_desc": "Find the cheapest supplier for each product with our built-in comparator.",
+            "title": "Tedarikçiler & Pazaryeri",
+            "subtitle": "Tedarik süreciniz basitleşti",
+            "description": "Tedarik sürecinizi rekabet avantajına dönüştürün. Stockman tedarikçilerinizi merkezileştirir ve özel Pazaryeri'nin kapılarını açar. Fiyatları gerçek zamanlı olarak karşılaştırın ve doğrudan sipariş verin.",
+            "f1_title": "Tedarikçi Rehberi",
+            "f1_desc": "Tüm tedarikçileriniz için iletişim bilgilerini ve değişim geçmişinizi merkezileştirin.",
+            "f2_title": "Otomatik Siparişler",
+            "f2_desc": "Stok ihtiyaçlarınıza göre tek tıklamayla satın alma siparişleri oluşturun.",
+            "f3_title": "Fiyat Karşılaştırıcı",
+            "f3_desc": "Yerleşik karşılaştırıcımızla her ürün için en ucuz tedarikçiyi bulun.",
             "gallery": {
                 "marketplace": {
                     "image": "/assets/screenshots/suppliers-marketplace.jpg",
-                    "title": "Built-in Marketplace",
-                    "description": "Access a wide network of verified suppliers and compare prices."
+                    "title": "Yerleşik Pazaryeri",
+                    "description": "Geniş bir doğrulanmış tedarikçi ağına erişin ve fiyatları karşılaştırın."
                 },
                 "catalog": {
                     "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-                    "title": "Supplier Catalog",
-                    "description": "Browse available products from each supplier and their terms."
+                    "title": "Tedarikçi Kataloğu",
+                    "description": "Her tedarikçiden temin edilebilecek ürünlere ve şartlarına göz atın."
                 },
                 "order": {
                     "image": "/assets/screenshots/suppliers-order-creation.jpg",
-                    "title": "Order Placement",
-                    "description": "Create and send your restocking orders in just a few clicks."
+                    "title": "Sipariş Verme",
+                    "description": "Sadece birkaç tıklamayla stok yenileme siparişlerinizi oluşturun ve gönderin."
                 }
             }
         },
         "orders": {
-            "title": "Order Tracking",
-            "subtitle": "From order to delivery",
-            "description": "Keep full control over your supply chain. From the purchase order to in-store reception, track every step. Stock is automatically updated upon receipt.",
-            "f1_title": "Status Tracking",
-            "f1_desc": "View the status of each order: Pending, Shipped, Received or Cancelled.",
-            "f2_title": "Easy Reception",
-            "f2_desc": "Confirm goods reception and automatically update stock quantities.",
-            "f3_title": "Complete History",
-            "f3_desc": "Find all your past orders to simplify restocking.",
+            "title": "Sipariş Takibi",
+            "subtitle": "Siparişte teslimata",
+            "description": "Tedarik zinciriniz üzerinde tam kontrol sahibi olun. Satın alma siparişinden mağaza içi kabule kadar her adımı takip edin. Stok, mal kabulünde otomatik olarak güncellenir.",
+            "f1_title": "Durum Takibi",
+            "f1_desc": "Her siparişin durumunu görüntüleyin: Beklemede, Sevk Edildi, Alındı veya İptal Edildi.",
+            "f2_title": "Kolay Mal Kabul",
+            "f2_desc": "Mal kabulünü onaylayın ve stok miktarlarını otomatik olarak güncelleyin.",
+            "f3_title": "Tam Geçmiş",
+            "f3_desc": "Stok yenilemeyi basitleştirmek için tüm geçmiş siparişlerinizi bulun.",
             "gallery": {
                 "tracking": {
                     "image": "/assets/screenshots/orders-tracking.jpg",
-                    "title": "Real-Time Tracking",
-                    "description": "View the progress status of each supplier order."
+                    "title": "Gerçek Zamanlı Takip",
+                    "description": "Her tedarikçi siparişinin ilerleme durumunu görüntüleyin."
                 }
             }
         },
         "accounting": {
-            "title": "Simplified Accounting",
-            "subtitle": "Your finances under control",
-            "description": "Your accounting runs itself. Every sale, every expense automatically feeds your accounting journals. Track your cash flow and generate your Income Statement in one click.",
-            "f1_title": "Income Statement",
-            "f1_desc": "View your revenue, costs and net profit for any period you choose.",
-            "f2_title": "Expense Tracking",
-            "f2_desc": "Record your expenses (rent, electricity, salaries) for accurate profitability calculations.",
-            "f3_title": "PDF/Excel Export",
-            "f3_desc": "Download your accounting data for your accountant or personal archives.",
+            "title": "Basitleştirilmiş Muhasebe",
+            "subtitle": "Finansmanınız kontrol altında",
+            "description": "Muhasebeniz kendi kendine çalışır. Her satış, her gider muhasebe defterlerinizi otomatik olarak besler. Nakit akışınızı takip edin ve tek tıkla Gelir Tablonuzu oluşturun.",
+            "f1_title": "Gelir Tablosu",
+            "f1_desc": "Seçtiğiniz herhangi bir dönem için gelirinizi, maliyetlerinizi ve net kârınızı görüntüleyin.",
+            "f2_title": "Gider Takibi",
+            "f2_desc": "Doğru kârlılık hesaplamaları için giderlerinizi (kira, elektrik, maaşlar) kaydedin.",
+            "f3_title": "PDF/Excel Dışa Aktar",
+            "f3_desc": "Muhasebeciniz veya kişisel arşiviniz için muhasebe verilerinizi indirin.",
             "gallery": {
                 "overview": {
                     "image": "/assets/screenshots/accounting-overview.jpg",
-                    "title": "Global Accounting View",
-                    "description": "Analyze your profitability with clear and precise indicators."
+                    "title": "Genel Muhasebe Görünümü",
+                    "description": "Net ve kesin göstergelerle kârlılığınızı analiz edin."
                 },
                 "expenses": {
                     "image": "/assets/screenshots/accounting-expense-create.jpg",
-                    "title": "Expense Management",
-                    "description": "Easily add your fixed and variable costs."
+                    "title": "Gider Yönetimi",
+                    "description": "Sabit ve değişken maliyetlerinizi kolayca ekleyin."
                 },
                 "reports": {
                     "image": "/assets/screenshots/accounting-details-charts.jpg",
-                    "title": "Reports & Charts",
-                    "description": "Visualize the evolution of your finances over time."
+                    "title": "Raporlar & Grafikler",
+                    "description": "Finansmanınızın zaman içindeki değişimini görselleştirin."
                 }
             }
         },
         "clients": {
-            "title": "Customer Management (CRM)",
-            "subtitle": "Build customer loyalty",
-            "description": "Turn occasional customers into loyal regulars. The built-in CRM records every interaction and purchase history. Manage debts and credits so you never lose money on tabs again.",
-            "f1_title": "Customer Profiles",
-            "f1_desc": "Complete purchase history, contact details and preferences for each customer.",
-            "f2_title": "Debts & Credits",
-            "f2_desc": "Track customer tabs and know exactly who owes you money.",
-            "f3_title": "WhatsApp Marketing",
-            "f3_desc": "Send targeted promotional messages directly on WhatsApp.",
+            "title": "Müşteri Yönetimi (CRM)",
+            "subtitle": "Müşteri sadakati oluşturun",
+            "description": "Geçici müşterileri sadık müdavimlere dönüştürün. Yerleşik CRM, her etkileşimi ve satın alma geçmişini kaydeder. Borçları ve alacakları yönetin, böylece bir daha asla hesaplarda para kaybetmeyin.",
+            "f1_title": "Müşteri Profilleri",
+            "f1_desc": "Her müşteri için tam satın alma geçmişi, iletişim bilgileri ve tercihler.",
+            "f2_title": "Borçlar & Alacaklar",
+            "f2_desc": "Müşteri hesaplarını takip edin ve size tam olarak kimin borcu olduğunu bilin.",
+            "f3_title": "WhatsApp Pazarlama",
+            "f3_desc": "Doğrudan WhatsApp üzerinden hedefli promosyon mesajları gönderin.",
             "gallery": {
                 "details": {
                     "image": "/assets/screenshots/clients-details.jpg",
-                    "title": "Detailed Customer Profile",
-                    "description": "All customer info, purchase history and credit/debt balances."
+                    "title": "Detaylı Müşteri Profili",
+                    "description": "Tüm müşteri bilgileri, satın alma geçmişi ve kredi/borç bakiyeleri."
                 },
                 "campaigns": {
                     "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-                    "title": "WhatsApp Campaigns",
-                    "description": "Create and send targeted promotional campaigns to your customer groups."
+                    "title": "WhatsApp Kampanyaları",
+                    "description": "Müşteri gruplarınıza hedefli promosyon kampanyaları oluşturun ve gönderin."
                 }
             }
         },
         "settings": {
-            "title": "Settings & Configuration",
-            "subtitle": "Adapt Stockman to your needs",
-            "description": "Configure Stockman to fit your structure: manage access rights for your staff, add new points of sale and access responsive support.",
-            "f1_title": "User Management",
-            "f1_desc": "Create accounts for your employees and define their permissions (seller, manager, admin).",
-            "f2_title": "Multi-Store",
-            "f2_desc": "Add and manage multiple points of sale from a single admin account.",
-            "f3_title": "Customization",
-            "f3_desc": "Change the currency, language and display preferences of the app.",
+            "title": "Ayarlar & Yapılandırma",
+            "subtitle": "Stockman'ı ihtiyaçlarınıza göre uyarlayın",
+            "description": "Stockman'ı yapınıza uyacak şekilde yapılandırın: personeliniz için erişim haklarını yönetin, yeni satış noktaları ekleyin ve duyarlı desteğe erişin.",
+            "f1_title": "Kullanıcı Yönetimi",
+            "f1_desc": "Personeliniz için hesaplar oluşturun ve izinlerini tanımlayın (satıcı, yönetici, admin).",
+            "f2_title": "Çoklu Mağaza",
+            "f2_desc": "Tek bir yönetici hesabından birden fazla satış noktası ekleyin ve yönetin.",
+            "f3_title": "Özelleştirme",
+            "f3_desc": "Uygulamanın para birimini, dilini ve görüntüleme tercihlerini değiştirin.",
             "gallery": {
                 "team": {
                     "image": "/assets/screenshots/settings-employees.jpg",
-                    "title": "Team Management",
-                    "description": "Manage your employees, their roles and their access."
+                    "title": "Takım Yönetimi",
+                    "description": "Çalışanlarınızı, rollerini ve erişimlerini yönetin."
                 },
                 "notifications": {
                     "image": "/assets/screenshots/settings-notifications.jpg",
-                    "title": "Notification Center",
-                    "description": "Configure your stock alerts and important reminders."
+                    "title": "Bildirim Merkezi",
+                    "description": "Stok uyarılarınızı ve önemli hatırlatıcılarınızı yapılandırın."
                 },
                 "security": {
                     "image": "/assets/screenshots/settings-support-security.jpg",
-                    "title": "Support & Security",
-                    "description": "Access online help and secure your account."
+                    "title": "Destek & Güvenlik",
+                    "description": "Çevrimiçi yardıma erişin ve hesabınızı güvence altına alın."
                 },
                 "guide": {
                     "image": "/assets/screenshots/settings-guide.jpg",
-                    "title": "Complete Guide",
-                    "description": "Learn to master all the features of Stockman."
+                    "title": "Tam Kılavuz",
+                    "description": "Stockman'ın tüm özelliklerinde uzmanlaşmayı öğrenin."
                 }
             }
         }
     },
     "about": {
-        "seo_title": "About Us",
-        "seo_desc": "Discover the team behind Stockman and our mission to digitalize commerce in Africa.",
-        "home": "Home",
-        "mission_start": "Our Mission:",
-        "mission_highlight": "Digitalize Africa",
-        "mission_desc": "We believe that every merchant, small or large, deserves the best tools to succeed. Stockman is not just software — it's your growth partner.",
-        "team_title": "The Team",
-        "team_subtitle": "Passionate people serving entrepreneurs.",
+        "seo_title": "Hakkımızda",
+        "seo_desc": "Stockman'ın arkasındaki ekibi ve Afrika'daki ticareti dijitalleştirme misyonumuzu keşfedin.",
+        "home": "Ana Sayfa",
+        "mission_start": "Misyonumuz:",
+        "mission_highlight": "Afrika'yı Dijitalleştir",
+        "mission_desc": "Küçük veya büyük her tüccarın başarılı olmak için en iyi araçları hak ettiğine inanıyoruz. Stockman sadece bir yazılım değil, büyüme ortağınızdır.",
+        "team_title": "Ekibimiz",
+        "team_subtitle": "Girişimcilere hizmet eden tutkulu insanlar.",
         "member1_image": "👨🏿‍💼",
         "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Co-Founder",
-        "member1_bio": "A former merchant, he created Stockman to solve his own management challenges.",
+        "member1_role": "CEO & Kurucu Ortak",
+        "member1_bio": "Eski bir tüccar, kendi yönetim zorluklarını çözmek için Stockman'ı yarattı.",
         "member2_image": "👩🏾‍💻",
         "member2_name": "Awa Diop",
-        "member2_role": "CTO & Tech Lead",
-        "member2_bio": "An engineer passionate about AI and digital accessibility in Africa.",
+        "member2_role": "CTO & Teknik Lider",
+        "member2_bio": "Yapay zeka ve Afrika'daki dijital erişilebilirlik konusunda tutkulu bir mühendis.",
         "member3_image": "🎧",
         "member3_name": "David N'Guessan",
-        "member3_role": "Support Manager",
-        "member3_bio": "Always listening to help our users achieve success.",
-        "values_title": "Our Values",
-        "value1_title": "🔍 Simplicity",
-        "value1_desc": "Technology should be accessible to everyone, without complex training.",
-        "value2_title": "🤝 Proximity",
-        "value2_desc": "We are based here — we understand your realities and challenges.",
-        "value3_title": "🚀 Innovation",
-        "value3_desc": "We improve Stockman every day thanks to your feedback."
+        "member3_role": "Destek Müdürü",
+        "member3_bio": "Kullanıcılarımızın başarıya ulaşmasına yardımcı olmak için her zaman dinlemede.",
+        "values_title": "Değerlerimiz",
+        "value1_title": "🔍 Basitlik",
+        "value1_desc": "Teknoloji, karmaşık bir eğitim gerektirmeden herkes için erişilebilir olmalıdır.",
+        "value2_title": "🤝 Yakınlık",
+        "value2_desc": "Burada yerleşiğiz — gerçeklerinizi ve zorluklarınızı anlıyoruz.",
+        "value3_title": "🚀 İnovasyon",
+        "value3_desc": "Geri bildirimleriniz sayesinde Stockman'ı her gün geliştiriyoruz."
     },
     "blog": {
-        "seo_title": "Blog & Resources",
-        "seo_desc": "Tips and tricks to manage your business, optimize your stock and increase your sales.",
-        "page_title": "Resource Center",
-        "page_subtitle": "Expert advice for modern merchants.",
-        "read_more": "Read more →",
-        "not_found": "Article not found 😕",
-        "back_to_blog": "Back to blog",
-        "back_to_articles": "← Back to articles",
-        "published_on": "PUBLISHED ON",
-        "liked_article": "Did you enjoy this article?",
-        "try_stockman": "Try Stockman to put these tips into practice.",
-        "start_trial": "Start the free trial",
+        "seo_title": "Blog & Kaynaklar",
+        "seo_desc": "İşletmenizi yönetmek, stoğunuzu optimize etmek ve satışlarınızı artırmak için ipuçları ve püf noktaları.",
+        "page_title": "Kaynak Merkezi",
+        "page_subtitle": "Modern tüccarlar için uzman tavsiyeleri.",
+        "read_more": "Devamını oku →",
+        "not_found": "Makale bulunamadı 😕",
+        "back_to_blog": "Blog'a dön",
+        "back_to_articles": "← Makalelere dön",
+        "published_on": "YAYINLANMA TARİHİ",
+        "liked_article": "Bu makaleyi beğendiniz mi?",
+        "try_stockman": "Bu ipuçlarını uygulamaya koymak için Stockman'ı deneyin.",
+        "start_trial": "Ücretsiz denemeyi başlat",
         "posts": {
             "abandonner-cahier-stock": {
-                "title": "Why ditch the notebook for stock management?",
-                "excerpt": "The notebook has its limits. Discover how going digital can save your business from calculation errors and losses.",
-                "date": "12 Feb 2026",
-                "content": "<p>Many merchants still use a notebook to record their sales and stock. It's a traditional method, but it carries serious risks.</p><h3>1. Calculation errors</h3><p>A simple addition mistake can throw off your entire accounting. With software like Stockman, calculations are automatic and error-free.</p><h3>2. Data loss</h3><p>A notebook can be lost, stolen or destroyed by fire. Your data on Stockman is backed up in the cloud and accessible anywhere.</p><h3>3. No big picture</h3><p>It's hard to know which product sells best by flipping through pages. Stockman gives you this information in one click.</p><h3>Conclusion</h3><p>Going digital is not an expense — it's an investment that saves you time and money from the very first month.</p>"
+                "title": "Stok yönetimi için neden defteri bırakmalısınız?",
+                "excerpt": "Defterin sınırları vardır. Dijitalleşmenin işletmenizi hesaplama hatalarından ve kayıplardan nasıl kurtarabileceğini keşfedin.",
+                "date": "12 Şub 2026",
+                "content": "<p>Birçok tüccar satışlarını ve stoklarını kaydetmek için hala bir defter kullanıyor. Bu geleneksel bir yöntemdir ancak ciddi riskler taşır.</p><h3>1. Hesaplama hataları</h3><p>Basit bir toplama hatası tüm muhasebenizi bozabilir. Stockman gibi bir yazılımla hesaplamalar otomatik ve hatasızdır.</p><h3>2. Veri kaybı</h3><p>Bir defter kaybolabilir, çalınabilir veya yangınla yok olabilir. Stockman'daki verileriniz bulutta yedeklenir ve her yerden erişilebilir.</p><h3>3. Büyük resmi görememek</h3><p>Sayfaları çevirerek hangi ürünün en iyi sattığını bilmek zordur. Stockman size bu bilgiyi tek bir tıkla sunar.</p><h3>Sonuç</h3><p>Dijitalleşmek bir masraf değil — ilk aydan itibaren size zaman ve para kazandıran bir yatırımdır.</p>"
             },
             "eviter-ruptures-fetes": {
-                "title": "How to avoid stockouts during the holidays?",
-                "excerpt": "Christmas and Tabaski are critical periods. Prepare your stock in advance with our expert tips.",
-                "date": "10 Jan 2026",
-                "content": "<p>Stockouts during the holidays mean a direct loss of revenue. Here's how to avoid them.</p><h3>Anticipate demand</h3><p>Use last year's sales history to forecast the quantities you need to order.</p><h3>Order early</h3><p>Suppliers are often overwhelmed. Place your orders 2 to 3 weeks earlier than usual.</p><h3>Use Stockman alerts</h3><p>Set up alert thresholds to be notified as soon as a product starts running low.</p>"
+                "title": "Tatillerde stok tükenmesi nasıl önlenir?",
+                "excerpt": "Noel ve Kurban Bayramı kritik dönemlerdir. Uzman ipuçlarımızla stoğunuzu önceden hazırlayın.",
+                "date": "10 Oca 2026",
+                "content": "<p>Tatil dönemindeki stok tükenmeleri doğrudan gelir kaybı demektir. İşte bunlardan nasıl kaçınacağınız.</p><h3>Talebi tahmin edin</h3><p>Sipariş etmeniz gereken miktarları tahmin etmek için geçen yılın satış geçmişini kullanın.",
+                "date": "10 Oca 2026",
+                "content": "<p>Tatil dönemindeki stok tükenmeleri doğrudan gelir kaybı demektir. İşte bunlardan nasıl kaçınacağınız.</p><h3>Talebi tahmin edin</h3><p>Sipariş etmeniz gereken miktarları tahmin etmek için geçen yılın satış geçmişini kullanın.</p><h3>Erken sipariş verin</h3><p>Tedarikçiler genellikle yoğun olur. Siparişlerinizi normalden 2 ila 3 hafta önce verin.</p><h3>Stockman uyarılarını kullanın</h3><p>Bir ürün azalmaya başladığında bilgilendirilmek için uyarı eşikleri ayarlayın.</p>"
             },
             "augmenter-marge-2026": {
-                "title": "3 tips to increase your margin in 2026",
-                "excerpt": "Revenue is good, but margin is better! Learn how to optimize your costs and prices.",
-                "date": "05 Jan 2026",
-                "content": "<p>Raising prices isn't the only way to earn more. Here's how to work on your margin.</p><h3>1. Reduce losses</h3><p>Expired or stolen products are costly. Rigorous stock tracking can reduce these losses by 30%.</p><h3>2. Negotiate with your suppliers</h3><p>By consolidating your orders through the Stockman Marketplace, you can get better rates.</p><h3>3. Build customer loyalty</h3><p>A loyal customer costs less to acquire than a new one. Use the loyalty program to keep them coming back.</p>"
+                "title": "2026'da marjınızı artırmak için 3 ipucu",
+                "excerpt": "Gelir iyidir, ancak marj daha iyidir! Maliyetlerinizi ve fiyatlarınızı nasıl optimize edeceğinizi öğrenin.",
+                "date": "05 Oca 2026",
+                "content": "<p>Fiyatları artırmak daha fazla kazanmanın tek yolu değildir. İşte marjınız üzerinde nasıl çalışacağınız.</p><h3>1. Kayıpları azaltın</h3><p>Süresi dolmuş veya çalınmış ürünler maliyetlidir. Titiz stok takibi bu kayıpları %30 oranında azaltabilir.</p><h3>2. Tedarikçilerinizle pazarlık yapın</h3><p>Siparişlerinizi Stockman Pazaryeri üzerinden birleştirerek daha iyi oranlar alabilirsiniz.</p><h3>3. Müşteri sadakati oluşturun</h3><p>Sadık bir müşteriyi elde tutmak, yeni bir müşteri kazanmaktan daha az maliyetlidir. Geri gelmelerini sağlamak için sadakat programını kullanın.</p>"
             }
         }
     },
     "help": {
-        "hero_start": "How can we",
-        "hero_highlight": "help you",
-        "search_placeholder": "Search for an answer...",
-        "no_results": "No results found for \"{{term}}\"",
-        "need_more": "Need more help?",
-        "email_support": "✉️ Email Support",
-        "whatsapp_chat": "💬 WhatsApp Chat",
+        "hero_start": "Sana nasıl",
+        "hero_highlight": "yardımcı olabiliriz",
+        "search_placeholder": "Bir cevap arayın...",
+        "no_results": "\"{{term}}\" için sonuç bulunamadı",
+        "need_more": "Daha fazla yardıma mı ihtiyacınız var?",
+        "email_support": "✉️ E-posta Desteği",
+        "whatsapp_chat": "💬 WhatsApp Sohbeti",
         "getting_started": {
-            "title": "Getting Started",
-            "q1": "How do I create an account?",
-            "a1": "Download the app and follow the on-screen instructions. It takes less than 2 minutes.",
-            "q2": "Can I use the app without internet?",
-            "a2": "Yes, Stockman works offline and syncs your data as soon as the connection is back."
+            "title": "Başlarken",
+            "q1": "Nasıl hesap oluştururum?",
+            "a1": "Uygulamayı indirin ve ekrandaki talimatları izleyin. 2 dakikadan kısa sürer.",
+            "q2": "Uygulamayı internet olmadan kullanabilir miyim?",
+            "a2": "Evet, Stockman çevrimdışı çalışır ve bağlantı geri gelir gelmez verilerinizi senkronize eder."
         },
         "account_billing": {
-            "title": "Account & Billing",
-            "q1": "How do I change my password?",
-            "a1": "Go to Settings > Security > Change Password.",
-            "q2": "How does the free trial work?",
-            "a2": "You automatically get a 14-day free trial with all features unlocked upon registration."
+            "title": "Hesap & Faturalandırma",
+            "q1": "Şifremi nasıl değiştiririm?",
+            "a1": "Ayarlar > Güvenlik > Şifreyi Değiştir'e gidin.",
+            "q2": "Ücretsiz deneme nasıl çalışır?",
+            "a2": "Kayıt olduktan sonra tüm özellikler açık şekilde otomatik olarak 14 günlük ücretsiz deneme süresi kazanırsınız."
         },
         "technical_support": {
-            "title": "Technical Support",
-            "q1": "The app won't open, what should I do?",
-            "a1": "Check your internet connection and make sure you have the latest update. If the problem persists, reinstall the app.",
-            "q2": "How do I contact support?",
-            "a2": "You can write to us via the form below or directly on WhatsApp."
+            "title": "Teknik Destek",
+            "q1": "Uygulama açılmıyor, ne yapmalıyım?",
+            "a1": "İnternet bağlantınızı kontrol edin ve en son güncellemeye sahip olduğunuzdan emin olun. Sorun devam ederse uygulamayı yeniden yükleyin.",
+            "q2": "Destekle nasıl iletişime geçerim?",
+            "a2": "Aşağıdaki form üzerinden veya doğrudan WhatsApp üzerinden bize yazabilirsiniz."
         }
     },
     "terms": {
-        "title": "Terms and Conditions of Use",
-        "version": "\"Ultimate\" Version 3.0 - Last updated: February 13, 2026",
-        "content": "<p>Welcome to <strong>Stockman</strong>.<br/>These Terms and Conditions of Use (hereinafter \"Terms\") constitute a binding legal framework between the User and the Publisher of the Stockman solution.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE I: GENERAL PROVISIONS</h3><h4>Article 1: Definitions</h4><ul><li><strong>Platform</strong>: Refers to the complete Stockman software infrastructure.</li><li><strong>User</strong>: Entity or individual using the services for professional purposes.</li><li><strong>Publisher</strong>: Stockman Inc., owner and operator of Stockman.</li><li><strong>Shop / Store</strong>: Logical instance created by a User to manage their activities.</li></ul><h4>Article 2: Purpose of Services</h4><p>Stockman is an ERP solution specialized in stock management, point of sale and customer relations. It is provided as a service (SaaS).</p><h4>Article 3: Acceptance of Terms</h4><p>Access to the Platform is conditional upon full and complete acceptance of these Terms.</p><h4>Article 4: Capacity and Professional Use</h4><p>Stockman is a strictly professional tool. The User warrants that they use the service for their commercial activity.</p><h4>Article 5: Modification of Terms</h4><p>The Publisher reserves the right to modify these Terms at any time. Continued use of the Service after modification constitutes acceptance.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE II: ACCESS AND ACCOUNT MANAGEMENT</h3><h4>Article 6: Registration</h4><p>The User agrees to provide truthful data during registration.</p><h4>Article 7: Credential Security</h4><p>The User is responsible for safeguarding their password.</p><h4>Article 8: Profile Management</h4><p>The User may modify their information. This data must remain professional.</p><h4>Article 9: Staff Accounts</h4><p>The Owner may create access for their employees and assumes responsibility for their actions.</p><h4>Article 10: Permissions</h4><p>The User accepts the role system (Admin, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TITLE III: COMMERCIAL OPERATIONS</h3><h4>Articles 11-18</h4><p>The User is responsible for creating their product listings, inventory, sales and returns. Stockman provides a theoretical stock status. The Publisher is not responsible for discrepancies.</p><h3 style='margin-top:30px;color:var(--primary)'>TITLES IV-IX: DATA, AI, SECURITY</h3><p>AI may produce errors. Predictions are probabilities. Data is backed up daily. The Publisher guarantees the exercise of GDPR rights. Any dispute shall be subject to the law of the Publisher's registered office.</p>"
+        "title": "Kullanım Şartları ve Koşulları",
+        "version": "\"Ultimate\" Sürüm 3.0 - Son güncelleme: 13 Şubat 2026",
+        "content": "<p><strong>Stockman</strong>'a hoş geldiniz.<br/>Bu Kullanım Şartları ve Koşulları (bundan sonra \"Şartlar\" olarak anılacaktır), Kullanıcı ile Stockman çözümünün Yayıncısı arasında bağlayıcı bir yasal çerçeve oluşturur.</p><h3 style='margin-top:30px;color:var(--primary)'>BÖLÜM I: GENEL HÜKÜMLER</h3><h4>Madde 1: Tanımlar</h4><ul><li><strong>Platform</strong>: Tüm Stockman yazılım altyapısını ifade eder.</li><li><strong>Kullanıcı</strong>: Hizmetleri profesyonel amaçlarla kullanan kurum veya kişi.</li><li><strong>Yayıncı</strong>: Stockman Inc., sahibi ve işletmecisi olan Stockman Inc.</li><li><strong>Mağaza / Dükkan</strong>: Bir Kullanıcı tarafından faaliyetlerini yönetmek için oluşturulan mantıksal örnek.</li><li><strong>Articoli 11-18</strong>: Kullanıcı, ürün listelerini, envanterini, satışlarını ve iadelerini oluşturmaktan sorumludur.</li></ul><h4>Madde 2: Hizmetlerin Amacı</h4><p>Stockman; stok yönetimi, satış noktası ve müşteri ilişkileri alanında uzmanlaşmış bir ERP çözümüdür. Bir hizmet (SaaS) olarak sunulur.</p><h4>Madde 3: Şartların Kabulü</h4><p>Platforma erişim, bu Şartların tam ve eksiksiz kabulüne bağlıdır.</p><h4>Madde 4: Kapasite ve Profesyonel Kullanım</h4><p>Stockman kesinlikle profesyonel bir araçtır. Kullanıcı, hizmeti ticari faaliyeti için kullandığını garanti eder.</p><h4>Madde 5: Şartların Değiştirilmesi</h4><p>Yayıncı, bu Şartları istediği zaman değiştirme hakkını saklı tutar. Değişiklikten sonra Hizmetin kullanılmaya devam edilmesi, kabul anlamına gelir.</p><h3 style='margin-top:30px;color:var(--primary)'>BÖLÜM II: ERİŞİM VE HESAP YÖNETİMİ</h3><h4>Madde 6: Kayıt</h4><p>Kullanıcı, kayıt sırasında doğru veriler sağlamayı taahhüt eder.</p><h4>Madde 7: Kimlik Bilgilerinin Güvenliği</h4><p>Kullanıcı, şifresinin korunmasından sorumludur.</p><h4>Madde 8: Profil Yönetimi</h4><p>Kullanıcı bilgilerini değiştirebilir. Bu veriler profesyonel kalmalıdır.</p><h4>Madde 9: Personel Hesapları</h4><p>Sahip, çalışanları için erişim oluşturabilir ve onların eylemlerinden sorumlu olur.</p><h4>Madde 10: İzinler</h4><p>Kullanıcı rol sistemini (Admin, Satıcı, Yönetici) kabul eder.</p><h3 style='margin-top:30px;color:var(--primary)'>BÖLÜM III: TİCARİ İŞLEMLER</h3><p>Kullanıcı, ürün listelerini, envanterini, satışlarını ve iadelerini oluşturmaktan sorumludur. Stockman teorik bir stok durumu sağlar. Yayıncı tutarsızlıklardan sorumlu değildir.</p><h3 style='margin-top:30px;color:var(--primary)'>BÖLÜMLER IV-IX: VERİ, YAPAY ZEKA, GÜVENLİK</h3><p>YP hatalar üretebilir. Tahminler olasılıklardır. Veriler günlük olarak yedeklenir. Yayıncı, KVKK/GDPR haklarının uygulanmasını garanti eder. Her türlü anlaşmazlık Yayıncının genel merkezinin yasalarına tabi olacaktır.</p>"
     },
     "privacy": {
-        "title": "Privacy Policy",
-        "version": "Last updated: February 13, 2026",
-        "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+        "title": "Gizlilik Politikası",
+        "version": "Son güncelleme: 13 Şubat 2026",
+        "content": "<p>Stockman'a hoş geldiniz. Kişisel verilerinizin korunması bizim için bir önceliktir.</p><h3>1. Veri Toplama</h3><p>Şunları topluyoruz: kimlik bilgileri (ad, e-posta, telefon), profesyonel veriler (mağaza, envanter, işlemler), teknik veriler (IP, cihaz, günlükler).</p><h3>2. Veri Kullanımı</h3><p>Verileriniz münhasıran şunlar için kullanılır: stoğunuzun ve satışlarınızın yönetilmesi, hesabınızın güvenliğinin sağlanması, hizmetlerimizin iyileştirilmesi ve yasal yükümlülüklerimize uyulması.</p><h3>3. Depolama ve Güvenlik</h3><p>Verileriniz güvenli sunucularda (MongoDB Atlas) saklanır ve şifrelenir. Tüm transferler için HTTPS protokolünü kullanıyoruz.</p><h3>4. Veri Paylaşımı</h3><p>Verilerinizi satmıyoruz veya kiralamıyoruz. Yalnızca teknik hizmet sağlayıcılarımızla ve yasalar gerektiriyorsa yetkililerle paylaşılabilir.</p><h3>5. Haklarınız (KVKK/GDPR)</h3><p>Erişim, düzeltme, silme ve taşınabilirlik haklarınız vardır. Bu haklarınızı uygulamanın Ayarlar sekmesinden kullanın.</p><h3>6. İletişim</h3><p>Herhangi bir sorunuz için uygulama üzerinden veya <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a> adresinden bizimle iletişime geçin.</p>"
     }
 }
