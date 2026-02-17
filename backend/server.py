@@ -79,6 +79,10 @@ app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.get("/")
+async def root():
+    return {"message": "Stockman Backend is live", "timestamp": datetime.now(timezone.utc)}
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = datetime.now()
