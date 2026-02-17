@@ -228,69 +228,70 @@ async def create_indexes_and_init():
                         await rag_service.index_documents()
                     logger.info("RAG Service initialized")
                 
+                # Indexes ... (Moved to background to fix Railway 502)
+                logger.info("Initializing database indexes in background...")
+                await db.users.create_index("user_id", unique=True)
+                await db.users.create_index("email", unique=True)
+                await db.products.create_index([("user_id", 1), ("store_id", 1)])
+                await db.products.create_index("sku")
+                await db.products.create_index("rfid_tag")
+                await db.sales.create_index([("user_id", 1), ("store_id", 1)])
+                await db.sales.create_index("created_at")
+                await db.stock_movements.create_index("product_id")
+                await db.stock_movements.create_index("created_at")
+                await db.stock_movements.create_index([("user_id", 1), ("store_id", 1)])
+                await db.catalog_product_mappings.create_index([("user_id", 1), ("catalog_id", 1)], unique=True)
+
+                # Performance indexes (Phase 41)
+                await db.orders.create_index([("user_id", 1), ("supplier_id", 1), ("created_at", -1)])
+                await db.order_items.create_index("order_id")
+                await db.sales.create_index([("store_id", 1), ("created_at", -1)])
+                
+                # Performance indexes (Phase 42 - Optimization)
+                await db.stores.create_index("created_at")
+                await db.categories.create_index("user_id")
+                await db.products.create_index("category_id")
+                await db.customers.create_index([("user_id", 1), ("created_at", -1)])
+                await db.customers.create_index([("name", "text"), ("phone", "text")]) # Text search index
+                await db.activity_logs.create_index([("owner_id", 1), ("created_at", -1)])
+
+                # Init CGU if missing
+                exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
+                if not exists_cgu:
+                    cgu_path = Path("docs/CGU_STOCKMAN.md")
+                    content = "# CGU Stockman\n\nContenu en cours de chargement..."
+                    if cgu_path.exists():
+                        content = cgu_path.read_text(encoding="utf-8")
+                    await db.system_configs.insert_one({
+                        "config_id": "cgu",
+                        "content": content,
+                        "updated_at": datetime.now(timezone.utc)
+                    })
+                    logger.info("CGU initialized")
+
+                # Init Privacy Policy if missing
+                exists_privacy = await db.system_configs.find_one({"config_id": "privacy"})
+                if not exists_privacy:
+                    privacy_path = Path("docs/PRIVACY_POLICY.md")
+                    content = "# Politique de Confidentialité\n\nContenu en cours de chargement..."
+                    if privacy_path.exists():
+                        content = privacy_path.read_text(encoding="utf-8")
+                    await db.system_configs.insert_one({
+                        "config_id": "privacy",
+                        "content": content,
+                        "updated_at": datetime.now(timezone.utc)
+                    })
+                    logger.info("Privacy Policy initialized")
+
                 # Run Migration in background
                 await run_startup_migrations()
+                logger.info("Background initialization completed successfully")
             except Exception as e:
                 logger.error(f"Background initialization failed: {e}")
 
         asyncio.create_task(init_rag_and_migrations())
 
-        # Indexes ... (existing logic)
-        await db.users.create_index("user_id", unique=True)
-        await db.users.create_index("email", unique=True)
-        await db.products.create_index([("user_id", 1), ("store_id", 1)])
-        await db.products.create_index("sku")
-        await db.products.create_index("rfid_tag")
-        await db.sales.create_index([("user_id", 1), ("store_id", 1)])
-        await db.sales.create_index("created_at")
-        await db.stock_movements.create_index("product_id")
-        await db.stock_movements.create_index("created_at")
-        await db.stock_movements.create_index([("user_id", 1), ("store_id", 1)])
-        await db.catalog_product_mappings.create_index([("user_id", 1), ("catalog_id", 1)], unique=True)
-
-        # Performance indexes (Phase 41)
-        await db.orders.create_index([("user_id", 1), ("supplier_id", 1), ("created_at", -1)])
-        await db.order_items.create_index("order_id")
-        await db.sales.create_index([("store_id", 1), ("created_at", -1)])
-        
-        # Performance indexes (Phase 42 - Optimization)
-        await db.stores.create_index("created_at")
-        await db.categories.create_index("user_id")
-        await db.products.create_index("category_id")
-        await db.customers.create_index([("user_id", 1), ("created_at", -1)])
-        await db.customers.create_index([("name", "text"), ("phone", "text")]) # Text search index
-        await db.activity_logs.create_index([("owner_id", 1), ("created_at", -1)])
-
-
-        # Init CGU if missing
-        exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
-        if not exists_cgu:
-            cgu_path = Path("docs/CGU_STOCKMAN.md")
-            content = "# CGU Stockman\n\nContenu en cours de chargement..."
-            if cgu_path.exists():
-                content = cgu_path.read_text(encoding="utf-8")
-            await db.system_configs.insert_one({
-                "config_id": "cgu",
-                "content": content,
-                "updated_at": datetime.now(timezone.utc)
-            })
-            logger.info("CGU initialized")
-
-        # Init Privacy Policy if missing
-        exists_privacy = await db.system_configs.find_one({"config_id": "privacy"})
-        if not exists_privacy:
-            privacy_path = Path("docs/PRIVACY_POLICY.md")
-            content = "# Politique de Confidentialité\n\nContenu en cours de chargement..."
-            if privacy_path.exists():
-                content = privacy_path.read_text(encoding="utf-8")
-            await db.system_configs.insert_one({
-                "config_id": "privacy",
-                "content": content,
-                "updated_at": datetime.now(timezone.utc)
-            })
-            logger.info("Privacy Policy initialized")
-
-        logger.info("Database indexes and configs initialized successfully")
+        # Database indexes and configs initialization moved to background task (init_rag_and_migrations)
     except Exception as e:
         logger.error(f"Error in startup: {e}")
 
