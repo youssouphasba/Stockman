@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body
 from dotenv import load_dotenv
+load_dotenv()
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
+from services.rag_service import RAGService
 
 # RAG Service (initialized later if API key exists)
 rag_service = None
@@ -3875,7 +3877,7 @@ def _compute_tier(visit_count: int) -> str:
 @api_router.get("/customers")
 async def get_customers(
     user: User = Depends(require_auth),
-    sort_by: str = Query("name", regex="^(name|total_spent|last_purchase|visits)$"),
+    sort_by: str = Query("name", pattern="^(name|total_spent|last_purchase|visits)$"),
     skip: int = 0,
     limit: int = 50
 ):
