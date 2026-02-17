@@ -2,6 +2,15 @@
 
 > **Application de gestion de stock intelligente pour commerçants, vendeurs indépendants et TPE/PME**
 
+- **L'Application Mobile** : Outil quotidien de gestion.
+- **La Landing Page (`stockman.pro`)** : Vitrine technologique et support de conversion.
+
+### 14.1 Identité Visuelle & Logo
+Le branding de Stockman s'appuie sur une figure héroïque, **Stockman**, le super-héros de la gestion.
+- **Logo** : Un mélange de typographie moderne "Stockman" avec un dégradé dynamique.
+- **Mascotte** : Une figure de héros symbolisant la force de l'intelligence artificielle et la rapidité d'exécution.
+- **Assets** : Icônes épurées, interface en mode sombre (Dark Mode) premium avec effets de verre (Glassmorphism).
+
 ---
 
 ## Table des matières
@@ -20,7 +29,8 @@
 12. [Plan Financier](#12-plan-financier)
 13. [Analyse des Risques](#13-analyse-des-risques)
 14. [Roadmap Produit](#14-roadmap-produit)
-15. [Annexes](#15-annexes)
+15. [Prochaines Étapes : Roadmap 2026](#15-prochaines-étapes--roadmap-2026)
+16. [Annexes](#16-annexes)
 
 ---
 
@@ -413,9 +423,24 @@ Cible réaliste avec les moyens actuels :
 | **ARPU** (Revenu moyen par utilisateur) | ~3,40 €/mois |
 | **Taux de conversion essai → payant** | > 40% |
 
+### 8.3 Processus d'Inscription et Onboarding
+L'acquisition d'utilisateurs repose sur un tunnel de conversion fluide :
+1. **Atterrissage** : Découverte du produit via `stockman.pro`.
+2. **Inscription** : Création de compte (Email/Mot de passe) avec choix du profil (Commerçant ou Fournisseur).
+3. **Vérification** : Sécurisation du compte via un code OTP envoyé par SMS (Twilio).
+4. **Configuration** : Initialisation de la boutique, choix de la devise (par défaut XOF/SN) et du type d'activité.
+
 ---
 
 ## 9. Stratégie Marketing & Commerciale
+ Stockman adopte une stratégie multi-canale axée sur la proximité et l'accessibilité.
+
+### 9.1 Support Multilingue Massif
+Pour conquérir le marché ouest-africain et international, l'application et la landing page supportent nativement **15 langues** :
+- **Internationales** : Français, Anglais, Espagnol, Allemand, Portugais, Italien, Russe, Chinois, Hindi, Polonais, Roumain, Turc.
+- **Locales & Régionales** : Wolof, Peul (Pulaar), Arabe.
+
+Cette inclusion linguistique est un levier majeur de différenciation pour les commerçants non-francophones.
 
 ### 9.1 Phase 1 : Pré-lancement (M1-M2)
 
