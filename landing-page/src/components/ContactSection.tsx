@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_URL } from '../config';
 import '../App.css';
 
 const ContactSection = () => {
@@ -14,7 +15,7 @@ const ContactSection = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:8000/api/public/contact', {
+            const response = await fetch(`${API_URL}/api/public/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

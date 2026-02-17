@@ -754,6 +754,74 @@ export const ai = {
     }),
   getHistory: () => request<{ messages: { role: string; content: string; timestamp: string }[] }>('/ai/history'),
   clearHistory: () => request<{ message: string }>('/ai/history', { method: 'DELETE' }),
+  suggestCategory: (productName: string) =>
+    request<{ category: string; subcategory: string }>('/ai/suggest-category', {
+      method: 'POST',
+      body: { product_name: productName },
+    }),
+  generateDescription: (productName: string, category?: string, subcategory?: string) =>
+    request<{ description: string }>('/ai/generate-description', {
+      method: 'POST',
+      body: { product_name: productName, category, subcategory },
+    }),
+  dailySummary: () =>
+    request<{ summary: string }>('/ai/daily-summary'),
+  detectAnomalies: () =>
+    request<{ anomalies: AiAnomaly[] }>('/ai/detect-anomalies'),
+  basketSuggestions: (productIds: string[]) =>
+    request<{ suggestions: BasketSuggestion[] }>('/ai/basket-suggestions', {
+      method: 'POST',
+      body: { product_ids: productIds },
+    }),
+  replenishmentAdvice: () =>
+    request<{ advice: string; priority_count: number }>('/ai/replenishment-advice'),
+  suggestPrice: (productId: string) =>
+    request<AiPriceSuggestion>('/ai/suggest-price', {
+      method: 'POST',
+      body: { product_id: productId },
+    }),
+  scanInvoice: (imageBase64: string) =>
+    request<InvoiceScanResult>('/ai/scan-invoice', {
+      method: 'POST',
+      body: { image: imageBase64 },
+    }),
+  voiceToText: (audioBase64: string) =>
+    request<{ transcription: string }>('/ai/voice-to-text', {
+      method: 'POST',
+      body: { audio: audioBase64 },
+    }),
+};
+
+export type InvoiceScanResult = {
+  supplier_name?: string | null;
+  invoice_number?: string | null;
+  date?: string | null;
+  items: { name: string; quantity: number; unit_price: number; total: number }[];
+  total_amount?: number | null;
+  error?: string;
+};
+
+export type AiPriceSuggestion = {
+  suggested_price: number;
+  min_price: number;
+  max_price: number;
+  reasoning: string;
+  current_price: number;
+  purchase_price: number;
+};
+
+export type BasketSuggestion = {
+  product_id: string;
+  name: string;
+  selling_price: number;
+  score: number;
+};
+
+export type AiAnomaly = {
+  type: 'revenue' | 'volume' | 'margin' | 'stock';
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
 };
 
 // User Disputes (Phase 29)

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -24,10 +24,12 @@ import {
     sales as salesApi,
     customers as customersApi,
     stores as storesApi,
+    ai as aiApi,
     Product,
     Sale,
     Customer,
     Store,
+    BasketSuggestion,
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -61,6 +63,31 @@ export default function POSScreen() {
     const [newCustomerName, setNewCustomerName] = useState('');
     const [newCustomerPhone, setNewCustomerPhone] = useState('');
     const [createCustomerLoading, setCreateCustomerLoading] = useState(false);
+
+    // Basket suggestions
+    const [basketSuggestions, setBasketSuggestions] = useState<BasketSuggestion[]>([]);
+
+    // Fetch basket suggestions when cart changes
+    const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (cart.length === 0) {
+            setBasketSuggestions([]);
+            return;
+        }
+        if (suggestTimeout.current) clearTimeout(suggestTimeout.current);
+        suggestTimeout.current = setTimeout(async () => {
+            try {
+                const pids = cart.map(c => c.product.product_id);
+                const result = await aiApi.basketSuggestions(pids);
+                // Filter out products already in cart
+                const cartPids = new Set(pids);
+                setBasketSuggestions((result.suggestions || []).filter(s => !cartPids.has(s.product_id)));
+            } catch {
+                // silent
+            }
+        }, 500);
+        return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
+    }, [cart]);
 
     // Digital Receipt
     const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -432,6 +459,32 @@ export default function POSScreen() {
                             ))
                         )}
                     </ScrollView>
+
+                    {/* Basket Suggestions */}
+                    {basketSuggestions.length > 0 && (
+                        <View style={[styles.suggestionsRow, { borderTopColor: colors.divider }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                                <Ionicons name="sparkles" size={13} color={colors.primary} />
+                                <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Souvent achetés ensemble</Text>
+                            </View>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                {basketSuggestions.map(s => {
+                                    const prod = productList.find(p => p.product_id === s.product_id);
+                                    return (
+                                        <TouchableOpacity
+                                            key={s.product_id}
+                                            style={[styles.suggestionChip, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
+                                            onPress={() => prod && addToCart(prod)}
+                                        >
+                                            <Text style={{ fontSize: 11, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{s.name}</Text>
+                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{s.selling_price.toLocaleString()} F</Text>
+                                            <Ionicons name="add-circle" size={16} color={colors.primary} />
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+                    )}
 
                     <View style={styles.checkoutSection}>
                         <View style={styles.totalRow}>
@@ -822,5 +875,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     createBtnText: {
         color: '#fff',
         fontWeight: '700',
+    },
+    suggestionsRow: {
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.xs,
+        borderTopWidth: 1,
+    },
+    suggestionChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        marginRight: 8,
     },
 });

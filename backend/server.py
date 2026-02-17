@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1919,6 +1919,556 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
     except Exception as e:
         logger.error(f"AI Support Error: {e}")
         return {"response": "Désolé, je rencontre des difficultés techniques momentanées."}
+
+@api_router.post("/ai/suggest-category")
+async def ai_suggest_category(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Use Gemini to suggest a category and subcategory for a product name"""
+    product_name = data.get("product_name", "").strip()
+    if not product_name:
+        raise HTTPException(status_code=400, detail="product_name required")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    categories_list = [
+        "Alimentation", "Hygiène & Beauté", "Maison & Entretien", "Bébé",
+        "Boissons", "High-Tech", "Mode & Textile", "Bricolage & Quincaillerie",
+        "Papeterie & Bureau", "Automobile & Moto", "Autre"
+    ]
+    subcategories_map = {
+        "Alimentation": ["Riz", "Huile", "Sucre", "Farine", "Lait", "Boissons", "Conserves", "Épices", "Pâtes", "Céréales", "Fruits & Légumes", "Viande & Poisson", "Biscuits & Snacks", "Produits Frais", "Autre"],
+        "Hygiène & Beauté": ["Savon", "Dentifrice", "Shampoing", "Crème", "Parfum", "Maquillage", "Serviettes hygiéniques", "Autre"],
+        "Maison & Entretien": ["Détergent", "Javel", "Balai & Nettoyage", "Insecticide", "Cuisine", "Décoration", "Autre"],
+        "Bébé": ["Couches", "Lait infantile", "Céréales bébé", "Hygiène bébé", "Autre"],
+        "Boissons": ["Eau", "Jus", "Soda", "Bière", "Vin & Alcool", "Énergisant", "Autre"],
+        "High-Tech": ["Téléphonie", "Accessoires", "Informatique", "Piles & Batteries", "Autre"],
+        "Mode & Textile": ["Homme", "Femme", "Enfant", "Chaussures", "Accessoires", "Autre"],
+        "Bricolage & Quincaillerie": ["Outillage", "Matériaux", "Électricité", "Plomberie", "Peinture", "Autre"],
+        "Papeterie & Bureau": ["Cahiers", "Stylos", "Fournitures", "Autre"],
+        "Automobile & Moto": ["Huile moteur", "Pièces", "Accessoires", "Autre"],
+        "Autre": ["Autre"],
+    }
+
+    prompt = f"""Tu es un assistant de catégorisation de produits pour un commerce.
+Produit : "{product_name}"
+
+Catégories disponibles : {', '.join(categories_list)}
+
+Pour chaque catégorie, voici les sous-catégories possibles :
+{json.dumps(subcategories_map, ensure_ascii=False)}
+
+Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
+{{"category": "NomCatégorie", "subcategory": "NomSousCatégorie"}}"""
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        result = json.loads(text)
+        category = result.get("category", "Autre")
+        subcategory = result.get("subcategory", "Autre")
+        if category not in categories_list:
+            category = "Autre"
+            subcategory = "Autre"
+        elif subcategory not in subcategories_map.get(category, []):
+            subcategory = "Autre"
+        return {"category": category, "subcategory": subcategory}
+    except Exception as e:
+        logger.error(f"AI suggest-category error: {e}")
+        return {"category": "Autre", "subcategory": "Autre"}
+
+@api_router.post("/ai/generate-description")
+async def ai_generate_description(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Use Gemini to generate a marketing description for a product"""
+    product_name = data.get("product_name", "").strip()
+    category = data.get("category", "").strip()
+    subcategory = data.get("subcategory", "").strip()
+    if not product_name:
+        raise HTTPException(status_code=400, detail="product_name required")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    cat_context = ""
+    if category:
+        cat_context = f"\nCatégorie : {category}"
+        if subcategory:
+            cat_context += f" > {subcategory}"
+
+    prompt = f"""Tu es un expert en rédaction de fiches produits pour un commerce.
+Génère une description marketing courte et vendeuse (2-3 phrases max, 150 caractères max) pour ce produit.
+La description doit être professionnelle, informative et donner envie d'acheter.
+
+Produit : "{product_name}"{cat_context}
+
+Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe."""
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        description = response.text.strip().strip('"').strip("'")
+        return {"description": description}
+    except Exception as e:
+        logger.error(f"AI generate-description error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible de générer la description")
+
+@api_router.get("/ai/daily-summary")
+async def ai_daily_summary(user: User = Depends(require_auth)):
+    """Generate a daily AI-powered business summary"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        data_summary = await _get_ai_data_summary(owner_id, store_id)
+
+        prompt = f"""Tu es un assistant business intelligent pour un commerçant utilisant l'application Stockman.
+Voici les données actuelles du commerce :
+
+{data_summary}
+
+Génère un résumé quotidien concis et actionnable en français (max 200 mots) structuré ainsi :
+1. **Performance** : CA, tendance par rapport à la moyenne
+2. **Alertes** : stocks critiques, ruptures imminentes (les plus urgents uniquement)
+3. **Actions recommandées** : 2-3 actions concrètes prioritaires pour aujourd'hui
+4. **Opportunité** : 1 suggestion pour augmenter les ventes
+
+Sois direct, utilise des chiffres concrets. Pas de formules de politesse."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return {"summary": response.text.strip()}
+    except Exception as e:
+        logger.error(f"AI daily-summary error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible de générer le résumé")
+
+@api_router.get("/ai/detect-anomalies")
+async def ai_detect_anomalies(user: User = Depends(require_auth)):
+    """Use Gemini to detect anomalies in sales, stock and margins"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        now = datetime.now(timezone.utc)
+
+        # Gather data for analysis
+        query = {"user_id": owner_id}
+        if store_id:
+            query["store_id"] = store_id
+        products = await db.products.find(query, {"_id": 0}).to_list(1000)
+
+        seven_days_ago = now - timedelta(days=7)
+        thirty_days_ago = now - timedelta(days=30)
+
+        sales_30 = await db.sales.find({**query, "created_at": {"$gte": thirty_days_ago}}).to_list(10000)
+
+        # Daily revenue
+        daily_rev = defaultdict(float)
+        daily_count = defaultdict(int)
+        product_sales_7d = defaultdict(int)
+        product_sales_prev = defaultdict(int)
+
+        for s in sales_30:
+            sale_date = s.get("created_at")
+            if isinstance(sale_date, str):
+                sale_date = datetime.fromisoformat(sale_date.replace("Z", "+00:00"))
+            if sale_date:
+                day_key = sale_date.strftime("%Y-%m-%d")
+                daily_rev[day_key] += s.get("total_amount", 0)
+                daily_count[day_key] += 1
+                is_last_7 = sale_date >= seven_days_ago
+                for item in s.get("items", []):
+                    pid = item.get("product_id", "")
+                    qty = item.get("quantity", 0)
+                    if is_last_7:
+                        product_sales_7d[pid] += qty
+                    else:
+                        product_sales_prev[pid] += qty
+
+        # Build analysis data
+        avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
+        revenue_data = [f"{d}: {r:.0f} FCFA ({c} ventes)" for d, r, c in
+                        sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
+
+        margin_issues = []
+        volume_changes = []
+        for p in products:
+            purchase = p.get("purchase_price", 0)
+            selling = p.get("selling_price", 0)
+            if purchase > 0 and selling > 0:
+                margin = (selling - purchase) / selling * 100
+                if margin < 5:
+                    margin_issues.append(f"- {p['name']}: marge={margin:.1f}% (achat={purchase}, vente={selling})")
+                elif margin > 80:
+                    margin_issues.append(f"- {p['name']}: marge très élevée={margin:.1f}%")
+
+            pid = p["product_id"]
+            s7 = product_sales_7d.get(pid, 0)
+            s_prev_daily = product_sales_prev.get(pid, 0) / 23.0  # ~23 remaining days
+            s7_daily = s7 / 7.0
+            if s_prev_daily > 0 and s7_daily > s_prev_daily * 3:
+                volume_changes.append(f"- {p['name']}: pic x{s7_daily/s_prev_daily:.1f} (de {s_prev_daily:.1f}/j à {s7_daily:.1f}/j)")
+            elif s_prev_daily > 1 and s7_daily < s_prev_daily * 0.3:
+                volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f} (de {s_prev_daily:.1f}/j à {s7_daily:.1f}/j)")
+
+        prompt = f"""Tu es un analyste business expert. Analyse ces données d'un commerce et détecte les ANOMALIES.
+
+CA quotidien (14 derniers jours) :
+{chr(10).join(revenue_data) if revenue_data else "Aucune donnée"}
+CA moyen journalier : {avg_daily_rev:.0f} FCFA
+
+Changements de volume inhabituels (7j vs précédent) :
+{chr(10).join(volume_changes[:15]) if volume_changes else "Aucun changement notable"}
+
+Marges anormales :
+{chr(10).join(margin_issues[:15]) if margin_issues else "Toutes les marges sont normales"}
+
+Nombre total de produits : {len(products)}
+Produits en rupture : {len([p for p in products if p.get('quantity', 0) == 0])}
+
+Réponds en JSON (sans markdown) avec ce format :
+[
+  {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}}
+]
+Maximum 5 anomalies, classées par sévérité. Si aucune anomalie, retourne un tableau vide []."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        anomalies = json.loads(text)
+        return {"anomalies": anomalies}
+    except json.JSONDecodeError:
+        return {"anomalies": []}
+    except Exception as e:
+        logger.error(f"AI detect-anomalies error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible d'analyser les anomalies")
+
+@api_router.post("/ai/basket-suggestions")
+async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Analyze past sales to find products frequently bought together"""
+    product_ids = data.get("product_ids", [])
+    if not product_ids:
+        return {"suggestions": []}
+
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+        sales_query = {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}
+        if store_id:
+            sales_query["store_id"] = store_id
+        sales_list = await db.sales.find(sales_query, {"items": 1}).to_list(5000)
+
+        # Count co-occurrences
+        co_occurrence = defaultdict(int)
+        input_set = set(product_ids)
+
+        for sale in sales_list:
+            items = sale.get("items", [])
+            sale_pids = [item.get("product_id") for item in items if item.get("product_id")]
+            # Check if any cart product is in this sale
+            has_match = any(pid in input_set for pid in sale_pids)
+            if has_match:
+                for pid in sale_pids:
+                    if pid not in input_set:
+                        co_occurrence[pid] += 1
+
+        if not co_occurrence:
+            return {"suggestions": []}
+
+        # Get top 5 most co-occurring products
+        top_pids = sorted(co_occurrence, key=co_occurrence.get, reverse=True)[:5]
+
+        # Fetch product details
+        products = await db.products.find(
+            {"product_id": {"$in": top_pids}, "quantity": {"$gt": 0}},
+            {"_id": 0, "product_id": 1, "name": 1, "selling_price": 1, "image": 1}
+        ).to_list(5)
+
+        prod_map = {p["product_id"]: p for p in products}
+        suggestions = []
+        for pid in top_pids:
+            if pid in prod_map:
+                p = prod_map[pid]
+                suggestions.append({
+                    "product_id": p["product_id"],
+                    "name": p["name"],
+                    "selling_price": p.get("selling_price", 0),
+                    "score": co_occurrence[pid],
+                })
+
+        return {"suggestions": suggestions}
+    except Exception as e:
+        logger.error(f"Basket suggestions error: {e}")
+        return {"suggestions": []}
+
+@api_router.get("/ai/replenishment-advice")
+async def ai_replenishment_advice(user: User = Depends(require_auth)):
+    """Use Gemini to provide smart replenishment advice based on current suggestions"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        suggestions = await get_replenishment_suggestions(user)
+        if not suggestions:
+            return {"advice": "Tous vos stocks sont à un niveau satisfaisant. Aucun réapprovisionnement nécessaire pour le moment.", "priority_count": 0}
+
+        critical = [s for s in suggestions if s.priority == "critical"]
+        warning = [s for s in suggestions if s.priority == "warning"]
+
+        items_text = "\n".join([
+            f"- {s.product_name}: stock={s.current_quantity}/{s.max_stock}, vitesse={s.daily_velocity}/j, "
+            f"rupture dans {s.days_until_stock_out}j, commander {s.suggested_quantity}, "
+            f"fournisseur={s.supplier_name}, priorité={s.priority}"
+            for s in suggestions[:15]
+        ])
+
+        now = datetime.now(timezone.utc)
+        day_name = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"][now.weekday()]
+
+        prompt = f"""Tu es un expert en gestion des stocks pour un commerçant.
+Aujourd'hui : {day_name} {now.strftime('%d/%m/%Y')}
+
+Voici les produits nécessitant un réapprovisionnement :
+{items_text}
+
+Critiques : {len(critical)} | Attention : {len(warning)}
+
+Donne un conseil de réapprovisionnement en 3-4 phrases max :
+1. Quels produits commander EN PRIORITÉ aujourd'hui (et pourquoi)
+2. Si possible, regrouper les commandes par fournisseur pour optimiser
+3. Tenir compte du jour de la semaine (weekend = plus de ventes ?)
+
+Sois concis et actionnable. Pas de liste, juste du texte fluide."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return {
+            "advice": response.text.strip(),
+            "priority_count": len(critical) + len(warning),
+        }
+    except Exception as e:
+        logger.error(f"AI replenishment-advice error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible de générer les conseils")
+
+@api_router.post("/ai/suggest-price")
+async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Use Gemini to suggest an optimal selling price for a product"""
+    product_id = data.get("product_id", "").strip()
+    if not product_id:
+        raise HTTPException(status_code=400, detail="product_id required")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        owner_id = get_owner_id(user)
+        product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+        if not product:
+            raise HTTPException(status_code=404, detail="Produit introuvable")
+
+        # Sales data for this product (last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        sales_query = {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}
+        store_id = user.active_store_id
+        if store_id:
+            sales_query["store_id"] = store_id
+        sales = await db.sales.find(sales_query).to_list(5000)
+
+        total_qty_sold = 0
+        total_revenue = 0.0
+        for s in sales:
+            for item in s.get("items", []):
+                if item.get("product_id") == product_id:
+                    qty = item.get("quantity", 0)
+                    price = item.get("selling_price", 0)
+                    total_qty_sold += qty
+                    total_revenue += qty * price
+
+        # Price history
+        price_history = await db.price_history.find(
+            {"product_id": product_id}, {"_id": 0}
+        ).sort("changed_at", -1).to_list(10)
+        price_changes = "\n".join([
+            f"- {h.get('changed_at', '')}: {h.get('old_price', '?')} → {h.get('new_price', '?')} FCFA"
+            for h in price_history[:5]
+        ]) if price_history else "Aucun changement récent"
+
+        # Similar products in same category
+        similar_prices = []
+        if product.get("category_id"):
+            similar = await db.products.find(
+                {"user_id": owner_id, "category_id": product["category_id"], "product_id": {"$ne": product_id}},
+                {"name": 1, "selling_price": 1, "purchase_price": 1, "_id": 0}
+            ).to_list(10)
+            similar_prices = [f"- {p['name']}: achat={p.get('purchase_price', '?')}, vente={p.get('selling_price', '?')} FCFA" for p in similar]
+
+        purchase_price = product.get("purchase_price", 0)
+        current_price = product.get("selling_price", 0)
+        margin = ((current_price - purchase_price) / current_price * 100) if current_price > 0 else 0
+
+        prompt = f"""Tu es un expert en pricing pour un commerce de détail.
+
+Produit : {product.get('name')}
+Prix d'achat : {purchase_price} FCFA
+Prix de vente actuel : {current_price} FCFA
+Marge actuelle : {margin:.1f}%
+Stock : {product.get('quantity', 0)} {product.get('unit', 'pièce')}(s)
+
+Ventes 30 derniers jours : {total_qty_sold} unités vendues, CA = {total_revenue:.0f} FCFA
+Vélocité : {total_qty_sold / 30:.1f} unités/jour
+
+Historique des prix :
+{price_changes}
+
+Produits similaires (même catégorie) :
+{chr(10).join(similar_prices) if similar_prices else 'Aucun'}
+
+Réponds UNIQUEMENT en JSON valide (sans markdown) :
+{{
+  "suggested_price": <nombre>,
+  "min_price": <nombre>,
+  "max_price": <nombre>,
+  "reasoning": "<explication courte en 1-2 phrases>"
+}}
+
+Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        result = json.loads(text)
+
+        suggested = result.get("suggested_price", current_price)
+        if suggested <= purchase_price:
+            suggested = purchase_price * 1.2
+
+        return {
+            "suggested_price": round(suggested),
+            "min_price": round(result.get("min_price", purchase_price * 1.1)),
+            "max_price": round(result.get("max_price", purchase_price * 2)),
+            "reasoning": result.get("reasoning", ""),
+            "current_price": current_price,
+            "purchase_price": purchase_price,
+        }
+    except json.JSONDecodeError:
+        return {"suggested_price": current_price, "reasoning": "Impossible d'analyser — conservez le prix actuel."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI suggest-price error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible de suggérer un prix")
+
+@api_router.post("/ai/scan-invoice")
+async def ai_scan_invoice(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Use Gemini Vision to extract items from a supplier invoice photo"""
+    image_base64 = data.get("image", "")
+    if not image_base64:
+        raise HTTPException(status_code=400, detail="image (base64) required")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        # Clean base64
+        if "," in image_base64:
+            image_base64 = image_base64.split(",", 1)[1]
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+
+        image_part = {
+            "mime_type": "image/jpeg",
+            "data": image_base64,
+        }
+
+        prompt = """Analyse cette photo de facture/bon de livraison fournisseur.
+Extrais TOUS les articles avec leurs informations.
+
+Réponds UNIQUEMENT en JSON valide (sans markdown) :
+{
+  "supplier_name": "Nom du fournisseur (si visible)",
+  "invoice_number": "Numéro de facture (si visible)",
+  "date": "Date (si visible, format AAAA-MM-JJ)",
+  "items": [
+    {
+      "name": "Nom du produit",
+      "quantity": 0,
+      "unit_price": 0,
+      "total": 0
+    }
+  ],
+  "total_amount": 0
+}
+
+Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres."""
+
+        response = model.generate_content([prompt, image_part])
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        result = json.loads(text)
+        return result
+    except json.JSONDecodeError:
+        return {"supplier_name": None, "items": [], "total_amount": None, "error": "Impossible de lire la facture"}
+    except Exception as e:
+        logger.error(f"AI scan-invoice error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible d'analyser la facture")
+
+@api_router.post("/ai/voice-to-text")
+async def ai_voice_to_text(data: dict = Body(...), user: User = Depends(require_auth)):
+    """Use Gemini to transcribe voice audio and optionally respond"""
+    audio_base64 = data.get("audio", "")
+    if not audio_base64:
+        raise HTTPException(status_code=400, detail="audio (base64) required")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+
+    try:
+        if "," in audio_base64:
+            audio_base64 = audio_base64.split(",", 1)[1]
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+
+        audio_part = {
+            "mime_type": "audio/mp4",
+            "data": audio_base64,
+        }
+
+        prompt = "Transcris exactement ce que dit cette personne en français. Réponds UNIQUEMENT avec la transcription, rien d'autre."
+
+        response = model.generate_content([prompt, audio_part])
+        transcription = response.text.strip()
+        return {"transcription": transcription}
+    except Exception as e:
+        logger.error(f"AI voice-to-text error: {e}")
+        raise HTTPException(status_code=500, detail="Impossible de transcrire l'audio")
 
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
@@ -7576,7 +8126,7 @@ async def get_sales_forecast(user: User = Depends(require_auth)):
     
     # Gemini AI summary (optional, only if API key available)
     ai_summary = ""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if api_key and forecast_products:
         try:
             genai.configure(api_key=api_key)

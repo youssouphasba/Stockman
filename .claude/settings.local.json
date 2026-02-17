@@ -13,7 +13,10 @@
       "Bash(wc:*)",
       "Bash(done)",
       "Bash(grep:*)",
-      "Bash(npx expo install:*)"
+      "Bash(npx expo install:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(xxd:*)"
     ]
   }
 }

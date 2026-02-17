@@ -35,6 +35,7 @@ import {
   stock as stockApi,
   sales as salesApi,
   batches,
+  ai as aiApi,
   Product,
   ProductVariant,
   Category,
@@ -122,6 +123,13 @@ export default function ProductsScreen() {
   const [varQty, setVarQty] = useState('0');
   const [varPurchasePrice, setVarPurchasePrice] = useState('');
   const [varSellingPrice, setVarSellingPrice] = useState('');
+
+  // AI auto-categorization & description
+  const [aiCatLoading, setAiCatLoading] = useState(false);
+  const [aiDescLoading, setAiDescLoading] = useState(false);
+  const [aiPriceLoading, setAiPriceLoading] = useState(false);
+  const [aiPriceReasoning, setAiPriceReasoning] = useState('');
+  const [formDescription, setFormDescription] = useState('');
 
   // Category management modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -387,6 +395,79 @@ export default function ProductsScreen() {
     }
   };
 
+  async function handleAiCategorize() {
+    const name = formName.trim();
+    if (!name || name.length < 2) return;
+    if (!isConnected) {
+      RNAlert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      return;
+    }
+    setAiCatLoading(true);
+    try {
+      const result = await aiApi.suggestCategory(name);
+      const cat = result.category;
+      const sub = result.subcategory;
+      setFormCategoryName(cat);
+      setFormSubcategory(sub);
+      // Find or create category
+      const existing = categoryList.find(c => c.name === cat);
+      if (existing) {
+        setFormCategory(existing.category_id);
+      } else {
+        const info = SHARED_CATEGORIES[cat];
+        if (info) {
+          const created = await categoriesApi.create({ name: cat, color: info.color, icon: info.icon || 'cube-outline' });
+          setFormCategory(created.category_id);
+          loadData();
+        }
+      }
+    } catch {
+      RNAlert.alert('Erreur', 'Impossible de suggérer une catégorie');
+    } finally {
+      setAiCatLoading(false);
+    }
+  }
+
+  async function handleAiPrice() {
+    if (!editingProduct) {
+      RNAlert.alert('Info', 'La suggestion de prix est disponible uniquement pour les produits existants (avec un historique de ventes).');
+      return;
+    }
+    if (!isConnected) {
+      RNAlert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      return;
+    }
+    setAiPriceLoading(true);
+    setAiPriceReasoning('');
+    try {
+      const result = await aiApi.suggestPrice(editingProduct.product_id);
+      setFormSellingPrice(String(result.suggested_price));
+      setAiPriceReasoning(result.reasoning);
+    } catch {
+      RNAlert.alert('Erreur', 'Impossible de suggérer un prix');
+    } finally {
+      setAiPriceLoading(false);
+    }
+  }
+
+  async function handleAiDescription() {
+    const name = formName.trim();
+    if (!name || name.length < 2) return;
+    if (!isConnected) {
+      RNAlert.alert('Hors ligne', 'La génération IA nécessite une connexion internet.');
+      return;
+    }
+    setAiDescLoading(true);
+    try {
+      const result = await aiApi.generateDescription(name, formCategoryName || undefined, formSubcategory || undefined);
+      setFormDescription(result.description);
+    } catch {
+      RNAlert.alert('Erreur', 'Impossible de générer la description');
+    } finally {
+      setAiDescLoading(false);
+    }
+  }
+
   function resetForm() {
     setFormName('');
     setFormSku('');
@@ -402,6 +483,8 @@ export default function ProductsScreen() {
     setFormImage(null);
     setFormRfidTag('');
     setFormExpiryDate('');
+    setFormDescription('');
+    setAiPriceReasoning('');
     setFormHasVariants(false);
     setFormVariants([]);
   }
@@ -480,6 +563,7 @@ export default function ProductsScreen() {
     setFormImage(product.image || null);
     setFormRfidTag(product.rfid_tag || '');
     setFormExpiryDate(product.expiry_date ? product.expiry_date.split('T')[0] : '');
+    setFormDescription(product.description || '');
     setFormHasVariants(product.has_variants || false);
     setFormVariants(product.variants || []);
     setShowAddModal(true);
@@ -538,6 +622,7 @@ export default function ProductsScreen() {
     try {
       const data: ProductCreate = {
         name: formName.trim(),
+        description: formDescription.trim() || undefined,
         sku: formSku.trim() || undefined,
         quantity: parseInt(formQuantity) || 0,
         unit: formUnit,
@@ -1608,7 +1693,67 @@ export default function ProductsScreen() {
                     </View>
                   )}
                 </TouchableOpacity>
-                <FormField label="Nom *" value={formName} onChangeText={setFormName} placeholder="Nom du produit" colors={colors} styles={styles} />
+                <View style={styles.inputRowWithAction}>
+                  <View style={{ flex: 1 }}>
+                    <FormField label="Nom *" value={formName} onChangeText={setFormName} placeholder="Nom du produit" colors={colors} styles={styles} />
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.scanBtnMini, { backgroundColor: colors.primary + '15' }]}
+                    onPress={handleAiCategorize}
+                    disabled={aiCatLoading || !formName.trim()}
+                  >
+                    {aiCatLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Ionicons name="sparkles" size={20} color={!formName.trim() ? colors.textMuted : colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {/* AI hint for categorization */}
+                {!formCategoryName && formName.trim().length > 0 && !aiCatLoading && (
+                  <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 4, marginTop: -2 }}>
+                    Astuce : appuyez sur ✨ pour catégoriser automatiquement
+                  </Text>
+                )}
+                <View>
+                  <View style={styles.inputRowWithAction}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 5 }]}>Description</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleAiDescription}
+                      disabled={aiDescLoading || !formName.trim()}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 3, paddingHorizontal: 8, borderRadius: BorderRadius.full, backgroundColor: colors.primary + '15' }}
+                    >
+                      {aiDescLoading ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Ionicons name="sparkles" size={13} color={!formName.trim() ? colors.textMuted : colors.primary} />
+                      )}
+                      <Text style={{ fontSize: 11, color: !formName.trim() ? colors.textMuted : colors.primary, fontWeight: '600' }}>Générer</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.glass,
+                      color: colors.text,
+                      borderRadius: BorderRadius.md,
+                      padding: 12,
+                      fontSize: 13,
+                      borderWidth: 1,
+                      borderColor: colors.glassBorder,
+                      minHeight: 60,
+                      textAlignVertical: 'top',
+                      marginBottom: 15,
+                    }}
+                    placeholder="Description du produit (optionnel)"
+                    placeholderTextColor={colors.textMuted}
+                    value={formDescription}
+                    onChangeText={setFormDescription}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
                     <FormField label="SKU" value={formSku} onChangeText={setFormSku} placeholder="Référence ou Code-barres" colors={colors} styles={styles} />
@@ -1690,6 +1835,29 @@ export default function ProductsScreen() {
                     <FormField label="Prix vente" value={formSellingPrice} onChangeText={setFormSellingPrice} keyboardType="numeric" colors={colors} styles={styles} />
                   </View>
                 </View>
+                {editingProduct && (
+                  <TouchableOpacity
+                    onPress={handleAiPrice}
+                    disabled={aiPriceLoading}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', paddingHorizontal: 8, paddingVertical: 3, borderRadius: BorderRadius.full, backgroundColor: colors.primary + '15', marginBottom: 8, marginTop: -4 }}
+                  >
+                    {aiPriceLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Ionicons name="sparkles" size={13} color={colors.primary} />
+                    )}
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>Suggérer un prix</Text>
+                  </TouchableOpacity>
+                )}
+                {aiPriceReasoning !== '' && (
+                  <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                      <Ionicons name="sparkles" size={13} color={colors.primary} />
+                      <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Conseil IA</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{aiPriceReasoning}</Text>
+                  </View>
+                )}
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
                     <FormField label="Stock min" value={formMinStock} onChangeText={setFormMinStock} keyboardType="numeric" colors={colors} styles={styles} />

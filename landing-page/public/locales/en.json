@@ -4,6 +4,7 @@
         "resources": "Resources",
         "blog": "Blog",
         "home": "Login",
+        "login": "Log In",
         "free_trial": "Free Trial"
     },
     "hero": {

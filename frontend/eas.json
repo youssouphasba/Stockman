@@ -1,0 +1,30 @@
+{
+    "cli": {
+        "version": ">= 14.2.0",
+        "appVersionSource": "remote"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal"
+        },
+        "preview": {
+            "node": "20.18.1",
+            "distribution": "internal",
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app"
+            },
+            "android": {
+                "buildType": "apk",
+                "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+            },
+            "ios": {
+                "simulator": false
+            }
+        },
+        "production": {}
+    },
+    "submit": {
+        "production": {}
+    }
+}

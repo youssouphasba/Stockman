@@ -53,6 +53,7 @@ import { useDailyTip } from '../../hooks/useDailyTip';
 import TipCard from '../../components/TipCard';
 import ForecastCard from '../../components/ForecastCard';
 import SmartRemindersCard from '../../components/SmartRemindersCard';
+import AiDailySummary from '../../components/AiDailySummary';
 import { formatCurrency as globalFormatCurrency } from '../../utils/format';
 
 const screenWidth = Dimensions.get('window').width;
@@ -527,6 +528,9 @@ export default function DashboardScreen() {
             )}
           </View>
         )}
+
+        {/* AI Daily Summary */}
+        <AiDailySummary />
 
         {/* Smart Reminders */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (

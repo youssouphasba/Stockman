@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import { API_URL } from '../config';
 import '../App.css';
 
 const Newsletter = () => {
@@ -10,7 +11,7 @@ const Newsletter = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:8000/api/public/newsletter', {
+            const response = await fetch(`${API_URL}/api/public/newsletter`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

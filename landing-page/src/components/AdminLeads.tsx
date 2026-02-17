@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 import '../App.css';
 
 interface ContactMessage {
@@ -22,7 +23,7 @@ const AdminLeads = () => {
     useEffect(() => {
         const fetchLeads = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/public/leads');
+                const response = await fetch(`${API_URL}/api/public/leads`);
                 if (response.ok) {
                     const data = await response.json();
                     setContacts(data.contacts);

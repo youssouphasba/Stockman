@@ -24,6 +24,7 @@ import {
   orders as ordersApi,
   invitations as invitationsApi,
   replenishment as replenishmentApi,
+  ai as aiApi,
   ReplenishmentSuggestion,
   Supplier,
   SupplierCreate,
@@ -56,6 +57,8 @@ export default function SuppliersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [suggestions, setSuggestions] = useState<ReplenishmentSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [replenishAdvice, setReplenishAdvice] = useState<string | null>(null);
+  const [adviceLoading, setAdviceLoading] = useState(false);
 
   const [search, setSearch] = useState('');
   const [filterSort, setFilterSort] = useState<'name' | 'recent' | 'delay'>('name');
@@ -678,7 +681,37 @@ export default function SuppliersScreen() {
                 <View style={styles.sectionHeader}>
                   <Ionicons name="sparkles" size={18} color={colors.primary} />
                   <Text style={styles.sectionTitle}>{t('suppliers.ai_suggestions')}</Text>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      setAdviceLoading(true);
+                      try {
+                        const res = await aiApi.replenishmentAdvice();
+                        setReplenishAdvice(res.advice);
+                      } catch { /* silent */ }
+                      finally { setAdviceLoading(false); }
+                    }}
+                    disabled={adviceLoading}
+                    style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: colors.primary + '15' }}
+                  >
+                    {adviceLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={13} color={colors.primary} />
+                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>Conseil IA</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
+                {replenishAdvice && (
+                  <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                      <Ionicons name="sparkles" size={13} color={colors.primary} />
+                      <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Conseil IA</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{replenishAdvice}</Text>
+                  </View>
+                )}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
                   {suggestions.map((sug) => (
                     <TouchableOpacity

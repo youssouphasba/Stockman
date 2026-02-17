@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { alerts as alertsApi, alertRules as alertRulesApi, Alert, AlertRule } from '../../services/api';
+import { alerts as alertsApi, alertRules as alertRulesApi, ai as aiApi, Alert, AlertRule, AiAnomaly } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ScreenGuide from '../../components/ScreenGuide';
@@ -69,6 +69,24 @@ export default function AlertsScreen() {
   }, [isFirstVisit]);
 
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+
+  // AI Anomaly detection
+  const [anomalies, setAnomalies] = useState<AiAnomaly[]>([]);
+  const [anomalyLoading, setAnomalyLoading] = useState(false);
+  const [showAnomalies, setShowAnomalies] = useState(false);
+
+  async function handleDetectAnomalies() {
+    setAnomalyLoading(true);
+    try {
+      const result = await aiApi.detectAnomalies();
+      setAnomalies(result.anomalies || []);
+      setShowAnomalies(true);
+    } catch {
+      RNAlert.alert('Erreur', "Impossible d'analyser les anomalies");
+    } finally {
+      setAnomalyLoading(false);
+    }
+  }
 
   // Rules modal
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -206,6 +224,65 @@ export default function AlertsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* AI Anomaly Detection */}
+        <TouchableOpacity
+          style={[styles.anomalyBtn, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}
+          onPress={handleDetectAnomalies}
+          disabled={anomalyLoading}
+        >
+          <View style={[styles.anomalyIconWrap, { backgroundColor: colors.primary + '20' }]}>
+            {anomalyLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="sparkles" size={18} color={colors.primary} />
+            )}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.anomalyBtnTitle, { color: colors.text }]}>Détection d'anomalies IA</Text>
+            <Text style={[styles.anomalyBtnSub, { color: colors.textMuted }]}>
+              {anomalyLoading ? 'Analyse en cours...' : showAnomalies && anomalies.length === 0 ? 'Aucune anomalie détectée' : 'Analyser ventes, stocks et marges'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {showAnomalies && anomalies.length > 0 && (
+          <View style={{ marginBottom: Spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.xs }}>
+              <Ionicons name="sparkles" size={13} color={colors.primary} />
+              <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Analyse IA — {anomalies.length} anomalie{anomalies.length > 1 ? 's' : ''} détectée{anomalies.length > 1 ? 's' : ''}</Text>
+            </View>
+            {anomalies.map((a, idx) => {
+              const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+                revenue: 'cash-outline',
+                volume: 'trending-up',
+                margin: 'pricetag-outline',
+                stock: 'cube-outline',
+              };
+              return (
+                <View
+                  key={idx}
+                  style={[styles.anomalyItem, {
+                    backgroundColor: colors.glass,
+                    borderColor: a.severity === 'critical' ? colors.danger + '40' : a.severity === 'warning' ? colors.warning + '40' : colors.info + '40',
+                    borderLeftColor: a.severity === 'critical' ? colors.danger : a.severity === 'warning' ? colors.warning : colors.info,
+                  }]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Ionicons
+                      name={iconMap[a.type] || 'alert-circle-outline'}
+                      size={16}
+                      color={a.severity === 'critical' ? colors.danger : a.severity === 'warning' ? colors.warning : colors.info}
+                    />
+                    <Text style={[styles.anomalyTitle, { color: colors.text }]}>{a.title}</Text>
+                  </View>
+                  <Text style={[styles.anomalyDesc, { color: colors.textMuted }]}>{a.description}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {alertList.length === 0 ? (
           <View style={styles.emptyState}>
@@ -500,4 +577,32 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   channelLabel: { fontSize: FontSize.xs, color: colors.textMuted },
   channelBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: colors.primary + '15', paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm },
   channelText: { fontSize: FontSize.xs, color: colors.primaryLight },
+  // AI Anomaly Detection
+  anomalyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  anomalyIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  anomalyBtnTitle: { fontSize: FontSize.sm, fontWeight: '700' },
+  anomalyBtnSub: { fontSize: 11, marginTop: 1 },
+  anomalyItem: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    marginBottom: Spacing.xs,
+  },
+  anomalyTitle: { fontSize: FontSize.sm, fontWeight: '700' },
+  anomalyDesc: { fontSize: FontSize.xs, lineHeight: 18 },
 });

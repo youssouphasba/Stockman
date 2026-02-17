@@ -1,0 +1,53 @@
+﻿[
+  {
+    "id": "1025704d-00a0-4b3d-954c-18a605d6b0d7",
+    "status": "ERRORED",
+    "platform": "ANDROID",
+    "error": {
+      "errorCode": "EAS_BUILD_UNKNOWN_GRADLE_ERROR",
+      "message": "Gradle build failed with unknown error. See logs for the \"Run gradlew\" phase for more information."
+    },
+    "artifacts": {},
+    "fingerprint": {
+      "id": "019c6975-6986-7ee4-b557-181d07ec07b0",
+      "hash": "5c669018f5efcf43f5549f4cc724f782c800f292"
+    },
+    "initiatingActor": {
+      "id": "0854dbb1-2be2-4132-90d8-f1e70ccfdd7b",
+      "displayName": "yersaba"
+    },
+    "logFiles": [
+      "https://job-logs.eascdn.net/production/1025704d-00a0-4b3d-954c-18a605d6b0d7/1771295828598-84736467-ddfe-45cb-9c82-8e2da0b43b85.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260217%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260217T025256Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=3234ea51c901480cb99db4164769d036dda0378cf8c224fab35398db758b5be37cc9af5c70ba9df0816d45778df2769d11d7f1c52f437a6bef3ce64be3f9b24cc8d3981a9a426878aa63a45ffba16ee4c26648670055a1c7dccae7327962c8c462f53ff67ad7d20009cf93dd8c1a1bfeaab14c285b41de8d2f88a9fbcf59c3cc4c8004d0f98ef77cbc0cccab662f14ca802e9e3c43491362fedee3897f0ba151a22dc0211f7ddc089bc185363e22fd46b361024f7fa146f90596457afb60cb153e74d0a3545cea78df890778d95d311568420bb971a4f2b6befd34f07212bf379eeba8a36c7f1450273814dc0fe3fdb9f8c306f6e28f72b37694650876d901e8",
+      "https://job-logs.eascdn.net/production/1025704d-00a0-4b3d-954c-18a605d6b0d7/1771295833520-f6b666b1-5c08-499f-8530-25345e28ad53.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260217%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260217T025256Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=2934361e6d3373e4fda2b9e1477e367638e613975c74311ac3126f49c99ae358c400f9adcac9ec5703a4a750573b17001237bddc75c918a5aeaf874f30d6cadf032d6a85649ff056e738a500b1046768374f05cc1da38e82eb102ddce60b2c167fd161ad1a6ba528b90bcee93b78ced9765210bd53f2a8ab194de29513d68df050910dbe096e0d4cc3a91bd033934c55e61095499d34ff0db7340b13f8bf5697500acfd71f15da9b2ed9ea2cab696f5756b7503100806d3aa66e5cf752578b6dae92f5abdf35fdc71b59d64d0ddb65a638784115b65896165b3b0de4a2fcab95472784189eedc36a0853848fdd9ffff5e559d8dae1fd09cfb96270ff7640b546",
+      "https://job-logs.eascdn.net/production/1025704d-00a0-4b3d-954c-18a605d6b0d7/1771295833759-946dc316-b49a-45a0-90b4-f591bd2a03dc.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260217%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260217T025256Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=588f626a10cec5f99f71193ab1ef1a8aef352c16169e883834bfec90f870315d9a21bb90073ff439a729a4c7ac48e1b7269bb224d1289c8c0097efaa6b70e776325dd64600bbf938e229310b5b715ae8c3833afb3f010d6b5fc3fe87608b72cd04feb4613fe856f22b55042b155346ef5328d47fc0b323a5f6a8a00cdd481c3acf643854cca287e7d89f1373f94c67f56c1e4dd73d648ad993ed80caa45de6aa16df7c6cf980cb60e26fa1198e62926d3d7ecf1b3584ddbf44993328a1d54b650ae9afdf53172f6597cfc7b712e98e86c15e78013823da164c1fd9651e93a4001d63269f75419d1de35f0ec9bc0baecb3231efdb13f6b67bb043e36f8c89fbb2",
+      "https://job-logs.eascdn.net/production/1025704d-00a0-4b3d-954c-18a605d6b0d7/1771295833954-ad3edb22-224c-43ff-a92f-14db0d13a471.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260217%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260217T025256Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=3d54737db0afb7392537d981ac93ccd2eebd03c5c5a79e6efad3550870d98d397a8aa682cc1c092755a4fb389a5abbeb0b194b8018df28895b4a607339ede9c9bdfef908d8026ce4d5ccb51bfe1895eebc3a54209db7e0298863b8600c60afc991fbefeb40dcf7636eb47e854e22a612f6c27f5ec097aa8cabc2c9c4b88e3efb9a9eea2864c534f8e137c22ad8c69818636a3bac3aa0160e4fd6c87fabab07fb9e7b07f8ffa331f9d6caaae6805e0f28f9063a09406e3801e9444dd6fbb1d964cd006ab92e24481e2fbd07fc8989113aab1553bce5059ae969e0cfbeb856defcf0a455f523aab5040aa08518cf58a8ca618c0085bb8dd03905ef480012794014"
+    ],
+    "project": {
+      "id": "83fa27c4-f1c0-45aa-9256-096ec479ced6",
+      "name": "Stockman",
+      "slug": "stockman",
+      "ownerAccount": {
+        "id": "b8463f2c-5c79-4d0f-8d39-25aef01aec57",
+        "name": "yersaba"
+      }
+    },
+    "distribution": "INTERNAL",
+    "buildProfile": "preview",
+    "sdkVersion": "52.0.0",
+    "appVersion": "1.0.0",
+    "appBuildVersion": "1",
+    "gitCommitHash": "dd5f5daa15f5e9a1e429767b0e1f55cbe66da49e",
+    "gitCommitMessage": "Support both ENV and ENVIRONMENT for production mode",
+    "priority": "NORMAL_PLUS",
+    "createdAt": "2026-02-17T02:37:08.314Z",
+    "updatedAt": "2026-02-17T02:41:31.070Z",
+    "completedAt": "2026-02-17T02:41:23.183Z",
+    "expirationDate": "2026-03-03T02:37:08.348Z",
+    "isForIosSimulator": false,
+    "metrics": {
+      "buildWaitTime": 138,
+      "buildQueueTime": 36188,
+      "buildDuration": 218135
+    }
+  }
+]

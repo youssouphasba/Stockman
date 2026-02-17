@@ -4,6 +4,7 @@
         "resources": "Ressources",
         "blog": "Blog",
         "home": "Connexion",
+        "login": "Se connecter",
         "free_trial": "Essai Gratuit"
     },
     "hero": {

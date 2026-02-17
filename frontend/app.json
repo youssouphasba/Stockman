@@ -4,6 +4,17 @@
     "slug": "stockman",
     "version": "1.0.0",
     "orientation": "portrait",
+    "android": {
+      "package": "com.youssouphasba.stockman",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.youssouphasba.stockman",
+      "supportsTablet": true
+    },
     "icon": "./assets/icon.png",
     "scheme": "stockman",
     "userInterfaceStyle": "dark",
@@ -21,7 +32,11 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-camera",
+      "expo-notifications",
+      "expo-localization",
+      "expo-image-picker",
+      "expo-local-authentication"
     ],
     "experiments": {
       "typedRoutes": true

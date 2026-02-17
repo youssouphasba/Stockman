@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { ai } from '../services/api';
@@ -45,6 +47,67 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     const [isLoading, setIsLoading] = useState(false);
     const listRef = useRef<FlatList>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const recordingRef = useRef<Audio.Recording | null>(null);
+
+    const startRecording = async () => {
+        try {
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== 'granted') return;
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+
+            const { recording } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY
+            );
+            recordingRef.current = recording;
+            setIsRecording(true);
+        } catch (err) {
+            console.error('Failed to start recording', err);
+        }
+    };
+
+    const stopRecording = async () => {
+        if (!recordingRef.current) return;
+        setIsRecording(false);
+        setIsTranscribing(true);
+
+        try {
+            await recordingRef.current.stopAndUnloadAsync();
+            const uri = recordingRef.current.getURI();
+            recordingRef.current = null;
+
+            if (!uri) throw new Error('No recording URI');
+
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            const result = await ai.voiceToText(base64);
+            if (result.transcription) {
+                setInputText(result.transcription);
+            }
+        } catch (err) {
+            console.error('Voice transcription failed', err);
+        } finally {
+            setIsTranscribing(false);
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+            });
+        }
+    };
+
+    const handleMicPress = () => {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    };
 
     const loadHistory = async () => {
         setIsLoadingHistory(true);
@@ -208,13 +271,33 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                         <View style={styles.inputArea}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Posez votre question..."
-                                placeholderTextColor={colors.textMuted}
+                                placeholder={isRecording ? '🎙️ Enregistrement...' : 'Posez votre question...'}
+                                placeholderTextColor={isRecording ? colors.danger : colors.textMuted}
                                 value={inputText}
                                 onChangeText={setInputText}
                                 multiline
                                 maxLength={500}
+                                editable={!isRecording}
                             />
+                            <TouchableOpacity
+                                onPress={handleMicPress}
+                                disabled={isLoading || isTranscribing}
+                                style={[
+                                    styles.micBtn,
+                                    isRecording && styles.micBtnActive,
+                                    (isLoading || isTranscribing) && styles.sendBtnDisabled,
+                                ]}
+                            >
+                                {isTranscribing ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Ionicons
+                                        name={isRecording ? 'stop' : 'mic'}
+                                        size={20}
+                                        color="#fff"
+                                    />
+                                )}
+                            </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleSend}
                                 disabled={!inputText.trim() || isLoading}
@@ -367,6 +450,17 @@ const getStyles = (colors: any, glassStyle: any) =>
             color: colors.text,
             fontSize: FontSize.md,
             maxHeight: 100,
+        },
+        micBtn: {
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.textMuted,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        micBtnActive: {
+            backgroundColor: colors.danger,
         },
         sendBtn: {
             width: 44,

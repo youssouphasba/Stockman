@@ -47,6 +47,7 @@ function Landing() {
             <a href="#features" className="nav-link" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
             <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>{t('nav.resources')}</Link>
             <LanguageSwitcher />
+            <a href="#contact" className="btn-secondary nav-login" onClick={() => setMenuOpen(false)}>{t('nav.login')}</a>
             <a href="#contact" className="btn-primary" onClick={() => setMenuOpen(false)}>{t('nav.free_trial')}</a>
           </div>
         </div>
@@ -225,12 +226,12 @@ function Landing() {
           <h2>{t('download.title')}</h2>
           <p>{t('download.subtitle')}</p>
           <div className="download-buttons">
-            <button className="store-btn">
+            <a href="#contact" className="store-btn">
               <span></span> App Store
-            </button>
-            <button className="store-btn">
+            </a>
+            <a href="#contact" className="store-btn">
               <span>▶</span> Google Play
-            </button>
+            </a>
           </div>
           <div className="trust-badges">
             <div className="badge">🔒 {t('download.secure')}</div>

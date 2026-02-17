@@ -91,6 +91,25 @@ ul {
   box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
 }
 
+.nav-login {
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-login:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .text-gradient {
   background: var(--gradient);
   -webkit-background-clip: text;

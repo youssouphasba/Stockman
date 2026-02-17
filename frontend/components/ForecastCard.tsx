@@ -140,7 +140,7 @@ export default function ForecastCard({ onNavigate }: Props) {
       {data.ai_summary ? (
         <View style={[styles.aiBox, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <Ionicons name="sparkles" size={14} color={colors.primary} />
+            <Ionicons name="sparkles" size={13} color={colors.primary} />
             <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>Analyse IA</Text>
           </View>
           <Text style={[styles.aiText, { color: colors.textSecondary }]}>

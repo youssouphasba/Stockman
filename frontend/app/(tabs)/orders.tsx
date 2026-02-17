@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   orders as ordersApi,
   ratings as ratingsApi,
@@ -25,6 +26,7 @@ import {
   returns as returnsApi,
   creditNotes as creditNotesApi,
   stores as storesApi,
+  ai as aiApi,
   OrderWithDetails,
   OrderFull,
   Supplier,
@@ -33,6 +35,7 @@ import {
   ReturnItem,
   CreditNote,
   Store,
+  InvoiceScanResult,
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -99,6 +102,11 @@ export default function OrdersScreen() {
 
   // Create order modal
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // AI Invoice Scanner
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState<InvoiceScanResult | null>(null);
+  const [showScanResult, setShowScanResult] = useState(false);
 
   // Delivery confirmation modal (marketplace)
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
@@ -465,6 +473,61 @@ export default function OrdersScreen() {
     }
   }
 
+  async function handleScanInvoice() {
+    RNAlert.alert(
+      'Scanner une facture',
+      "Prenez en photo une facture fournisseur. L'IA extraira automatiquement les articles.",
+      [
+        {
+          text: 'Caméra',
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) return;
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              quality: 0.8,
+              base64: true,
+            });
+            if (!result.canceled && result.assets[0].base64) {
+              processInvoiceImage(result.assets[0].base64);
+            }
+          },
+        },
+        {
+          text: 'Galerie',
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              quality: 0.8,
+              base64: true,
+            });
+            if (!result.canceled && result.assets[0].base64) {
+              processInvoiceImage(result.assets[0].base64);
+            }
+          },
+        },
+        { text: 'Annuler', style: 'cancel' },
+      ]
+    );
+  }
+
+  async function processInvoiceImage(base64: string) {
+    setScanLoading(true);
+    try {
+      const result = await aiApi.scanInvoice(base64);
+      if (result.error || !result.items || result.items.length === 0) {
+        RNAlert.alert('Résultat', "Aucun article détecté sur cette image. Essayez avec une photo plus nette.");
+        return;
+      }
+      setScanResult(result);
+      setShowScanResult(true);
+    } catch {
+      RNAlert.alert('Erreur', "Impossible d'analyser la facture");
+    } finally {
+      setScanLoading(false);
+    }
+  }
+
   async function exportOrdersPdf() {
     const statusLabels: Record<string, string> = {
       pending: 'En attente', confirmed: 'Confirmée', shipped: 'Expédiée',
@@ -571,6 +634,17 @@ export default function OrdersScreen() {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: colors.primary + '15' }]}
+              onPress={handleScanInvoice}
+              disabled={scanLoading}
+            >
+              {scanLoading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="scan-outline" size={22} color={colors.primary} />
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={styles.addBtn} onPress={exportOrdersPdf}>
               <Ionicons name="document-text-outline" size={22} color={colors.text} />
             </TouchableOpacity>
@@ -916,6 +990,103 @@ export default function OrdersScreen() {
           loadData();
         }}
       />
+
+      {/* AI Invoice Scan Result Modal */}
+      <Modal visible={showScanResult} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Facture scannée</Text>
+              <TouchableOpacity onPress={() => setShowScanResult(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {scanResult && (
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.md }}>
+                {/* Header info */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.sm }}>
+                  <Ionicons name="sparkles" size={13} color={colors.primary} />
+                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Extraction IA</Text>
+                </View>
+                {scanResult.supplier_name && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Fournisseur :</Text>
+                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.supplier_name}</Text>
+                  </View>
+                )}
+                {scanResult.invoice_number && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>N° facture :</Text>
+                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.invoice_number}</Text>
+                  </View>
+                )}
+                {scanResult.date && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Date :</Text>
+                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.date}</Text>
+                  </View>
+                )}
+
+                {/* Items */}
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs }}>
+                  {scanResult.items.length} article{scanResult.items.length > 1 ? 's' : ''} détecté{scanResult.items.length > 1 ? 's' : ''}
+                </Text>
+                {scanResult.items.map((item, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: Spacing.xs,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.divider,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                        {item.quantity} x {(item.unit_price || 0).toLocaleString()} FCFA
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
+                      {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} F
+                    </Text>
+                  </View>
+                ))}
+
+                {/* Total */}
+                {scanResult.total_amount != null && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, marginTop: Spacing.xs }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Total</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{scanResult.total_amount.toLocaleString()} FCFA</Text>
+                  </View>
+                )}
+
+                {/* Actions */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: BorderRadius.md,
+                    padding: Spacing.md,
+                    alignItems: 'center',
+                    marginTop: Spacing.lg,
+                  }}
+                  onPress={() => {
+                    setShowScanResult(false);
+                    setShowCreateModal(true);
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Créer une commande</Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xs }}>
+                  Les articles détectés serviront de référence pour votre commande
+                </Text>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Delivery Confirmation Modal (marketplace orders) */}
       <DeliveryConfirmationModal
