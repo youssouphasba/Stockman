@@ -360,7 +360,7 @@
         "other": "其他",
         "whatsapp_log": "从应用发起WhatsApp对话",
         "delete_title": "删除供应商",
-        "delete_confirm": "确定要删除"{{name}}"吗？",
+        "delete_confirm": "确定要删除{{name}}吗？",
         "save_error": "无法保存供应商",
         "delete_error": "无法删除",
         "linked_products": "关联产品（{{count}}）",
