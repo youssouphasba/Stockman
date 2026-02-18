@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { purchaseStarter, purchasePremium, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
 
 type FeatureRow = {
     label: string;
@@ -70,26 +71,23 @@ export default function SubscriptionScreen() {
     };
 
     const handleRevenueCatPurchase = async (plan: string) => {
+        if (!isPurchasesAvailable()) {
+            Alert.alert('Info', 'Les achats in-app ne sont pas disponibles. Utilisez Mobile Money.');
+            return;
+        }
         try {
             setPayLoading(true);
-            const { default: Purchases } = await import('react-native-purchases');
-            const offerings = await Purchases.getOfferings();
-            const pkg = plan === 'premium'
-                ? offerings.current?.monthly
-                : offerings.all?.['starter']?.monthly;
-            if (!pkg) {
-                Alert.alert('Erreur', 'Aucune offre disponible');
-                return;
-            }
-            const { customerInfo } = await Purchases.purchasePackage(pkg);
-            if (customerInfo?.entitlements.active[plan]) {
+            const result = plan === 'premium'
+                ? await purchasePremium()
+                : await purchaseStarter();
+            if (result.success) {
                 await subscription.sync();
                 fetchSubscription();
                 Alert.alert('Merci !', 'Votre abonnement est activé.');
             }
         } catch (e: any) {
             if (!e.userCancelled) {
-                Alert.alert('Erreur', 'Le paiement a échoué.');
+                Alert.alert('Erreur', 'Le paiement a échoué. Vérifiez votre connexion et réessayez.');
             }
         } finally {
             setPayLoading(false);
@@ -113,13 +111,11 @@ export default function SubscriptionScreen() {
     };
 
     const handleRestorePurchases = async () => {
-        if (Platform.OS === 'web') return;
+        if (!isPurchasesAvailable()) return;
         try {
             setPayLoading(true);
-            const { default: Purchases } = await import('react-native-purchases');
-            const customerInfo = await Purchases.restorePurchases();
-            const active = customerInfo?.entitlements.active;
-            if (active?.['premium'] || active?.['starter']) {
+            const result = await restorePurchases();
+            if (result.success && result.plan && result.plan !== 'free') {
                 await subscription.sync();
                 fetchSubscription();
                 Alert.alert('Restauré', 'Votre abonnement a été restauré.');
@@ -136,6 +132,10 @@ export default function SubscriptionScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
+                <TouchableOpacity style={styles.loadingBack} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+                    <Text style={{ color: '#3B82F6', marginLeft: 8 }}>Retour</Text>
+                </TouchableOpacity>
                 <ActivityIndicator size="large" color="#3B82F6" />
             </View>
         );
@@ -334,7 +334,8 @@ export default function SubscriptionScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F9FAFB' },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
+    loadingBack: { position: 'absolute', top: 60, left: 20, flexDirection: 'row', alignItems: 'center' },
     header: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center' },
     backButton: { position: 'absolute', left: 20, top: 55, zIndex: 1 },
     headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 8 },

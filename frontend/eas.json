@@ -6,15 +6,20 @@
     "build": {
         "development": {
             "developmentClient": true,
-            "distribution": "internal"
+            "distribution": "internal",
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt"
+            }
         },
         "preview": {
             "node": "20.18.1",
             "distribution": "internal",
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "",
-                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": ""
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt"
             },
             "android": {
                 "buildType": "apk",
@@ -24,7 +29,13 @@
                 "simulator": false
             }
         },
-        "production": {}
+        "production": {
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt"
+            }
+        }
     },
     "submit": {
         "production": {}
