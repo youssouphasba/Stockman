@@ -236,14 +236,17 @@ function Landing() {
           <div className="section-title">
             <h2>{t('faq.title')}</h2>
           </div>
-          <div className="glass-card faq-item">
-            <h3>{t('faq.q1')}</h3>
-            <p>{t('faq.a1')}</p>
-          </div>
-          <div className="glass-card faq-item">
-            <h3>{t('faq.q2')}</h3>
-            <p>{t('faq.a2')}</p>
-          </div>
+          {[1, 2, 3, 4, 5].map(i => {
+            const q = t(`faq.q${i}`);
+            const a = t(`faq.a${i}`);
+            if (!q || q === `faq.q${i}`) return null;
+            return (
+              <div key={i} className="glass-card faq-item">
+                <h3>{q}</h3>
+                <p>{a}</p>
+              </div>
+            );
+          })}
         </div>
 
         <div className="download-banner reveal">
@@ -251,10 +254,10 @@ function Landing() {
           <p>{t('download.subtitle')}</p>
           <div className="download-buttons">
             <a href="#contact" className="store-btn">
-              <span></span> App Store
+              <span></span> {t('download.app_store')}
             </a>
             <a href="#contact" className="store-btn">
-              <span>▶</span> Google Play
+              <span>▶</span> {t('download.google_play')}
             </a>
           </div>
           <div className="trust-badges">

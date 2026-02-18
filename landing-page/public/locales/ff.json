@@ -452,5 +452,21 @@
         "title": "Dawrugol njaayu",
         "version": "13 Féw 2026",
         "content": "<p>Jam e Stockman. Aar humpito maa timmungo ko liggeey men mawngol.</p><h3>1. Humpitooji nu denci</h3><p>Men dencat: innde maa, email, telefon, mbidduuji bitik maa, njaayu e humpitooji xarala (IP, device).</p><h3>2. Gollal humpitooji</h3><p>Humpito maa ngam: koldinu stok maa, aar sët maa, moƴƴinde gollal men e yoonu.</p><h3>3. Denc e Aar</h3><p>Humpito maa ena dencaa e MongoDB Atlas kadi ena aaraa (encrypted). HTTPS lo men kuutorɗen.</p><h3>4. Bokk humpitoji</h3><p>Men jëndata wala men luyata humpito maa. Ak partenaire xarala rek la men koy bokkata so yoonu naamni nu.</p><h3>5. Sarɗiiji maa (RGPD)</h3><p>A mawan yi'ude, soppide wala dakkal humpito maa e gollirgal e Paramètres.</p><h3>6. Woo nu</h3><p>So a jogii naamnal, woo nu e gollirgal wala e <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+    },
+    "faq": {
+        "title": "Naamne keewɗe",
+        "q1": "Mbele ina golla tawa internet alaa?",
+        "a1": "Eyyo, Stockman ina golla e gollal tawa internet alaa. Humpito maa ena simaye so internet arti.",
+        "q2": "Mbele humpitooji am ena aaraa?",
+        "a2": "Hoolu ɗum. Emin kuutorɗe njuɓɓudi aaraango hiisawal ngam aarude kala humpitooji njaaƴu maa."
+    },
+    "download": {
+        "title": "Mbele a paree ngir ɓeydude mbeesu maa?",
+        "subtitle": "Jokku e ujunnaaje njaaƴooɓe mbeesuugol njuɓɓudi mum en.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "Feygooji aaraango",
+        "support": "Ballo karallagal",
+        "updates": "Mbeesuuji jokkuɗi"
     }
 }

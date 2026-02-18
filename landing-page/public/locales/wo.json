@@ -463,5 +463,21 @@
         "title": "Aar mbiddu",
         "version": "13 Féw 2026",
         "content": "<p>Dalal ak jàmm ci Stockman. Aar sa mbiddu nit mooy sunu liggeey bu jëkk.</p><h3>1. Mbiddu yi nu denc</h3><p>Danu denc: sa tur, email, telefon, mbiddu sa shop, njaay ak mbiddu xarala (IP, xarala).</p><h3>2. Njariñu mbiddu yi</h3><p>Sa mbiddu ngir: saytu sa stock, aar sa sët, baaxal sunu liggeey ak yoon.</p><h3>3. Denc ak Aar</h3><p>Sa mbiddu danuxu denc ci MongoDB Atlas te dëjj nanu ko (encrypted). HTTPS lo nu jëfandikoo.</p><h3>4. Bokk mbiddu yi</h3><p>Danu jëndul wala nuy luyee sa mbiddu. Ak sunu partenaire xarala rek la nu koy bokkal bala yoon woo nu.</p><h3>5. Sa sàrtu (RGPD)</h3><p>Mën nga xool, soppi wala dakkal sa mbiddu ci aplikasyon bi ci Paramètres.</p><h3>6. Woo nu</h3><p>Soo amee laaj, woo nu ci aplikasyon bi wala ci <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+    },
+    "faq": {
+        "title": "Laaj yi nu bari laaj",
+        "q1": "Ndax mu ngi liggeey te amul internet?",
+        "a1": "Waaw, Stockman mu ngi liggeey ci mode offline. Sa mbiddu yi danuy simay sàssu internet bi delloo si.",
+        "q2": "Ndax sa mbiddu yi aaru nanu?",
+        "a2": "Dëgg la. Danuy jëfandikoo xarala bu fukk ngir aar sa mbiddu njaay yi."
+    },
+    "download": {
+        "title": "Ndax pare nga ngir wàcc ci sigoŋ bi?",
+        "subtitle": "Bokkal ci njaaykat yu bari yu baaxal sen saytu.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "Fey bi mu ngi aaru",
+        "support": "Ndimal xarala",
+        "updates": "Xarala yu bees bépp bës"
     }
 }

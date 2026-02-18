@@ -9,13 +9,21 @@ function HelpCenter() {
 
     const categories = ['getting_started', 'account_billing', 'technical_support'];
 
-    const faqs = categories.map(cat => ({
-        category: t(`help.${cat}.title`),
-        questions: [1, 2].map(i => ({
-            q: t(`help.${cat}.q${i}`),
-            a: t(`help.${cat}.a${i}`),
-        }))
-    }));
+    const faqs = categories.map(cat => {
+        const questions = [];
+        for (let i = 1; i <= 10; i++) {
+            const q = t(`help.${cat}.q${i}`);
+            const a = t(`help.${cat}.a${i}`);
+            // If the key is returned as the key itself (default i18next behavior for missing keys)
+            // or is empty/undefined, we stop.
+            if (!q || q === `help.${cat}.q${i}`) break;
+            questions.push({ q, a });
+        }
+        return {
+            category: t(`help.${cat}.title`),
+            questions
+        };
+    });
 
     const filteredFaqs = faqs.map(cat => ({
         ...cat,

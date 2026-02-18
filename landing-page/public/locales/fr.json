@@ -131,6 +131,8 @@
     "download": {
         "title": "Prêt à passer au niveau supérieur ?",
         "subtitle": "Rejoignez des milliers de commerçants qui ont modernisé leur gestion.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
         "secure": "Paiements Sécurisés",
         "support": "Support Pro",
         "updates": "Mise à jour Continue"

@@ -131,6 +131,8 @@
     "download": {
         "title": "准备好升级了吗？",
         "subtitle": "加入数千名优化管理的现代商户行列。",
+        "app_store": "App Store",
+        "google_play": "Google Play",
         "secure": "安全支付",
         "support": "专业支持",
         "updates": "持续更新"
