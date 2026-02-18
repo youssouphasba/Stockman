@@ -10,6 +10,8 @@
     "edit": "Edit",
     "success": "Success",
     "error": "Error",
+    "back": "Back",
+    "or": "or",
     "language_choice": "Choose Language",
     "items_count": "{{count}} item(s)",
     "my_shop": "My Shop",
@@ -21,6 +23,7 @@
     "none": "None",
     "yes": "Yes",
     "no": "No",
+    "currency_default": "FCFA",
     "unknown_product": "Unknown product",
     "merchant": "Merchant",
     "preferences_error": "Could not update your preferences.",
@@ -56,6 +59,59 @@
     "activity": "Activity",
     "admin": "Admin",
     "subscription": "Subscription"
+  },
+  "subscription": {
+    "title": "My Subscription",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Free trial",
+    "trial_remaining": "{{count}} days left of free trial",
+    "trial_banner": "3 months free trial, then {{price}}/month. No commitment.",
+    "compare_plans": "Plan Comparison",
+    "popular": "Popular",
+    "per_month": "/month",
+    "choose_plan": "Choose {{plan}}",
+    "pay_app_store": "Pay via App Store",
+    "pay_google_play": "Pay via Google Play",
+    "pay_mobile_money": "Pay via Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Restore a purchase",
+    "active": "Active",
+    "premium_active_text": "Your Premium subscription is active. Thank you for your trust!",
+    "renewal": "Renewal: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Your subscription has been activated successfully!",
+    "payment_failed": "Payment failed. Please try again.",
+    "cinetpay_init_error": "Could not initiate Mobile Money payment. Please try again.",
+    "iap_not_available": "In-app purchases are not available. Use Mobile Money.",
+    "restored": "Restored",
+    "restored_success": "Your subscription has been restored.",
+    "no_purchase_found": "No purchase found.",
+    "restore_error": "Could not restore purchases.",
+    "features": {
+      "products": "Products & items",
+      "stores": "Store locations",
+      "users": "Users & team",
+      "pos": "Point of Sale (POS)",
+      "pdf_receipts": "PDF receipts & invoices",
+      "reports": "Reports & statistics",
+      "ai_assistant": "Stockman AI Assistant",
+      "suppliers_orders": "Suppliers & orders",
+      "csv_import_export": "CSV Import/Export",
+      "crm_loyalty": "CRM & loyalty program",
+      "sms_alerts": "SMS alerts & notifications",
+      "support": "Customer support",
+      "unlimited": "Unlimited",
+      "with_watermark": "With Stockman branding",
+      "custom_logo": "Custom logo",
+      "30_days": "Last 30 days",
+      "full_history": "Full history",
+      "14_req_week": "14 requests/week",
+      "consultation": "View only",
+      "full_management": "Full management",
+      "email_24h": "Email (24h)",
+      "whatsapp_2h": "Priority WhatsApp (2h)"
+    }
   },
   "store_selector": {
     "my_stores": "My Stores",
@@ -260,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "Starting from 1,000 FCFA / month",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -287,6 +343,16 @@
           "Detailed profit/loss analysis",
           "Professional PDF/Excel reports",
           "Multi-currency support"
+        ]
+      },
+      "crm": {
+        "title": "CRM & Loyalty Program",
+        "desc": "Build customer loyalty with personalized tracking and a rewards program.",
+        "benefits": [
+          "Customer database with full purchase history",
+          "Loyalty program (Bronze, Silver, Gold, Platinum)",
+          "Targeted WhatsApp marketing campaigns",
+          "Customer debt and credit management"
         ]
       }
     }

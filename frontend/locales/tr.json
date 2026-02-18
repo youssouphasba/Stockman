@@ -10,6 +10,9 @@
     "edit": "Düzenle",
     "success": "Başarılı",
     "error": "Hata",
+    "back": "Geri",
+    "or": "veya",
+    "currency_default": "FCFA",
     "language_choice": "Dil Seçin",
     "items_count": "{{count}} ürün",
     "my_shop": "Mağazam",
@@ -260,7 +263,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "1 000 FCFA / ay'dan başlayan",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -288,7 +291,70 @@
           "Professional PDF/Excel reports",
           "Multi-currency support"
         ]
+      },
+      "crm": {
+        "title": "CRM & Sadakat Programı",
+        "desc": "Kişiselleştirilmiş takip ve ödül programı ile müşterilerinizi sadık tutun.",
+        "benefits": [
+          "Tam satın alma geçmişi olan müşteri tabanı",
+          "Sadakat programı (Bronz, Gümüş, Altın, Platin)",
+          "Hedefli WhatsApp pazarlama kampanyaları",
+          "Müşteri borçları ve kredilerinin yönetimi"
+        ]
       }
+    }
+  },
+  "subscription": {
+    "title": "Aboneliğim",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Ücretsiz deneme",
+    "trial_remaining": "{{count}} gün ücretsiz deneme süresi kaldı",
+    "trial_banner": "3 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
+    "compare_plans": "Planları karşılaştır",
+    "popular": "Popüler",
+    "per_month": "/ay",
+    "choose_plan": "{{plan}} seç",
+    "pay_app_store": "App Store ile öde",
+    "pay_google_play": "Google Play ile öde",
+    "pay_mobile_money": "Mobile Money ile öde",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Satın alma işlemini geri yükle",
+    "active": "Aktif",
+    "premium_active_text": "Premium aboneliğiniz aktif. Güveniniz için teşekkürler!",
+    "renewal": "Yenileme: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Aboneliğiniz başarıyla etkinleştirildi!",
+    "payment_failed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
+    "cinetpay_init_error": "Mobile Money ödemesi başlatılamadı. Tekrar deneyin.",
+    "iap_not_available": "Uygulama içi satın alımlar mevcut değil. Mobile Money kullanın.",
+    "restored": "Geri yüklendi",
+    "restored_success": "Aboneliğiniz geri yüklendi.",
+    "no_purchase_found": "Satın alma bulunamadı.",
+    "restore_error": "Satın almalar geri yüklenemedi.",
+    "features": {
+      "products": "Ürünler ve makaleler",
+      "stores": "Satış noktaları",
+      "users": "Kullanıcılar ve ekip",
+      "pos": "Kasa (POS)",
+      "pdf_receipts": "Fişler ve faturalar PDF",
+      "reports": "Raporlar ve istatistikler",
+      "ai_assistant": "Yapay Zeka Asistanı Stockman",
+      "suppliers_orders": "Tedarikçiler ve siparişler",
+      "csv_import_export": "İçe/Dışa Aktarma CSV",
+      "crm_loyalty": "CRM ve sadakat programı",
+      "sms_alerts": "SMS uyarıları ve bildirimler",
+      "support": "Müşteri desteği",
+      "unlimited": "Sınırsız",
+      "with_watermark": "Stockman damgalı",
+      "custom_logo": "Özel logo",
+      "30_days": "Son 30 gün",
+      "full_history": "Tam geçmiş",
+      "14_req_week": "14 istek/hafta",
+      "consultation": "Sadece danışma",
+      "full_management": "Tam yönetim",
+      "email_24h": "Email (24s)",
+      "whatsapp_2h": "WhatsApp öncelikli (2s)"
     }
   },
   "invoice": {

@@ -10,6 +10,9 @@
     "edit": "संपादित करें",
     "success": "सफल",
     "error": "त्रुटि",
+    "back": "वापस",
+    "or": "या",
+    "currency_default": "FCFA",
     "language_choice": "भाषा चुनें",
     "items_count": "{{count}} आइटम",
     "my_shop": "मेरी दुकान",
@@ -257,36 +260,99 @@
     "gross_margin_kpi": "सकल मार्जिन",
     "total_expenses_kpi": "कुल खर्च"
   },
+  "subscription": {
+    "title": "मेरी सदस्यता",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "मुफ्त परीक्षण",
+    "trial_remaining": "मुफ्त परीक्षण के {{count}} दिन शेष",
+    "trial_banner": "3 महीने मुफ्त परीक्षण, फिर {{price}}/महीना। कोई प्रतिबद्धता नहीं।",
+    "compare_plans": "योजनाओं की तुलना करें",
+    "popular": "लोकप्रिय",
+    "per_month": "/महीना",
+    "choose_plan": "{{plan}} चुनें",
+    "pay_app_store": "App Store के माध्यम से भुगतान करें",
+    "pay_google_play": "Google Play के माध्यम से भुगतान करें",
+    "pay_mobile_money": "Mobile Money के माध्यम से भुगतान करें",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "खरीदारी पुनर्स्थापित करें",
+    "active": "सक्रिय",
+    "premium_active_text": "आपकी Premium सदस्यता सक्रिय है। आपके विश्वास के लिए धन्यवाद!",
+    "renewal": "नवीनीकरण: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "आपकी सदस्यता सफलतापूर्वक सक्रिय हो गई है!",
+    "payment_failed": "भुगतान विफल रहा। कृपया पुनः प्रयास करें।",
+    "cinetpay_init_error": "Mobile Money भुगतान आरंभ करने में असमर्थ। पुनः प्रयास करें।",
+    "iap_not_available": "इन-ऐप खरीदारी उपलब्ध नहीं है। Mobile Money का उपयोग करें।",
+    "restored": "पुनर्स्थापित",
+    "restored_success": "आपकी सदस्यता पुनर्स्थापित हो गई है।",
+    "no_purchase_found": "कोई खरीदारी नहीं मिली।",
+    "restore_error": "खरीदारी पुनर्स्थापित करने में असमर्थ।",
+    "features": {
+      "products": "उत्पाद और आइटम",
+      "stores": "बिक्री बिंदु",
+      "users": "उपयोगकर्ता और टीम",
+      "pos": "कैश रजिस्टर (POS)",
+      "pdf_receipts": "रसीदें और चालान PDF",
+      "reports": "रिपोर्ट और सांख्यिकी",
+      "ai_assistant": "AI सहायक Stockman",
+      "suppliers_orders": "आपूर्तिकर्ता और ऑर्डर",
+      "csv_import_export": "CSV आयात/निर्यात",
+      "crm_loyalty": "CRM और वफादारी कार्यक्रम",
+      "sms_alerts": "SMS अलर्ट और सूचनाएं",
+      "support": "ग्राहक सहायता",
+      "unlimited": "असीमित",
+      "with_watermark": "Stockman उल्लेख के साथ",
+      "custom_logo": "कस्टम लोगो",
+      "30_days": "पिछले 30 दिन",
+      "full_history": "पूर्ण इतिहास",
+      "14_req_week": "14 अनुरोध/सप्ताह",
+      "consultation": "केवल परामर्श",
+      "full_management": "पूर्ण प्रबंधन",
+      "email_24h": "ईमेल (24 घंटे)",
+      "whatsapp_2h": "प्राथमिकता WhatsApp (2 घंटे)"
+    }
+  },
   "premium": {
-    "with_premium_you_can": "With Premium, you can:",
-    "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "with_premium_you_can": "Premium के साथ, आप कर सकते हैं:",
+    "upgrade_now": "Premium में अपग्रेड करें",
+    "pricing_hint": "1 000 FCFA / महीने से शुरू",
     "features": {
       "orders": {
-        "title": "Smart Ordering",
-        "desc": "Automate your orders and manage returns professionally.",
+        "title": "स्मार्ट ऑर्डरिंग",
+        "desc": "अपने ऑर्डर को स्वचालित करें और रिटर्न को पेशेवर तरीके से प्रबंधित करें।",
         "benefits": [
-          "Auto-generate orders based on stock",
-          "Advanced return management",
-          "Supplier performance tracking"
+          "स्टॉक के आधार पर स्वतः ऑर्डर बनाएं",
+          "उन्नत रिटर्न प्रबंधन",
+          "आपूर्तिकर्ता प्रदर्शन ट्रैकिंग"
         ]
       },
       "suppliers": {
-        "title": "Marketplace Access",
-        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "title": "मार्केटप्लेस एक्सेस",
+        "desc": "हजारों सत्यापित आपूर्तिकर्ताओं से जुड़ें और कीमतों की तुलना करें।",
         "benefits": [
-          "Global marketplace access",
-          "Direct supplier chat",
-          "Exclusive bulk discounts"
+          "वैश्विक मार्केटप्लेस एक्सेस",
+          "सीधे आपूर्तिकर्ता चैट",
+          "विशेष थोक छूट"
         ]
       },
       "accounting": {
-        "title": "Financial Intelligence",
-        "desc": "Deep dive into your business metrics and export official reports.",
+        "title": "वित्तीय खुफिया",
+        "desc": "अपने व्यावसायिक मेट्रिक्स में गहराई से जाएं और आधिकारिक रिपोर्ट निर्यात करें।",
         "benefits": [
-          "Detailed profit/loss analysis",
-          "Professional PDF/Excel reports",
-          "Multi-currency support"
+          "विस्तृत लाभ/हानि विश्लेषण",
+          "पेशेवर PDF/Excel रिपोर्ट",
+          "बहु-मुद्रा समर्थन"
+        ]
+      },
+      "crm": {
+        "title": "CRM और वफादारी कार्यक्रम",
+        "desc": "व्यक्तिगत अनुवर्ती और पुरस्कार कार्यक्रम के साथ अपने ग्राहकों की वफादारी बनाएं।",
+        "benefits": [
+          "पूर्ण खरीद इतिहास के साथ ग्राहक आधार",
+          "वफादारी कार्यक्रम (कांस्य, रजत, स्वर्ण, प्लेटिनम)",
+          "लक्षित WhatsApp मार्केटिंग अभियान",
+          "ग्राहक ऋण और क्रेडिट प्रबंधन"
         ]
       }
     }

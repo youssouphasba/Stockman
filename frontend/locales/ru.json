@@ -10,6 +10,9 @@
     "edit": "Редактировать",
     "success": "Успешно",
     "error": "Ошибка",
+    "back": "Назад",
+    "or": "или",
+    "currency_default": "FCFA",
     "language_choice": "Выберите язык",
     "items_count": "{{count}} элемент(ов)",
     "my_shop": "Мой магазин",
@@ -257,36 +260,99 @@
     "gross_margin_kpi": "Валовая маржа",
     "total_expenses_kpi": "Общие расходы"
   },
+  "subscription": {
+    "title": "Моя подписка",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Бесплатная пробная версия",
+    "trial_remaining": "{{count}} дней осталось бесплатного пробного периода",
+    "trial_banner": "3 месяца бесплатной пробной версии, затем {{price}}/месяц. Без обязательств.",
+    "compare_plans": "Сравнение тарифов",
+    "popular": "Популярный",
+    "per_month": "/месяц",
+    "choose_plan": "Выбрать {{plan}}",
+    "pay_app_store": "Оплатить через App Store",
+    "pay_google_play": "Оплатить через Google Play",
+    "pay_mobile_money": "Оплатить через Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Восстановить покупку",
+    "active": "Активна",
+    "premium_active_text": "Ваша подписка Premium активна. Спасибо за доверие!",
+    "renewal": "Продление: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Ваша подписка успешно активирована!",
+    "payment_failed": "Платёж не прошёл. Пожалуйста, повторите попытку.",
+    "cinetpay_init_error": "Не удалось инициировать платёж Mobile Money. Повторите попытку.",
+    "iap_not_available": "Покупки в приложении недоступны. Используйте Mobile Money.",
+    "restored": "Восстановлено",
+    "restored_success": "Ваша подписка восстановлена.",
+    "no_purchase_found": "Покупка не найдена.",
+    "restore_error": "Не удалось восстановить покупки.",
+    "features": {
+      "products": "Товары и артикулы",
+      "stores": "Точки продаж",
+      "users": "Пользователи и команда",
+      "pos": "Касса (POS)",
+      "pdf_receipts": "Чеки и счета-фактуры PDF",
+      "reports": "Отчёты и статистика",
+      "ai_assistant": "AI-ассистент Stockman",
+      "suppliers_orders": "Поставщики и заказы",
+      "csv_import_export": "Импорт/Экспорт CSV",
+      "crm_loyalty": "CRM и программа лояльности",
+      "sms_alerts": "SMS-уведомления и оповещения",
+      "support": "Поддержка клиентов",
+      "unlimited": "Неограниченно",
+      "with_watermark": "С упоминанием Stockman",
+      "custom_logo": "Собственный логотип",
+      "30_days": "Последние 30 дней",
+      "full_history": "Полная история",
+      "14_req_week": "14 запросов/неделю",
+      "consultation": "Только консультация",
+      "full_management": "Полное управление",
+      "email_24h": "Электронная почта (24 часа)",
+      "whatsapp_2h": "Приоритетный WhatsApp (2 часа)"
+    }
+  },
   "premium": {
-    "with_premium_you_can": "With Premium, you can:",
-    "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "with_premium_you_can": "С Premium вы можете:",
+    "upgrade_now": "Перейти на Premium",
+    "pricing_hint": "От 1 000 FCFA / месяц",
     "features": {
       "orders": {
-        "title": "Smart Ordering",
-        "desc": "Automate your orders and manage returns professionally.",
+        "title": "Умное заказывание",
+        "desc": "Автоматизируйте свои заказы и управляйте возвратами профессионально.",
         "benefits": [
-          "Auto-generate orders based on stock",
-          "Advanced return management",
-          "Supplier performance tracking"
+          "Автоматическое создание заказов на основе запасов",
+          "Расширенное управление возвратами",
+          "Отслеживание производительности поставщиков"
         ]
       },
       "suppliers": {
-        "title": "Marketplace Access",
-        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "title": "Доступ к маркетплейсу",
+        "desc": "Подключайтесь к тысячам проверенных поставщиков и сравнивайте цены.",
         "benefits": [
-          "Global marketplace access",
-          "Direct supplier chat",
-          "Exclusive bulk discounts"
+          "Доступ к глобальному маркетплейсу",
+          "Прямой чат с поставщиками",
+          "Эксклюзивные оптовые скидки"
         ]
       },
       "accounting": {
-        "title": "Financial Intelligence",
-        "desc": "Deep dive into your business metrics and export official reports.",
+        "title": "Финансовая аналитика",
+        "desc": "Углубитесь в метрики вашего бизнеса и экспортируйте официальные отчёты.",
         "benefits": [
-          "Detailed profit/loss analysis",
-          "Professional PDF/Excel reports",
-          "Multi-currency support"
+          "Детальный анализ прибылей/убытков",
+          "Профессиональные отчёты PDF/Excel",
+          "Поддержка нескольких валют"
+        ]
+      },
+      "crm": {
+        "title": "CRM и программа лояльности",
+        "desc": "Повышайте лояльность клиентов с помощью персонализированного отслеживания и программы вознаграждений.",
+        "benefits": [
+          "База клиентов с полной историей покупок",
+          "Программа лояльности (Бронза, Серебро, Золото, Платина)",
+          "Целевые маркетинговые кампании WhatsApp",
+          "Управление долгами и кредитами клиентов"
         ]
       }
     }

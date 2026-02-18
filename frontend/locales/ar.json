@@ -10,6 +10,9 @@
     "edit": "تعديل",
     "success": "تم بنجاح",
     "error": "خطأ",
+    "back": "رجوع",
+    "or": "أو",
+    "currency_default": "FCFA",
     "language_choice": "اختر اللغة",
     "items_count": "{{count}} عنصر",
     "my_shop": "متجري",
@@ -257,36 +260,99 @@
     "gross_margin_kpi": "الهامش الإجمالي",
     "total_expenses_kpi": "إجمالي المصاريف"
   },
+  "subscription": {
+    "title": "اشتراكي",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "تجربة مجانية",
+    "trial_remaining": "{{count}} أيام متبقية من التجربة المجانية",
+    "trial_banner": "3 أشهر تجربة مجانية، ثم {{price}}/شهرياً. بدون التزام.",
+    "compare_plans": "مقارنة العروض",
+    "popular": "الأكثر شيوعاً",
+    "per_month": "/شهرياً",
+    "choose_plan": "اختر {{plan}}",
+    "pay_app_store": "الدفع عبر App Store",
+    "pay_google_play": "الدفع عبر Google Play",
+    "pay_mobile_money": "الدفع عبر Mobile Money",
+    "mm_providers": "Orange Money، Wave، MTN Money، Moov Money",
+    "restore_purchase": "استعادة عملية شراء",
+    "active": "نشط",
+    "premium_active_text": "اشتراك Premium الخاص بك نشط. شكراً لثقتك!",
+    "renewal": "التجديد: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "تم تفعيل اشتراكك بنجاح!",
+    "payment_failed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
+    "cinetpay_init_error": "تعذر بدء دفع Mobile Money. أعد المحاولة.",
+    "iap_not_available": "المشتريات داخل التطبيق غير متاحة. استخدم Mobile Money.",
+    "restored": "تمت الاستعادة",
+    "restored_success": "تمت استعادة اشتراكك.",
+    "no_purchase_found": "لم يتم العثور على عملية شراء.",
+    "restore_error": "تعذر استعادة المشتريات.",
+    "features": {
+      "products": "المنتجات والعناصر",
+      "stores": "نقاط البيع",
+      "users": "المستخدمون والفريق",
+      "pos": "الكاشير (POS)",
+      "pdf_receipts": "الإيصالات والفواتير PDF",
+      "reports": "التقارير والإحصائيات",
+      "ai_assistant": "مساعد الذكاء الاصطناعي Stockman",
+      "suppliers_orders": "الموردون والطلبات",
+      "csv_import_export": "استيراد/تصدير CSV",
+      "crm_loyalty": "CRM وبرنامج الولاء",
+      "sms_alerts": "تنبيهات SMS والإشعارات",
+      "support": "دعم العملاء",
+      "unlimited": "غير محدود",
+      "with_watermark": "مع علامة Stockman",
+      "custom_logo": "شعار مخصص",
+      "30_days": "آخر 30 يوماً",
+      "full_history": "السجل الكامل",
+      "14_req_week": "14 طلب/أسبوع",
+      "consultation": "استشارة فقط",
+      "full_management": "إدارة كاملة",
+      "email_24h": "بريد إلكتروني (24 ساعة)",
+      "whatsapp_2h": "WhatsApp ذو أولوية (ساعتان)"
+    }
+  },
   "premium": {
-    "with_premium_you_can": "With Premium, you can:",
-    "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "with_premium_you_can": "مع Premium، يمكنك:",
+    "upgrade_now": "الترقية إلى Premium",
+    "pricing_hint": "ابتداءً من 1 000 FCFA / شهر",
     "features": {
       "orders": {
-        "title": "Smart Ordering",
-        "desc": "Automate your orders and manage returns professionally.",
+        "title": "الطلبات الذكية",
+        "desc": "أتمتة طلباتك وإدارة المرتجعات بشكل احترافي.",
         "benefits": [
-          "Auto-generate orders based on stock",
-          "Advanced return management",
-          "Supplier performance tracking"
+          "إنشاء طلبات تلقائياً بناءً على المخزون",
+          "إدارة متقدمة للمرتجعات",
+          "تتبع أداء الموردين"
         ]
       },
       "suppliers": {
-        "title": "Marketplace Access",
-        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "title": "الوصول إلى السوق",
+        "desc": "تواصل مع آلاف الموردين المعتمدين وقارن الأسعار.",
         "benefits": [
-          "Global marketplace access",
-          "Direct supplier chat",
-          "Exclusive bulk discounts"
+          "الوصول إلى السوق العالمي",
+          "محادثة مباشرة مع الموردين",
+          "خصومات حصرية على الطلبات بالجملة"
         ]
       },
       "accounting": {
-        "title": "Financial Intelligence",
-        "desc": "Deep dive into your business metrics and export official reports.",
+        "title": "الذكاء المالي",
+        "desc": "تعمق في مقاييس عملك وصدّر تقارير رسمية.",
         "benefits": [
-          "Detailed profit/loss analysis",
-          "Professional PDF/Excel reports",
-          "Multi-currency support"
+          "تحليل تفصيلي للأرباح/الخسائر",
+          "تقارير احترافية PDF/Excel",
+          "دعم متعدد العملات"
+        ]
+      },
+      "crm": {
+        "title": "CRM وبرنامج الولاء",
+        "desc": "اكسب ولاء عملائك من خلال متابعة شخصية وبرنامج مكافآت.",
+        "benefits": [
+          "قاعدة عملاء مع سجل شراء كامل",
+          "برنامج ولاء (برونزي، فضي، ذهبي، بلاتيني)",
+          "حملات تسويق WhatsApp موجهة",
+          "إدارة ديون وائتمانات العملاء"
         ]
       }
     }

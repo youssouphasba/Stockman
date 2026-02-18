@@ -74,7 +74,7 @@ export default function SubscriptionScreen() {
 
     const handleRevenueCatPurchase = async (plan: string) => {
         if (!isPurchasesAvailable()) {
-            Alert.alert('Info', 'Les achats in-app ne sont pas disponibles. Utilisez Mobile Money.');
+            Alert.alert(t('common.info'), t('subscription.iap_not_available'));
             return;
         }
         try {
@@ -120,12 +120,12 @@ export default function SubscriptionScreen() {
             if (result.success && result.plan && result.plan !== 'free') {
                 await subscription.sync();
                 fetchSubscription();
-                Alert.alert('Restauré', 'Votre abonnement a été restauré.');
+                Alert.alert(t('subscription.restored'), t('subscription.restored_success'));
             } else {
-                Alert.alert('Info', 'Aucun achat trouvé.');
+                Alert.alert(t('common.info'), t('subscription.no_purchase_found'));
             }
         } catch (e) {
-            Alert.alert('Erreur', 'Impossible de restaurer les achats.');
+            Alert.alert(t('common.error'), t('subscription.restore_error'));
         } finally {
             setPayLoading(false);
         }
@@ -148,6 +148,7 @@ export default function SubscriptionScreen() {
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
     const isNative = Platform.OS !== 'web';
+    const selectedPrice = selectedPlan === 'premium' ? prices.premium : prices.starter;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
@@ -159,16 +160,16 @@ export default function SubscriptionScreen() {
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Mon Abonnement</Text>
+                <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
                 <View style={styles.planBadge}>
                     <Text style={styles.planBadgeText}>
-                        {isPremium ? 'Premium' : 'Starter'}
-                        {isFreeTrial ? ' (Essai gratuit)' : ''}
+                        {isPremium ? t('subscription.plan_premium') : t('subscription.plan_starter')}
+                        {isFreeTrial ? ` (${t('subscription.free_trial')})` : ''}
                     </Text>
                 </View>
                 {isFreeTrial && (
                     <Text style={styles.trialDaysText}>
-                        {remainingDays} jours restants d'essai gratuit
+                        {t('subscription.trial_remaining', { count: remainingDays })}
                     </Text>
                 )}
             </LinearGradient>
@@ -182,10 +183,10 @@ export default function SubscriptionScreen() {
                             onPress={() => setSelectedPlan('starter')}
                         >
                             <Text style={[styles.planTabText, selectedPlan === 'starter' && styles.planTabTextActive]}>
-                                Starter
+                                {t('subscription.plan_starter')}
                             </Text>
                             <Text style={[styles.planTabPrice, selectedPlan === 'starter' && styles.planTabTextActive]}>
-                                {prices.starter}/mois
+                                {prices.starter}{t('subscription.per_month')}
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -193,13 +194,13 @@ export default function SubscriptionScreen() {
                             onPress={() => setSelectedPlan('premium')}
                         >
                             <View style={styles.popularBadge}>
-                                <Text style={styles.popularText}>Populaire</Text>
+                                <Text style={styles.popularText}>{t('subscription.popular')}</Text>
                             </View>
                             <Text style={[styles.planTabText, selectedPlan === 'premium' && styles.planTabTextActive]}>
-                                Premium
+                                {t('subscription.plan_premium')}
                             </Text>
                             <Text style={[styles.planTabPrice, selectedPlan === 'premium' && styles.planTabTextActive]}>
-                                {prices.premium}/mois
+                                {prices.premium}{t('subscription.per_month')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -209,22 +210,22 @@ export default function SubscriptionScreen() {
                 <View style={styles.trialBanner}>
                     <Ionicons name="gift-outline" size={20} color="#3B82F6" />
                     <Text style={styles.trialBannerText}>
-                        3 mois d'essai gratuit, puis {selectedPlan === 'premium' ? prices.premium : prices.starter}/mois. Sans engagement.
+                        {t('subscription.trial_banner', { price: selectedPrice })}
                     </Text>
                 </View>
 
                 {/* Feature Comparison Table */}
                 <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Comparaison des offres</Text>
+                    <Text style={styles.sectionTitle}>{t('subscription.compare_plans')}</Text>
 
                     {/* Table Header */}
                     <View style={styles.tableHeader}>
                         <View style={styles.tableColLabel} />
                         <View style={styles.tableColValue}>
-                            <Text style={styles.tableHeaderText}>Starter</Text>
+                            <Text style={styles.tableHeaderText}>{t('subscription.plan_starter')}</Text>
                         </View>
                         <View style={styles.tableColValue}>
-                            <Text style={[styles.tableHeaderText, { color: '#F59E0B' }]}>Premium</Text>
+                            <Text style={[styles.tableHeaderText, { color: '#F59E0B' }]}>{t('subscription.plan_premium')}</Text>
                         </View>
                     </View>
 
@@ -252,7 +253,7 @@ export default function SubscriptionScreen() {
                 {!isPremium && (
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>
-                            Choisir {selectedPlan === 'premium' ? 'Premium' : 'Starter'}
+                            {t('subscription.choose_plan', { plan: selectedPlan === 'premium' ? t('subscription.plan_premium') : t('subscription.plan_starter') })}
                         </Text>
 
                         {isNative && (
@@ -271,7 +272,7 @@ export default function SubscriptionScreen() {
                                             color="white"
                                         />
                                         <Text style={styles.payButtonText}>
-                                            {Platform.OS === 'ios' ? 'Payer via App Store' : 'Payer via Google Play'}
+                                            {Platform.OS === 'ios' ? t('subscription.pay_app_store') : t('subscription.pay_google_play')}
                                         </Text>
                                     </>
                                 )}
@@ -281,7 +282,7 @@ export default function SubscriptionScreen() {
                         {isNative && (
                             <View style={styles.divider}>
                                 <View style={styles.dividerLine} />
-                                <Text style={styles.dividerText}>ou</Text>
+                                <Text style={styles.dividerText}>{t('common.or')}</Text>
                                 <View style={styles.dividerLine} />
                             </View>
                         )}
@@ -296,18 +297,18 @@ export default function SubscriptionScreen() {
                             ) : (
                                 <>
                                     <Ionicons name="phone-portrait-outline" size={22} color="white" />
-                                    <Text style={styles.payButtonText}>Payer via Mobile Money</Text>
+                                    <Text style={styles.payButtonText}>{t('subscription.pay_mobile_money')}</Text>
                                 </>
                             )}
                         </TouchableOpacity>
-                        <Text style={styles.mmSubtext}>Orange Money, Wave, MTN Money, Moov Money</Text>
+                        <Text style={styles.mmSubtext}>{t('subscription.mm_providers')}</Text>
                     </View>
                 )}
 
                 {/* Restore */}
                 {isNative && !isPremium && (
                     <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
-                        <Text style={styles.restoreText}>Restaurer un achat</Text>
+                        <Text style={styles.restoreText}>{t('subscription.restore_purchase')}</Text>
                     </TouchableOpacity>
                 )}
 
@@ -316,15 +317,15 @@ export default function SubscriptionScreen() {
                     <View style={styles.card}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                             <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                            <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>Actif</Text>
+                            <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>{t('subscription.active')}</Text>
                         </View>
                         <Text style={styles.premiumActiveText}>
-                            Votre abonnement Premium est actif. Merci de votre confiance !
+                            {t('subscription.premium_active_text')}
                         </Text>
                         {data?.subscription_end && (
                             <Text style={styles.renewalText}>
-                                Renouvellement : {new Date(data.subscription_end).toLocaleDateString('fr-FR')}
-                                {data.subscription_provider === 'cinetpay' ? ' (Mobile Money)' : ''}
+                                {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString('fr-FR') })}
+                                {data.subscription_provider === 'cinetpay' ? t('subscription.mobile_money_label') : ''}
                             </Text>
                         )}
                     </View>

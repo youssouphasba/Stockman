@@ -10,6 +10,9 @@
     "edit": "Soppi",
     "success": "Baax na",
     "error": "Njuumte",
+    "back": "Dellu",
+    "or": "walla",
+    "currency_default": "FCFA",
     "language_choice": "Tann làmmeñ bi",
     "items_count": "{{count}} liggéey",
     "my_shop": "Sama Bitik",
@@ -260,7 +263,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "Tàmbalee ci 1 000 FCFA / weer",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -288,7 +291,70 @@
           "Professional PDF/Excel reports",
           "Multi-currency support"
         ]
+      },
+      "crm": {
+        "title": "CRM & Jaay-Jaay bu Wóor",
+        "desc": "Tëjal sa ndaw yi ak toppante bu topp ci boroom kër ak jaay-jaay bu wóor.",
+        "benefits": [
+          "Liggéey yi ak jaar-jaar bu jënd yépp",
+          "Jaay-jaay bu wóor (Bronze, Xaalis, Wurus, Platine)",
+          "Campagne marketing WhatsApp bu topp",
+          "Saytu bor ak crédit ndaw yi"
+        ]
       }
+    }
+  },
+  "subscription": {
+    "title": "Sama Abonnement",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Eeltugol alaa jaango",
+    "trial_remaining": "{{count}} fan ngi des ci eeltugol alaa jaango",
+    "trial_banner": "3 weer eeltugol alaa jaango, ba lépp {{price}}/weer. Amul timmingol.",
+    "compare_plans": "Jokkondiral jaay-jaay yi",
+    "popular": "Populaire",
+    "per_month": "/weer",
+    "choose_plan": "Tànnal {{plan}}",
+    "pay_app_store": "Fey ci App Store",
+    "pay_google_play": "Fey ci Google Play",
+    "pay_mobile_money": "Fey ci Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Artir jënd bi",
+    "active": "Dox na",
+    "premium_active_text": "Sa abonnement Premium dox na. Jërëjëf ci sa goonga!",
+    "renewal": "Hesɗitinal: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Sa abonnement doxku na bu baax!",
+    "payment_failed": "Fey bi doxul. Jéema eeltu ko.",
+    "cinetpay_init_error": "Mënuloo tàmbal fey bi Mobile Money. Eeltu ko.",
+    "iap_not_available": "Jënd ci biir app bi amul. Jëfandikoo Mobile Money.",
+    "restored": "Artirna",
+    "restored_success": "Sa abonnement artir nañu ko.",
+    "no_purchase_found": "Gisunu jënd.",
+    "restore_error": "Mënuloo artir jënd yi.",
+    "features": {
+      "products": "Liggéey ak yeneen",
+      "stores": "Bitik yi",
+      "users": "Jëfandikukat yi ak mbooloo",
+      "pos": "Kees (POS)",
+      "pdf_receipts": "Reçu ak Facture PDF",
+      "reports": "Raapport ak Taax yi",
+      "ai_assistant": "Ndimbelewaat IA Stockman",
+      "suppliers_orders": "Jaaykatt yi ak Commande yi",
+      "csv_import_export": "Duggal/Génne CSV",
+      "crm_loyalty": "CRM ak jaay-jaay bu wóor",
+      "sms_alerts": "Ɓeyditte SMS ak Jegle",
+      "support": "Ndimbal ndaw yi",
+      "unlimited": "Amul ndaamal",
+      "with_watermark": "Ak daart Stockman",
+      "custom_logo": "Logo sa bopp",
+      "30_days": "30 fan yi mujj",
+      "full_history": "Jaar-jaar yépp",
+      "14_req_week": "14 laaj/ayu-bis",
+      "consultation": "Xool rekk",
+      "full_management": "Saytu bu timm",
+      "email_24h": "Email (24 waktu)",
+      "whatsapp_2h": "WhatsApp bu gëna (2 waktu)"
     }
   },
   "invoice": {

@@ -78,6 +78,8 @@ export default function RegisterScreen() {
       // Redirect to verification instead of index
       router.replace('/(auth)/verify-phone');
     } catch (e) {
+      console.log('Registration error caught:', e);
+      console.log('Is ApiError:', e instanceof ApiError);
       setError(e instanceof ApiError ? e.message : "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
@@ -450,7 +452,7 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: BorderRadius.sm,
     padding: Spacing.sm,

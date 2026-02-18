@@ -172,7 +172,23 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Erreur serveur' }));
-      throw new ApiError(error.detail || 'Erreur serveur', response.status);
+      let message = 'Erreur serveur';
+
+      if (error.detail) {
+        if (typeof error.detail === 'string') {
+          message = error.detail;
+        } else if (Array.isArray(error.detail)) {
+          // Flatten FastAPI validation errors: [{"loc": ["body", "email"], "msg": "value is not a valid email address", "type": "value_error.email"}]
+          message = error.detail.map((d: any) =>
+            `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg || JSON.stringify(d)}`
+          ).join('\n');
+        } else if (typeof error.detail === 'object') {
+          message = JSON.stringify(error.detail);
+        }
+      }
+
+      console.log('Throwing ApiError:', message, response.status);
+      throw new ApiError(message, response.status);
     }
 
     return response.json();

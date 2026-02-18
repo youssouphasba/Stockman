@@ -10,6 +10,9 @@
     "edit": "Edytuj",
     "success": "Sukces",
     "error": "Błąd",
+    "back": "Wstecz",
+    "or": "lub",
+    "currency_default": "FCFA",
     "language_choice": "Wybierz język",
     "items_count": "{{count}} element(ów)",
     "my_shop": "Mój sklep",
@@ -260,7 +263,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "Począwszy od 1 000 FCFA / miesiąc",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -288,7 +291,70 @@
           "Professional PDF/Excel reports",
           "Multi-currency support"
         ]
+      },
+      "crm": {
+        "title": "CRM & Program Lojalnościowy",
+        "desc": "Buduj lojalność klientów dzięki spersonalizowanemu śledzeniu i programowi nagród.",
+        "benefits": [
+          "Baza klientów z pełną historią zakupów",
+          "Program lojalnościowy (Brąz, Srebro, Złoto, Platyna)",
+          "Kampanie marketingowe WhatsApp ukierunkowane",
+          "Zarządzanie długami i kredytami klientów"
+        ]
       }
+    }
+  },
+  "subscription": {
+    "title": "Mój Abonament",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Bezpłatny okres próbny",
+    "trial_remaining": "{{count}} dni pozostało w bezpłatnym okresie próbnym",
+    "trial_banner": "3 miesiące bezpłatnego okresu próbnego, potem {{price}}/miesiąc. Bez zobowiązań.",
+    "compare_plans": "Porównanie planów",
+    "popular": "Popularne",
+    "per_month": "/miesiąc",
+    "choose_plan": "Wybierz {{plan}}",
+    "pay_app_store": "Płatność przez App Store",
+    "pay_google_play": "Płatność przez Google Play",
+    "pay_mobile_money": "Płatność przez Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Przywróć zakup",
+    "active": "Aktywny",
+    "premium_active_text": "Twój abonament Premium jest aktywny. Dziękujemy za zaufanie!",
+    "renewal": "Odnowienie: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Twój abonament został pomyślnie aktywowany!",
+    "payment_failed": "Płatność nie powiodła się. Spróbuj ponownie.",
+    "cinetpay_init_error": "Nie można zainicjować płatności Mobile Money. Spróbuj ponownie.",
+    "iap_not_available": "Zakupy w aplikacji nie są dostępne. Użyj Mobile Money.",
+    "restored": "Przywrócono",
+    "restored_success": "Twój abonament został przywrócony.",
+    "no_purchase_found": "Nie znaleziono zakupów.",
+    "restore_error": "Nie można przywrócić zakupów.",
+    "features": {
+      "products": "Produkty i artykuły",
+      "stores": "Punkty sprzedaży",
+      "users": "Użytkownicy i zespół",
+      "pos": "Kasa (POS)",
+      "pdf_receipts": "Paragony i faktury PDF",
+      "reports": "Raporty i statystyki",
+      "ai_assistant": "Asystent IA Stockman",
+      "suppliers_orders": "Dostawcy i zamówienia",
+      "csv_import_export": "Import/Export CSV",
+      "crm_loyalty": "CRM i program lojalnościowy",
+      "sms_alerts": "Alerty SMS i powiadomienia",
+      "support": "Obsługa klienta",
+      "unlimited": "Nieograniczone",
+      "with_watermark": "Ze znakiem wodnym Stockman",
+      "custom_logo": "Niestandardowe logo",
+      "30_days": "Ostatnie 30 dni",
+      "full_history": "Pełna historia",
+      "14_req_week": "14 zapytań/tydzień",
+      "consultation": "Tylko konsultacja",
+      "full_management": "Pełne zarządzanie",
+      "email_24h": "Email (24h)",
+      "whatsapp_2h": "WhatsApp priorytetowy (2h)"
     }
   },
   "invoice": {

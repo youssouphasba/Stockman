@@ -10,6 +10,9 @@
     "edit": "Waylu",
     "success": "Moƴƴi",
     "error": "Boofol",
+    "back": "Rutto",
+    "or": "walla",
+    "currency_default": "FCFA",
     "language_choice": "Suɓaade ɗemngal",
     "items_count": "{{count}} huunde",
     "my_shop": "My Shop",
@@ -260,7 +263,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "Fuɗɗii e 1 000 FCFA / lewru",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -288,7 +291,70 @@
           "Professional PDF/Excel reports",
           "Multi-currency support"
         ]
+      },
+      "crm": {
+        "title": "CRM & Jaɓɓugol Wóorɓe",
+        "desc": "Jaɓɓu wóorɓe maa e toppitorde keertiiɗe e jaɓɓugol yiytere.",
+        "benefits": [
+          "Yimɓe njuɓɓuɗi e tariik sooduɓe timmuɗe",
+          "Jaɓɓugol wóor (Bronze, Njaangel, Wurus, Platine)",
+          "Kampaaɲ marketing WhatsApp ndeenɗineeɗe",
+          "Saytu bortaaje e crédit njuɓɓuɗi"
+        ]
       }
+    }
+  },
+  "subscription": {
+    "title": "Yaajgol am",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Eeltugol alaa jaango",
+    "trial_remaining": "{{count}} ñalawma ngoodi e eeltugol alaa jaango",
+    "trial_banner": "3 lewru eeltugol alaa jaango, caggal ɗuum {{price}}/lewru. Alaa timmingol.",
+    "compare_plans": "Jokkondiral jaɓɓule",
+    "popular": "Famɗi heen",
+    "per_month": "/lewru",
+    "choose_plan": "Suɓo {{plan}}",
+    "pay_app_store": "Yiytoo e App Store",
+    "pay_google_play": "Yiytoo e Google Play",
+    "pay_mobile_money": "Yiytoo e Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Artir soodu ndu",
+    "active": "Ko doxii",
+    "premium_active_text": "Yaajgol maa Premium ko doxii. Jaaraama e goonga maa!",
+    "renewal": "Hesɗitinal: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Yaajgol maa doxaa e moƴƴi!",
+    "payment_failed": "Yiytugol ronkaama. Eeltu kadi.",
+    "cinetpay_init_error": "Horiima fuɗɗaade yiytugol Mobile Money. Eeltu kadi.",
+    "iap_not_available": "Soode e nder jaaynde ɗee heɓaani. Huutoro Mobile Money.",
+    "restored": "Artiraama",
+    "restored_success": "Yaajgol maa artiraama.",
+    "no_purchase_found": "Alaa soodu ndu njiytaa.",
+    "restore_error": "Horiima artiraade soode.",
+    "features": {
+      "products": "Gollé e kuule",
+      "stores": "Ɗuɗe soode",
+      "users": "Jaaynooɓe e mbooloo",
+      "pos": "Kees (POS)",
+      "pdf_receipts": "Reçus e Facture PDF",
+      "reports": "Jaabawol e taƴe",
+      "ai_assistant": "Ballooɗo IA Stockman",
+      "suppliers_orders": "Jeeyooɓe e waɗde",
+      "csv_import_export": "Naatgol/Génne CSV",
+      "crm_loyalty": "CRM e jaɓɓugol wóor",
+      "sms_alerts": "Ɓeyditte SMS e jegle",
+      "support": "Wallitorde njuɓɓuɗi",
+      "unlimited": "Alaa ndaamal",
+      "with_watermark": "Daartol Stockman",
+      "custom_logo": "Logo maa keertiiɗo",
+      "30_days": "30 ñalawma cakkitiiɗe",
+      "full_history": "Taariikaagu timmuɗo",
+      "14_req_week": "14 ɗaɓɓitte/yontere",
+      "consultation": "Ɓeydagol tan",
+      "full_management": "Saytu timmuɗo",
+      "email_24h": "Email (24 waktu)",
+      "whatsapp_2h": "WhatsApp ɓenndaango (2 waktu)"
     }
   },
   "invoice": {

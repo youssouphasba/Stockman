@@ -10,6 +10,9 @@
     "edit": "Editează",
     "success": "Succes",
     "error": "Eroare",
+    "back": "Înapoi",
+    "or": "sau",
+    "currency_default": "FCFA",
     "language_choice": "Alege limba",
     "items_count": "{{count}} element(e)",
     "my_shop": "Magazinul meu",
@@ -260,7 +263,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "pricing_hint": "Începând de la 1 000 FCFA / lună",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -288,7 +291,70 @@
           "Professional PDF/Excel reports",
           "Multi-currency support"
         ]
+      },
+      "crm": {
+        "title": "CRM & Program de Fidelitate",
+        "desc": "Fidelizați clienții cu urmărire personalizată și un program de recompense.",
+        "benefits": [
+          "Bază de clienți cu istoric complet de achiziții",
+          "Program de fidelitate (Bronz, Argint, Aur, Platină)",
+          "Campanii marketing WhatsApp direcționate",
+          "Gestionarea datoriilor și creditelor clienți"
+        ]
       }
+    }
+  },
+  "subscription": {
+    "title": "Abonamentul Meu",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Perioadă de probă gratuită",
+    "trial_remaining": "{{count}} zile rămase din perioada de probă gratuită",
+    "trial_banner": "3 luni de probă gratuită, apoi {{price}}/lună. Fără angajament.",
+    "compare_plans": "Comparare planuri",
+    "popular": "Popular",
+    "per_month": "/lună",
+    "choose_plan": "Alege {{plan}}",
+    "pay_app_store": "Plată prin App Store",
+    "pay_google_play": "Plată prin Google Play",
+    "pay_mobile_money": "Plată prin Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Restaurează achiziția",
+    "active": "Activ",
+    "premium_active_text": "Abonamentul dvs. Premium este activ. Vă mulțumim pentru încredere!",
+    "renewal": "Reînnoire: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Abonamentul dvs. a fost activat cu succes!",
+    "payment_failed": "Plata a eșuat. Vă rugăm să încercați din nou.",
+    "cinetpay_init_error": "Imposibil de inițiat plata Mobile Money. Încercați din nou.",
+    "iap_not_available": "Achizițiile în aplicație nu sunt disponibile. Folosiți Mobile Money.",
+    "restored": "Restaurat",
+    "restored_success": "Abonamentul dvs. a fost restaurat.",
+    "no_purchase_found": "Nicio achiziție găsită.",
+    "restore_error": "Imposibil de restaurat achizițiile.",
+    "features": {
+      "products": "Produse și articole",
+      "stores": "Puncte de vânzare",
+      "users": "Utilizatori și echipă",
+      "pos": "Casă (POS)",
+      "pdf_receipts": "Bonuri și facturi PDF",
+      "reports": "Rapoarte și statistici",
+      "ai_assistant": "Asistent IA Stockman",
+      "suppliers_orders": "Furnizori și comenzi",
+      "csv_import_export": "Import/Export CSV",
+      "crm_loyalty": "CRM și program de fidelitate",
+      "sms_alerts": "Alerte SMS și notificări",
+      "support": "Asistență clienți",
+      "unlimited": "Nelimitate",
+      "with_watermark": "Cu mențiune Stockman",
+      "custom_logo": "Logo personalizat",
+      "30_days": "Ultimele 30 de zile",
+      "full_history": "Istoric complet",
+      "14_req_week": "14 solicitări/săptămână",
+      "consultation": "Doar consultare",
+      "full_management": "Gestionare completă",
+      "email_24h": "Email (24h)",
+      "whatsapp_2h": "WhatsApp prioritar (2h)"
     }
   },
   "invoice": {

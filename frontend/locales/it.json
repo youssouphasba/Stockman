@@ -10,6 +10,9 @@
     "edit": "Modifica",
     "success": "Successo",
     "error": "Errore",
+    "back": "Indietro",
+    "or": "o",
+    "currency_default": "FCFA",
     "language_choice": "Scegli la lingua",
     "items_count": "{{count}} articolo/i",
     "my_shop": "Il mio Negozio",
@@ -56,6 +59,59 @@
     "activity": "Attività",
     "admin": "Admin",
     "subscription": "Abbonamento"
+  },
+  "subscription": {
+    "title": "Il mio Abbonamento",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "Prova gratuita",
+    "trial_remaining": "{{count}} giorni rimanenti di prova gratuita",
+    "trial_banner": "3 mesi di prova gratuita, poi {{price}}/mese. Senza impegno.",
+    "compare_plans": "Confronta i piani",
+    "popular": "Popolare",
+    "per_month": "/mese",
+    "choose_plan": "Scegli {{plan}}",
+    "pay_app_store": "Paga tramite App Store",
+    "pay_google_play": "Paga tramite Google Play",
+    "pay_mobile_money": "Paga tramite Mobile Money",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "Ripristina acquisto",
+    "active": "Attivo",
+    "premium_active_text": "Il tuo abbonamento Premium è attivo. Grazie per la tua fiducia!",
+    "renewal": "Rinnovo: {{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "Il tuo abbonamento è stato attivato con successo!",
+    "payment_failed": "Il pagamento è fallito. Riprova.",
+    "cinetpay_init_error": "Impossibile avviare il pagamento Mobile Money. Riprova.",
+    "iap_not_available": "Gli acquisti in-app non sono disponibili. Usa Mobile Money.",
+    "restored": "Ripristinato",
+    "restored_success": "Il tuo abbonamento è stato ripristinato.",
+    "no_purchase_found": "Nessun acquisto trovato.",
+    "restore_error": "Impossibile ripristinare gli acquisti.",
+    "features": {
+      "products": "Prodotti & articoli",
+      "stores": "Punti vendita",
+      "users": "Utenti & team",
+      "pos": "Cassa (POS)",
+      "pdf_receipts": "Ricevute & fatture PDF",
+      "reports": "Report & statistiche",
+      "ai_assistant": "Assistente IA Stockman",
+      "suppliers_orders": "Fornitori & ordini",
+      "csv_import_export": "Import/Export CSV",
+      "crm_loyalty": "CRM & programma fedeltà",
+      "sms_alerts": "Avvisi SMS & notifiche",
+      "support": "Supporto clienti",
+      "unlimited": "Illimitati",
+      "with_watermark": "Con dicitura Stockman",
+      "custom_logo": "Logo personalizzato",
+      "30_days": "Ultimi 30 giorni",
+      "full_history": "Storico completo",
+      "14_req_week": "14 richieste/settimana",
+      "consultation": "Solo consultazione",
+      "full_management": "Gestione completa",
+      "email_24h": "Email (24h)",
+      "whatsapp_2h": "WhatsApp prioritario (2h)"
+    }
   },
   "store_selector": {
     "my_stores": "I miei Negozi",
@@ -258,35 +314,45 @@
     "total_expenses_kpi": "Totale spese"
   },
   "premium": {
-    "with_premium_you_can": "With Premium, you can:",
-    "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "with_premium_you_can": "Con Premium, puoi:",
+    "upgrade_now": "Passa a Premium",
+    "pricing_hint": "A partire da 1 000 FCFA / mese",
     "features": {
       "orders": {
-        "title": "Smart Ordering",
-        "desc": "Automate your orders and manage returns professionally.",
+        "title": "Ordini Intelligenti",
+        "desc": "Automatizza i tuoi ordini e gestisci i resi professionalmente.",
         "benefits": [
-          "Auto-generate orders based on stock",
-          "Advanced return management",
-          "Supplier performance tracking"
+          "Generazione automatica degli ordini",
+          "Gestione avanzata dei resi",
+          "Monitoraggio performance fornitori"
         ]
       },
       "suppliers": {
-        "title": "Marketplace Access",
-        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "title": "Accesso Marketplace",
+        "desc": "Connettiti con migliaia di fornitori verificati e confronta i prezzi.",
         "benefits": [
-          "Global marketplace access",
-          "Direct supplier chat",
-          "Exclusive bulk discounts"
+          "Accesso al catalogo globale",
+          "Chat diretta con i fornitori",
+          "Sconti esclusivi all'ingrosso"
         ]
       },
       "accounting": {
-        "title": "Financial Intelligence",
-        "desc": "Deep dive into your business metrics and export official reports.",
+        "title": "Intelligenza Finanziaria",
+        "desc": "Analizza in dettaglio le tue metriche ed esporta report ufficiali.",
         "benefits": [
-          "Detailed profit/loss analysis",
-          "Professional PDF/Excel reports",
-          "Multi-currency support"
+          "Analisi dettagliata profitti/perdite",
+          "Report PDF/Excel professionali",
+          "Supporto multivaluta"
+        ]
+      },
+      "crm": {
+        "title": "CRM & Programma Fedeltà",
+        "desc": "Fidelizza i tuoi clienti con un monitoraggio personalizzato e un programma premi.",
+        "benefits": [
+          "Database clienti con storico acquisti completo",
+          "Programma fedeltà (Bronzo, Argento, Oro, Platino)",
+          "Campagne marketing WhatsApp mirate",
+          "Gestione debiti e crediti clienti"
         ]
       }
     }

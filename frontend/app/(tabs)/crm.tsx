@@ -36,6 +36,7 @@ import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateAndSharePdf } from '../../utils/pdfReports';
 import { formatCurrency, getCurrencySymbol } from '../../utils/format';
+import PremiumGate from '../../components/PremiumGate';
 
 
 // ─── Tier helpers ───
@@ -575,7 +576,9 @@ const activeClients = customerList.filter(c => {
     return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
 }).length;
 
-if (loading) {
+const isLocked = user?.plan !== 'premium';
+
+if (loading && !isLocked) {
     return (
         <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -585,6 +588,13 @@ if (loading) {
 
 // ─── RENDER ───
 return (
+    <PremiumGate
+        featureName={t('premium.features.crm.title')}
+        description={t('premium.features.crm.desc')}
+        benefits={(t('premium.features.crm.benefits', { returnObjects: true }) as string[]) || []}
+        icon="people"
+        locked={isLocked}
+    >
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
         <ScrollView
             contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
@@ -1557,6 +1567,7 @@ return (
             </View>
         </Modal>
     </LinearGradient>
+    </PremiumGate>
 );
 }
 

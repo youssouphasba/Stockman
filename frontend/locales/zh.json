@@ -10,6 +10,9 @@
     "edit": "编辑",
     "success": "成功",
     "error": "错误",
+    "back": "返回",
+    "or": "或",
+    "currency_default": "FCFA",
     "language_choice": "选择语言",
     "items_count": "{{count}} 件商品",
     "my_shop": "我的店铺",
@@ -257,36 +260,99 @@
     "gross_margin_kpi": "毛利率",
     "total_expenses_kpi": "总支出"
   },
+  "subscription": {
+    "title": "我的订阅",
+    "plan_starter": "Starter",
+    "plan_premium": "Premium",
+    "free_trial": "免费试用",
+    "trial_remaining": "免费试用剩余{{count}}天",
+    "trial_banner": "3个月免费试用，然后{{price}}/月。无需承诺。",
+    "compare_plans": "方案对比",
+    "popular": "最受欢迎",
+    "per_month": "/月",
+    "choose_plan": "选择{{plan}}",
+    "pay_app_store": "通过App Store支付",
+    "pay_google_play": "通过Google Play支付",
+    "pay_mobile_money": "通过Mobile Money支付",
+    "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
+    "restore_purchase": "恢复购买",
+    "active": "已激活",
+    "premium_active_text": "您的Premium订阅已激活。感谢您的信任！",
+    "renewal": "续订：{{date}}",
+    "mobile_money_label": " (Mobile Money)",
+    "activated_success": "您的订阅已成功激活！",
+    "payment_failed": "支付失败。请重试。",
+    "cinetpay_init_error": "无法启动Mobile Money支付。请重试。",
+    "iap_not_available": "应用内购买不可用。请使用Mobile Money。",
+    "restored": "已恢复",
+    "restored_success": "您的订阅已恢复。",
+    "no_purchase_found": "未找到购买记录。",
+    "restore_error": "无法恢复购买。",
+    "features": {
+      "products": "产品与商品",
+      "stores": "销售点",
+      "users": "用户与团队",
+      "pos": "收银台 (POS)",
+      "pdf_receipts": "收据与发票PDF",
+      "reports": "报表与统计",
+      "ai_assistant": "AI助手Stockman",
+      "suppliers_orders": "供应商与订单",
+      "csv_import_export": "CSV导入/导出",
+      "crm_loyalty": "CRM与忠诚度计划",
+      "sms_alerts": "SMS提醒与通知",
+      "support": "客户支持",
+      "unlimited": "无限制",
+      "with_watermark": "带Stockman标识",
+      "custom_logo": "自定义徽标",
+      "30_days": "最近30天",
+      "full_history": "完整历史",
+      "14_req_week": "14次请求/周",
+      "consultation": "仅查询",
+      "full_management": "完整管理",
+      "email_24h": "电子邮件（24小时）",
+      "whatsapp_2h": "优先WhatsApp（2小时）"
+    }
+  },
   "premium": {
-    "with_premium_you_can": "With Premium, you can:",
-    "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "with_premium_you_can": "使用Premium，您可以：",
+    "upgrade_now": "升级到Premium",
+    "pricing_hint": "从1 000 FCFA/月起",
     "features": {
       "orders": {
-        "title": "Smart Ordering",
-        "desc": "Automate your orders and manage returns professionally.",
+        "title": "智能订购",
+        "desc": "自动化您的订单并专业管理退货。",
         "benefits": [
-          "Auto-generate orders based on stock",
-          "Advanced return management",
-          "Supplier performance tracking"
+          "根据库存自动生成订单",
+          "高级退货管理",
+          "供应商绩效跟踪"
         ]
       },
       "suppliers": {
-        "title": "Marketplace Access",
-        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "title": "市场准入",
+        "desc": "与数千家经过验证的供应商建立联系并比较价格。",
         "benefits": [
-          "Global marketplace access",
-          "Direct supplier chat",
-          "Exclusive bulk discounts"
+          "全球市场准入",
+          "与供应商直接聊天",
+          "独家批量折扣"
         ]
       },
       "accounting": {
-        "title": "Financial Intelligence",
-        "desc": "Deep dive into your business metrics and export official reports.",
+        "title": "财务智能",
+        "desc": "深入了解您的业务指标并导出官方报告。",
         "benefits": [
-          "Detailed profit/loss analysis",
-          "Professional PDF/Excel reports",
-          "Multi-currency support"
+          "详细的盈亏分析",
+          "专业PDF/Excel报告",
+          "多币种支持"
+        ]
+      },
+      "crm": {
+        "title": "CRM与忠诚度计划",
+        "desc": "通过个性化跟进和奖励计划培养客户忠诚度。",
+        "benefits": [
+          "完整购买历史的客户群",
+          "忠诚度计划（铜牌、银牌、金牌、白金）",
+          "定向WhatsApp营销活动",
+          "客户债务与信用管理"
         ]
       }
     }
