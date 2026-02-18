@@ -36,8 +36,15 @@
       "expo-notifications",
       "expo-localization",
       "expo-image-picker",
-      "expo-local-authentication"
+      "expo-local-authentication",
+      "expo-updates"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },
