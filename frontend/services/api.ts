@@ -23,7 +23,13 @@ const getApiUrl = () => {
   }
 
   // 3. Absolute fallback
-  return 'http://localhost:8000';
+  if (__DEV__) {
+    console.warn('⚠️ Aucun EXPO_PUBLIC_API_URL défini et impossible de détecter l\'IP locale. Fallback sur localhost.');
+    return 'http://localhost:8000';
+  }
+
+  console.error('❌ ERREUR: EXPO_PUBLIC_API_URL n\'est pas défini pour le build de production !');
+  return '';
 };
 
 export const API_URL = getApiUrl();
@@ -1660,6 +1666,7 @@ export type SalesForecastResponse = {
   total_predicted_revenue_7d: number;
   total_predicted_revenue_30d: number;
   ai_summary: string;
+  currency: string;
   generated_at: string;
 };
 
@@ -1819,7 +1826,7 @@ export const profile = {
   },
   deleteAccount: (password: string) => request<{ message: string }>('/profile', {
     method: 'DELETE',
-    body: JSON.stringify({ password }),
+    body: { password },
   }),
 };
 

@@ -30,9 +30,9 @@ const SEGMENTS: { id: Segment; label: string; icon: string }[] = [
 ];
 
 const fmt = (n: number) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
-const fmtMoney = (n: any) => {
+const fmtMoney = (n: any, currency?: string) => {
     const val = Number(n) || 0;
-    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' F';
+    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' ' + (currency === 'EUR' ? '€' : 'F');
 };
 
 export default function AdminDashboard() {
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                 <>
                     <SectionHeader title="Revenus" colors={colors} />
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                        <StatCard label="Aujourd'hui" value={fmtMoney(detailed.revenue_today)} icon="today" color="#10B981" colors={colors} />
+                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.revenue, user?.currency)}</Text>
                         <StatCard label="7 jours" value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
                         <StatCard label="30 jours" value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} />
                     </View>
@@ -366,7 +366,7 @@ export default function AdminDashboard() {
                             <Ionicons name="business" size={20} color="#8B5CF6" />
                             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{s.name}</Text>
                         </View>
-                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.total_revenue)}</Text>
+                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.total_revenue, user?.currency)}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
                         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>👤 {s.owner_name}</Text>
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
                             <Badge label={`${p.quantity || 0} unités`} color={stockColor} />
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Prix: {fmtMoney(p.selling_price || p.sale_price || p.price || 0)}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Prix: {fmtMoney(p.selling_price || p.sale_price || p.price || 0, user?.currency)}</Text>
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>{p.store_id ? `ID: ${p.store_id.slice(0, 8)}...` : ''}</Text>
                         </View>
                         {p.owner_info && (
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
             {stats && (
                 <LinearGradient colors={['#7C3AED', '#4F46E5']} style={{ borderRadius: 16, padding: 20, marginBottom: 12 }}>
                     <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Chiffre d'affaires total</Text>
-                    <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4 }}>{fmtMoney(stats.total_revenue)}</Text>
+                    <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4 }}>{fmtMoney(stats.total_revenue, user?.currency)}</Text>
                     <View style={{ flexDirection: 'row', gap: 20, marginTop: 12 }}>
                         <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Ventes</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.sales}</Text></View>
                         <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Produits</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.products}</Text></View>
@@ -462,7 +462,7 @@ export default function AdminDashboard() {
                                 <Text style={{ color: colors.textMuted, fontSize: 11 }}>{c.phone || c.email || 'N/A'}</Text>
                             </View>
                         </View>
-                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(c.total_purchases)}</Text>}
+                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
                     </View>
                 </Card>
             ))}

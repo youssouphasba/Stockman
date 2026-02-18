@@ -80,12 +80,12 @@
         "title": "Sie vertrauen uns",
         "subtitle": "Entdecken Sie, wie Stockman Händlern täglich hilft.",
         "t1": "Seit ich Stockman benutze, verliere ich kein Geld mehr durch Lagerengpässe. Die KI warnt mich immer zum richtigen Zeitpunkt!",
-        "t2": "Die App ist so einfach. Meine Mitarbeiter hatten sie in 10 Minuten im Griff. Die Kassenverwaltung ist perfekt.",
-        "t3": "Ich liebe den Marketplace! Ich kann die Preise meiner Lieferanten vergleichen und direkt bestellen. Eine enorme Zeitersparnis.",
         "t1_author": "Amadou Diallo",
         "t1_job": "Electronics Shop",
+        "t2": "Die App ist so einfach. Meine Mitarbeiter hatten sie in 10 Minuten im Griff. Die Kassenverwaltung ist perfekt.",
         "t2_author": "Sarah Kouassi",
         "t2_job": "Express Supermarket",
+        "t3": "Ich liebe den Marketplace! Ich kann die Preise meiner Lieferanten vergleichen und direkt bestellen. Eine enorme Zeitersparnis.",
         "t3_author": "Paul N'Goma",
         "t3_job": "Central Pharmacy"
     },
@@ -131,6 +131,8 @@
     "download": {
         "title": "Bereit für den nächsten Schritt?",
         "subtitle": "Schließen Sie sich Tausenden von Händlern an, die ihre Verwaltung modernisiert haben.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
         "secure": "Sichere Zahlungen",
         "support": "Professioneller Support",
         "updates": "Laufende Updates"
@@ -145,8 +147,39 @@
         "community": "Community",
         "privacy": "Datenschutz",
         "terms": "Nutzungsbedingungen",
+        "delete_account": "Supprimer mon compte",
         "legal_notice": "Impressum",
         "copyright": "© 2026 Stockman. Alle Rechte vorbehalten."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
     },
     "newsletter": {
         "title": "Werden Sie Bestandsexperte",

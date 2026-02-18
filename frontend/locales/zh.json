@@ -316,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "使用Premium，您可以：",
     "upgrade_now": "升级到Premium",
-    "pricing_hint": "2 500 FCFA / 月",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "智能订购",

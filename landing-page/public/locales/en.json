@@ -147,8 +147,39 @@
         "community": "Community",
         "privacy": "Privacy",
         "terms": "Terms of Use",
+        "delete_account": "Delete my account",
         "legal_notice": "Legal Notice",
         "copyright": "© 2026 Stockman. All rights reserved."
+    },
+    "delete_account": {
+        "title": "Account & Data Deletion",
+        "subtitle": "In accordance with General Data Protection Regulation (GDPR) and the Right to be Forgotten.",
+        "version": "Last update: February 18, 2026",
+        "intro": "You have full control over your data. If you wish to stop using Stockman, you can delete your account and all associated data in two ways.",
+        "method_app_title": "1. Via the application (Recommended)",
+        "method_app_desc": "This is the fastest and most secure method because it validates your identity instantly.",
+        "method_app_steps": [
+            "Open the Stockman app.",
+            "Go to the **Settings** tab.",
+            "Scroll down to the **Danger Zone** section.",
+            "Tap **Delete my account**.",
+            "Confirm by entering your password."
+        ],
+        "method_web_title": "2. Via this form (Without the app)",
+        "method_web_desc": "If you no longer have access to the app, you can send us a manual deletion request.",
+        "method_web_note": "Note: For security reasons, we will need to verify your identity by email or phone before proceeding with the deletion.",
+        "data_erased_title": "What data will be erased?",
+        "data_erased_desc": "Deleting your account is **permanent** and irreversible. The following data will be immediately removed from our production servers:",
+        "data_erased_list": [
+            "Your user profile and credentials.",
+            "All your shops and points of sale.",
+            "Your entire inventory and product catalog.",
+            "All your sales transactions and accounting history.",
+            "Your customer lists, suppliers, and purchase histories.",
+            "Your AI Assistant access and chat history."
+        ],
+        "retention_title": "Processing time",
+        "retention_desc": "Once the request is validated, your data is immediately marked for deletion. Complete erasure from our backups can take up to 30 days, during which your data remains inaccessible and unprocessed."
     },
     "newsletter": {
         "title": "Become a Stock Expert",

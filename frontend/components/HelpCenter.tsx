@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 import { HELP_MODULES, FAQ, HelpModule, HelpFeature, FAQItem } from '../constants/helpContent';
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
 
 export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper' }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -41,18 +43,18 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
     for (const m of filteredModules) {
       const matched = m.features.filter(
         (f) =>
-          f.title.toLowerCase().includes(query) ||
-          f.description.toLowerCase().includes(query)
+          t(f.title).toLowerCase().includes(query) ||
+          t(f.description).toLowerCase().includes(query)
       );
-      if (matched.length > 0 || m.title.toLowerCase().includes(query)) {
+      if (matched.length > 0 || t(m.title).toLowerCase().includes(query)) {
         moduleResults.push({ module: m, features: matched.length > 0 ? matched : m.features.slice(0, 2) });
       }
     }
 
     const faqResults: FAQItem[] = FAQ.filter(
       (f) =>
-        f.question.toLowerCase().includes(query) ||
-        f.answer.toLowerCase().includes(query)
+        t(f.question).toLowerCase().includes(query) ||
+        t(f.answer).toLowerCase().includes(query)
     );
 
     return { modules: moduleResults, faq: faqResults };
@@ -79,7 +81,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
           <View style={[styles.headerIconWrap, { backgroundColor: colors.primary + '20' }]}>
             <Ionicons name="book-outline" size={22} color={colors.primary} />
           </View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Centre d'Aide</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('help.title')}</Text>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -90,7 +92,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
           <Ionicons name="search" size={18} color={colors.textMuted} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher une fonctionnalité..."
+            placeholder={t('help.search_placeholder')}
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -109,7 +111,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
               {searchResults.modules.length > 0 && (
                 <>
                   <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-                    RÉSULTATS ({searchResults.modules.reduce((sum, r) => sum + r.features.length, 0)})
+                    {t('help.results', { count: searchResults.modules.reduce((sum, r) => sum + r.features.length, 0) })}
                   </Text>
                   {searchResults.modules.map((result) => (
                     <View key={result.module.key} style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
@@ -117,14 +119,14 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                         <View style={[styles.moduleIcon, { backgroundColor: result.module.color + '20' }]}>
                           <Ionicons name={result.module.icon} size={18} color={result.module.color} />
                         </View>
-                        <Text style={[styles.moduleName, { color: colors.text }]}>{result.module.title}</Text>
+                        <Text style={[styles.moduleName, { color: colors.text }]}>{t(result.module.title)}</Text>
                       </View>
                       {result.features.map((f, i) => (
                         <View key={i} style={[styles.featureRow, { borderTopColor: colors.divider }]}>
                           <Ionicons name={f.icon} size={16} color={colors.primary} style={{ marginTop: 2 }} />
                           <View style={{ flex: 1 }}>
-                            <Text style={[styles.featureTitle, { color: colors.text }]}>{f.title}</Text>
-                            <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>{f.description}</Text>
+                            <Text style={[styles.featureTitle, { color: colors.text }]}>{t(f.title)}</Text>
+                            <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>{t(f.description)}</Text>
                           </View>
                         </View>
                       ))}
@@ -136,12 +138,12 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
               {searchResults.faq.length > 0 && (
                 <>
                   <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: Spacing.md }]}>
-                    QUESTIONS FRÉQUENTES
+                    {t('help.faq_title')}
                   </Text>
                   {searchResults.faq.map((faq, i) => (
                     <View key={i} style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
-                      <Text style={[styles.faqQuestion, { color: colors.text }]}>{faq.question}</Text>
-                      <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{faq.answer}</Text>
+                      <Text style={[styles.faqQuestion, { color: colors.text }]}>{t(faq.question)}</Text>
+                      <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{t(faq.answer)}</Text>
                     </View>
                   ))}
                 </>
@@ -151,7 +153,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                 <View style={styles.emptyContainer}>
                   <Ionicons name="search-outline" size={48} color={colors.textMuted} />
                   <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                    Aucun résultat pour "{searchQuery}"
+                    {t('help.no_results', { query: searchQuery })}
                   </Text>
                 </View>
               )}
@@ -160,7 +162,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
             /* ─── Browse Mode ─── */
             <>
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-                FONCTIONNALITÉS PAR MODULE
+                {t('help.modules_title')}
               </Text>
 
               {filteredModules.map((m) => {
@@ -172,9 +174,9 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                         <Ionicons name={m.icon} size={18} color={m.color} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.moduleName, { color: colors.text }]}>{m.title}</Text>
+                        <Text style={[styles.moduleName, { color: colors.text }]}>{t(m.title)}</Text>
                         <Text style={[styles.moduleCount, { color: colors.textMuted }]}>
-                          {m.features.length} fonctionnalité{m.features.length > 1 ? 's' : ''}
+                          {t('help.features_count', { count: m.features.length })}
                         </Text>
                       </View>
                       <Ionicons
@@ -190,8 +192,8 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                           <View key={i} style={[styles.featureRow, { borderTopColor: colors.divider }]}>
                             <Ionicons name={f.icon} size={16} color={m.color} style={{ marginTop: 2 }} />
                             <View style={{ flex: 1 }}>
-                              <Text style={[styles.featureTitle, { color: colors.text }]}>{f.title}</Text>
-                              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>{f.description}</Text>
+                              <Text style={[styles.featureTitle, { color: colors.text }]}>{t(f.title)}</Text>
+                              <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>{t(f.description)}</Text>
                             </View>
                           </View>
                         ))}
@@ -212,7 +214,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
 
               {/* FAQ */}
               <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: Spacing.lg }]}>
-                QUESTIONS FRÉQUENTES
+                {t('help.faq_title')}
               </Text>
 
               {FAQ.map((faq, i) => (
@@ -224,7 +226,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                 >
                   <View style={styles.faqHeader}>
                     <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
-                    <Text style={[styles.faqQuestion, { color: colors.text, flex: 1 }]}>{faq.question}</Text>
+                    <Text style={[styles.faqQuestion, { color: colors.text, flex: 1 }]}>{t(faq.question)}</Text>
                     <Ionicons
                       name={expandedFaq === i ? 'chevron-up' : 'chevron-down'}
                       size={18}
@@ -232,7 +234,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                     />
                   </View>
                   {expandedFaq === i && (
-                    <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{faq.answer}</Text>
+                    <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{t(faq.answer)}</Text>
                   )}
                 </TouchableOpacity>
               ))}

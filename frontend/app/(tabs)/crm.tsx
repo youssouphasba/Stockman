@@ -182,7 +182,7 @@ export default function CRMScreen() {
         const totalDebt = customerList.reduce((s, c) => s + (c.current_debt || 0), 0);
         try {
             await generateAndSharePdf({
-                storeName: user?.active_store_name || t('accounting.default_store_name'),
+                storeName: (user as any)?.active_store_name || user?.active_store_id || t('accounting.default_store_name'),
                 reportTitle: t('crm.report_title'),
                 subtitle: t('crm.client_count', { count: customerList.length }),
                 kpis: [
@@ -217,1358 +217,1358 @@ export default function CRMScreen() {
         }
 
     };
-useFocusEffect(
-    useCallback(() => {
-        loadData();
-    }, [loadData])
-);
-
-useEffect(() => { loadData(); }, []);
-
-const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-};
-
-const updateLoyaltySettings = async (updates: Partial<LoyaltySettings>) => {
-    if (!loyaltySettings || !canWrite) return;
-    const newSettings = { ...loyaltySettings, ...updates };
-    setLoyaltySettings(newSettings);
-    try {
-        setSavingSettings(true);
-        await settingsApi.update({ loyalty: newSettings });
-    } catch {
-        Alert.alert(t('common.error'), t('crm.error_save_settings'));
-    } finally {
-        setSavingSettings(false);
-    }
-};
-
-const handleWhatsApp = (phone?: string, name?: string) => {
-    if (!phone) {
-        Alert.alert(t('common.error'), t('crm.error_phone_missing'));
-        return;
-    }
-    const message = `Bonjour ${name}, nous avons de nouvelles offres pour vous dans notre boutique !`;
-    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-    Linking.openURL(url).catch(() => {
-        Alert.alert(t('common.error'), t('crm.error_whatsapp_open'));
-    });
-};
-
-const handleCall = (phone?: string) => {
-    if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
-    Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('common.error'), t('crm.error_phone_open')));
-};
-
-const handleSMS = (phone?: string, name?: string) => {
-    if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
-    const msg = `Bonjour ${name}, merci pour votre fidélité !`;
-    Linking.openURL(`sms:${phone}?body=${encodeURIComponent(msg)}`).catch(() => Alert.alert(t('common.error'), t('crm.error_sms_open')));
-};
-
-// --- Customer CRUD ---
-function openNewCustomer() {
-    setEditingCustomer(null);
-    setCustomerForm({ name: '', phone: '', email: '', notes: '', birthday: '', category: '' });
-    setShowCustomerModal(true);
-}
-
-function openEditCustomer(customer: Customer) {
-    setEditingCustomer(customer);
-    setCustomerForm({
-        name: customer.name,
-        phone: customer.phone || '',
-        email: customer.email || '',
-        notes: customer.notes || '',
-        birthday: customer.birthday || '',
-        category: customer.category || '',
-    });
-    setShowCustomerModal(true);
-}
-
-async function saveCustomer() {
-    if (!customerForm.name.trim()) {
-        Alert.alert(t('common.error'), t('crm.error_name_required'));
-        return;
-    }
-    setCustomerFormLoading(true);
-    try {
-        const data: any = { ...customerForm };
-        if (!data.birthday) delete data.birthday;
-        if (!data.category) delete data.category;
-        if (editingCustomer) {
-            await customersApi.update(editingCustomer.customer_id, data);
-        } else {
-            await customersApi.create(data);
-        }
-        setShowCustomerModal(false);
-        loadData();
-    } catch {
-        Alert.alert(t('common.error'), t('crm.error_save_customer'));
-    } finally {
-        setCustomerFormLoading(false);
-    }
-}
-
-function handleDeleteCustomer(customer: Customer) {
-    Alert.alert(
-        t('crm.delete_customer'),
-        t('crm.confirm_delete_customer', { name: customer.name }),
-        [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-                text: t('common.delete'),
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await customersApi.delete(customer.customer_id);
-                        setShowDetailModal(false);
-                        loadData();
-                    } catch {
-                        Alert.alert(t('common.error'), t('crm.error_delete_customer'));
-                    }
-                },
-            },
-        ]
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [loadData])
     );
-}
 
-// --- Promotion CRUD ---
-function openNewPromo() {
-    setEditingPromo(null);
-    setPromoForm({ title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' });
-    setShowPromoModal(true);
-}
+    useEffect(() => { loadData(); }, []);
 
-function openEditPromo(promo: Promotion) {
-    setEditingPromo(promo);
-    setPromoForm({
-        title: promo.title,
-        description: promo.description,
-        discount_percentage: promo.discount_percentage ? String(promo.discount_percentage) : '',
-        points_required: promo.points_required ? String(promo.points_required) : '',
-        target_tier: promo.target_tier || 'tous',
-    });
-    setShowPromoModal(true);
-}
-
-async function savePromo() {
-    if (!promoForm.title.trim()) {
-        Alert.alert(t('common.error'), t('crm.error_title_required'));
-        return;
-    }
-    setPromoFormLoading(true);
-    try {
-        const data: any = {
-            title: promoForm.title,
-            description: promoForm.description,
-        };
-        if (promoForm.discount_percentage) data.discount_percentage = parseFloat(promoForm.discount_percentage);
-        if (promoForm.points_required) data.points_required = parseInt(promoForm.points_required);
-        data.target_tier = promoForm.target_tier;
-
-        if (editingPromo) {
-            await promotionsApi.update(editingPromo.promotion_id, data);
-        } else {
-            await promotionsApi.create(data);
-        }
-        setShowPromoModal(false);
+    const onRefresh = () => {
+        setRefreshing(true);
         loadData();
-    } catch {
-        Alert.alert(t('common.error'), t('crm.error_save_promo'));
-    } finally {
-        setPromoFormLoading(false);
-    }
-}
+    };
 
-function handleDeletePromo(promo: Promotion) {
-    Alert.alert(
-        t('crm.delete_promo'),
-        t('crm.confirm_delete_promo', { title: promo.title }),
-        [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-                text: t('common.delete'),
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await promotionsApi.delete(promo.promotion_id);
-                        loadData();
-                    } catch {
-                        Alert.alert('Erreur', 'Impossible de supprimer');
-                    }
-                },
-            },
-        ]
-    );
-}
-
-// --- Customer detail ---
-function openCustomerDetail(customer: Customer) {
-    setDetailCustomer(customer);
-    setDetailTab('infos');
-    setCustomerSales([]);
-    setShowAllSales(false);
-    setShowAllDebt(false);
-    setCustomerSalesStats({ visit_count: 0, average_basket: 0 });
-    setShowDetailModal(true);
-}
-
-async function loadCustomerSales(customerId: string) {
-    setSalesLoading(true);
-    try {
-        const res: CustomerSalesResponse = await customersApi.getSales(customerId);
-        setCustomerSales(res.sales);
-        setCustomerSalesStats({
-            visit_count: res.visit_count,
-            average_basket: res.average_basket,
-            last_purchase_date: res.last_purchase_date,
-        });
-    } catch (e) {
-        console.error('Error loading sales:', e);
-    } finally {
-        setSalesLoading(false);
-    }
-}
-
-async function loadCustomerDebtHistory(customerId: string) {
-    setDebtHistoryLoading(true);
-    try {
-        const history = await customersApi.getDebtHistory(customerId);
-        setCustomerDebtHistory(history);
-    } catch (e) {
-        console.error('Error loading debt history:', e);
-    } finally {
-        setDebtHistoryLoading(false);
-    }
-}
-
-// Load sales when switching to achats tab
-useEffect(() => {
-    if (detailTab === 'achats' && detailCustomer) {
-        loadCustomerSales(detailCustomer.customer_id);
-    }
-    if (detailTab === 'compte' && detailCustomer) {
-        loadCustomerDebtHistory(detailCustomer.customer_id);
-    }
-}, [detailTab, detailCustomer]);
-
-// --- Campaign ---
-async function sendCampaign() {
-    const targets = customerList.filter(c => {
-        if (campaignTarget === 'choisir_client') {
-            return selectedCustomerIds.some(id => String(id) === String(c.customer_id));
-        }
-        return campaignTarget === 'tous' || (c.tier || 'bronze') === campaignTarget;
-    }).filter(c => c.phone);
-
-    if (targets.length === 0) {
-        Alert.alert(t('common.error'), t('crm.error_no_targets'));
-        return;
-    }
-    if (!campaignMessage.trim()) {
-        Alert.alert(t('common.error'), t('crm.error_message_required'));
-        return;
-    }
-
-    setCampaignSending(true);
-    try {
-        // Save campaign in backend
-        await customersApi.sendCampaign({
-            message: campaignMessage,
-            customer_ids: targets.map(c => c.customer_id),
-            channel: 'whatsapp',
-        });
-    } catch { /* continue anyway */ }
-
-    // Open WhatsApp for each contact sequentially
-    for (const c of targets) {
-        const msg = campaignMessage.replace('{nom}', c.name).replace('{points}', String(c.loyalty_points));
-        const url = `whatsapp://send?phone=${c.phone}&text=${encodeURIComponent(msg)}`;
+    const updateLoyaltySettings = async (updates: Partial<LoyaltySettings>) => {
+        if (!loyaltySettings || !canWrite) return;
+        const newSettings = { ...loyaltySettings, ...updates };
+        setLoyaltySettings(newSettings);
         try {
-            await Linking.openURL(url);
-            // Small delay between opens
-            await new Promise(r => setTimeout(r, 500));
-        } catch { /* skip */ }
-    }
-
-    setCampaignSending(false);
-    setShowCampaignModal(false);
-    Alert.alert(t('crm.campaign_sent'), t('crm.campaign_sent_desc', { count: targets.length }));
-}
-
-// --- Payment ---
-function openPaymentModal() {
-    setPaymentAmount('');
-    setPaymentNotes('');
-    setPaymentType('payment');
-    setShowPaymentModal(true);
-}
-
-async function savePayment() {
-    if (!detailCustomer) return;
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-        Alert.alert(t('common.error'), t('crm.error_invalid_amount'));
-        return;
-    }
-
-    const performSave = async () => {
-        setPaymentLoading(true);
-        try {
-            // If Type is DEBT, send negative amount to INCREASE debt
-            // Backend: $inc: { current_debt: -amount } -> -(-amount) = +amount
-            const finalAmount = paymentType === 'payment' ? amount : -amount;
-
-            await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? 'Paiement manuel' : 'Dette manuelle'));
-
-            Alert.alert(t('common.success'), t('crm.success_operation_recorded'));
-            setShowPaymentModal(false);
-            // Refresh detail customer
-            const updated = await customersApi.get(detailCustomer.customer_id);
-            setDetailCustomer(updated);
-            loadData(); // Refresh list
-            if (detailTab === 'compte') {
-                loadCustomerDebtHistory(detailCustomer.customer_id);
-            }
+            setSavingSettings(true);
+            await settingsApi.update({ loyalty: newSettings });
         } catch {
-            Alert.alert(t('common.error'), t('crm.error_record_failed'));
+            Alert.alert(t('common.error'), t('crm.error_save_settings'));
         } finally {
-            setPaymentLoading(false);
+            setSavingSettings(false);
         }
     };
 
-    const msg = paymentType === 'payment'
-        ? t('crm.confirm_payment', { amount: amount.toLocaleString() })
-        : t('crm.confirm_debt', { amount: amount.toLocaleString() });
-
-    if (Platform.OS === 'web') {
-        if (window.confirm(msg)) {
-            await performSave();
+    const handleWhatsApp = (phone?: string, name?: string) => {
+        if (!phone) {
+            Alert.alert(t('common.error'), t('crm.error_phone_missing'));
+            return;
         }
-    } else {
+        const message = t('crm.whatsapp_default_msg', { name });
+        const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+        Linking.openURL(url).catch(() => {
+            Alert.alert(t('common.error'), t('crm.error_whatsapp_open'));
+        });
+    };
+
+    const handleCall = (phone?: string) => {
+        if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
+        Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('common.error'), t('crm.error_phone_open')));
+    };
+
+    const handleSMS = (phone?: string, name?: string) => {
+        if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
+        const msg = t('crm.sms_default_msg', { name });
+        Linking.openURL(`sms:${phone}?body=${encodeURIComponent(msg)}`).catch(() => Alert.alert(t('common.error'), t('crm.error_sms_open')));
+    };
+
+    // --- Customer CRUD ---
+    function openNewCustomer() {
+        setEditingCustomer(null);
+        setCustomerForm({ name: '', phone: '', email: '', notes: '', birthday: '', category: '' });
+        setShowCustomerModal(true);
+    }
+
+    function openEditCustomer(customer: Customer) {
+        setEditingCustomer(customer);
+        setCustomerForm({
+            name: customer.name,
+            phone: customer.phone || '',
+            email: customer.email || '',
+            notes: customer.notes || '',
+            birthday: customer.birthday || '',
+            category: customer.category || '',
+        });
+        setShowCustomerModal(true);
+    }
+
+    async function saveCustomer() {
+        if (!customerForm.name.trim()) {
+            Alert.alert(t('common.error'), t('crm.error_name_required'));
+            return;
+        }
+        setCustomerFormLoading(true);
+        try {
+            const data: any = { ...customerForm };
+            if (!data.birthday) delete data.birthday;
+            if (!data.category) delete data.category;
+            if (editingCustomer) {
+                await customersApi.update(editingCustomer.customer_id, data);
+            } else {
+                await customersApi.create(data);
+            }
+            setShowCustomerModal(false);
+            loadData();
+        } catch {
+            Alert.alert(t('common.error'), t('crm.error_save_customer'));
+        } finally {
+            setCustomerFormLoading(false);
+        }
+    }
+
+    function handleDeleteCustomer(customer: Customer) {
         Alert.alert(
-            t('common.confirmation'),
-            msg,
+            t('crm.delete_customer'),
+            t('crm.confirm_delete_customer', { name: customer.name }),
             [
-                { text: t('common.cancel'), style: "cancel" },
-                { text: t('common.confirm'), onPress: performSave }
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await customersApi.delete(customer.customer_id);
+                            setShowDetailModal(false);
+                            loadData();
+                        } catch {
+                            Alert.alert(t('common.error'), t('crm.error_delete_customer'));
+                        }
+                    },
+                },
             ]
         );
     }
-}
 
-// --- Filtering ---
-const filteredCustomers = customerList.filter(c => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.phone && c.phone.includes(search));
-    const matchTier = tierFilter === 'tous' || (c.tier || 'bronze') === tierFilter;
-    return matchSearch && matchTier;
-});
+    // --- Promotion CRUD ---
+    function openNewPromo() {
+        setEditingPromo(null);
+        setPromoForm({ title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' });
+        setShowPromoModal(true);
+    }
 
-// Stats
-const totalClients = customerList.length;
-const totalSpent = customerList.reduce((acc, c) => acc + c.total_spent, 0);
-const activeClients = customerList.filter(c => {
-    if (!c.last_purchase_date) return false;
-    const d = new Date(c.last_purchase_date);
-    return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
-}).length;
+    function openEditPromo(promo: Promotion) {
+        setEditingPromo(promo);
+        setPromoForm({
+            title: promo.title,
+            description: promo.description,
+            discount_percentage: promo.discount_percentage ? String(promo.discount_percentage) : '',
+            points_required: promo.points_required ? String(promo.points_required) : '',
+            target_tier: promo.target_tier || 'tous',
+        });
+        setShowPromoModal(true);
+    }
 
-const isLocked = user?.plan !== 'premium';
+    async function savePromo() {
+        if (!promoForm.title.trim()) {
+            Alert.alert(t('common.error'), t('crm.error_title_required'));
+            return;
+        }
+        setPromoFormLoading(true);
+        try {
+            const data: any = {
+                title: promoForm.title,
+                description: promoForm.description,
+            };
+            if (promoForm.discount_percentage) data.discount_percentage = parseFloat(promoForm.discount_percentage);
+            if (promoForm.points_required) data.points_required = parseInt(promoForm.points_required);
+            data.target_tier = promoForm.target_tier;
 
-if (loading && !isLocked) {
+            if (editingPromo) {
+                await promotionsApi.update(editingPromo.promotion_id, data);
+            } else {
+                await promotionsApi.create(data);
+            }
+            setShowPromoModal(false);
+            loadData();
+        } catch {
+            Alert.alert(t('common.error'), t('crm.error_save_promo'));
+        } finally {
+            setPromoFormLoading(false);
+        }
+    }
+
+    function handleDeletePromo(promo: Promotion) {
+        Alert.alert(
+            t('crm.delete_promo'),
+            t('crm.confirm_delete_promo', { title: promo.title }),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await promotionsApi.delete(promo.promotion_id);
+                            loadData();
+                        } catch {
+                            Alert.alert('Erreur', 'Impossible de supprimer');
+                        }
+                    },
+                },
+            ]
+        );
+    }
+
+    // --- Customer detail ---
+    function openCustomerDetail(customer: Customer) {
+        setDetailCustomer(customer);
+        setDetailTab('infos');
+        setCustomerSales([]);
+        setShowAllSales(false);
+        setShowAllDebt(false);
+        setCustomerSalesStats({ visit_count: 0, average_basket: 0 });
+        setShowDetailModal(true);
+    }
+
+    async function loadCustomerSales(customerId: string) {
+        setSalesLoading(true);
+        try {
+            const res: CustomerSalesResponse = await customersApi.getSales(customerId);
+            setCustomerSales(res.sales);
+            setCustomerSalesStats({
+                visit_count: res.visit_count,
+                average_basket: res.average_basket,
+                last_purchase_date: res.last_purchase_date,
+            });
+        } catch (e) {
+            console.error('Error loading sales:', e);
+        } finally {
+            setSalesLoading(false);
+        }
+    }
+
+    async function loadCustomerDebtHistory(customerId: string) {
+        setDebtHistoryLoading(true);
+        try {
+            const history = await customersApi.getDebtHistory(customerId);
+            setCustomerDebtHistory(history);
+        } catch (e) {
+            console.error('Error loading debt history:', e);
+        } finally {
+            setDebtHistoryLoading(false);
+        }
+    }
+
+    // Load sales when switching to achats tab
+    useEffect(() => {
+        if (detailTab === 'achats' && detailCustomer) {
+            loadCustomerSales(detailCustomer.customer_id);
+        }
+        if (detailTab === 'compte' && detailCustomer) {
+            loadCustomerDebtHistory(detailCustomer.customer_id);
+        }
+    }, [detailTab, detailCustomer]);
+
+    // --- Campaign ---
+    async function sendCampaign() {
+        const targets = customerList.filter(c => {
+            if (campaignTarget === 'choisir_client') {
+                return selectedCustomerIds.some(id => String(id) === String(c.customer_id));
+            }
+            return campaignTarget === 'tous' || (c.tier || 'bronze') === campaignTarget;
+        }).filter(c => c.phone);
+
+        if (targets.length === 0) {
+            Alert.alert(t('common.error'), t('crm.error_no_targets'));
+            return;
+        }
+        if (!campaignMessage.trim()) {
+            Alert.alert(t('common.error'), t('crm.error_message_required'));
+            return;
+        }
+
+        setCampaignSending(true);
+        try {
+            // Save campaign in backend
+            await customersApi.sendCampaign({
+                message: campaignMessage,
+                customer_ids: targets.map(c => c.customer_id),
+                channel: 'whatsapp',
+            });
+        } catch { /* continue anyway */ }
+
+        // Open WhatsApp for each contact sequentially
+        for (const c of targets) {
+            const msg = campaignMessage.replace('{nom}', c.name).replace('{points}', String(c.loyalty_points));
+            const url = `whatsapp://send?phone=${c.phone}&text=${encodeURIComponent(msg)}`;
+            try {
+                await Linking.openURL(url);
+                // Small delay between opens
+                await new Promise(r => setTimeout(r, 500));
+            } catch { /* skip */ }
+        }
+
+        setCampaignSending(false);
+        setShowCampaignModal(false);
+        Alert.alert(t('crm.campaign_sent'), t('crm.campaign_sent_desc', { count: targets.length }));
+    }
+
+    // --- Payment ---
+    function openPaymentModal() {
+        setPaymentAmount('');
+        setPaymentNotes('');
+        setPaymentType('payment');
+        setShowPaymentModal(true);
+    }
+
+    async function savePayment() {
+        if (!detailCustomer) return;
+        const amount = parseFloat(paymentAmount);
+        if (isNaN(amount) || amount <= 0) {
+            Alert.alert(t('common.error'), t('crm.error_invalid_amount'));
+            return;
+        }
+
+        const performSave = async () => {
+            setPaymentLoading(true);
+            try {
+                // If Type is DEBT, send negative amount to INCREASE debt
+                // Backend: $inc: { current_debt: -amount } -> -(-amount) = +amount
+                const finalAmount = paymentType === 'payment' ? amount : -amount;
+
+                await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? t('crm.manual_payment') : t('crm.manual_debt')));
+
+                Alert.alert(t('common.success'), t('crm.success_operation_recorded'));
+                setShowPaymentModal(false);
+                // Refresh detail customer
+                const updated = await customersApi.get(detailCustomer.customer_id);
+                setDetailCustomer(updated);
+                loadData(); // Refresh list
+                if (detailTab === 'compte') {
+                    loadCustomerDebtHistory(detailCustomer.customer_id);
+                }
+            } catch {
+                Alert.alert(t('common.error'), t('crm.error_record_failed'));
+            } finally {
+                setPaymentLoading(false);
+            }
+        };
+
+        const msg = paymentType === 'payment'
+            ? t('crm.confirm_payment', { amount: amount.toLocaleString() })
+            : t('crm.confirm_debt', { amount: amount.toLocaleString() });
+
+        if (Platform.OS === 'web') {
+            if (window.confirm(msg)) {
+                await performSave();
+            }
+        } else {
+            Alert.alert(
+                t('common.confirmation'),
+                msg,
+                [
+                    { text: t('common.cancel'), style: "cancel" },
+                    { text: t('common.confirm'), onPress: performSave }
+                ]
+            );
+        }
+    }
+
+    // --- Filtering ---
+    const filteredCustomers = customerList.filter(c => {
+        const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+            (c.phone && c.phone.includes(search));
+        const matchTier = tierFilter === 'tous' || (c.tier || 'bronze') === tierFilter;
+        return matchSearch && matchTier;
+    });
+
+    // Stats
+    const totalClients = customerList.length;
+    const totalSpent = customerList.reduce((acc, c) => acc + c.total_spent, 0);
+    const activeClients = customerList.filter(c => {
+        if (!c.last_purchase_date) return false;
+        const d = new Date(c.last_purchase_date);
+        return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
+    }).length;
+
+    const isLocked = user?.plan !== 'premium';
+
+    if (loading && !isLocked) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+        );
+    }
+
+    // ─── RENDER ───
     return (
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-    );
-}
-
-// ─── RENDER ───
-return (
-    <PremiumGate
-        featureName={t('premium.features.crm.title')}
-        description={t('premium.features.crm.desc')}
-        benefits={(t('premium.features.crm.benefits', { returnObjects: true }) as string[]) || []}
-        icon="people"
-        locked={isLocked}
-    >
-    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-        <ScrollView
-            contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        <PremiumGate
+            featureName={t('premium.features.crm.title')}
+            description={t('premium.features.crm.desc')}
+            benefits={(t('premium.features.crm.benefits', { returnObjects: true }) as string[]) || []}
+            icon="people"
+            locked={isLocked}
         >
-            <View style={[styles.header, { paddingTop: insets.top }]}>
-                <Text style={styles.title}>CRM & Fidélité</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity style={styles.iconBtn} onPress={handleExportPdf}>
-                        <Ionicons name="document-text-outline" size={22} color={colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconBtn} onPress={handleExportCSV}>
-                        <Ionicons name="download-outline" size={24} color={colors.primary} />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Stats Summary */}
-            <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{totalClients}</Text>
-                    <Text style={styles.statLabel}>Clients</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{formatCurrency(totalSpent, user?.currency)}</Text>
-                    <Text style={styles.statLabel}>{t('crm.total_sales')}</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{activeClients}</Text>
-                    <Text style={styles.statLabel}>{t('crm.active_30d')}</Text>
-                </View>
-            </View>
-
-            {/* Loyalty Settings SECTION */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>{t('crm.loyalty_strategy')}</Text>
-                    {savingSettings && <ActivityIndicator size="small" color={colors.primary} />}
-                </View>
-                <View style={styles.loyaltySettingsCard}>
-                    <View style={styles.settingRow}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.settingLabel}>{t('crm.loyalty_points')}</Text>
-                            <Text style={styles.settingDesc}>{t('crm.loyalty_points_desc')}</Text>
+            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
+                <ScrollView
+                    contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                >
+                    <View style={[styles.header, { paddingTop: insets.top }]}>
+                        <Text style={styles.title}>CRM & Fidélité</Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity style={styles.iconBtn} onPress={handleExportPdf}>
+                                <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.iconBtn} onPress={handleExportCSV}>
+                                <Ionicons name="download-outline" size={24} color={colors.primary} />
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                            onPress={() => updateLoyaltySettings({ is_active: !loyaltySettings?.is_active })}
-                            style={[styles.toggle, loyaltySettings?.is_active && styles.toggleActive]}
-                        >
-                            <View style={[styles.toggleKnob, loyaltySettings?.is_active && styles.toggleKnobActive]} />
-                        </TouchableOpacity>
                     </View>
 
-                    {loyaltySettings?.is_active && (
-                        <View style={styles.settingsGrid}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>{t('crm.points_ratio_label')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.settingInput}
-                                        keyboardType="numeric"
-                                        value={String(loyaltySettings.ratio)}
-                                        onChangeText={(v) => updateLoyaltySettings({ ratio: parseInt(v) || 0 })}
-                                    />
-                                    <Text style={styles.inputUnit}>{getCurrencySymbol(user?.currency)}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>{t('crm.reward_threshold_label')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.settingInput}
-                                        keyboardType="numeric"
-                                        value={String(loyaltySettings.reward_threshold)}
-                                        onChangeText={(v) => updateLoyaltySettings({ reward_threshold: parseInt(v) || 0 })}
-                                    />
-                                    <Text style={styles.inputUnit}>pts</Text>
-                                </View>
-                            </View>
+                    {/* Stats Summary */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statValue}>{totalClients}</Text>
+                            <Text style={styles.statLabel}>Clients</Text>
                         </View>
-                    )}
-                </View>
-            </View>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statValue}>{formatCurrency(totalSpent, user?.currency)}</Text>
+                            <Text style={styles.statLabel}>{t('crm.total_sales')}</Text>
+                        </View>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statValue}>{activeClients}</Text>
+                            <Text style={styles.statLabel}>{t('crm.active_30d')}</Text>
+                        </View>
+                    </View>
 
-            {/* Promotions Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>{t('crm.promotions')}</Text>
-                    {canWrite && (
-                        <TouchableOpacity style={styles.addBtn} onPress={openNewPromo}>
-                            <Ionicons name="add" size={20} color="#FFF" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.promoList}>
-                    {promoList.map(promo => (
-                        <TouchableOpacity key={promo.promotion_id} style={styles.promoCard} onPress={() => openEditPromo(promo)} onLongPress={() => handleDeletePromo(promo)}>
-                            <Text style={styles.promoTitle}>{promo.title}</Text>
-                            <Text style={styles.promoDesc} numberOfLines={2}>{promo.description}</Text>
-                            <View style={styles.promoFooter}>
-                                <View style={styles.promoBadge}>
-                                    <Text style={styles.promoBadgeText}>
-                                        {promo.discount_percentage ? `-${promo.discount_percentage}%` : promo.points_required ? `${promo.points_required} pts` : 'Offre'}
-                                    </Text>
+                    {/* Loyalty Settings SECTION */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>{t('crm.loyalty_strategy')}</Text>
+                            {savingSettings && <ActivityIndicator size="small" color={colors.primary} />}
+                        </View>
+                        <View style={styles.loyaltySettingsCard}>
+                            <View style={styles.settingRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.settingLabel}>{t('crm.loyalty_points')}</Text>
+                                    <Text style={styles.settingDesc}>{t('crm.loyalty_points_desc')}</Text>
                                 </View>
-                                <TouchableOpacity onPress={() => handleDeletePromo(promo)}>
-                                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                                <TouchableOpacity
+                                    onPress={() => updateLoyaltySettings({ is_active: !loyaltySettings?.is_active })}
+                                    style={[styles.toggle, loyaltySettings?.is_active && styles.toggleActive]}
+                                >
+                                    <View style={[styles.toggleKnob, loyaltySettings?.is_active && styles.toggleKnobActive]} />
                                 </TouchableOpacity>
                             </View>
-                        </TouchableOpacity>
-                    ))}
-                    {promoList.length === 0 && (
-                        <TouchableOpacity style={[styles.promoCard, { justifyContent: 'center', alignItems: 'center' }]} onPress={openNewPromo}>
-                            <Ionicons name="add-circle-outline" size={32} color={colors.textMuted} />
-                            <Text style={[styles.promoTitle, { marginTop: Spacing.sm }]}>{t('crm.create_promotion')}</Text>
-                        </TouchableOpacity>
-                    )}
-                </ScrollView>
-            </View>
 
-            {/* Marketing Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>{t('crm.marketing')}</Text>
-                </View>
-                <TouchableOpacity style={styles.campaignBtn} onPress={() => setShowCampaignModal(true)}>
-                    <Ionicons name="megaphone-outline" size={22} color="#FFF" />
-                    <Text style={styles.campaignBtnText}>{t('crm.whatsapp_campaign')}</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Search Bar + Add Customer */}
-            <View style={styles.customerHeader}>
-                <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color={colors.textMuted} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder={t('crm.search_placeholder')}
-                        placeholderTextColor={colors.textMuted}
-                        value={search}
-                        onChangeText={setSearch}
-                    />
-                </View>
-                {canWrite && (
-                    <TouchableOpacity style={styles.addCustomerBtn} onPress={openNewCustomer}>
-                        <Ionicons name="person-add" size={20} color="#FFF" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            {/* Sort Bar */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }}>
-                <View style={styles.sortRow}>
-                    {SORT_OPTIONS.map(opt => (
-                        <TouchableOpacity
-                            key={opt.key}
-                            style={[styles.sortChip, sortBy === opt.key && styles.sortChipActive]}
-                            onPress={() => setSortBy(opt.key)}
-                        >
-                            <Ionicons name={opt.icon as any} size={14} color={sortBy === opt.key ? '#FFF' : colors.textSecondary} />
-                            <Text style={[styles.sortChipText, sortBy === opt.key && styles.sortChipTextActive]}>{t(opt.labelKey)}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </ScrollView>
-
-            {/* Tier Filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
-                <View style={styles.sortRow}>
-                    {TIER_FILTERS.map(filterKey => {
-                        const tierCfg = filterKey === 'tous' ? null : TIER_CONFIG[filterKey];
-                        return (
-                            <TouchableOpacity
-                                key={filterKey}
-                                style={[
-                                    styles.tierChip,
-                                    tierFilter === filterKey && { backgroundColor: tierCfg?.color || colors.primary, borderColor: tierCfg?.color || colors.primary },
-                                ]}
-                                onPress={() => setTierFilter(filterKey)}
-                            >
-                                {tierCfg && <Ionicons name={tierCfg.icon as any} size={12} color={tierFilter === filterKey ? '#FFF' : tierCfg.color} />}
-                                <Text style={[styles.tierChipText, tierFilter === filterKey && { color: '#FFF' }]}>
-                                    {filterKey === 'tous' ? t('common.all') : t(tierCfg?.labelKey || '')}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-            </ScrollView>
-
-            {/* Customers Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('crm.customer_file', { count: filteredCustomers.length })}</Text>
-                {filteredCustomers.map(customer => {
-                    const tc = getTierConfig(customer.tier);
-                    return (
-                        <TouchableOpacity key={customer.customer_id} style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
-                            <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
-                                <Text style={styles.customerAvatarText}>{customer.name.charAt(0).toUpperCase()}</Text>
-                            </View>
-                            <View style={styles.customerInfo}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    <Text style={styles.customerName}>{customer.name}</Text>
-                                    <View style={[styles.tierBadge, { backgroundColor: tc.color + '25', borderColor: tc.color }]}>
-                                        <Ionicons name={tc.icon as any} size={10} color={tc.color} />
-                                        <Text style={[styles.tierBadgeText, { color: tc.color }]}>{t(tc.labelKey)}</Text>
+                            {loyaltySettings?.is_active && (
+                                <View style={styles.settingsGrid}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>{t('crm.points_ratio_label')}</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <TextInput
+                                                style={styles.settingInput}
+                                                keyboardType="numeric"
+                                                value={String(loyaltySettings.ratio)}
+                                                onChangeText={(v) => updateLoyaltySettings({ ratio: parseInt(v) || 0 })}
+                                            />
+                                            <Text style={styles.inputUnit}>{getCurrencySymbol(user?.currency)}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>{t('crm.reward_threshold_label')}</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <TextInput
+                                                style={styles.settingInput}
+                                                keyboardType="numeric"
+                                                value={String(loyaltySettings.reward_threshold)}
+                                                onChangeText={(v) => updateLoyaltySettings({ reward_threshold: parseInt(v) || 0 })}
+                                            />
+                                            <Text style={styles.inputUnit}>pts</Text>
+                                        </View>
                                     </View>
                                 </View>
-                                <View style={styles.loyaltyRow}>
-                                    <Text style={styles.spentText}>{formatCurrency(customer.total_spent, user?.currency)}</Text>
-                                    <Text style={styles.spentText}> • {t('crm.visits_count', { count: customer.visit_count || 0 })}</Text>
-                                </View>
-                                {customer.current_debt > 0 && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                                        <Ionicons name="alert-circle" size={12} color={colors.danger} />
-                                        <Text style={{ fontSize: 10, color: colors.danger, fontWeight: 'bold', marginLeft: 2 }}>
-                                            {t('crm.debt')}: {formatCurrency(customer.current_debt, user?.currency)}
-                                        </Text>
-                                    </View>
-                                )}
-                                <Text style={[styles.spentText, { fontSize: 10, marginTop: 2 }]}>
-                                    {t('crm.last_purchase')} : {timeAgo(customer.last_purchase_date, t)}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={styles.waButton}
-                                onPress={() => handleWhatsApp(customer.phone, customer.name)}
-                            >
-                                <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                            </TouchableOpacity>
-                        </TouchableOpacity>
-                    );
-                })}
-                {filteredCustomers.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-                        <Text style={styles.emptyText}>{t('crm.no_customer_found')}</Text>
-                        <TouchableOpacity style={styles.emptyBtn} onPress={openNewCustomer}>
-                            <Text style={styles.emptyBtnText}>{t('crm.add_customer')}</Text>
-                        </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
-                )}
-            </View>
 
-            <View style={{ height: Spacing.xxl }} />
-        </ScrollView>
+                    {/* Promotions Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>{t('crm.promotions')}</Text>
+                            {canWrite && (
+                                <TouchableOpacity style={styles.addBtn} onPress={openNewPromo}>
+                                    <Ionicons name="add" size={20} color="#FFF" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.promoList}>
+                            {promoList.map(promo => (
+                                <TouchableOpacity key={promo.promotion_id} style={styles.promoCard} onPress={() => openEditPromo(promo)} onLongPress={() => handleDeletePromo(promo)}>
+                                    <Text style={styles.promoTitle}>{promo.title}</Text>
+                                    <Text style={styles.promoDesc} numberOfLines={2}>{promo.description}</Text>
+                                    <View style={styles.promoFooter}>
+                                        <View style={styles.promoBadge}>
+                                            <Text style={styles.promoBadgeText}>
+                                                {promo.discount_percentage ? `-${promo.discount_percentage}%` : promo.points_required ? `${promo.points_required} pts` : 'Offre'}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity onPress={() => handleDeletePromo(promo)}>
+                                            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                            {promoList.length === 0 && (
+                                <TouchableOpacity style={[styles.promoCard, { justifyContent: 'center', alignItems: 'center' }]} onPress={openNewPromo}>
+                                    <Ionicons name="add-circle-outline" size={32} color={colors.textMuted} />
+                                    <Text style={[styles.promoTitle, { marginTop: Spacing.sm }]}>{t('crm.create_promotion')}</Text>
+                                </TouchableOpacity>
+                            )}
+                        </ScrollView>
+                    </View>
 
-        {/* Customer Create/Edit Modal */}
-        <Modal visible={showCustomerModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{editingCustomer ? t('crm.edit_customer') : t('crm.new_customer')}</Text>
-                        <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
-                            <Ionicons name="close" size={24} color={colors.text} />
+                    {/* Marketing Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>{t('crm.marketing')}</Text>
+                        </View>
+                        <TouchableOpacity style={styles.campaignBtn} onPress={() => setShowCampaignModal(true)}>
+                            <Ionicons name="megaphone-outline" size={22} color="#FFF" />
+                            <Text style={styles.campaignBtnText}>{t('crm.whatsapp_campaign')}</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView>
-                        <Text style={styles.formLabel}>{t('common.name')} *</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={customerForm.name}
-                            onChangeText={(v) => setCustomerForm(prev => ({ ...prev, name: v }))}
-                            placeholder={t('crm.customer_name_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                        />
+                    {/* Search Bar + Add Customer */}
+                    <View style={styles.customerHeader}>
+                        <View style={styles.searchBar}>
+                            <Ionicons name="search" size={20} color={colors.textMuted} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder={t('crm.search_placeholder')}
+                                placeholderTextColor={colors.textMuted}
+                                value={search}
+                                onChangeText={setSearch}
+                            />
+                        </View>
+                        {canWrite && (
+                            <TouchableOpacity style={styles.addCustomerBtn} onPress={openNewCustomer}>
+                                <Ionicons name="person-add" size={20} color="#FFF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
 
-                        <Text style={styles.formLabel}>{t('common.phone')}</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={customerForm.phone}
-                            onChangeText={(v) => setCustomerForm(prev => ({ ...prev, phone: v }))}
-                            placeholder="+225 XX XX XX XX"
-                            placeholderTextColor={colors.textMuted}
-                            keyboardType="phone-pad"
-                        />
-
-                        <Text style={styles.formLabel}>{t('common.email')}</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={customerForm.email}
-                            onChangeText={(v) => setCustomerForm(prev => ({ ...prev, email: v }))}
-                            placeholder="email@exemple.com"
-                            placeholderTextColor={colors.textMuted}
-                            keyboardType="email-address"
-                        />
-
-                        <Text style={styles.formLabel}>{t('crm.birthday_label')} (MM-JJ)</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={customerForm.birthday}
-                            onChangeText={(v) => setCustomerForm(prev => ({ ...prev, birthday: v }))}
-                            placeholder="Ex: 03-15 (15 mars)"
-                            placeholderTextColor={colors.textMuted}
-                            maxLength={5}
-                        />
-
-                        <Text style={styles.formLabel}>{t('common.category')}</Text>
-                        <View style={styles.categoryRow}>
-                            {CATEGORIES.map(cat => (
+                    {/* Sort Bar */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }}>
+                        <View style={styles.sortRow}>
+                            {SORT_OPTIONS.map(opt => (
                                 <TouchableOpacity
-                                    key={cat.key}
-                                    style={[styles.categoryChip, customerForm.category === cat.key && styles.categoryChipActive]}
-                                    onPress={() => setCustomerForm(prev => ({ ...prev, category: prev.category === cat.key ? '' : cat.key }))}
+                                    key={opt.key}
+                                    style={[styles.sortChip, sortBy === opt.key && styles.sortChipActive]}
+                                    onPress={() => setSortBy(opt.key)}
                                 >
-                                    <Text style={[styles.categoryChipText, customerForm.category === cat.key && styles.categoryChipTextActive]}>{t(cat.labelKey)}</Text>
+                                    <Ionicons name={opt.icon as any} size={14} color={sortBy === opt.key ? '#FFF' : colors.textSecondary} />
+                                    <Text style={[styles.sortChipText, sortBy === opt.key && styles.sortChipTextActive]}>{t(opt.labelKey)}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
-
-                        <Text style={styles.formLabel}>{t('common.notes')}</Text>
-                        <TextInput
-                            style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
-                            value={customerForm.notes}
-                            onChangeText={(v) => setCustomerForm(prev => ({ ...prev, notes: v }))}
-                            placeholder={t('crm.notes_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                        />
-
-                        <TouchableOpacity style={styles.submitBtn} onPress={saveCustomer} disabled={customerFormLoading}>
-                            {customerFormLoading ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <Text style={styles.submitBtnText}>{editingCustomer ? t('common.edit') : t('common.create')}</Text>
-                            )}
-                        </TouchableOpacity>
                     </ScrollView>
-                </View>
-            </View>
-        </Modal>
 
-        {/* Customer Detail Modal (with tabs) */}
-        <Modal visible={showDetailModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: insets.bottom + Spacing.md }]}>
-                    {detailCustomer && (
-                        <>
+                    {/* Tier Filter */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+                        <View style={styles.sortRow}>
+                            {TIER_FILTERS.map(filterKey => {
+                                const tierCfg = filterKey === 'tous' ? null : TIER_CONFIG[filterKey];
+                                return (
+                                    <TouchableOpacity
+                                        key={filterKey}
+                                        style={[
+                                            styles.tierChip,
+                                            tierFilter === filterKey && { backgroundColor: tierCfg?.color || colors.primary, borderColor: tierCfg?.color || colors.primary },
+                                        ]}
+                                        onPress={() => setTierFilter(filterKey)}
+                                    >
+                                        {tierCfg && <Ionicons name={tierCfg.icon as any} size={12} color={tierFilter === filterKey ? '#FFF' : tierCfg.color} />}
+                                        <Text style={[styles.tierChipText, tierFilter === filterKey && { color: '#FFF' }]}>
+                                            {filterKey === 'tous' ? t('common.all') : t(tierCfg?.labelKey || '')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </ScrollView>
+
+                    {/* Customers Section */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>{t('crm.customer_file', { count: filteredCustomers.length })}</Text>
+                        {filteredCustomers.map(customer => {
+                            const tc = getTierConfig(customer.tier);
+                            return (
+                                <TouchableOpacity key={customer.customer_id} style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
+                                    <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
+                                        <Text style={styles.customerAvatarText}>{customer.name.charAt(0).toUpperCase()}</Text>
+                                    </View>
+                                    <View style={styles.customerInfo}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                            <Text style={styles.customerName}>{customer.name}</Text>
+                                            <View style={[styles.tierBadge, { backgroundColor: tc.color + '25', borderColor: tc.color }]}>
+                                                <Ionicons name={tc.icon as any} size={10} color={tc.color} />
+                                                <Text style={[styles.tierBadgeText, { color: tc.color }]}>{t(tc.labelKey)}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.loyaltyRow}>
+                                            <Text style={styles.spentText}>{formatCurrency(customer.total_spent, user?.currency)}</Text>
+                                            <Text style={styles.spentText}> • {t('crm.visits_count', { count: customer.visit_count || 0 })}</Text>
+                                        </View>
+                                        {customer.current_debt > 0 && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                                                <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                                                <Text style={{ fontSize: 10, color: colors.danger, fontWeight: 'bold', marginLeft: 2 }}>
+                                                    {t('crm.debt')}: {formatCurrency(customer.current_debt, user?.currency)}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        <Text style={[styles.spentText, { fontSize: 10, marginTop: 2 }]}>
+                                            {t('crm.last_purchase')} : {timeAgo(customer.last_purchase_date, t)}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.waButton}
+                                        onPress={() => handleWhatsApp(customer.phone, customer.name)}
+                                    >
+                                        <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            );
+                        })}
+                        {filteredCustomers.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="people-outline" size={48} color={colors.textMuted} />
+                                <Text style={styles.emptyText}>{t('crm.no_customer_found')}</Text>
+                                <TouchableOpacity style={styles.emptyBtn} onPress={openNewCustomer}>
+                                    <Text style={styles.emptyBtnText}>{t('crm.add_customer')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={{ height: Spacing.xxl }} />
+                </ScrollView>
+
+                {/* Customer Create/Edit Modal */}
+                <Modal visible={showCustomerModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{detailCustomer.name}</Text>
-                                <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+                                <Text style={styles.modalTitle}>{editingCustomer ? t('crm.edit_customer') : t('crm.new_customer')}</Text>
+                                <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Hero summary */}
-                            <View style={{ alignItems: 'center', paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: Spacing.sm }}>
-                                <View style={[styles.detailAvatarLarge, { borderColor: getTierConfig(detailCustomer.tier).color, borderWidth: 3, marginBottom: 6 }]}>
-                                    <Text style={styles.detailAvatarText}>{detailCustomer.name.charAt(0).toUpperCase()}</Text>
-                                </View>
-                                <View style={[styles.tierBadgeLarge, { backgroundColor: getTierConfig(detailCustomer.tier).color + '25', borderColor: getTierConfig(detailCustomer.tier).color, marginBottom: 8 }]}>
-                                    <Ionicons name={getTierConfig(detailCustomer.tier).icon as any} size={14} color={getTierConfig(detailCustomer.tier).color} />
-                                    <Text style={[styles.tierBadgeLargeText, { color: getTierConfig(detailCustomer.tier).color }]}>{t(getTierConfig(detailCustomer.tier).labelKey)}</Text>
-                                </View>
-                                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-around', alignItems: 'center' }}>
-                                    <View style={{ alignItems: 'center' }}>
-                                        <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.warning }}>{detailCustomer.loyalty_points}</Text>
-                                        <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('crm.points')}</Text>
-                                    </View>
-                                    <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
-                                    <View style={{ alignItems: 'center' }}>
-                                        <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.success }}>{detailCustomer.total_spent.toLocaleString()}</Text>
-                                        <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('common.currency_default')}</Text>
-                                    </View>
-                                    <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
-                                    <View style={{ alignItems: 'center' }}>
-                                        <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.info }}>{detailCustomer.visit_count || 0}</Text>
-                                        <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('crm.visits')}</Text>
-                                    </View>
-                                </View>
+                            <ScrollView>
+                                <Text style={styles.formLabel}>{t('common.name')} *</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={customerForm.name}
+                                    onChangeText={(v) => setCustomerForm(prev => ({ ...prev, name: v }))}
+                                    placeholder={t('crm.customer_name_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
 
-                                {/* Tabs */}
-                                <View style={styles.tabRow}>
-                                    {([
-                                        { key: 'infos', label: t('crm.tab_infos'), icon: 'person-outline' },
-                                        { key: 'achats', label: t('crm.tab_purchases'), icon: 'receipt-outline' },
-                                        { key: 'compte', label: t('crm.tab_account'), icon: 'wallet-outline' },
-                                        { key: 'contact', label: t('crm.tab_contact'), icon: 'chatbubble-outline' },
-                                    ] as { key: DetailTab; label: string; icon: string }[]).map(tab => (
+                                <Text style={styles.formLabel}>{t('common.phone')}</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={customerForm.phone}
+                                    onChangeText={(v) => setCustomerForm(prev => ({ ...prev, phone: v }))}
+                                    placeholder="+225 XX XX XX XX"
+                                    placeholderTextColor={colors.textMuted}
+                                    keyboardType="phone-pad"
+                                />
+
+                                <Text style={styles.formLabel}>{t('common.email')}</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={customerForm.email}
+                                    onChangeText={(v) => setCustomerForm(prev => ({ ...prev, email: v }))}
+                                    placeholder="email@exemple.com"
+                                    placeholderTextColor={colors.textMuted}
+                                    keyboardType="email-address"
+                                />
+
+                                <Text style={styles.formLabel}>{t('crm.birthday_label')} (MM-JJ)</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={customerForm.birthday}
+                                    onChangeText={(v) => setCustomerForm(prev => ({ ...prev, birthday: v }))}
+                                    placeholder="Ex: 03-15 (15 mars)"
+                                    placeholderTextColor={colors.textMuted}
+                                    maxLength={5}
+                                />
+
+                                <Text style={styles.formLabel}>{t('common.category')}</Text>
+                                <View style={styles.categoryRow}>
+                                    {CATEGORIES.map(cat => (
                                         <TouchableOpacity
-                                            key={tab.key}
-                                            style={[styles.tab, detailTab === tab.key && styles.tabActive]}
-                                            onPress={() => setDetailTab(tab.key)}
+                                            key={cat.key}
+                                            style={[styles.categoryChip, customerForm.category === cat.key && styles.categoryChipActive]}
+                                            onPress={() => setCustomerForm(prev => ({ ...prev, category: prev.category === cat.key ? '' : cat.key }))}
                                         >
-                                            <Ionicons name={tab.icon as any} size={16} color={detailTab === tab.key ? colors.primary : colors.textMuted} />
-                                            <Text style={[styles.tabText, detailTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+                                            <Text style={[styles.categoryChipText, customerForm.category === cat.key && styles.categoryChipTextActive]}>{t(cat.labelKey)}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </View>
 
-                                {/* Tab Content */}
-                                <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: Spacing.xl }}>
-                                    {detailTab === 'infos' && (
-                                        <View style={[styles.detailSection, { width: '100%' }]}>
-                                            {/* Tier progress */}
-                                            {(() => {
-                                                const tc = getTierConfig(detailCustomer.tier);
-                                                const vc = detailCustomer.visit_count || 0;
-                                                const progress = tc.next <= tc.min ? 1 : Math.min((vc - tc.min) / (tc.next - tc.min), 1);
-                                                const nextTierKey = detailCustomer.tier === 'platine' ? null :
-                                                    detailCustomer.tier === 'or' ? 'crm.tier_platinum' :
-                                                        detailCustomer.tier === 'argent' ? 'crm.tier_gold' : 'crm.tier_silver';
-                                                return nextTierKey ? (
-                                                    <View style={{ alignItems: 'center', marginBottom: Spacing.md }}>
-                                                        <View style={{ width: '80%' }}>
-                                                            <View style={styles.progressBar}>
-                                                                <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: tc.color }]} />
-                                                            </View>
-                                                            <Text style={styles.progressText}>{vc}/{tc.next} {t('crm.visits_to_next_tier', { tier: t(nextTierKey) })}</Text>
-                                                        </View>
-                                                    </View>
-                                                ) : null;
-                                            })()}
+                                <Text style={styles.formLabel}>{t('common.notes')}</Text>
+                                <TextInput
+                                    style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+                                    value={customerForm.notes}
+                                    onChangeText={(v) => setCustomerForm(prev => ({ ...prev, notes: v }))}
+                                    placeholder={t('crm.notes_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                />
 
-                                            {/* DEBT SECTION */}
-                                            {Math.abs(detailCustomer.current_debt) > 0 ? (
-                                                <View style={[styles.debtCard, detailCustomer.current_debt < 0 && { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
-                                                    <View>
-                                                        <Text style={[styles.debtLabel, detailCustomer.current_debt < 0 && { color: colors.success }]}>
-                                                            {detailCustomer.current_debt > 0 ? 'Dette en cours' : 'Crédit (Avance)'}
-                                                        </Text>
-                                                        <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
-                                                            {Math.abs(detailCustomer.current_debt || 0).toLocaleString()} {t('common.currency_default')}
-                                                        </Text>
-                                                    </View>
-                                                    <TouchableOpacity style={[styles.payBtn, detailCustomer.current_debt < 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
-                                                        <Text style={styles.payBtnText}>{detailCustomer.current_debt > 0 ? t('crm.repay') : t('common.edit')}</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            ) : (
-                                                <View style={styles.debtCardEmpty}>
-                                                    <Text style={styles.debtLabelEmpty}>{t('crm.no_debt')}</Text>
-                                                    <TouchableOpacity style={styles.payBtnOutline} onPress={openPaymentModal}>
-                                                        <Text style={styles.payBtnTextOutline}>{t('crm.add_credit_debit')}</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            )}
+                                <TouchableOpacity style={styles.submitBtn} onPress={saveCustomer} disabled={customerFormLoading}>
+                                    {customerFormLoading ? (
+                                        <ActivityIndicator color="#FFF" />
+                                    ) : (
+                                        <Text style={styles.submitBtnText}>{editingCustomer ? t('common.edit') : t('common.create')}</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
 
-                                            {detailCustomer.phone && (
-                                                <View style={styles.detailRow}>
-                                                    <Ionicons name="call-outline" size={18} color={colors.textSecondary} />
-                                                    <Text style={styles.detailRowText}>{detailCustomer.phone}</Text>
-                                                </View>
-                                            )}
-                                            {detailCustomer.email && (
-                                                <View style={styles.detailRow}>
-                                                    <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
-                                                    <Text style={styles.detailRowText}>{detailCustomer.email}</Text>
-                                                </View>
-                                            )}
-                                            {detailCustomer.birthday && (
-                                                <View style={styles.detailRow}>
-                                                    <Ionicons name="gift-outline" size={18} color={colors.textSecondary} />
-                                                    <Text style={styles.detailRowText}>{t('crm.birthday_label')} : {detailCustomer.birthday}</Text>
-                                                </View>
-                                            )}
-                                            {detailCustomer.category && (
-                                                <View style={styles.detailRow}>
-                                                    <Ionicons name="pricetag-outline" size={18} color={colors.textSecondary} />
-                                                    <Text style={styles.detailRowText}>{detailCustomer.category.charAt(0).toUpperCase() + detailCustomer.category.slice(1)}</Text>
-                                                </View>
-                                            )}
-                                            {detailCustomer.notes && (
-                                                <View style={styles.detailRow}>
-                                                    <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
-                                                    <Text style={styles.detailRowText}>{detailCustomer.notes}</Text>
-                                                </View>
-                                            )}
-                                            <Text style={styles.detailDate}>
-                                                {t('crm.customer_since')} {detailCustomer.created_at ? new Date(detailCustomer.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
-                                            </Text>
+                {/* Customer Detail Modal (with tabs) */}
+                <Modal visible={showDetailModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: insets.bottom + Spacing.md }]}>
+                            {detailCustomer && (
+                                <>
+                                    <View style={styles.modalHeader}>
+                                        <Text style={styles.modalTitle}>{detailCustomer.name}</Text>
+                                        <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+                                            <Ionicons name="close" size={24} color={colors.text} />
+                                        </TouchableOpacity>
+                                    </View>
 
-                                            <View style={styles.detailActions}>
-                                                <TouchableOpacity style={styles.detailActionBtn} onPress={() => { setShowDetailModal(false); openEditCustomer(detailCustomer); }}>
-                                                    <Ionicons name="create-outline" size={20} color={colors.primary} />
-                                                    <Text style={[styles.detailActionText, { color: colors.primary }]}>{t('common.edit')}</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={styles.detailActionBtn} onPress={() => handleDeleteCustomer(detailCustomer)}>
-                                                    <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                                                    <Text style={[styles.detailActionText, { color: colors.danger }]}>{t('common.delete')}</Text>
-                                                </TouchableOpacity>
+                                    {/* Hero summary */}
+                                    <View style={{ alignItems: 'center', paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: Spacing.sm }}>
+                                        <View style={[styles.detailAvatarLarge, { borderColor: getTierConfig(detailCustomer.tier).color, borderWidth: 3, marginBottom: 6 }]}>
+                                            <Text style={styles.detailAvatarText}>{detailCustomer.name.charAt(0).toUpperCase()}</Text>
+                                        </View>
+                                        <View style={[styles.tierBadgeLarge, { backgroundColor: getTierConfig(detailCustomer.tier).color + '25', borderColor: getTierConfig(detailCustomer.tier).color, marginBottom: 8 }]}>
+                                            <Ionicons name={getTierConfig(detailCustomer.tier).icon as any} size={14} color={getTierConfig(detailCustomer.tier).color} />
+                                            <Text style={[styles.tierBadgeLargeText, { color: getTierConfig(detailCustomer.tier).color }]}>{t(getTierConfig(detailCustomer.tier).labelKey)}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-around', alignItems: 'center' }}>
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.warning }}>{detailCustomer.loyalty_points}</Text>
+                                                <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('crm.points')}</Text>
+                                            </View>
+                                            <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.success }}>{detailCustomer.total_spent.toLocaleString()}</Text>
+                                                <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('common.currency_default')}</Text>
+                                            </View>
+                                            <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.info }}>{detailCustomer.visit_count || 0}</Text>
+                                                <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('crm.visits')}</Text>
                                             </View>
                                         </View>
-                                    )}
 
-                                    {detailTab === 'achats' && (
-                                        <View style={{ paddingVertical: Spacing.md }}>
-                                            {/* Mini stats */}
-                                            <View style={styles.miniStatsRow}>
-                                                <View style={styles.miniStat}>
-                                                    <Text style={styles.miniStatValue}>{customerSalesStats.visit_count}</Text>
-                                                    <Text style={styles.miniStatLabel}>{t('crm.tab_purchases')}</Text>
-                                                </View>
-                                                <View style={styles.miniStat}>
-                                                    <Text style={styles.miniStatValue}>{customerSalesStats.average_basket.toLocaleString()}</Text>
-                                                    <Text style={styles.miniStatLabel}>{t('crm.avg_basket')}</Text>
-                                                </View>
-                                                <View style={styles.miniStat}>
-                                                    <Text style={styles.miniStatValue}>{timeAgo(customerSalesStats.last_purchase_date, t)}</Text>
-                                                    <Text style={styles.miniStatLabel}>{t('crm.last_purchase_short')}</Text>
-                                                </View>
-                                            </View>
+                                        {/* Tabs */}
+                                        <View style={styles.tabRow}>
+                                            {([
+                                                { key: 'infos', label: t('crm.tab_infos'), icon: 'person-outline' },
+                                                { key: 'achats', label: t('crm.tab_purchases'), icon: 'receipt-outline' },
+                                                { key: 'compte', label: t('crm.tab_account'), icon: 'wallet-outline' },
+                                                { key: 'contact', label: t('crm.tab_contact'), icon: 'chatbubble-outline' },
+                                            ] as { key: DetailTab; label: string; icon: string }[]).map(tab => (
+                                                <TouchableOpacity
+                                                    key={tab.key}
+                                                    style={[styles.tab, detailTab === tab.key && styles.tabActive]}
+                                                    onPress={() => setDetailTab(tab.key)}
+                                                >
+                                                    <Ionicons name={tab.icon as any} size={16} color={detailTab === tab.key ? colors.primary : colors.textMuted} />
+                                                    <Text style={[styles.tabText, detailTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
 
-                                            {salesLoading ? (
-                                                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
-                                            ) : customerSales.length === 0 ? (
-                                                <View style={styles.emptyState}>
-                                                    <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
-                                                    <Text style={styles.emptyText}>{t('crm.no_purchase_recorded')}</Text>
-                                                </View>
-                                            ) : (
-                                                <View>
-                                                    {(showAllSales ? customerSales : customerSales.slice(0, 5)).map((sale, idx) => (
-                                                        <View key={sale.sale_id || idx} style={styles.saleCard}>
-                                                            <View style={styles.saleHeader}>
-                                                                <Text style={styles.saleDate}>
-                                                                    {new Date(sale.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                                </Text>
-                                                                <View style={[styles.paymentBadge, { backgroundColor: sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
-                                                                    <Text style={[styles.paymentBadgeText, { color: sale.payment_method === 'cash' ? colors.success : colors.info }]}>
-                                                                        {sale.payment_method === 'cash' ? t('common.cash') : sale.payment_method === 'mobile_money' ? t('common.mobile_money') : sale.payment_method}
-                                                                    </Text>
+                                        {/* Tab Content */}
+                                        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: Spacing.xl }}>
+                                            {detailTab === 'infos' && (
+                                                <View style={[styles.detailSection, { width: '100%' }]}>
+                                                    {/* Tier progress */}
+                                                    {(() => {
+                                                        const tc = getTierConfig(detailCustomer.tier);
+                                                        const vc = detailCustomer.visit_count || 0;
+                                                        const progress = tc.next <= tc.min ? 1 : Math.min((vc - tc.min) / (tc.next - tc.min), 1);
+                                                        const nextTierKey = detailCustomer.tier === 'platine' ? null :
+                                                            detailCustomer.tier === 'or' ? 'crm.tier_platinum' :
+                                                                detailCustomer.tier === 'argent' ? 'crm.tier_gold' : 'crm.tier_silver';
+                                                        return nextTierKey ? (
+                                                            <View style={{ alignItems: 'center', marginBottom: Spacing.md }}>
+                                                                <View style={{ width: '80%' }}>
+                                                                    <View style={styles.progressBar}>
+                                                                        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: tc.color }]} />
+                                                                    </View>
+                                                                    <Text style={styles.progressText}>{vc}/{tc.next} {t('crm.visits_to_next_tier', { tier: t(nextTierKey) })}</Text>
                                                                 </View>
                                                             </View>
-                                                            {sale.items.map((item, i) => (
-                                                                <View key={i} style={styles.saleItemRow}>
-                                                                    <Text style={styles.saleItemName}>{item.product_name}</Text>
-                                                                    <Text style={styles.saleItemQty}>x{item.quantity}</Text>
-                                                                    <Text style={styles.saleItemPrice}>{item.total.toLocaleString()} F</Text>
+                                                        ) : null;
+                                                    })()}
+
+                                                    {/* DEBT SECTION */}
+                                                    {Math.abs(detailCustomer.current_debt) > 0 ? (
+                                                        <View style={[styles.debtCard, detailCustomer.current_debt < 0 && { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
+                                                            <View>
+                                                                <Text style={[styles.debtLabel, detailCustomer.current_debt < 0 && { color: colors.success }]}>
+                                                                    {detailCustomer.current_debt > 0 ? 'Dette en cours' : 'Crédit (Avance)'}
+                                                                </Text>
+                                                                <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
+                                                                    {Math.abs(detailCustomer.current_debt || 0).toLocaleString()} {t('common.currency_default')}
+                                                                </Text>
+                                                            </View>
+                                                            <TouchableOpacity style={[styles.payBtn, detailCustomer.current_debt < 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
+                                                                <Text style={styles.payBtnText}>{detailCustomer.current_debt > 0 ? t('crm.repay') : t('common.edit')}</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.debtCardEmpty}>
+                                                            <Text style={styles.debtLabelEmpty}>{t('crm.no_debt')}</Text>
+                                                            <TouchableOpacity style={styles.payBtnOutline} onPress={openPaymentModal}>
+                                                                <Text style={styles.payBtnTextOutline}>{t('crm.add_credit_debit')}</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    )}
+
+                                                    {detailCustomer.phone && (
+                                                        <View style={styles.detailRow}>
+                                                            <Ionicons name="call-outline" size={18} color={colors.textSecondary} />
+                                                            <Text style={styles.detailRowText}>{detailCustomer.phone}</Text>
+                                                        </View>
+                                                    )}
+                                                    {detailCustomer.email && (
+                                                        <View style={styles.detailRow}>
+                                                            <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
+                                                            <Text style={styles.detailRowText}>{detailCustomer.email}</Text>
+                                                        </View>
+                                                    )}
+                                                    {detailCustomer.birthday && (
+                                                        <View style={styles.detailRow}>
+                                                            <Ionicons name="gift-outline" size={18} color={colors.textSecondary} />
+                                                            <Text style={styles.detailRowText}>{t('crm.birthday_label')} : {detailCustomer.birthday}</Text>
+                                                        </View>
+                                                    )}
+                                                    {detailCustomer.category && (
+                                                        <View style={styles.detailRow}>
+                                                            <Ionicons name="pricetag-outline" size={18} color={colors.textSecondary} />
+                                                            <Text style={styles.detailRowText}>{detailCustomer.category.charAt(0).toUpperCase() + detailCustomer.category.slice(1)}</Text>
+                                                        </View>
+                                                    )}
+                                                    {detailCustomer.notes && (
+                                                        <View style={styles.detailRow}>
+                                                            <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+                                                            <Text style={styles.detailRowText}>{detailCustomer.notes}</Text>
+                                                        </View>
+                                                    )}
+                                                    <Text style={styles.detailDate}>
+                                                        {t('crm.customer_since')} {detailCustomer.created_at ? new Date(detailCustomer.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                                                    </Text>
+
+                                                    <View style={styles.detailActions}>
+                                                        <TouchableOpacity style={styles.detailActionBtn} onPress={() => { setShowDetailModal(false); openEditCustomer(detailCustomer); }}>
+                                                            <Ionicons name="create-outline" size={20} color={colors.primary} />
+                                                            <Text style={[styles.detailActionText, { color: colors.primary }]}>{t('common.edit')}</Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={styles.detailActionBtn} onPress={() => handleDeleteCustomer(detailCustomer)}>
+                                                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                                                            <Text style={[styles.detailActionText, { color: colors.danger }]}>{t('common.delete')}</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            )}
+
+                                            {detailTab === 'achats' && (
+                                                <View style={{ paddingVertical: Spacing.md }}>
+                                                    {/* Mini stats */}
+                                                    <View style={styles.miniStatsRow}>
+                                                        <View style={styles.miniStat}>
+                                                            <Text style={styles.miniStatValue}>{customerSalesStats.visit_count}</Text>
+                                                            <Text style={styles.miniStatLabel}>{t('crm.tab_purchases')}</Text>
+                                                        </View>
+                                                        <View style={styles.miniStat}>
+                                                            <Text style={styles.miniStatValue}>{customerSalesStats.average_basket.toLocaleString()}</Text>
+                                                            <Text style={styles.miniStatLabel}>{t('crm.avg_basket')}</Text>
+                                                        </View>
+                                                        <View style={styles.miniStat}>
+                                                            <Text style={styles.miniStatValue}>{timeAgo(customerSalesStats.last_purchase_date, t)}</Text>
+                                                            <Text style={styles.miniStatLabel}>{t('crm.last_purchase_short')}</Text>
+                                                        </View>
+                                                    </View>
+
+                                                    {salesLoading ? (
+                                                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
+                                                    ) : customerSales.length === 0 ? (
+                                                        <View style={styles.emptyState}>
+                                                            <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
+                                                            <Text style={styles.emptyText}>{t('crm.no_purchase_recorded')}</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <View>
+                                                            {(showAllSales ? customerSales : customerSales.slice(0, 5)).map((sale, idx) => (
+                                                                <View key={sale.sale_id || idx} style={styles.saleCard}>
+                                                                    <View style={styles.saleHeader}>
+                                                                        <Text style={styles.saleDate}>
+                                                                            {new Date(sale.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                        </Text>
+                                                                        <View style={[styles.paymentBadge, { backgroundColor: sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
+                                                                            <Text style={[styles.paymentBadgeText, { color: sale.payment_method === 'cash' ? colors.success : colors.info }]}>
+                                                                                {sale.payment_method === 'cash' ? t('common.cash') : sale.payment_method === 'mobile_money' ? t('common.mobile_money') : sale.payment_method}
+                                                                            </Text>
+                                                                        </View>
+                                                                    </View>
+                                                                    {sale.items.map((item, i) => (
+                                                                        <View key={i} style={styles.saleItemRow}>
+                                                                            <Text style={styles.saleItemName}>{item.product_name}</Text>
+                                                                            <Text style={styles.saleItemQty}>x{item.quantity}</Text>
+                                                                            <Text style={styles.saleItemPrice}>{item.total.toLocaleString()} {t('common.currency_short')}</Text>
+                                                                        </View>
+                                                                    ))}
+                                                                    <View style={styles.saleTotalRow}>
+                                                                        <Text style={styles.saleTotalLabel}>{t('common.total')}</Text>
+                                                                        <Text style={styles.saleTotalValue}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                                                                    </View>
                                                                 </View>
                                                             ))}
-                                                            <View style={styles.saleTotalRow}>
-                                                                <Text style={styles.saleTotalLabel}>{t('common.total')}</Text>
-                                                                <Text style={styles.saleTotalValue}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
-                                                            </View>
-                                                        </View>
-                                                    ))}
-                                                    {customerSales.length > 5 && (
-                                                        <TouchableOpacity
-                                                            style={styles.seeMoreBtn}
-                                                            onPress={() => setShowAllSales(!showAllSales)}
-                                                        >
-                                                            <Text style={styles.seeMoreText}>
-                                                                {showAllSales ? t('common.see_less') : t('crm.see_other_purchases', { count: customerSales.length - 5 })}
-                                                            </Text>
-                                                            <Ionicons name={showAllSales ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
-                                                        </TouchableOpacity>
-                                                    )}
-                                                </View>
-                                            )}
-                                        </View>
-                                    )}
-                                    {detailTab === 'compte' && (
-                                        <View style={{ paddingVertical: Spacing.md }}>
-                                            {debtHistoryLoading ? (
-                                                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
-                                            ) : customerDebtHistory.length === 0 ? (
-                                                <View style={styles.emptyState}>
-                                                    <Ionicons name="wallet-outline" size={40} color={colors.textMuted} />
-                                                    <Text style={styles.emptyText}>{t('crm.no_history')}</Text>
-                                                </View>
-                                            ) : (
-                                                <View>
-                                                    {(showAllDebt ? customerDebtHistory : customerDebtHistory.slice(0, 5)).map((item, idx) => {
-                                                        const isDebtIncrease = item.type === 'credit_sale' || (item.type === 'payment' && item.amount < 0);
-
-                                                        return (
-                                                            <View key={idx} style={styles.saleCard}>
-                                                                <View style={styles.saleHeader}>
-                                                                    <View>
-                                                                        <Text style={styles.saleDate}>
-                                                                            {new Date(item.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                                        </Text>
-                                                                        <Text style={[styles.saleItemName, { fontSize: 13, color: colors.textSecondary }]}>
-                                                                            {item.reference}
-                                                                        </Text>
-                                                                    </View>
-                                                                    <Text style={{
-                                                                        fontSize: 16,
-                                                                        fontWeight: 'bold',
-                                                                        color: isDebtIncrease ? colors.danger : colors.success
-                                                                    }}>
-                                                                        {isDebtIncrease ? '+' : '-'}{Math.abs(item.amount).toLocaleString()} F
+                                                            {customerSales.length > 5 && (
+                                                                <TouchableOpacity
+                                                                    style={styles.seeMoreBtn}
+                                                                    onPress={() => setShowAllSales(!showAllSales)}
+                                                                >
+                                                                    <Text style={styles.seeMoreText}>
+                                                                        {showAllSales ? t('common.see_less') : t('crm.see_other_purchases', { count: customerSales.length - 5 })}
                                                                     </Text>
-                                                                </View>
-                                                                {item.details ? (
-                                                                    <Text style={[styles.saleItemQty, { marginTop: 4 }]}>{item.details}</Text>
-                                                                ) : null}
+                                                                    <Ionicons name={showAllSales ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            )}
+                                            {detailTab === 'compte' && (
+                                                <View style={{ paddingVertical: Spacing.md }}>
+                                                    {debtHistoryLoading ? (
+                                                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
+                                                    ) : customerDebtHistory.length === 0 ? (
+                                                        <View style={styles.emptyState}>
+                                                            <Ionicons name="wallet-outline" size={40} color={colors.textMuted} />
+                                                            <Text style={styles.emptyText}>{t('crm.no_history')}</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <View>
+                                                            {(showAllDebt ? customerDebtHistory : customerDebtHistory.slice(0, 5)).map((item, idx) => {
+                                                                const isDebtIncrease = item.type === 'credit_sale' || (item.type === 'payment' && item.amount < 0);
+
+                                                                return (
+                                                                    <View key={idx} style={styles.saleCard}>
+                                                                        <View style={styles.saleHeader}>
+                                                                            <View>
+                                                                                <Text style={styles.saleDate}>
+                                                                                    {new Date(item.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                                </Text>
+                                                                                <Text style={[styles.saleItemName, { fontSize: 13, color: colors.textSecondary }]}>
+                                                                                    {item.reference}
+                                                                                </Text>
+                                                                            </View>
+                                                                            <Text style={{
+                                                                                fontSize: 16,
+                                                                                fontWeight: 'bold',
+                                                                                color: isDebtIncrease ? colors.danger : colors.success
+                                                                            }}>
+                                                                                {isDebtIncrease ? '+' : '-'}{Math.abs(item.amount).toLocaleString()} {t('common.currency_short')}
+                                                                            </Text>
+                                                                        </View>
+                                                                        {item.details ? (
+                                                                            <Text style={[styles.saleItemQty, { marginTop: 4 }]}>{item.details}</Text>
+                                                                        ) : null}
+                                                                    </View>
+                                                                );
+                                                            })}
+                                                            {customerDebtHistory.length > 5 && (
+                                                                <TouchableOpacity
+                                                                    style={styles.seeMoreBtn}
+                                                                    onPress={() => setShowAllDebt(!showAllDebt)}
+                                                                >
+                                                                    <Text style={styles.seeMoreText}>
+                                                                        {showAllDebt ? t('common.see_less') : t('crm.see_other_operations', { count: customerDebtHistory.length - 5 })}
+                                                                    </Text>
+                                                                    <Ionicons name={showAllDebt ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            )}
+
+                                            {detailTab === 'contact' && (
+                                                <View style={{ paddingVertical: Spacing.lg }}>
+                                                    <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(detailCustomer.phone)}>
+                                                        <View style={[styles.contactIconCircle, { backgroundColor: colors.success + '20' }]}>
+                                                            <Ionicons name="call" size={24} color={colors.success} />
+                                                        </View>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.contactBtnTitle}>{t('crm.call')}</Text>
+                                                            <Text style={styles.contactBtnSub}>{detailCustomer.phone || t('common.not_provided')}</Text>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity style={styles.contactBtn} onPress={() => handleWhatsApp(detailCustomer.phone, detailCustomer.name)}>
+                                                        <View style={[styles.contactIconCircle, { backgroundColor: '#25D36620' }]}>
+                                                            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+                                                        </View>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.contactBtnTitle}>WhatsApp</Text>
+                                                            <Text style={styles.contactBtnSub}>{t('crm.send_message')}</Text>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity style={styles.contactBtn} onPress={() => handleSMS(detailCustomer.phone, detailCustomer.name)}>
+                                                        <View style={[styles.contactIconCircle, { backgroundColor: colors.info + '20' }]}>
+                                                            <Ionicons name="chatbubble" size={24} color={colors.info} />
+                                                        </View>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.contactBtnTitle}>SMS</Text>
+                                                            <Text style={styles.contactBtnSub}>{t('crm.send_sms')}</Text>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                    </TouchableOpacity>
+
+                                                    {detailCustomer.email && (
+                                                        <TouchableOpacity style={styles.contactBtn} onPress={() => Linking.openURL(`mailto:${detailCustomer.email}`)}>
+                                                            <View style={[styles.contactIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                                                                <Ionicons name="mail" size={24} color={colors.primary} />
                                                             </View>
-                                                        );
-                                                    })}
-                                                    {customerDebtHistory.length > 5 && (
-                                                        <TouchableOpacity
-                                                            style={styles.seeMoreBtn}
-                                                            onPress={() => setShowAllDebt(!showAllDebt)}
-                                                        >
-                                                            <Text style={styles.seeMoreText}>
-                                                                {showAllDebt ? t('common.see_less') : t('crm.see_other_operations', { count: customerDebtHistory.length - 5 })}
-                                                            </Text>
-                                                            <Ionicons name={showAllDebt ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                                            <View style={{ flex: 1 }}>
+                                                                <Text style={styles.contactBtnTitle}>Email</Text>
+                                                                <Text style={styles.contactBtnSub}>{detailCustomer.email}</Text>
+                                                            </View>
+                                                            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                                                         </TouchableOpacity>
                                                     )}
                                                 </View>
                                             )}
+                                        </ScrollView>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Promotion Create/Edit Modal */}
+                <Modal visible={showPromoModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{editingPromo ? t('crm.edit_promotion') : t('crm.new_promotion')}</Text>
+                                <TouchableOpacity onPress={() => setShowPromoModal(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView>
+                                <Text style={styles.formLabel}>{t('crm.promo_title')} *</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={promoForm.title}
+                                    onChangeText={(t) => setPromoForm(prev => ({ ...prev, title: t }))}
+                                    placeholder={t('crm.promo_title_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
+
+                                <Text style={styles.formLabel}>{t('common.description')}</Text>
+                                <TextInput
+                                    style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+                                    value={promoForm.description}
+                                    onChangeText={(t) => setPromoForm(prev => ({ ...prev, description: t }))}
+                                    placeholder={t('crm.promo_description_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                />
+
+                                <View style={styles.settingsGrid}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>{t('crm.discount_percent')}</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <TextInput
+                                                style={styles.settingInput}
+                                                value={promoForm.discount_percentage}
+                                                onChangeText={(t) => setPromoForm(prev => ({ ...prev, discount_percentage: t }))}
+                                                keyboardType="numeric"
+                                            />
+                                            <Text style={styles.inputUnit}>%</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>{t('crm.points_required')}</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <TextInput
+                                                style={styles.settingInput}
+                                                value={promoForm.points_required}
+                                                onChangeText={(t) => setPromoForm(prev => ({ ...prev, points_required: t }))}
+                                                keyboardType="numeric"
+                                            />
+                                            <Ionicons name="star" size={12} color={colors.warning} style={{ marginLeft: 4 }} />
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <Text style={styles.formLabel}>{t('crm.target_audience')}</Text>
+                                <View style={styles.categoryRow}>
+                                    {['tous', 'bronze', 'argent', 'or', 'platine'].map(tier => (
+                                        <TouchableOpacity
+                                            key={tier}
+                                            style={[styles.categoryChip, promoForm.target_tier === tier && styles.categoryChipActive]}
+                                            onPress={() => setPromoForm(prev => ({ ...prev, target_tier: tier }))}
+                                        >
+                                            <Text style={[styles.categoryChipText, promoForm.target_tier === tier && styles.categoryChipTextActive]}>
+                                                {tier === 'tous' ? t('common.all') : t(TIER_CONFIG[tier]?.labelKey || tier)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <TouchableOpacity style={styles.submitBtn} onPress={savePromo} disabled={promoFormLoading}>
+                                    {promoFormLoading ? (
+                                        <ActivityIndicator color="#FFF" />
+                                    ) : (
+                                        <Text style={styles.submitBtnText}>{editingPromo ? t('common.edit') : t('common.create')}</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Campaign Modal */}
+                <Modal visible={showCampaignModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{t('crm.whatsapp_campaign_title')}</Text>
+                                <TouchableOpacity onPress={() => setShowCampaignModal(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView keyboardShouldPersistTaps="always">
+                                <Text style={styles.formLabel}>{t('crm.target_audience')}</Text>
+                                <View style={styles.categoryRow}>
+                                    {(['tous', 'bronze', 'argent', 'or', 'platine'] as const).map(tier => (
+                                        <TouchableOpacity
+                                            key={tier}
+                                            style={[styles.categoryChip, campaignTarget === tier && styles.categoryChipActive]}
+                                            onPress={() => setCampaignTarget(tier)}
+                                        >
+                                            <Text style={[styles.categoryChipText, campaignTarget === tier && styles.categoryChipTextActive]}>
+                                                {tier === 'tous' ? t('common.all') : t(TIER_CONFIG[tier]?.labelKey || tier)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <TouchableOpacity
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.md }}
+                                    onPress={() => setShowTargetSelector(!showTargetSelector)}
+                                >
+                                    <Ionicons name={showTargetSelector ? "chevron-down" : "chevron-forward"} size={18} color={colors.primary} />
+                                    <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('crm.choose_specific_customers')}</Text>
+                                </TouchableOpacity>
+
+                                {showTargetSelector && (
+                                    <View style={{ marginTop: Spacing.sm }}>
+                                        <View style={[styles.searchBar, { height: 40, marginBottom: Spacing.sm }]}>
+                                            <Ionicons name="search" size={16} color={colors.textMuted} />
+                                            <TextInput
+                                                style={[styles.searchInput, { fontSize: 13 }]}
+                                                placeholder={t('crm.search_customers_placeholder')}
+                                                placeholderTextColor={colors.textMuted}
+                                                value={campaignSearch}
+                                                onChangeText={setCampaignSearch}
+                                            />
+                                        </View>
+                                        <View style={{ flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.sm }}>
+                                            <TouchableOpacity onPress={() => setSelectedCustomerIds(customerList.filter(c => c.phone).map(c => String(c.customer_id)))}>
+                                                <Text style={{ color: colors.primary, fontSize: 12 }}>{t('crm.check_all')}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => setSelectedCustomerIds([])}>
+                                                <Text style={{ color: colors.primary, fontSize: 12 }}>{t('crm.uncheck_all')}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <ScrollView
+                                            style={{ maxHeight: 250, borderTopWidth: 1, borderTopColor: colors.divider }}
+                                            nestedScrollEnabled={true}
+                                            keyboardShouldPersistTaps="always"
+                                        >
+                                            {customerList
+                                                .filter(c => c.phone && (c.name.toLowerCase().includes(campaignSearch.toLowerCase()) || c.phone.includes(campaignSearch)))
+                                                .map(c => {
+                                                    const cid = String(c.customer_id);
+                                                    const isSelected = selectedCustomerIds.includes(cid);
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={cid}
+                                                            activeOpacity={0.7}
+                                                            style={{
+                                                                flexDirection: 'row',
+                                                                alignItems: 'center',
+                                                                padding: Spacing.sm,
+                                                                paddingVertical: Spacing.md,
+                                                                borderBottomWidth: 1,
+                                                                borderBottomColor: colors.divider,
+                                                                backgroundColor: isSelected ? colors.success + '10' : 'transparent'
+                                                            }}
+                                                            onPress={() => {
+                                                                setSelectedCustomerIds(prev => (prev.includes(cid) ? prev.filter(id => id !== cid) : [...prev, cid]));
+                                                            }}
+                                                        >
+                                                            <View style={{ marginRight: Spacing.md }}>
+                                                                <Ionicons
+                                                                    name={isSelected ? "checkbox" : "square-outline"}
+                                                                    size={26}
+                                                                    color={isSelected ? colors.success : colors.textMuted}
+                                                                />
+                                                            </View>
+                                                            <View style={{ flex: 1 }}>
+                                                                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>{c.name}</Text>
+                                                                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{c.phone}</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                        </ScrollView>
+                                    </View>
+                                )}
+
+                                <Text style={[styles.formLabel, { marginTop: Spacing.md }]}>{t('crm.campaign_message_label')}</Text>
+                                <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>{t('crm.campaign_variables_hint')}</Text>
+                                <TextInput
+                                    style={[styles.formInput, { height: 120, textAlignVertical: 'top' }]}
+                                    value={campaignMessage}
+                                    onChangeText={setCampaignMessage}
+                                    placeholder={t('crm.campaign_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                />
+
+                                <TouchableOpacity style={styles.submitBtn} onPress={sendCampaign} disabled={campaignSending}>
+                                    {campaignSending ? (
+                                        <ActivityIndicator color="#FFF" />
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                                            <Ionicons name="send" size={18} color="#FFF" />
+                                            <Text style={styles.submitBtnText}>{t('crm.send_campaign')}</Text>
                                         </View>
                                     )}
-
-                                    {detailTab === 'contact' && (
-                                        <View style={{ paddingVertical: Spacing.lg }}>
-                                            <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(detailCustomer.phone)}>
-                                                <View style={[styles.contactIconCircle, { backgroundColor: colors.success + '20' }]}>
-                                                    <Ionicons name="call" size={24} color={colors.success} />
-                                                </View>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.contactBtnTitle}>{t('crm.call')}</Text>
-                                                    <Text style={styles.contactBtnSub}>{detailCustomer.phone || t('common.not_provided')}</Text>
-                                                </View>
-                                                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                                            </TouchableOpacity>
-
-                                            <TouchableOpacity style={styles.contactBtn} onPress={() => handleWhatsApp(detailCustomer.phone, detailCustomer.name)}>
-                                                <View style={[styles.contactIconCircle, { backgroundColor: '#25D36620' }]}>
-                                                    <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-                                                </View>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.contactBtnTitle}>WhatsApp</Text>
-                                                    <Text style={styles.contactBtnSub}>{t('crm.send_message')}</Text>
-                                                </View>
-                                                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                                            </TouchableOpacity>
-
-                                            <TouchableOpacity style={styles.contactBtn} onPress={() => handleSMS(detailCustomer.phone, detailCustomer.name)}>
-                                                <View style={[styles.contactIconCircle, { backgroundColor: colors.info + '20' }]}>
-                                                    <Ionicons name="chatbubble" size={24} color={colors.info} />
-                                                </View>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.contactBtnTitle}>SMS</Text>
-                                                    <Text style={styles.contactBtnSub}>{t('crm.send_sms')}</Text>
-                                                </View>
-                                                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                                            </TouchableOpacity>
-
-                                            {detailCustomer.email && (
-                                                <TouchableOpacity style={styles.contactBtn} onPress={() => Linking.openURL(`mailto:${detailCustomer.email}`)}>
-                                                    <View style={[styles.contactIconCircle, { backgroundColor: colors.primary + '20' }]}>
-                                                        <Ionicons name="mail" size={24} color={colors.primary} />
-                                                    </View>
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={styles.contactBtnTitle}>Email</Text>
-                                                        <Text style={styles.contactBtnSub}>{detailCustomer.email}</Text>
-                                                    </View>
-                                                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    )}
-                                </ScrollView>
-                            </View>
-                        </>
-                    )}
-                </View>
-            </View>
-        </Modal>
-
-        {/* Promotion Create/Edit Modal */}
-        <Modal visible={showPromoModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{editingPromo ? t('crm.edit_promotion') : t('crm.new_promotion')}</Text>
-                        <TouchableOpacity onPress={() => setShowPromoModal(false)}>
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView>
-                        <Text style={styles.formLabel}>{t('crm.promo_title')} *</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={promoForm.title}
-                            onChangeText={(t) => setPromoForm(prev => ({ ...prev, title: t }))}
-                            placeholder={t('crm.promo_title_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                        />
-
-                        <Text style={styles.formLabel}>{t('common.description')}</Text>
-                        <TextInput
-                            style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
-                            value={promoForm.description}
-                            onChangeText={(t) => setPromoForm(prev => ({ ...prev, description: t }))}
-                            placeholder={t('crm.promo_description_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                        />
-
-                        <View style={styles.settingsGrid}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>{t('crm.discount_percent')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.settingInput}
-                                        value={promoForm.discount_percentage}
-                                        onChangeText={(t) => setPromoForm(prev => ({ ...prev, discount_percentage: t }))}
-                                        keyboardType="numeric"
-                                    />
-                                    <Text style={styles.inputUnit}>%</Text>
-                                </View>
-                            </View>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>{t('crm.points_required')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.settingInput}
-                                        value={promoForm.points_required}
-                                        onChangeText={(t) => setPromoForm(prev => ({ ...prev, points_required: t }))}
-                                        keyboardType="numeric"
-                                    />
-                                    <Ionicons name="star" size={12} color={colors.warning} style={{ marginLeft: 4 }} />
-                                </View>
-                            </View>
-                        </View>
-
-                        <Text style={styles.formLabel}>{t('crm.target_audience')}</Text>
-                        <View style={styles.categoryRow}>
-                            {['tous', 'bronze', 'argent', 'or', 'platine'].map(tier => (
-                                <TouchableOpacity
-                                    key={tier}
-                                    style={[styles.categoryChip, promoForm.target_tier === tier && styles.categoryChipActive]}
-                                    onPress={() => setPromoForm(prev => ({ ...prev, target_tier: tier }))}
-                                >
-                                    <Text style={[styles.categoryChipText, promoForm.target_tier === tier && styles.categoryChipTextActive]}>
-                                        {tier === 'tous' ? t('common.all') : t(TIER_CONFIG[tier]?.labelKey || tier)}
-                                    </Text>
                                 </TouchableOpacity>
-                            ))}
+                            </ScrollView>
                         </View>
-
-                        <TouchableOpacity style={styles.submitBtn} onPress={savePromo} disabled={promoFormLoading}>
-                            {promoFormLoading ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <Text style={styles.submitBtnText}>{editingPromo ? t('common.edit') : t('common.create')}</Text>
-                            )}
-                        </TouchableOpacity>
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-
-        {/* Campaign Modal */}
-        <Modal visible={showCampaignModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{t('crm.whatsapp_campaign_title')}</Text>
-                        <TouchableOpacity onPress={() => setShowCampaignModal(false)}>
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
                     </View>
+                </Modal>
 
-                    <ScrollView keyboardShouldPersistTaps="always">
-                        <Text style={styles.formLabel}>{t('crm.target_audience')}</Text>
-                        <View style={styles.categoryRow}>
-                            {(['tous', 'bronze', 'argent', 'or', 'platine'] as const).map(tier => (
-                                <TouchableOpacity
-                                    key={tier}
-                                    style={[styles.categoryChip, campaignTarget === tier && styles.categoryChipActive]}
-                                    onPress={() => setCampaignTarget(tier)}
-                                >
-                                    <Text style={[styles.categoryChipText, campaignTarget === tier && styles.categoryChipTextActive]}>
-                                        {tier === 'tous' ? t('common.all') : t(TIER_CONFIG[tier]?.labelKey || tier)}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <TouchableOpacity
-                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.md }}
-                            onPress={() => setShowTargetSelector(!showTargetSelector)}
-                        >
-                            <Ionicons name={showTargetSelector ? "chevron-down" : "chevron-forward"} size={18} color={colors.primary} />
-                            <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('crm.choose_specific_customers')}</Text>
-                        </TouchableOpacity>
-
-                        {showTargetSelector && (
-                            <View style={{ marginTop: Spacing.sm }}>
-                                <View style={[styles.searchBar, { height: 40, marginBottom: Spacing.sm }]}>
-                                    <Ionicons name="search" size={16} color={colors.textMuted} />
-                                    <TextInput
-                                        style={[styles.searchInput, { fontSize: 13 }]}
-                                        placeholder={t('crm.search_customers_placeholder')}
-                                        placeholderTextColor={colors.textMuted}
-                                        value={campaignSearch}
-                                        onChangeText={setCampaignSearch}
-                                    />
-                                </View>
-                                <View style={{ flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.sm }}>
-                                    <TouchableOpacity onPress={() => setSelectedCustomerIds(customerList.filter(c => c.phone).map(c => String(c.customer_id)))}>
-                                        <Text style={{ color: colors.primary, fontSize: 12 }}>{t('crm.check_all')}</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => setSelectedCustomerIds([])}>
-                                        <Text style={{ color: colors.primary, fontSize: 12 }}>{t('crm.uncheck_all')}</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <ScrollView
-                                    style={{ maxHeight: 250, borderTopWidth: 1, borderTopColor: colors.divider }}
-                                    nestedScrollEnabled={true}
-                                    keyboardShouldPersistTaps="always"
-                                >
-                                    {customerList
-                                        .filter(c => c.phone && (c.name.toLowerCase().includes(campaignSearch.toLowerCase()) || c.phone.includes(campaignSearch)))
-                                        .map(c => {
-                                            const cid = String(c.customer_id);
-                                            const isSelected = selectedCustomerIds.includes(cid);
-                                            return (
-                                                <TouchableOpacity
-                                                    key={cid}
-                                                    activeOpacity={0.7}
-                                                    style={{
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        padding: Spacing.sm,
-                                                        paddingVertical: Spacing.md,
-                                                        borderBottomWidth: 1,
-                                                        borderBottomColor: colors.divider,
-                                                        backgroundColor: isSelected ? colors.success + '10' : 'transparent'
-                                                    }}
-                                                    onPress={() => {
-                                                        setSelectedCustomerIds(prev => (prev.includes(cid) ? prev.filter(id => id !== cid) : [...prev, cid]));
-                                                    }}
-                                                >
-                                                    <View style={{ marginRight: Spacing.md }}>
-                                                        <Ionicons
-                                                            name={isSelected ? "checkbox" : "square-outline"}
-                                                            size={26}
-                                                            color={isSelected ? colors.success : colors.textMuted}
-                                                        />
-                                                    </View>
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>{c.name}</Text>
-                                                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{c.phone}</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            );
-                                        })}
-                                </ScrollView>
-                            </View>
-                        )}
-
-                        <Text style={[styles.formLabel, { marginTop: Spacing.md }]}>{t('crm.campaign_message_label')}</Text>
-                        <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>{t('crm.campaign_variables_hint')}</Text>
-                        <TextInput
-                            style={[styles.formInput, { height: 120, textAlignVertical: 'top' }]}
-                            value={campaignMessage}
-                            onChangeText={setCampaignMessage}
-                            placeholder={t('crm.campaign_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                        />
-
-                        <TouchableOpacity style={styles.submitBtn} onPress={sendCampaign} disabled={campaignSending}>
-                            {campaignSending ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                                    <Ionicons name="send" size={18} color="#FFF" />
-                                    <Text style={styles.submitBtnText}>{t('crm.send_campaign')}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-
-        {/* Payment Modal */}
-        <Modal visible={showPaymentModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>
-                            {paymentType === 'payment' ? t('crm.record_payment') : t('crm.add_debt')}
-                        </Text>
-                        <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView keyboardShouldPersistTaps="always">
-                        {/* Payment Type Selector */}
-                        <View style={{ flexDirection: 'row', marginBottom: Spacing.md, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: BorderRadius.md, padding: 4 }}>
-                            <TouchableOpacity
-                                style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: BorderRadius.sm, backgroundColor: paymentType === 'payment' ? colors.success : 'transparent' }}
-                                onPress={() => setPaymentType('payment')}
-                            >
-                                <Text style={{ color: paymentType === 'payment' ? '#fff' : colors.textMuted, fontWeight: '700' }}>{t('crm.payment_received')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: BorderRadius.sm, backgroundColor: paymentType === 'debt' ? colors.danger : 'transparent' }}
-                                onPress={() => setPaymentType('debt')}
-                            >
-                                <Text style={{ color: paymentType === 'debt' ? '#fff' : colors.textMuted, fontWeight: '700' }}>{t('crm.debt_given')}</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={{ marginBottom: Spacing.md, padding: Spacing.sm, backgroundColor: paymentType === 'payment' ? colors.success + '15' : colors.danger + '15', borderRadius: BorderRadius.sm }}>
-                            <Text style={{ color: colors.text, fontSize: 12 }}>
-                                {paymentType === 'payment'
-                                    ? t('crm.payment_desc')
-                                    : t('crm.debt_desc')}
-                            </Text>
-                        </View>
-
-                        <Text style={styles.formLabel}>{t('crm.amount_label')}</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={paymentAmount}
-                            onChangeText={setPaymentAmount}
-                            placeholder="0"
-                            placeholderTextColor={colors.textMuted}
-                            keyboardType="numeric"
-                        />
-
-                        <View style={styles.quickAmountsRow}>
-                            {paymentType === 'payment' && (
-                                <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount(detailCustomer?.current_debt.toString() || '0')}>
-                                    <Text style={styles.quickAmountText}>{t('common.all')} ({detailCustomer?.current_debt.toLocaleString()})</Text>
-                                </TouchableOpacity>
-                            )}
-                            <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount('5000')}>
-                                <Text style={styles.quickAmountText}>5 000</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount('10000')}>
-                                <Text style={styles.quickAmountText}>10 000</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Balance Preview */}
-                        {detailCustomer && (
-                            <View style={styles.balancePreview}>
-                                <Text style={styles.balancePreviewLabel}>{t('crm.estimated_new_balance')} :</Text>
-                                <Text style={[
-                                    styles.balancePreviewValue,
-                                    (detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)) > 0 ? { color: colors.danger } : { color: colors.success }
-                                ]}>
-                                    {(detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)).toLocaleString()} {t('common.currency_default')}
+                {/* Payment Modal */}
+                <Modal visible={showPaymentModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>
+                                    {paymentType === 'payment' ? t('crm.record_payment') : t('crm.add_debt')}
                                 </Text>
+                                <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
                             </View>
-                        )}
 
-                        <Text style={styles.formLabel}>{t('crm.notes_optional')}</Text>
-                        <TextInput
-                            style={styles.formInput}
-                            value={paymentNotes}
-                            onChangeText={setPaymentNotes}
-                            placeholder={paymentType === 'payment' ? t('crm.payment_ref_placeholder') : t('crm.debt_ref_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                        />
+                            <ScrollView keyboardShouldPersistTaps="always">
+                                {/* Payment Type Selector */}
+                                <View style={{ flexDirection: 'row', marginBottom: Spacing.md, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: BorderRadius.md, padding: 4 }}>
+                                    <TouchableOpacity
+                                        style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: BorderRadius.sm, backgroundColor: paymentType === 'payment' ? colors.success : 'transparent' }}
+                                        onPress={() => setPaymentType('payment')}
+                                    >
+                                        <Text style={{ color: paymentType === 'payment' ? '#fff' : colors.textMuted, fontWeight: '700' }}>{t('crm.payment_received')}</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: BorderRadius.sm, backgroundColor: paymentType === 'debt' ? colors.danger : 'transparent' }}
+                                        onPress={() => setPaymentType('debt')}
+                                    >
+                                        <Text style={{ color: paymentType === 'debt' ? '#fff' : colors.textMuted, fontWeight: '700' }}>{t('crm.debt_given')}</Text>
+                                    </TouchableOpacity>
+                                </View>
 
-                        <TouchableOpacity style={[styles.submitBtn, { backgroundColor: paymentType === 'payment' ? colors.success : colors.danger }]} onPress={savePayment} disabled={paymentLoading}>
-                            {paymentLoading ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <Text style={styles.submitBtnText}>{paymentType === 'payment' ? t('crm.validate_payment') : t('crm.add_debt_validate')}</Text>
-                            )}
-                        </TouchableOpacity>
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-    </LinearGradient>
-    </PremiumGate>
-);
+                                <View style={{ marginBottom: Spacing.md, padding: Spacing.sm, backgroundColor: paymentType === 'payment' ? colors.success + '15' : colors.danger + '15', borderRadius: BorderRadius.sm }}>
+                                    <Text style={{ color: colors.text, fontSize: 12 }}>
+                                        {paymentType === 'payment'
+                                            ? t('crm.payment_desc')
+                                            : t('crm.debt_desc')}
+                                    </Text>
+                                </View>
+
+                                <Text style={styles.formLabel}>{t('crm.amount_label')}</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={paymentAmount}
+                                    onChangeText={setPaymentAmount}
+                                    placeholder="0"
+                                    placeholderTextColor={colors.textMuted}
+                                    keyboardType="numeric"
+                                />
+
+                                <View style={styles.quickAmountsRow}>
+                                    {paymentType === 'payment' && (
+                                        <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount(detailCustomer?.current_debt.toString() || '0')}>
+                                            <Text style={styles.quickAmountText}>{t('common.all')} ({detailCustomer?.current_debt.toLocaleString()})</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount('5000')}>
+                                        <Text style={styles.quickAmountText}>5 000</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount('10000')}>
+                                        <Text style={styles.quickAmountText}>10 000</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Balance Preview */}
+                                {detailCustomer && (
+                                    <View style={styles.balancePreview}>
+                                        <Text style={styles.balancePreviewLabel}>{t('crm.estimated_new_balance')} :</Text>
+                                        <Text style={[
+                                            styles.balancePreviewValue,
+                                            (detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)) > 0 ? { color: colors.danger } : { color: colors.success }
+                                        ]}>
+                                            {(detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)).toLocaleString()} {t('common.currency_default')}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                <Text style={styles.formLabel}>{t('crm.notes_optional')}</Text>
+                                <TextInput
+                                    style={styles.formInput}
+                                    value={paymentNotes}
+                                    onChangeText={setPaymentNotes}
+                                    placeholder={paymentType === 'payment' ? t('crm.payment_ref_placeholder') : t('crm.debt_ref_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
+
+                                <TouchableOpacity style={[styles.submitBtn, { backgroundColor: paymentType === 'payment' ? colors.success : colors.danger }]} onPress={savePayment} disabled={paymentLoading}>
+                                    {paymentLoading ? (
+                                        <ActivityIndicator color="#FFF" />
+                                    ) : (
+                                        <Text style={styles.submitBtnText}>{paymentType === 'payment' ? t('crm.validate_payment') : t('crm.add_debt_validate')}</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+            </LinearGradient>
+        </PremiumGate>
+    );
 }
 
 const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({

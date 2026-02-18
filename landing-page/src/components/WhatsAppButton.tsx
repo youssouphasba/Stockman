@@ -4,7 +4,7 @@ import '../App.css';
 const WhatsAppButton = () => {
     const { t } = useTranslation();
     // Replace with your actual number
-    const phoneNumber = "22500000000";
+    const phoneNumber = import.meta.env.VITE_SUPPORT_WHATSAPP || "22500000000";
     const message = encodeURIComponent(t('whatsapp.message'));
 
     return (

@@ -316,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "With Premium, you can:",
     "upgrade_now": "Upgrade to Premium",
-    "pricing_hint": "2,500 FCFA / month",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "Smart Ordering",
@@ -846,5 +846,377 @@
     "order_creation": "Order Creation",
     "receipt": "Digital Receipt",
     "chat": "Messages"
+  },
+  "help": {
+    "modules": {
+      "dashboard": {
+        "title": "Dashboard",
+        "f1": {
+          "t": "Real-time KPIs",
+          "d": "Track your daily and monthly revenue, product count, and total stock value. Counters animate in real-time."
+        },
+        "f2": {
+          "t": "Stock Health",
+          "d": "Visualize at a glance how many products are out of stock (red), low stock (orange), or overstocked (blue). Click a badge to see the products."
+        },
+        "f3": {
+          "t": "Expiry Alerts",
+          "d": "If you manage products with expiry dates (batches), those expiring in the next 30 days are automatically displayed with the batch number."
+        },
+        "f4": {
+          "t": "Smart Restock",
+          "d": "The system analyzes your sales history and automatically suggests products to order, with optimal quantity and priority level."
+        },
+        "f5": {
+          "t": "ABC Analysis",
+          "d": "Your products are classified into 3 groups based on their contribution to revenue: Class A (80%), Class B (15%), and Class C (5%). Focus on Class A."
+        },
+        "f6": {
+          "t": "Stats & History",
+          "d": "Access detailed charts (stock evolution, breakdown by category) and full movement history with filters and CSV export."
+        }
+      },
+      "products": {
+        "title": "Product Management",
+        "f1": {
+          "t": "Search & Filters",
+          "d": "Find a product by typing its name or SKU. Filter by category using the colored horizontal chips."
+        },
+        "f2": {
+          "t": "Stock Badges",
+          "d": "Each product displays a colored badge: Red (Out of Stock), Orange (Low Stock), Blue (Overstocked), Green (Normal). Thresholds are configurable per product."
+        },
+        "f3": {
+          "t": "Quick Movements",
+          "d": "The 'In' and 'Out' buttons allow adjusting stock without creating an order. Specify the reason (delivery, loss, inventory, etc.)."
+        },
+        "f4": {
+          "t": "PDF Labels",
+          "d": "Generate labels with QR code, name, price, and barcode. Print them for your shelves or share them."
+        },
+        "f5": {
+          "t": "Category Management",
+          "d": "The gear icon opens the category manager. Create, edit, or delete categories with custom colors and icons."
+        },
+        "f6": {
+          "t": "Batches & Expiry",
+          "d": "For food products, create batches with expiry dates. Lots expiring soon trigger automatic alerts."
+        },
+        "f7": {
+          "t": "Price History",
+          "d": "Check the buy and sell price history of each product to optimize your margins."
+        }
+      },
+      "pos": {
+        "title": "Point of Sale (Checkout)",
+        "f1": {
+          "t": "Barcode Scanner",
+          "d": "Use the camera to scan items. The product is identified and added to the cart instantly."
+        },
+        "f2": {
+          "t": "Cart Management",
+          "d": "Add, remove, or modify quantities in the cart. The total recalculates in real-time with each change."
+        },
+        "f3": {
+          "t": "Customer Selection",
+          "d": "Link an existing customer to the sale or create a new one in 2 seconds. Loyalty points are credited automatically."
+        },
+        "f4": {
+          "t": "Payment Modes",
+          "d": "Accept 5 payment modes: cash, mobile money, credit card, bank transfer, and credit sale."
+        },
+        "f5": {
+          "t": "Receipts",
+          "d": "After validation, print the receipt or send it via WhatsApp or email. The receipt includes full transaction details."
+        },
+        "f6": {
+          "t": "Auto Loyalty",
+          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze → Platinum)."
+        }
+      },
+      "orders": {
+        "title": "Supplier Orders",
+        "f1": {
+          "t": "Create an Order",
+          "d": "Select a supplier (manual or marketplace), add products with quantities and prices, set the expected delivery date."
+        },
+        "f2": {
+          "t": "Status Tracking",
+          "d": "Follow each order: Pending → Confirmed → Shipped → Delivered. The visual progress bar shows the advancement."
+        },
+        "f3": {
+          "t": "AI Intake",
+          "d": "Upon delivery, AI analyzes received products and intelligently maps them to your inventory. Validate or correct suggestions."
+        },
+        "f4": {
+          "t": "Manual Mapping",
+          "d": "Manually link a product from the supplier catalog to a product in your inventory, even after delivery."
+        },
+        "f5": {
+          "t": "Advanced Filters",
+          "d": "Filter by status, supplier, or period to find an order."
+        }
+      },
+      "suppliers": {
+        "title": "Supplier Relations",
+        "f1": {
+          "t": "Supplier Directory",
+          "d": "Create supplier profiles with contact info, payment terms, delivery times, and supplied products."
+        },
+        "f2": {
+          "t": "Direct Contact",
+          "d": "Call, email, or WhatsApp your supplier with one click from their profile."
+        },
+        "f3": {
+          "t": "Marketplace",
+          "d": "Access the network of verified suppliers. Compare prices, check reviews, and order directly."
+        },
+        "f4": {
+          "t": "Product Linking",
+          "d": "Link your products to each supplier with their price and reference, and mark them as the preferred supplier."
+        },
+        "f5": {
+          "t": "Contact Journal",
+          "d": "Keep track of your exchanges: calls, visits, emails. Add notes for each interaction."
+        },
+        "f6": {
+          "t": "Restock Suggestions",
+          "d": "The system identifies products below the minimum threshold and suggests quantities to order per supplier."
+        }
+      },
+      "crm": {
+        "title": "CRM & Loyalty",
+        "f1": {
+          "t": "Customer File",
+          "d": "Register your customers with name, phone, email, and birth date. Track their full purchase history."
+        },
+        "f2": {
+          "t": "Loyalty Program",
+          "d": "Configure points-per-purchase ratio and reward tiers. Tiers (Bronze, Silver, Gold, Platinum) calculate automatically."
+        },
+        "f3": {
+          "t": "Debt Management",
+          "d": "Record credit sales and repayments. Customer balance is always up to date."
+        },
+        "f4": {
+          "t": "Marketing Campaigns",
+          "d": "Send promotional SMS or emails targeted by loyalty tier or individual selection."
+        },
+        "f5": {
+          "t": "Promotions",
+          "d": "Create promotions with percentage discount or loyalty points exchange. Enable/disable as needed."
+        },
+        "f6": {
+          "t": "Birthdays",
+          "d": "Record birth dates for automatic personalized offers and to strengthen customer relations."
+        }
+      },
+      "accounting": {
+        "title": "Accounting",
+        "f1": {
+          "t": "Periods & Filters",
+          "d": "Analyze your finances over 7, 30, or 90 days, or define a custom period. All KPIs adapt."
+        },
+        "f2": {
+          "t": "Profits & Marges",
+          "d": "Track your revenue, cost of goods, gross and net profit. Identify the most and least profitable products."
+        },
+        "f3": {
+          "t": "PDF Invoices",
+          "d": "Create professional invoices with VAT, detailed lines, and contact info. Send via email or print."
+        },
+        "f4": {
+          "t": "Expense Tracking",
+          "d": "Categorize your expenses (rent, salaries, transport, electricity, etc.) for a complete and precise balance sheet."
+        },
+        "f5": {
+          "t": "Charts",
+          "d": "Visualize payment breakdown, expenses by category, and daily revenue evolution."
+        },
+        "f6": {
+          "t": "CSV Export",
+          "d": "Export all your financial data in CSV format for your accountant or accounting software."
+        }
+      },
+      "alerts": {
+        "title": "Stock Alerts",
+        "f1": {
+          "t": "Custom Rules",
+          "d": "Define your own thresholds for each alert type: low stock (%), out of stock, overstocked, dormant product."
+        },
+        "f2": {
+          "t": "Auto Alerts",
+          "d": "Alerts trigger automatically when a product crosses a threshold. You are notified in real-time."
+        },
+        "f3": {
+          "t": "Dormant Products",
+          "d": "Detect products without any exits for 30 days. Ideal for identifying dead stock."
+        },
+        "f4": {
+          "t": "Alert Management",
+          "d": "Mark alerts as read, delete them, or clear all resolved alerts with one click."
+        }
+      },
+      "activity": {
+        "title": "Activity Stream",
+        "f1": {
+          "t": "Full Journal",
+          "d": "Each action (sale, stock movement, product edit, login) is recorded with date, time, and actor."
+        },
+        "f2": {
+          "t": "Filters",
+          "d": "Filter by module (stock, checkout, CRM, accounting), by user, or by period to find a specific action."
+        },
+        "f3": {
+          "t": "User Tracking",
+          "d": "Identify which employee performed each action. Essential for traceability and accountability."
+        }
+      },
+      "users": {
+        "title": "User Management",
+        "f1": {
+          "t": "Create Accounts",
+          "d": "Add an account for each employee with email and password. Share credentials via WhatsApp."
+        },
+        "f2": {
+          "t": "Module Permissions",
+          "d": "Control access to each module: no access, read-only, or read + write."
+        },
+        "f3": {
+          "t": "Adapted Roles",
+          "d": "A cashier only has access to checkout, a manager to everything except accounting. Configure as needed."
+        },
+        "f4": {
+          "t": "Account Management",
+          "d": "Modify permissions, reset password, or disable an account at any time."
+        }
+      },
+      "settings": {
+        "title": "Settings",
+        "f1": {
+          "t": "Multi-Shop",
+          "d": "Create and manage multiple points of sale. Each shop has its own stock, sales, and accounting."
+        },
+        "f2": {
+          "t": "Dark Mode",
+          "d": "Switch between light and dark themes based on your preference and lighting conditions."
+        },
+        "f3": {
+          "t": "Active Modules",
+          "d": "Enable or disable unused modules (CRM, accounting, suppliers) to simplify the interface."
+        },
+        "f4": {
+          "t": "Push Notifications",
+          "d": "Enable notifications to be alerted in real-time about out of stock, low stock, and dormant products."
+        }
+      },
+      "supplierDashboard": {
+        "title": "Supplier Dashboard",
+        "f1": {
+          "t": "Supplier KPIs",
+          "d": "Track your total revenue, number of orders, average basket size, and current month's revenue."
+        },
+        "f2": {
+          "t": "Ratings & Reviews",
+          "d": "Consult the average rating given by your merchant clients and read their detailed comments."
+        },
+        "f3": {
+          "t": "Top Products",
+          "d": "Discover your top 5 products with quantities sold. Optimize your catalog accordingly."
+        },
+        "f4": {
+          "t": "Active Clients",
+          "d": "See how many different merchants have ordered from you. Track your client base evolution."
+        }
+      },
+      "supplierCatalog": {
+        "title": "Supplier Catalog",
+        "f1": {
+          "t": "Add Products",
+          "d": "Add your products with name, description, category, price, and minimum order quantity."
+        },
+        "f2": {
+          "t": "Pricing",
+          "d": "Set your prices. Update them at any time from the product sheet."
+        },
+        "f3": {
+          "t": "Availability",
+          "d": "Toggle product availability with one click. Unavailable products no longer appear on the marketplace."
+        },
+        "f4": {
+          "t": "Categories",
+          "d": "Organize your catalog by categories and sub-categories shared with your merchant clients."
+        }
+      },
+      "supplierOrders": {
+        "title": "Received Orders",
+        "f1": {
+          "t": "Incoming Orders",
+          "d": "Orders from your merchant clients appear here with product details, quantities, and amounts."
+        },
+        "f2": {
+          "t": "Accept or Reject",
+          "d": "Consult each order's detail then accept or reject it with a reason."
+        },
+        "f3": {
+          "t": "Mark Shipped",
+          "d": "Once the order is prepared and sent, mark it as shipped. The client is notified."
+        },
+        "f4": {
+          "t": "Filters & History",
+          "d": "Filter by status (pending, confirmed, shipped, delivered) or by period to find your orders."
+        }
+      }
+    },
+    "faq": {
+      "q1": {
+        "q": "How to add my first product?",
+        "a": "Go to the Products tab, press the '+' button at the bottom right. Fill in the name, selling price, and initial stock. You can also scan an existing barcode."
+      },
+      "q2": {
+        "q": "How to make a sale?",
+        "a": "Go to the Checkout tab. Scan your items or search for them in the list. Add to cart, link a customer if desired, choose payment mode and validate."
+      },
+      "q3": {
+        "q": "How to manage customer debts?",
+        "a": "In the Customers (CRM) tab, select a customer then go to the Account tab. You can record a manual debt or a payment. Balance is updated in real-time."
+      },
+      "q4": {
+        "q": "How to order from a supplier?",
+        "a": "Go to Orders, click '+'. Select the supplier (manual or marketplace), add products and validate. Upon receipt, confirm delivery to update stock."
+      },
+      "q5": {
+        "q": "How to add an employee?",
+        "a": "In Settings > Users, add a new user with their email. Set their permissions module by module and share credentials via WhatsApp."
+      },
+      "q6": {
+        "q": "How to change shop?",
+        "a": "Use the shop selector at the top right of the screen. All data (stock, sales, accounting) switches to the selected shop."
+      },
+      "q7": {
+        "q": "Is my data backed up?",
+        "a": "Yes! Your data is stored in the cloud and synchronized in real-time. A local cache allows viewing data even offline."
+      },
+      "q8": {
+        "q": "How to export my data?",
+        "a": "From the Dashboard (History button > download icon) or from Accounting, export to CSV. Invoices export to PDF."
+      },
+      "q9": {
+        "q": "How to configure alerts?",
+        "a": "In the Alerts tab, press the gear icon to access rules. Enable the desired alert types and adjust thresholds as needed."
+      },
+      "q10": {
+        "q": "How to send a receipt via WhatsApp?",
+        "a": "After validating a sale in Checkout, the confirmation screen shows a 'Share' button. Choose WhatsApp and select the contact."
+      },
+      "q11": {
+        "q": "How to create an invoice?",
+        "a": "In the Accounting tab, press 'Create an invoice'. Add lines with description, quantity, price, and VAT. The invoice is generated as a PDF."
+      },
+      "q12": {
+        "q": "How does loyalty work?",
+        "a": "Enable the program in Settings > Loyalty. Define the points ratio (e.g., 1 point per fixed amount). Points accumulate at each sale and customers automatically progress through tiers."
+      }
+    }
   }
 }

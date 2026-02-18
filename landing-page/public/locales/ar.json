@@ -1,65 +1,145 @@
 {
     "nav": {
         "features": "المميزات",
-        "pricing": "الأسعار",
-        "about": "من نحن",
+        "resources": "Ressources",
         "blog": "المدونة",
-        "contact": "اتصل بنا",
+        "home": "Connexion",
         "login": "تسجيل الدخول",
-        "get_started": "ابدأ الآن"
+        "free_trial": "Essai Gratuit"
     },
     "hero": {
-        "badge": "رقم 1 في الخدمات اللوجستية في أفريقيا 🌍",
         "title_start": "أدر",
-        "title_highlight": "متجرك",
         "title_end": "مثل المحترفين",
-        "desc": "نظام نقاط بيع متكامل، إدارة المخزون والمحاسبة. بسيط، فعال ومتاح في أي مكان - حتى بدون إنترنت.",
-        "cta_primary": "جربه مجاناً",
-        "cta_secondary": "شاهد العرض التجريبي",
-        "trust": "يثق بنا أكثر من 5000 تاجر"
-    },
-    "features_main": {
-        "title": "كل ما تحتاجه للنمو",
-        "subtitle": "وداعاً للملاحظات اليدوية. انتقل إلى الإدارة الرقمية.",
-        "f1_title": "إدارة المخزون",
-        "f1_desc": "تتبع منتجاتك في الوقت الفعلي واحصل على تنبيهات عند نفاذ الكمية.",
-        "f2_title": "نقطة البيع (POS)",
-        "f2_desc": "اخدم زبائنك بسرعة وأرسل إيصالات رقمية عبر واتساب.",
-        "f3_title": "المحاسبة",
-        "f3_desc": "شاهد أرباحك وتكاليفك وإيراداتك بشكل آلي.",
-        "f4_title": "وضع عدم الاتصال",
-        "f4_desc": "واصل البيع حتى في حالة انقطاع الإنترنت. ستتم المزامنة لاحقاً.",
-        "f5_title": "الذكاء الاصطناعي",
-        "f5_desc": "توقع ذروة المبيعات وحسن طلباتك من الموردين.",
-        "f6_title": "سوق الجملة (Marketplace)",
-        "f6_desc": "اطلب مباشرة من أفضل تجار الجملة بأفضل الأسعار."
+        "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
+        "cta": "Démarrer maintenant"
     },
     "stats": {
-        "merchants": "تاجر نشط",
+        "shops": "Commerces équipés",
         "transactions": "عملية شهرياً",
-        "availability": "وقت التشغيل",
+        "satisfaction": "Clients satisfaits",
         "support": "دعم 24/7"
+    },
+    "features": {
+        "title": "Vos outils quotidiens",
+        "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
+        "dashboard": {
+            "title": "Accueil",
+            "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
+        },
+        "products": {
+            "title": "Produits",
+            "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
+        },
+        "pos": {
+            "title": "Caisse",
+            "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
+        },
+        "suppliers": {
+            "title": "Fournisseurs",
+            "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
+        },
+        "orders": {
+            "title": "Commandes",
+            "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
+        },
+        "accounting": {
+            "title": "Comptabilité",
+            "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
+        },
+        "clients": {
+            "title": "Clients",
+            "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
+        },
+        "settings": {
+            "title": "Réglages",
+            "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
+        }
+    },
+    "showcase": {
+        "title": "L'interface qui change tout",
+        "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
+        "app_interface": "Interface App"
+    },
+    "how_it_works": {
+        "title": "Démarrage rapide",
+        "subtitle": "Trois étapes simples pour transformer votre commerce.",
+        "step1": {
+            "title": "Créez votre compte",
+            "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
+        },
+        "step2": {
+            "title": "Scannez vos produits",
+            "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
+        },
+        "step3": {
+            "title": "Encaissez & Suivez",
+            "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
+        }
+    },
+    "testimonials": {
+        "title": "Ils nous font confiance",
+        "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
+        "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Boutique Électronique",
+        "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Supermarché Express",
+        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Pharmacie Centrale"
     },
     "pricing": {
         "title": "أسعار بسيطة، دون مفاجآت",
         "subtitle": "ابدأ مجاناً، وانمو بالسرعة التي تناسبك.",
-        "free_title": "البداية",
-        "free_price": "0 فرنك",
-        "free_desc": "لنقاط البيع الصغيرة",
-        "premium_title": "بريميوم",
-        "premium_price": "5,000 فرنك",
-        "premium_desc": "القوة الكاملة لعملك",
-        "feature_pos": "نقطة بيع متكاملة",
-        "feature_stock": "إدارة المخزون",
-        "feature_accounting": "المحاسبة",
-        "feature_multi_user": "موظفون غير محدودون",
-        "feature_ai": "تحليلات الذكاء الاصطناعي",
-        "cta": "اختر الخطة"
+        "month": "/mois",
+        "popular": "Populaire",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 Utilisateur, 1 Boutique",
+            "f2": "100 produits",
+            "f3": "14 Requêtes IA / semaine",
+            "f4": "Rapports sur 30 jours",
+            "cta": "3 Mois Gratuits"
+        },
+        "business": {
+            "name": "Premium",
+            "f1": "Utilisateurs illimités",
+            "f2": "Produits illimités",
+            "f3": "Assistant IA illimité",
+            "f4": "Marketplace & CRM",
+            "f5": "Analyses & Rapports illimités",
+            "cta": "3 Mois Gratuits"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Sur devis",
+            "f1": "Multi-boutiques",
+            "f2": "Support dédié 24/7",
+            "f3": "API & Intégrations",
+            "f4": "IA personnalisée",
+            "cta": "Contacter"
+        }
+    },
+    "faq": {
+        "title": "الأسئلة الشائعة",
+        "q1": "هل يعمل بدون إنترنت؟",
+        "a1": "نعم، يعمل Stockman في وضع عدم الاتصال. ستتم مزامنة بياناتك بمجرد عودة الاتصال.",
+        "q2": "هل بياناتي آمنة؟",
+        "a2": "بالتأكيد. نحن نستخدم تشفيراً من المستوى البنكي لحماية جميع معلوماتك التجارية."
+    },
+    "download": {
+        "title": "جاهز للانتقال إلى المستوى التالي؟",
+        "subtitle": "انضم إلى آلاف التجار الذين قاموا بتحديث إدارتهم.",
+        "app_store": "متجر التطبيقات",
+        "google_play": "جوجل بلاي",
+        "secure": "دفع آمن",
+        "support": "دعم فني محترف",
+        "updates": "تحديثات مستمرة"
     },
     "footer": {
         "desc": "الحل رقم 1 لرقمنة التجارة في أفريقيا.",
         "product": "المنتج",
-        "company": "الشركة",
         "support": "الدعم",
         "legal": "قانوني",
         "help_center": "مركز المساعدة",
@@ -67,8 +147,39 @@
         "community": "المجتمع",
         "privacy": "سياسة الخصوصية",
         "terms": "شروط الاستخدام",
+        "delete_account": "Supprimer mon compte",
         "legal_notice": "إشعار قانوني",
         "copyright": "© 2026 Stockman. جميع الحقوق محفوظة."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
     },
     "newsletter": {
         "title": "كن خبيراً في إدارة المخزون",
@@ -361,17 +472,14 @@
         "team_subtitle": "أفراد شغوفون بخدمة رواد الأعمال.",
         "member1_image": "👨🏿‍💼",
         "member1_name": "جان مارك كوفي",
-        "member1_name_orig": "Jean-Marc Koffi",
         "member1_role": "الرئيس التنفيذي والمؤسس المشارك",
         "member1_bio": "تاجر سابق، أنشأ Stockman لحل تحديات الإدارة الخاصة به.",
         "member2_image": "👩🏾‍💻",
         "member2_name": "آوا ديوب",
-        "member2_name_orig": "Awa Diop",
         "member2_role": "المدير التقني وقائد الفريق",
         "member2_bio": "مهندسة شغوفة بالذكاء الاصطناعي والتحول الرقمي في أفريقيا.",
         "member3_image": "🎧",
         "member3_name": "ديفيد نغيسان",
-        "member3_name_orig": "David N'Guessan",
         "member3_role": "مدير الدعم",
         "member3_bio": "مستعد دائماً للاستماع لمساعدة مستخدمينا في تحقيق النجاح.",
         "values_title": "قيمنا",
@@ -455,21 +563,5 @@
         "title": "سياسة الخصوصية",
         "version": "آخر تحديث: 13 فبراير 2026",
         "content": "<p>مرحباً بكم في Stockman. إن حماية بياناتكم الشخصية هي أولوية بالنسبة لنا.</p><h3>1. جمع البيانات</h3><p>نقوم بجمع: معلومات التعريف (الاسم، البريد الإلكتروني، الهاتف)، البيانات المهنية (المتجر، المخزون، المعاملات)، البيانات التقنية (IP، الجهاز، السجلات).</p><h3>2. استخدام البيانات</h3><p>تُستخدم بياناتكم حصرياً لـ: إدارة مخزونكم ومبيعاتكم، تأمين حسابكم، تحسين خدماتنا والامتثال لالتزاماتنا القانونية.</p><h3>3. التخزين والأمان</h3><p>يتم تخزين بياناتكم على خوادم آمنة (MongoDB Atlas) وتشفيرها. نحن نستخدم بروتوكول HTTPS لجميع عمليات النقل.</p><h3>4. مشاركة البيانات</h3><p>نحن لا نبيع أو نؤجر بياناتكم. يمكن مشاركتها فقط مع مقدمي الخدمات التقنية لدينا والسلطات إذا كان القانون يقتضي ذلك.</p><h3>5. حقوقكم (RGPD)</h3><p>لديك حقوق الوصول والتصحيح والمحو وقابلية النقل. مارس هذه الحقوق من علامة تبويب الإعدادات في التطبيق.</p><h3>6. الاتصال</h3><p>لأي استفسار، تواصل معنا عبر التطبيق أو على <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
-    },
-    "faq": {
-        "title": "الأسئلة الشائعة",
-        "q1": "هل يعمل بدون إنترنت؟",
-        "a1": "نعم، يعمل Stockman في وضع عدم الاتصال. ستتم مزامنة بياناتك بمجرد عودة الاتصال.",
-        "q2": "هل بياناتي آمنة؟",
-        "a2": "بالتأكيد. نحن نستخدم تشفيراً من المستوى البنكي لحماية جميع معلوماتك التجارية."
-    },
-    "download": {
-        "title": "جاهز للانتقال إلى المستوى التالي؟",
-        "subtitle": "انضم إلى آلاف التجار الذين قاموا بتحديث إدارتهم.",
-        "app_store": "متجر التطبيقات",
-        "google_play": "جوجل بلاي",
-        "secure": "دفع آمن",
-        "support": "دعم فني محترف",
-        "updates": "تحديثات مستمرة"
     }
 }

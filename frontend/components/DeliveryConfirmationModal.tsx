@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -30,6 +31,7 @@ type Decision = {
 
 export default function DeliveryConfirmationModal({ visible, orderId, onClose, onConfirmed }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [suggestions, setSuggestions] = useState<MatchSuggestion[]>([]);
@@ -215,7 +217,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.catalogName, { color: colors.text }]}>{s.catalog_name}</Text>
                             <Text style={[styles.catalogMeta, { color: colors.textMuted }]}>
-                              {s.quantity} x {s.unit_price.toLocaleString()} F
+                              {s.quantity} x {s.unit_price.toLocaleString()} {t('common.currency_short')}
                               {s.catalog_category ? ` | ${s.catalog_category}` : ''}
                               {s.catalog_subcategory ? ` > ${s.catalog_subcategory}` : ''}
                             </Text>

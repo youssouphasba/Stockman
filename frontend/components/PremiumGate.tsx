@@ -32,8 +32,13 @@ export default function PremiumGate({ featureName, description, benefits, icon =
     const router = useRouter();
     const { colors, glassStyle } = useTheme();
     const { user } = useAuth();
-    const isEUR = user?.currency === 'EUR';
-    const premiumPrice = isEUR ? '7,99 € / ' + t('subscription.per_month') : '2 500 FCFA / ' + t('subscription.per_month');
+    const currency = user?.currency || 'XOF';
+    const price = currency === 'EUR' ? '7,99' : '2 500';
+    const premiumPrice = t('premium.pricing_hint', {
+        price,
+        currency,
+        period: t('subscription.per_month')
+    });
 
     if (!locked) {
         return <>{children}</>;

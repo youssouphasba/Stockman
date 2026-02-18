@@ -1,65 +1,145 @@
 {
     "nav": {
         "features": "Funcționalități",
-        "pricing": "Prețuri",
-        "about": "Despre noi",
+        "resources": "Ressources",
         "blog": "Blog",
-        "contact": "Contact",
+        "home": "Connexion",
         "login": "Autentificare",
-        "get_started": "Începe acum"
+        "free_trial": "Essai Gratuit"
     },
     "hero": {
-        "badge": "Nr. 1 în logistică în Africa 🌍",
         "title_start": "Gestionați-vă",
-        "title_highlight": "magazinul",
         "title_end": "ca un profesionist",
-        "desc": "Sistem POS integrat, gestionarea stocurilor și contabilitate. Simplu, eficient și disponibil oriunde - chiar și fără internet.",
-        "cta_primary": "Încercați gratuit",
-        "cta_secondary": "Vezi demo",
-        "trust": "Peste +5000 de puncte de vânzare au încredere în noi"
-    },
-    "features_main": {
-        "title": "Tot ce aveți nevoie pentru a crește",
-        "subtitle": "Gata cu notele manuale. Treceți la gestionarea digitală.",
-        "f1_title": "Gestionarea stocurilor",
-        "f1_desc": "Urmăriți produsele în timp real și primiți alerte de stoc scăzut.",
-        "f2_title": "Casă de marcat (POS)",
-        "f2_desc": "Serviți clienții rapid și trimiteți chitanțe digitale prin WhatsApp.",
-        "f3_title": "Contabilitate",
-        "f3_desc": "Vizualizați automat veniturile, costurile și profiturile.",
-        "f4_title": "Mod Offline",
-        "f4_desc": "Continuați vânzările chiar și fără internet. Sincronizarea are loc ulterior.",
-        "f5_title": "Inteligență Artificială",
-        "f5_desc": "Prevedeți vârfurile de vânzări și optimizați comenzile de la furnizori.",
-        "f6_title": "Marketplace",
-        "f6_desc": "Comandați direct de la cei mai buni angrosiști la cele mai bune prețuri."
+        "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
+        "cta": "Démarrer maintenant"
     },
     "stats": {
-        "merchants": "Comercianți activi",
+        "shops": "Commerces équipés",
         "transactions": "Tranzacții lunar",
-        "availability": "Timp de funcționare",
+        "satisfaction": "Clients satisfaits",
         "support": "Suport 24/7"
+    },
+    "features": {
+        "title": "Vos outils quotidiens",
+        "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
+        "dashboard": {
+            "title": "Accueil",
+            "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
+        },
+        "products": {
+            "title": "Produits",
+            "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
+        },
+        "pos": {
+            "title": "Caisse",
+            "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
+        },
+        "suppliers": {
+            "title": "Fournisseurs",
+            "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
+        },
+        "orders": {
+            "title": "Commandes",
+            "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
+        },
+        "accounting": {
+            "title": "Comptabilité",
+            "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
+        },
+        "clients": {
+            "title": "Clients",
+            "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
+        },
+        "settings": {
+            "title": "Réglages",
+            "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
+        }
+    },
+    "showcase": {
+        "title": "L'interface qui change tout",
+        "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
+        "app_interface": "Interface App"
+    },
+    "how_it_works": {
+        "title": "Démarrage rapide",
+        "subtitle": "Trois étapes simples pour transformer votre commerce.",
+        "step1": {
+            "title": "Créez votre compte",
+            "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
+        },
+        "step2": {
+            "title": "Scannez vos produits",
+            "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
+        },
+        "step3": {
+            "title": "Encaissez & Suivez",
+            "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
+        }
+    },
+    "testimonials": {
+        "title": "Ils nous font confiance",
+        "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
+        "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Boutique Électronique",
+        "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Supermarché Express",
+        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Pharmacie Centrale"
     },
     "pricing": {
         "title": "Prețuri simple, zero surprize",
         "subtitle": "Începeți gratuit, creșteți în propriul ritm.",
-        "free_title": "Start",
-        "free_price": "0 FCFA",
-        "free_desc": "Pentru puncte de vânzare mici",
-        "premium_title": "Premium",
-        "premium_price": "5.000 FCFA",
-        "premium_desc": "Putere deplină pentru afacerea dvs.",
-        "feature_pos": "Casă de marcat integrată",
-        "feature_stock": "Gestionarea stocurilor",
-        "feature_accounting": "Contabilitate",
-        "feature_multi_user": "Angajați nelimitați",
-        "feature_ai": "Analize AI",
-        "cta": "Alegeți planul"
+        "month": "/mois",
+        "popular": "Populaire",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 Utilisateur, 1 Boutique",
+            "f2": "100 produits",
+            "f3": "14 Requêtes IA / semaine",
+            "f4": "Rapports sur 30 jours",
+            "cta": "3 Mois Gratuits"
+        },
+        "business": {
+            "name": "Premium",
+            "f1": "Utilisateurs illimités",
+            "f2": "Produits illimités",
+            "f3": "Assistant IA illimité",
+            "f4": "Marketplace & CRM",
+            "f5": "Analyses & Rapports illimités",
+            "cta": "3 Mois Gratuits"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Sur devis",
+            "f1": "Multi-boutiques",
+            "f2": "Support dédié 24/7",
+            "f3": "API & Intégrations",
+            "f4": "IA personnalisée",
+            "cta": "Contacter"
+        }
+    },
+    "faq": {
+        "title": "Questions Fréquentes",
+        "q1": "Est-ce que ça marche sans internet ?",
+        "a1": "Oui, Stockman fonctionne en mode hors-ligne. Vos données sont synchronisées dès que vous retrouvez une connexion.",
+        "q2": "Mes données sont-elles sécurisées ?",
+        "a2": "Absolument. Nous utilisons un chiffrement de niveau bancaire pour protéger toutes vos informations commerciales."
+    },
+    "download": {
+        "title": "Prêt à passer au niveau supérieur ?",
+        "subtitle": "Rejoignez des milliers de commerçants qui ont modernisé leur gestion.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "Paiements Sécurisés",
+        "support": "Support Pro",
+        "updates": "Mise à jour Continue"
     },
     "footer": {
         "desc": "Soluția nr. 1 pentru digitalizarea comerțului în Africa.",
         "product": "Produs",
-        "company": "Companie",
         "support": "Suport",
         "legal": "Legal",
         "help_center": "Centru de ajutor",
@@ -67,8 +147,39 @@
         "community": "Comunitate",
         "privacy": "Politica de confidențialitate",
         "terms": "Termeni de utilizare",
+        "delete_account": "Supprimer mon compte",
         "legal_notice": "Aviz legal",
         "copyright": "© 2026 Stockman. Toate drepturile rezervate."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
     },
     "newsletter": {
         "title": "Deveniți un expert în stocuri",

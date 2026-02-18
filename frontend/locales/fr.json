@@ -328,7 +328,7 @@
   "premium": {
     "with_premium_you_can": "Avec Premium, vous pouvez :",
     "upgrade_now": "Passer à Premium",
-    "pricing_hint": "2 500 FCFA / mois",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "Commandes Intelligentes",
@@ -663,7 +663,6 @@
     "unknown": "Inconnu",
     "name_required": "Le nom est obligatoire",
     "client_created": "Client créé et sélectionné",
-    "client_created": "Client créé et sélectionné",
     "client_create_error": "Impossible de créer le client",
     "not_enough_stock_detail": "Il ne reste que {{qty}} {{unit}}(s) de {{name}}"
   },
@@ -859,5 +858,386 @@
     "order_creation": "Création de commande",
     "receipt": "Reçu Numérique",
     "chat": "Messages"
+  },
+  "help": {
+    "title": "Centre d'Aide",
+    "search_placeholder": "Rechercher une fonctionnalité...",
+    "results": "RÉSULTATS",
+    "faq_title": "QUESTIONS FRÉQUENTES",
+    "no_results": "Aucun résultat pour \"{{query}}\"",
+    "modules_title": "FONCTIONNALITÉS PAR MODULE",
+    "features_count_one": "{{count}} fonctionnalité",
+    "features_count_other": "{{count}} fonctionnalités",
+    "launch_guide": "Lancer le guide interactif",
+    "modules": {
+      "dashboard": {
+        "title": "Tableau de Bord",
+        "f1": {
+          "t": "KPIs en temps réel",
+          "d": "Suivez votre chiffre d'affaires journalier et mensuel, le nombre de produits et la valeur totale de votre stock. Les compteurs s'animent en temps réel."
+        },
+        "f2": {
+          "t": "Santé du Stock",
+          "d": "Visualisez en un coup d'oeil combien de produits sont en rupture (rouge), en stock bas (orange) ou en surstock (bleu). Cliquez sur un badge pour voir les produits concernés."
+        },
+        "f3": {
+          "t": "Alertes Péremption",
+          "d": "Si vous gérez des produits avec dates de péremption (lots), ceux arrivant à expiration dans les 30 prochains jours s'affichent automatiquement avec le numéro de lot."
+        },
+        "f4": {
+          "t": "Réapprovisionnement Intelligent",
+          "d": "Le système analyse l'historique de vos ventes et vous suggère automatiquement les produits à commander, avec la quantité optimale et le niveau de priorité."
+        },
+        "f5": {
+          "t": "Analyse ABC",
+          "d": "Vos produits sont classés en 3 groupes selon leur contribution au CA : Classe A (80% du CA), Classe B (15%) et Classe C (5%). Concentrez vos efforts sur la classe A."
+        },
+        "f6": {
+          "t": "Statistiques & Historique",
+          "d": "Accédez aux graphiques détaillés (évolution du stock, répartition par catégorie) et à l'historique complet des mouvements avec filtres et export CSV."
+        }
+      },
+      "products": {
+        "title": "Gestion des Produits",
+        "f1": {
+          "t": "Recherche & Filtres",
+          "d": "Retrouvez un produit en tapant son nom ou son SKU. Filtrez par catégorie grâce aux puces colorées horizontales."
+        },
+        "f2": {
+          "t": "Badges de Stock",
+          "d": "Chaque produit affiche un badge coloré : Rouge (Rupture), Orange (Stock bas), Bleu (Surstock), Vert (Normal). Le seuil est configurable par produit."
+        },
+        "f3": {
+          "t": "Mouvements Rapides",
+          "d": "Les boutons 'Entrée' et 'Sortie' permettent d'ajuster le stock sans créer de commande. Indiquez la raison (livraison, perte, inventaire, etc.)."
+        },
+        "f4": {
+          "t": "Étiquettes PDF",
+          "d": "Générez des étiquettes avec QR Code, nom, prix et code-barres. Imprimez-les pour vos étagères ou partagez-les."
+        },
+        "f5": {
+          "t": "Gestion des Catégories",
+          "d": "L'icône engrenage ouvre le gestionnaire de catégories. Créez, modifiez ou supprimez des catégories avec couleurs et icônes personnalisées."
+        },
+        "f6": {
+          "t": "Lots & Péremption",
+          "d": "Pour les produits alimentaires, créez des lots avec dates de péremption. Les lots expirant bientôt déclenchent des alertes automatiques."
+        },
+        "f7": {
+          "t": "Historique des Prix",
+          "d": "Consultez l'évolution des prix d'achat et de vente de chaque produit pour optimiser vos marges."
+        }
+      },
+      "pos": {
+        "title": "Point de Vente (Caisse)",
+        "f1": {
+          "t": "Scanner de Code-Barres",
+          "d": "Utilisez la caméra pour scanner les articles. Le produit est identifié et ajouté au panier instantanément."
+        },
+        "f2": {
+          "t": "Gestion du Panier",
+          "d": "Ajoutez, supprimez ou modifiez les quantités dans le panier. Le total se recalcule en temps réel avec chaque modification."
+        },
+        "f3": {
+          "t": "Sélection Client",
+          "d": "Associez un client existant à la vente ou créez-en un nouveau en 2 secondes. Ses points de fidélité sont crédités automatiquement."
+        },
+        "f4": {
+          "t": "Modes de Paiement",
+          "d": "Acceptez 5 modes de paiement : espèces, mobile money, carte bancaire, virement et vente à crédit."
+        },
+        "f5": {
+          "t": "Tickets de Caisse",
+          "d": "Après validation, imprimez le ticket ou envoyez-le par WhatsApp ou email. Le ticket inclut les détails complets de la transaction."
+        },
+        "f6": {
+          "t": "Fidélité Automatique",
+          "d": "Les points de fidélité sont calculés et crédités automatiquement à chaque achat. Le client progresse dans les tiers (Bronze → Platine)."
+        }
+      },
+      "orders": {
+        "title": "Commandes Fournisseurs",
+        "f1": {
+          "t": "Créer une Commande",
+          "d": "Sélectionnez un fournisseur (manuel ou marketplace), ajoutez les produits avec quantités et prix, définissez la date de livraison prévue."
+        },
+        "f2": {
+          "t": "Suivi de Statut",
+          "d": "Suivez chaque commande : En attente → Confirmée → Expédiée → Livrée. La barre de progression visuelle montre l'avancement."
+        },
+        "f3": {
+          "t": "Réception IA",
+          "d": "À la livraison, l'IA analyse les produits reçus et les associe intelligemment à votre inventaire. Validez ou corrigez les suggestions."
+        },
+        "f4": {
+          "t": "Association Manuelle",
+          "d": "Associez manuellement un produit du catalogue fournisseur à un produit de votre inventaire, même après la livraison."
+        },
+        "f5": {
+          "t": "Filtres Avancés",
+          "d": "Filtrez par statut, fournisseur ou période pour retrouver une commande."
+        }
+      },
+      "suppliers": {
+        "title": "Relations Fournisseurs",
+        "f1": {
+          "t": "Annuaire Fournisseurs",
+          "d": "Créez les fiches de vos fournisseurs avec coordonnées, conditions de paiement, délai de livraison et produits fournis."
+        },
+        "f2": {
+          "t": "Contact Direct",
+          "d": "Appelez, envoyez un email ou un message WhatsApp à votre fournisseur en un clic depuis sa fiche."
+        },
+        "f3": {
+          "t": "Marketplace",
+          "d": "Accédez au réseau de fournisseurs vérifiés. Comparez les prix, consultez les avis et commandez directement."
+        },
+        "f4": {
+          "t": "Liaison Produits",
+          "d": "Liez vos produits à chaque fournisseur avec son prix, sa référence et marquez-le comme fournisseur préféré."
+        },
+        "f5": {
+          "t": "Journal de Contact",
+          "d": "Gardez une trace de vos échanges : appels, visites, emails. Ajoutez des notes pour chaque interaction."
+        },
+        "f6": {
+          "t": "Suggestions Réappro",
+          "d": "Le système identifie les produits sous le seuil minimum et vous suggère les quantités à commander par fournisseur."
+        }
+      },
+      "crm": {
+        "title": "CRM & Fidélité",
+        "f1": {
+          "t": "Fichier Client",
+          "d": "Enregistrez vos clients avec nom, téléphone, email et date de naissance. Suivez leur historique d'achats complet."
+        },
+        "f2": {
+          "t": "Programme de Fidélité",
+          "d": "Configurez le ratio de points par achat et les paliers de récompense. Les tiers (Bronze, Argent, Or, Platine) se calculent automatiquement."
+        },
+        "f3": {
+          "t": "Gestion des Dettes",
+          "d": "Enregistrez les ventes à crédit et les remboursements. Le solde du client est toujours à jour."
+        },
+        "f4": {
+          "t": "Campagnes Marketing",
+          "d": "Envoyez des SMS ou emails promotionnels ciblés par tier de fidélité ou sélection individuelle."
+        },
+        "f5": {
+          "t": "Promotions",
+          "d": "Créez des promotions avec pourcentage de réduction ou échange de points de fidélité. Activez/désactivez à volonté."
+        },
+        "f6": {
+          "t": "Anniversaires",
+          "d": "Enregistrez la date de naissance pour des offres personnalisées automatiques et renforcer la relation client."
+        }
+      },
+      "accounting": {
+        "title": "Comptabilité",
+        "f1": {
+          "t": "Périodes & Filtres",
+          "d": "Analysez vos finances sur 7, 30 ou 90 jours, ou définissez une période personnalisée. Tous les KPIs s'adaptent."
+        },
+        "f2": {
+          "t": "Bénéfices & Marges",
+          "d": "Suivez votre CA, coût des marchandises, bénéfice brut et net. Identifiez les produits les plus et moins rentables."
+        },
+        "f3": {
+          "t": "Factures PDF",
+          "d": "Créez des factures professionnelles avec TVA, lignes détaillées et coordonnées. Envoyez-les par email ou imprimez."
+        },
+        "f4": {
+          "t": "Suivi des Dépenses",
+          "d": "Catégorisez vos dépenses (loyer, salaires, transport, électricité, etc.) pour un bilan complet et précis."
+        },
+        "f5": {
+          "t": "Graphiques",
+          "d": "Visualisez la répartition des paiements, des dépenses par catégorie et l'évolution journalière du CA."
+        },
+        "f6": {
+          "t": "Export CSV",
+          "d": "Exportez toutes vos données financières au format CSV pour votre comptable ou logiciel de comptabilité."
+        }
+      },
+      "alerts": {
+        "title": "Alertes de Stock",
+        "f1": {
+          "t": "Règles Personnalisables",
+          "d": "Définissez vos propres seuils pour chaque type d'alerte : stock bas (%), rupture, surstock, produit dormant."
+        },
+        "f2": {
+          "t": "Alertes Automatiques",
+          "d": "Les alertes se déclenchent automatiquement quand un produit franchit un seuil. Vous êtes notifié en temps réel."
+        },
+        "f3": {
+          "t": "Produits Dormants",
+          "d": "Détectez les produits sans aucune sortie depuis 30 jours. Idéal pour identifier le stock mort."
+        },
+        "f4": {
+          "t": "Gestion des Alertes",
+          "d": "Marquez les alertes comme lues, supprimez-les, ou effacez toutes les alertes résolues en un clic."
+        }
+      },
+      "activity": {
+        "title": "Flux d'Activité",
+        "f1": {
+          "t": "Journal Complet",
+          "d": "Chaque action (vente, mouvement de stock, modification produit, connexion) est enregistrée avec date, heure et auteur."
+        },
+        "f2": {
+          "t": "Filtres",
+          "d": "Filtrez par module (stock, caisse, CRM, comptabilité), par utilisateur ou par période pour retrouver une action précise."
+        },
+        "f3": {
+          "t": "Suivi par Utilisateur",
+          "d": "Identifiez quel employé a effectué chaque action. Essentiel pour la traçabilité et la responsabilisation."
+        }
+      },
+      "users": {
+        "title": "Gestion des Utilisateurs",
+        "f1": {
+          "t": "Créer des Comptes",
+          "d": "Ajoutez un compte pour chaque employé avec email et mot de passe. Partagez les identifiants par WhatsApp."
+        },
+        "f2": {
+          "t": "Permissions par Module",
+          "d": "Contrôlez l'accès à chaque module : aucun accès, lecture seule, ou lecture + écriture."
+        },
+        "f3": {
+          "t": "Rôles Adaptés",
+          "d": "Un caissier n'a accès qu'à la caisse, un gérant à tout sauf la comptabilité. Configurez selon vos besoins."
+        },
+        "f4": {
+          "t": "Gestion des Comptes",
+          "d": "Modifiez les permissions, réinitialisez le mot de passe ou désactivez un compte à tout moment."
+        }
+      },
+      "settings": {
+        "title": "Paramètres",
+        "f1": {
+          "t": "Multi-Boutiques",
+          "d": "Créez et gérez plusieurs points de vente. Chaque boutique possède son propre stock, ses ventes et sa comptabilité."
+        },
+        "f2": {
+          "t": "Thème Sombre",
+          "d": "Basculez entre le thème clair et sombre selon votre préférence et vos conditions d'éclairage."
+        },
+        "f3": {
+          "t": "Modules Actifs",
+          "d": "Activez ou désactivez les modules inutiles (CRM, comptabilité, fournisseurs) pour simplifier l'interface."
+        },
+        "f4": {
+          "t": "Notifications Push",
+          "d": "Activez les notifications pour être alerté en temps réel des ruptures, stocks bas et produits dormants."
+        }
+      },
+      "supplierDashboard": {
+        "title": "Dashboard Fournisseur",
+        "f1": {
+          "t": "KPIs Fournisseur",
+          "d": "Suivez votre CA total, le nombre de commandes, le panier moyen et le CA du mois en cours."
+        },
+        "f2": {
+          "t": "Notes & Avis",
+          "d": "Consultez la note moyenne attribuée par vos clients commerçants et lisez leurs commentaires détaillés."
+        },
+        "f3": {
+          "t": "Top Produits",
+          "d": "Découvrez vos 5 produits les plus commandés avec les quantités vendues. Optimisez votre catalogue en conséquence."
+        },
+        "f4": {
+          "t": "Clients Actifs",
+          "d": "Voyez combien de commerçants différents ont commandé chez vous. Suivez l'évolution de votre base clients."
+        }
+      },
+      "supplierCatalog": {
+        "title": "Catalogue Fournisseur",
+        "f1": {
+          "t": "Ajouter des Produits",
+          "d": "Ajoutez vos produits avec nom, description, catégorie, prix et quantité minimum de commande."
+        },
+        "f2": {
+          "t": "Tarification",
+          "d": "Définissez vos prix. Mettez-les à jour à tout moment depuis la fiche produit."
+        },
+        "f3": {
+          "t": "Disponibilité",
+          "d": "Basculez la disponibilité d'un produit en un clic. Les produits indisponibles n'apparaissent plus sur la marketplace."
+        },
+        "f4": {
+          "t": "Catégories",
+          "d": "Organisez votre catalogue par catégories et sous-catégories partagées avec vos clients commerçants."
+        }
+      },
+      "supplierOrders": {
+        "title": "Commandes Reçues",
+        "f1": {
+          "t": "Commandes Entrantes",
+          "d": "Les commandes de vos clients commerçants apparaissent ici avec le détail des produits, quantités et montants."
+        },
+        "f2": {
+          "t": "Accepter ou Refuser",
+          "d": "Consultez le détail de chaque commande puis acceptez-la ou refusez-la avec un motif."
+        },
+        "f3": {
+          "t": "Marquer Expédiée",
+          "d": "Une fois la commande préparée et envoyée, marquez-la comme expédiée. Le client est notifié."
+        },
+        "f4": {
+          "t": "Filtres & Historique",
+          "d": "Filtrez par statut (en attente, confirmée, expédiée, livrée) ou par période pour retrouver vos commandes."
+        }
+      }
+    },
+    "faq": {
+      "q1": {
+        "q": "Comment ajouter mon premier produit ?",
+        "a": "Allez dans l'onglet Produits, appuyez sur le bouton '+' en bas à droite. Remplissez le nom, le prix de vente et le stock initial. Vous pouvez aussi scanner un code-barres existant."
+      },
+      "q2": {
+        "q": "Comment faire une vente ?",
+        "a": "Allez dans l'onglet Caisse. Scannez vos articles ou cherchez-les dans la liste. Ajoutez au panier, associez un client si souhaité, choisissez le mode de paiement et validez."
+      },
+      "q3": {
+        "q": "Comment gérer les dettes clients ?",
+        "a": "Dans l'onglet Clients (CRM), sélectionnez un client puis allez dans l'onglet Compte. Vous pouvez enregistrer une dette manuelle ou un paiement. Le solde est mis à jour en temps réel."
+      },
+      "q4": {
+        "q": "Comment commander auprès d'un fournisseur ?",
+        "a": "Allez dans Commandes, cliquez sur '+'. Sélectionnez le fournisseur (manuel ou marketplace), ajoutez les produits et validez. À la réception, confirmez la livraison pour mettre à jour le stock."
+      },
+      "q5": {
+        "q": "Comment ajouter un employé ?",
+        "a": "Dans Paramètres > Utilisateurs, ajoutez un nouvel utilisateur avec son email. Définissez ses permissions module par module et partagez les identifiants par WhatsApp."
+      },
+      "q6": {
+        "q": "Comment changer de boutique ?",
+        "a": "Utilisez le sélecteur de boutique en haut à droite de l'écran. Toutes les données (stock, ventes, comptabilité) basculent vers la boutique sélectionnée."
+      },
+      "q7": {
+        "q": "Mes données sont-elles sauvegardées ?",
+        "a": "Oui ! Vos données sont stockées dans le cloud et synchronisées en temps réel. Un cache local permet de consulter les données même hors connexion."
+      },
+      "q8": {
+        "q": "Comment exporter mes données ?",
+        "a": "Depuis le Dashboard (bouton Historique > icône téléchargement) ou depuis la Comptabilité, exportez en CSV. Les factures s'exportent en PDF."
+      },
+      "q9": {
+        "q": "Comment configurer les alertes ?",
+        "a": "Dans l'onglet Alertes, appuyez sur l'icône engrenage pour accéder aux règles. Activez les types d'alertes souhaités et ajustez les seuils selon vos besoins."
+      },
+      "q10": {
+        "q": "Comment envoyer un ticket par WhatsApp ?",
+        "a": "Après avoir validé une vente dans la Caisse, l'écran de confirmation propose un bouton 'Partager'. Choisissez WhatsApp et sélectionnez le contact."
+      },
+      "q11": {
+        "q": "Comment créer une facture ?",
+        "a": "Dans l'onglet Comptabilité, appuyez sur 'Créer une facture'. Ajoutez les lignes avec description, quantité, prix et TVA. La facture est générée en PDF."
+      },
+      "q12": {
+        "q": "Comment fonctionne la fidélité ?",
+        "a": "Activez le programme dans Paramètres > Fidélité. Définissez le ratio de points (ex: 1 point pour un montant fixe). Les points s'accumulent à chaque vente et les clients progressent automatiquement dans les tiers."
+      }
+    }
   }
 }

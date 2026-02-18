@@ -316,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "Premium के साथ, आप कर सकते हैं:",
     "upgrade_now": "Premium में अपग्रेड करें",
-    "pricing_hint": "2 500 FCFA / महीना",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "स्मार्ट ऑर्डरिंग",

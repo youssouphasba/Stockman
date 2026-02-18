@@ -9,6 +9,8 @@ import HelpCenter from './HelpCenter';
 import Blog from './Blog';
 import BlogPost from './BlogPost';
 import About from './About';
+import DeleteAccount from './DeleteAccount';
+
 import ComparisonTable from './components/ComparisonTable';
 import CookieBanner from './components/CookieBanner';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -298,6 +300,7 @@ function Landing() {
               <ul>
                 <li><Link to="/privacy">{t('footer.privacy')}</Link></li>
                 <li><Link to="/terms">{t('footer.terms')}</Link></li>
+                <li><Link to="/delete-account">{t('footer.delete_account')}</Link></li>
                 <li><a href="#">{t('footer.legal_notice')}</a></li>
               </ul>
             </div>
@@ -330,6 +333,7 @@ function App() {
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
 
             {/* Feature Routes */}
             <Route path="/dashboard" element={

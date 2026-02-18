@@ -316,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "С Premium вы можете:",
     "upgrade_now": "Перейти на Premium",
-    "pricing_hint": "2 500 FCFA / месяц",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "Умное заказывание",

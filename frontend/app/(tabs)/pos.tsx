@@ -238,10 +238,10 @@ export default function POSScreen() {
             if (Platform.OS === 'web') {
                 if (window.confirm(
                     `Confirmation Crédit\n\n` +
-                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} F\n` +
-                    `Nouveau montant : ${total.toLocaleString()} F\n` +
+                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} ${t('common.currency_short')}\n` +
+                    `Nouveau montant : ${total.toLocaleString()} ${t('common.currency_short')}\n` +
                     `----------------\n` +
-                    `Nouvelle dette : ${newDebt.toLocaleString()} F\n\n` +
+                    `Nouvelle dette : ${newDebt.toLocaleString()} ${t('common.currency_short')}\n\n` +
                     `Confirmer la vente à crédit ?`
                 )) {
                     processCheckout(method);
@@ -249,10 +249,10 @@ export default function POSScreen() {
             } else {
                 Alert.alert(
                     'Confirmation Crédit',
-                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} F\n` +
-                    `Nouveau montant : ${total.toLocaleString()} F\n` +
+                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} ${t('common.currency_short')}\n` +
+                    `Nouveau montant : ${total.toLocaleString()} ${t('common.currency_short')}\n` +
                     `----------------\n` +
-                    `Nouvelle dette : ${newDebt.toLocaleString()} F\n\n` +
+                    `Nouvelle dette : ${newDebt.toLocaleString()} ${t('common.currency_short')}\n\n` +
                     `Confirmer la vente à crédit ?`,
                     [
                         { text: 'Annuler', style: 'cancel' },
@@ -481,7 +481,7 @@ export default function POSScreen() {
                                             onPress={() => prod && addToCart(prod)}
                                         >
                                             <Text style={{ fontSize: 11, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{s.name}</Text>
-                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{s.selling_price.toLocaleString()} F</Text>
+                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{s.selling_price.toLocaleString()} {t('common.currency_short')}</Text>
                                             <Ionicons name="add-circle" size={16} color={colors.primary} />
                                         </TouchableOpacity>
                                     );

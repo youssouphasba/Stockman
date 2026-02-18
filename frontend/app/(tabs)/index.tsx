@@ -459,7 +459,7 @@ export default function DashboardScreen() {
               width={screenWidth - Spacing.md * 2}
               height={220}
               yAxisLabel=""
-              yAxisSuffix=" F"
+              yAxisSuffix={" " + t('common.currency_short')}
               chartConfig={{
                 backgroundColor: colors.bgMid,
                 backgroundGradientFrom: colors.bgMid,
@@ -616,7 +616,7 @@ export default function DashboardScreen() {
               width={screenWidth - Spacing.md * 2}
               height={220}
               yAxisLabel=""
-              yAxisSuffix=" F"
+              yAxisSuffix={" " + t('common.currency_short')}
               yAxisInterval={1}
               chartConfig={{
                 backgroundColor: colors.bgMid,

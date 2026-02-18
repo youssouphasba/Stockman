@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, TextInput, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { ReminderRuleSettings } from '../services/api';
@@ -62,9 +63,9 @@ const RULE_CONFIGS: RuleConfig[] = [
   {
     key: 'debt_recovery',
     label: 'Recouvrement de dettes',
-    description: 'Critique au-dessus de X FCFA',
+    description: t('reminders.debt_recovery_desc'),
     icon: 'wallet-outline',
-    unit: 'FCFA',
+    unit: t('common.currency_default'),
     color: '#8B5CF6',
   },
   {
@@ -116,6 +117,7 @@ const DEFAULT_RULES: ReminderRuleSettings = {
 
 export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 

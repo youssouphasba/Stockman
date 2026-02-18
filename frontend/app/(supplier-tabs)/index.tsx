@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -6,12 +7,15 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supplierDashboard, SupplierDashboardData } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface RatingRecord {
   rating_id: string;
@@ -29,7 +33,9 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annulées',
 };
 
-export default function SupplierDashboardScreen() {
+export default function SupplierDashboard() {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
   const [data, setData] = useState<SupplierDashboardData | null>(null);
   const [ratings, setRatings] = useState<RatingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,7 +182,7 @@ export default function SupplierDashboardScreen() {
                   </Text>
                 </View>
                 <View style={styles.orderRight}>
-                  <Text style={styles.orderAmount}>{order.total_amount.toLocaleString()} F</Text>
+                  <Text style={styles.orderAmount}>{order.total_amount.toLocaleString()} {t('common.currency_short')}</Text>
                   <View style={[styles.orderStatus, { backgroundColor: getStatusColor(order.status) + '20' }]}>
                     <Text style={[styles.orderStatusText, { color: getStatusColor(order.status) }]}>
                       {STATUS_LABELS[order.status] ?? order.status}

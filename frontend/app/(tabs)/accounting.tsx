@@ -399,19 +399,19 @@ export default function AccountingScreen() {
                 <div class="kpi-grid">
                     <div class="kpi-card">
                         <div class="kpi-label">CA total</div>
-                        <div class="kpi-value">${stats.revenue.toLocaleString()} F</div>
+                        <div class="kpi-value">${stats.revenue.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">Marge brute</div>
-                        <div class="kpi-value" style="color: ${colors.success}">${stats.gross_profit.toLocaleString()} F</div>
+                        <div class="kpi-value" style="color: ${colors.success}">${stats.gross_profit.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">Total charges</div>
-                        <div class="kpi-value" style="color: ${colors.danger}">${stats.expenses.toLocaleString()} F</div>
+                        <div class="kpi-value" style="color: ${colors.danger}">${stats.expenses.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">${t('accounting.net_profit')}</div>
-                        <div class="kpi-value" style="color: ${stats.net_profit >= 0 ? colors.info : colors.danger}">${stats.net_profit.toLocaleString()} F</div>
+                        <div class="kpi-value" style="color: ${stats.net_profit >= 0 ? colors.info : colors.danger}">${stats.net_profit.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
                     </div>
                 </div>
 
@@ -728,7 +728,7 @@ export default function AccountingScreen() {
                                             }}
                                             width={screenWidth - Spacing.md * 4}
                                             height={200}
-                                            yAxisSuffix=" F"
+                                            yAxisSuffix={" " + t('common.currency_short')}
                                             chartConfig={{
                                                 backgroundColor: 'transparent',
                                                 backgroundGradientFrom: 'transparent',

@@ -1199,7 +1199,7 @@ export default function ProductsScreen() {
         subtitle: t('products.product_count', { count: filtered.length }),
         kpis: [
           { label: 'Produits', value: filtered.length.toString() },
-          { label: 'Valeur stock', value: `${totalValue.toLocaleString()} F` },
+          { label: 'Valeur stock', value: `${totalValue.toLocaleString()} ${t('common.currency_short')}` },
           { label: 'Stock bas', value: lowStock.toString(), color: '#FF9800' },
           { label: 'Ruptures', value: outOfStock.toString(), color: '#f44336' },
         ],
@@ -1214,9 +1214,9 @@ export default function ProductsScreen() {
               cat?.name || '-',
               p.quantity.toString(),
               p.unit,
-              `${p.purchase_price.toLocaleString()} F`,
-              `${p.selling_price.toLocaleString()} F`,
-              `${(p.quantity * p.purchase_price).toLocaleString()} F`,
+              `${p.purchase_price.toLocaleString()} ${t('common.currency_short')}`,
+              `${p.selling_price.toLocaleString()} ${t('common.currency_short')}`,
+              `${(p.quantity * p.purchase_price).toLocaleString()} ${t('common.currency_short')}`,
             ];
           }),
         }],
@@ -1558,7 +1558,7 @@ export default function ProductsScreen() {
                         {product.variants.map(v => (
                           <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${v.selling_price.toLocaleString()} F` : ''}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${v.selling_price.toLocaleString()} ${t('common.currency_short')}` : ''}</Text>
                           </View>
                         ))}
                       </View>

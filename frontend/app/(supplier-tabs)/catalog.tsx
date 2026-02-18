@@ -1,26 +1,30 @@
-import React, { useCallback, useState } from 'react';
+```javascript
+import React, { useCallback, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  Switch,
   ActivityIndicator,
-  Alert as RNAlert,
-  Platform,
   RefreshControl,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supplierCatalog, CatalogProductData, CatalogProductCreate } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import CategorySubcategoryPicker from '../../components/CategorySubcategoryPicker';
 
-export default function CatalogScreen() {
+export default function SupplierCatalogScreen() {
+  const { colors } = useTheme(); // Added useTheme hook
+  const { t } = useTranslation(); // Added useTranslation hook
+
   const [products, setProducts] = useState<CatalogProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,7 +127,7 @@ export default function CatalogScreen() {
   }
 
   async function handleDelete(product: CatalogProductData) {
-    const confirmText = `Supprimer "${product.name}" du catalogue ?`;
+    const confirmText = `Supprimer "${product.name}" du catalogue ? `;
 
     const executeDelete = async () => {
       try {
@@ -229,7 +233,7 @@ export default function CatalogScreen() {
             <View style={styles.productBottom}>
               <View style={styles.productDetail}>
                 <Text style={styles.detailLabel}>Prix</Text>
-                <Text style={styles.detailValue}>{product.price.toLocaleString()} F/{product.unit}</Text>
+                <Text style={styles.detailValue}>{product.price.toLocaleString()} {t('common.currency_short')}/{product.unit}</Text>
               </View>
               <View style={styles.productDetail}>
                 <Text style={styles.detailLabel}>Stock</Text>

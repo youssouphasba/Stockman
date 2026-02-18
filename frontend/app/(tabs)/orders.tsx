@@ -1060,7 +1060,7 @@ export default function OrdersScreen() {
                         </Text>
                       </View>
                       <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
-                        {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} F
+                        {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} {t('common.currency_short')}
                       </Text>
                     </View>
                   ))}

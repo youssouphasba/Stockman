@@ -1,23 +1,22 @@
-import React, { useCallback, useState } from 'react';
+```javascript
+import React, { useCallback, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  Modal,
   ActivityIndicator,
-  Alert as RNAlert,
-  Platform,
   RefreshControl,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { supplierOrders, SupplierOrderData } from '../../services/api';
+import { supplierOrders, SupplierOrderData, updateSupplierOrderStatus } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import PeriodSelector, { Period } from '../../components/PeriodSelector';
-import ChatModal from '../../components/ChatModal';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'En attente',
@@ -56,6 +55,7 @@ function getActions(currentStatus: string): StatusAction[] {
 }
 
 export default function SupplierOrdersScreen() {
+  const { t } = useTranslation();
   const [ordersList, setOrdersList] = useState<SupplierOrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -140,7 +140,7 @@ export default function SupplierOrdersScreen() {
   }
 
   async function handleStatusChange(orderId: string, newStatus: string) {
-    const confirmText = newStatus === 'cancelled' ? 'Refuser cette commande ?' : `Changer le statut en "${STATUS_LABELS[newStatus]}" ?`;
+    const confirmText = newStatus === 'cancelled' ? 'Refuser cette commande ?' : `Changer le statut en "${STATUS_LABELS[newStatus]}" ? `;
 
     const executeChange = async () => {
       setUpdating(true);
@@ -357,10 +357,10 @@ export default function SupplierOrdersScreen() {
                   {selectedOrder.items?.map((item, idx) => (
                     <View key={idx} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
-                        <Text style={styles.itemName}>{item.product?.name ?? `Produit #${item.product_id.slice(-6)}`}</Text>
-                        <Text style={styles.itemQty}>{item.quantity} x {item.unit_price.toLocaleString()} F</Text>
+                        <Text style={styles.itemName}>{item.product?.name ?? `Produit #${ item.product_id.slice(-6) } `}</Text>
+                        <Text style={styles.itemQty}>{item.quantity} x {item.unit_price.toLocaleString()} {t('common.currency_short')}</Text>
                       </View>
-                      <Text style={styles.itemTotal}>{item.total_price.toLocaleString()} F</Text>
+                      <Text style={styles.itemTotal}>{item.total_price.toLocaleString()} {t('common.currency_short')}</Text>
                     </View>
                   ))}
                 </View>

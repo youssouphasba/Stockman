@@ -316,7 +316,7 @@
   "premium": {
     "with_premium_you_can": "Mit Premium können Sie:",
     "upgrade_now": "Auf Premium upgraden",
-    "pricing_hint": "2 500 FCFA / Monat",
+    "pricing_hint": "{{price}} {{currency}} {{period}}",
     "features": {
       "orders": {
         "title": "Intelligente Bestellungen",

@@ -65,7 +65,7 @@ export default function ForecastCard({ onNavigate }: Props) {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="analytics-outline" size={20} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.sales_forecast') || 'Prévisions de ventes'}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.sales_forecast')}</Text>
         </View>
         <TouchableOpacity onPress={loadForecast}>
           <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
@@ -75,15 +75,15 @@ export default function ForecastCard({ onNavigate }: Props) {
       {/* KPIs */}
       <View style={styles.kpiRow}>
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
-          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_7d') || 'CA prévu 7j'}</Text>
+          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_7d')}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_7d.toLocaleString()} {t('common.currency_default')}
+            {data.total_predicted_revenue_7d.toLocaleString()} {data.currency || t('common.currency_default')}
           </Text>
         </View>
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
-          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_30d') || 'CA prévu 30j'}</Text>
+          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_30d')}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_30d.toLocaleString()} {t('common.currency_default')}
+            {data.total_predicted_revenue_30d.toLocaleString()} {data.currency || t('common.currency_default')}
           </Text>
         </View>
       </View>
@@ -143,7 +143,7 @@ export default function ForecastCard({ onNavigate }: Props) {
         <View style={[styles.aiBox, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <Ionicons name="sparkles" size={13} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{t('ai.ai_analysis') || 'Analyse IA'}</Text>
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{t('ai.ai_analysis')}</Text>
           </View>
           <Text style={[styles.aiText, { color: colors.textSecondary }]}>
             {data.ai_summary}

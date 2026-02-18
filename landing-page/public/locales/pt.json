@@ -80,12 +80,12 @@
         "title": "They Trust Us",
         "subtitle": "Discover how Stockman helps merchants daily.",
         "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver.",
         "t1_author": "Amadou Diallo",
         "t1_job": "Electronics Shop",
+        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
         "t2_author": "Sarah Kouassi",
         "t2_job": "Express Supermarket",
+        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver.",
         "t3_author": "Paul N'Goma",
         "t3_job": "Central Pharmacy"
     },
@@ -131,6 +131,8 @@
     "download": {
         "title": "Ready to Level Up?",
         "subtitle": "Join thousands of merchants who have modernized their management.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
         "secure": "Secure Payments",
         "support": "Pro Support",
         "updates": "Continuous Updates"
@@ -145,8 +147,39 @@
         "community": "Comunidade",
         "privacy": "Política de Privacidade",
         "terms": "Termos de Serviço",
+        "delete_account": "Supprimer mon compte",
         "legal_notice": "Aviso Legal",
         "copyright": "© 2026 Stockman. Todos os direitos reservados."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
     },
     "newsletter": {
         "title": "Torne-se um Especialista em Stock",

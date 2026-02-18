@@ -255,7 +255,11 @@ export default function OrderCreationModal({
       setSubmitting(false);
     };
 
-    const msg = `Confirmer l'envoi de cette commande à ${selectedSupplier.name} pour un montant de ${total.toLocaleString()} FCFA ?`;
+    const msg = t('orders.confirm_send_to', {
+      supplier: selectedSupplier.name,
+      amount: total.toLocaleString(),
+      currency: t('common.currency_default')
+    });
 
     if (Platform.OS === 'web') {
       if (window.confirm(msg)) {
@@ -297,12 +301,12 @@ export default function OrderCreationModal({
           <View style={s.productInfo}>
             <Text style={s.productName}>{item.name}</Text>
             <Text style={s.productPrice}>
-              {item.unit_price.toLocaleString()} F/{item.unit}
+              {item.unit_price.toLocaleString()} {t('common.currency_short')}/{item.unit}
             </Text>
           </View>
           <View style={s.productRight}>
             {isSelected && (
-              <Text style={s.lineTotal}>{(qty * item.unit_price).toLocaleString()} F</Text>
+              <Text style={s.lineTotal}>{(qty * item.unit_price).toLocaleString()} {t('common.currency_short')}</Text>
             )}
             <QuantityStepper
               value={qty}
@@ -511,7 +515,7 @@ export default function OrderCreationModal({
                 <View style={s.stickyFooter}>
                   <View style={s.footerInfo}>
                     <Text style={s.footerCount}>{itemCount} article(s)</Text>
-                    <Text style={s.footerTotal}>{total.toLocaleString()} FCFA</Text>
+                    <Text style={s.footerTotal}>{total.toLocaleString()} {t('common.currency_default')}</Text>
                   </View>
                   <TouchableOpacity
                     style={[s.footerBtn, itemCount === 0 && s.footerBtnDisabled]}
@@ -545,10 +549,10 @@ export default function OrderCreationModal({
                   <View style={s.reviewItem}>
                     <Text style={s.reviewItemName}>{item.name}</Text>
                     <Text style={s.reviewItemDetail}>
-                      {quantities[item.id]} x {item.unit_price.toLocaleString()} F
+                      {quantities[item.id]} x {item.unit_price.toLocaleString()} {t('common.currency_short')}
                     </Text>
                     <Text style={s.reviewItemTotal}>
-                      {((quantities[item.id] || 0) * item.unit_price).toLocaleString()} F
+                      {((quantities[item.id] || 0) * item.unit_price).toLocaleString()} {t('common.currency_short')}
                     </Text>
                   </View>
                 )}
@@ -568,7 +572,7 @@ export default function OrderCreationModal({
                     {/* Total */}
                     <View style={s.totalRow}>
                       <Text style={s.totalLabel}>Total</Text>
-                      <Text style={s.totalValue}>{total.toLocaleString()} FCFA</Text>
+                      <Text style={s.totalValue}>{total.toLocaleString()} {t('common.currency_default')}</Text>
                     </View>
 
                     {/* Submit */}
