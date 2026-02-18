@@ -1,0 +1,16 @@
+# Avoid bundling backend and landing page into EAS build context
+../backend
+../landing-page
+../docs
+../tests
+../tsc_errors.txt
+../import_error.txt
+../user_list.txt
+../ip_config.txt
+
+# Local caches
+.expo
+.metro-cache
+node_modules
+dist
+web-build

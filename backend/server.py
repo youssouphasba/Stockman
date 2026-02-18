@@ -25,6 +25,7 @@ from slowapi.errors import RateLimitExceeded
 import base64
 from fastapi.staticfiles import StaticFiles
 from collections import defaultdict
+import random
 
 # Configure logging
 print("---------------- SERVER STARTING ----------------")
