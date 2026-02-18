@@ -9,8 +9,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Modal,
-  Alert as RNAlert,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -288,7 +287,7 @@ export default function SuppliersScreen() {
       resetForm();
       loadData();
     } catch {
-      RNAlert.alert(t('common.error'), t('suppliers.save_error'));
+      Alert.alert(t('common.error'), t('suppliers.save_error'));
     } finally {
       setFormLoading(false);
     }
@@ -296,7 +295,7 @@ export default function SuppliersScreen() {
 
   function handleDelete(supplierId: string) {
     const supplier = supplierList.find(s => s.supplier_id === supplierId);
-    RNAlert.alert(
+    Alert.alert(
       t('suppliers.delete_title'),
       t('suppliers.delete_confirm', { name: supplier?.name ?? t('suppliers.supplier') }),
       [
@@ -309,7 +308,7 @@ export default function SuppliersScreen() {
               await suppliersApi.delete(supplierId);
               loadData();
             } catch {
-              RNAlert.alert(t('common.error'), t('suppliers.delete_error'));
+              Alert.alert(t('common.error'), t('suppliers.delete_error'));
             }
           }
         }
@@ -350,7 +349,7 @@ export default function SuppliersScreen() {
 
   const handleWhatsApp = (phone?: string) => {
     if (!phone) {
-      RNAlert.alert(t('common.error'), t('suppliers.phone_missing'));
+      Alert.alert(t('common.error'), t('suppliers.phone_missing'));
       return;
     }
     const cleanPhone = phone.replace(/[^\d+]/g, '');
@@ -366,7 +365,7 @@ export default function SuppliersScreen() {
         }
         Linking.openURL(url);
       } else {
-        RNAlert.alert(t('common.error'), t('suppliers.whatsapp_not_installed'));
+        Alert.alert(t('common.error'), t('suppliers.whatsapp_not_installed'));
       }
     });
   };
@@ -382,7 +381,7 @@ export default function SuppliersScreen() {
       setDetailLogs(prev => [log, ...prev]);
       setNewLogContent('');
     } catch {
-      RNAlert.alert(t('common.error'), t('suppliers.log_error'));
+      Alert.alert(t('common.error'), t('suppliers.log_error'));
     } finally {
       setIsLogging(false);
     }
@@ -417,7 +416,7 @@ export default function SuppliersScreen() {
       const products = await suppliersApi.getProducts(detailSupplier.supplier_id);
       setLinkedProducts(products);
     } catch {
-      RNAlert.alert(t('common.error'), t('suppliers.product_link_error'));
+      Alert.alert(t('common.error'), t('suppliers.product_link_error'));
     } finally {
       setFormLoading(false);
     }
@@ -430,7 +429,7 @@ export default function SuppliersScreen() {
       const products = await suppliersApi.getProducts(detailSupplier.supplier_id);
       setLinkedProducts(products);
     } catch {
-      RNAlert.alert(t('common.error'), t('suppliers.product_unlink_error'));
+      Alert.alert(t('common.error'), t('suppliers.product_unlink_error'));
     }
   }
 
@@ -502,9 +501,9 @@ export default function SuppliersScreen() {
     try {
       await invitationsApi.send(detailSupplier.supplier_id, inviteEmail.trim());
       setShowInviteModal(false);
-      RNAlert.alert(t('suppliers.invite_sent'), t('suppliers.invite_sent_desc', { email: inviteEmail.trim() }));
+      Alert.alert(t('suppliers.invite_sent'), t('suppliers.invite_sent_desc', { email: inviteEmail.trim() }));
     } catch {
-      RNAlert.alert(t('common.error'), t('suppliers.invite_error'));
+      Alert.alert(t('common.error'), t('suppliers.invite_error'));
     } finally {
       setInviteSaving(false);
     }
@@ -733,7 +732,7 @@ export default function SuppliersScreen() {
                           sug.priority === 'critical' && { borderColor: colors.danger, borderWidth: 1 }
                         ]}
                         onPress={() => {
-                          RNAlert.alert(
+                          Alert.alert(
                             t('suppliers.suggestion_order_title'),
                             t('suppliers.suggestion_order_desc', {
                               product: sug.product_name,
@@ -747,7 +746,7 @@ export default function SuppliersScreen() {
                                 text: t('suppliers.order_action'),
                                 onPress: async () => {
                                   if (!sug.supplier_id) {
-                                    RNAlert.alert(t('common.error'), t('suppliers.supplier_no_phone_error'));
+                                    Alert.alert(t('common.error'), t('suppliers.supplier_no_phone_error'));
                                     return;
                                   }
                                   try {
@@ -760,10 +759,10 @@ export default function SuppliersScreen() {
                                       }],
                                       notes: `Commande suggérée par IA (Vitesse: ${sug.daily_velocity}/jour)`
                                     });
-                                    RNAlert.alert(t('common.success'), t('suppliers.draft_success'));
+                                    Alert.alert(t('common.success'), t('suppliers.draft_success'));
                                     loadData();
                                   } catch {
-                                    RNAlert.alert(t('common.error'), t('modals.error'));
+                                    Alert.alert(t('common.error'), t('modals.error'));
                                   }
                                 }
                               }
@@ -1348,7 +1347,7 @@ export default function SuppliersScreen() {
                       <View style={styles.tabContent}>
                         <View style={styles.linkedHeader}>
                           <Text style={styles.sectionTitle}>{t('suppliers.invoices_safe')}</Text>
-                          <TouchableOpacity style={styles.linkBtn} onPress={() => RNAlert.alert('Info', t('suppliers.add_invoice_feature'))}>
+                          <TouchableOpacity style={styles.linkBtn} onPress={() => Alert.alert('Info', t('suppliers.add_invoice_feature'))}>
                             <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
                             <Text style={styles.linkBtnText}>{t('common.add')}</Text>
                           </TouchableOpacity>
@@ -1901,7 +1900,7 @@ export default function SuppliersScreen() {
           onOrderCreated={() => {
             setShowOrderModal(false);
             setShowMpDetail(false);
-            RNAlert.alert('Commande envoyée', 'Votre commande a été transmise au fournisseur');
+            Alert.alert('Commande envoyée', 'Votre commande a été transmise au fournisseur');
           }}
           preSelectedSupplier={orderPreselect}
           preLoadedCatalog={orderCatalog}

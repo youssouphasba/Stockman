@@ -9,10 +9,10 @@ class TwilioService:
     def __init__(self):
         self.account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
         self.auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-        self.whatsapp_number = os.environ.get("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886") # Default sandbox number
+        self.whatsapp_number = os.environ.get("TWILIO_WHATSAPP_NUMBER")
         
         self.client = None
-        if self.account_sid and self.auth_token:
+        if self.account_sid and self.auth_token and self.whatsapp_number:
             try:
                 self.client = Client(self.account_sid, self.auth_token)
                 logger.info("Twilio client initialized successfully.")

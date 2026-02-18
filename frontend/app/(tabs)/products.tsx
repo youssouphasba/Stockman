@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
-  Alert as RNAlert,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -252,7 +252,7 @@ export default function ProductsScreen() {
       Linking.openURL(url);
     } catch (error) {
       console.error(error);
-      RNAlert.alert(t('common.error'), t('products.error_export_history'));
+      Alert.alert(t('common.error'), t('products.error_export_history'));
     }
   };
 
@@ -392,7 +392,7 @@ export default function ProductsScreen() {
       Linking.openURL(url);
     } catch (error) {
       console.error(error);
-      RNAlert.alert(t('common.error'), t('products.error_export_products'));
+      Alert.alert(t('common.error'), t('products.error_export_products'));
     }
   };
 
@@ -400,7 +400,7 @@ export default function ProductsScreen() {
     const name = formName.trim();
     if (!name || name.length < 2) return;
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      Alert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
       return;
     }
     setAiCatLoading(true);
@@ -423,7 +423,7 @@ export default function ProductsScreen() {
         }
       }
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de suggérer une catégorie');
+      Alert.alert('Erreur', 'Impossible de suggérer une catégorie');
     } finally {
       setAiCatLoading(false);
     }
@@ -431,11 +431,11 @@ export default function ProductsScreen() {
 
   async function handleAiPrice() {
     if (!editingProduct) {
-      RNAlert.alert('Info', 'La suggestion de prix est disponible uniquement pour les produits existants (avec un historique de ventes).');
+      Alert.alert('Info', 'La suggestion de prix est disponible uniquement pour les produits existants (avec un historique de ventes).');
       return;
     }
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      Alert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
       return;
     }
     setAiPriceLoading(true);
@@ -445,7 +445,7 @@ export default function ProductsScreen() {
       setFormSellingPrice(String(result.suggested_price));
       setAiPriceReasoning(result.reasoning);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de suggérer un prix');
+      Alert.alert('Erreur', 'Impossible de suggérer un prix');
     } finally {
       setAiPriceLoading(false);
     }
@@ -455,7 +455,7 @@ export default function ProductsScreen() {
     const name = formName.trim();
     if (!name || name.length < 2) return;
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'La génération IA nécessite une connexion internet.');
+      Alert.alert('Hors ligne', 'La génération IA nécessite une connexion internet.');
       return;
     }
     setAiDescLoading(true);
@@ -463,7 +463,7 @@ export default function ProductsScreen() {
       const result = await aiApi.generateDescription(name, formCategoryName || undefined, formSubcategory || undefined);
       setFormDescription(result.description);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de générer la description');
+      Alert.alert('Erreur', 'Impossible de générer la description');
     } finally {
       setAiDescLoading(false);
     }
@@ -573,7 +573,7 @@ export default function ProductsScreen() {
   async function handleAdjustStock(product: Product, actualQuantityText: string) {
     const actualQuantity = parseInt(actualQuantityText);
     if (isNaN(actualQuantity)) {
-      RNAlert.alert(t('common.error'), t('products.error_invalid_quantity'));
+      Alert.alert(t('common.error'), t('products.error_invalid_quantity'));
       return;
     }
 
@@ -595,7 +595,7 @@ export default function ProductsScreen() {
           return next;
         });
       } catch (error: any) {
-        RNAlert.alert("Erreur", error.message || "Échec de l'ajustement du stock");
+        Alert.alert("Erreur", error.message || "Échec de l'ajustement du stock");
       }
     };
 
@@ -610,7 +610,7 @@ export default function ProductsScreen() {
         await performAdjust();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         t('products.confirm_inventory'),
         msg,
         [
@@ -689,14 +689,14 @@ export default function ProductsScreen() {
           return updatedList;
         });
 
-        RNAlert.alert('Mode hors ligne', 'Produit sauvegardé localement. Il sera synchronisé une fois la connexion rétablie.');
+        Alert.alert('Mode hors ligne', 'Produit sauvegardé localement. Il sera synchronisé une fois la connexion rétablie.');
       }
 
       setShowAddModal(false);
       setEditingProduct(null);
       resetForm();
     } catch {
-      RNAlert.alert('Erreur', editingProduct ? 'Impossible de modifier le produit' : 'Impossible de créer le produit');
+      Alert.alert('Erreur', editingProduct ? 'Impossible de modifier le produit' : 'Impossible de créer le produit');
     } finally {
       setFormLoading(false);
     }
@@ -729,7 +729,7 @@ export default function ProductsScreen() {
         });
         await loadData();
       } else {
-        RNAlert.alert('Hors ligne', 'Les mouvements de stock ne sont pas encore disponibles hors ligne.');
+        Alert.alert('Hors ligne', 'Les mouvements de stock ne sont pas encore disponibles hors ligne.');
       }
       setShowStockModal(false);
       setMovQuantity('');
@@ -739,7 +739,7 @@ export default function ProductsScreen() {
       setSelectedProduct(null);
     } catch (error) {
       console.error(error);
-      RNAlert.alert('Erreur', 'Impossible de mettre à jour le stock');
+      Alert.alert('Erreur', 'Impossible de mettre à jour le stock');
     } finally {
       setFormLoading(false);
     }
@@ -762,7 +762,7 @@ export default function ProductsScreen() {
   async function handleSubmitCategory() {
     if (!catFormName.trim()) return;
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'La gestion des catégories est indisponible hors ligne.');
+      Alert.alert('Hors ligne', 'La gestion des catégories est indisponible hors ligne.');
       return;
     }
     setCatFormLoading(true);
@@ -777,7 +777,7 @@ export default function ProductsScreen() {
       setCategoryList(cats);
       await cache.set(KEYS.CATEGORIES, cats);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de sauvegarder la catégorie');
+      Alert.alert('Erreur', 'Impossible de sauvegarder la catégorie');
     } finally {
       setCatFormLoading(false);
     }
@@ -785,13 +785,13 @@ export default function ProductsScreen() {
 
   async function handleImportDefaults() {
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'L\'importation nécessite une connexion internet.');
+      Alert.alert('Hors ligne', 'L\'importation nécessite une connexion internet.');
       return;
     }
 
     // Check if categories already exist to warn user
     if (categoryList.length > 5) {
-      RNAlert.alert(
+      Alert.alert(
         'Attention',
         'Vous avez déjà plusieurs catégories. Voulez-vous vraiment importer les catégories standards ? Cela pourrait créer des doublons.',
         [
@@ -822,13 +822,13 @@ export default function ProductsScreen() {
         const cats = await categoriesApi.list();
         setCategoryList(cats);
         await cache.set(KEYS.CATEGORIES, cats);
-        RNAlert.alert('Succès', `${importedCount} catégories importées.`);
+        Alert.alert('Succès', `${importedCount} catégories importées.`);
       } else {
-        RNAlert.alert('Info', 'Toutes les catégories existent déjà.');
+        Alert.alert('Info', 'Toutes les catégories existent déjà.');
       }
     } catch (e) {
       console.error(e);
-      RNAlert.alert('Erreur', 'Une erreur est survenue lors de l\'import.');
+      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'import.');
     } finally {
       setCatFormLoading(false);
     }
@@ -836,7 +836,7 @@ export default function ProductsScreen() {
 
   async function handleDeleteCategory(catId: string) {
     if (!isConnected) {
-      RNAlert.alert('Hors ligne', 'La suppression de catégorie est indisponible hors ligne.');
+      Alert.alert('Hors ligne', 'La suppression de catégorie est indisponible hors ligne.');
       return;
     }
     try {
@@ -846,13 +846,13 @@ export default function ProductsScreen() {
       setCategoryList(cats);
       await cache.set(KEYS.CATEGORIES, cats);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de supprimer la catégorie');
+      Alert.alert('Erreur', 'Impossible de supprimer la catégorie');
     }
   }
 
   function handleDelete(productId: string) {
     const product = productList.find(p => p.product_id === productId);
-    RNAlert.alert(
+    Alert.alert(
       'Supprimer le produit',
       `Voulez-vous vraiment supprimer "${product?.name ?? 'ce produit'}" ?`,
       [
@@ -866,7 +866,7 @@ export default function ProductsScreen() {
                 await productsApi.delete(productId);
                 loadData();
               } catch {
-                RNAlert.alert('Erreur', 'Impossible de supprimer');
+                Alert.alert('Erreur', 'Impossible de supprimer');
               }
             } else {
               try {
@@ -880,9 +880,9 @@ export default function ProductsScreen() {
                   cache.set(KEYS.PRODUCTS, updated);
                   return updated;
                 });
-                RNAlert.alert('Mode hors ligne', 'Suppression mise en file d\'attente.');
+                Alert.alert('Mode hors ligne', 'Suppression mise en file d\'attente.');
               } catch {
-                RNAlert.alert('Erreur', 'Impossible de supprimer hors ligne');
+                Alert.alert('Erreur', 'Impossible de supprimer hors ligne');
               }
             }
           }
@@ -929,7 +929,7 @@ export default function ProductsScreen() {
   }
 
   async function pickImage() {
-    RNAlert.alert(
+    Alert.alert(
       "Ajouter une photo",
       "Choisissez une source",
       [
@@ -995,7 +995,7 @@ export default function ProductsScreen() {
 
   async function handleBulkDelete() {
     if (selectedProductIds.size === 0) return;
-    RNAlert.alert(
+    Alert.alert(
       'Suppression groupée',
       `Voulez-vous supprimer les ${selectedProductIds.size} produits sélectionnés ?`,
       [
@@ -1013,9 +1013,9 @@ export default function ProductsScreen() {
               setSelectedProductIds(new Set());
               setIsSelectionMode(false);
               await loadData();
-              RNAlert.alert(t('common.success'), t('products.success_deleted'));
+              Alert.alert(t('common.success'), t('products.success_deleted'));
             } catch (error) {
-              RNAlert.alert(t('common.error'), t('products.error_delete_failed'));
+              Alert.alert(t('common.error'), t('products.error_delete_failed'));
               await loadData();
             } finally {
               setLoading(false);
@@ -1037,9 +1037,9 @@ export default function ProductsScreen() {
       setSelectedProductIds(new Set());
       setIsSelectionMode(false);
       await loadData();
-      RNAlert.alert(t('common.success'), t('products.success_categories_updated'));
+      Alert.alert(t('common.success'), t('products.success_categories_updated'));
     } catch (error) {
-      RNAlert.alert(t('common.error'), t('products.error_categories_update_failed'));
+      Alert.alert(t('common.error'), t('products.error_categories_update_failed'));
     } finally {
       setLoading(false);
     }
@@ -1051,7 +1051,7 @@ export default function ProductsScreen() {
       : filtered;
 
     if (list.length === 0) {
-      RNAlert.alert(t('common.info'), t('products.error_no_products_to_export'));
+      Alert.alert(t('common.info'), t('products.error_no_products_to_export'));
       return;
     }
 
@@ -1118,7 +1118,7 @@ export default function ProductsScreen() {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      RNAlert.alert(t('common.error'), t('products.error_export_catalog_failed'));
+      Alert.alert(t('common.error'), t('products.error_export_catalog_failed'));
     }
   }
 
@@ -1179,13 +1179,13 @@ export default function ProductsScreen() {
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {
-      RNAlert.alert(t('common.error'), t('products.error_print_label_failed'));
+      Alert.alert(t('common.error'), t('products.error_print_label_failed'));
     }
   }
 
   async function exportInventoryPdf() {
     if (filtered.length === 0) {
-      RNAlert.alert(t('common.info'), t('products.error_no_products_to_export'));
+      Alert.alert(t('common.info'), t('products.error_no_products_to_export'));
       return;
     }
     const totalValue = filtered.reduce((s, p) => s + p.quantity * p.purchase_price, 0);
@@ -1222,7 +1222,7 @@ export default function ProductsScreen() {
         }],
       });
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de générer le PDF');
+      Alert.alert('Erreur', 'Impossible de générer le PDF');
     }
   }
 
@@ -1262,7 +1262,7 @@ export default function ProductsScreen() {
                 if (!isInventoryMode) {
                   setInventoryValues({});
                 }
-                RNAlert.alert(
+                Alert.alert(
                   isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
                   isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
                 );
@@ -1775,7 +1775,7 @@ export default function ProductsScreen() {
                   <TouchableOpacity
                     style={[styles.scanBtnMini, { backgroundColor: colors.info + '20' }]}
                     onPress={() => {
-                      RNAlert.alert("RFID", "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.");
+                      Alert.alert("RFID", "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.");
                     }}
                   >
                     <Ionicons name="radio-outline" size={24} color={colors.info} />

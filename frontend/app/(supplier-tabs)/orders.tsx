@@ -1,4 +1,3 @@
-```javascript
 import React, { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -10,6 +9,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,7 +149,7 @@ export default function SupplierOrdersScreen() {
         loadOrders();
         setShowDetail(false);
       } catch {
-        RNAlert.alert('Erreur', 'Impossible de changer le statut');
+        Alert.alert('Erreur', 'Impossible de changer le statut');
       } finally {
         setUpdating(false);
       }
@@ -160,7 +160,7 @@ export default function SupplierOrdersScreen() {
         await executeChange();
       }
     } else {
-      RNAlert.alert('Confirmer', confirmText, [
+      Alert.alert('Confirmer', confirmText, [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Confirmer',
@@ -357,7 +357,7 @@ export default function SupplierOrdersScreen() {
                   {selectedOrder.items?.map((item, idx) => (
                     <View key={idx} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
-                        <Text style={styles.itemName}>{item.product?.name ?? `Produit #${ item.product_id.slice(-6) } `}</Text>
+                        <Text style={styles.itemName}>{item.product?.name ?? `Produit #${item.product_id.slice(-6)} `}</Text>
                         <Text style={styles.itemQty}>{item.quantity} x {item.unit_price.toLocaleString()} {t('common.currency_short')}</Text>
                       </View>
                       <Text style={styles.itemTotal}>{item.total_price.toLocaleString()} {t('common.currency_short')}</Text>

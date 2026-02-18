@@ -9,14 +9,14 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Alert,
   Switch,
-  Alert as RNAlert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { alerts as alertsApi, alertRules as alertRulesApi, ai as aiApi, Alert, AlertRule, AiAnomaly } from '../../services/api';
+import { alerts as alertsApi, alertRules as alertRulesApi, ai as aiApi, Alert as AlertData, AlertRule, AiAnomaly } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ScreenGuide from '../../components/ScreenGuide';
@@ -58,7 +58,7 @@ export default function AlertsScreen() {
       default: return 'Info';
     }
   }
-  const [alertList, setAlertList] = useState<Alert[]>([]);
+  const [alertList, setAlertList] = useState<AlertData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -82,7 +82,7 @@ export default function AlertsScreen() {
       setAnomalies(result.anomalies || []);
       setShowAnomalies(true);
     } catch {
-      RNAlert.alert('Erreur', "Impossible d'analyser les anomalies");
+      Alert.alert('Erreur', "Impossible d'analyser les anomalies");
     } finally {
       setAnomalyLoading(false);
     }
@@ -160,7 +160,7 @@ export default function AlertsScreen() {
       });
       setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de modifier la règle');
+      Alert.alert('Erreur', 'Impossible de modifier la règle');
     }
   }
 
@@ -175,7 +175,7 @@ export default function AlertsScreen() {
       });
       setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de modifier le seuil');
+      Alert.alert('Erreur', 'Impossible de modifier le seuil');
     }
   }
 

@@ -29,12 +29,15 @@ async def create_cinetpay_session(user: dict) -> dict:
     """Initialize a CinetPay payment session for Mobile Money."""
     transaction_id = f"stk_{uuid.uuid4().hex[:16]}"
 
+    user_currency = user.get("currency", "XOF")
+    amount = PRICES.get("premium", {}).get(user_currency, PREMIUM_PRICE_XOF)
+    
     payload = {
         "apikey": CINETPAY_API_KEY,
         "site_id": CINETPAY_SITE_ID,
         "transaction_id": transaction_id,
-        "amount": PREMIUM_PRICE_XOF,
-        "currency": "XOF",
+        "amount": amount,
+        "currency": user_currency,
         "description": "Stockman Premium - 1 mois",
         "notify_url": f"{BASE_URL}/api/webhooks/cinetpay",
         "return_url": f"{BASE_URL}/api/payment/success",

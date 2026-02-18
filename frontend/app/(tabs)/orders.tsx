@@ -10,7 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
-  Alert as RNAlert,
+  Alert,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -252,7 +252,7 @@ export default function OrdersScreen() {
       const result = await ordersApi.get(orderId);
       setDetailOrder(result);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de charger les détails');
+      Alert.alert('Erreur', 'Impossible de charger les détails');
       setShowDetailModal(false);
     } finally {
       setDetailLoading(false);
@@ -273,7 +273,7 @@ export default function OrdersScreen() {
       await ordersApi.updateStatus(orderId, next);
       loadData();
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de mettre à jour le statut');
+      Alert.alert('Erreur', 'Impossible de mettre à jour le statut');
     }
   }
 
@@ -282,7 +282,7 @@ export default function OrdersScreen() {
       await ordersApi.updateStatus(orderId, 'cancelled');
       loadData();
     } catch {
-      RNAlert.alert('Erreur', 'Impossible d\'annuler');
+      Alert.alert('Erreur', 'Impossible d\'annuler');
     }
   }
 
@@ -299,7 +299,7 @@ export default function OrdersScreen() {
       setPartialNotes('');
       setShowPartialModal(true);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de charger la commande');
+      Alert.alert('Erreur', 'Impossible de charger la commande');
     }
   }
 
@@ -318,7 +318,7 @@ export default function OrdersScreen() {
         setShowDetailModal(false);
         loadData();
       } catch {
-        RNAlert.alert('Erreur', 'Impossible d\'enregistrer la réception');
+        Alert.alert('Erreur', 'Impossible d\'enregistrer la réception');
       } finally {
         setPartialSaving(false);
       }
@@ -331,7 +331,7 @@ export default function OrdersScreen() {
         await performSubmit();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         t('orders.confirmation'),
         msg,
         [
@@ -391,7 +391,7 @@ export default function OrdersScreen() {
   async function submitReturn() {
     const validItems = returnItems.filter((i) => i.quantity > 0);
     if (validItems.length === 0) {
-      RNAlert.alert(t('common.error'), t('orders.add_at_least_one_item'));
+      Alert.alert(t('common.error'), t('orders.add_at_least_one_item'));
       return;
     }
     setReturnSaving(true);
@@ -405,10 +405,10 @@ export default function OrdersScreen() {
       });
       setShowReturnModal(false);
       loadReturns();
-      RNAlert.alert(t('common.success'), t('orders.return_created_success'));
+      Alert.alert(t('common.success'), t('orders.return_created_success'));
     } catch (error) {
       console.error(error);
-      RNAlert.alert(t('common.error'), t('orders.create_return_error'));
+      Alert.alert(t('common.error'), t('orders.create_return_error'));
     } finally {
       setReturnSaving(false);
     }
@@ -420,13 +420,13 @@ export default function OrdersScreen() {
       setReturnDetail(ret);
       setShowReturnDetailModal(true);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de charger le retour');
+      Alert.alert('Erreur', 'Impossible de charger le retour');
     }
   }
 
   async function handleShareOrderPdf(order: OrderFull) {
     if (!currentStore) {
-      RNAlert.alert(t('common.error'), t('orders.store_config_missing'));
+      Alert.alert(t('common.error'), t('orders.store_config_missing'));
       return;
     }
     setSharingPdf(true);
@@ -445,12 +445,12 @@ export default function OrdersScreen() {
       setCompletingReturn(true);
       try {
         const result = await returnsApi.complete(returnId);
-        RNAlert.alert(t('common.success'), t('orders.return_completed_credit_note_generated'));
+        Alert.alert(t('common.success'), t('orders.return_completed_credit_note_generated'));
         setShowReturnDetailModal(false);
         loadReturns();
       } catch (error) {
         console.error(error);
-        RNAlert.alert(t('common.error'), t('orders.complete_return_error'));
+        Alert.alert(t('common.error'), t('orders.complete_return_error'));
       } finally {
         setCompletingReturn(false);
       }
@@ -463,7 +463,7 @@ export default function OrdersScreen() {
         await performComplete();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         t('orders.confirmation'),
         msg,
         [
@@ -475,7 +475,7 @@ export default function OrdersScreen() {
   }
 
   async function handleScanInvoice() {
-    RNAlert.alert(
+    Alert.alert(
       'Scanner une facture',
       "Prenez en photo une facture fournisseur. L'IA extraira automatiquement les articles.",
       [
@@ -517,13 +517,13 @@ export default function OrdersScreen() {
     try {
       const result = await aiApi.scanInvoice(base64);
       if (result.error || !result.items || result.items.length === 0) {
-        RNAlert.alert('Résultat', "Aucun article détecté sur cette image. Essayez avec une photo plus nette.");
+        Alert.alert('Résultat', "Aucun article détecté sur cette image. Essayez avec une photo plus nette.");
         return;
       }
       setScanResult(result);
       setShowScanResult(true);
     } catch {
-      RNAlert.alert('Erreur', "Impossible d'analyser la facture");
+      Alert.alert('Erreur', "Impossible d'analyser la facture");
     } finally {
       setScanLoading(false);
     }
@@ -563,7 +563,7 @@ export default function OrdersScreen() {
         }],
       });
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de générer le PDF');
+      Alert.alert('Erreur', 'Impossible de générer le PDF');
     }
   }
 
@@ -594,9 +594,9 @@ export default function OrdersScreen() {
         comment: ratingComment.trim() || undefined,
       });
       setShowRatingModal(false);
-      RNAlert.alert('Merci', 'Votre avis a été enregistré');
+      Alert.alert('Merci', 'Votre avis a été enregistré');
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de soumettre l\'avis');
+      Alert.alert('Erreur', 'Impossible de soumettre l\'avis');
     } finally {
       setRatingSaving(false);
     }

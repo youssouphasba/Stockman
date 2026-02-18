@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
-  Alert as RNAlert,
+  Alert,
   Platform,
   TextInput,
 } from 'react-native';
@@ -63,10 +63,10 @@ export default function SettingsScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: t('settings.export_data') });
       } else {
-        RNAlert.alert(t('common.success'), t('settings.export_success') + ' ' + fileUri);
+        Alert.alert(t('common.success'), t('settings.export_success') + ' ' + fileUri);
       }
     } catch (e) {
-      RNAlert.alert(t('common.error'), t('settings.export_error'));
+      Alert.alert(t('common.error'), t('settings.export_error'));
     } finally {
       setLoading(false);
     }
@@ -89,18 +89,18 @@ export default function SettingsScreen() {
 
   const handleSubmitDispute = async () => {
     if (!disputeSubject.trim() || !disputeDesc.trim()) {
-      RNAlert.alert(t('common.error'), t('settings.report_subject_required'));
+      Alert.alert(t('common.error'), t('settings.report_subject_required'));
       return;
     }
     try {
       await disputes.create({ subject: disputeSubject, description: disputeDesc, type: disputeType });
-      RNAlert.alert('✅ ' + t('common.success'), t('settings.report_sent'));
+      Alert.alert('✅ ' + t('common.success'), t('settings.report_sent'));
       setShowDisputeForm(false);
       setDisputeSubject('');
       setDisputeDesc('');
       setDisputeType('other');
     } catch {
-      RNAlert.alert(t('common.error'), t('settings.report_error'));
+      Alert.alert(t('common.error'), t('settings.report_error'));
     }
   };
 
@@ -157,7 +157,7 @@ export default function SettingsScreen() {
         logout();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         t('settings.logout'),
         t('settings.logout_confirm'),
         [

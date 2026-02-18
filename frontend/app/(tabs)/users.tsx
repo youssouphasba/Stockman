@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     TextInput,
     Modal,
-    Alert as RNAlert,
+    Alert,
     Switch,
     Linking,
 } from 'react-native';
@@ -85,14 +85,14 @@ export default function UsersScreen() {
             if (supported) {
                 Linking.openURL(url);
             } else {
-                RNAlert.alert('Erreur', 'WhatsApp n\'est pas installé sur cet appareil.');
+                Alert.alert('Erreur', 'WhatsApp n\'est pas installé sur cet appareil.');
             }
         });
     };
 
     const handleCreateOrUpdate = async () => {
         if (!name || !email || (!editingUser && !password)) {
-            RNAlert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires.');
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires.');
             return;
         }
 
@@ -111,7 +111,7 @@ export default function UsersScreen() {
                     permissions,
                 });
 
-                RNAlert.alert(
+                Alert.alert(
                     'Compte créé',
                     'Voulez-vous envoyer les accès par WhatsApp ?',
                     [
@@ -124,12 +124,12 @@ export default function UsersScreen() {
             resetForm();
             loadUsers();
         } catch (e: any) {
-            RNAlert.alert('Erreur', e.message || 'Une erreur est survenue.');
+            Alert.alert('Erreur', e.message || 'Une erreur est survenue.');
         }
     };
 
     const handleDelete = (userId: string) => {
-        RNAlert.alert(
+        Alert.alert(
             'Supprimer l\'utilisateur',
             'Êtes-vous sûr de vouloir supprimer cet utilisateur ?',
             [
@@ -142,7 +142,7 @@ export default function UsersScreen() {
                             await subUsersApi.delete(userId);
                             loadUsers();
                         } catch (e: any) {
-                            RNAlert.alert('Erreur', e.message || 'Une erreur est survenue.');
+                            Alert.alert('Erreur', e.message || 'Une erreur est survenue.');
                         }
                     }
                 },

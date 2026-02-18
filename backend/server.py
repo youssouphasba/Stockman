@@ -70,9 +70,15 @@ twilio_service = TwilioService()
 notification_service = NotificationService()
 
 # JWT Configuration
-_default_secret = os.urandom(32).hex()
 SECRET_KEY = os.environ.get('JWT_SECRET', '')
+IS_PROD = os.environ.get('APP_ENV') == 'production' or os.environ.get('DEBUG', 'true').lower() == 'false'
+
 if not SECRET_KEY:
+    if IS_PROD:
+        logger.critical("❌ JWT_SECRET IS REQUIRED IN PRODUCTION!")
+        raise RuntimeError("JWT_SECRET environment variable is not set. This is required in production.")
+    
+    _default_secret = os.urandom(32).hex()
     import warnings
     warnings.warn("⚠️  JWT_SECRET non défini ! Utilisation d'une clé aléatoire (tokens invalidés au redémarrage). Définissez JWT_SECRET en production.", stacklevel=2)
     SECRET_KEY = _default_secret
@@ -734,6 +740,21 @@ class UserSettings(BaseModel):
     simple_mode: bool = False  # true = simple, false = advanced
     language: str = "fr"
     push_notifications: bool = True
+    dashboard_layout: Dict[str, bool] = Field(default_factory=lambda: {
+        "show_kpi": True,
+        "show_stock_status": True,
+        "show_smart_reminders": True,
+        "show_forecast": True,
+        "show_recent_alerts": True,
+        "show_recent_sales": True,
+        "show_stock_chart": True,
+        "show_category_chart": True,
+        "show_abc_analysis": True,
+        "show_reorder": True,
+        "show_inventory_tasks": True,
+        "show_expiry_alerts": True,
+        "show_profitability": True
+    })
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -1865,7 +1886,8 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
         
-        ai_tools = AiTools(user_id=owner_id, store_id=store_id)
+        currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
+        ai_tools = AiTools(user_id=owner_id, store_id=store_id, currency=currency)
         tools_list = [
             ai_tools.get_sales_stats, 
             ai_tools.get_product_info,
@@ -2157,8 +2179,11 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
                     else:
                         product_sales_prev[pid] += qty
 
+        user_doc = await db.users.find_one({"user_id": user_id})
+        currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
+        
         avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
-        revenue_data = [f"{d}: {r:.0f} FCFA ({c} ventes)" for d, r, c in
+        revenue_data = [f"{d}: {r:.0f} {currency} ({c} ventes)" for d, r, c in
                         sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
 
         margin_issues = []
@@ -2184,7 +2209,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
 
         prompt = f"""Tu es un analyste business expert. Analyse ces données d'un commerce et détecte les ANOMALIES.
 CA quotidien (14 derniers jours) : {chr(10).join(revenue_data) if revenue_data else "Aucune"}
-CA moyen journalier : {avg_daily_rev:.0f} FCFA
+CA moyen journalier : {avg_daily_rev:.0f} {currency}
 Changements de volume inhabituels : {chr(10).join(volume_changes[:15]) if volume_changes else "Aucun"}
 Marges anormales : {chr(10).join(margin_issues[:15]) if margin_issues else "Normales"}
 Produits : {len(products)}
@@ -2359,12 +2384,14 @@ async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_
                     total_qty_sold += qty
                     total_revenue += qty * price
 
+        currency = user.currency if hasattr(user, 'currency') else "XOF"
+        
         # Price history
         price_history = await db.price_history.find(
             {"product_id": product_id}, {"_id": 0}
         ).sort("changed_at", -1).to_list(10)
         price_changes = "\n".join([
-            f"- {h.get('changed_at', '')}: {h.get('old_price', '?')} → {h.get('new_price', '?')} FCFA"
+            f"- {h.get('changed_at', '')}: {h.get('old_price', '?')} → {h.get('new_price', '?')} {currency}"
             for h in price_history[:5]
         ]) if price_history else "Aucun changement récent"
 
@@ -2375,7 +2402,7 @@ async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_
                 {"user_id": owner_id, "category_id": product["category_id"], "product_id": {"$ne": product_id}},
                 {"name": 1, "selling_price": 1, "purchase_price": 1, "_id": 0}
             ).to_list(10)
-            similar_prices = [f"- {p['name']}: achat={p.get('purchase_price', '?')}, vente={p.get('selling_price', '?')} FCFA" for p in similar]
+            similar_prices = [f"- {p['name']}: achat={p.get('purchase_price', '?')}, vente={p.get('selling_price', '?')} {currency}" for p in similar]
 
         purchase_price = product.get("purchase_price", 0)
         current_price = product.get("selling_price", 0)
@@ -2384,12 +2411,12 @@ async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_
         prompt = f"""Tu es un expert en pricing pour un commerce de détail.
 
 Produit : {product.get('name')}
-Prix d'achat : {purchase_price} FCFA
-Prix de vente actuel : {current_price} FCFA
+Prix d'achat : {purchase_price} {currency}
+Prix de vente actuel : {current_price} {currency}
 Marge actuelle : {margin:.1f}%
 Stock : {product.get('quantity', 0)} {product.get('unit', 'pièce')}(s)
 
-Ventes 30 derniers jours : {total_qty_sold} unités vendues, CA = {total_revenue:.0f} FCFA
+Ventes 30 derniers jours : {total_qty_sold} unités vendues, CA = {total_revenue:.0f} {currency}
 Vélocité : {total_qty_sold / 30:.1f} unités/jour
 
 Historique des prix :
@@ -6886,9 +6913,10 @@ async def check_db():
 # ===================== AI TOOLS =====================
 
 class AiTools:
-    def __init__(self, user_id: str, store_id: Optional[str] = None):
+    def __init__(self, user_id: str, store_id: Optional[str] = None, currency: str = "XOF"):
         self.user_id = user_id
         self.store_id = store_id
+        self.currency = currency
 
     async def get_sales_stats(self, period: str = "today", start_date: str = None, end_date: str = None):
         """
@@ -6944,7 +6972,7 @@ class AiTools:
             "period": period,
             "revenue": stats.get("total_revenue", 0),
             "sales_count": stats.get("sales_count", 0),
-            "currency": "FCFA"
+            "currency": self.currency
         }
 
     async def get_product_info(self, name: str):
@@ -7187,6 +7215,7 @@ async def _get_ai_data_summary(user_id: str, store_id: Optional[str] = None) -> 
     try:
         user_doc = await db.users.find_one({"user_id": user_id})
         is_admin = user_doc and user_doc.get("role") in ["admin", "superadmin"]
+        currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
         
         now = datetime.now(timezone.utc)
         thirty_days_ago = now - timedelta(days=30)
@@ -7214,7 +7243,7 @@ async def _get_ai_data_summary(user_id: str, store_id: Optional[str] = None) -> 
             summary = f"""
 --- VUE GLOBALE ADMINISTRATEUR (DERNIERES 24H) ---
 Utilisateurs totaux: {total_users} | Nouveaux (24h): {new_users_24h}
-CA Global (24h): {rev_today} FCFA | Ventes (24h): {len(sales_global)}
+CA Global (24h): {rev_today} {currency} | Ventes (24h): {len(sales_global)}
 Tickets ouverts: {open_tickets} | Litiges en cours: {open_disputes}
 
 --- ALERTES SÉCURITÉ (24H) ---
@@ -7268,7 +7297,7 @@ Tickets ouverts: {open_tickets} | Litiges en cours: {open_disputes}
         top_products = sorted(products, key=lambda p: prod_velocity.get(p["product_id"], 0), reverse=True)[:15]
         
         top_prod_str = "\n".join([
-            f"- {p['name']}: Stock={p['quantity']} {p['unit']}, Vitesse={prod_velocity.get(p['product_id'], 0):.2f}/j, Prix={p['selling_price']} FCFA"
+            f"- {p['name']}: Stock={p['quantity']} {p['unit']}, Vitesse={prod_velocity.get(p['product_id'], 0):.2f}/j, Prix={p['selling_price']} {currency}"
             for p in top_products
         ])
         
@@ -7290,8 +7319,8 @@ Tickets ouverts: {open_tickets} | Litiges en cours: {open_disputes}
         forecast_str = "\n".join(forecast_risks[:10]) if forecast_risks else "Aucun risque immédiat détecté."
         summary = f"""
 --- INTELLIGENCE BUSINESS (30 DERNIERS JOURS) ---
-CA Total: {total_rev} FCFA | Dépenses: {total_exp} FCFA | Ventes: {len(sales)}
-Panier moyen: {(total_rev/len(sales) if sales else 0)} FCFA
+CA Total: {total_rev} {currency} | Dépenses: {total_exp} {currency} | Ventes: {len(sales)}
+Panier moyen: {(total_rev/len(sales) if sales else 0)} {currency}
 Paiements: {dict(pm_breakdown)}
 
 --- PRÉVISIONS DE RUPTURE (BASÉES SUR LA VITESSE DE VENTE) ---
@@ -7305,7 +7334,7 @@ Paiements: {dict(pm_breakdown)}
 
 --- CRM & FIDÉLITÉ ---
 Total clients: {len(customers)}
-Règle fidélité: {loyalty.get('ratio', '?' )} FCFA = 1 point
+Règle fidélité: {loyalty.get('ratio', '?' )} {currency} = 1 point
 """
         return summary
     except Exception as e:
@@ -8170,11 +8199,15 @@ async def get_sales_forecast(user: User = Depends(require_auth)):
             critical_count = len([fp for fp in forecast_products if fp.risk_level == "critical"])
             warning_count = len([fp for fp in forecast_products if fp.risk_level == "warning"])
             
+            owner_id = get_owner_id(user)
+            user_doc = await db.users.find_one({"user_id": owner_id})
+            currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
+            
             prompt_text = f"""Analyse ces prévisions de ventes et donne un résumé en 3-4 phrases concises en français.
 Mentionne les produits critiques, les tendances importantes et une recommandation.
 
-CA prévu 7 jours: {total_rev_7d:,.0f} FCFA
-CA prévu 30 jours: {total_rev_30d:,.0f} FCFA
+CA prévu 7 jours: {total_rev_7d:,.0f} {currency}
+CA prévu 30 jours: {total_rev_30d:,.0f} {currency}
 Produits critiques: {critical_count} | Attention: {warning_count}
 
 Top produits:
@@ -8192,6 +8225,7 @@ Top produits:
         total_predicted_revenue_7d=round(total_rev_7d),
         total_predicted_revenue_30d=round(total_rev_30d),
         ai_summary=ai_summary,
+        currency=currency,
         generated_at=now.isoformat(),
     ).model_dump()
 
@@ -9248,11 +9282,15 @@ async def init_cinetpay_payment(user: User = Depends(require_auth)):
         user_dict = user.model_dump()
         result = await create_cinetpay_session(user_dict)
         # Store transaction for webhook lookup
+        from services.payment import PRICES
+        user_currency = user.currency if hasattr(user, 'currency') else "XOF"
+        expected_amount = PRICES.get("premium", {}).get(user_currency, PREMIUM_PRICE_XOF)
+        
         await db.payment_transactions.insert_one({
             "transaction_id": result["transaction_id"],
             "user_id": user.user_id,
-            "amount": PREMIUM_PRICE_XOF,
-            "currency": "XOF",
+            "amount": expected_amount,
+            "currency": user_currency,
             "provider": "cinetpay",
             "status": "pending",
             "created_at": datetime.now(timezone.utc),
@@ -9280,7 +9318,8 @@ async def cinetpay_webhook(request: Request):
     verification = await verify_cinetpay_transaction(transaction_id)
     cp_data = verification.get("data", {})
 
-    if cp_data.get("status") == "ACCEPTED" and int(cp_data.get("amount", 0)) >= PREMIUM_PRICE_XOF:
+    expected_amount = txn_record.get("amount", PREMIUM_PRICE_XOF)
+    if cp_data.get("status") == "ACCEPTED" and int(cp_data.get("amount", 0)) >= expected_amount:
         user_id = txn_record["user_id"]
         sub_end = datetime.now(timezone.utc) + timedelta(days=30)
         await db.users.update_one(
@@ -9401,60 +9440,6 @@ async def payment_cancel():
         </html>
     """)
 
-# ===================== SETTINGS ROUTES & MODELS =====================
-
-class SettingsLoyalty(BaseModel):
-    is_active: bool = False
-    ratio: float = 1.0
-    reward_threshold: float = 10000.0
-    reward_description: str = "Bon d'achat"
-
-class SettingsReminderRule(BaseModel):
-    enabled: bool = True
-    threshold: Optional[float] = None
-
-class SettingsReminderRuleSettings(BaseModel):
-    inventory_check: SettingsReminderRule = SettingsReminderRule(threshold=30)
-    dormant_products: SettingsReminderRule = SettingsReminderRule(threshold=60)
-    late_deliveries: SettingsReminderRule = SettingsReminderRule(threshold=7)
-    replenishment: SettingsReminderRule = SettingsReminderRule()
-    pending_invitations: SettingsReminderRule = SettingsReminderRule(threshold=3)
-    debt_recovery: SettingsReminderRule = SettingsReminderRule(threshold=50000)
-    client_reactivation: SettingsReminderRule = SettingsReminderRule(threshold=30)
-    birthdays: SettingsReminderRule = SettingsReminderRule(threshold=7)
-    monthly_report: SettingsReminderRule = SettingsReminderRule(threshold=3)
-    expense_spike: SettingsReminderRule = SettingsReminderRule(threshold=50)
-
-class UserSettings(BaseModel):
-    settings_id: Optional[str] = None
-    user_id: str
-    loyalty: SettingsLoyalty = SettingsLoyalty()
-    reminder_rules: SettingsReminderRuleSettings = SettingsReminderRuleSettings()
-    modules: Dict[str, bool] = {
-        "stock_management": True,
-        "alerts": True,
-        "rules": True,
-        "statistics": True,
-        "history": True,
-        "export": True
-    }
-    simple_mode: bool = True
-    language: str = "fr"
-    dashboard_layout: Dict[str, bool] = {
-        "show_kpi": True,
-        "show_stock_status": True,
-        "show_smart_reminders": True,
-        "show_forecast": True,
-        "show_recent_alerts": True,
-        "show_recent_sales": True,
-        "show_stock_chart": True,
-        "show_category_chart": True,
-        "show_abc_analysis": True,
-        "show_reorder": True,
-        "show_inventory_tasks": True,
-        "show_expiry_alerts": True,
-        "show_profitability": True
-    }
 
 @api_router.get("/statistics")
 async def get_statistics(user: User = Depends(require_auth)):
@@ -9544,41 +9529,6 @@ async def get_statistics(user: User = Depends(require_auth)):
         "expiry_alerts": [],
         "profit_by_category": profit_by_category # NEW
     }
-    push_notifications: bool = True
-
-@api_router.get("/settings", response_model=UserSettings)
-async def get_settings(user: User = Depends(require_auth)):
-    """Get user settings"""
-    settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0})
-    if not settings:
-        # Create default
-        default_settings = UserSettings(
-            user_id=user.user_id, 
-            settings_id=f"set_{uuid.uuid4().hex[:12]}"
-        )
-        await db.user_settings.insert_one(default_settings.model_dump())
-        return default_settings
-    return UserSettings(**settings)
-
-@api_router.put("/settings", response_model=UserSettings)
-async def update_settings(new_settings: UserSettings, user: User = Depends(require_auth)):
-    """Update user settings"""
-    # Ensure user_id matches token
-    if new_settings.user_id != user.user_id:
-        raise HTTPException(status_code=403, detail="Non autorisé")
-    
-    # We exclude settings_id and user_id from update to prevent tampering
-    update_data = new_settings.model_dump(exclude={"settings_id", "user_id"})
-    
-    await db.user_settings.update_one(
-        {"user_id": user.user_id},
-        {"$set": update_data},
-        upsert=True
-    )
-    
-    # Return updated
-    updated = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0})
-    return UserSettings(**updated)
 
 app.include_router(api_router)
 app.include_router(admin_router, prefix="/api", dependencies=[Depends(require_superadmin)])

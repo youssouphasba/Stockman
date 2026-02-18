@@ -63,9 +63,9 @@ const RULE_CONFIGS: RuleConfig[] = [
   {
     key: 'debt_recovery',
     label: 'Recouvrement de dettes',
-    description: t('reminders.debt_recovery_desc'),
+    description: 'reminders.debt_recovery_desc',
     icon: 'wallet-outline',
-    unit: t('common.currency_default'),
+    unit: 'common.currency_default',
     color: '#8B5CF6',
   },
   {
@@ -167,7 +167,7 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
             <View style={styles.ruleContent}>
               <Text style={[styles.ruleLabel, { color: colors.text }]}>{config.label}</Text>
               <Text style={[styles.ruleDesc, { color: colors.textMuted }]}>
-                {config.description}
+                {t(config.description)}
               </Text>
 
               {config.unit && rule.enabled && (
@@ -199,7 +199,7 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
                     </Text>
                   )}
                   <Text style={[styles.thresholdUnit, { color: colors.textSecondary }]}>
-                    {config.unit}
+                    {t(config.unit)}
                   </Text>
                 </View>
               )}

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert as RNAlert,
+  Alert,
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -74,7 +74,7 @@ export default function SupplierSettingsScreen() {
 
   async function handleSave() {
     if (!companyName.trim()) {
-      RNAlert.alert('Erreur', 'Le nom de l\'entreprise est requis');
+      Alert.alert('Erreur', 'Le nom de l\'entreprise est requis');
       return;
     }
     setSaving(true);
@@ -100,7 +100,7 @@ export default function SupplierSettingsScreen() {
       setIsNew(false);
       setIsEditing(false);
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de sauvegarder le profil');
+      Alert.alert('Erreur', 'Impossible de sauvegarder le profil');
     } finally {
       setSaving(false);
     }
@@ -112,7 +112,7 @@ export default function SupplierSettingsScreen() {
         logout();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         'Déconnexion',
         'Voulez-vous vraiment vous déconnecter ?',
         [

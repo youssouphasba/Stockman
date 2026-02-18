@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Modal,
   Linking,
-  Alert as RNAlert,
+  Alert,
   Image,
   Platform,
   Dimensions,
@@ -201,7 +201,7 @@ export default function DashboardScreen() {
       await settingsApi.update({ dashboard_layout: layout });
     } catch {
       // Revert if API fails
-      RNAlert.alert(t('common.error'), t('common.preferences_error'));
+      Alert.alert(t('common.error'), t('common.preferences_error'));
     }
   }
 
@@ -752,7 +752,7 @@ export default function DashboardScreen() {
                   <TouchableOpacity
                     style={styles.countButton}
                     onPress={() => {
-                      RNAlert.prompt(
+                      Alert.prompt(
                         t('dashboard.count_stock'),
                         t('dashboard.enter_actual_qty', { name: task.product_name }),
                         [

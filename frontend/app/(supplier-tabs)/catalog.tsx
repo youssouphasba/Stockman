@@ -1,4 +1,3 @@
-```javascript
 import React, { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,6 +11,8 @@ import {
   Alert,
   Modal,
   TextInput,
+  Platform,
+  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -120,7 +121,7 @@ export default function SupplierCatalogScreen() {
       setShowModal(false);
       loadProducts();
     } catch {
-      RNAlert.alert('Erreur', 'Impossible de sauvegarder le produit');
+      Alert.alert('Erreur', 'Impossible de sauvegarder le produit');
     } finally {
       setSaving(false);
     }
@@ -143,7 +144,7 @@ export default function SupplierCatalogScreen() {
         await executeDelete();
       }
     } else {
-      RNAlert.alert(
+      Alert.alert(
         'Supprimer',
         confirmText,
         [
