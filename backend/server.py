@@ -9182,7 +9182,8 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
     # 1. Verify password
     user_doc = await db.users.find_one({"user_id": user.user_id})
     if not user_doc or not verify_password(confirmation.password, user_doc.get("password_hash", "")):
-        raise HTTPException(status_code=403, detail="Mot de passe incorrect")
+        logger.warning(f"Failed account deletion attempt for user {user.user_id}: incorrect password")
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
         
     owner_id = get_owner_id(user)
     

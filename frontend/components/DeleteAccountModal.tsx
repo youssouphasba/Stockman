@@ -40,7 +40,9 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
                             onClose();
                             logout();
                         } catch (error: any) {
-                            Alert.alert('Erreur', 'Impossible de supprimer le compte. Vérifiez votre mot de passe.');
+                            console.error('Account deletion error:', error);
+                            const errorMessage = error.message || 'Impossible de supprimer le compte.';
+                            Alert.alert('Erreur', errorMessage);
                         } finally {
                             setLoading(false);
                         }
