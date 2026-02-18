@@ -3110,10 +3110,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         # Generate OTP
         otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-        # Real-time WhatsApp sending
-        await twilio_service.send_whatsapp_otp(user_data.phone, otp)
         logger.info(f"OTP for user {user_data.phone}: {otp}")
-        
+
         # Create Default Store
         store_id = f"store_{uuid.uuid4().hex[:12]}"
         store = Store(
@@ -3200,6 +3198,13 @@ async def register(request: Request, user_data: UserCreate, response: Response):
                     {"supplier_id": ms["supplier_id"]},
                     {"$set": {"linked_user_id": user_id}}
                 )
+
+        # Send WhatsApp OTP (best-effort, non-blocking for registration)
+        if user_data.phone:
+            try:
+                await twilio_service.send_whatsapp_otp(user_data.phone, otp)
+            except Exception as otp_err:
+                logger.warning(f"Failed to send WhatsApp OTP (non-blocking): {otp_err}")
 
         # Create access token
         access_token = create_access_token(data={"sub": user_id})

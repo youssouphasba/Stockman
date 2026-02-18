@@ -26,6 +26,10 @@ class TwilioService:
         Send an OTP via WhatsApp.
         Phone should be in E.164 format (ex: +221771234567).
         """
+        if not phone:
+            logger.warning("No phone number provided, skipping WhatsApp OTP")
+            return False
+
         # Ensure phone has the whatsapp: prefix for Twilio
         to_whatsapp_number = f"whatsapp:{phone}" if not phone.startswith("whatsapp:") else phone
         

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 type Props = {
     /** Feature name shown in the title */
@@ -30,6 +31,9 @@ export default function PremiumGate({ featureName, description, benefits, icon =
     const { t } = useTranslation();
     const router = useRouter();
     const { colors, glassStyle } = useTheme();
+    const { user } = useAuth();
+    const isEUR = user?.currency === 'EUR';
+    const premiumPrice = isEUR ? '7,99 € / ' + t('subscription.per_month') : '2 500 FCFA / ' + t('subscription.per_month');
 
     if (!locked) {
         return <>{children}</>;
@@ -75,7 +79,7 @@ export default function PremiumGate({ featureName, description, benefits, icon =
                 </TouchableOpacity>
 
                 <Text style={styles.priceHint}>
-                    {t('premium.pricing_hint') || 'À partir de 5 000 FCFA / mois'}
+                    {premiumPrice}
                 </Text>
             </View>
         </View>
