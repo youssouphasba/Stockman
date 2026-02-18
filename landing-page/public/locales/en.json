@@ -80,8 +80,14 @@
         "title": "They trust us",
         "subtitle": "Discover how Stockman helps merchants every day.",
         "t1": "Since I started using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
         "t2": "The app is so simple. My employees got the hang of it in 10 minutes. The POS management is perfect.",
-        "t3": "I love the marketplace! I can compare my supplier prices and order directly. A huge time saver."
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3": "I love the marketplace! I can compare my supplier prices and order directly. A huge time saver.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "Choose your plan",
@@ -90,7 +96,6 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
-            "price": "3.99",
             "f1": "1 User, 1 Store",
             "f2": "100 products",
             "f3": "14 AI Requests / week",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "Premium",
-            "price": "7.99",
             "f1": "Unlimited users",
             "f2": "Unlimited products",
             "f3": "Unlimited AI Assistant",
@@ -112,7 +116,7 @@
             "price": "Custom quote",
             "f1": "Multi-store",
             "f2": "Dedicated 24/7 support",
-            "f3": "API & Integrations",
+            "f3": "API & Intégrations",
             "f4": "Custom AI",
             "cta": "Contact Us"
         }

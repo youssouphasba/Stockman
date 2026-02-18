@@ -622,1186 +622,1181 @@ export default function OrdersScreen() {
 
   return (
     <PremiumGate
-      featureName="Commandes"
-      description="Créez et suivez vos commandes fournisseurs. Gérez les livraisons, retours et avoirs en toute simplicité."
-      benefits={[
-        'Création et suivi des commandes',
-        'Gestion des livraisons et retours',
-        'Historique complet des transactions',
-        'Bons de commande PDF exportables',
-      ]}
+      featureName={t('premium.features.orders.title')}
+      description={t('premium.features.orders.desc')}
+      benefits={t('premium.features.orders.benefits', { returnObjects: true }) as string[]}
       icon="cart-outline"
       locked={isLocked}
     >
-    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-      >
-        <View style={[styles.headerRow, { paddingTop: insets.top }]}>
-          <View>
-            <Text style={styles.pageTitle}>{t('orders.title')}</Text>
-            <Text style={styles.subtitle}>
-              {activeTab === 'orders'
-                ? t('orders.orders_count', { count: orderList.length })
-                : t('orders.returns_count', { count: returnsList.length })}
-            </Text>
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        >
+          <View style={[styles.headerRow, { paddingTop: insets.top }]}>
+            <View>
+              <Text style={styles.pageTitle}>{t('orders.title')}</Text>
+              <Text style={styles.subtitle}>
+                {activeTab === 'orders'
+                  ? t('orders.orders_count', { count: orderList.length })
+                  : t('orders.returns_count', { count: returnsList.length })}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.addBtn, { backgroundColor: colors.primary + '15' }]}
+                onPress={handleScanInvoice}
+                disabled={scanLoading}
+              >
+                {scanLoading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="scan-outline" size={22} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.addBtn} onPress={exportOrdersPdf}>
+                <Ionicons name="document-text-outline" size={22} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.addBtn} onPress={() => setShowGuide(true)}>
+                <Ionicons name="help-circle-outline" size={24} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => activeTab === 'orders' ? setShowCreateModal(true) : openCreateReturn()}
+              >
+                <Ionicons name="add" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+
+          {/* Tab switcher */}
+          <View style={{ flexDirection: 'row', marginBottom: Spacing.md, gap: Spacing.sm }}>
             <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: colors.primary + '15' }]}
-              onPress={handleScanInvoice}
-              disabled={scanLoading}
+              style={[
+                styles.filterChip,
+                activeTab === 'orders' && styles.filterChipActive,
+                { flex: 1, justifyContent: 'center' },
+              ]}
+              onPress={() => setActiveTab('orders')}
             >
-              {scanLoading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="scan-outline" size={22} color={colors.primary} />
+              <Ionicons name="cart-outline" size={16} color={activeTab === 'orders' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
+              <Text style={[styles.filterText, activeTab === 'orders' && styles.filterTextActive]}>{t('orders.title')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                activeTab === 'returns' && styles.filterChipActive,
+                { flex: 1, justifyContent: 'center' },
+              ]}
+              onPress={() => { setActiveTab('returns'); loadReturns(); }}
+            >
+              <Ionicons name="return-down-back-outline" size={16} color={activeTab === 'returns' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
+              <Text style={[styles.filterText, activeTab === 'returns' && styles.filterTextActive]}>{t('orders.returns_credit_notes')}</Text>
+              {returnsList.filter((r) => r.status === 'pending').length > 0 && (
+                <View style={{ backgroundColor: colors.warning, borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', marginLeft: 6 }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                    {returnsList.filter((r) => r.status === 'pending').length}
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.addBtn} onPress={exportOrdersPdf}>
-              <Ionicons name="document-text-outline" size={22} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setShowGuide(true)}>
-              <Ionicons name="help-circle-outline" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => activeTab === 'orders' ? setShowCreateModal(true) : openCreateReturn()}
-            >
-              <Ionicons name="add" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Tab switcher */}
-        <View style={{ flexDirection: 'row', marginBottom: Spacing.md, gap: Spacing.sm }}>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              activeTab === 'orders' && styles.filterChipActive,
-              { flex: 1, justifyContent: 'center' },
-            ]}
-            onPress={() => setActiveTab('orders')}
-          >
-            <Ionicons name="cart-outline" size={16} color={activeTab === 'orders' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-            <Text style={[styles.filterText, activeTab === 'orders' && styles.filterTextActive]}>{t('orders.title')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              activeTab === 'returns' && styles.filterChipActive,
-              { flex: 1, justifyContent: 'center' },
-            ]}
-            onPress={() => { setActiveTab('returns'); loadReturns(); }}
-          >
-            <Ionicons name="return-down-back-outline" size={16} color={activeTab === 'returns' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-            <Text style={[styles.filterText, activeTab === 'returns' && styles.filterTextActive]}>{t('orders.returns_credit_notes')}</Text>
-            {returnsList.filter((r) => r.status === 'pending').length > 0 && (
-              <View style={{ backgroundColor: colors.warning, borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', marginLeft: 6 }}>
-                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-                  {returnsList.filter((r) => r.status === 'pending').length}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {activeTab === 'orders' && (<>
-          {/* Date Filter */}
-          <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
-            <PeriodSelector
-              selectedPeriod={selectedPeriod}
-              onSelectPeriod={changePeriod}
-              startDate={startDate}
-              endDate={endDate}
-              onApplyCustomDate={handleApplyCustomDates}
-            />
           </View>
 
-          {/* Status filter */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            {['all', 'pending', 'confirmed', 'shipping', 'received', 'cancelled'].map((f) => (
-              <TouchableOpacity
-                key={f}
-                style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
-                onPress={() => setStatusFilter(f as any)}
-              >
-                <Text style={[styles.filterText, statusFilter === f && styles.filterTextActive]}>
-                  {t(`orders.${f}`)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {activeTab === 'orders' && (<>
+            {/* Date Filter */}
+            <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
+              <PeriodSelector
+                selectedPeriod={selectedPeriod}
+                onSelectPeriod={changePeriod}
+                startDate={startDate}
+                endDate={endDate}
+                onApplyCustomDate={handleApplyCustomDates}
+              />
+            </View>
 
-          {/* Supplier filter */}
-          {filterSuppliers.length > 0 && (
+            {/* Status filter */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <TouchableOpacity
-                style={[styles.filterChip, !supplierFilter && styles.filterChipActive]}
-                onPress={() => setSupplierFilter(null)}
-              >
-                <Ionicons name="people-outline" size={14} color={!supplierFilter ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-                <Text style={[styles.filterText, !supplierFilter && styles.filterTextActive]}>{t('orders.all_suppliers')}</Text>
-              </TouchableOpacity>
-              {filterSuppliers.map((sup) => (
+              {['all', 'pending', 'confirmed', 'shipping', 'received', 'cancelled'].map((f) => (
                 <TouchableOpacity
-                  key={sup.id}
-                  style={[styles.filterChip, supplierFilter === sup.id && styles.filterChipActive]}
-                  onPress={() => setSupplierFilter(sup.id)}
+                  key={f}
+                  style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
+                  onPress={() => setStatusFilter(f as any)}
                 >
-                  {sup.is_connected && <Ionicons name="cart" size={12} color={supplierFilter === sup.id ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />}
-                  <Text style={[styles.filterText, supplierFilter === sup.id && styles.filterTextActive]}>
-                    {sup.name}
+                  <Text style={[styles.filterText, statusFilter === f && styles.filterTextActive]}>
+                    {t(`orders.${f}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
-              {suppliersLoading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 10 }} />}
             </ScrollView>
-          )}
 
-          {/* Supplier Summary Card */}
-          {supplierFilter && orderList.length > 0 && (
-            <View style={[styles.summaryCard, { backgroundColor: colors.primary + '10' }]}>
-              <View style={styles.summaryHeader}>
-                <View>
-                  <Text style={styles.summaryTitle}>Synthèse : {orderList[0].supplier_name}</Text>
-                  <Text style={styles.summarySubtitle}>Aperçu des commandes passées</Text>
-                </View>
+            {/* Supplier filter */}
+            {filterSuppliers.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
                 <TouchableOpacity
-                  style={styles.summaryClearBtn}
+                  style={[styles.filterChip, !supplierFilter && styles.filterChipActive]}
                   onPress={() => setSupplierFilter(null)}
                 >
-                  <Ionicons name="close-circle" size={20} color={colors.primary} />
+                  <Ionicons name="people-outline" size={14} color={!supplierFilter ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
+                  <Text style={[styles.filterText, !supplierFilter && styles.filterTextActive]}>{t('orders.all_suppliers')}</Text>
                 </TouchableOpacity>
-              </View>
+                {filterSuppliers.map((sup) => (
+                  <TouchableOpacity
+                    key={sup.id}
+                    style={[styles.filterChip, supplierFilter === sup.id && styles.filterChipActive]}
+                    onPress={() => setSupplierFilter(sup.id)}
+                  >
+                    {sup.is_connected && <Ionicons name="cart" size={12} color={supplierFilter === sup.id ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />}
+                    <Text style={[styles.filterText, supplierFilter === sup.id && styles.filterTextActive]}>
+                      {sup.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {suppliersLoading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 10 }} />}
+              </ScrollView>
+            )}
 
-              <View style={styles.summaryStats}>
-                <View style={styles.summaryStatItem}>
-                  <Text style={styles.summaryStatLabel}>Volume total</Text>
-                  <Text style={[styles.summaryStatValue, { color: colors.primaryLight }]}>
-                    {formatCurrency(orderList.reduce((acc, o) => acc + o.total_amount, 0), user?.currency)}
-                  </Text>
-                </View>
-                <View style={styles.summaryStatDivider} />
-                <View style={styles.summaryStatItem}>
-                  <Text style={styles.summaryStatLabel}>Commandes</Text>
-                  <Text style={styles.summaryStatValue}>{orderList.length}</Text>
-                </View>
-                <View style={styles.summaryStatDivider} />
-                <View style={styles.summaryStatItem}>
-                  <Text style={styles.summaryStatLabel}>Dernière act.</Text>
-                  <Text style={styles.summaryStatValue}>
-                    {new Date(Math.max(...orderList.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.historyBtn, { backgroundColor: colors.primary }]}
-                onPress={() => setShowHistoryModal(true)}
-              >
-                <Ionicons name="list" size={18} color="#FFF" />
-                <Text style={styles.historyBtnText}>Voir l'historique détaillé</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {orderList.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="cart-outline" size={64} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>{t('orders.no_orders')}</Text>
-              <Text style={styles.emptyText}>
-                {activeTab === 'orders'
-                  ? t('orders.no_orders_desc')
-                  : t('orders.no_orders_bulk_desc')}
-              </Text>
-            </View>
-          ) : (
-            orderList.map((order) => {
-              const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-              const canAdvance = !!NEXT_STATUS[order.status];
-              const canCancel = order.status === 'pending' || order.status === 'confirmed';
-
-              return (
-                <TouchableOpacity
-                  key={order.order_id}
-                  style={styles.orderCard}
-                  activeOpacity={0.7}
-                  onPress={() => openDetailModal(order.order_id)}
-                >
-                  <View style={styles.orderHeader}>
-                    <View style={styles.orderInfo}>
-                      <Text style={styles.orderSupplier}>{order.supplier_name}</Text>
-                      <Text style={styles.orderDate}>{formatDate(order.created_at)}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: config.color + '20' }]}>
-                      <Ionicons name={config.icon} size={14} color={config.color} />
-                      <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-                    </View>
-                  </View>
-
-                  <OrderStatusProgressBar status={order.status} />
-
-                  <View style={styles.orderDetails}>
-                    <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Articles</Text>
-                      <Text style={styles.orderDetailValue}>
-                        {order.items_preview?.join(', ') || '...'}
-                      </Text>
-                    </View>
-                    <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Total</Text>
-                      <Text style={styles.orderDetailValue}>{formatCurrency(order.total_amount, user?.currency)}</Text>
-                    </View>
-                  </View>
-
-                  {order.notes ? (
-                    <Text style={styles.orderNotes}>{order.notes}</Text>
-                  ) : null}
-
-                  <View style={styles.orderActions}>
-                    {order.status === 'shipped' && (
-                      <TouchableOpacity
-                        style={[styles.actionBtn, { backgroundColor: colors.success + '20', padding: 8, borderRadius: 8 }]}
-                        onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}
-                      >
-                        <Ionicons name="checkmark-done-outline" size={16} color={colors.success} />
-                        <Text style={[styles.actionText, { color: colors.success }]}>Valider la réception</Text>
-                      </TouchableOpacity>
-                    )}
-                    {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'shipped' && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}>
-                        <Ionicons name="arrow-forward-outline" size={16} color={colors.primary} />
-                        <Text style={[styles.actionText, { color: colors.primary }]}>
-                          {order.status === 'pending' ? 'Confirmer' : 'Suivant'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    {['shipped', 'partially_delivered'].includes(order.status) && (
-                      <TouchableOpacity
-                        style={[styles.actionBtn, { backgroundColor: '#FF9800' + '20', padding: 8, borderRadius: 8 }]}
-                        onPress={() => openPartialDelivery(order.order_id)}
-                      >
-                        <Ionicons name="layers-outline" size={16} color="#FF9800" />
-                        <Text style={[styles.actionText, { color: '#FF9800' }]}>Partielle</Text>
-                      </TouchableOpacity>
-                    )}
-                    {order.status === 'pending' && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleCancel(order.order_id)}>
-                        <Ionicons name="close-outline" size={16} color={colors.danger} />
-                        <Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-
-        </>)}
-
-        {/* Returns Tab */}
-        {activeTab === 'returns' && (
-          <>
-            {/* Credit Notes Summary */}
-            {creditNotesList.length > 0 && (
-              <View style={[styles.summaryCard, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}>
+            {/* Supplier Summary Card */}
+            {supplierFilter && orderList.length > 0 && (
+              <View style={[styles.summaryCard, { backgroundColor: colors.primary + '10' }]}>
                 <View style={styles.summaryHeader}>
                   <View>
-                    <Text style={styles.summaryTitle}>{t('orders.active_credit_notes')}</Text>
-                    <Text style={styles.summarySubtitle}>
-                      {t('orders.credit_notes_count', { count: creditNotesList.filter((cn) => cn.status === 'active').length })}
+                    <Text style={styles.summaryTitle}>Synthèse : {orderList[0].supplier_name}</Text>
+                    <Text style={styles.summarySubtitle}>Aperçu des commandes passées</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.summaryClearBtn}
+                    onPress={() => setSupplierFilter(null)}
+                  >
+                    <Ionicons name="close-circle" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.summaryStats}>
+                  <View style={styles.summaryStatItem}>
+                    <Text style={styles.summaryStatLabel}>Volume total</Text>
+                    <Text style={[styles.summaryStatValue, { color: colors.primaryLight }]}>
+                      {formatCurrency(orderList.reduce((acc, o) => acc + o.total_amount, 0), user?.currency)}
                     </Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.summaryStatValue, { color: colors.success }]}>
-                      {formatCurrency(creditNotesList.filter((cn) => cn.status === 'active').reduce((sum, cn) => sum + cn.amount - cn.used_amount, 0), user?.currency)}
+                  <View style={styles.summaryStatDivider} />
+                  <View style={styles.summaryStatItem}>
+                    <Text style={styles.summaryStatLabel}>Commandes</Text>
+                    <Text style={styles.summaryStatValue}>{orderList.length}</Text>
+                  </View>
+                  <View style={styles.summaryStatDivider} />
+                  <View style={styles.summaryStatItem}>
+                    <Text style={styles.summaryStatLabel}>Dernière act.</Text>
+                    <Text style={styles.summaryStatValue}>
+                      {new Date(Math.max(...orderList.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                     </Text>
-                    <Text style={[styles.summarySubtitle]}>{t('orders.available')}</Text>
                   </View>
                 </View>
+
+                <TouchableOpacity
+                  style={[styles.historyBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowHistoryModal(true)}
+                >
+                  <Ionicons name="list" size={18} color="#FFF" />
+                  <Text style={styles.historyBtnText}>Voir l'historique détaillé</Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            {returnsLoading ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
-            ) : returnsList.length === 0 ? (
+            {orderList.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="return-down-back-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>{t('orders.no_returns')}</Text>
-                <Text style={styles.emptyText}>{t('orders.no_returns_desc')}</Text>
+                <Ionicons name="cart-outline" size={64} color={colors.textMuted} />
+                <Text style={styles.emptyTitle}>{t('orders.no_orders')}</Text>
+                <Text style={styles.emptyText}>
+                  {activeTab === 'orders'
+                    ? t('orders.no_orders_desc')
+                    : t('orders.no_orders_bulk_desc')}
+                </Text>
               </View>
             ) : (
-              returnsList.map((ret) => {
-                const statusMap: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-                  pending: { label: t('orders.pending'), color: colors.warning, icon: 'time-outline' },
-                  approved: { label: t('orders.approved'), color: colors.info, icon: 'checkmark-outline' },
-                  completed: { label: t('orders.completed'), color: colors.success, icon: 'checkmark-done-outline' },
-                  rejected: { label: t('orders.rejected'), color: colors.danger, icon: 'close-outline' },
-                };
-                const sc = statusMap[ret.status] || statusMap.pending;
+              orderList.map((order) => {
+                const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+                const canAdvance = !!NEXT_STATUS[order.status];
+                const canCancel = order.status === 'pending' || order.status === 'confirmed';
 
                 return (
                   <TouchableOpacity
-                    key={ret.return_id}
+                    key={order.order_id}
                     style={styles.orderCard}
                     activeOpacity={0.7}
-                    onPress={() => openReturnDetail(ret.return_id)}
+                    onPress={() => openDetailModal(order.order_id)}
                   >
                     <View style={styles.orderHeader}>
                       <View style={styles.orderInfo}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Ionicons
-                            name={ret.type === 'customer' ? 'person-outline' : 'business-outline'}
-                            size={16}
-                            color={colors.primaryLight}
-                          />
-                          <Text style={styles.orderSupplier}>
-                            {ret.type === 'customer' ? 'Retour client' : ret.supplier_name || 'Retour fournisseur'}
-                          </Text>
-                        </View>
-                        <Text style={styles.orderDate}>{formatDate(ret.created_at)}</Text>
+                        <Text style={styles.orderSupplier}>{order.supplier_name}</Text>
+                        <Text style={styles.orderDate}>{formatDate(order.created_at)}</Text>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: sc.color + '20' }]}>
-                        <Ionicons name={sc.icon} size={14} color={sc.color} />
-                        <Text style={[styles.statusText, { color: sc.color }]}>{sc.label}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: config.color + '20' }]}>
+                        <Ionicons name={config.icon} size={14} color={config.color} />
+                        <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
                       </View>
                     </View>
+
+                    <OrderStatusProgressBar status={order.status} />
 
                     <View style={styles.orderDetails}>
                       <View style={styles.orderDetail}>
                         <Text style={styles.orderDetailLabel}>Articles</Text>
-                        <Text style={styles.orderDetailValue}>{ret.items.length}</Text>
+                        <Text style={styles.orderDetailValue}>
+                          {order.items_preview?.join(', ') || '...'}
+                        </Text>
                       </View>
                       <View style={styles.orderDetail}>
-                        <Text style={styles.orderDetailLabel}>Montant</Text>
-                        <Text style={styles.orderDetailValue}>{formatCurrency(ret.total_amount, user?.currency)}</Text>
+                        <Text style={styles.orderDetailLabel}>Total</Text>
+                        <Text style={styles.orderDetailValue}>{formatCurrency(order.total_amount, user?.currency)}</Text>
                       </View>
-                      {ret.credit_note_id && (
-                        <View style={styles.orderDetail}>
-                          <Text style={styles.orderDetailLabel}>Avoir</Text>
-                          <Text style={[styles.orderDetailValue, { color: colors.success }]}>Généré</Text>
-                        </View>
+                    </View>
+
+                    {order.notes ? (
+                      <Text style={styles.orderNotes}>{order.notes}</Text>
+                    ) : null}
+
+                    <View style={styles.orderActions}>
+                      {order.status === 'shipped' && (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { backgroundColor: colors.success + '20', padding: 8, borderRadius: 8 }]}
+                          onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}
+                        >
+                          <Ionicons name="checkmark-done-outline" size={16} color={colors.success} />
+                          <Text style={[styles.actionText, { color: colors.success }]}>Valider la réception</Text>
+                        </TouchableOpacity>
+                      )}
+                      {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'shipped' && (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}>
+                          <Ionicons name="arrow-forward-outline" size={16} color={colors.primary} />
+                          <Text style={[styles.actionText, { color: colors.primary }]}>
+                            {order.status === 'pending' ? 'Confirmer' : 'Suivant'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      {['shipped', 'partially_delivered'].includes(order.status) && (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { backgroundColor: '#FF9800' + '20', padding: 8, borderRadius: 8 }]}
+                          onPress={() => openPartialDelivery(order.order_id)}
+                        >
+                          <Ionicons name="layers-outline" size={16} color="#FF9800" />
+                          <Text style={[styles.actionText, { color: '#FF9800' }]}>Partielle</Text>
+                        </TouchableOpacity>
+                      )}
+                      {order.status === 'pending' && (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleCancel(order.order_id)}>
+                          <Ionicons name="close-outline" size={16} color={colors.danger} />
+                          <Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
                   </TouchableOpacity>
                 );
               })
             )}
-          </>
-        )}
 
-        <View style={{ height: Spacing.xl }} />
-      </ScrollView>
+          </>)}
 
-      {/* Order Creation Modal (3-step flow) */}
-      <OrderCreationModal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onOrderCreated={() => {
-          setShowCreateModal(false);
-          loadData();
-        }}
-      />
-
-      {/* AI Invoice Scan Result Modal */}
-      <Modal visible={showScanResult} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Facture scannée</Text>
-              <TouchableOpacity onPress={() => setShowScanResult(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            {scanResult && (
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.md }}>
-                {/* Header info */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.sm }}>
-                  <Ionicons name="sparkles" size={13} color={colors.primary} />
-                  <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Extraction IA</Text>
-                </View>
-                {scanResult.supplier_name && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Fournisseur :</Text>
-                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.supplier_name}</Text>
-                  </View>
-                )}
-                {scanResult.invoice_number && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>N° facture :</Text>
-                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.invoice_number}</Text>
-                  </View>
-                )}
-                {scanResult.date && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Date :</Text>
-                    <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.date}</Text>
-                  </View>
-                )}
-
-                {/* Items */}
-                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs }}>
-                  {scanResult.items.length} article{scanResult.items.length > 1 ? 's' : ''} détecté{scanResult.items.length > 1 ? 's' : ''}
-                </Text>
-                {scanResult.items.map((item, idx) => (
-                  <View
-                    key={idx}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      paddingVertical: Spacing.xs,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.divider,
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>
-                        {item.quantity} x {(item.unit_price || 0).toLocaleString()} FCFA
+          {/* Returns Tab */}
+          {activeTab === 'returns' && (
+            <>
+              {/* Credit Notes Summary */}
+              {creditNotesList.length > 0 && (
+                <View style={[styles.summaryCard, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}>
+                  <View style={styles.summaryHeader}>
+                    <View>
+                      <Text style={styles.summaryTitle}>{t('orders.active_credit_notes')}</Text>
+                      <Text style={styles.summarySubtitle}>
+                        {t('orders.credit_notes_count', { count: creditNotesList.filter((cn) => cn.status === 'active').length })}
                       </Text>
                     </View>
-                    <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
-                      {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} F
-                    </Text>
-                  </View>
-                ))}
-
-                {/* Total */}
-                {scanResult.total_amount != null && (
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, marginTop: Spacing.xs }}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Total</Text>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{scanResult.total_amount.toLocaleString()} FCFA</Text>
-                  </View>
-                )}
-
-                {/* Actions */}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.primary,
-                    borderRadius: BorderRadius.md,
-                    padding: Spacing.md,
-                    alignItems: 'center',
-                    marginTop: Spacing.lg,
-                  }}
-                  onPress={() => {
-                    setShowScanResult(false);
-                    setShowCreateModal(true);
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Créer une commande</Text>
-                </TouchableOpacity>
-                <Text style={{ fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xs }}>
-                  Les articles détectés serviront de référence pour votre commande
-                </Text>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Delivery Confirmation Modal (marketplace orders) */}
-      <DeliveryConfirmationModal
-        visible={!!deliveryOrderId}
-        orderId={deliveryOrderId || ''}
-        onClose={() => setDeliveryOrderId(null)}
-        onConfirmed={() => {
-          setDeliveryOrderId(null);
-          setShowDetailModal(false);
-          loadData();
-        }}
-      />
-
-      {/* Order Detail Modal */}
-      <Modal visible={showDetailModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {detailLoading ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
-            ) : detailOrder ? (
-              <ScrollView style={styles.modalScroll}>
-                {/* Supplier info */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.supplier')}</Text>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="person-circle-outline" size={20} color={colors.primaryLight} />
-                    <Text style={styles.detailRowText}>{detailOrder.supplier.name}</Text>
-                  </View>
-                  {detailOrder.supplier.phone ? (
-                    <View style={styles.detailRow}>
-                      <Ionicons name="call-outline" size={16} color={colors.textMuted} />
-                      <Text style={styles.detailRowSubtext}>{detailOrder.supplier.phone}</Text>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.summaryStatValue, { color: colors.success }]}>
+                        {formatCurrency(creditNotesList.filter((cn) => cn.status === 'active').reduce((sum, cn) => sum + cn.amount - cn.used_amount, 0), user?.currency)}
+                      </Text>
+                      <Text style={[styles.summarySubtitle]}>{t('orders.available')}</Text>
                     </View>
-                  ) : null}
-                </View>
-
-                {/* Status progress */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
-                  <OrderStatusProgressBar status={detailOrder.status} />
-                </View>
-
-                {/* Dates */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.dates')}</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailRowSubtext}>{t('orders.created_at')} : {formatDate(detailOrder.created_at)}</Text>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailRowSubtext}>{t('orders.updated_at')} : {formatDate(detailOrder.updated_at)}</Text>
-                  </View>
-                  {detailOrder.expected_delivery ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailRowSubtext}>{t('orders.expected_delivery')} : {formatDate(detailOrder.expected_delivery)}</Text>
-                    </View>
-                  ) : null}
                 </View>
+              )}
 
-                {/* Items */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.items_count', { count: detailOrder.items.length })}</Text>
-                  <View>
-                    {(showAllDetailItems ? detailOrder.items : detailOrder.items.slice(0, 10)).map((item, index) => (
-                      <View key={item.item_id || index} style={styles.detailItemRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.detailItemName}>
-                            {item.product?.name || item.product_name || 'Produit'}
-                          </Text>
-                          <Text style={styles.detailItemSub}>
-                            {item.quantity} x {formatCurrency(item.unit_price, user?.currency)}
-                          </Text>
-                          {item.mapped_product_id && (
-                            <Text style={[styles.detailItemSub, { color: colors.success }]}>
-                              Associé au stock local
+              {returnsLoading ? (
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
+              ) : returnsList.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="return-down-back-outline" size={64} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>{t('orders.no_returns')}</Text>
+                  <Text style={styles.emptyText}>{t('orders.no_returns_desc')}</Text>
+                </View>
+              ) : (
+                returnsList.map((ret) => {
+                  const statusMap: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
+                    pending: { label: t('orders.pending'), color: colors.warning, icon: 'time-outline' },
+                    approved: { label: t('orders.approved'), color: colors.info, icon: 'checkmark-outline' },
+                    completed: { label: t('orders.completed'), color: colors.success, icon: 'checkmark-done-outline' },
+                    rejected: { label: t('orders.rejected'), color: colors.danger, icon: 'close-outline' },
+                  };
+                  const sc = statusMap[ret.status] || statusMap.pending;
+
+                  return (
+                    <TouchableOpacity
+                      key={ret.return_id}
+                      style={styles.orderCard}
+                      activeOpacity={0.7}
+                      onPress={() => openReturnDetail(ret.return_id)}
+                    >
+                      <View style={styles.orderHeader}>
+                        <View style={styles.orderInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Ionicons
+                              name={ret.type === 'customer' ? 'person-outline' : 'business-outline'}
+                              size={16}
+                              color={colors.primaryLight}
+                            />
+                            <Text style={styles.orderSupplier}>
+                              {ret.type === 'customer' ? 'Retour client' : ret.supplier_name || 'Retour fournisseur'}
                             </Text>
-                          )}
-                          {detailOrder.received_items && detailOrder.received_items[item.item_id] != null && (
-                            <Text style={[styles.detailItemSub, { color: '#FF9800' }]}>
-                              Reçu : {detailOrder.received_items[item.item_id]} / {item.quantity}
-                            </Text>
-                          )}
+                          </View>
+                          <Text style={styles.orderDate}>{formatDate(ret.created_at)}</Text>
                         </View>
-                        <Text style={styles.detailItemTotal}>{formatCurrency(item.total_price, user?.currency)}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: sc.color + '20' }]}>
+                          <Ionicons name={sc.icon} size={14} color={sc.color} />
+                          <Text style={[styles.statusText, { color: sc.color }]}>{sc.label}</Text>
+                        </View>
                       </View>
-                    ))}
-                    {detailOrder.items.length > 10 && (
-                      <TouchableOpacity
-                        style={styles.seeMoreBtn}
-                        onPress={() => setShowAllDetailItems(!showAllDetailItems)}
-                      >
-                        <Text style={styles.seeMoreText}>
-                          {showAllDetailItems ? t('common.see_less') : t('orders.see_more_items', { count: detailOrder.items.length - 10 })}
-                        </Text>
-                        <Ionicons name={showAllDetailItems ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
 
-                {/* Notes */}
-                {detailOrder.notes ? (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>Notes</Text>
-                    <Text style={styles.detailNotes}>{detailOrder.notes}</Text>
-                  </View>
-                ) : null}
-
-                {/* Total */}
-                <View style={[styles.totalRow, { marginTop: Spacing.sm }]}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(detailOrder.total_amount, user?.currency)}</Text>
-                </View>
-
-                {/* PDF Share Button */}
-                <TouchableOpacity
-                  style={[styles.sharePdfBtn, sharingPdf && { opacity: 0.7 }]}
-                  onPress={() => handleShareOrderPdf(detailOrder)}
-                  disabled={sharingPdf}
-                >
-                  {sharingPdf ? (
-                    <ActivityIndicator color={colors.primary} size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="share-outline" size={20} color={colors.primary} />
-                      <Text style={styles.sharePdfBtnText}>Partager le Bon de Commande (PDF)</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Action button inside details */}
-                {detailOrder.status === 'shipped' && (
-                  <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: colors.success, marginTop: Spacing.md }]}
-                    onPress={async () => {
-                      if (detailOrder.is_connected) {
-                        setShowDetailModal(false);
-                        setDeliveryOrderId(detailOrder.order_id);
-                      } else {
-                        await handleAdvanceStatus(detailOrder.order_id, detailOrder.status, false);
-                        setShowDetailModal(false);
-                      }
-                    }}
-                  >
-                    <Ionicons name="checkmark-done-outline" size={20} color="#FFF" />
-                    <Text style={[styles.submitBtnText, { marginLeft: 8 }]}>Valider la réception</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Partial delivery button */}
-                {['confirmed', 'shipped', 'partially_delivered'].includes(detailOrder.status) && (
-                  <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: '#FF9800', marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
-                    onPress={() => openPartialDelivery(detailOrder.order_id)}
-                  >
-                    <Ionicons name="layers-outline" size={20} color="#FF9800" />
-                    <Text style={[styles.submitBtnText, { marginLeft: 0 }]}>Réception partielle</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Return button for delivered orders */}
-                {detailOrder.status === 'delivered' && (
-                  <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: colors.danger + '20', marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
-                    onPress={() => { setShowDetailModal(false); openCreateReturn(detailOrder); }}
-                  >
-                    <Ionicons name="return-down-back-outline" size={20} color={colors.danger} />
-                    <Text style={[styles.submitBtnText, { color: colors.danger, marginLeft: 0 }]}>Créer un retour</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Rating button for delivered connected orders */}
-                {detailOrder.status === 'delivered' && detailOrder.is_connected && detailOrder.supplier_user_id && (
-                  <TouchableOpacity style={styles.rateBtn} onPress={() => openRating(detailOrder)}>
-                    <Ionicons name="star-outline" size={20} color={colors.warning} />
-                    <Text style={styles.rateBtnText}>Noter ce fournisseur</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Rating Modal */}
-      <Modal visible={showRatingModal} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '60%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('orders.rate_supplier')}</Text>
-              <TouchableOpacity onPress={() => setShowRatingModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.ratingStars}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity key={star} onPress={() => setRatingScore(star)}>
-                  <Ionicons
-                    name={star <= ratingScore ? 'star' : 'star-outline'}
-                    size={40}
-                    color={colors.warning}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.ratingLabel}>
-              {ratingScore === 0 ? t('orders.touch_star') : `${ratingScore}/5`}
-            </Text>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Commentaire (optionnel)</Text>
-              <TextInput
-                style={[styles.formInput, { minHeight: 80, textAlignVertical: 'top' }]}
-                value={ratingComment}
-                onChangeText={setRatingComment}
-                placeholder="Partagez votre expérience..."
-                placeholderTextColor={colors.textMuted}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.submitBtn, (ratingScore === 0 || ratingSaving) && styles.submitBtnDisabled]}
-              onPress={submitRating}
-              disabled={ratingScore === 0 || ratingSaving}
-            >
-              {ratingSaving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitBtnText}>Envoyer mon avis</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Supplier History Modal */}
-      <Modal visible={showHistoryModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>{t('orders.history')} : {orderList[0]?.supplier_name}</Text>
-                <Text style={styles.modalSubtitle}>{t('orders.total_orders', { count: orderList.length })}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView>
-              <View style={styles.historyTable}>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHead, { flex: 0.6 }]}>{t('common.date')}</Text>
-                  <Text style={[styles.tableHead, { flex: 1.5 }]}>{t('orders.items')}</Text>
-                  <Text style={[styles.tableHead, { flex: 0.8 }]}>{t('orders.status')}</Text>
-                  <Text style={[styles.tableHead, { flex: 0.8, textAlign: 'right' }]}>{t('common.amount')}</Text>
-                </View>
-                {orderList.map((o) => (
-                  <TouchableOpacity
-                    key={o.order_id}
-                    style={styles.tableRow}
-                    onPress={() => {
-                      setShowHistoryModal(false);
-                      openDetailModal(o.order_id);
-                    }}
-                  >
-                    <Text style={[styles.tableCell, { flex: 0.6, fontSize: 11 }]}>
-                      {new Date(o.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                    </Text>
-                    <Text style={[styles.tableCell, { flex: 1.5, fontSize: 11 }]} numberOfLines={2}>
-                      {o.items_preview?.join(', ') || '...'}
-                    </Text>
-                    <View style={[{ flex: 0.8, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                      <View style={[styles.statusDot, { backgroundColor: STATUS_CONFIG[o.status]?.color || colors.divider }]} />
-                      <Text style={[styles.tableCell, { fontSize: 10 }]}>{STATUS_CONFIG[o.status]?.label}</Text>
-                    </View>
-                    <Text style={[styles.tableCell, { flex: 0.8, textAlign: 'right', fontWeight: '700', fontSize: 11 }]}>
-                      {formatCurrency(o.total_amount, user?.currency)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Partial Delivery Modal */}
-      <Modal visible={showPartialModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '85%' }]}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>{t('orders.partial_delivery')}</Text>
-                <Text style={styles.modalSubtitle}>
-                  {t('orders.enter_received_quantities')}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowPartialModal(false)} disabled={partialSaving}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ maxHeight: 400 }}>
-              {partialOrder?.items.map((item) => {
-                const prevReceived = partialOrder.received_items?.[item.item_id] ?? 0;
-                const currentVal = parseInt(partialQuantities[item.item_id] || '0') || 0;
-
-                return (
-                  <View
-                    key={item.item_id}
-                    style={{
-                      padding: Spacing.md,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.divider,
-                    }}
-                  >
-                    <Text style={styles.detailItemName}>
-                      {item.product?.name || item.product_name || 'Produit'}
-                    </Text>
-                    <Text style={[styles.detailItemSub, { marginBottom: Spacing.sm }]}>
-                      {t('orders.ordered')} : {item.quantity} | {t('orders.already_received')} : {prevReceived}
-                    </Text>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          const val = Math.max(0, currentVal - 1);
-                          setPartialQuantities((prev) => ({ ...prev, [item.item_id]: val.toString() }));
-                        }}
-                        style={{
-                          width: 36, height: 36, borderRadius: 18,
-                          backgroundColor: colors.danger + '20',
-                          justifyContent: 'center', alignItems: 'center',
-                        }}
-                      >
-                        <Ionicons name="remove" size={20} color={colors.danger} />
-                      </TouchableOpacity>
-
-                      <TextInput
-                        style={[
-                          styles.formInput,
-                          {
-                            width: 70, textAlign: 'center', paddingVertical: Spacing.xs,
-                            fontSize: FontSize.lg, fontWeight: '700',
-                          },
-                        ]}
-                        value={partialQuantities[item.item_id] || '0'}
-                        onChangeText={(text) => {
-                          const num = text.replace(/[^0-9]/g, '');
-                          setPartialQuantities((prev) => ({ ...prev, [item.item_id]: num }));
-                        }}
-                        keyboardType="numeric"
-                      />
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          const val = Math.min(item.quantity, currentVal + 1);
-                          setPartialQuantities((prev) => ({ ...prev, [item.item_id]: val.toString() }));
-                        }}
-                        style={{
-                          width: 36, height: 36, borderRadius: 18,
-                          backgroundColor: colors.success + '20',
-                          justifyContent: 'center', alignItems: 'center',
-                        }}
-                      >
-                        <Ionicons name="add" size={20} color={colors.success} />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          setPartialQuantities((prev) => ({ ...prev, [item.item_id]: item.quantity.toString() }));
-                        }}
-                        style={{
-                          paddingHorizontal: Spacing.sm, paddingVertical: 6,
-                          borderRadius: BorderRadius.sm, backgroundColor: colors.primary + '20',
-                        }}
-                      >
-                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>Tout</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {currentVal > item.quantity && (
-                      <Text style={{ color: colors.danger, fontSize: FontSize.xs, marginTop: 4 }}>
-                        Dépasse la quantité commandée ({item.quantity})
-                      </Text>
-                    )}
-                  </View>
-                );
-              })}
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { marginTop: Spacing.md }]}>{t('common.notes')} ({t('common.optional')})</Text>
-                <TextInput
-                  style={[styles.formInput, { minHeight: 60, textAlignVertical: 'top' }]}
-                  value={partialNotes}
-                  onChangeText={setPartialNotes}
-                  placeholder={t('orders.partial_notes_placeholder')}
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: '#FF9800', marginTop: Spacing.md, flexDirection: 'row', justifyContent: 'center', gap: 8 }, partialSaving && styles.submitBtnDisabled]}
-              onPress={submitPartialDelivery}
-              disabled={partialSaving}
-            >
-              {partialSaving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-                  <Text style={styles.submitBtnText}>{t('orders.confirm_receipt')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Return Detail Modal */}
-      <Modal visible={showReturnDetailModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('orders.return_detail')}</Text>
-              <TouchableOpacity onPress={() => setShowReturnDetailModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {returnDetail ? (
-              <ScrollView style={styles.modalScroll}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('common.info')}</Text>
-                  <View style={styles.detailRow}>
-                    <Ionicons name={returnDetail.type === 'customer' ? 'person-outline' : 'business-outline'} size={16} color={colors.primaryLight} />
-                    <Text style={styles.detailRowText}>
-                      {returnDetail.type === 'customer' ? t('orders.customer_return') : returnDetail.supplier_name || t('orders.supplier_return')}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailRowSubtext}>{t('orders.created_at')} : {formatDate(returnDetail.created_at)}</Text>
-                  </View>
-                  {returnDetail.order_id && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailRowSubtext}>{t('orders.related_order')} : {returnDetail.order_id}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.returned_items')}</Text>
-                  {returnDetail.items.map((item, index) => (
-                    <View key={index} style={styles.detailItemRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.detailItemName}>{item.product_name}</Text>
-                        <Text style={styles.detailItemSub}>
-                          {item.quantity} x {formatCurrency(item.unit_price, user?.currency)}
-                        </Text>
-                        {item.reason && (
-                          <Text style={[styles.detailItemSub, { color: colors.textMuted }]}>
-                            {t('orders.reason')} : {item.reason}
-                          </Text>
+                      <View style={styles.orderDetails}>
+                        <View style={styles.orderDetail}>
+                          <Text style={styles.orderDetailLabel}>Articles</Text>
+                          <Text style={styles.orderDetailValue}>{ret.items.length}</Text>
+                        </View>
+                        <View style={styles.orderDetail}>
+                          <Text style={styles.orderDetailLabel}>Montant</Text>
+                          <Text style={styles.orderDetailValue}>{formatCurrency(ret.total_amount, user?.currency)}</Text>
+                        </View>
+                        {ret.credit_note_id && (
+                          <View style={styles.orderDetail}>
+                            <Text style={styles.orderDetailLabel}>Avoir</Text>
+                            <Text style={[styles.orderDetailValue, { color: colors.success }]}>Généré</Text>
+                          </View>
                         )}
                       </View>
-                      <Text style={styles.detailItemTotal}>{formatCurrency(item.quantity * item.unit_price, user?.currency)}</Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </>
+          )}
+
+          <View style={{ height: Spacing.xl }} />
+        </ScrollView>
+
+        {/* Order Creation Modal (3-step flow) */}
+        <OrderCreationModal
+          visible={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onOrderCreated={() => {
+            setShowCreateModal(false);
+            loadData();
+          }}
+        />
+
+        {/* AI Invoice Scan Result Modal */}
+        <Modal visible={showScanResult} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Facture scannée</Text>
+                <TouchableOpacity onPress={() => setShowScanResult(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              {scanResult && (
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.md }}>
+                  {/* Header info */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.sm }}>
+                    <Ionicons name="sparkles" size={13} color={colors.primary} />
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Extraction IA</Text>
+                  </View>
+                  {scanResult.supplier_name && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Fournisseur :</Text>
+                      <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.supplier_name}</Text>
+                    </View>
+                  )}
+                  {scanResult.invoice_number && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>N° facture :</Text>
+                      <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.invoice_number}</Text>
+                    </View>
+                  )}
+                  {scanResult.date && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Date :</Text>
+                      <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.date}</Text>
+                    </View>
+                  )}
+
+                  {/* Items */}
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs }}>
+                    {scanResult.items.length} article{scanResult.items.length > 1 ? 's' : ''} détecté{scanResult.items.length > 1 ? 's' : ''}
+                  </Text>
+                  {scanResult.items.map((item, idx) => (
+                    <View
+                      key={idx}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingVertical: Spacing.xs,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.divider,
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                          {item.quantity} x {(item.unit_price || 0).toLocaleString()} {t('common.currency_default')}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
+                        {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} F
+                      </Text>
                     </View>
                   ))}
-                </View>
 
-                {returnDetail.notes && (
+                  {/* Total */}
+                  {scanResult.total_amount != null && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, marginTop: Spacing.xs }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Total</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{scanResult.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                    </View>
+                  )}
+
+                  {/* Actions */}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: colors.primary,
+                      borderRadius: BorderRadius.md,
+                      padding: Spacing.md,
+                      alignItems: 'center',
+                      marginTop: Spacing.lg,
+                    }}
+                    onPress={() => {
+                      setShowScanResult(false);
+                      setShowCreateModal(true);
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Créer une commande</Text>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xs }}>
+                    Les articles détectés serviront de référence pour votre commande
+                  </Text>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Delivery Confirmation Modal (marketplace orders) */}
+        <DeliveryConfirmationModal
+          visible={!!deliveryOrderId}
+          orderId={deliveryOrderId || ''}
+          onClose={() => setDeliveryOrderId(null)}
+          onConfirmed={() => {
+            setDeliveryOrderId(null);
+            setShowDetailModal(false);
+            loadData();
+          }}
+        />
+
+        {/* Order Detail Modal */}
+        <Modal visible={showDetailModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
+                <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {detailLoading ? (
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
+              ) : detailOrder ? (
+                <ScrollView style={styles.modalScroll}>
+                  {/* Supplier info */}
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>{t('common.notes')}</Text>
-                    <Text style={styles.detailNotes}>{returnDetail.notes}</Text>
-                  </View>
-                )}
-
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t('common.total')}</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(returnDetail.total_amount, user?.currency)}</Text>
-                </View>
-
-                {returnDetail.credit_note_id && (
-                  <View style={[styles.detailSection, { marginTop: Spacing.md }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: Spacing.sm, backgroundColor: colors.success + '15', borderRadius: BorderRadius.md }}>
-                      <Ionicons name="document-text-outline" size={20} color={colors.success} />
-                      <View>
-                        <Text style={{ color: colors.success, fontWeight: '700', fontSize: FontSize.sm }}>{t('orders.credit_note_generated')}</Text>
-                        <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{returnDetail.credit_note_id}</Text>
+                    <Text style={styles.detailSectionTitle}>{t('orders.supplier')}</Text>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="person-circle-outline" size={20} color={colors.primaryLight} />
+                      <Text style={styles.detailRowText}>{detailOrder.supplier.name}</Text>
+                    </View>
+                    {detailOrder.supplier.phone ? (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="call-outline" size={16} color={colors.textMuted} />
+                        <Text style={styles.detailRowSubtext}>{detailOrder.supplier.phone}</Text>
                       </View>
+                    ) : null}
+                  </View>
+
+                  {/* Status progress */}
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
+                    <OrderStatusProgressBar status={detailOrder.status} />
+                  </View>
+
+                  {/* Dates */}
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.dates')}</Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailRowSubtext}>{t('orders.created_at')} : {formatDate(detailOrder.created_at)}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailRowSubtext}>{t('orders.updated_at')} : {formatDate(detailOrder.updated_at)}</Text>
+                    </View>
+                    {detailOrder.expected_delivery ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailRowSubtext}>{t('orders.expected_delivery')} : {formatDate(detailOrder.expected_delivery)}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {/* Items */}
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.items_count', { count: detailOrder.items.length })}</Text>
+                    <View>
+                      {(showAllDetailItems ? detailOrder.items : detailOrder.items.slice(0, 10)).map((item, index) => (
+                        <View key={item.item_id || index} style={styles.detailItemRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.detailItemName}>
+                              {item.product?.name || item.product_name || 'Produit'}
+                            </Text>
+                            <Text style={styles.detailItemSub}>
+                              {item.quantity} x {formatCurrency(item.unit_price, user?.currency)}
+                            </Text>
+                            {item.mapped_product_id && (
+                              <Text style={[styles.detailItemSub, { color: colors.success }]}>
+                                Associé au stock local
+                              </Text>
+                            )}
+                            {detailOrder.received_items && detailOrder.received_items[item.item_id] != null && (
+                              <Text style={[styles.detailItemSub, { color: '#FF9800' }]}>
+                                Reçu : {detailOrder.received_items[item.item_id]} / {item.quantity}
+                              </Text>
+                            )}
+                          </View>
+                          <Text style={styles.detailItemTotal}>{formatCurrency(item.total_price, user?.currency)}</Text>
+                        </View>
+                      ))}
+                      {detailOrder.items.length > 10 && (
+                        <TouchableOpacity
+                          style={styles.seeMoreBtn}
+                          onPress={() => setShowAllDetailItems(!showAllDetailItems)}
+                        >
+                          <Text style={styles.seeMoreText}>
+                            {showAllDetailItems ? t('common.see_less') : t('orders.see_more_items', { count: detailOrder.items.length - 10 })}
+                          </Text>
+                          <Ionicons name={showAllDetailItems ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
-                )}
 
-                {returnDetail.status === 'pending' && (
+                  {/* Notes */}
+                  {detailOrder.notes ? (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionTitle}>Notes</Text>
+                      <Text style={styles.detailNotes}>{detailOrder.notes}</Text>
+                    </View>
+                  ) : null}
+
+                  {/* Total */}
+                  <View style={[styles.totalRow, { marginTop: Spacing.sm }]}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>{formatCurrency(detailOrder.total_amount, user?.currency)}</Text>
+                  </View>
+
+                  {/* PDF Share Button */}
                   <TouchableOpacity
-                    style={[styles.submitBtn, { backgroundColor: colors.success, marginTop: Spacing.md, flexDirection: 'row', justifyContent: 'center', gap: 8 }, completingReturn && styles.submitBtnDisabled]}
-                    onPress={() => completeReturn(returnDetail.return_id)}
-                    disabled={completingReturn}
+                    style={[styles.sharePdfBtn, sharingPdf && { opacity: 0.7 }]}
+                    onPress={() => handleShareOrderPdf(detailOrder)}
+                    disabled={sharingPdf}
                   >
-                    {completingReturn ? (
-                      <ActivityIndicator color="#fff" />
+                    {sharingPdf ? (
+                      <ActivityIndicator color={colors.primary} size="small" />
                     ) : (
                       <>
-                        <Ionicons name="checkmark-done" size={20} color="#fff" />
-                        <Text style={styles.submitBtnText}>{t('orders.complete_return_generate_credit_note')}</Text>
+                        <Ionicons name="share-outline" size={20} color={colors.primary} />
+                        <Text style={styles.sharePdfBtnText}>Partager le Bon de Commande (PDF)</Text>
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
 
-      {/* Create Return Modal */}
-      <Modal visible={showReturnModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('orders.new_return')}</Text>
-              <TouchableOpacity onPress={() => setShowReturnModal(false)} disabled={returnSaving}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
+                  {/* Action button inside details */}
+                  {detailOrder.status === 'shipped' && (
+                    <TouchableOpacity
+                      style={[styles.submitBtn, { backgroundColor: colors.success, marginTop: Spacing.md }]}
+                      onPress={async () => {
+                        if (detailOrder.is_connected) {
+                          setShowDetailModal(false);
+                          setDeliveryOrderId(detailOrder.order_id);
+                        } else {
+                          await handleAdvanceStatus(detailOrder.order_id, detailOrder.status, false);
+                          setShowDetailModal(false);
+                        }
+                      }}
+                    >
+                      <Ionicons name="checkmark-done-outline" size={20} color="#FFF" />
+                      <Text style={[styles.submitBtnText, { marginLeft: 8 }]}>Valider la réception</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Partial delivery button */}
+                  {['confirmed', 'shipped', 'partially_delivered'].includes(detailOrder.status) && (
+                    <TouchableOpacity
+                      style={[styles.submitBtn, { backgroundColor: '#FF9800', marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+                      onPress={() => openPartialDelivery(detailOrder.order_id)}
+                    >
+                      <Ionicons name="layers-outline" size={20} color="#FF9800" />
+                      <Text style={[styles.submitBtnText, { marginLeft: 0 }]}>Réception partielle</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Return button for delivered orders */}
+                  {detailOrder.status === 'delivered' && (
+                    <TouchableOpacity
+                      style={[styles.submitBtn, { backgroundColor: colors.danger + '20', marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+                      onPress={() => { setShowDetailModal(false); openCreateReturn(detailOrder); }}
+                    >
+                      <Ionicons name="return-down-back-outline" size={20} color={colors.danger} />
+                      <Text style={[styles.submitBtnText, { color: colors.danger, marginLeft: 0 }]}>Créer un retour</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Rating button for delivered connected orders */}
+                  {detailOrder.status === 'delivered' && detailOrder.is_connected && detailOrder.supplier_user_id && (
+                    <TouchableOpacity style={styles.rateBtn} onPress={() => openRating(detailOrder)}>
+                      <Ionicons name="star-outline" size={20} color={colors.warning} />
+                      <Text style={styles.rateBtnText}>Noter ce fournisseur</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              ) : null}
             </View>
+          </View>
+        </Modal>
 
-            <ScrollView>
-              {/* Return type */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>{t('orders.return_type')}</Text>
-                <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-                  <TouchableOpacity
-                    style={[styles.filterChip, returnType === 'supplier' && styles.filterChipActive, { flex: 1, justifyContent: 'center' }]}
-                    onPress={() => setReturnType('supplier')}
-                  >
-                    <Ionicons name="business-outline" size={14} color={returnType === 'supplier' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />
-                    <Text style={[styles.filterText, returnType === 'supplier' && styles.filterTextActive]}>{t('orders.supplier')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.filterChip, returnType === 'customer' && styles.filterChipActive, { flex: 1, justifyContent: 'center' }]}
-                    onPress={() => setReturnType('customer')}
-                  >
-                    <Ionicons name="person-outline" size={14} color={returnType === 'customer' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />
-                    <Text style={[styles.filterText, returnType === 'customer' && styles.filterTextActive]}>{t('orders.customer')}</Text>
-                  </TouchableOpacity>
-                </View>
+        {/* Rating Modal */}
+        <Modal visible={showRatingModal} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('orders.rate_supplier')}</Text>
+                <TouchableOpacity onPress={() => setShowRatingModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
               </View>
 
-              {/* Items */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>{t('orders.items_to_return')}</Text>
-
-                {returnItems.map((item, index) => (
-                  <View key={index} style={{ padding: Spacing.sm, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, marginBottom: Spacing.sm }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: FontSize.sm, flex: 1 }} numberOfLines={1}>
-                        {item.product_name}
-                      </Text>
-                      <TouchableOpacity onPress={() => removeReturnItem(index)}>
-                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm, alignItems: 'center' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('common.quantity_short')}</Text>
-                        <TextInput
-                          style={[styles.formInput, { paddingVertical: Spacing.xs, textAlign: 'center' }]}
-                          value={item.quantity.toString()}
-                          onChangeText={(t) => updateReturnItem(index, 'quantity', parseInt(t.replace(/[^0-9]/g, '')) || 0)}
-                          keyboardType="numeric"
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('common.unit_price_short')}</Text>
-                        <TextInput
-                          style={[styles.formInput, { paddingVertical: Spacing.xs, textAlign: 'center' }]}
-                          value={item.unit_price.toString()}
-                          onChangeText={(t) => updateReturnItem(index, 'unit_price', parseFloat(t.replace(/[^0-9.]/g, '')) || 0)}
-                          keyboardType="numeric"
-                        />
-                      </View>
-                      <View style={{ flex: 1.5 }}>
-                        <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('orders.reason')}</Text>
-                        <TextInput
-                          style={[styles.formInput, { paddingVertical: Spacing.xs }]}
-                          value={item.reason || ''}
-                          onChangeText={(t) => updateReturnItem(index, 'reason', t)}
-                          placeholder={t('orders.reason_placeholder')}
-                          placeholderTextColor={colors.textMuted}
-                        />
-                      </View>
-                    </View>
-
-                    <Text style={{ color: colors.textSecondary, fontSize: FontSize.xs, marginTop: 4, textAlign: 'right' }}>
-                      {t('common.subtotal')} : {formatCurrency(item.quantity * item.unit_price, user?.currency)}
-                    </Text>
-                  </View>
-                ))}
-
-                {/* Add product search */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs }}>
-                  <View style={[styles.formInput, { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 0, height: 44 }]}>
-                    <Ionicons name="search" size={16} color={colors.textMuted} />
-                    <TextInput
-                      style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
-                      value={returnProductSearch}
-                      onChangeText={setReturnProductSearch}
-                      placeholder={t('orders.add_product_placeholder')}
-                      placeholderTextColor={colors.textMuted}
+              <View style={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => setRatingScore(star)}>
+                    <Ionicons
+                      name={star <= ratingScore ? 'star' : 'star-outline'}
+                      size={40}
+                      color={colors.warning}
                     />
-                  </View>
-                </View>
-
-                {returnProductSearch.length > 0 && (
-                  <View style={{ maxHeight: 150, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, marginTop: 4 }}>
-                    <ScrollView nestedScrollEnabled>
-                      {returnProducts
-                        .filter((p) => p.name.toLowerCase().includes(returnProductSearch.toLowerCase()))
-                        .slice(0, 10)
-                        .map((p) => (
-                          <TouchableOpacity
-                            key={p.product_id}
-                            style={{ padding: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                            onPress={() => addReturnProduct(p)}
-                          >
-                            <Ionicons name="add-circle" size={18} color={colors.primary} />
-                            <Text style={{ color: colors.text, fontSize: FontSize.sm, flex: 1 }}>{p.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{formatCurrency(p.selling_price || 0, user?.currency)}</Text>
-                          </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                  </View>
-                )}
+                  </TouchableOpacity>
+                ))}
               </View>
+              <Text style={styles.ratingLabel}>
+                {ratingScore === 0 ? t('orders.touch_star') : `${ratingScore}/5`}
+              </Text>
 
-              {/* Notes */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>{t('common.notes')}</Text>
+                <Text style={styles.formLabel}>Commentaire (optionnel)</Text>
                 <TextInput
-                  style={[styles.formInput, { minHeight: 60, textAlignVertical: 'top' }]}
-                  value={returnNotes}
-                  onChangeText={setReturnNotes}
-                  placeholder={t('orders.return_notes_placeholder')}
+                  style={[styles.formInput, { minHeight: 80, textAlignVertical: 'top' }]}
+                  value={ratingComment}
+                  onChangeText={setRatingComment}
+                  placeholder="Partagez votre expérience..."
                   placeholderTextColor={colors.textMuted}
                   multiline
-                  numberOfLines={2}
+                  numberOfLines={3}
                 />
               </View>
 
-              {/* Total */}
-              {returnItems.length > 0 && (
-                <View style={[styles.totalRow, { marginBottom: Spacing.md }]}>
-                  <Text style={styles.totalLabel}>{t('orders.total_return')}</Text>
-                  <Text style={styles.totalValue}>
-                    {formatCurrency(returnItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0), user?.currency)}
+              <TouchableOpacity
+                style={[styles.submitBtn, (ratingScore === 0 || ratingSaving) && styles.submitBtnDisabled]}
+                onPress={submitRating}
+                disabled={ratingScore === 0 || ratingSaving}
+              >
+                {ratingSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Envoyer mon avis</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Supplier History Modal */}
+        <Modal visible={showHistoryModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>{t('orders.history')} : {orderList[0]?.supplier_name}</Text>
+                  <Text style={styles.modalSubtitle}>{t('orders.total_orders', { count: orderList.length })}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                <View style={styles.historyTable}>
+                  <View style={styles.tableHeader}>
+                    <Text style={[styles.tableHead, { flex: 0.6 }]}>{t('common.date')}</Text>
+                    <Text style={[styles.tableHead, { flex: 1.5 }]}>{t('orders.items')}</Text>
+                    <Text style={[styles.tableHead, { flex: 0.8 }]}>{t('orders.status')}</Text>
+                    <Text style={[styles.tableHead, { flex: 0.8, textAlign: 'right' }]}>{t('common.amount')}</Text>
+                  </View>
+                  {orderList.map((o) => (
+                    <TouchableOpacity
+                      key={o.order_id}
+                      style={styles.tableRow}
+                      onPress={() => {
+                        setShowHistoryModal(false);
+                        openDetailModal(o.order_id);
+                      }}
+                    >
+                      <Text style={[styles.tableCell, { flex: 0.6, fontSize: 11 }]}>
+                        {new Date(o.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                      </Text>
+                      <Text style={[styles.tableCell, { flex: 1.5, fontSize: 11 }]} numberOfLines={2}>
+                        {o.items_preview?.join(', ') || '...'}
+                      </Text>
+                      <View style={[{ flex: 0.8, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                        <View style={[styles.statusDot, { backgroundColor: STATUS_CONFIG[o.status]?.color || colors.divider }]} />
+                        <Text style={[styles.tableCell, { fontSize: 10 }]}>{STATUS_CONFIG[o.status]?.label}</Text>
+                      </View>
+                      <Text style={[styles.tableCell, { flex: 0.8, textAlign: 'right', fontWeight: '700', fontSize: 11 }]}>
+                        {formatCurrency(o.total_amount, user?.currency)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Partial Delivery Modal */}
+        <Modal visible={showPartialModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: '85%' }]}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>{t('orders.partial_delivery')}</Text>
+                  <Text style={styles.modalSubtitle}>
+                    {t('orders.enter_received_quantities')}
                   </Text>
                 </View>
-              )}
-            </ScrollView>
+                <TouchableOpacity onPress={() => setShowPartialModal(false)} disabled={partialSaving}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
 
-            <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: colors.primary, marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }, returnSaving && styles.submitBtnDisabled]}
-              onPress={submitReturn}
-              disabled={returnSaving}
-            >
-              {returnSaving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="return-down-back" size={20} color="#fff" />
-                  <Text style={styles.submitBtnText}>{t('orders.create_return')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              <ScrollView style={{ maxHeight: 400 }}>
+                {partialOrder?.items.map((item) => {
+                  const prevReceived = partialOrder.received_items?.[item.item_id] ?? 0;
+                  const currentVal = parseInt(partialQuantities[item.item_id] || '0') || 0;
+
+                  return (
+                    <View
+                      key={item.item_id}
+                      style={{
+                        padding: Spacing.md,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.divider,
+                      }}
+                    >
+                      <Text style={styles.detailItemName}>
+                        {item.product?.name || item.product_name || 'Produit'}
+                      </Text>
+                      <Text style={[styles.detailItemSub, { marginBottom: Spacing.sm }]}>
+                        {t('orders.ordered')} : {item.quantity} | {t('orders.already_received')} : {prevReceived}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            const val = Math.max(0, currentVal - 1);
+                            setPartialQuantities((prev) => ({ ...prev, [item.item_id]: val.toString() }));
+                          }}
+                          style={{
+                            width: 36, height: 36, borderRadius: 18,
+                            backgroundColor: colors.danger + '20',
+                            justifyContent: 'center', alignItems: 'center',
+                          }}
+                        >
+                          <Ionicons name="remove" size={20} color={colors.danger} />
+                        </TouchableOpacity>
+
+                        <TextInput
+                          style={[
+                            styles.formInput,
+                            {
+                              width: 70, textAlign: 'center', paddingVertical: Spacing.xs,
+                              fontSize: FontSize.lg, fontWeight: '700',
+                            },
+                          ]}
+                          value={partialQuantities[item.item_id] || '0'}
+                          onChangeText={(text) => {
+                            const num = text.replace(/[^0-9]/g, '');
+                            setPartialQuantities((prev) => ({ ...prev, [item.item_id]: num }));
+                          }}
+                          keyboardType="numeric"
+                        />
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            const val = Math.min(item.quantity, currentVal + 1);
+                            setPartialQuantities((prev) => ({ ...prev, [item.item_id]: val.toString() }));
+                          }}
+                          style={{
+                            width: 36, height: 36, borderRadius: 18,
+                            backgroundColor: colors.success + '20',
+                            justifyContent: 'center', alignItems: 'center',
+                          }}
+                        >
+                          <Ionicons name="add" size={20} color={colors.success} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            setPartialQuantities((prev) => ({ ...prev, [item.item_id]: item.quantity.toString() }));
+                          }}
+                          style={{
+                            paddingHorizontal: Spacing.sm, paddingVertical: 6,
+                            borderRadius: BorderRadius.sm, backgroundColor: colors.primary + '20',
+                          }}
+                        >
+                          <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>Tout</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {currentVal > item.quantity && (
+                        <Text style={{ color: colors.danger, fontSize: FontSize.xs, marginTop: 4 }}>
+                          Dépasse la quantité commandée ({item.quantity})
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { marginTop: Spacing.md }]}>{t('common.notes')} ({t('common.optional')})</Text>
+                  <TextInput
+                    style={[styles.formInput, { minHeight: 60, textAlignVertical: 'top' }]}
+                    value={partialNotes}
+                    onChangeText={setPartialNotes}
+                    placeholder={t('orders.partial_notes_placeholder')}
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              </ScrollView>
+
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: '#FF9800', marginTop: Spacing.md, flexDirection: 'row', justifyContent: 'center', gap: 8 }, partialSaving && styles.submitBtnDisabled]}
+                onPress={submitPartialDelivery}
+                disabled={partialSaving}
+              >
+                {partialSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                    <Text style={styles.submitBtnText}>{t('orders.confirm_receipt')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      <ScreenGuide
-        visible={showGuide}
-        onClose={() => { setShowGuide(false); markSeen(); }}
-        title={GUIDES.orders.title}
-        steps={GUIDES.orders.steps}
-      />
-    </LinearGradient >
+        {/* Return Detail Modal */}
+        <Modal visible={showReturnDetailModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('orders.return_detail')}</Text>
+                <TouchableOpacity onPress={() => setShowReturnDetailModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {returnDetail ? (
+                <ScrollView style={styles.modalScroll}>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('common.info')}</Text>
+                    <View style={styles.detailRow}>
+                      <Ionicons name={returnDetail.type === 'customer' ? 'person-outline' : 'business-outline'} size={16} color={colors.primaryLight} />
+                      <Text style={styles.detailRowText}>
+                        {returnDetail.type === 'customer' ? t('orders.customer_return') : returnDetail.supplier_name || t('orders.supplier_return')}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailRowSubtext}>{t('orders.created_at')} : {formatDate(returnDetail.created_at)}</Text>
+                    </View>
+                    {returnDetail.order_id && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailRowSubtext}>{t('orders.related_order')} : {returnDetail.order_id}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.returned_items')}</Text>
+                    {returnDetail.items.map((item, index) => (
+                      <View key={index} style={styles.detailItemRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.detailItemName}>{item.product_name}</Text>
+                          <Text style={styles.detailItemSub}>
+                            {item.quantity} x {formatCurrency(item.unit_price, user?.currency)}
+                          </Text>
+                          {item.reason && (
+                            <Text style={[styles.detailItemSub, { color: colors.textMuted }]}>
+                              {t('orders.reason')} : {item.reason}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.detailItemTotal}>{formatCurrency(item.quantity * item.unit_price, user?.currency)}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {returnDetail.notes && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionTitle}>{t('common.notes')}</Text>
+                      <Text style={styles.detailNotes}>{returnDetail.notes}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{t('common.total')}</Text>
+                    <Text style={styles.totalValue}>{formatCurrency(returnDetail.total_amount, user?.currency)}</Text>
+                  </View>
+
+                  {returnDetail.credit_note_id && (
+                    <View style={[styles.detailSection, { marginTop: Spacing.md }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: Spacing.sm, backgroundColor: colors.success + '15', borderRadius: BorderRadius.md }}>
+                        <Ionicons name="document-text-outline" size={20} color={colors.success} />
+                        <View>
+                          <Text style={{ color: colors.success, fontWeight: '700', fontSize: FontSize.sm }}>{t('orders.credit_note_generated')}</Text>
+                          <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{returnDetail.credit_note_id}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {returnDetail.status === 'pending' && (
+                    <TouchableOpacity
+                      style={[styles.submitBtn, { backgroundColor: colors.success, marginTop: Spacing.md, flexDirection: 'row', justifyContent: 'center', gap: 8 }, completingReturn && styles.submitBtnDisabled]}
+                      onPress={() => completeReturn(returnDetail.return_id)}
+                      disabled={completingReturn}
+                    >
+                      {completingReturn ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark-done" size={20} color="#fff" />
+                          <Text style={styles.submitBtnText}>{t('orders.complete_return_generate_credit_note')}</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              ) : null}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Create Return Modal */}
+        <Modal visible={showReturnModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('orders.new_return')}</Text>
+                <TouchableOpacity onPress={() => setShowReturnModal(false)} disabled={returnSaving}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                {/* Return type */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('orders.return_type')}</Text>
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    <TouchableOpacity
+                      style={[styles.filterChip, returnType === 'supplier' && styles.filterChipActive, { flex: 1, justifyContent: 'center' }]}
+                      onPress={() => setReturnType('supplier')}
+                    >
+                      <Ionicons name="business-outline" size={14} color={returnType === 'supplier' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />
+                      <Text style={[styles.filterText, returnType === 'supplier' && styles.filterTextActive]}>{t('orders.supplier')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.filterChip, returnType === 'customer' && styles.filterChipActive, { flex: 1, justifyContent: 'center' }]}
+                      onPress={() => setReturnType('customer')}
+                    >
+                      <Ionicons name="person-outline" size={14} color={returnType === 'customer' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />
+                      <Text style={[styles.filterText, returnType === 'customer' && styles.filterTextActive]}>{t('orders.customer')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Items */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('orders.items_to_return')}</Text>
+
+                  {returnItems.map((item, index) => (
+                    <View key={index} style={{ padding: Spacing.sm, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, marginBottom: Spacing.sm }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: colors.text, fontWeight: '600', fontSize: FontSize.sm, flex: 1 }} numberOfLines={1}>
+                          {item.product_name}
+                        </Text>
+                        <TouchableOpacity onPress={() => removeReturnItem(index)}>
+                          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm, alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('common.quantity_short')}</Text>
+                          <TextInput
+                            style={[styles.formInput, { paddingVertical: Spacing.xs, textAlign: 'center' }]}
+                            value={item.quantity.toString()}
+                            onChangeText={(t) => updateReturnItem(index, 'quantity', parseInt(t.replace(/[^0-9]/g, '')) || 0)}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('common.unit_price_short')}</Text>
+                          <TextInput
+                            style={[styles.formInput, { paddingVertical: Spacing.xs, textAlign: 'center' }]}
+                            value={item.unit_price.toString()}
+                            onChangeText={(t) => updateReturnItem(index, 'unit_price', parseFloat(t.replace(/[^0-9.]/g, '')) || 0)}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                        <View style={{ flex: 1.5 }}>
+                          <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('orders.reason')}</Text>
+                          <TextInput
+                            style={[styles.formInput, { paddingVertical: Spacing.xs }]}
+                            value={item.reason || ''}
+                            onChangeText={(t) => updateReturnItem(index, 'reason', t)}
+                            placeholder={t('orders.reason_placeholder')}
+                            placeholderTextColor={colors.textMuted}
+                          />
+                        </View>
+                      </View>
+
+                      <Text style={{ color: colors.textSecondary, fontSize: FontSize.xs, marginTop: 4, textAlign: 'right' }}>
+                        {t('common.subtotal')} : {formatCurrency(item.quantity * item.unit_price, user?.currency)}
+                      </Text>
+                    </View>
+                  ))}
+
+                  {/* Add product search */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs }}>
+                    <View style={[styles.formInput, { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 0, height: 44 }]}>
+                      <Ionicons name="search" size={16} color={colors.textMuted} />
+                      <TextInput
+                        style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
+                        value={returnProductSearch}
+                        onChangeText={setReturnProductSearch}
+                        placeholder={t('orders.add_product_placeholder')}
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  </View>
+
+                  {returnProductSearch.length > 0 && (
+                    <View style={{ maxHeight: 150, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, marginTop: 4 }}>
+                      <ScrollView nestedScrollEnabled>
+                        {returnProducts
+                          .filter((p) => p.name.toLowerCase().includes(returnProductSearch.toLowerCase()))
+                          .slice(0, 10)
+                          .map((p) => (
+                            <TouchableOpacity
+                              key={p.product_id}
+                              style={{ padding: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                              onPress={() => addReturnProduct(p)}
+                            >
+                              <Ionicons name="add-circle" size={18} color={colors.primary} />
+                              <Text style={{ color: colors.text, fontSize: FontSize.sm, flex: 1 }}>{p.name}</Text>
+                              <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{formatCurrency(p.selling_price || 0, user?.currency)}</Text>
+                            </TouchableOpacity>
+                          ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* Notes */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('common.notes')}</Text>
+                  <TextInput
+                    style={[styles.formInput, { minHeight: 60, textAlignVertical: 'top' }]}
+                    value={returnNotes}
+                    onChangeText={setReturnNotes}
+                    placeholder={t('orders.return_notes_placeholder')}
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+
+                {/* Total */}
+                {returnItems.length > 0 && (
+                  <View style={[styles.totalRow, { marginBottom: Spacing.md }]}>
+                    <Text style={styles.totalLabel}>{t('orders.total_return')}</Text>
+                    <Text style={styles.totalValue}>
+                      {formatCurrency(returnItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0), user?.currency)}
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: colors.primary, marginTop: Spacing.sm, flexDirection: 'row', justifyContent: 'center', gap: 8 }, returnSaving && styles.submitBtnDisabled]}
+                onPress={submitReturn}
+                disabled={returnSaving}
+              >
+                {returnSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="return-down-back" size={20} color="#fff" />
+                    <Text style={styles.submitBtnText}>{t('orders.create_return')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <ScreenGuide
+          visible={showGuide}
+          onClose={() => { setShowGuide(false); markSeen(); }}
+          title={GUIDES.orders.title}
+          steps={GUIDES.orders.steps}
+        />
+      </LinearGradient >
     </PremiumGate>
   );
 }

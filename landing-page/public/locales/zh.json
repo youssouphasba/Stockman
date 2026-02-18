@@ -81,7 +81,13 @@
         "subtitle": "了解 Stockman 如何每天帮助商户。",
         "t1": "自从使用 Stockman 以来，我再也没有因为缺货而损失金钱。人工智能总是在正确的时间提醒我！",
         "t2": "这款应用非常简单。我的员工在 10 分钟内就学会了。收银管理非常完美。",
-        "t3": "我非常喜欢采购市场！我可以比较供应商的价格并直接下单。节省了大量时间。"
+        "t3": "我非常喜欢采购市场！我可以比较供应商的价格并直接下单。节省了大量时间。",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "选择您的方案",
@@ -90,7 +96,6 @@
         "popular": "最受欢迎",
         "starter": {
             "name": "创业版",
-            "price": "1000",
             "f1": "1 位用户",
             "f2": "最多 100 种商品",
             "f3": "基础库存管理",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "商务版",
-            "price": "2500",
             "f1": "3 位用户",
             "f2": "无限制商品",
             "f3": "Stockman 人工智能助手",

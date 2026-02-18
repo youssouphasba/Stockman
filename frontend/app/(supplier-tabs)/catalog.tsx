@@ -294,8 +294,7 @@ export default function CatalogScreen() {
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Prix (FCFA)</Text>
-                  <TextInput style={styles.input} value={formPrice} onChangeText={setFormPrice} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+                  <Text style={styles.label}>Prix ({t('common.currency_default')})</Text>
                 </View>
                 <View style={styles.formHalf}>
                   <Text style={styles.label}>Unité</Text>

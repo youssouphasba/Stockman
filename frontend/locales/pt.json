@@ -24,6 +24,12 @@
     "unknown_product": "Produit inconnu",
     "merchant": "Commerçant",
     "preferences_error": "Impossible de mettre à jour vos préférences.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "days_ago": "{{count}} days ago",
+    "weeks_ago": "{{count}} weeks ago",
+    "months_ago": "{{count}} months ago",
+    "years_ago": "{{count}} years ago",
     "periods": {
       "7d": "7d",
       "30d": "30d",
@@ -250,6 +256,40 @@
     "total_revenue_kpi": "Faturação total",
     "gross_margin_kpi": "Margem bruta",
     "total_expenses_kpi": "Total de despesas"
+  },
+  "premium": {
+    "with_premium_you_can": "With Premium, you can:",
+    "upgrade_now": "Upgrade to Premium",
+    "pricing_hint": "Starting from 5,000 FCFA / month",
+    "features": {
+      "orders": {
+        "title": "Smart Ordering",
+        "desc": "Automate your orders and manage returns professionally.",
+        "benefits": [
+          "Auto-generate orders based on stock",
+          "Advanced return management",
+          "Supplier performance tracking"
+        ]
+      },
+      "suppliers": {
+        "title": "Marketplace Access",
+        "desc": "Connect with thousands of verified suppliers and compare prices.",
+        "benefits": [
+          "Global marketplace access",
+          "Direct supplier chat",
+          "Exclusive bulk discounts"
+        ]
+      },
+      "accounting": {
+        "title": "Financial Intelligence",
+        "desc": "Deep dive into your business metrics and export official reports.",
+        "benefits": [
+          "Detailed profit/loss analysis",
+          "Professional PDF/Excel reports",
+          "Multi-currency support"
+        ]
+      }
+    }
   },
   "invoice": {
     "create_invoice": "Criar Fatura",

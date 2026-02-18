@@ -276,7 +276,7 @@ export default function SupplierOrdersScreen() {
 
               <View style={styles.orderDetails}>
                 <Text style={styles.orderItems}>{order.items_count} article{order.items_count > 1 ? 's' : ''}</Text>
-                <Text style={styles.orderTotal}>{order.total_amount.toLocaleString()} FCFA</Text>
+                <Text style={styles.orderTotal}>{order.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
               </View>
 
               {actions.length > 0 && (
@@ -367,7 +367,7 @@ export default function SupplierOrdersScreen() {
 
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>{selectedOrder.total_amount.toLocaleString()} FCFA</Text>
+                  <Text style={styles.totalValue}>{selectedOrder.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
                 </View>
 
                 {/* Actions */}

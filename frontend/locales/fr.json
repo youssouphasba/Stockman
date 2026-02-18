@@ -24,6 +24,12 @@
     "unknown_product": "Produit inconnu",
     "merchant": "Commerçant",
     "preferences_error": "Impossible de mettre à jour vos préférences.",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "days_ago": "Il y a {{count}} jours",
+    "weeks_ago": "Il y a {{count}} semaines",
+    "months_ago": "Il y a {{count}} mois",
+    "years_ago": "Il y a {{count}} ans",
     "periods": {
       "7d": "7j",
       "30d": "30j",
@@ -50,6 +56,32 @@
     "activity": "Activité",
     "admin": "Admin",
     "subscription": "Abonnement"
+  },
+  "subscription": {
+    "features": {
+      "products": "Produits",
+      "stores": "Magasins",
+      "users": "Utilisateurs",
+      "pos": "Caisse (POS)",
+      "pdf_receipts": "Reçus PDF",
+      "reports": "Rapports",
+      "ai_assistant": "Assistant IA",
+      "suppliers_orders": "Fournisseurs & Commandes",
+      "csv_import_export": "Import/Export CSV",
+      "crm_loyalty": "CRM & Fidélité",
+      "sms_alerts": "Alertes SMS",
+      "support": "Support",
+      "unlimited": "Illimités",
+      "with_watermark": "Avec mention Stockman",
+      "custom_logo": "Logo personnalisé",
+      "30_days": "30 derniers jours",
+      "full_history": "Historique complet",
+      "14_req_week": "14 requêtes/semaine",
+      "consultation": "Consultation",
+      "full_management": "Gestion complète",
+      "email_24h": "Email (24h)",
+      "whatsapp_2h": "WhatsApp prioritaire (2h)"
+    }
   },
   "store_selector": {
     "my_stores": "Mes Magasins",
@@ -250,6 +282,40 @@
     "total_revenue_kpi": "CA total",
     "gross_margin_kpi": "Marge brute",
     "total_expenses_kpi": "Total charges"
+  },
+  "premium": {
+    "with_premium_you_can": "Avec Premium, vous pouvez :",
+    "upgrade_now": "Passer à Premium",
+    "pricing_hint": "À partir de 5 000 FCFA / mois",
+    "features": {
+      "orders": {
+        "title": "Commandes Intelligentes",
+        "desc": "Automatisez vos commandes et gérez les retours professionnellement.",
+        "benefits": [
+          "Génération auto de commandes",
+          "Gestion avancée des retours",
+          "Suivi performance fournisseurs"
+        ]
+      },
+      "suppliers": {
+        "title": "Accès Marketplace",
+        "desc": "Connectez-vous à des milliers de fournisseurs vérifiés et comparez les prix.",
+        "benefits": [
+          "Accès au catalogue mondial",
+          "Chat direct avec les fournisseurs",
+          "Remises exclusives de gros"
+        ]
+      },
+      "accounting": {
+        "title": "Intelligence Financière",
+        "desc": "Analysez vos indicateurs en profondeur et exportez des rapports officiels.",
+        "benefits": [
+          "Analyse profits/pertes détaillée",
+          "Rapports PDF/Excel pros",
+          "Support multi-devises"
+        ]
+      }
+    }
   },
   "invoice": {
     "create_invoice": "Créer une Facture",
@@ -501,8 +567,7 @@
     "sort_spent": "Dépenses",
     "sort_recent": "Récent",
     "sort_visits": "Visites",
-    "export_error": "Impossible d'exporter les clients",
-    "default_store": "Mon Commerce",
+    "error_export_csv": "Échec de l'export CSV",
     "report_title": "RAPPORT CLIENTS & CRM",
     "report_clients": "Clients",
     "report_total_revenue": "CA total",
@@ -546,7 +611,9 @@
     "unknown": "Inconnu",
     "name_required": "Le nom est obligatoire",
     "client_created": "Client créé et sélectionné",
-    "client_create_error": "Impossible de créer le client"
+    "client_created": "Client créé et sélectionné",
+    "client_create_error": "Impossible de créer le client",
+    "not_enough_stock_detail": "Il ne reste que {{qty}} {{unit}}(s) de {{name}}"
   },
   "alerts": {
     "title": "Alertes",

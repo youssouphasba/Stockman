@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNetwork } from '../hooks/useNetwork';
@@ -8,6 +9,7 @@ import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 
 export default function AiDailySummary() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { isConnected } = useNetwork();
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export default function AiDailySummary() {
       setSummary(result.summary);
       setExpanded(true);
     } catch {
-      setSummary('Impossible de générer le résumé. Réessayez plus tard.');
+      setSummary(t('ai.error_summarizing') || 'Impossible de générer le résumé. Réessayez plus tard.');
     } finally {
       setLoading(false);
     }
@@ -37,9 +39,9 @@ export default function AiDailySummary() {
           <Ionicons name="sparkles" size={18} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.text }]}>Résumé IA du jour</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.ai_daily_summary') || 'Résumé IA du jour'}</Text>
           {!summary && !loading && (
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Appuyez pour générer</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{t('dashboard.ai_tap_to_generate') || 'Appuyez pour générer'}</Text>
           )}
         </View>
         {loading ? (
@@ -57,7 +59,7 @@ export default function AiDailySummary() {
         <View style={[styles.content, { borderTopColor: colors.divider }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6, paddingTop: Spacing.sm }}>
             <Ionicons name="sparkles" size={13} color={colors.primary} />
-            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Analyse IA</Text>
+            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('ai.ai_analysis') || 'Analyse IA'}</Text>
           </View>
           <Text style={[styles.summaryText, { color: colors.text }]}>{summary}</Text>
         </View>

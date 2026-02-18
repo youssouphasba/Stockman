@@ -81,7 +81,13 @@
         "subtitle": "Stockman'ın tüccarlara günlük olarak nasıl yardımcı olduğunu keşfedin.",
         "t1": "Stockman kullandığımdan beri stok yetersizliği nedeniyle artık para kaybetmiyorum. Yapay zeka beni her zaman doğru zamanda uyarıyor!",
         "t2": "Uygulama çok basit. Çalışanlarım 10 dakikada öğrendi. POS yönetimi mükemmel.",
-        "t3": "Pazaryerini seviyorum! Tedarikçi fiyatlarını karşılaştırabiliyor ve doğrudan sipariş verebiliyorum. Büyük zaman tasarrufu."
+        "t3": "Pazaryerini seviyorum! Tedarikçi fiyatlarını karşılaştırabiliyor ve doğrudan sipariş verebiliyorum. Büyük zaman tasarrufu.",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "Planınızı Seçin",
@@ -90,7 +96,6 @@
         "popular": "Popüler",
         "starter": {
             "name": "Starter",
-            "price": "1000",
             "f1": "1 Kullanıcı",
             "f2": "100 ürüne kadar",
             "f3": "Temel Stok Yönetimi",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "İşletme",
-            "price": "2500",
             "f1": "3 Kullanıcı",
             "f2": "Sınırsız Ürün",
             "f3": "Stockman Yapay Zeka Asistanı",
@@ -476,8 +480,6 @@
             "eviter-ruptures-fetes": {
                 "title": "Tatillerde stok tükenmesi nasıl önlenir?",
                 "excerpt": "Noel ve Kurban Bayramı kritik dönemlerdir. Uzman ipuçlarımızla stoğunuzu önceden hazırlayın.",
-                "date": "10 Oca 2026",
-                "content": "<p>Tatil dönemindeki stok tükenmeleri doğrudan gelir kaybı demektir. İşte bunlardan nasıl kaçınacağınız.</p><h3>Talebi tahmin edin</h3><p>Sipariş etmeniz gereken miktarları tahmin etmek için geçen yılın satış geçmişini kullanın.",
                 "date": "10 Oca 2026",
                 "content": "<p>Tatil dönemindeki stok tükenmeleri doğrudan gelir kaybı demektir. İşte bunlardan nasıl kaçınacağınız.</p><h3>Talebi tahmin edin</h3><p>Sipariş etmeniz gereken miktarları tahmin etmek için geçen yılın satış geçmişini kullanın.</p><h3>Erken sipariş verin</h3><p>Tedarikçiler genellikle yoğun olur. Siparişlerinizi normalden 2 ila 3 hafta önce verin.</p><h3>Stockman uyarılarını kullanın</h3><p>Bir ürün azalmaya başladığında bilgilendirilmek için uyarı eşikleri ayarlayın.</p>"
             },

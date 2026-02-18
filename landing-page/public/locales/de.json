@@ -81,7 +81,13 @@
         "subtitle": "Entdecken Sie, wie Stockman Händlern täglich hilft.",
         "t1": "Seit ich Stockman benutze, verliere ich kein Geld mehr durch Lagerengpässe. Die KI warnt mich immer zum richtigen Zeitpunkt!",
         "t2": "Die App ist so einfach. Meine Mitarbeiter hatten sie in 10 Minuten im Griff. Die Kassenverwaltung ist perfekt.",
-        "t3": "Ich liebe den Marketplace! Ich kann die Preise meiner Lieferanten vergleichen und direkt bestellen. Eine enorme Zeitersparnis."
+        "t3": "Ich liebe den Marketplace! Ich kann die Preise meiner Lieferanten vergleichen und direkt bestellen. Eine enorme Zeitersparnis.",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "Wählen Sie Ihren Plan",
@@ -90,7 +96,6 @@
         "popular": "Beliebt",
         "starter": {
             "name": "Starter",
-            "price": "1000",
             "f1": "1 Benutzer",
             "f2": "Bis zu 100 Produkte",
             "f3": "Basis-Bestandsverwaltung",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "Business",
-            "price": "2500",
             "f1": "3 Benutzer",
             "f2": "Unbegrenzte Produkte",
             "f3": "Stockman KI-Assistent",

@@ -81,7 +81,13 @@
         "subtitle": "Discover how Stockman helps merchants daily.",
         "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
         "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver."
+        "t3": "I love the marketplace! I can compare supplier prices and order directly. Huge time saver.",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "Choose Your Plan",
@@ -90,7 +96,6 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
-            "price": "1000",
             "f1": "1 User",
             "f2": "Up to 100 products",
             "f3": "Basic Stock Management",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "Business",
-            "price": "2500",
             "f1": "3 Users",
             "f2": "Unlimited Products",
             "f3": "Stockman AI Assistant",

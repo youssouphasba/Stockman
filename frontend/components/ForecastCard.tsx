@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { sales, ForecastProduct, SalesForecastResponse } from '../services/api';
@@ -11,6 +12,7 @@ type Props = {
 
 export default function ForecastCard({ onNavigate }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [data, setData] = useState<SalesForecastResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -63,7 +65,7 @@ export default function ForecastCard({ onNavigate }: Props) {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="analytics-outline" size={20} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Prévisions de ventes</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.sales_forecast') || 'Prévisions de ventes'}</Text>
         </View>
         <TouchableOpacity onPress={loadForecast}>
           <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
@@ -73,15 +75,15 @@ export default function ForecastCard({ onNavigate }: Props) {
       {/* KPIs */}
       <View style={styles.kpiRow}>
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
-          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>CA prévu 7j</Text>
+          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_7d') || 'CA prévu 7j'}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_7d.toLocaleString()} F
+            {data.total_predicted_revenue_7d.toLocaleString()} {t('common.currency_default')}
           </Text>
         </View>
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
-          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>CA prévu 30j</Text>
+          <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_30d') || 'CA prévu 30j'}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_30d.toLocaleString()} F
+            {data.total_predicted_revenue_30d.toLocaleString()} {t('common.currency_default')}
           </Text>
         </View>
       </View>
@@ -91,9 +93,9 @@ export default function ForecastCard({ onNavigate }: Props) {
         <View style={[styles.alertRow, { backgroundColor: '#f4433610', borderColor: '#f4433630' }]}>
           <Ionicons name="warning-outline" size={16} color="#f44336" />
           <Text style={[styles.alertText, { color: colors.text }]}>
-            {criticalCount > 0 && `${criticalCount} produit${criticalCount > 1 ? 's' : ''} en rupture imminente`}
+            {criticalCount > 0 && t('dashboard.imminent_stockout', { count: criticalCount })}
             {criticalCount > 0 && warningCount > 0 && ' | '}
-            {warningCount > 0 && `${warningCount} en surveillance`}
+            {warningCount > 0 && t('dashboard.monitoring_stock', { count: warningCount })}
           </Text>
         </View>
       )}
@@ -111,7 +113,7 @@ export default function ForecastCard({ onNavigate }: Props) {
                 {p.name}
               </Text>
               <Text style={[styles.productMeta, { color: colors.textMuted }]}>
-                Stock: {p.current_stock} | {p.velocity}/j | {p.days_of_stock < 999 ? `${p.days_of_stock}j restants` : 'Pas de ventes'}
+                {t('common.stock')}: {p.current_stock} | {p.velocity}/{t('common.day_short')} | {p.days_of_stock < 999 ? t('dashboard.days_remaining', { count: p.days_of_stock }) : t('dashboard.no_sales')}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 2 }}>
@@ -130,7 +132,7 @@ export default function ForecastCard({ onNavigate }: Props) {
         {products.length > 3 && (
           <TouchableOpacity onPress={() => setExpanded(!expanded)}>
             <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>
-              {expanded ? 'Voir moins' : `Voir ${products.length - 3} de plus`}
+              {expanded ? t('common.see_less') : t('common.see_more_count', { count: products.length - 3 })}
             </Text>
           </TouchableOpacity>
         )}
@@ -141,7 +143,7 @@ export default function ForecastCard({ onNavigate }: Props) {
         <View style={[styles.aiBox, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <Ionicons name="sparkles" size={13} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>Analyse IA</Text>
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{t('ai.ai_analysis') || 'Analyse IA'}</Text>
           </View>
           <Text style={[styles.aiText, { color: colors.textSecondary }]}>
             {data.ai_summary}

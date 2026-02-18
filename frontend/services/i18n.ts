@@ -1,6 +1,7 @@
-import i18n from 'i18next';
+import i18n, { LanguageDetectorAsyncModule } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import locales
 import fr from '../locales/fr.json';
@@ -37,11 +38,42 @@ const resources = {
     ru: { translation: ru },
 };
 
+const LANGUAGE_KEY = 'user-language';
+
+const languageDetector: LanguageDetectorAsyncModule = {
+    type: 'languageDetector',
+    async: true,
+    detect: async (callback: (lng: string) => void) => {
+        try {
+            const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
+            if (savedLanguage) {
+                console.log('Detecting saved language:', savedLanguage);
+                return callback(savedLanguage);
+            }
+        } catch (error) {
+            console.error('Error detecting language:', error);
+        }
+
+        const deviceLanguage = Localization.getLocales()?.[0]?.languageCode ?? 'fr';
+        console.log('Falling back to device language:', deviceLanguage);
+        callback(deviceLanguage);
+    },
+    init: () => { },
+    cacheUserLanguage: async (lng: string) => {
+        try {
+            await AsyncStorage.setItem(LANGUAGE_KEY, lng);
+            console.log('Cached user language:', lng);
+        } catch (error) {
+            console.error('Error saving language:', error);
+        }
+    },
+};
+
 i18n
+    .use(languageDetector)
     .use(initReactI18next)
     .init({
         resources,
-        lng: Localization.getLocales()[0].languageCode ?? 'fr',
         fallbackLng: 'fr',
         interpolation: {
             escapeValue: false,

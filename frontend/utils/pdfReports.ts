@@ -1,8 +1,9 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { Sale, OrderFull, Store } from '../services/api';
+import { Sale, OrderFull, Store, Product } from '../services/api';
 import { formatCurrency } from './format';
+import i18n from '../services/i18n';
 
 type ReportSection = {
   title: string;
@@ -45,7 +46,7 @@ function buildHtml(config: ReportConfig): string {
             `<td style="padding:10px 5px; border-bottom:1px solid #eee; ${s.alignRight?.includes(i) ? 'text-align:right;' : ''}">${cell}</td>`
           ).join('')}</tr>`
         ).join('')
-        : `<tr><td colspan="${s.headers.length}" style="text-align:center; padding:20px; color:#999;">Aucune donnée</td></tr>`;
+        : `<tr><td colspan="${s.headers.length}" style="text-align:center; padding:20px; color:#999;">${i18n.t('common.no_data') || 'Aucune donnée'}</td></tr>`;
 
       return `
         <section>
@@ -93,7 +94,9 @@ function buildHtml(config: ReportConfig): string {
       </div>
       ${kpisHtml}
       ${sectionsHtml}
-      <div class="footer">Généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} par Stockman</div>
+      <div class="footer">${i18n.t('common.generated_by_stockman', {
+    date: new Date().toLocaleDateString(i18n.language, { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }) || `Généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} par Stockman`}</div>
     </body>
     </html>
   `;
@@ -135,16 +138,16 @@ export async function generateSalePdf(sale: Sale, store: Store, currency?: strin
     </tr>
   `).join('');
 
-  const date = new Date(sale.created_at).toLocaleDateString('fr-FR');
+  const date = new Date(sale.created_at).toLocaleDateString(i18n.language);
   const ref = `REC-${sale.sale_id.slice(-6).toUpperCase()}`;
 
   const html = buildProfessionalInvoiceHtml({
     store,
-    title: "REÇU DE VENTE",
+    title: i18n.t('accounting.sale_receipt') || "REÇU DE VENTE",
     ref,
     date,
-    recipientLabel: "Client",
-    recipientName: sale.customer_name || sale.customer_id || "Client Divers",
+    recipientLabel: i18n.t('common.customer') || "Client",
+    recipientName: sale.customer_name || sale.customer_id || i18n.t('common.diverse_customer') || "Client Divers",
     itemsHtml,
     total: sale.total_amount,
     currency,
@@ -164,15 +167,15 @@ export async function generatePurchaseOrderPdf(order: OrderFull, store: Store, c
     </tr>
   `).join('');
 
-  const date = new Date(order.created_at).toLocaleDateString('fr-FR');
+  const date = new Date(order.created_at).toLocaleDateString(i18n.language);
   const ref = `CMD-${order.order_id.slice(-6).toUpperCase()}`;
 
   const html = buildProfessionalInvoiceHtml({
     store,
-    title: "BON DE COMMANDE",
+    title: i18n.t('orders.purchase_order') || "BON DE COMMANDE",
     ref,
     date,
-    recipientLabel: "Fournisseur",
+    recipientLabel: i18n.t('common.supplier') || "Fournisseur",
     recipientName: order.supplier.name,
     itemsHtml,
     total: order.total_amount,
@@ -252,10 +255,10 @@ export function buildProfessionalInvoiceHtml(data: InvoiceData) {
       <table>
         <thead>
           <tr>
-            <th>Description</th>
-            <th style="text-align:center">Qté</th>
-            <th style="text-align:right">Prix Unitaire</th>
-            <th style="text-align:right">Total</th>
+            <th>${i18n.t('common.description') || 'Description'}</th>
+            <th style="text-align:center">${i18n.t('common.qty_short') || 'Qté'}</th>
+            <th style="text-align:right">${i18n.t('common.unit_price') || 'Prix Unitaire'}</th>
+            <th style="text-align:right">${i18n.t('common.total') || 'Total'}</th>
           </tr>
         </thead>
         <tbody>${data.itemsHtml}</tbody>
@@ -267,14 +270,17 @@ export function buildProfessionalInvoiceHtml(data: InvoiceData) {
             <span>Total:</span>
             <span class="grand-total">${formatCurrency(data.total, data.currency)}</span>
           </div>
-          ${data.paymentMethod ? `<div style="margin-top: 10px; font-size: 12px; color: #666; text-align: right;">Payé par: ${data.paymentMethod}</div>` : ''}
+          ${data.paymentMethod ? `<div style="margin-top: 10px; font-size: 12px; color: #666; text-align: right;">${i18n.t('accounting.paid_by') || 'Payé par'}: ${data.paymentMethod}</div>` : ''}
         </div>
       </div>
 
-      ${data.notes ? `<div class="notes">Notes: ${data.notes}</div>` : ''}
+      ${data.notes ? `<div class="notes">${i18n.t('common.notes') || 'Notes'}: ${data.notes}</div>` : ''}
 
       <div class="footer">
-        Généré par Stockman le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
+        ${i18n.t('common.generated_by_stockman_at', {
+    date: new Date().toLocaleDateString(i18n.language),
+    time: new Date().toLocaleTimeString(i18n.language)
+  }) || `Généré par Stockman le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`}
       </div>
     </body>
     </html>

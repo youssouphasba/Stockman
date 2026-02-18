@@ -81,7 +81,13 @@
         "subtitle": "Scopri come Stockman aiuta i commercianti ogni giorno.",
         "t1": "Da quando uso Stockman, non perdo più soldi a causa delle rotture di stock. L'IA mi avvisa sempre al momento giusto!",
         "t2": "L'app è semplicissima. I miei dipendenti l'hanno imparata in 10 minuti. La gestione della cassa è perfetta.",
-        "t3": "Adoro il marketplace! Posso confrontare i prezzi dei miei fornitori e ordinare direttamente. Un enorme risparmio di tempo."
+        "t3": "Adoro il marketplace! Posso confrontare i prezzi dei miei fornitori e ordinare direttamente. Un enorme risparmio di tempo.",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
     "pricing": {
         "title": "Scegli il tuo piano",
@@ -90,7 +96,6 @@
         "popular": "Popolare",
         "starter": {
             "name": "Starter",
-            "price": "1000",
             "f1": "1 Utente",
             "f2": "Fino a 100 prodotti",
             "f3": "Gestione scorte base",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "Business",
-            "price": "2500",
             "f1": "3 Utenti",
             "f2": "Prodotti illimitati",
             "f3": "Assistente IA Stockman",

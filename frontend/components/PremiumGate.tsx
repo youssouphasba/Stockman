@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Props = {
     /** Feature name shown in the title */
@@ -25,44 +27,55 @@ type Props = {
  * Premium users see the normal content.
  */
 export default function PremiumGate({ featureName, description, benefits, icon = 'lock-closed', locked, children }: Props) {
+    const { t } = useTranslation();
     const router = useRouter();
+    const { colors, glassStyle } = useTheme();
 
     if (!locked) {
         return <>{children}</>;
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
             <View style={styles.content}>
-                <View style={styles.iconCircle}>
-                    <Ionicons name={icon as any} size={48} color="#F59E0B" />
+                <View style={[styles.iconCircle, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+                    <Ionicons name={icon as any} size={48} color={colors.primary} />
                 </View>
 
-                <Text style={styles.title}>{featureName}</Text>
-                <Text style={styles.description}>{description}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{featureName}</Text>
+                <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
 
-                <View style={styles.benefitsCard}>
-                    <Text style={styles.benefitsTitle}>Avec Premium, vous pouvez :</Text>
+                <View style={[styles.benefitsCard, glassStyle]}>
+                    <Text style={[styles.benefitsTitle, { color: colors.text }]}>
+                        {t('premium.with_premium_you_can') || 'Avec Premium, vous pouvez :'}
+                    </Text>
                     {benefits.map((b, i) => (
                         <View key={i} style={styles.benefitRow}>
-                            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                            <Text style={styles.benefitText}>{b}</Text>
+                            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                            <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{b}</Text>
                         </View>
                     ))}
                 </View>
 
                 <TouchableOpacity
-                    onPress={() => router.push('/(tabs)/subscription')}
+                    onPress={() => router.push('/subscription')}
                     style={styles.upgradeButton}
                 >
-                    <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.gradient}>
-                        <Ionicons name="diamond" size={20} color="white" />
-                        <Text style={styles.upgradeText}>Passer à Premium</Text>
+                    <LinearGradient
+                        colors={[colors.primary, colors.primaryDark || colors.primary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradient}
+                    >
+                        <Ionicons name="star" size={20} color="white" />
+                        <Text style={styles.upgradeText}>
+                            {t('premium.upgrade_now') || 'Passer à Premium'}
+                        </Text>
                     </LinearGradient>
                 </TouchableOpacity>
 
                 <Text style={styles.priceHint}>
-                    3 mois gratuits, puis 2 500 FCFA/mois
+                    {t('premium.pricing_hint') || 'À partir de 5 000 FCFA / mois'}
                 </Text>
             </View>
         </View>
@@ -72,89 +85,77 @@ export default function PremiumGate({ featureName, description, benefits, icon =
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 24,
+        padding: Spacing.lg,
     },
     content: {
         alignItems: 'center',
-        maxWidth: 360,
+        maxWidth: 400,
+        width: '100%',
     },
     iconCircle: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        backgroundColor: '#FFFBEB',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: Spacing.lg,
         borderWidth: 2,
-        borderColor: '#FDE68A',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 8,
+        fontSize: FontSize.xxl,
+        fontWeight: '900',
+        marginBottom: Spacing.xs,
         textAlign: 'center',
     },
     description: {
-        fontSize: 15,
-        color: '#6B7280',
+        fontSize: FontSize.md,
         textAlign: 'center',
         lineHeight: 22,
-        marginBottom: 24,
+        marginBottom: Spacing.xl,
     },
     benefitsCard: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
         width: '100%',
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        marginBottom: Spacing.xl,
     },
     benefitsTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: 12,
+        fontSize: FontSize.md,
+        fontWeight: '700',
+        marginBottom: Spacing.md,
     },
     benefitRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
-        gap: 10,
+        marginBottom: Spacing.sm,
+        gap: 12,
     },
     benefitText: {
-        fontSize: 14,
-        color: '#4B5563',
+        fontSize: FontSize.sm,
         flex: 1,
     },
     upgradeButton: {
         width: '100%',
-        borderRadius: 12,
+        borderRadius: BorderRadius.md,
         overflow: 'hidden',
     },
     gradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
-        gap: 8,
+        paddingVertical: Spacing.md,
+        gap: 10,
     },
     upgradeText: {
         color: 'white',
-        fontSize: 17,
+        fontSize: FontSize.md,
         fontWeight: 'bold',
     },
     priceHint: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        marginTop: 12,
+        fontSize: FontSize.xs,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: Spacing.md,
     },
 });

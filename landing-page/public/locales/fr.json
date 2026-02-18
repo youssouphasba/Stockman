@@ -80,8 +80,14 @@
         "title": "Ils nous font confiance",
         "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
         "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Boutique Électronique",
         "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
-        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme."
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Supermarché Express",
+        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Pharmacie Centrale"
     },
     "pricing": {
         "title": "Choisissez votre plan",
@@ -90,7 +96,6 @@
         "popular": "Populaire",
         "starter": {
             "name": "Starter",
-            "price": "1000",
             "f1": "1 Utilisateur, 1 Boutique",
             "f2": "100 produits",
             "f3": "14 Requêtes IA / semaine",
@@ -99,7 +104,6 @@
         },
         "business": {
             "name": "Premium",
-            "price": "2500",
             "f1": "Utilisateurs illimités",
             "f2": "Produits illimités",
             "f3": "Assistant IA illimité",

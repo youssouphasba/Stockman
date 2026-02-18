@@ -363,7 +363,7 @@ export default function DashboardScreen() {
           <AnimatedCounter
             value={numericValue}
             style={[styles.kpiValue, { color: colors.text }]}
-            suffix={isCurrency ? ' FCFA' : ''}
+            suffix={isCurrency ? ` ${t('common.currency_default')}` : ''}
           />
         ) : (
           <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
@@ -588,7 +588,7 @@ export default function DashboardScreen() {
                     <Text style={styles.saleDate}>{formatDate(sale.created_at)}</Text>
                     <Text style={styles.saleItemsCount}>{t('common.items_count', { count: sale.items.length })}</Text>
                   </View>
-                  <Text style={styles.saleAmount}>{sale.total_amount.toLocaleString()} FCFA</Text>
+                  <Text style={styles.saleAmount}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
                 </View>
               ))}
             </View>

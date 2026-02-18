@@ -9,6 +9,7 @@ import {
     Alert,
     Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,21 +26,22 @@ type FeatureRow = {
 };
 
 const FEATURES: FeatureRow[] = [
-    { label: 'Produits', starter: 'Illimités', premium: 'Illimités' },
-    { label: 'Boutiques', starter: '1', premium: 'Illimitées' },
-    { label: 'Utilisateurs', starter: '1 (propriétaire)', premium: 'Illimités (vendeurs, gérants)' },
-    { label: 'Caisse (POS)', starter: 'Oui', premium: 'Oui' },
-    { label: 'Reçus PDF', starter: 'Avec mention Stockman', premium: 'Logo personnalisé' },
-    { label: 'Rapports', starter: '30 derniers jours', premium: 'Historique complet' },
-    { label: 'Assistant IA', starter: '14 requêtes/semaine', premium: 'Illimité' },
-    { label: 'Fournisseurs & Commandes', starter: 'Consultation', premium: 'Gestion complète' },
-    { label: 'Import/Export CSV', starter: '—', premium: 'Oui' },
-    { label: 'CRM & Fidélité', starter: '—', premium: 'Oui' },
-    { label: 'Alertes SMS', starter: '—', premium: 'Oui' },
-    { label: 'Support', starter: 'Email (24h)', premium: 'WhatsApp prioritaire (2h)' },
+    { label: 'subscription.features.products', starter: 'subscription.features.unlimited', premium: 'subscription.features.unlimited' },
+    { label: 'subscription.features.stores', starter: '1', premium: 'subscription.features.unlimited' },
+    { label: 'subscription.features.users', starter: '1', premium: 'subscription.features.unlimited' },
+    { label: 'subscription.features.pos', starter: 'common.yes', premium: 'common.yes' },
+    { label: 'subscription.features.pdf_receipts', starter: 'subscription.features.with_watermark', premium: 'subscription.features.custom_logo' },
+    { label: 'subscription.features.reports', starter: 'subscription.features.30_days', premium: 'subscription.features.full_history' },
+    { label: 'subscription.features.ai_assistant', starter: 'subscription.features.14_req_week', premium: 'subscription.features.unlimited' },
+    { label: 'subscription.features.suppliers_orders', starter: 'subscription.features.consultation', premium: 'subscription.features.full_management' },
+    { label: 'subscription.features.csv_import_export', starter: '—', premium: 'common.yes' },
+    { label: 'subscription.features.crm_loyalty', starter: '—', premium: 'common.yes' },
+    { label: 'subscription.features.sms_alerts', starter: '—', premium: 'common.yes' },
+    { label: 'subscription.features.support', starter: 'subscription.features.email_24h', premium: 'subscription.features.whatsapp_2h' },
 ];
 
 export default function SubscriptionScreen() {
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user } = useAuth();
@@ -50,8 +52,8 @@ export default function SubscriptionScreen() {
 
     const isEUR = user?.currency === 'EUR';
     const prices = {
-        starter: isEUR ? '3,99 €' : '1 000 FCFA',
-        premium: isEUR ? '7,99 €' : '2 500 FCFA',
+        starter: isEUR ? '3,99 €' : `1 000 ${t('common.currency_default')}`,
+        premium: isEUR ? '7,99 €' : `2 500 ${t('common.currency_default')}`,
     };
 
     useEffect(() => {
@@ -83,11 +85,11 @@ export default function SubscriptionScreen() {
             if (result.success) {
                 await subscription.sync();
                 fetchSubscription();
-                Alert.alert('Merci !', 'Votre abonnement est activé.');
+                Alert.alert(t('common.success'), t('subscription.activated_success'));
             }
         } catch (e: any) {
             if (!e.userCancelled) {
-                Alert.alert('Erreur', 'Le paiement a échoué. Vérifiez votre connexion et réessayez.');
+                Alert.alert(t('common.error'), t('subscription.payment_failed'));
             }
         } finally {
             setPayLoading(false);
@@ -104,7 +106,7 @@ export default function SubscriptionScreen() {
                 fetchSubscription();
             }
         } catch (error) {
-            Alert.alert('Erreur', "Impossible d'initialiser le paiement Mobile Money");
+            Alert.alert(t('common.error'), t('subscription.cinetpay_init_error'));
         } finally {
             setPayLoading(false);
         }
@@ -134,7 +136,7 @@ export default function SubscriptionScreen() {
             <View style={styles.loadingContainer}>
                 <TouchableOpacity style={styles.loadingBack} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="#3B82F6" />
-                    <Text style={{ color: '#3B82F6', marginLeft: 8 }}>Retour</Text>
+                    <Text style={{ color: '#3B82F6', marginLeft: 8 }}>{t('common.back')}</Text>
                 </TouchableOpacity>
                 <ActivityIndicator size="large" color="#3B82F6" />
             </View>
@@ -230,16 +232,16 @@ export default function SubscriptionScreen() {
                     {FEATURES.map((f, i) => (
                         <View key={i} style={[styles.tableRow, i % 2 === 0 && styles.tableRowAlt]}>
                             <View style={styles.tableColLabel}>
-                                <Text style={styles.featureLabel}>{f.label}</Text>
+                                <Text style={styles.featureLabel}>{t(f.label)}</Text>
                             </View>
                             <View style={styles.tableColValue}>
                                 <Text style={[styles.featureValue, f.starter === '—' && styles.featureDisabled]}>
-                                    {f.starter}
+                                    {f.starter.includes('.') ? t(f.starter) : f.starter}
                                 </Text>
                             </View>
                             <View style={styles.tableColValue}>
                                 <Text style={[styles.featureValue, styles.featurePremium]}>
-                                    {f.premium}
+                                    {f.premium.includes('.') ? t(f.premium) : f.premium}
                                 </Text>
                             </View>
                         </View>

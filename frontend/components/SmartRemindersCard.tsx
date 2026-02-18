@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { smartReminders, SmartReminder, SmartRemindersResponse } from '../services/api';
@@ -10,10 +11,10 @@ type Props = {
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  stock: { label: 'Stock', icon: 'cube-outline', color: '#F59E0B' },
-  orders: { label: 'Commandes', icon: 'cart-outline', color: '#3B82F6' },
-  crm: { label: 'Clients', icon: 'people-outline', color: '#8B5CF6' },
-  accounting: { label: 'Comptabilité', icon: 'calculator-outline', color: '#10B981' },
+  stock: { label: 'stock', icon: 'cube-outline', color: '#F59E0B' },
+  orders: { label: 'orders', icon: 'cart-outline', color: '#3B82F6' },
+  crm: { label: 'crm', icon: 'people-outline', color: '#8B5CF6' },
+  accounting: { label: 'accounting', icon: 'calculator-outline', color: '#10B981' },
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -24,6 +25,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export default function SmartRemindersCard({ onNavigate }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [data, setData] = useState<SmartRemindersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="notifications-outline" size={20} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Rappels intelligents</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.smart_reminders') || 'Rappels intelligents'}</Text>
           <View style={[styles.totalBadge, { backgroundColor: colors.primary + '20' }]}>
             <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '800' }}>{visibleReminders.length}</Text>
           </View>
@@ -99,9 +101,9 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
         <View style={[styles.severityBar, { backgroundColor: criticalCount > 0 ? '#EF444410' : '#F59E0B10', borderColor: criticalCount > 0 ? '#EF444430' : '#F59E0B30' }]}>
           <Ionicons name="warning-outline" size={14} color={criticalCount > 0 ? '#EF4444' : '#F59E0B'} />
           <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '600', flex: 1 }}>
-            {criticalCount > 0 && `${criticalCount} critique${criticalCount > 1 ? 's' : ''}`}
+            {criticalCount > 0 && t('common.count_critical', { count: criticalCount })}
             {criticalCount > 0 && warningCount > 0 && ' · '}
-            {warningCount > 0 && `${warningCount} attention`}
+            {warningCount > 0 && t('common.count_warning', { count: warningCount })}
           </Text>
         </View>
       )}
@@ -113,7 +115,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
           onPress={() => setActiveCategory(null)}
         >
           <Text style={[styles.chipText, { color: !activeCategory ? colors.primary : colors.textMuted }]}>
-            Tout ({visibleReminders.length})
+            {t('common.all')} ({visibleReminders.length})
           </Text>
         </TouchableOpacity>
         {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
@@ -128,7 +130,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
             >
               <Ionicons name={config.icon} size={12} color={isActive ? config.color : colors.textMuted} />
               <Text style={[styles.chipText, { color: isActive ? config.color : colors.textMuted }]}>
-                {config.label} ({count})
+                {t(`common.${config.label}`)} ({count})
               </Text>
             </TouchableOpacity>
           );
@@ -174,7 +176,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
       {hasMore && (
         <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.seeMore}>
           <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>
-            {expanded ? 'Voir moins' : `Voir ${filtered.length - 4} de plus`}
+            {expanded ? t('common.see_less') : t('common.see_more_count', { count: filtered.length - 4 })}
           </Text>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
         </TouchableOpacity>

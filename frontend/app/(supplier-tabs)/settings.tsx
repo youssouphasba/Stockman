@@ -192,7 +192,7 @@ export default function SupplierSettingsScreen() {
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Montant min commande (FCFA)</Text>
+                  <Text style={styles.label}>Montant min commande ({t('common.currency_default')})</Text>
                   <TextInput style={styles.input} value={minOrder} onChangeText={setMinOrder} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
                 <View style={styles.formHalf}>
@@ -237,7 +237,7 @@ export default function SupplierSettingsScreen() {
               {profile.city ? <InfoRow label="Ville" value={profile.city} /> : null}
               {profile.categories?.length > 0 && <InfoRow label="Catégories" value={profile.categories.join(', ')} />}
               {profile.delivery_zones?.length > 0 && <InfoRow label="Zones de livraison" value={profile.delivery_zones.join(', ')} />}
-              <InfoRow label="Montant min commande" value={`${profile.min_order_amount.toLocaleString()} FCFA`} />
+              <InfoRow label="Montant min commande" value={`${profile.min_order_amount.toLocaleString()} ${t('common.currency_default')}`} />
               <InfoRow label="Délai moyen" value={`${profile.average_delivery_days} jours`} />
               <InfoRow label="Note" value={`${profile.rating_average.toFixed(1)}/5 (${profile.rating_count} avis)`} />
             </>

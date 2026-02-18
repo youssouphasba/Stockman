@@ -111,7 +111,7 @@ export default function SupplierDashboardScreen() {
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
             <Text style={styles.kpiValue}>{(data?.total_revenue ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>CA Total (FCFA)</Text>
+            <Text style={styles.kpiLabel}>CA Total ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.primary }]}>
             <View style={styles.ratingRow}>
@@ -130,14 +130,14 @@ export default function SupplierDashboardScreen() {
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.info }]}>
             <Text style={styles.kpiValue}>{(data?.revenue_this_month ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>CA ce mois (FCFA)</Text>
+            <Text style={styles.kpiLabel}>CA ce mois ({t('common.currency_default')})</Text>
           </View>
         </View>
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
             <Text style={styles.kpiValue}>{(data?.avg_order_value ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>Panier moyen (FCFA)</Text>
+            <Text style={styles.kpiLabel}>Panier moyen ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
             <Text style={styles.kpiValue}>{data?.active_clients ?? 0}</Text>

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     View,
     Text,
@@ -45,6 +46,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
+    const { t } = useTranslation();
     const styles = getStyles(colors, glassStyle);
     const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
@@ -138,7 +140,7 @@ export default function POSScreen() {
             const existing = current.find(item => item.product.product_id === product.product_id);
             const currentQtyInCart = existing ? existing.quantity : 0;
             if (currentQtyInCart + 1 > product.quantity) {
-                Alert.alert('Stock insuffisant', `Il ne reste que ${product.quantity} ${product.unit}(s) de ${product.name}`);
+                Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
                 return current;
             }
             if (existing) {
@@ -162,9 +164,9 @@ export default function POSScreen() {
                 const newQty = Math.max(1, item.quantity + delta);
                 if (newQty > item.product.quantity) {
                     if (Platform.OS === 'web') {
-                        window.alert(`Stock insuffisant. Il ne reste que ${item.product.quantity} ${item.product.unit}(s) de ${item.product.name}`);
+                        window.alert(t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
                     } else {
-                        Alert.alert('Stock insuffisant', `Il ne reste que ${item.product.quantity} ${item.product.unit}(s) de ${item.product.name}`);
+                        Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
                     }
                     return item;
                 }
@@ -194,16 +196,14 @@ export default function POSScreen() {
 
             if (method === 'credit') {
                 if (Platform.OS === 'web') {
-                    window.alert('Vente à crédit enregistrée avec succès.');
+                    window.alert(t('pos.credit_success'));
                 } else {
-                    Alert.alert('Succès', 'Vente à crédit enregistrée avec succès.');
+                    Alert.alert(t('common.success'), t('pos.credit_success'));
                 }
-            } else {
-                const saleWithCustomer = {
+                setLastSale({
                     ...result,
-                    customer_name: selectedCustomer?.name || 'Passant'
-                };
-                setLastSale(saleWithCustomer);
+                    customer_name: selectedCustomer?.name || t('common.passerby') || 'Passant'
+                });
                 setShowReceiptModal(true);
             }
 
@@ -371,7 +371,7 @@ export default function POSScreen() {
                                     <Text style={styles.stockText}>{product.quantity}</Text>
                                 </View>
                                 <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                                <Text style={styles.productPrice}>{product.selling_price.toLocaleString()} FCFA</Text>
+                                <Text style={styles.productPrice}>{product.selling_price.toLocaleString()} {t('common.currency_default')}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -445,7 +445,7 @@ export default function POSScreen() {
                                 <View key={item.product.product_id} style={styles.cartItem}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
-                                        <Text style={styles.cartItemPrice}>{(item.product.selling_price * item.quantity).toLocaleString()} FCFA</Text>
+                                        <Text style={styles.cartItemPrice}>{(item.product.selling_price * item.quantity).toLocaleString()} {t('common.currency_default')}</Text>
                                     </View>
                                     <View style={styles.qtyContainer}>
                                         <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, -1)}>
@@ -493,7 +493,7 @@ export default function POSScreen() {
                     <View style={styles.checkoutSection}>
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalAmount}>{total.toLocaleString()} FCFA</Text>
+                            <Text style={styles.totalAmount}>{total.toLocaleString()} {t('common.currency_default')}</Text>
                         </View>
 
                         <View style={styles.paymentMethods}>

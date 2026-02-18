@@ -24,10 +24,20 @@ import Showcase from './components/landing/Showcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css'
 
+import { getPricingByLanguage, formatPrice } from './utils/pricing';
+
 function Landing() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   useScrollReveal();
+
+  const pricingData = getPricingByLanguage(i18n.language);
+
+  const testimonials = [
+    { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
+    { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
+    { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
+  ];
 
   return (
     <div className="landing-page">
@@ -50,7 +60,7 @@ function Landing() {
             </div>
             {/* Desktop-only links */}
             <a href="#features" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
-            <Link to="/blog" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.resources')}</Link>
+            <Link to="/blog" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.blog')}</Link>
             {/* Mobile-only sections */}
             <div className="mobile-menu-section">
               <span className="mobile-menu-label">{t('nav.features')}</span>
@@ -66,7 +76,7 @@ function Landing() {
             <div className="mobile-menu-section">
               <span className="mobile-menu-label">{t('nav.resources')}</span>
               <a href="#pricing" className="nav-link" onClick={() => setMenuOpen(false)}>💰 {t('pricing.title')}</a>
-              <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>📰 Blog</Link>
+              <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>📰 {t('nav.blog')}</Link>
               <Link to="/about" className="nav-link" onClick={() => setMenuOpen(false)}>💡 {t('about.seo_title')}</Link>
               <Link to="/help" className="nav-link" onClick={() => setMenuOpen(false)}>❓ {t('footer.help_center')}</Link>
             </div>
@@ -154,36 +164,18 @@ function Landing() {
           <p className="text-muted">{t('testimonials.subtitle')}</p>
         </div>
         <div className="testimonials-grid">
-          <div className="testimonial-card glass-card">
-            <p>"{t('testimonials.t1')}"</p>
-            <div className="testimonial-author">
-              <div className="author-avatar">A</div>
-              <div>
-                <strong>Amadou Diallo</strong>
-                <p style={{ fontSize: '0.8rem', margin: 0 }}>Boutique Électronique</p>
+          {testimonials.map((test, i) => (
+            <div key={i} className="testimonial-card glass-card">
+              <p>"{t(`testimonials.${test.key}`)}"</p>
+              <div className="testimonial-author">
+                <div className="author-avatar">{test.avatar}</div>
+                <div>
+                  <strong>{test.author}</strong>
+                  <p style={{ fontSize: '0.8rem', margin: 0 }}>{test.job}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="testimonial-card glass-card">
-            <p>"{t('testimonials.t2')}"</p>
-            <div className="testimonial-author">
-              <div className="author-avatar">S</div>
-              <div>
-                <strong>Sarah Kouassi</strong>
-                <p style={{ fontSize: '0.8rem', margin: 0 }}>Supermarché Express</p>
-              </div>
-            </div>
-          </div>
-          <div className="testimonial-card glass-card">
-            <p>"{t('testimonials.t3')}"</p>
-            <div className="testimonial-author">
-              <div className="author-avatar">P</div>
-              <div>
-                <strong>Paul N'Goma</strong>
-                <p style={{ fontSize: '0.8rem', margin: 0 }}>Pharmacie Centrale</p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -196,7 +188,7 @@ function Landing() {
         <div className="pricing-grid">
           <div className="pricing-card glass-card">
             <h3>{t('pricing.starter.name')}</h3>
-            <div className="price">{t('pricing.starter.price')} <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
+            <div className="price">{formatPrice(pricingData.starter, pricingData.currency)} <span>{t('pricing.month')}</span></div>
             <ul className="pricing-features">
               <li><span className="check-icon">✓</span> {t('pricing.starter.f1')}</li>
               <li><span className="check-icon">✓</span> {t('pricing.starter.f2')}</li>
@@ -209,7 +201,7 @@ function Landing() {
           <div className="pricing-card glass-card popular">
             <div className="popular-tag">{t('pricing.popular')}</div>
             <h3>{t('pricing.business.name')}</h3>
-            <div className="price">{t('pricing.business.price')} <span className="currency">FCFA</span><span>{t('pricing.month')}</span></div>
+            <div className="price">{formatPrice(pricingData.premium, pricingData.currency)} <span>{t('pricing.month')}</span></div>
             <ul className="pricing-features">
               <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
               <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>

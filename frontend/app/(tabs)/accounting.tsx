@@ -349,7 +349,7 @@ export default function AccountingScreen() {
             <tr>
                 <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${e.category}</td>
                 <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${e.description || '-'}</td>
-                <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${e.amount.toLocaleString()} FCFA</td>
+                <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${e.amount.toLocaleString()} {t('common.currency_default')}</td>
             </tr>
         `).join('');
 
@@ -514,618 +514,613 @@ export default function AccountingScreen() {
 
     return (
         <PremiumGate
-            featureName="Comptabilité"
-            description="Suivez vos revenus, dépenses et marges en temps réel. Générez des rapports financiers détaillés et exportez-les en PDF."
-            benefits={[
-                'Tableau de bord financier complet',
-                'Suivi des dépenses et des revenus',
-                'Rapports PDF exportables',
-                'Graphiques et analyses détaillées',
-            ]}
+            featureName={t('premium.features.accounting.title')}
+            description={t('premium.features.accounting.desc')}
+            benefits={t('premium.features.accounting.benefits', { returnObjects: true }) as string[]}
             icon="calculator-outline"
             locked={isLocked}
         >
-        <View style={styles.container}>
-            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-                <ScrollView
-                    contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-                >
-                    {/* Header */}
-                    <View style={{ paddingTop: Spacing.xs, marginBottom: Spacing.sm }}>
-                        <Text style={styles.subtitle}>{stats?.period_label}</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs, marginTop: Spacing.xs }}>
-                            <TouchableOpacity style={styles.actionBtn} onPress={generateActivityReportPdf}>
-                                <Ionicons name="analytics-outline" size={16} color={colors.primary} />
-                                <Text style={styles.actionBtnText}>{t('accounting.report')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionBtn} onPress={handleExportCSV}>
-                                <Ionicons name="download-outline" size={16} color={colors.primary} />
-                                <Text style={styles.actionBtnText}>{t('accounting.export_csv')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionBtn} onPress={openInvoiceModal}>
-                                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-                                <Text style={styles.actionBtnText}>{t('accounting.new_invoice')}</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-
-                        <View style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
-                            <PeriodSelector
-                                selectedPeriod={selectedPeriod}
-                                onSelectPeriod={changePeriod}
-                                startDate={startDate}
-                                endDate={endDate}
-                                onApplyCustomDate={(s, e) => {
-                                    setStartDate(s);
-                                    setEndDate(e);
-                                    applyCustomDates();
-                                }}
-                            />
-                        </View>
-                    </View>
-
-                    {/* KPI Grid */}
-                    <View style={styles.kpiGrid}>
-                        <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
-                            <View style={styles.kpiHeader}>
-                                <Ionicons name="cash-outline" size={20} color={colors.success} />
-                                <TouchableOpacity onPress={() => alert(t('accounting.revenue_info'))}>
-                                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+            <View style={styles.container}>
+                <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
+                    <ScrollView
+                        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                    >
+                        {/* Header */}
+                        <View style={{ paddingTop: Spacing.xs, marginBottom: Spacing.sm }}>
+                            <Text style={styles.subtitle}>{stats?.period_label}</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs, marginTop: Spacing.xs }}>
+                                <TouchableOpacity style={styles.actionBtn} onPress={generateActivityReportPdf}>
+                                    <Ionicons name="analytics-outline" size={16} color={colors.primary} />
+                                    <Text style={styles.actionBtnText}>{t('accounting.report')}</Text>
                                 </TouchableOpacity>
-                            </View>
-                            <Text style={styles.kpiLabel}>{t('accounting.revenue')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.success }]}>
-                                {formatCurrency(stats?.revenue ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.sales_count_value', { count: stats?.sales_count ?? 0 })}</Text>
-                        </View>
-
-                        <View style={[styles.kpiCard, { borderColor: colors.primary + '40' }]}>
-                            <View style={styles.kpiHeader}>
-                                <Ionicons name="trending-up-outline" size={20} color={colors.primary} />
-                                <TouchableOpacity onPress={() => alert(t('accounting.margin_on_sales_info'))}>
-                                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                                <TouchableOpacity style={styles.actionBtn} onPress={handleExportCSV}>
+                                    <Ionicons name="download-outline" size={16} color={colors.primary} />
+                                    <Text style={styles.actionBtnText}>{t('accounting.export_csv')}</Text>
                                 </TouchableOpacity>
-                            </View>
-                            <Text style={styles.kpiLabel}>{t('accounting.margin_on_sales')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.primary }]}>
-                                {formatCurrency(stats?.gross_profit ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: marginPercentage.toFixed(1) })}</Text>
-                        </View>
-
-                        <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
-                            <View style={styles.kpiHeader}>
-                                <Ionicons name="calculator-outline" size={20} color={colors.warning} />
-                            </View>
-                            <Text style={styles.kpiLabel}>{t('accounting.total_expenses')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.warning }]}>
-                                {formatCurrency(stats?.expenses ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.expense_lines', { count: expensesList.length })}</Text>
-                        </View>
-
-                        <View style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]}>
-                            <View style={styles.kpiHeader}>
-                                <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
-                                <TouchableOpacity onPress={() => alert(t('accounting.net_profit_info'))}>
-                                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                                <TouchableOpacity style={styles.actionBtn} onPress={openInvoiceModal}>
+                                    <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                                    <Text style={styles.actionBtnText}>{t('accounting.new_invoice')}</Text>
                                 </TouchableOpacity>
-                            </View>
-                            <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
-                            <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
-                                {formatCurrency(stats?.net_profit ?? 0)}
-                            </Text>
-                        </View>
-                    </View>
+                            </ScrollView>
 
-                    {/* Expenses Section */}
-                    <View style={[styles.section, { marginTop: 20 }]}>
-                        <View style={styles.sectionHeader}>
-                            <View>
-                                <Text style={styles.sectionTitle}>{t('accounting.expenses')}</Text>
+                            <View style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
+                                <PeriodSelector
+                                    selectedPeriod={selectedPeriod}
+                                    onSelectPeriod={changePeriod}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    onApplyCustomDate={(s, e) => {
+                                        setStartDate(s);
+                                        setEndDate(e);
+                                        applyCustomDates();
+                                    }}
+                                />
                             </View>
-                            <TouchableOpacity style={styles.addExpenseBtn} onPress={openExpenseModal}>
-                                <Ionicons name="add-circle" size={24} color={colors.primary} />
-                            </TouchableOpacity>
                         </View>
 
-                        {expensesList.length === 0 ? (
-                            <View style={styles.emptyState}>
-                                <Text style={styles.emptyStateText}>{t('accounting.no_expenses')}</Text>
-                            </View>
-                        ) : (
-                            <View>
-                                <View style={styles.expensesList}>
-                                    {(showAllExpenses ? expensesList : expensesList.slice(0, 5)).map((exp) => (
-                                        <View key={exp.expense_id} style={styles.expenseItem}>
-                                            <View style={styles.expenseInfo}>
-                                                <Text style={styles.expenseCategory}>{t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}</Text>
-                                                <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
-                                                {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
-                                            </View>
-                                            <View style={styles.expenseAction}>
-                                                <Text style={styles.expenseAmount}>-{formatCurrency(exp.amount)}</Text>
-                                                <TouchableOpacity onPress={() => deleteExpense(exp.expense_id)}>
-                                                    <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    ))}
+                        {/* KPI Grid */}
+                        <View style={styles.kpiGrid}>
+                            <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="cash-outline" size={20} color={colors.success} />
+                                    <TouchableOpacity onPress={() => alert(t('accounting.revenue_info'))}>
+                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
                                 </View>
-                                {expensesList.length > 5 && (
+                                <Text style={styles.kpiLabel}>{t('accounting.revenue')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.success }]}>
+                                    {formatCurrency(stats?.revenue ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.sales_count_value', { count: stats?.sales_count ?? 0 })}</Text>
+                            </View>
+
+                            <View style={[styles.kpiCard, { borderColor: colors.primary + '40' }]}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="trending-up-outline" size={20} color={colors.primary} />
+                                    <TouchableOpacity onPress={() => alert(t('accounting.margin_on_sales_info'))}>
+                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.kpiLabel}>{t('accounting.margin_on_sales')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.primary }]}>
+                                    {formatCurrency(stats?.gross_profit ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: marginPercentage.toFixed(1) })}</Text>
+                            </View>
+
+                            <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="calculator-outline" size={20} color={colors.warning} />
+                                </View>
+                                <Text style={styles.kpiLabel}>{t('accounting.total_expenses')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.warning }]}>
+                                    {formatCurrency(stats?.expenses ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.expense_lines', { count: expensesList.length })}</Text>
+                            </View>
+
+                            <View style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
+                                    <TouchableOpacity onPress={() => alert(t('accounting.net_profit_info'))}>
+                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
+                                <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
+                                    {formatCurrency(stats?.net_profit ?? 0)}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Expenses Section */}
+                        <View style={[styles.section, { marginTop: 20 }]}>
+                            <View style={styles.sectionHeader}>
+                                <View>
+                                    <Text style={styles.sectionTitle}>{t('accounting.expenses')}</Text>
+                                </View>
+                                <TouchableOpacity style={styles.addExpenseBtn} onPress={openExpenseModal}>
+                                    <Ionicons name="add-circle" size={24} color={colors.primary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {expensesList.length === 0 ? (
+                                <View style={styles.emptyState}>
+                                    <Text style={styles.emptyStateText}>{t('accounting.no_expenses')}</Text>
+                                </View>
+                            ) : (
+                                <View>
+                                    <View style={styles.expensesList}>
+                                        {(showAllExpenses ? expensesList : expensesList.slice(0, 5)).map((exp) => (
+                                            <View key={exp.expense_id} style={styles.expenseItem}>
+                                                <View style={styles.expenseInfo}>
+                                                    <Text style={styles.expenseCategory}>{t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}</Text>
+                                                    <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
+                                                    {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
+                                                </View>
+                                                <View style={styles.expenseAction}>
+                                                    <Text style={styles.expenseAmount}>-{formatCurrency(exp.amount)}</Text>
+                                                    <TouchableOpacity onPress={() => deleteExpense(exp.expense_id)}>
+                                                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    {expensesList.length > 5 && (
+                                        <TouchableOpacity
+                                            style={styles.seeMoreBtn}
+                                            onPress={() => setShowAllExpenses(!showAllExpenses)}
+                                        >
+                                            <Text style={styles.seeMoreText}>
+                                                {showAllExpenses ? t('common.see_less') : t('accounting.see_other_expenses', { count: expensesList.length - 5 })}
+                                            </Text>
+                                            <Ionicons name={showAllExpenses ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+                        </View>
+
+                        {/* KPI Grid 2: Stock & Losses */}
+                        <View style={[styles.kpiGrid, { marginTop: 10 }]}>
+                            <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                <Ionicons name="cube-outline" size={20} color={colors.warning} />
+                                <Text style={styles.kpiLabel}>{t('accounting.stock_value_purchase')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.warning }]}>
+                                    {formatCurrency(stats?.stock_value ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.stock_value_selling', { value: formatCurrency(stats?.stock_selling_value ?? 0) })}</Text>
+                            </View>
+
+                            <View style={[styles.kpiCard, { borderColor: colors.danger + '40' }]}>
+                                <Ionicons name="flame-outline" size={20} color={colors.danger} />
+                                <Text style={styles.kpiLabel}>{t('accounting.losses')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.danger }]}>
+                                    {formatCurrency(stats?.total_losses ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>
+                                    {t('accounting.loss_reasons', { count: Object.keys(stats?.loss_breakdown ?? {}).length })}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* KPI Grid 3: Items & Purchases */}
+                        <View style={[styles.kpiGrid, { marginTop: 10 }]}>
+                            <View style={[styles.kpiCard, { borderColor: colors.secondary + '40' }]}>
+                                <Ionicons name="cart-outline" size={20} color={colors.secondary} />
+                                <Text style={styles.kpiLabel}>{t('accounting.items_sold')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.secondary }]}>
+                                    {stats?.total_items_sold ?? 0}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.avg_sale', { value: formatCurrency(stats?.avg_sale ?? 0) })}</Text>
+                            </View>
+
+                            <View style={[styles.kpiCard, { borderColor: colors.info + '40' }]}>
+                                <Ionicons name="bag-handle-outline" size={20} color={colors.info} />
+                                <Text style={styles.kpiLabel}>{t('accounting.supplier_purchases')}</Text>
+                                <Text style={[styles.kpiValue, { color: colors.info }]}>
+                                    {formatCurrency(stats?.total_purchases ?? 0)}
+                                </Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.purchases_count', { count: stats?.purchases_count ?? 0 })}</Text>
+                            </View>
+                        </View>
+
+
+                        {/* Revenue Trend Chart */}
+                        {
+                            stats && stats.daily_revenue && stats.daily_revenue.length > 1 && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>{t('accounting.revenue_trend')}</Text>
+                                    <View style={styles.chartContainer}>
+                                        <LineChart
+                                            data={{
+                                                labels: stats.daily_revenue.map(d => {
+                                                    const parts = d.date.split('-');
+                                                    return `${parts[2]}/${parts[1]}`;
+                                                }),
+                                                datasets: [{
+                                                    data: stats.daily_revenue.map(d => d.revenue || 0),
+                                                    color: () => colors.success,
+                                                    strokeWidth: 2,
+                                                }],
+                                            }}
+                                            width={screenWidth - Spacing.md * 4}
+                                            height={200}
+                                            yAxisSuffix=" F"
+                                            chartConfig={{
+                                                backgroundColor: 'transparent',
+                                                backgroundGradientFrom: 'transparent',
+                                                backgroundGradientTo: 'transparent',
+                                                decimalPlaces: 0,
+                                                color: (opacity = 1) => isDark
+                                                    ? `rgba(255, 255, 255, ${opacity})`
+                                                    : `rgba(0, 0, 0, ${opacity * 0.15})`,
+                                                labelColor: () => colors.textSecondary,
+                                                propsForDots: { r: '3', strokeWidth: '1', stroke: colors.success },
+                                            }}
+                                            bezier
+                                            style={{ borderRadius: BorderRadius.md }}
+                                        />
+                                    </View>
+                                </View>
+                            )
+                        }
+
+                        {/* Revenue Breakdown PieChart */}
+                        {
+                            stats && stats.revenue > 0 && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>{t('accounting.revenue_breakdown')}</Text>
+                                    <View style={styles.chartContainer}>
+                                        <PieChart
+                                            data={[
+                                                {
+                                                    name: t('accounting.cost_cogs'),
+                                                    population: Math.round(stats.cogs),
+                                                    color: isDark ? '#6B7280' : '#9CA3AF',
+                                                    legendFontColor: colors.text,
+                                                    legendFontSize: 11,
+                                                },
+                                                {
+                                                    name: t('accounting.gross_margin'),
+                                                    population: Math.round(stats.gross_profit),
+                                                    color: colors.primary,
+                                                    legendFontColor: colors.text,
+                                                    legendFontSize: 11,
+                                                },
+                                            ]}
+                                            width={screenWidth - Spacing.md * 4}
+                                            height={180}
+                                            chartConfig={{
+                                                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                                            }}
+                                            accessor="population"
+                                            backgroundColor="transparent"
+                                            paddingLeft="15"
+                                            absolute
+                                        />
+                                    </View>
+                                </View>
+                            )
+                        }
+
+                        {/* Payment Breakdown */}
+                        {
+                            stats && Object.keys(stats.payment_breakdown).length > 0 && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>{t('accounting.payment_methods')}</Text>
+                                    <View style={styles.chartContainer}>
+                                        <PieChart
+                                            data={Object.entries(stats.payment_breakdown).map(([method, amount], i) => ({
+                                                name: t(PAYMENT_LABELS[method] || method),
+                                                population: Math.round(amount),
+                                                color: paymentColors[i % paymentColors.length],
+                                                legendFontColor: colors.text,
+                                                legendFontSize: 11,
+                                            }))}
+                                            width={screenWidth - Spacing.md * 4}
+                                            height={180}
+                                            chartConfig={{
+                                                color: (opacity = 1) => isDark
+                                                    ? `rgba(255, 255, 255, ${opacity})`
+                                                    : `rgba(0, 0, 0, ${opacity * 0.2})`,
+                                            }}
+                                            accessor="population"
+                                            backgroundColor="transparent"
+                                            paddingLeft="15"
+                                            absolute
+                                        />
+                                    </View>
+                                </View>
+                            )
+                        }
+
+                        {/* Loss Breakdown */}
+                        {
+                            stats && Object.keys(stats.loss_breakdown).length > 0 && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>{t('accounting.loss_details')}</Text>
+                                    <View style={styles.tableContainer}>
+                                        {Object.entries(stats.loss_breakdown).map(([reason, value]) => (
+                                            <View key={reason} style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>{reason}</Text>
+                                                <Text style={styles.tableDanger}>{formatCurrency(value)}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            )
+                        }
+
+                        {/* Performance par Produit */}
+                        {stats && stats.product_performance && stats.product_performance.length > 0 && (
+                            <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                    <View>
+                                        <Text style={styles.sectionTitle}>{t('accounting.product_performance')}</Text>
+                                    </View>
+                                </View>
+
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                    <View style={styles.perfTable}>
+                                        {/* Table Header */}
+                                        <View style={[styles.perfRow, styles.perfHeader]}>
+                                            <Text style={[styles.perfCell, { width: 140 }]}>{t('accounting.product')}</Text>
+                                            <Text style={[styles.perfCell, styles.perfCellRight, { width: 60 }]}>{t('accounting.sold')}</Text>
+                                            <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.revenue')}</Text>
+                                            <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.cost_purchase')}</Text>
+                                            <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.losses')}</Text>
+                                            <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.margin')}</Text>
+                                        </View>
+
+                                        {/* Table Body */}
+                                        {(showAllPerf ? stats.product_performance : stats.product_performance.slice(0, 10))
+                                            .sort((a, b) => b.revenue - a.revenue)
+                                            .map((item) => {
+                                                const margin = item.revenue - item.cogs - item.loss;
+                                                return (
+                                                    <View key={item.id} style={styles.perfRow}>
+                                                        <Text style={[styles.perfCell, { width: 140, fontWeight: '500' }]} numberOfLines={1}>{item.name}</Text>
+                                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 60 }]}>{item.qty_sold}</Text>
+                                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.success }]}>
+                                                            {item.revenue.toLocaleString()}
+                                                        </Text>
+                                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.textSecondary }]}>
+                                                            {item.cogs.toLocaleString()}
+                                                        </Text>
+                                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.danger }]}>
+                                                            {item.loss > 0 ? `-${item.loss.toLocaleString()}` : '0'}
+                                                        </Text>
+                                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: margin >= 0 ? colors.primary : colors.danger, fontWeight: 'bold' }]}>
+                                                            {margin.toLocaleString()}
+                                                        </Text>
+                                                    </View>
+                                                );
+                                            })}
+                                    </View>
+                                </ScrollView>
+
+                                {stats.product_performance.length > 10 && (
                                     <TouchableOpacity
                                         style={styles.seeMoreBtn}
-                                        onPress={() => setShowAllExpenses(!showAllExpenses)}
+                                        onPress={() => setShowAllPerf(!showAllPerf)}
                                     >
                                         <Text style={styles.seeMoreText}>
-                                            {showAllExpenses ? t('common.see_less') : t('accounting.see_other_expenses', { count: expensesList.length - 5 })}
+                                            {showAllPerf ? t('common.see_less') : t('accounting.see_other_products', { count: stats.product_performance.length - 10 })}
                                         </Text>
-                                        <Ionicons name={showAllExpenses ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                        <Ionicons name={showAllPerf ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                                     </TouchableOpacity>
                                 )}
                             </View>
                         )}
-                    </View>
 
-                    {/* KPI Grid 2: Stock & Losses */}
-                    <View style={[styles.kpiGrid, { marginTop: 10 }]}>
-                        <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
-                            <Ionicons name="cube-outline" size={20} color={colors.warning} />
-                            <Text style={styles.kpiLabel}>{t('accounting.stock_value_purchase')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.warning }]}>
-                                {formatCurrency(stats?.stock_value ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.stock_value_selling', { value: formatCurrency(stats?.stock_selling_value ?? 0) })}</Text>
-                        </View>
-
-                        <View style={[styles.kpiCard, { borderColor: colors.danger + '40' }]}>
-                            <Ionicons name="flame-outline" size={20} color={colors.danger} />
-                            <Text style={styles.kpiLabel}>{t('accounting.losses')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.danger }]}>
-                                {formatCurrency(stats?.total_losses ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>
-                                {t('accounting.loss_reasons', { count: Object.keys(stats?.loss_breakdown ?? {}).length })}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* KPI Grid 3: Items & Purchases */}
-                    <View style={[styles.kpiGrid, { marginTop: 10 }]}>
-                        <View style={[styles.kpiCard, { borderColor: colors.secondary + '40' }]}>
-                            <Ionicons name="cart-outline" size={20} color={colors.secondary} />
-                            <Text style={styles.kpiLabel}>{t('accounting.items_sold')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.secondary }]}>
-                                {stats?.total_items_sold ?? 0}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.avg_sale', { value: formatCurrency(stats?.avg_sale ?? 0) })}</Text>
-                        </View>
-
-                        <View style={[styles.kpiCard, { borderColor: colors.info + '40' }]}>
-                            <Ionicons name="bag-handle-outline" size={20} color={colors.info} />
-                            <Text style={styles.kpiLabel}>{t('accounting.supplier_purchases')}</Text>
-                            <Text style={[styles.kpiValue, { color: colors.info }]}>
-                                {formatCurrency(stats?.total_purchases ?? 0)}
-                            </Text>
-                            <Text style={styles.kpiSubValue}>{t('accounting.purchases_count', { count: stats?.purchases_count ?? 0 })}</Text>
-                        </View>
-                    </View>
-
-
-                    {/* Revenue Trend Chart */}
-                    {
-                        stats && stats.daily_revenue && stats.daily_revenue.length > 1 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>{t('accounting.revenue_trend')}</Text>
-                                <View style={styles.chartContainer}>
-                                    <LineChart
-                                        data={{
-                                            labels: stats.daily_revenue.map(d => {
-                                                const parts = d.date.split('-');
-                                                return `${parts[2]}/${parts[1]}`;
-                                            }),
-                                            datasets: [{
-                                                data: stats.daily_revenue.map(d => d.revenue || 0),
-                                                color: () => colors.success,
-                                                strokeWidth: 2,
-                                            }],
-                                        }}
-                                        width={screenWidth - Spacing.md * 4}
-                                        height={200}
-                                        yAxisSuffix=" F"
-                                        chartConfig={{
-                                            backgroundColor: 'transparent',
-                                            backgroundGradientFrom: 'transparent',
-                                            backgroundGradientTo: 'transparent',
-                                            decimalPlaces: 0,
-                                            color: (opacity = 1) => isDark
-                                                ? `rgba(255, 255, 255, ${opacity})`
-                                                : `rgba(0, 0, 0, ${opacity * 0.15})`,
-                                            labelColor: () => colors.textSecondary,
-                                            propsForDots: { r: '3', strokeWidth: '1', stroke: colors.success },
-                                        }}
-                                        bezier
-                                        style={{ borderRadius: BorderRadius.md }}
-                                    />
+                        {/* Recent Sales */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
+                            {recentSales.length === 0 ? (
+                                <View style={styles.emptyState}>
+                                    <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
+                                    <Text style={styles.emptyText}>{t('accounting.no_sales')}</Text>
                                 </View>
-                            </View>
-                        )
-                    }
-
-                    {/* Revenue Breakdown PieChart */}
-                    {
-                        stats && stats.revenue > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>{t('accounting.revenue_breakdown')}</Text>
-                                <View style={styles.chartContainer}>
-                                    <PieChart
-                                        data={[
-                                            {
-                                                name: t('accounting.cost_cogs'),
-                                                population: Math.round(stats.cogs),
-                                                color: isDark ? '#6B7280' : '#9CA3AF',
-                                                legendFontColor: colors.text,
-                                                legendFontSize: 11,
-                                            },
-                                            {
-                                                name: t('accounting.gross_margin'),
-                                                population: Math.round(stats.gross_profit),
-                                                color: colors.primary,
-                                                legendFontColor: colors.text,
-                                                legendFontSize: 11,
-                                            },
-                                        ]}
-                                        width={screenWidth - Spacing.md * 4}
-                                        height={180}
-                                        chartConfig={{
-                                            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                        }}
-                                        accessor="population"
-                                        backgroundColor="transparent"
-                                        paddingLeft="15"
-                                        absolute
-                                    />
-                                </View>
-                            </View>
-                        )
-                    }
-
-                    {/* Payment Breakdown */}
-                    {
-                        stats && Object.keys(stats.payment_breakdown).length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>{t('accounting.payment_methods')}</Text>
-                                <View style={styles.chartContainer}>
-                                    <PieChart
-                                        data={Object.entries(stats.payment_breakdown).map(([method, amount], i) => ({
-                                            name: t(PAYMENT_LABELS[method] || method),
-                                            population: Math.round(amount),
-                                            color: paymentColors[i % paymentColors.length],
-                                            legendFontColor: colors.text,
-                                            legendFontSize: 11,
-                                        }))}
-                                        width={screenWidth - Spacing.md * 4}
-                                        height={180}
-                                        chartConfig={{
-                                            color: (opacity = 1) => isDark
-                                                ? `rgba(255, 255, 255, ${opacity})`
-                                                : `rgba(0, 0, 0, ${opacity * 0.2})`,
-                                        }}
-                                        accessor="population"
-                                        backgroundColor="transparent"
-                                        paddingLeft="15"
-                                        absolute
-                                    />
-                                </View>
-                            </View>
-                        )
-                    }
-
-                    {/* Loss Breakdown */}
-                    {
-                        stats && Object.keys(stats.loss_breakdown).length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>{t('accounting.loss_details')}</Text>
+                            ) : (
                                 <View style={styles.tableContainer}>
-                                    {Object.entries(stats.loss_breakdown).map(([reason, value]) => (
-                                        <View key={reason} style={styles.tableRow}>
-                                            <Text style={styles.tableLabel}>{reason}</Text>
-                                            <Text style={styles.tableDanger}>{formatCurrency(value)}</Text>
+                                    {recentSales.slice(0, 10).map((sale) => (
+                                        <View key={sale.sale_id} style={styles.saleRow}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.saleDate}>
+                                                    {formatDate(sale.created_at)}
+                                                </Text>
+                                                <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
+                                                    {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
+                                                </Text>
+                                                <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} · {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
+                                            </View>
+                                            <Text style={styles.saleTotal}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                                            <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
+                                                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                                            </TouchableOpacity>
                                         </View>
                                     ))}
                                 </View>
-                            </View>
-                        )
-                    }
+                            )}
+                        </View>
 
-                    {/* Performance par Produit */}
-                    {stats && stats.product_performance && stats.product_performance.length > 0 && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <View>
-                                    <Text style={styles.sectionTitle}>{t('accounting.product_performance')}</Text>
-                                </View>
+                        <View style={{ height: Spacing.xxl }} />
+                    </ScrollView >
+                </LinearGradient>
+
+                {/* Invoice Modal */}
+                <Modal visible={showInvoiceModal} animationType="slide" transparent >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{t('invoice.create_invoice')}</Text>
+                                <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
                             </View>
 
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                <View style={styles.perfTable}>
-                                    {/* Table Header */}
-                                    <View style={[styles.perfRow, styles.perfHeader]}>
-                                        <Text style={[styles.perfCell, { width: 140 }]}>{t('accounting.product')}</Text>
-                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 60 }]}>{t('accounting.sold')}</Text>
-                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.revenue')}</Text>
-                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.cost_purchase')}</Text>
-                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.losses')}</Text>
-                                        <Text style={[styles.perfCell, styles.perfCellRight, { width: 90 }]}>{t('accounting.margin')}</Text>
+                            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                                {/* Client */}
+                                <Text style={styles.fieldLabel}>{t('invoice.client')}</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={invoiceClient}
+                                    onChangeText={setInvoiceClient}
+                                    placeholder={t('invoice.client_name_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
+                                {customersList.length > 0 && !invoiceClient && (
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }}>
+                                        {customersList.slice(0, 5).map(c => (
+                                            <TouchableOpacity
+                                                key={c.customer_id}
+                                                style={styles.clientChip}
+                                                onPress={() => setInvoiceClient(c.name)}
+                                            >
+                                                <Text style={styles.clientChipText}>{c.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                )}
+
+                                {/* Items */}
+                                <Text style={styles.fieldLabel}>{t('invoice.items')}</Text>
+                                {invoiceItems.map((item, index) => (
+                                    <View key={index} style={styles.invoiceLineRow}>
+                                        <TextInput
+                                            style={[styles.input, { flex: 2 }]}
+                                            value={item.desc}
+                                            onChangeText={v => updateInvoiceLine(index, 'desc', v)}
+                                            placeholder={t('invoice.description_placeholder')}
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                        <TextInput
+                                            style={[styles.input, { width: 50, textAlign: 'center' }]}
+                                            value={item.qty}
+                                            onChangeText={v => updateInvoiceLine(index, 'qty', v)}
+                                            keyboardType="numeric"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                        <TextInput
+                                            style={[styles.input, { flex: 1, textAlign: 'right' }]}
+                                            value={item.price}
+                                            onChangeText={v => updateInvoiceLine(index, 'price', v)}
+                                            placeholder={t('invoice.price_placeholder')}
+                                            keyboardType="numeric"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                        <TextInput
+                                            style={[styles.input, { width: 50, textAlign: 'center' }]}
+                                            value={item.tva}
+                                            onChangeText={v => updateInvoiceLine(index, 'tva', v)}
+                                            placeholder="TVA%"
+                                            keyboardType="numeric"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                        {invoiceItems.length > 1 && (
+                                            <TouchableOpacity onPress={() => removeInvoiceLine(index)} style={{ padding: 8 }}>
+                                                <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
+                                ))}
+                                <TouchableOpacity style={styles.addLineBtn} onPress={addInvoiceLine}>
+                                    <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                                    <Text style={styles.addLineBtnText}>{t('invoice.add_line')}</Text>
+                                </TouchableOpacity>
 
-                                    {/* Table Body */}
-                                    {(showAllPerf ? stats.product_performance : stats.product_performance.slice(0, 10))
-                                        .sort((a, b) => b.revenue - a.revenue)
-                                        .map((item) => {
-                                            const margin = item.revenue - item.cogs - item.loss;
-                                            return (
-                                                <View key={item.id} style={styles.perfRow}>
-                                                    <Text style={[styles.perfCell, { width: 140, fontWeight: '500' }]} numberOfLines={1}>{item.name}</Text>
-                                                    <Text style={[styles.perfCell, styles.perfCellRight, { width: 60 }]}>{item.qty_sold}</Text>
-                                                    <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.success }]}>
-                                                        {item.revenue.toLocaleString()}
-                                                    </Text>
-                                                    <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.textSecondary }]}>
-                                                        {item.cogs.toLocaleString()}
-                                                    </Text>
-                                                    <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: colors.danger }]}>
-                                                        {item.loss > 0 ? `-${item.loss.toLocaleString()}` : '0'}
-                                                    </Text>
-                                                    <Text style={[styles.perfCell, styles.perfCellRight, { width: 90, color: margin >= 0 ? colors.primary : colors.danger, fontWeight: 'bold' }]}>
-                                                        {margin.toLocaleString()}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })}
+                                {/* Note */}
+                                <Text style={styles.fieldLabel}>{t('invoice.note_optional')}</Text>
+                                <TextInput
+                                    style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
+                                    value={invoiceNote}
+                                    onChangeText={setInvoiceNote}
+                                    placeholder={t('invoice.note_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                />
+
+                                {/* Total + Generate */}
+                                <View style={styles.invoiceTotalRow}>
+                                    <Text style={styles.invoiceTotalLabel}>{t('invoice.total')}</Text>
+                                    <Text style={styles.invoiceTotalValue}>{invoiceTotal.toLocaleString()} {t('common.currency_default')}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.generateBtn}
+                                    onPress={generateInvoicePdf}
+                                >
+                                    <Ionicons name="document-text" size={20} color="#fff" />
+                                    <Text style={styles.generateBtnText}>{t('invoice.generate_pdf')}</Text>
+                                </TouchableOpacity>
+
+                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                                    <TouchableOpacity
+                                        style={[styles.actionBtn, { flex: 1, backgroundColor: '#25D366', borderColor: '#25D366' }]}
+                                        onPress={handleShareWhatsApp}
+                                    >
+                                        <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>WhatsApp</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionBtn, { flex: 1, backgroundColor: '#007AFF', borderColor: '#007AFF' }]}
+                                        onPress={handleShareEmail}
+                                    >
+                                        <Ionicons name="mail-outline" size={18} color="#fff" />
+                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>Email</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </ScrollView>
-
-                            {stats.product_performance.length > 10 && (
-                                <TouchableOpacity
-                                    style={styles.seeMoreBtn}
-                                    onPress={() => setShowAllPerf(!showAllPerf)}
-                                >
-                                    <Text style={styles.seeMoreText}>
-                                        {showAllPerf ? t('common.see_less') : t('accounting.see_other_products', { count: stats.product_performance.length - 10 })}
-                                    </Text>
-                                    <Ionicons name={showAllPerf ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
-                                </TouchableOpacity>
-                            )}
                         </View>
-                    )}
-
-                    {/* Recent Sales */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
-                        {recentSales.length === 0 ? (
-                            <View style={styles.emptyState}>
-                                <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
-                                <Text style={styles.emptyText}>{t('accounting.no_sales')}</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.tableContainer}>
-                                {recentSales.slice(0, 10).map((sale) => (
-                                    <View key={sale.sale_id} style={styles.saleRow}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.saleDate}>
-                                                {formatDate(sale.created_at)}
-                                            </Text>
-                                            <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
-                                                {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
-                                            </Text>
-                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} · {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
-                                        </View>
-                                        <Text style={styles.saleTotal}>{sale.total_amount.toLocaleString()} FCFA</Text>
-                                        <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
-                                            <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
                     </View>
+                </Modal >
 
-                    <View style={{ height: Spacing.xxl }} />
-                </ScrollView >
-            </LinearGradient>
+                {/* Expense Modal */}
+                <Modal visible={showExpenseModal} animationType="slide" transparent>
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{t('accounting.new_expense')}</Text>
+                                <TouchableOpacity onPress={() => setShowExpenseModal(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
 
-            {/* Invoice Modal */}
-            <Modal visible={showInvoiceModal} animationType="slide" transparent >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{t('invoice.create_invoice')}</Text>
-                            <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
-                                <Ionicons name="close" size={24} color={colors.text} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                            {/* Client */}
-                            <Text style={styles.fieldLabel}>{t('invoice.client')}</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={invoiceClient}
-                                onChangeText={setInvoiceClient}
-                                placeholder={t('invoice.client_name_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                            />
-                            {customersList.length > 0 && !invoiceClient && (
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }}>
-                                    {customersList.slice(0, 5).map(c => (
+                            <ScrollView>
+                                <Text style={styles.fieldLabel}>{t('accounting.category')}</Text>
+                                <View style={styles.categoryPicker}>
+                                    {EXPENSE_CATEGORIES.map(cat => (
                                         <TouchableOpacity
-                                            key={c.customer_id}
-                                            style={styles.clientChip}
-                                            onPress={() => setInvoiceClient(c.name)}
+                                            key={cat}
+                                            style={[styles.catBadge, expenseCategory === cat && styles.catBadgeActive]}
+                                            onPress={() => setExpenseCategory(cat)}
                                         >
-                                            <Text style={styles.clientChipText}>{c.name}</Text>
+                                            <Text style={[styles.catBadgeText, expenseCategory === cat && styles.catBadgeTextActive]}>
+                                                {t(`accounting.expenses_categories.${cat}`, { defaultValue: cat })}
+                                            </Text>
                                         </TouchableOpacity>
                                     ))}
-                                </ScrollView>
-                            )}
-
-                            {/* Items */}
-                            <Text style={styles.fieldLabel}>{t('invoice.items')}</Text>
-                            {invoiceItems.map((item, index) => (
-                                <View key={index} style={styles.invoiceLineRow}>
-                                    <TextInput
-                                        style={[styles.input, { flex: 2 }]}
-                                        value={item.desc}
-                                        onChangeText={v => updateInvoiceLine(index, 'desc', v)}
-                                        placeholder={t('invoice.description_placeholder')}
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                    <TextInput
-                                        style={[styles.input, { width: 50, textAlign: 'center' }]}
-                                        value={item.qty}
-                                        onChangeText={v => updateInvoiceLine(index, 'qty', v)}
-                                        keyboardType="numeric"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                    <TextInput
-                                        style={[styles.input, { flex: 1, textAlign: 'right' }]}
-                                        value={item.price}
-                                        onChangeText={v => updateInvoiceLine(index, 'price', v)}
-                                        placeholder={t('invoice.price_placeholder')}
-                                        keyboardType="numeric"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                    <TextInput
-                                        style={[styles.input, { width: 50, textAlign: 'center' }]}
-                                        value={item.tva}
-                                        onChangeText={v => updateInvoiceLine(index, 'tva', v)}
-                                        placeholder="TVA%"
-                                        keyboardType="numeric"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                    {invoiceItems.length > 1 && (
-                                        <TouchableOpacity onPress={() => removeInvoiceLine(index)} style={{ padding: 8 }}>
-                                            <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                                        </TouchableOpacity>
-                                    )}
                                 </View>
-                            ))}
-                            <TouchableOpacity style={styles.addLineBtn} onPress={addInvoiceLine}>
-                                <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                                <Text style={styles.addLineBtnText}>{t('invoice.add_line')}</Text>
-                            </TouchableOpacity>
+                                <Text style={styles.fieldLabel}>{t('accounting.amount')}</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={expenseAmount}
+                                    onChangeText={setExpenseAmount}
+                                    keyboardType="numeric"
+                                    placeholder={t('accounting.amount_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
 
-                            {/* Note */}
-                            <Text style={styles.fieldLabel}>{t('invoice.note_optional')}</Text>
-                            <TextInput
-                                style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
-                                value={invoiceNote}
-                                onChangeText={setInvoiceNote}
-                                placeholder={t('invoice.note_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                                multiline
-                            />
+                                <Text style={styles.fieldLabel}>{t('accounting.description_optional')}</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={expenseDescription}
+                                    onChangeText={setExpenseDescription}
+                                    placeholder={t('accounting.details_placeholder')}
+                                    placeholderTextColor={colors.textMuted}
+                                />
 
-                            {/* Total + Generate */}
-                            <View style={styles.invoiceTotalRow}>
-                                <Text style={styles.invoiceTotalLabel}>{t('invoice.total')}</Text>
-                                <Text style={styles.invoiceTotalValue}>{invoiceTotal.toLocaleString()} FCFA</Text>
-                            </View>
-
-                            <TouchableOpacity
-                                style={styles.generateBtn}
-                                onPress={generateInvoicePdf}
-                            >
-                                <Ionicons name="document-text" size={20} color="#fff" />
-                                <Text style={styles.generateBtnText}>{t('invoice.generate_pdf')}</Text>
-                            </TouchableOpacity>
-
-                            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                                <TouchableOpacity
-                                    style={[styles.actionBtn, { flex: 1, backgroundColor: '#25D366', borderColor: '#25D366' }]}
-                                    onPress={handleShareWhatsApp}
-                                >
-                                    <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>WhatsApp</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.actionBtn, { flex: 1, backgroundColor: '#007AFF', borderColor: '#007AFF' }]}
-                                    onPress={handleShareEmail}
-                                >
-                                    <Ionicons name="mail-outline" size={18} color="#fff" />
-                                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Email</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal >
-
-            {/* Expense Modal */}
-            <Modal visible={showExpenseModal} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{t('accounting.new_expense')}</Text>
-                            <TouchableOpacity onPress={() => setShowExpenseModal(false)}>
-                                <Ionicons name="close" size={24} color={colors.text} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView>
-                            <Text style={styles.fieldLabel}>{t('accounting.category')}</Text>
-                            <View style={styles.categoryPicker}>
-                                {EXPENSE_CATEGORIES.map(cat => (
-                                    <TouchableOpacity
-                                        key={cat}
-                                        style={[styles.catBadge, expenseCategory === cat && styles.catBadgeActive]}
-                                        onPress={() => setExpenseCategory(cat)}
-                                    >
-                                        <Text style={[styles.catBadgeText, expenseCategory === cat && styles.catBadgeTextActive]}>
-                                            {t(`accounting.expenses_categories.${cat}`, { defaultValue: cat })}
-                                        </Text>
+                                <View style={styles.modalFooter}>
+                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowExpenseModal(false)}>
+                                        <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                                     </TouchableOpacity>
-                                ))}
-                            </View>
-                            <Text style={styles.fieldLabel}>{t('accounting.amount')}</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={expenseAmount}
-                                onChangeText={setExpenseAmount}
-                                keyboardType="numeric"
-                                placeholder={t('accounting.amount_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                            />
-
-                            <Text style={styles.fieldLabel}>{t('accounting.description_optional')}</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={expenseDescription}
-                                onChangeText={setExpenseDescription}
-                                placeholder={t('accounting.details_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                            />
-
-                            <View style={styles.modalFooter}>
-                                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowExpenseModal(false)}>
-                                    <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.saveBtn} onPress={saveExpense} disabled={savingExpense}>
-                                    {savingExpense ? (
-                                        <ActivityIndicator color="#FFF" />
-                                    ) : (
-                                        <Text style={styles.saveBtnText}>{t('common.save')}</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </ScrollView>
+                                    <TouchableOpacity style={styles.saveBtn} onPress={saveExpense} disabled={savingExpense}>
+                                        {savingExpense ? (
+                                            <ActivityIndicator color="#FFF" />
+                                        ) : (
+                                            <Text style={styles.saveBtnText}>{t('common.save')}</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </ScrollView>
+                        </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-        </View >
+            </View >
         </PremiumGate>
     );
 }
