@@ -11,7 +11,10 @@ interface DeleteAccountModalProps {
     onClose: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function DeleteAccountModal({ visible, onClose }: DeleteAccountModalProps) {
+    const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
     const { logout } = useAuth();
     const [password, setPassword] = useState('');
@@ -20,29 +23,29 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
 
     const handleDelete = async () => {
         if (!password) {
-            Alert.alert('Erreur', 'Veuillez entrer votre mot de passe pour confirmer.');
+            Alert.alert(t('modals.error'), t('modals.deleteAccount.confirmPasswordLabel'));
             return;
         }
 
         Alert.alert(
-            'Confirmation ultime',
-            'Cette action est irréversible. Toutes vos données (magasins, ventes, clients) seront effacées définitivement. Êtes-vous vraiment sûr ?',
+            t('modals.deleteAccount.confirmationTitle'),
+            t('modals.deleteAccount.confirmationDesc'),
             [
-                { text: 'Annuler', style: 'cancel' },
+                { text: t('modals.cancel'), style: 'cancel' },
                 {
-                    text: 'Tout supprimer',
+                    text: t('modals.deleteAccount.deleteAllBtn'),
                     style: 'destructive',
                     onPress: async () => {
                         setLoading(true);
                         try {
                             await profile.deleteAccount(password);
-                            Alert.alert('Adieu', 'Votre compte a été supprimé avec succès.');
+                            Alert.alert(t('modals.deleteAccount.successTitle'), t('modals.deleteAccount.successDesc'));
                             onClose();
                             logout();
                         } catch (error: any) {
                             console.error('Account deletion error:', error);
-                            const errorMessage = error.message || 'Impossible de supprimer le compte.';
-                            Alert.alert('Erreur', errorMessage);
+                            const errorMessage = error.message || t('modals.deleteAccount.errorDelete');
+                            Alert.alert(t('modals.error'), errorMessage);
                         } finally {
                             setLoading(false);
                         }
@@ -57,7 +60,7 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Zone de Danger ⚠️</Text>
+                        <Text style={styles.title}>{t('modals.deleteAccount.dangerZone')}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
@@ -67,16 +70,16 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
                         <View style={styles.warningBox}>
                             <Ionicons name="warning" size={32} color={colors.danger} />
                             <Text style={styles.warningText}>
-                                Vous êtes sur le point de supprimer définitivement votre compte et toutes les données associées.
+                                {t('modals.deleteAccount.warningText')}
                             </Text>
                         </View>
 
-                        <Text style={styles.label}>Mot de passe de confirmation</Text>
+                        <Text style={styles.label}>{t('modals.deleteAccount.confirmPasswordLabel')}</Text>
                         <TextInput
                             style={styles.input}
                             value={password}
                             onChangeText={setPassword}
-                            placeholder="Entrez votre mot de passe"
+                            placeholder={t('modals.deleteAccount.confirmPasswordPlaceholder')}
                             placeholderTextColor={colors.textMuted}
                             secureTextEntry
                         />
@@ -91,7 +94,7 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
                             ) : (
                                 <>
                                     <Ionicons name="trash-outline" size={20} color="#fff" />
-                                    <Text style={styles.deleteButtonText}>Supprimer mon compte</Text>
+                                    <Text style={styles.deleteButtonText}>{t('modals.deleteAccount.deleteBtn')}</Text>
                                 </>
                             )}
                         </TouchableOpacity>

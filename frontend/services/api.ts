@@ -12,7 +12,12 @@ const getApiUrl = () => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // 2. In development, use the host URI from Expo Go / Dev Client
+  // 2. Extra config (from app.json)
+  if (Constants.expoConfig?.extra?.apiUrl) {
+    return Constants.expoConfig.extra.apiUrl;
+  }
+
+  // 3. In development, use the host URI from Expo Go / Dev Client
   if (__DEV__) {
     const hostUri = Constants.expoConfig?.hostUri;
     if (hostUri) {
@@ -22,13 +27,13 @@ const getApiUrl = () => {
     }
   }
 
-  // 3. Absolute fallback
+  // 4. Absolute fallback
   if (__DEV__) {
     console.warn('⚠️ Aucun EXPO_PUBLIC_API_URL défini et impossible de détecter l\'IP locale. Fallback sur localhost.');
     return 'http://localhost:8000';
   }
 
-  console.error('❌ ERREUR: EXPO_PUBLIC_API_URL n\'est pas défini pour le build de production !');
+  console.error('❌ ERREUR: EXPO_PUBLIC_API_URL ou Constants.expoConfig.extra.apiUrl n\'est pas défini pour le build de production !');
   return '';
 };
 

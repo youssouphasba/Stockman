@@ -52,13 +52,13 @@ function getTierConfig(tier?: string) {
 }
 
 function timeAgo(dateStr?: string, t?: any): string {
-    if (!dateStr) return t('common.never') || 'Jamais';
+    if (!dateStr) return t('crm.never');
     const d = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return t('common.today') || "Aujourd'hui";
-    if (diffDays === 1) return t('common.yesterday') || 'Hier';
+    if (diffDays === 0) return t('common.today');
+    if (diffDays === 1) return t('crm.yesterday');
     if (diffDays < 7) return t('common.days_ago', { count: diffDays });
     if (diffDays < 30) return t('common.weeks_ago', { count: Math.floor(diffDays / 7) });
     if (diffDays < 365) return t('common.months_ago', { count: Math.floor(diffDays / 30) });
@@ -257,12 +257,12 @@ export default function CRMScreen() {
     };
 
     const handleCall = (phone?: string) => {
-        if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
+        if (!phone) { Alert.alert(t('common.error'), t('crm.error_phone_missing')); return; }
         Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('common.error'), t('crm.error_phone_open')));
     };
 
     const handleSMS = (phone?: string, name?: string) => {
-        if (!phone) { Alert.alert('Erreur', 'Numéro non renseigné'); return; }
+        if (!phone) { Alert.alert(t('common.error'), t('crm.error_phone_missing')); return; }
         const msg = t('crm.sms_default_msg', { name });
         Linking.openURL(`sms:${phone}?body=${encodeURIComponent(msg)}`).catch(() => Alert.alert(t('common.error'), t('crm.error_sms_open')));
     };
@@ -396,7 +396,7 @@ export default function CRMScreen() {
                             await promotionsApi.delete(promo.promotion_id);
                             loadData();
                         } catch {
-                            Alert.alert('Erreur', 'Impossible de supprimer');
+                            Alert.alert(t('common.error'), t('crm.error_delete_promo'));
                         }
                     },
                 },
@@ -601,7 +601,7 @@ export default function CRMScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
                 >
                     <View style={[styles.header, { paddingTop: insets.top }]}>
-                        <Text style={styles.title}>CRM & Fidélité</Text>
+                        <Text style={styles.title}>{t('crm.title')}</Text>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TouchableOpacity style={styles.iconBtn} onPress={handleExportPdf}>
                                 <Ionicons name="document-text-outline" size={22} color={colors.primary} />
@@ -616,7 +616,7 @@ export default function CRMScreen() {
                     <View style={styles.statsRow}>
                         <View style={styles.statCard}>
                             <Text style={styles.statValue}>{totalClients}</Text>
-                            <Text style={styles.statLabel}>Clients</Text>
+                            <Text style={styles.statLabel}>{t('crm.clients')}</Text>
                         </View>
                         <View style={styles.statCard}>
                             <Text style={styles.statValue}>{formatCurrency(totalSpent, user?.currency)}</Text>
@@ -671,7 +671,7 @@ export default function CRMScreen() {
                                                 value={String(loyaltySettings.reward_threshold)}
                                                 onChangeText={(v) => updateLoyaltySettings({ reward_threshold: parseInt(v) || 0 })}
                                             />
-                                            <Text style={styles.inputUnit}>pts</Text>
+                                            <Text style={styles.inputUnit}>{t('crm.points_short')}</Text>
                                         </View>
                                     </View>
                                 </View>
@@ -868,7 +868,7 @@ export default function CRMScreen() {
                                     style={styles.formInput}
                                     value={customerForm.phone}
                                     onChangeText={(v) => setCustomerForm(prev => ({ ...prev, phone: v }))}
-                                    placeholder="+225 XX XX XX XX"
+                                    placeholder={t('crm.phone_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                     keyboardType="phone-pad"
                                 />
@@ -878,7 +878,7 @@ export default function CRMScreen() {
                                     style={styles.formInput}
                                     value={customerForm.email}
                                     onChangeText={(v) => setCustomerForm(prev => ({ ...prev, email: v }))}
-                                    placeholder="email@exemple.com"
+                                    placeholder={t('crm.email_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                     keyboardType="email-address"
                                 />
@@ -888,7 +888,7 @@ export default function CRMScreen() {
                                     style={styles.formInput}
                                     value={customerForm.birthday}
                                     onChangeText={(v) => setCustomerForm(prev => ({ ...prev, birthday: v }))}
-                                    placeholder="Ex: 03-15 (15 mars)"
+                                    placeholder={t('crm.birthday_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                     maxLength={5}
                                 />
@@ -1015,7 +1015,7 @@ export default function CRMScreen() {
                                                         <View style={[styles.debtCard, detailCustomer.current_debt < 0 && { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
                                                             <View>
                                                                 <Text style={[styles.debtLabel, detailCustomer.current_debt < 0 && { color: colors.success }]}>
-                                                                    {detailCustomer.current_debt > 0 ? 'Dette en cours' : 'Crédit (Avance)'}
+                                                                    {detailCustomer.current_debt > 0 ? t('crm.debt_in_progress') : t('crm.credit_advance')}
                                                                 </Text>
                                                                 <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
                                                                     {formatNumber(Math.abs(detailCustomer.current_debt || 0))} {t('common.currency_default')}
@@ -1065,7 +1065,7 @@ export default function CRMScreen() {
                                                         </View>
                                                     )}
                                                     <Text style={styles.detailDate}>
-                                                        {t('crm.customer_since')} {detailCustomer.created_at ? new Date(detailCustomer.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                                                        {t('crm.customer_since')} {detailCustomer.created_at ? new Date(detailCustomer.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                                                     </Text>
 
                                                     <View style={styles.detailActions}>
@@ -1112,7 +1112,7 @@ export default function CRMScreen() {
                                                                 <View key={sale.sale_id || idx} style={styles.saleCard}>
                                                                     <View style={styles.saleHeader}>
                                                                         <Text style={styles.saleDate}>
-                                                                            {new Date(sale.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                            {new Date(sale.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                                         </Text>
                                                                         <View style={[styles.paymentBadge, { backgroundColor: sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
                                                                             <Text style={[styles.paymentBadgeText, { color: sale.payment_method === 'cash' ? colors.success : colors.info }]}>
@@ -1167,7 +1167,7 @@ export default function CRMScreen() {
                                                                         <View style={styles.saleHeader}>
                                                                             <View>
                                                                                 <Text style={styles.saleDate}>
-                                                                                    {new Date(item.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                                    {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                                                 </Text>
                                                                                 <Text style={[styles.saleItemName, { fontSize: 13, color: colors.textSecondary }]}>
                                                                                     {item.reference}

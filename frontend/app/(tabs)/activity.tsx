@@ -15,10 +15,12 @@ import { activityLogs, ActivityLog } from '../../services/api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { getDateLocale } from '../../utils/date';
+import { useTranslation } from 'react-i18next';
 
 export default function ActivityScreen() {
     const { colors } = useTheme();
+    const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -66,6 +68,8 @@ export default function ActivityScreen() {
         }
     };
 
+    const currentLocale = getDateLocale(i18n.language);
+
     const renderLog = ({ item }: { item: ActivityLog }) => (
         <View style={styles.logCard}>
             <View style={[styles.iconContainer, { backgroundColor: getColor(item.module) + '20' }]}>
@@ -75,12 +79,12 @@ export default function ActivityScreen() {
                 <View style={styles.logHeader}>
                     <Text style={[styles.userName, { color: colors.text }]}>{item.user_name}</Text>
                     <Text style={[styles.time, { color: colors.textSecondary }]}>
-                        {format(new Date(item.created_at), 'HH:mm', { locale: fr })}
+                        {format(new Date(item.created_at), 'HH:mm', { locale: currentLocale })}
                     </Text>
                 </View>
                 <Text style={[styles.description, { color: colors.text }]}>{item.description}</Text>
                 <Text style={[styles.date, { color: colors.textSecondary }]}>
-                    {format(new Date(item.created_at), 'PPP', { locale: fr })}
+                    {format(new Date(item.created_at), 'PPP', { locale: currentLocale })}
                 </Text>
             </View>
         </View>
@@ -97,8 +101,8 @@ export default function ActivityScreen() {
     return (
         <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
             <LinearGradient colors={[colors.primary, colors.primary + 'CC']} style={[styles.header, { paddingTop: insets.top + 20 }]}>
-                <Text style={styles.headerTitle}>Historique d'Activité</Text>
-                <Text style={styles.headerSubtitle}>Suivi des actions de votre équipe</Text>
+                <Text style={styles.headerTitle}>{t('activity.title')}</Text>
+                <Text style={styles.headerSubtitle}>{t('activity.subtitle')}</Text>
             </LinearGradient>
 
             <FlatList
@@ -112,7 +116,7 @@ export default function ActivityScreen() {
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Ionicons name="documents-outline" size={64} color={colors.textSecondary} />
-                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune activité enregistrée</Text>
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('activity.no_activity')}</Text>
                     </View>
                 }
             />

@@ -10,7 +10,10 @@ interface ChangePasswordModalProps {
     onClose: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function ChangePasswordModal({ visible, onClose }: ChangePasswordModalProps) {
+    const { t } = useTranslation();
     const { colors } = useTheme();
     const { logout } = useAuth();
     const [oldPassword, setOldPassword] = useState('');
@@ -21,17 +24,17 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
 
     const handleSubmit = async () => {
         if (!oldPassword || !newPassword || !confirmPassword) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+            Alert.alert(t('modals.error'), t('auth.register.errorFillRequired'));
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            Alert.alert('Erreur', 'Les nouveaux mots de passe ne correspondent pas');
+            Alert.alert(t('modals.error'), t('modals.changePassword.errorMismatch'));
             return;
         }
 
         if (newPassword.length < 8) {
-            Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+            Alert.alert(t('modals.error'), t('modals.changePassword.errorLength'));
             return;
         }
 
@@ -39,14 +42,14 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
         try {
             await auth.changePassword(oldPassword, newPassword);
             Alert.alert(
-                'Succès',
-                'Votre mot de passe a été modifié. Veuillez vous reconnecter.',
+                t('modals.success'),
+                t('modals.changePassword.successMessage'),
                 [{ text: 'OK', onPress: () => { onClose(); logout(); } }]
             );
         } catch (error: any) {
             console.error(error);
-            const message = error.message || 'Impossible de changer le mot de passe';
-            Alert.alert('Erreur', message);
+            const message = error.message || t('modals.changePassword.errorUpdate');
+            Alert.alert(t('modals.error'), message);
         } finally {
             setLoading(false);
         }
@@ -60,7 +63,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                     style={[styles.container, { backgroundColor: colors.bgDark }]}
                 >
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>Changer le mot de passe</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t('modals.changePassword.title')}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
@@ -68,42 +71,42 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
 
                     <View style={styles.form}>
                         <View>
-                            <Text style={[styles.label, { color: colors.textMuted }]}>Ancien mot de passe</Text>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.changePassword.oldLabel')}</Text>
                             <View style={[styles.inputContainer, { borderColor: colors.glassBorder }]}>
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     secureTextEntry={!showPassword}
                                     value={oldPassword}
                                     onChangeText={setOldPassword}
-                                    placeholder="Entrez votre mot de passe actuel"
+                                    placeholder={t('modals.changePassword.oldPlaceholder')}
                                     placeholderTextColor={colors.textMuted}
                                 />
                             </View>
                         </View>
 
                         <View>
-                            <Text style={[styles.label, { color: colors.textMuted }]}>Nouveau mot de passe</Text>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.changePassword.newLabel')}</Text>
                             <View style={[styles.inputContainer, { borderColor: colors.glassBorder }]}>
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     secureTextEntry={!showPassword}
                                     value={newPassword}
                                     onChangeText={setNewPassword}
-                                    placeholder="Minimum 8 caractères"
+                                    placeholder={t('modals.changePassword.newPlaceholder')}
                                     placeholderTextColor={colors.textMuted}
                                 />
                             </View>
                         </View>
 
                         <View>
-                            <Text style={[styles.label, { color: colors.textMuted }]}>Confirmer le nouveau mot de passe</Text>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.changePassword.confirmLabel')}</Text>
                             <View style={[styles.inputContainer, { borderColor: colors.glassBorder }]}>
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     secureTextEntry={!showPassword}
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
-                                    placeholder="Répétez le nouveau mot de passe"
+                                    placeholder={t('modals.changePassword.confirmPlaceholder')}
                                     placeholderTextColor={colors.textMuted}
                                 />
                             </View>
@@ -114,7 +117,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                             onPress={() => setShowPassword(!showPassword)}
                         >
                             <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={colors.primary} />
-                            <Text style={{ marginLeft: 8, color: colors.primary }}>Afficher les mots de passe</Text>
+                            <Text style={{ marginLeft: 8, color: colors.primary }}>{t('modals.changePassword.showPasswords')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -125,7 +128,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.submitText}>Mettre à jour</Text>
+                                <Text style={styles.submitText}>{t('modals.changePassword.update')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>

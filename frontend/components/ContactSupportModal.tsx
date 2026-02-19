@@ -9,7 +9,10 @@ interface ContactSupportModalProps {
     onClose: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function ContactSupportModal({ visible, onClose }: ContactSupportModalProps) {
+    const { t } = useTranslation();
     const { colors } = useTheme();
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
@@ -17,20 +20,20 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
 
     const handleSubmit = async () => {
         if (!subject.trim() || !message.trim()) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+            Alert.alert(t('modals.error'), t('auth.register.errorFillRequired'));
             return;
         }
 
         setLoading(true);
         try {
             await support.createTicket(subject, message);
-            Alert.alert('Succès', 'Votre message a été envoyé à l\'administrateur. Nous vous répondrons bientôt.');
+            Alert.alert(t('modals.success'), t('modals.contactSupport.success'));
             setSubject('');
             setMessage('');
             onClose();
         } catch (error) {
             console.error(error);
-            Alert.alert('Erreur', 'Impossible d\'envoyer le message pour le moment.');
+            Alert.alert(t('modals.error'), t('modals.contactSupport.error'));
         } finally {
             setLoading(false);
         }
@@ -44,26 +47,26 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                     style={[styles.container, { backgroundColor: colors.glass }]}
                 >
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>Contacter le Support</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t('modals.contactSupport.title')}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.form}>
-                        <Text style={[styles.label, { color: colors.textMuted }]}>Sujet</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.contactSupport.subjectLabel')}</Text>
                         <TextInput
                             style={[styles.input, { color: colors.text, borderColor: colors.glassBorder }]}
-                            placeholder="Ex: Problème d'impression, Suggestion..."
+                            placeholder={t('modals.contactSupport.subjectPlaceholder')}
                             placeholderTextColor={colors.textMuted}
                             value={subject}
                             onChangeText={setSubject}
                         />
 
-                        <Text style={[styles.label, { color: colors.textMuted }]}>Message</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.contactSupport.messageLabel')}</Text>
                         <TextInput
                             style={[styles.textArea, { color: colors.text, borderColor: colors.glassBorder }]}
-                            placeholder="Dites-nous comment nous pouvons vous aider..."
+                            placeholder={t('modals.contactSupport.messagePlaceholder')}
                             placeholderTextColor={colors.textMuted}
                             multiline
                             numberOfLines={6}
@@ -79,7 +82,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.submitText}>Envoyer le message</Text>
+                                <Text style={styles.submitText}>{t('modals.contactSupport.send')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>

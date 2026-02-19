@@ -727,7 +727,7 @@ export default function SuppliersScreen() {
                       ) : (
                         <>
                           <Ionicons name="sparkles" size={13} color={colors.primary} />
-                          <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>Conseil IA</Text>
+                          <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>{t('suppliers.ai_advice')}</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -736,7 +736,7 @@ export default function SuppliersScreen() {
                     <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                         <Ionicons name="sparkles" size={13} color={colors.primary} />
-                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Conseil IA</Text>
+                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('suppliers.ai_advice')}</Text>
                       </View>
                       <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{replenishAdvice}</Text>
                     </View>
@@ -793,13 +793,13 @@ export default function SuppliersScreen() {
                         </View>
                         <Text style={styles.suggestionName} numberOfLines={1}>{sug.product_name}</Text>
                         <View style={styles.suggestionDetails}>
-                          <Text style={styles.suggestionVelocity}>💨 {sug.daily_velocity}/jour</Text>
+                          <Text style={styles.suggestionVelocity}>{t('suppliers.suggestion_ai_notes', { velocity: sug.daily_velocity })}</Text>
                           <Text style={styles.suggestionDays}>
-                            {sug.days_until_stock_out !== null ? `⌛ ${sug.days_until_stock_out}j restants` : 'Rupture !'}
+                            {sug.days_until_stock_out !== null ? t('suppliers.days_remaining', { count: sug.days_until_stock_out }) : t('suppliers.out_of_stock_alert')}
                           </Text>
                         </View>
                         <View style={styles.recommendationBox}>
-                          <Text style={styles.recommendationText}>Commander {sug.suggested_quantity}</Text>
+                          <Text style={styles.recommendationText}>{t('suppliers.order_commander', { count: sug.suggested_quantity })}</Text>
                           <Ionicons name="arrow-forward" size={12} color={colors.primary} />
                         </View>
                       </TouchableOpacity>
@@ -1003,7 +1003,7 @@ export default function SuppliersScreen() {
                         </View>
                         <View style={styles.mpDetailItem}>
                           <Ionicons name="pricetags-outline" size={14} color={colors.textMuted} />
-                          <Text style={styles.infoText}>{ms.catalog_count} produits</Text>
+                          <Text style={styles.infoText}>{ms.catalog_count} {t('marketplace.products')}</Text>
                         </View>
                         <View style={styles.mpDetailItem}>
                           <Ionicons name="time-outline" size={14} color={colors.textMuted} />
@@ -1027,8 +1027,8 @@ export default function SuppliersScreen() {
                 mpProducts.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="cube-outline" size={64} color={colors.textMuted} />
-                    <Text style={styles.emptyTitle}>Aucun produit trouvé</Text>
-                    <Text style={styles.emptyText}>Modifiez vos critères de recherche</Text>
+                    <Text style={styles.emptyTitle}>{t('marketplace.no_products_found')}</Text>
+                    <Text style={styles.emptyText}>{t('marketplace.modify_criteria')}</Text>
                   </View>
                 ) : (
                   <View style={styles.mpCatalogGrid}>
@@ -1315,7 +1315,7 @@ export default function SuppliersScreen() {
                                       </Text>
                                     </View>
                                     <Text style={{ color: colors.textMuted, fontSize: 11, marginLeft: Spacing.sm }}>
-                                      Val: {formatUserCurrency(stockValue, user)}
+                                      {t('suppliers.stock_value_short')}: {formatUserCurrency(stockValue, user)}
                                     </Text>
                                     <View style={{ flex: 1 }} />
                                     <TouchableOpacity
@@ -1350,7 +1350,7 @@ export default function SuppliersScreen() {
                                 <Text style={styles.historyRef}>#{o.order_id.slice(-6).toUpperCase()}</Text>
                                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(o.status, colors) + '20' }]}>
                                   <Text style={[styles.statusText, { color: getStatusColor(o.status, colors) }]}>
-                                    {o.status.toUpperCase()}
+                                    {t(`suppliers.order_status_${o.status.toLowerCase()}`)}
                                   </Text>
                                 </View>
                               </View>
@@ -1477,7 +1477,7 @@ export default function SuppliersScreen() {
                         <View style={styles.perfRow}>
                           <View style={styles.perfItem}>
                             <Ionicons name="time-outline" size={24} color={colors.secondary} />
-                            <Text style={styles.perfVal}>{(detailStats?.avg_delivery_days || 0).toString()} jours</Text>
+                            <Text style={styles.perfVal}>{(detailStats?.avg_delivery_days || 0).toString()} {t('common.days')}</Text>
                             <Text style={styles.perfLab}>{t('suppliers.avg_delivery_time')}</Text>
                           </View>
                           <View style={styles.perfItem}>
@@ -1571,16 +1571,16 @@ export default function SuppliersScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '80%' }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Filtres Marketplace</Text>
+                <Text style={styles.modalTitle}>{t('marketplace.filters')}</Text>
                 <TouchableOpacity onPress={() => setShowMpFilters(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalScroll}>
-                <FormField label="Ville" value={mpCity} onChangeText={setMpCity} placeholder="Ex: Dakar, Paris..." />
-                <FormField label="Catégorie" value={mpCategory} onChangeText={setMpCategory} placeholder="Ex: Alimentation, Électronique..." />
+                <FormField label={t('common.city')} value={mpCity} onChangeText={setMpCity} placeholder={t('marketplace.city_placeholder')} />
+                <FormField label={t('common.category')} value={mpCategory} onChangeText={setMpCategory} placeholder={t('marketplace.category_placeholder')} />
 
-                <Text style={styles.formLabel}>Note minimale (Fournisseur)</Text>
+                <Text style={styles.formLabel}>{t('marketplace.min_rating_supplier')}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: Spacing.md }}>
                   {[0, 3, 4, 4.5].map(val => (
                     <TouchableOpacity
@@ -1593,7 +1593,7 @@ export default function SuppliersScreen() {
                       }}
                     >
                       <Text style={{ color: mpMinRating === val ? '#fff' : colors.text, fontWeight: '600', fontSize: 12 }}>
-                        {val === 0 ? 'Toutes' : `${val}+ ⭐`}
+                        {val === 0 ? t('common.all') : `${val}+ ⭐`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1601,12 +1601,12 @@ export default function SuppliersScreen() {
 
                 {mpSearchType === 'products' && (
                   <>
-                    <Text style={styles.formLabel}>Gamme de prix ({getCurrencySymbol(user?.currency)})</Text>
+                    <Text style={styles.formLabel}>{t('marketplace.price_range', { currency: getCurrencySymbol(user?.currency) })}</Text>
                     <View style={{ flexDirection: 'row', gap: 10, marginBottom: Spacing.md }}>
                       <View style={{ flex: 1 }}>
                         <TextInput
                           style={styles.logInput}
-                          placeholder="Min"
+                          placeholder={t('common.min')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="numeric"
                           value={mpPriceMin}
@@ -1616,7 +1616,7 @@ export default function SuppliersScreen() {
                       <View style={{ flex: 1 }}>
                         <TextInput
                           style={styles.logInput}
-                          placeholder="Max"
+                          placeholder={t('common.max')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="numeric"
                           value={mpPriceMax}
@@ -1628,7 +1628,7 @@ export default function SuppliersScreen() {
                 )}
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.lg }}>
-                  <Text style={styles.formLabel}>Vérifiés uniquement</Text>
+                  <Text style={styles.formLabel}>{t('marketplace.verified_only')}</Text>
                   <TouchableOpacity
                     onPress={() => setMpVerifiedOnly(!mpVerifiedOnly)}
                     style={{
@@ -1654,7 +1654,7 @@ export default function SuppliersScreen() {
                       setShowMpFilters(false);
                     }}
                   >
-                    <Text style={[styles.submitBtnText, { color: colors.text }]}>Réinitialiser</Text>
+                    <Text style={[styles.submitBtnText, { color: colors.text }]}>{t('common.reset')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.submitBtn, { flex: 2 }]}
@@ -1663,7 +1663,7 @@ export default function SuppliersScreen() {
                       setShowMpFilters(false);
                     }}
                   >
-                    <Text style={styles.submitBtnText}>Appliquer</Text>
+                    <Text style={styles.submitBtnText}>{t('common.apply')}</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -1676,18 +1676,18 @@ export default function SuppliersScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '50%' }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Inviter à s'inscrire</Text>
+                <Text style={styles.modalTitle}>{t('suppliers.invite_to_register')}</Text>
                 <TouchableOpacity onPress={() => setShowInviteModal(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
               <Text style={styles.inviteDesc}>
-                Envoyez une invitation pour que ce fournisseur crée son compte et gère directement son catalogue et ses commandes.
+                {t('suppliers.invite_desc')}
               </Text>
 
               <FormField
-                label="Email du fournisseur"
+                label={t('suppliers.supplier_email')}
                 value={inviteEmail}
                 onChangeText={setInviteEmail}
                 placeholder="email@fournisseur.com"
@@ -1701,7 +1701,7 @@ export default function SuppliersScreen() {
                 {inviteSaving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Envoyer l'invitation</Text>
+                  <Text style={styles.submitBtnText}>{t('suppliers.send_invite')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1714,7 +1714,7 @@ export default function SuppliersScreen() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {mpDetail?.profile?.company_name ?? 'Fournisseur'}
+                  {mpDetail?.profile?.company_name ?? t('suppliers.supplier')}
                 </Text>
                 <TouchableOpacity onPress={() => setShowMpDetail(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
@@ -1746,7 +1746,7 @@ export default function SuppliersScreen() {
                           {mpDetail.profile.rating_average.toFixed(1)}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
-                          ({mpDetail.profile.rating_count} avis)
+                          ({mpDetail.profile.rating_count} {t('common.reviews')})
                         </Text>
                       </View>
                     </View>
@@ -1762,17 +1762,17 @@ export default function SuppliersScreen() {
                     ) : null}
                     <View style={[styles.mpKpiPill, { backgroundColor: colors.secondary + '15' }]}>
                       <Ionicons name="time" size={14} color={colors.secondary} />
-                      <Text style={[styles.mpKpiText, { color: colors.secondary }]}>{mpDetail.profile.average_delivery_days}j livraison</Text>
+                      <Text style={[styles.mpKpiText, { color: colors.secondary }]}>{mpDetail.profile.average_delivery_days}j {t('marketplace.delivery')}</Text>
                     </View>
                     {mpDetail.profile.min_order_amount > 0 && (
                       <View style={[styles.mpKpiPill, { backgroundColor: colors.warning + '15' }]}>
                         <Ionicons name="cash" size={14} color={colors.warning} />
-                        <Text style={[styles.mpKpiText, { color: colors.warning }]}>Min {formatUserCurrency(mpDetail.profile.min_order_amount, user)}</Text>
+                        <Text style={[styles.mpKpiText, { color: colors.warning }]}>{t('common.min')} {formatUserCurrency(mpDetail.profile.min_order_amount, user)}</Text>
                       </View>
                     )}
                     <View style={[styles.mpKpiPill, { backgroundColor: colors.primary + '15' }]}>
                       <Ionicons name="cube" size={14} color={colors.primary} />
-                      <Text style={[styles.mpKpiText, { color: colors.primary }]}>{mpDetail.catalog.length} produits</Text>
+                      <Text style={[styles.mpKpiText, { color: colors.primary }]}>{mpDetail.catalog.length} {t('marketplace.products')}</Text>
                     </View>
                   </View>
 
@@ -1791,7 +1791,7 @@ export default function SuppliersScreen() {
                         onPress={() => Linking.openURL(`tel:${mpDetail.profile.phone}`)}
                       >
                         <Ionicons name="call" size={18} color={colors.primary} />
-                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>Appeler</Text>
+                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>{t('common.call')}</Text>
                       </TouchableOpacity>
                     </View>
                   ) : null}
@@ -1799,7 +1799,7 @@ export default function SuppliersScreen() {
                   {/* Categories */}
                   {mpDetail.profile.categories && mpDetail.profile.categories.length > 0 && (
                     <View style={styles.mpCategoriesSection}>
-                      <Text style={styles.mpSectionLabel}>CATÉGORIES</Text>
+                      <Text style={styles.mpSectionLabel}>{t('common.categories').toUpperCase()}</Text>
                       <View style={styles.mpCategories}>
                         {mpDetail.profile.categories.map((cat: string, i: number) => (
                           <View key={i} style={styles.mpCatChip}>
@@ -1814,11 +1814,11 @@ export default function SuppliersScreen() {
                   <View style={styles.mpCatalogSection}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.sm }}>
                       <Ionicons name="pricetags" size={18} color={colors.primary} />
-                      <Text style={styles.sectionTitle}>Catalogue ({mpDetail.catalog.length})</Text>
+                      <Text style={styles.sectionTitle}>{t('marketplace.catalog')} ({mpDetail.catalog.length})</Text>
                     </View>
                     {mpDetail.catalog.length === 0 ? (
                       <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, textAlign: 'center', paddingVertical: Spacing.md }}>
-                        Aucun produit dans le catalogue
+                        {t('marketplace.no_products_in_catalog')}
                       </Text>
                     ) : (
                       <View style={styles.mpCatalogGrid}>
@@ -1847,7 +1847,7 @@ export default function SuppliersScreen() {
                         onPress={() => setShowAllMpCatalog(!showAllMpCatalog)}
                       >
                         <Text style={styles.seeMoreText}>
-                          {showAllMpCatalog ? 'Voir moins' : `Voir les ${mpDetail.catalog.length - 5} autres`}
+                          {showAllMpCatalog ? t('common.see_less') : t('marketplace.see_more_products', { count: mpDetail.catalog.length - 5 })}
                         </Text>
                         <Ionicons name={showAllMpCatalog ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                       </TouchableOpacity>
@@ -1859,7 +1859,7 @@ export default function SuppliersScreen() {
                     <View style={styles.mpReviewsSection}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.sm }}>
                         <Ionicons name="chatbubbles" size={18} color={colors.warning} />
-                        <Text style={styles.sectionTitle}>Avis ({mpDetail.ratings.length})</Text>
+                        <Text style={styles.sectionTitle}>{t('common.reviews')} ({mpDetail.ratings.length})</Text>
                       </View>
                       {mpDetail.ratings.slice(0, 5).map((r) => (
                         <View key={r.rating_id} style={styles.mpReviewCard}>
@@ -1872,7 +1872,7 @@ export default function SuppliersScreen() {
                             <View style={{ flex: 1 }}>
                               <Text style={styles.mpReviewName}>{r.shopkeeper_name}</Text>
                               <Text style={styles.mpReviewDate}>
-                                {new Date(r.created_at).toLocaleDateString('fr-FR')}
+                                {new Date(r.created_at).toLocaleDateString()}
                               </Text>
                             </View>
                             <View style={styles.mpStars}>{renderStars(r.score)}</View>
@@ -1897,12 +1897,12 @@ export default function SuppliersScreen() {
                       }}
                     >
                       <Ionicons name="chatbubble" size={20} color="#fff" />
-                      <Text style={styles.mpActionBtnText}>Discuter</Text>
+                      <Text style={styles.mpActionBtnText}>{t('common.chat')}</Text>
                     </TouchableOpacity>
                     {mpDetail.catalog.length > 0 && (
                       <TouchableOpacity style={styles.mpOrderBtnNew} onPress={openMpOrderModal}>
                         <Ionicons name="cart" size={20} color="#fff" />
-                        <Text style={styles.mpActionBtnText}>Commander</Text>
+                        <Text style={styles.mpActionBtnText}>{t('suppliers.order_action')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1921,7 +1921,7 @@ export default function SuppliersScreen() {
           onOrderCreated={() => {
             setShowOrderModal(false);
             setShowMpDetail(false);
-            Alert.alert('Commande envoyée', 'Votre commande a été transmise au fournisseur');
+            Alert.alert(t('suppliers.order_sent_title'), t('suppliers.order_sent_desc'));
           }}
           preSelectedSupplier={orderPreselect}
           preLoadedCatalog={orderCatalog}

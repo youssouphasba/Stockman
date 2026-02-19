@@ -203,7 +203,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                         >
                           <Ionicons name="play-circle-outline" size={16} color={m.color} />
                           <Text style={[styles.launchText, { color: m.color }]}>
-                            Lancer le guide interactif
+                            {t('help.launch_guide')}
                           </Text>
                         </TouchableOpacity>
                       </>

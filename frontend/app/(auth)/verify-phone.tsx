@@ -17,7 +17,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { ApiError } from '../../services/api';
 
+import { useTranslation } from 'react-i18next';
+
 export default function VerifyPhoneScreen() {
+    const { t } = useTranslation();
     const { verifyPhone, user } = useAuth();
     const router = useRouter();
     const [otp, setOtp] = useState('');
@@ -26,7 +29,7 @@ export default function VerifyPhoneScreen() {
 
     async function handleVerify() {
         if (otp.length !== 6) {
-            setError('Veuillez entrer le code à 6 chiffres');
+            setError(t('auth.verifyPhone.errorCode'));
             return;
         }
 
@@ -36,7 +39,7 @@ export default function VerifyPhoneScreen() {
             await verifyPhone(otp);
             router.replace('/(tabs)');
         } catch (e) {
-            setError(e instanceof ApiError ? e.message : "Code incorrect ou expiré");
+            setError(e instanceof ApiError ? e.message : t('auth.verifyPhone.errorIncorrect'));
         } finally {
             setLoading(false);
         }
@@ -53,12 +56,12 @@ export default function VerifyPhoneScreen() {
                         <View style={styles.iconCircle}>
                             <Ionicons name="shield-checkmark" size={40} color={Colors.primary} />
                         </View>
-                        <Text style={styles.title}>Vérification</Text>
+                        <Text style={styles.title}>{t('auth.verifyPhone.title')}</Text>
                         <Text style={styles.subtitle}>
-                            Un code de vérification a été envoyé au {user?.phone || 'votre numéro'}.
+                            {t('auth.verifyPhone.sentTo', { phone: user?.phone || t('common.none') })}
                         </Text>
                         <Text style={[styles.subtitle, { marginTop: 4, fontWeight: '600', color: Colors.primaryLight }]}>
-                            (Pour le test, le code est dans les logs du serveur)
+                            {t('auth.verifyPhone.testTip')}
                         </Text>
                     </View>
 
@@ -71,11 +74,11 @@ export default function VerifyPhoneScreen() {
                         ) : null}
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Code à 6 chiffres</Text>
+                            <Text style={styles.label}>{t('auth.verifyPhone.label')}</Text>
                             <View style={styles.inputWrapper}>
                                 <TextInput
                                     style={[styles.otpInput, { letterSpacing: 10 }]}
-                                    placeholder="000000"
+                                    placeholder={t('auth.verifyPhone.placeholder')}
                                     placeholderTextColor={Colors.textMuted}
                                     value={otp}
                                     onChangeText={setOtp}
@@ -94,15 +97,15 @@ export default function VerifyPhoneScreen() {
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.buttonText}>Vérifier le numéro</Text>
+                                <Text style={styles.buttonText}>{t('auth.verifyPhone.verify')}</Text>
                             )}
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.resendBtn}
-                            onPress={() => setError('Fonctionnalité de renvoi bientôt disponible')}
+                            onPress={() => setError(t('auth.verifyPhone.resendTip'))}
                         >
-                            <Text style={styles.resendText}>Je n'ai pas reçu le code</Text>
+                            <Text style={styles.resendText}>{t('auth.verifyPhone.notReceived')}</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>

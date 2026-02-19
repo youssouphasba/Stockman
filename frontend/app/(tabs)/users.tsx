@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { subUsers as subUsersApi, User, UserPermissions } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function UsersScreen() {
     const { colors, glassStyle } = useTheme();
@@ -27,6 +28,7 @@ export default function UsersScreen() {
     const styles = getStyles(colors, glassStyle);
     const router = useRouter();
     const { user: currentUser } = useAuth();
+    const { t } = useTranslation();
 
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -78,21 +80,26 @@ export default function UsersScreen() {
 
     const handleShareInvitation = (user: User, pass?: string) => {
         const appUrl = "https://stockman.web.app"; // Replaced with actual URL if different
-        const message = `Bonjour ${user.name} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : ${user.email}\n🔑 Mot de passe : ${pass || '********'}\n\nVous pouvez accéder à l'application ici : ${appUrl}\n\nBon travail !`;
+        const message = t('users.whatsapp_invite_msg', {
+            name: user.name,
+            email: user.email,
+            password: pass || '********',
+            url: appUrl
+        });
         const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
 
         Linking.canOpenURL(url).then(supported => {
             if (supported) {
                 Linking.openURL(url);
             } else {
-                Alert.alert('Erreur', 'WhatsApp n\'est pas installé sur cet appareil.');
+                Alert.alert(t('common.error'), t('users.error_whatsapp_not_installed'));
             }
         });
     };
 
     const handleCreateOrUpdate = async () => {
         if (!name || !email || (!editingUser && !password)) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires.');
+            Alert.alert(t('common.error'), t('users.form_error_fields'));
             return;
         }
 
@@ -112,11 +119,11 @@ export default function UsersScreen() {
                 });
 
                 Alert.alert(
-                    'Compte créé',
-                    'Voulez-vous envoyer les accès par WhatsApp ?',
+                    t('users.account_created_title'),
+                    t('users.whatsapp_invite_prompt'),
                     [
-                        { text: 'Plus tard', style: 'cancel' },
-                        { text: 'Envoyer', onPress: () => handleShareInvitation(newUser, password) }
+                        { text: t('users.whatsapp_invite_later'), style: 'cancel' },
+                        { text: t('users.whatsapp_invite_send'), onPress: () => handleShareInvitation(newUser, password) }
                     ]
                 );
             }
@@ -124,25 +131,25 @@ export default function UsersScreen() {
             resetForm();
             loadUsers();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message || 'Une erreur est survenue.');
+            Alert.alert(t('common.error'), e.message || t('common.error'));
         }
     };
 
     const handleDelete = (userId: string) => {
         Alert.alert(
-            'Supprimer l\'utilisateur',
-            'Êtes-vous sûr de vouloir supprimer cet utilisateur ?',
+            t('users.delete_user_title'),
+            t('users.delete_user_confirm'),
             [
-                { text: 'Annuler', style: 'cancel' },
+                { text: t('users.cancel_btn'), style: 'cancel' },
                 {
-                    text: 'Supprimer',
+                    text: t('users.delete_btn'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             await subUsersApi.delete(userId);
                             loadUsers();
                         } catch (e: any) {
-                            Alert.alert('Erreur', e.message || 'Une erreur est survenue.');
+                            Alert.alert(t('common.error'), e.message || t('common.error'));
                         }
                     }
                 },
@@ -179,7 +186,7 @@ export default function UsersScreen() {
         const level = permissions[module] || 'none';
         const color = level === 'write' ? colors.success : level === 'read' ? colors.primary : colors.textMuted;
         const icon = level === 'write' ? 'create' : level === 'read' ? 'eye' : 'close-circle';
-        const text = level === 'write' ? 'Modification' : level === 'read' ? 'Lecture Seule' : 'Pas d\'accès';
+        const text = level === 'write' ? t('users.perm_management') : level === 'read' ? t('users.perm_read_only') : t('users.perm_no_access');
 
         return (
             <View style={styles.permRow}>
@@ -200,7 +207,7 @@ export default function UsersScreen() {
     if (!currentUser || currentUser.role !== 'shopkeeper') {
         return (
             <View style={styles.loadingContainer}>
-                <Text style={{ color: colors.text }}>Accès refusé.</Text>
+                <Text style={{ color: colors.text }}>{t('users.access_denied')}</Text>
             </View>
         );
     }
@@ -211,7 +218,7 @@ export default function UsersScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Gestion d'Équipe</Text>
+                <Text style={styles.headerTitle}>{t('users.title')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Link href="/(tabs)/activity" asChild>
                         <TouchableOpacity style={{ marginRight: 15 }}>
@@ -233,8 +240,8 @@ export default function UsersScreen() {
                 ) : users.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Ionicons name="people-outline" size={64} color={colors.textMuted} />
-                        <Text style={styles.emptyText}>Aucun employé configuré.</Text>
-                        <Text style={styles.emptySubText}>Ajoutez vos vendeurs pour leur donner un accès limité.</Text>
+                        <Text style={styles.emptyText}>{t('users.empty_state_title')}</Text>
+                        <Text style={styles.emptySubText}>{t('users.empty_state_desc')}</Text>
                     </View>
                 ) : (
                     users.map(u => (
@@ -276,25 +283,25 @@ export default function UsersScreen() {
                     <View style={styles.modalOverlay}>
                         <LinearGradient colors={[colors.bgDark, colors.bgMid]} style={styles.modalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{editingUser ? 'Modifier Accès' : 'Nouvel Employé'}</Text>
+                                <Text style={styles.modalTitle}>{editingUser ? t('users.edit_access_title') : t('users.new_employee_title')}</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
 
                             <ScrollView style={{ padding: Spacing.md }}>
-                                <Text style={styles.inputLabel}>Nom complet</Text>
+                                <Text style={styles.inputLabel}>{t('users.full_name_label')}</Text>
                                 <TextInput
                                     style={styles.input}
                                     value={name}
                                     onChangeText={setName}
-                                    placeholder="Ex: Jean Dupont"
+                                    placeholder={t('users.full_name_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                 />
 
                                 {!editingUser && (
                                     <>
-                                        <Text style={styles.inputLabel}>Email</Text>
+                                        <Text style={styles.inputLabel}>{t('users.email_label')}</Text>
                                         <TextInput
                                             style={styles.input}
                                             value={email}
@@ -304,27 +311,27 @@ export default function UsersScreen() {
                                             autoCapitalize="none"
                                             placeholderTextColor={colors.textMuted}
                                         />
-                                        <Text style={styles.inputLabel}>Mot de passe</Text>
+                                        <Text style={styles.inputLabel}>{t('users.password_label')}</Text>
                                         <TextInput
                                             style={styles.input}
                                             value={password}
                                             onChangeText={setPassword}
-                                            placeholder="Min. 8 caractères"
+                                            placeholder={t('users.password_placeholder')}
                                             secureTextEntry
                                             placeholderTextColor={colors.textMuted}
                                         />
                                     </>
                                 )}
 
-                                <Text style={styles.sectionTitle}>Permissions (Appuyez pour changer)</Text>
-                                {renderPermissionRow('Caisse (POS)', 'pos')}
-                                {renderPermissionRow('Stock & Produits', 'stock')}
-                                {renderPermissionRow('Comptabilité', 'accounting')}
-                                {renderPermissionRow('Clients (CRM)', 'crm')}
-                                {renderPermissionRow('Fournisseurs', 'suppliers')}
+                                <Text style={styles.sectionTitle}>{t('users.permissions_section_title')}</Text>
+                                {renderPermissionRow(t('users.pos_label'), 'pos')}
+                                {renderPermissionRow(t('users.stock_label'), 'stock')}
+                                {renderPermissionRow(t('users.accounting_label'), 'accounting')}
+                                {renderPermissionRow(t('users.crm_label'), 'crm')}
+                                {renderPermissionRow(t('users.suppliers_label'), 'suppliers')}
 
                                 <TouchableOpacity style={styles.saveBtn} onPress={handleCreateOrUpdate}>
-                                    <Text style={styles.saveBtnText}>{editingUser ? 'Enregistrer' : 'Créer le compte'}</Text>
+                                    <Text style={styles.saveBtnText}>{editingUser ? t('users.save_btn') : t('users.create_account_btn')}</Text>
                                 </TouchableOpacity>
                                 <View style={{ height: 40 }} />
                             </ScrollView>

@@ -203,7 +203,7 @@ export default function POSScreen() {
                 }
                 setLastSale({
                     ...result,
-                    customer_name: selectedCustomer?.name || t('common.passerby') || 'Passant'
+                    customer_name: selectedCustomer?.name || t('pos.anonymous_customer')
                 });
                 setShowReceiptModal(true);
             }
@@ -213,9 +213,9 @@ export default function POSScreen() {
             await loadData();
         } catch (error: any) {
             if (Platform.OS === 'web') {
-                window.alert(error.message || 'Impossible d\'enregistrer la vente');
+                window.alert(error.message || t('pos.error_save_sale'));
             } else {
-                Alert.alert('Erreur', error.message || 'Impossible d\'enregistrer la vente');
+                Alert.alert(t('common.error'), error.message || t('pos.error_save_sale'));
             }
         } finally {
             setCheckoutLoading(false);
@@ -227,9 +227,9 @@ export default function POSScreen() {
 
         if (method === 'credit' && !selectedCustomer) {
             if (Platform.OS === 'web') {
-                window.alert('Veuillez sélectionner un client pour une vente à crédit.');
+                window.alert(t('pos.select_customer_credit'));
             } else {
-                Alert.alert('Erreur', 'Veuillez sélectionner un client pour une vente à crédit.');
+                Alert.alert(t('common.error'), t('pos.select_customer_credit'));
             }
             return;
         }
@@ -256,8 +256,8 @@ export default function POSScreen() {
                     `${t('pos.new_debt')} : ${formatNumber(newDebt)} ${t('common.currency_short')}\n\n` +
                     `${t('pos.confirm_credit_sale')}`,
                     [
-                        { text: 'Annuler', style: 'cancel' },
-                        { text: 'Confirmer', onPress: () => processCheckout(method) }
+                        { text: t('common.cancel'), style: 'cancel' },
+                        { text: t('common.confirm'), onPress: () => processCheckout(method) }
                     ]
                 );
             }
@@ -275,23 +275,23 @@ export default function POSScreen() {
                 // No alert needed for speed, maybe a small sound or haptic feedback later
             } else {
                 if (Platform.OS === 'web') {
-                    window.alert(`Stock épuisé. Le produit ${found.name} n'est plus en stock.`);
+                    window.alert(t('pos.out_of_stock_msg', { name: found.name }));
                 } else {
-                    Alert.alert('Stock épuisé', `Le produit ${found.name} n'est plus en stock.`);
+                    Alert.alert(t('pos.out_of_stock_title'), t('pos.out_of_stock_msg', { name: found.name }));
                 }
             }
         } else {
             if (Platform.OS === 'web') {
-                window.alert(`Produit inconnu. Aucun produit trouvé avec le SKU: ${sku}`);
+                window.alert(t('pos.unknown_product_msg', { sku: sku }));
             } else {
-                Alert.alert('Inconnu', `Aucun produit trouvé avec le SKU: ${sku}`);
+                Alert.alert(t('pos.unknown_product_title'), t('pos.unknown_product_msg', { sku: sku }));
             }
         }
     };
 
     const handleCreateCustomer = async () => {
         if (!newCustomerName.trim()) {
-            Alert.alert('Erreur', 'Le nom est obligatoire');
+            Alert.alert(t('common.error'), t('pos.customer_name_required'));
             return;
         }
 
@@ -307,15 +307,15 @@ export default function POSScreen() {
             setNewCustomerName('');
             setNewCustomerPhone('');
             if (Platform.OS === 'web') {
-                window.alert('Client créé et sélectionné');
+                window.alert(t('pos.customer_created'));
             } else {
-                Alert.alert('Succès', 'Client créé et sélectionné');
+                Alert.alert(t('common.success'), t('pos.customer_created'));
             }
         } catch (error) {
             if (Platform.OS === 'web') {
-                window.alert('Impossible de créer le client');
+                window.alert(t('pos.customer_create_error'));
             } else {
-                Alert.alert('Erreur', 'Impossible de créer le client');
+                Alert.alert(t('common.error'), t('pos.customer_create_error'));
             }
         } finally {
             setCreateCustomerLoading(false);
@@ -340,7 +340,7 @@ export default function POSScreen() {
                             <Ionicons name="search" size={20} color={colors.textMuted} />
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder="Rechercher un produit..."
+                                placeholder={t('pos.search_placeholder')}
                                 placeholderTextColor={colors.textMuted}
                                 value={search}
                                 onChangeText={setSearch}
@@ -381,9 +381,9 @@ export default function POSScreen() {
                 {/* Right Side: Cart & Checkout */}
                 <View style={styles.rightPanel}>
                     <View style={styles.cartHeader}>
-                        <Text style={styles.cartTitle}>Panier</Text>
+                        <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
                         <TouchableOpacity onPress={() => setCart([])}>
-                            <Text style={styles.clearCart}>Vider</Text>
+                            <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -400,7 +400,7 @@ export default function POSScreen() {
                                 style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
                                 onPress={() => setSelectedCustomer(null)}
                             >
-                                <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>Passant</Text>
+                                <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
                             </TouchableOpacity>
                             {customerList.map(c => (
                                 <TouchableOpacity
@@ -439,7 +439,7 @@ export default function POSScreen() {
                         {cart.length === 0 ? (
                             <View style={styles.emptyCart}>
                                 <Ionicons name="cart-outline" size={48} color={colors.textMuted} />
-                                <Text style={styles.emptyText}>Le panier est vide</Text>
+                                <Text style={styles.emptyText}>{t('pos.empty_cart')}</Text>
                             </View>
                         ) : (
                             cart.map(item => (
@@ -470,7 +470,7 @@ export default function POSScreen() {
                         <View style={[styles.suggestionsRow, { borderTopColor: colors.divider }]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
                                 <Ionicons name="sparkles" size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Souvent achetés ensemble</Text>
+                                <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('pos.suggestions_title')}</Text>
                             </View>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                 {basketSuggestions.map(s => {
@@ -493,7 +493,7 @@ export default function POSScreen() {
 
                     <View style={styles.checkoutSection}>
                         <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>Total</Text>
+                            <Text style={styles.totalLabel}>{t('pos.total')}</Text>
                             <Text style={styles.totalAmount}>{formatUserCurrency(total, user)}</Text>
                         </View>
 
@@ -504,7 +504,7 @@ export default function POSScreen() {
                                 disabled={!canWrite || checkoutLoading || cart.length === 0}
                             >
                                 <Ionicons name="cash-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>Espèces</Text>
+                                <Text style={styles.payButtonText}>{t('pos.payment_cash')}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -513,7 +513,7 @@ export default function POSScreen() {
                                 disabled={!canWrite || checkoutLoading || cart.length === 0}
                             >
                                 <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>Mobile</Text>
+                                <Text style={styles.payButtonText}>{t('pos.payment_mobile')}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -522,7 +522,7 @@ export default function POSScreen() {
                                 disabled={!canWrite || checkoutLoading || cart.length === 0}
                             >
                                 <Ionicons name="time-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>À crédit</Text>
+                                <Text style={styles.payButtonText}>{t('pos.payment_credit')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -534,30 +534,30 @@ export default function POSScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Nouveau Client</Text>
+                            <Text style={styles.modalTitle}>{t('pos.new_customer_title')}</Text>
                             <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
                                 <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>Nom du client *</Text>
+                            <Text style={styles.formLabel}>{t('pos.customer_name_label')}</Text>
                             <TextInput
                                 style={styles.formInput}
                                 value={newCustomerName}
                                 onChangeText={setNewCustomerName}
-                                placeholder="Ex: Jean Dupont"
+                                placeholder={t('pos.customer_name_placeholder')}
                                 placeholderTextColor={colors.textMuted}
                             />
                         </View>
 
                         <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>Téléphone</Text>
+                            <Text style={styles.formLabel}>{t('pos.customer_phone_label')}</Text>
                             <TextInput
                                 style={styles.formInput}
                                 value={newCustomerPhone}
                                 onChangeText={setNewCustomerPhone}
-                                placeholder="Ex: 77 000 00 00"
+                                placeholder={t('pos.customer_phone_placeholder')}
                                 placeholderTextColor={colors.textMuted}
                                 keyboardType="phone-pad"
                             />
@@ -571,7 +571,7 @@ export default function POSScreen() {
                             {createCustomerLoading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.createBtnText}>Créer le client</Text>
+                                <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -597,7 +597,7 @@ export default function POSScreen() {
                     if (product) {
                         addToCart(product);
                     } else {
-                        Alert.alert('Inconnu', 'Produit non trouvé');
+                        Alert.alert(t('pos.unknown_product_title'), t('pos.product_not_found'));
                     }
                     setIsScannerVisible(false);
                 }}

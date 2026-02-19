@@ -252,7 +252,7 @@ export default function OrdersScreen() {
       const result = await ordersApi.get(orderId);
       setDetailOrder(result);
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger les détails');
+      Alert.alert(t('common.error'), t('orders.update_error'));
       setShowDetailModal(false);
     } finally {
       setDetailLoading(false);
@@ -273,7 +273,7 @@ export default function OrdersScreen() {
       await ordersApi.updateStatus(orderId, next);
       loadData();
     } catch {
-      Alert.alert('Erreur', 'Impossible de mettre à jour le statut');
+      Alert.alert(t('common.error'), t('orders.update_error'));
     }
   }
 
@@ -282,7 +282,7 @@ export default function OrdersScreen() {
       await ordersApi.updateStatus(orderId, 'cancelled');
       loadData();
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'annuler');
+      Alert.alert(t('common.error'), t('orders.cancel_error'));
     }
   }
 
@@ -299,7 +299,7 @@ export default function OrdersScreen() {
       setPartialNotes('');
       setShowPartialModal(true);
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger la commande');
+      Alert.alert(t('common.error'), t('orders.update_error'));
     }
   }
 
@@ -318,7 +318,7 @@ export default function OrdersScreen() {
         setShowDetailModal(false);
         loadData();
       } catch {
-        Alert.alert('Erreur', 'Impossible d\'enregistrer la réception');
+        Alert.alert(t('common.error'), t('orders.update_error'));
       } finally {
         setPartialSaving(false);
       }
@@ -355,7 +355,7 @@ export default function OrdersScreen() {
       setReturnItems(
         fromOrder.items.map((item) => ({
           product_id: item.product_id,
-          product_name: item.product?.name || item.product_name || 'Produit',
+          product_name: item.product?.name || item.product_name || t('orders.product'),
           quantity: 0,
           unit_price: item.unit_price,
           reason: '',
@@ -420,7 +420,7 @@ export default function OrdersScreen() {
       setReturnDetail(ret);
       setShowReturnDetailModal(true);
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger le retour');
+      Alert.alert(t('common.error'), t('orders.update_error'));
     }
   }
 
@@ -476,11 +476,11 @@ export default function OrdersScreen() {
 
   async function handleScanInvoice() {
     Alert.alert(
-      'Scanner une facture',
-      "Prenez en photo une facture fournisseur. L'IA extraira automatiquement les articles.",
+      t('orders.scan_invoice_title'),
+      t('orders.scan_invoice_desc'),
       [
         {
-          text: 'Caméra',
+          text: t('common.camera'),
           onPress: async () => {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
             if (!permission.granted) return;
@@ -495,7 +495,7 @@ export default function OrdersScreen() {
           },
         },
         {
-          text: 'Galerie',
+          text: t('common.gallery'),
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -507,7 +507,7 @@ export default function OrdersScreen() {
             }
           },
         },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   }
@@ -517,13 +517,13 @@ export default function OrdersScreen() {
     try {
       const result = await aiApi.scanInvoice(base64);
       if (result.error || !result.items || result.items.length === 0) {
-        Alert.alert('Résultat', "Aucun article détecté sur cette image. Essayez avec une photo plus nette.");
+        Alert.alert(t('orders.scan_result_title'), t('orders.scan_no_items'));
         return;
       }
       setScanResult(result);
       setShowScanResult(true);
     } catch {
-      Alert.alert('Erreur', "Impossible d'analyser la facture");
+      Alert.alert(t('common.error'), t('orders.scan_error'));
     } finally {
       setScanLoading(false);
     }
@@ -531,8 +531,8 @@ export default function OrdersScreen() {
 
   async function exportOrdersPdf() {
     const statusLabels: Record<string, string> = {
-      pending: 'En attente', confirmed: 'Confirmée', shipped: 'Expédiée',
-      partially_delivered: 'Partielle', delivered: 'Livrée', cancelled: 'Annulée',
+      pending: t('orders.pending'), confirmed: t('orders.confirmed'), shipped: t('orders.shipped'),
+      partially_delivered: t('orders.partially_delivered'), delivered: t('orders.delivered'), cancelled: t('orders.cancelled'),
     };
     const totalAmount = orderList.reduce((s, o) => s + o.total_amount, 0);
     const delivered = orderList.filter((o) => o.status === 'delivered').length;
@@ -540,18 +540,18 @@ export default function OrdersScreen() {
 
     try {
       await generateAndSharePdf({
-        storeName: 'Mon Commerce',
-        reportTitle: 'RAPPORT DES COMMANDES',
-        subtitle: `${orderList.length} commandes`,
+        storeName: currentStore?.name || 'Mon Commerce',
+        reportTitle: t('orders.export_pdf_title'),
+        subtitle: t('orders.export_pdf_subtitle', { count: orderList.length }),
         kpis: [
-          { label: 'Total commandes', value: orderList.length.toString() },
-          { label: 'Montant total', value: formatCurrency(totalAmount, user?.currency) },
-          { label: 'Livrées', value: delivered.toString(), color: '#4CAF50' },
-          { label: 'En cours', value: pending.toString(), color: '#FF9800' },
+          { label: t('orders.kpi_total_orders'), value: orderList.length.toString() },
+          { label: t('orders.kpi_total_amount'), value: formatCurrency(totalAmount, user?.currency) },
+          { label: t('orders.kpi_delivered'), value: delivered.toString(), color: '#4CAF50' },
+          { label: t('orders.kpi_pending'), value: pending.toString(), color: '#FF9800' },
         ],
         sections: [{
-          title: 'Liste des commandes',
-          headers: ['Date', 'Fournisseur', 'Articles', 'Statut', 'Montant'],
+          title: t('orders.export_pdf_list_title'),
+          headers: [t('common.date'), t('orders.supplier'), t('orders.items'), t('orders.status'), t('common.amount')],
           alignRight: [4],
           rows: orderList.map((o) => [
             new Date(o.created_at).toLocaleDateString('fr-FR'),
@@ -563,7 +563,7 @@ export default function OrdersScreen() {
         }],
       });
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF');
+      Alert.alert(t('common.error'), t('orders.update_error'));
     }
   }
 
@@ -594,9 +594,9 @@ export default function OrdersScreen() {
         comment: ratingComment.trim() || undefined,
       });
       setShowRatingModal(false);
-      Alert.alert('Merci', 'Votre avis a été enregistré');
+      Alert.alert(t('orders.thanks'), t('orders.rating_saved'));
     } catch {
-      Alert.alert('Erreur', 'Impossible de soumettre l\'avis');
+      Alert.alert(t('common.error'), t('orders.rating_error'));
     } finally {
       setRatingSaving(false);
     }
@@ -761,8 +761,8 @@ export default function OrdersScreen() {
               <View style={[styles.summaryCard, { backgroundColor: colors.primary + '10' }]}>
                 <View style={styles.summaryHeader}>
                   <View>
-                    <Text style={styles.summaryTitle}>Synthèse : {orderList[0].supplier_name}</Text>
-                    <Text style={styles.summarySubtitle}>Aperçu des commandes passées</Text>
+                    <Text style={styles.summaryTitle}>{t('orders.summary_synthesis', { name: orderList[0].supplier_name })}</Text>
+                    <Text style={styles.summarySubtitle}>{t('orders.summary_desc')}</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.summaryClearBtn}
@@ -774,19 +774,19 @@ export default function OrdersScreen() {
 
                 <View style={styles.summaryStats}>
                   <View style={styles.summaryStatItem}>
-                    <Text style={styles.summaryStatLabel}>Volume total</Text>
+                    <Text style={styles.summaryStatLabel}>{t('orders.summary_volume')}</Text>
                     <Text style={[styles.summaryStatValue, { color: colors.primaryLight }]}>
                       {formatCurrency(orderList.reduce((acc, o) => acc + o.total_amount, 0), user?.currency)}
                     </Text>
                   </View>
                   <View style={styles.summaryStatDivider} />
                   <View style={styles.summaryStatItem}>
-                    <Text style={styles.summaryStatLabel}>Commandes</Text>
+                    <Text style={styles.summaryStatLabel}>{t('orders.summary_orders')}</Text>
                     <Text style={styles.summaryStatValue}>{orderList.length}</Text>
                   </View>
                   <View style={styles.summaryStatDivider} />
                   <View style={styles.summaryStatItem}>
-                    <Text style={styles.summaryStatLabel}>Dernière act.</Text>
+                    <Text style={styles.summaryStatLabel}>{t('orders.summary_last_act')}</Text>
                     <Text style={styles.summaryStatValue}>
                       {new Date(Math.max(...orderList.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                     </Text>
@@ -798,7 +798,7 @@ export default function OrdersScreen() {
                   onPress={() => setShowHistoryModal(true)}
                 >
                   <Ionicons name="list" size={18} color="#FFF" />
-                  <Text style={styles.historyBtnText}>Voir l'historique détaillé</Text>
+                  <Text style={styles.historyBtnText}>{t('orders.view_detailed_history')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -841,13 +841,13 @@ export default function OrdersScreen() {
 
                     <View style={styles.orderDetails}>
                       <View style={styles.orderDetail}>
-                        <Text style={styles.orderDetailLabel}>Articles</Text>
+                        <Text style={styles.orderDetailLabel}>{t('orders.items')}</Text>
                         <Text style={styles.orderDetailValue}>
                           {order.items_preview?.join(', ') || '...'}
                         </Text>
                       </View>
                       <View style={styles.orderDetail}>
-                        <Text style={styles.orderDetailLabel}>Total</Text>
+                        <Text style={styles.orderDetailLabel}>{t('common.total')}</Text>
                         <Text style={styles.orderDetailValue}>{formatCurrency(order.total_amount, user?.currency)}</Text>
                       </View>
                     </View>
@@ -863,14 +863,14 @@ export default function OrdersScreen() {
                           onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}
                         >
                           <Ionicons name="checkmark-done-outline" size={16} color={colors.success} />
-                          <Text style={[styles.actionText, { color: colors.success }]}>Valider la réception</Text>
+                          <Text style={[styles.actionText, { color: colors.success }]}>{t('orders.validate_receipt')}</Text>
                         </TouchableOpacity>
                       )}
                       {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'shipped' && (
                         <TouchableOpacity style={styles.actionBtn} onPress={() => handleAdvanceStatus(order.order_id, order.status, order.is_connected)}>
                           <Ionicons name="arrow-forward-outline" size={16} color={colors.primary} />
                           <Text style={[styles.actionText, { color: colors.primary }]}>
-                            {order.status === 'pending' ? 'Confirmer' : 'Suivant'}
+                            {order.status === 'pending' ? t('common.confirm') : t('orders.next')}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -880,13 +880,13 @@ export default function OrdersScreen() {
                           onPress={() => openPartialDelivery(order.order_id)}
                         >
                           <Ionicons name="layers-outline" size={16} color="#FF9800" />
-                          <Text style={[styles.actionText, { color: '#FF9800' }]}>Partielle</Text>
+                          <Text style={[styles.actionText, { color: '#FF9800' }]}>{t('orders.partial_receipt')}</Text>
                         </TouchableOpacity>
                       )}
                       {order.status === 'pending' && (
                         <TouchableOpacity style={styles.actionBtn} onPress={() => handleCancel(order.order_id)}>
                           <Ionicons name="close-outline" size={16} color={colors.danger} />
-                          <Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text>
+                          <Text style={[styles.actionText, { color: colors.danger }]}>{t('common.cancel')}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -954,7 +954,7 @@ export default function OrdersScreen() {
                               color={colors.primaryLight}
                             />
                             <Text style={styles.orderSupplier}>
-                              {ret.type === 'customer' ? 'Retour client' : ret.supplier_name || 'Retour fournisseur'}
+                              {ret.type === 'customer' ? t('orders.customer_return') : ret.supplier_name || t('orders.supplier_return')}
                             </Text>
                           </View>
                           <Text style={styles.orderDate}>{formatDate(ret.created_at)}</Text>
@@ -967,17 +967,17 @@ export default function OrdersScreen() {
 
                       <View style={styles.orderDetails}>
                         <View style={styles.orderDetail}>
-                          <Text style={styles.orderDetailLabel}>Articles</Text>
+                          <Text style={styles.orderDetailLabel}>{t('orders.items')}</Text>
                           <Text style={styles.orderDetailValue}>{ret.items.length}</Text>
                         </View>
                         <View style={styles.orderDetail}>
-                          <Text style={styles.orderDetailLabel}>Montant</Text>
+                          <Text style={styles.orderDetailLabel}>{t('orders.amount')}</Text>
                           <Text style={styles.orderDetailValue}>{formatCurrency(ret.total_amount, user?.currency)}</Text>
                         </View>
                         {ret.credit_note_id && (
                           <View style={styles.orderDetail}>
-                            <Text style={styles.orderDetailLabel}>Avoir</Text>
-                            <Text style={[styles.orderDetailValue, { color: colors.success }]}>Généré</Text>
+                            <Text style={styles.orderDetailLabel}>{t('orders.credit_note_generated')}</Text>
+                            <Text style={[styles.orderDetailValue, { color: colors.success }]}>{t('common.generated')}</Text>
                           </View>
                         )}
                       </View>
@@ -1006,7 +1006,7 @@ export default function OrdersScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Facture scannée</Text>
+                <Text style={styles.modalTitle}>{t('orders.invoice_scanned')}</Text>
                 <TouchableOpacity onPress={() => setShowScanResult(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
@@ -1016,30 +1016,30 @@ export default function OrdersScreen() {
                   {/* Header info */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.sm }}>
                     <Ionicons name="sparkles" size={13} color={colors.primary} />
-                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Extraction IA</Text>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('orders.ai_extraction')}</Text>
                   </View>
                   {scanResult.supplier_name && (
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Fournisseur :</Text>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>{t('orders.supplier')} :</Text>
                       <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.supplier_name}</Text>
                     </View>
                   )}
                   {scanResult.invoice_number && (
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>N° facture :</Text>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>{t('orders.invoice_number_label')} :</Text>
                       <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.invoice_number}</Text>
                     </View>
                   )}
                   {scanResult.date && (
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Date :</Text>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>{t('common.date')} :</Text>
                       <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{scanResult.date}</Text>
                     </View>
                   )}
 
                   {/* Items */}
                   <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs }}>
-                    {scanResult.items.length} article{scanResult.items.length > 1 ? 's' : ''} détecté{scanResult.items.length > 1 ? 's' : ''}
+                    {t('orders.items_detected', { count: scanResult.items.length })}
                   </Text>
                   {scanResult.items.map((item, idx) => (
                     <View
@@ -1068,7 +1068,7 @@ export default function OrdersScreen() {
                   {/* Total */}
                   {scanResult.total_amount != null && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, marginTop: Spacing.xs }}>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Total</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>{t('common.total')}</Text>
                       <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{formatNumber(scanResult.total_amount)} {t('common.currency_default')}</Text>
                     </View>
                   )}
@@ -1087,10 +1087,10 @@ export default function OrdersScreen() {
                       setShowCreateModal(true);
                     }}
                   >
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Créer une commande</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{t('orders.create_order')}</Text>
                   </TouchableOpacity>
                   <Text style={{ fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xs }}>
-                    Les articles détectés serviront de référence pour votre commande
+                    {t('orders.scan_items_ref_hint')}
                   </Text>
                 </ScrollView>
               )}
@@ -1170,19 +1170,19 @@ export default function OrdersScreen() {
                         <View key={item.item_id || index} style={styles.detailItemRow}>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.detailItemName}>
-                              {item.product?.name || item.product_name || 'Produit'}
+                              {item.product?.name || item.product_name || t('orders.product')}
                             </Text>
                             <Text style={styles.detailItemSub}>
                               {item.quantity} x {formatCurrency(item.unit_price, user?.currency)}
                             </Text>
                             {item.mapped_product_id && (
                               <Text style={[styles.detailItemSub, { color: colors.success }]}>
-                                Associé au stock local
+                                {t('orders.order_associated_stock')}
                               </Text>
                             )}
                             {detailOrder.received_items && detailOrder.received_items[item.item_id] != null && (
                               <Text style={[styles.detailItemSub, { color: '#FF9800' }]}>
-                                Reçu : {detailOrder.received_items[item.item_id]} / {item.quantity}
+                                {t('orders.received_qty', { received: detailOrder.received_items[item.item_id], total: item.quantity })}
                               </Text>
                             )}
                           </View>
@@ -1213,7 +1213,7 @@ export default function OrdersScreen() {
 
                   {/* Total */}
                   <View style={[styles.totalRow, { marginTop: Spacing.sm }]}>
-                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalLabel}>{t('common.total')}</Text>
                     <Text style={styles.totalValue}>{formatCurrency(detailOrder.total_amount, user?.currency)}</Text>
                   </View>
 
@@ -1228,7 +1228,7 @@ export default function OrdersScreen() {
                     ) : (
                       <>
                         <Ionicons name="share-outline" size={20} color={colors.primary} />
-                        <Text style={styles.sharePdfBtnText}>Partager le Bon de Commande (PDF)</Text>
+                        <Text style={styles.sharePdfBtnText}>{t('orders.share_purchase_order_pdf')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -1248,7 +1248,7 @@ export default function OrdersScreen() {
                       }}
                     >
                       <Ionicons name="checkmark-done-outline" size={20} color="#FFF" />
-                      <Text style={[styles.submitBtnText, { marginLeft: 8 }]}>Valider la réception</Text>
+                      <Text style={[styles.submitBtnText, { marginLeft: 8 }]}>{t('orders.validate_receipt')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -1259,7 +1259,7 @@ export default function OrdersScreen() {
                       onPress={() => openPartialDelivery(detailOrder.order_id)}
                     >
                       <Ionicons name="layers-outline" size={20} color="#FF9800" />
-                      <Text style={[styles.submitBtnText, { marginLeft: 0 }]}>Réception partielle</Text>
+                      <Text style={[styles.submitBtnText, { marginLeft: 0 }]}>{t('orders.partial_receipt')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -1270,7 +1270,7 @@ export default function OrdersScreen() {
                       onPress={() => { setShowDetailModal(false); openCreateReturn(detailOrder); }}
                     >
                       <Ionicons name="return-down-back-outline" size={20} color={colors.danger} />
-                      <Text style={[styles.submitBtnText, { color: colors.danger, marginLeft: 0 }]}>Créer un retour</Text>
+                      <Text style={[styles.submitBtnText, { color: colors.danger, marginLeft: 0 }]}>{t('orders.create_return')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -1314,12 +1314,12 @@ export default function OrdersScreen() {
               </Text>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Commentaire (optionnel)</Text>
+                <Text style={styles.formLabel}>{t('common.comment')} ({t('common.optional')})</Text>
                 <TextInput
                   style={[styles.formInput, { minHeight: 80, textAlignVertical: 'top' }]}
                   value={ratingComment}
                   onChangeText={setRatingComment}
-                  placeholder="Partagez votre expérience..."
+                  placeholder={t('common.comment_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={3}
@@ -1334,7 +1334,7 @@ export default function OrdersScreen() {
                 {ratingSaving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Envoyer mon avis</Text>
+                  <Text style={styles.submitBtnText}>{t('orders.rate_supplier')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1424,7 +1424,7 @@ export default function OrdersScreen() {
                       }}
                     >
                       <Text style={styles.detailItemName}>
-                        {item.product?.name || item.product_name || 'Produit'}
+                        {item.product?.name || item.product_name || t('orders.product')}
                       </Text>
                       <Text style={[styles.detailItemSub, { marginBottom: Spacing.sm }]}>
                         {t('orders.ordered')} : {item.quantity} | {t('orders.already_received')} : {prevReceived}
@@ -1484,13 +1484,13 @@ export default function OrdersScreen() {
                             borderRadius: BorderRadius.sm, backgroundColor: colors.primary + '20',
                           }}
                         >
-                          <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>Tout</Text>
+                          <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>{t('common.all')}</Text>
                         </TouchableOpacity>
                       </View>
 
                       {currentVal > item.quantity && (
                         <Text style={{ color: colors.danger, fontSize: FontSize.xs, marginTop: 4 }}>
-                          Dépasse la quantité commandée ({item.quantity})
+                          {t('orders.exceeds_ordered_qty', { count: item.quantity })}
                         </Text>
                       )}
                     </View>

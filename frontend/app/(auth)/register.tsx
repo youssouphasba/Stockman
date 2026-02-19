@@ -20,7 +20,10 @@ import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../const
 import { ApiError } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 
+import { useTranslation } from 'react-i18next';
+
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const { register } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState<'role' | 'form'>('role');
@@ -44,21 +47,21 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!name.trim() || !email.trim() || !password.trim() || !phone.trim()) {
-      setError('Veuillez remplir tous les champs (nom, email, mot de passe, téléphone)');
+      setError(t('auth.register.errorFillRequired'));
       return;
     }
     // Combine country dial code + local number
     const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`;
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError(t('auth.register.errorPasswordLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('auth.register.errorPasswordsMismatch'));
       return;
     }
     if (!acceptedTerms || !acceptedPrivacy) {
-      setError('Veuillez accepter les CGU et la Politique de Confidentialité');
+      setError(t('auth.register.errorTerms'));
       return;
     }
     setError('');
@@ -78,9 +81,7 @@ export default function RegisterScreen() {
       // Redirect to verification instead of index
       router.replace('/(auth)/verify-phone');
     } catch (e) {
-      console.log('Registration error caught:', e);
-      console.log('Is ApiError:', e instanceof ApiError);
-      setError(e instanceof ApiError ? e.message : "Erreur lors de l'inscription");
+      setError(e instanceof ApiError ? e.message : t('auth.register.errorRegister'));
     } finally {
       setLoading(false);
     }
@@ -97,9 +98,9 @@ export default function RegisterScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="person-add" size={36} color={Colors.primary} />
             </View>
-            <Text style={styles.title}>Créer un compte</Text>
+            <Text style={styles.title}>{t('auth.register.title')}</Text>
             <Text style={styles.subtitle}>
-              {step === 'role' ? 'Choisissez votre profil' : selectedRole === 'shopkeeper' ? 'Compte Commerçant' : 'Compte Fournisseur'}
+              {step === 'role' ? t('auth.register.chooseProfile') : selectedRole === 'shopkeeper' ? t('auth.register.shopkeeperAccount') : t('auth.register.supplierAccount')}
             </Text>
           </View>
 
@@ -113,8 +114,8 @@ export default function RegisterScreen() {
                   <Ionicons name="storefront-outline" size={32} color={Colors.primary} />
                 </View>
                 <View style={styles.roleInfo}>
-                  <Text style={styles.roleTitle}>Commerçant</Text>
-                  <Text style={styles.roleDesc}>Gérez vos stocks, commandez auprès de fournisseurs</Text>
+                  <Text style={styles.roleTitle}>{t('auth.register.shopkeeper')}</Text>
+                  <Text style={styles.roleDesc}>{t('auth.register.shopkeeperDesc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={Colors.textMuted} />
               </TouchableOpacity>
@@ -127,17 +128,17 @@ export default function RegisterScreen() {
                   <Ionicons name="cube-outline" size={32} color={Colors.secondary} />
                 </View>
                 <View style={styles.roleInfo}>
-                  <Text style={styles.roleTitle}>Fournisseur</Text>
-                  <Text style={styles.roleDesc}>Publiez votre catalogue, recevez des commandes</Text>
+                  <Text style={styles.roleTitle}>{t('auth.register.supplier')}</Text>
+                  <Text style={styles.roleDesc}>{t('auth.register.supplierDesc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={Colors.textMuted} />
               </TouchableOpacity>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Déjà un compte ? </Text>
+                <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
                 <Link href="/(auth)/login" asChild>
                   <TouchableOpacity>
-                    <Text style={styles.footerLink}>Se connecter</Text>
+                    <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -146,7 +147,7 @@ export default function RegisterScreen() {
             <View style={styles.card}>
               <TouchableOpacity style={styles.backRow} onPress={() => setStep('role')}>
                 <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
-                <Text style={styles.backText}>Changer de profil</Text>
+                <Text style={styles.backText}>{t('auth.register.changeProfile')}</Text>
               </TouchableOpacity>
 
               {error ? (
@@ -157,12 +158,12 @@ export default function RegisterScreen() {
               ) : null}
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nom</Text>
+                <Text style={styles.label}>{t('auth.register.name')}</Text>
                 <View style={styles.inputWrapper}>
                   <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Votre nom"
+                    placeholder={t('auth.register.namePlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={name}
                     onChangeText={setName}
@@ -172,7 +173,7 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pays et Devise</Text>
+                <Text style={styles.label}>{t('auth.register.countryCurrency')}</Text>
                 <TouchableOpacity
                   style={styles.countrySelector}
                   onPress={() => setShowCountryModal(true)}
@@ -187,18 +188,17 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Téléphone</Text>
+                <Text style={styles.label}>{t('auth.register.phone')}</Text>
                 <View style={styles.inputWrapper}>
                   <View style={styles.dialCodeBox}>
                     <Text style={styles.dialCodeText}>{selectedCountry.dialCode}</Text>
                   </View>
                   <TextInput
                     style={styles.inputWithPrefix}
-                    placeholder="77 000 00 00"
+                    placeholder={t('auth.register.phonePlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={phone}
                     onChangeText={(val) => {
-                      // If user pastes a full number with +, we clean it up
                       if (val.startsWith('+')) {
                         const dialCode = selectedCountry.dialCode;
                         if (val.startsWith(dialCode)) {
@@ -215,12 +215,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Type d'activité</Text>
+                <Text style={styles.label}>{t('auth.register.businessType')}</Text>
                 <View style={[styles.inputWrapper, { paddingHorizontal: Spacing.md }]}>
                   <Ionicons name="business-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Ex: Boutique, Quincaillerie..."
+                    placeholder={t('auth.register.businessTypePlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={businessType}
                     onChangeText={setBusinessType}
@@ -229,12 +229,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Comment nous avez-vous connus ?</Text>
+                <Text style={styles.label}>{t('auth.register.howDidYouHear')}</Text>
                 <View style={[styles.inputWrapper, { paddingHorizontal: Spacing.md }]}>
                   <Ionicons name="megaphone-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Ex: Facebook, Ami..."
+                    placeholder={t('auth.register.howDidYouHearPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={howDidYouHear}
                     onChangeText={setHowDidYouHear}
@@ -243,12 +243,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('auth.register.email')}</Text>
                 <View style={styles.inputWrapper}>
                   <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="votre@email.com"
+                    placeholder={t('auth.login.emailPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={email}
                     onChangeText={setEmail}
@@ -260,12 +260,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mot de passe</Text>
+                <Text style={styles.label}>{t('auth.register.password')}</Text>
                 <View style={styles.inputWrapper}>
                   <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Minimum 6 caractères"
+                    placeholder={t('auth.register.passwordPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={password}
                     onChangeText={setPassword}
@@ -282,12 +282,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirmer le mot de passe</Text>
+                <Text style={styles.label}>{t('auth.register.confirmPassword')}</Text>
                 <View style={styles.inputWrapper}>
                   <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Confirmez votre mot de passe"
+                    placeholder={t('auth.register.confirmPasswordPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -306,7 +306,7 @@ export default function RegisterScreen() {
                     {acceptedTerms && <Ionicons name="checkmark" size={12} color="#fff" />}
                   </View>
                   <Text style={styles.legalText}>
-                    J'accepte les{' '}
+                    {t('auth.register.acceptTerms')}{' '}
                     <Link href="/terms" asChild>
                       <TouchableOpacity style={{ marginBottom: -3 }}>
                         <Text style={styles.legalLinkSmall}>CGU</Text>
@@ -324,7 +324,7 @@ export default function RegisterScreen() {
                     {acceptedPrivacy && <Ionicons name="checkmark" size={12} color="#fff" />}
                   </View>
                   <Text style={styles.legalText}>
-                    J'accepte la{' '}
+                    {t('auth.register.acceptPrivacy')}{' '}
                     <Link href="/privacy" asChild>
                       <TouchableOpacity style={{ marginBottom: -3 }}>
                         <Text style={styles.legalLinkSmall}>Politique de Confidentialité</Text>
@@ -342,15 +342,15 @@ export default function RegisterScreen() {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Créer mon compte</Text>
+                  <Text style={styles.buttonText}>{t('auth.register.createAccount')}</Text>
                 )}
               </TouchableOpacity>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Déjà un compte ? </Text>
+                <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
                 <Link href="/(auth)/login" asChild>
                   <TouchableOpacity>
-                    <Text style={styles.footerLink}>Se connecter</Text>
+                    <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -368,7 +368,7 @@ export default function RegisterScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Séléctionner votre pays</Text>
+              <Text style={styles.modalTitle}>{t('auth.register.selectCountry')}</Text>
               <TouchableOpacity onPress={() => setShowCountryModal(false)} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
@@ -377,7 +377,7 @@ export default function RegisterScreen() {
               <Ionicons name="search" size={18} color={Colors.textMuted} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Rechercher un pays..."
+                placeholder={t('auth.register.searchCountry')}
                 placeholderTextColor={Colors.textMuted}
                 onChangeText={(text) => {
                   setSearchQuery(text);

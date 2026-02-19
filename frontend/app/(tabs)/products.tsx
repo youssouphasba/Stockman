@@ -97,7 +97,7 @@ export default function ProductsScreen() {
   const [formName, setFormName] = useState('');
   const [formSku, setFormSku] = useState('');
   const [formQuantity, setFormQuantity] = useState('0');
-  const [formUnit, setFormUnit] = useState('Pièce');
+  const [formUnit, setFormUnit] = useState(t('products.default_unit'));
   const [formPurchasePrice, setFormPurchasePrice] = useState('0');
   const [formSellingPrice, setFormSellingPrice] = useState('0');
   const [formMinStock, setFormMinStock] = useState('0');
@@ -401,7 +401,7 @@ export default function ProductsScreen() {
     const name = formName.trim();
     if (!name || name.length < 2) return;
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      Alert.alert(t('common.offline'), t('products.ai_offline'));
       return;
     }
     setAiCatLoading(true);
@@ -424,7 +424,7 @@ export default function ProductsScreen() {
         }
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de suggérer une catégorie');
+      Alert.alert(t('common.error'), t('products.ai_category_error'));
     } finally {
       setAiCatLoading(false);
     }
@@ -432,11 +432,11 @@ export default function ProductsScreen() {
 
   async function handleAiPrice() {
     if (!editingProduct) {
-      Alert.alert('Info', 'La suggestion de prix est disponible uniquement pour les produits existants (avec un historique de ventes).');
+      Alert.alert(t('common.info'), t('products.ai_price_info'));
       return;
     }
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'La suggestion IA nécessite une connexion internet.');
+      Alert.alert(t('common.offline'), t('products.ai_offline'));
       return;
     }
     setAiPriceLoading(true);
@@ -446,7 +446,7 @@ export default function ProductsScreen() {
       setFormSellingPrice(String(result.suggested_price));
       setAiPriceReasoning(result.reasoning);
     } catch {
-      Alert.alert('Erreur', 'Impossible de suggérer un prix');
+      Alert.alert(t('common.error'), t('products.ai_price_error'));
     } finally {
       setAiPriceLoading(false);
     }
@@ -456,7 +456,7 @@ export default function ProductsScreen() {
     const name = formName.trim();
     if (!name || name.length < 2) return;
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'La génération IA nécessite une connexion internet.');
+      Alert.alert(t('common.offline'), t('products.ai_offline'));
       return;
     }
     setAiDescLoading(true);
@@ -464,7 +464,7 @@ export default function ProductsScreen() {
       const result = await aiApi.generateDescription(name, formCategoryName || undefined, formSubcategory || undefined);
       setFormDescription(result.description);
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer la description');
+      Alert.alert(t('common.error'), t('products.ai_desc_error'));
     } finally {
       setAiDescLoading(false);
     }
@@ -596,7 +596,7 @@ export default function ProductsScreen() {
           return next;
         });
       } catch (error: any) {
-        Alert.alert("Erreur", error.message || "Échec de l'ajustement du stock");
+        Alert.alert(t('common.error'), error.message || t('products.stock_adjust_error'));
       }
     };
 
@@ -690,14 +690,14 @@ export default function ProductsScreen() {
           return updatedList;
         });
 
-        Alert.alert('Mode hors ligne', 'Produit sauvegardé localement. Il sera synchronisé une fois la connexion rétablie.');
+        Alert.alert(t('common.offline_mode'), t('products.offline_saved'));
       }
 
       setShowAddModal(false);
       setEditingProduct(null);
       resetForm();
     } catch {
-      Alert.alert('Erreur', editingProduct ? 'Impossible de modifier le produit' : 'Impossible de créer le produit');
+      Alert.alert(t('common.error'), editingProduct ? t('products.create_error') : t('products.create_error'));
     } finally {
       setFormLoading(false);
     }
@@ -730,7 +730,7 @@ export default function ProductsScreen() {
         });
         await loadData();
       } else {
-        Alert.alert('Hors ligne', 'Les mouvements de stock ne sont pas encore disponibles hors ligne.');
+        Alert.alert(t('common.offline'), t('products.movements_offline'));
       }
       setShowStockModal(false);
       setMovQuantity('');
@@ -740,7 +740,7 @@ export default function ProductsScreen() {
       setSelectedProduct(null);
     } catch (error) {
       console.error(error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour le stock');
+      Alert.alert(t('common.error'), t('products.stock_update_error'));
     } finally {
       setFormLoading(false);
     }
@@ -763,7 +763,7 @@ export default function ProductsScreen() {
   async function handleSubmitCategory() {
     if (!catFormName.trim()) return;
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'La gestion des catégories est indisponible hors ligne.');
+      Alert.alert(t('common.offline'), t('products.categories_offline'));
       return;
     }
     setCatFormLoading(true);
@@ -778,7 +778,7 @@ export default function ProductsScreen() {
       setCategoryList(cats);
       await cache.set(KEYS.CATEGORIES, cats);
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder la catégorie');
+      Alert.alert(t('common.error'), t('products.category_save_error'));
     } finally {
       setCatFormLoading(false);
     }
@@ -786,18 +786,18 @@ export default function ProductsScreen() {
 
   async function handleImportDefaults() {
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'L\'importation nécessite une connexion internet.');
+      Alert.alert(t('common.offline'), t('products.import_offline'));
       return;
     }
 
     // Check if categories already exist to warn user
     if (categoryList.length > 5) {
       Alert.alert(
-        'Attention',
-        'Vous avez déjà plusieurs catégories. Voulez-vous vraiment importer les catégories standards ? Cela pourrait créer des doublons.',
+        t('common.warning'),
+        t('products.confirm_import_msg'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Importer', onPress: processImport }
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.import'), onPress: processImport }
         ]
       );
     } else {
@@ -823,13 +823,13 @@ export default function ProductsScreen() {
         const cats = await categoriesApi.list();
         setCategoryList(cats);
         await cache.set(KEYS.CATEGORIES, cats);
-        Alert.alert('Succès', `${importedCount} catégories importées.`);
+        Alert.alert(t('common.success'), `${importedCount} ${t('products.categories_imported')}`);
       } else {
-        Alert.alert('Info', 'Toutes les catégories existent déjà.');
+        Alert.alert(t('common.info'), t('products.categories_exist'));
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'import.');
+      Alert.alert(t('common.error'), t('products.import_error'));
     } finally {
       setCatFormLoading(false);
     }
@@ -847,19 +847,19 @@ export default function ProductsScreen() {
       setCategoryList(cats);
       await cache.set(KEYS.CATEGORIES, cats);
     } catch {
-      Alert.alert('Erreur', 'Impossible de supprimer la catégorie');
+      Alert.alert(t('common.error'), t('products.delete_category_error'));
     }
   }
 
   function handleDelete(productId: string) {
     const product = productList.find(p => p.product_id === productId);
     Alert.alert(
-      'Supprimer le produit',
-      `Voulez-vous vraiment supprimer "${product?.name ?? 'ce produit'}" ?`,
+      t('products.confirm_delete_title'),
+      t('products.confirm_delete_msg', { name: product?.name ?? t('common.this_product') }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             if (isConnected) {
@@ -867,7 +867,7 @@ export default function ProductsScreen() {
                 await productsApi.delete(productId);
                 loadData();
               } catch {
-                Alert.alert('Erreur', 'Impossible de supprimer');
+                Alert.alert(t('common.error'), t('products.delete_error'));
               }
             } else {
               try {
@@ -881,9 +881,9 @@ export default function ProductsScreen() {
                   cache.set(KEYS.PRODUCTS, updated);
                   return updated;
                 });
-                Alert.alert('Mode hors ligne', 'Suppression mise en file d\'attente.');
+                Alert.alert(t('common.offline_mode'), t('products.offline_delete_queued'));
               } catch {
-                Alert.alert('Erreur', 'Impossible de supprimer hors ligne');
+                Alert.alert(t('common.error'), t('products.offline_delete_error'));
               }
             }
           }
@@ -931,11 +931,11 @@ export default function ProductsScreen() {
 
   async function pickImage() {
     Alert.alert(
-      "Ajouter une photo",
-      "Choisissez une source",
+      t('products.add_photo_title'),
+      t('products.choose_source'),
       [
         {
-          text: "Caméra",
+          text: t('products.camera'),
           onPress: async () => {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
             if (permission.granted) {
@@ -953,7 +953,7 @@ export default function ProductsScreen() {
           }
         },
         {
-          text: "Galerie",
+          text: t('products.gallery'),
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -968,7 +968,7 @@ export default function ProductsScreen() {
           }
         },
         {
-          text: "Supprimer la photo",
+          text: t('products.remove_photo'),
           style: "destructive",
           onPress: () => setFormImage(null),
         },
@@ -997,8 +997,8 @@ export default function ProductsScreen() {
   async function handleBulkDelete() {
     if (selectedProductIds.size === 0) return;
     Alert.alert(
-      'Suppression groupée',
-      `Voulez-vous supprimer les ${selectedProductIds.size} produits sélectionnés ?`,
+      t('products.bulk_delete_title'),
+      t('products.bulk_delete_msg', { count: selectedProductIds.size }),
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -1199,14 +1199,22 @@ export default function ProductsScreen() {
         reportTitle: t('products.inventory_report_title'),
         subtitle: t('products.product_count', { count: filtered.length }),
         kpis: [
-          { label: 'Produits', value: filtered.length.toString() },
-          { label: 'Valeur stock', value: formatUserCurrency(totalValue, user) },
-          { label: 'Stock bas', value: lowStock.toString(), color: '#FF9800' },
-          { label: 'Ruptures', value: outOfStock.toString(), color: '#f44336' },
+          { label: t('products.kpi_products'), value: filtered.length.toString() },
+          { label: t('products.kpi_stock_value'), value: formatUserCurrency(totalValue, user) },
+          { label: t('products.kpi_low_stock'), value: lowStock.toString(), color: '#FF9800' },
+          { label: t('products.kpi_out_of_stock'), value: outOfStock.toString(), color: '#f44336' },
         ],
         sections: [{
-          title: 'État du stock',
-          headers: ['Produit', 'Catégorie', 'Qté', 'Unité', 'P. Achat', 'P. Vente', 'Valeur'],
+          title: t('products.report_section_stock'),
+          headers: [
+            t('products.pdf_headers.product'),
+            t('products.pdf_headers.category'),
+            t('products.pdf_headers.qty'),
+            t('products.pdf_headers.unit'),
+            t('products.pdf_headers.purchase_price'),
+            t('products.pdf_headers.selling_price'),
+            t('products.pdf_headers.value')
+          ],
           alignRight: [2, 4, 5, 6],
           rows: filtered.map((p) => {
             const cat = categoryList.find((c: Category) => c.category_id === p.category_id);
@@ -1223,7 +1231,7 @@ export default function ProductsScreen() {
         }],
       });
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF');
+      Alert.alert(t('common.error'), t('products.pdf_error'));
     }
   }
 
@@ -2024,7 +2032,7 @@ export default function ProductsScreen() {
                   {formLoading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.submitBtnText}>{editingProduct ? 'Valider' : 'Ajouter'}</Text>
+                    <Text style={styles.submitBtnText}>{editingProduct ? t('common.validate') : t('common.add')}</Text>
                   )}
                 </TouchableOpacity>
               </ScrollView>
@@ -2039,7 +2047,7 @@ export default function ProductsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Historique</Text>
+                <Text style={styles.modalTitle}>{t('products.history')}</Text>
                 <Text style={styles.modalSubtitle}>{selectedProduct?.name}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
@@ -2052,7 +2060,7 @@ export default function ProductsScreen() {
               onPress={handleExportHistoryCSV}
             >
               <Ionicons name="download-outline" size={18} color={colors.success} />
-              <Text style={[styles.actionText, { color: colors.success }]}>Exporter CSV</Text>
+              <Text style={[styles.actionText, { color: colors.success }]}>{t('common.export')} CSV</Text>
             </TouchableOpacity>
 
             <View style={{ marginBottom: Spacing.sm }}>
@@ -2073,19 +2081,19 @@ export default function ProductsScreen() {
                 style={[styles.filterChip, historyTab === 'stock' && styles.filterChipActive, { flex: 1 }]}
                 onPress={() => setHistoryTab('stock')}
               >
-                <Text style={[styles.filterChipText, historyTab === 'stock' && styles.filterChipTextActive]}>Stock</Text>
+                <Text style={[styles.filterChipText, historyTab === 'stock' && styles.filterChipTextActive]}>{t('products.history_tab_stock')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.filterChip, historyTab === 'finance' && styles.filterChipActive, { flex: 1 }]}
                 onPress={() => setHistoryTab('finance')}
               >
-                <Text style={[styles.filterChipText, historyTab === 'finance' && styles.filterChipTextActive]}>Ventes</Text>
+                <Text style={[styles.filterChipText, historyTab === 'finance' && styles.filterChipTextActive]}>{t('products.history_tab_sales')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.filterChip, historyTab === 'price' && styles.filterChipActive, { flex: 1 }]}
                 onPress={() => setHistoryTab('price')}
               >
-                <Text style={[styles.filterChipText, historyTab === 'price' && styles.filterChipTextActive]}>Prix</Text>
+                <Text style={[styles.filterChipText, historyTab === 'price' && styles.filterChipTextActive]}>{t('products.history_tab_price')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -2095,7 +2103,7 @@ export default function ProductsScreen() {
               <ScrollView style={styles.modalScroll}>
                 {historyTab === 'stock' ? (
                   historyMovements.length === 0 ? (
-                    <Text style={styles.emptyText}>Aucun mouvement sur cette période</Text>
+                    <Text style={styles.emptyText}>{t('products.no_movements_period')}</Text>
                   ) : (
                     <View>
                       {(showAllMovements ? historyMovements : historyMovements.slice(0, 5)).map((mov) => (
@@ -2108,7 +2116,7 @@ export default function ProductsScreen() {
                             />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.historyReason}>{mov.reason || (mov.type === 'in' ? 'Entrée' : 'Sortie')}</Text>
+                            <Text style={styles.historyReason}>{mov.reason || (mov.type === 'in' ? t('products.mov_in') : t('products.mov_out'))}</Text>
                             <Text style={styles.historyDate}>{mov.created_at ? new Date(mov.created_at).toLocaleString() : ''}</Text>
                           </View>
                           <Text style={[styles.historyQty, { color: mov.type === 'in' ? colors.success : colors.warning }]}>
@@ -2122,7 +2130,7 @@ export default function ProductsScreen() {
                           onPress={() => setShowAllMovements(!showAllMovements)}
                         >
                           <Text style={styles.seeMoreText}>
-                            {showAllMovements ? 'Voir moins' : `Voir les ${historyMovements.length - 5} autres mouvements`}
+                            {showAllMovements ? t('products.see_less') : t('products.see_more_count', { count: historyMovements.length - 5 })}
                           </Text>
                           <Ionicons name={showAllMovements ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                         </TouchableOpacity>
@@ -2131,7 +2139,7 @@ export default function ProductsScreen() {
                   )
                 ) : historyTab === 'finance' ? (
                   historySales.length === 0 ? (
-                    <Text style={styles.emptyText}>Aucune vente sur cette période</Text>
+                    <Text style={styles.emptyText}>{t('products.no_sales_period')}</Text>
                   ) : (
                     <View>
                       <View style={{ backgroundColor: colors.primary + '10', padding: Spacing.md, borderRadius: BorderRadius.md, marginBottom: Spacing.md, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2162,7 +2170,7 @@ export default function ProductsScreen() {
                               <Ionicons name="cart-outline" size={16} color={colors.primary} />
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.historyReason}>Vente #{sale.sale_id.slice(-6)}</Text>
+                              <Text style={styles.historyReason}>{t('products.sale_hash')} #{sale.sale_id.slice(-6)}</Text>
                               <Text style={styles.historyDate}>{sale.created_at ? new Date(sale.created_at).toLocaleString() : ''}</Text>
                             </View>
                             <View style={{ alignItems: 'flex-end' }}>
@@ -2178,7 +2186,7 @@ export default function ProductsScreen() {
                           onPress={() => setShowAllSalesHistory(!showAllSalesHistory)}
                         >
                           <Text style={styles.seeMoreText}>
-                            {showAllSalesHistory ? 'Voir moins' : `Voir les ${historySales.length - 5} autres ventes`}
+                            {showAllSalesHistory ? t('products.see_less') : t('products.see_more_sales', { count: historySales.length - 5 })}
                           </Text>
                           <Ionicons name={showAllSalesHistory ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                         </TouchableOpacity>
@@ -2198,12 +2206,12 @@ export default function ProductsScreen() {
                             <Ionicons name="pricetag-outline" size={16} color={colors.info} />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.historyReason}>Mise à jour des prix</Text>
+                            <Text style={styles.historyReason}>{t('products.price_update')}</Text>
                             <Text style={styles.historyDate}>{new Date(ph.recorded_at).toLocaleDateString()}</Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
                             <Text style={styles.historyQty}>{formatNumber(ph.selling_price)} {t('common.currency_default')}</Text>
-                            <Text style={{ fontSize: 10, color: colors.textMuted }}>Achat: {formatNumber(ph.purchase_price)} {t('common.currency_default')}</Text>
+                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('products.purchase_price_short')}: {formatNumber(ph.purchase_price)} {t('common.currency_default')}</Text>
                           </View>
                         </View>
                       ))}
@@ -2221,7 +2229,7 @@ export default function ProductsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Gérer les catégories</Text>
+              <Text style={styles.modalTitle}>{t('products.manage_categories')}</Text>
               <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -2230,15 +2238,15 @@ export default function ProductsScreen() {
             <ScrollView style={styles.modalScroll}>
               {/* Add / Edit form */}
               <View style={styles.catForm}>
-                <Text style={styles.formLabel}>{editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</Text>
+                <Text style={styles.formLabel}>{editingCategory ? t('products.edit_category') : t('products.new_category')}</Text>
                 <TextInput
                   style={styles.formInput}
                   value={catFormName}
                   onChangeText={setCatFormName}
-                  placeholder="Nom de la catégorie"
+                  placeholder={t('products.category_name_placeholder')}
                   placeholderTextColor={colors.textMuted}
                 />
-                <Text style={[styles.formLabel, { marginTop: Spacing.sm }]}>Couleur</Text>
+                <Text style={[styles.formLabel, { marginTop: Spacing.sm }]}>{t('products.color_label')}</Text>
                 <View style={styles.colorPicker}>
                   {CAT_COLORS.map((color) => (
                     <TouchableOpacity
@@ -2251,7 +2259,7 @@ export default function ProductsScreen() {
                 <View style={styles.catFormActions}>
                   {editingCategory && (
                     <TouchableOpacity style={styles.catCancelBtn} onPress={resetCatForm}>
-                      <Text style={styles.catCancelText}>Annuler</Text>
+                      <Text style={styles.catCancelText}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
@@ -2262,7 +2270,7 @@ export default function ProductsScreen() {
                     {catFormLoading ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={styles.submitBtnText}>{editingCategory ? 'Valider' : 'Ajouter'}</Text>
+                      <Text style={styles.submitBtnText}>{editingCategory ? t('common.validate') : t('common.add')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -2274,13 +2282,13 @@ export default function ProductsScreen() {
                   disabled={catFormLoading}
                 >
                   <Ionicons name="download-outline" size={18} color={colors.primary} />
-                  <Text style={[styles.actionText, { color: colors.primary }]}>Importer les catégories standards</Text>
+                  <Text style={[styles.actionText, { color: colors.primary }]}>{t('products.import_standard_btn')}</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Category list */}
               {categoryList.length === 0 ? (
-                <Text style={styles.catEmptyText}>Aucune catégorie</Text>
+                <Text style={styles.catEmptyText}>{t('products.no_categories')}</Text>
               ) : (
                 categoryList.map((cat) => (
                   <View key={cat.category_id} style={styles.catItem}>
@@ -2306,7 +2314,7 @@ export default function ProductsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {movType === 'in' ? 'Entrée de stock pour' : 'Sortie de stock pour'} {selectedProduct?.name}
+                {movType === 'in' ? t('products.stock_movement_in_title') : t('products.stock_movement_out_title')} {selectedProduct?.name}
               </Text>
               <TouchableOpacity onPress={() => setShowStockModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -2314,22 +2322,22 @@ export default function ProductsScreen() {
             </View>
             {selectedProduct && (
               <Text style={styles.modalSubtitle}>
-                {selectedProduct.name} — Stock actuel : {selectedProduct.quantity} {selectedProduct.unit}(s)
+                {selectedProduct.name} — {t('products.current_stock_label')} : {selectedProduct.quantity} {selectedProduct.unit}(s)
               </Text>
             )}
             <FormField
-              label="Quantité"
+              label={t('products.field_quantity')}
               value={movQuantity}
               onChangeText={setMovQuantity}
               keyboardType="numeric"
-              placeholder="Nombre d'unités"
+              placeholder={t('products.field_quantity')}
               colors={colors}
               styles={styles}
             />
             {movType === 'in' && (
               <>
                 <FormField
-                  label="Numéro de Lot (Optionnel)"
+                  label={t('products.batch_number_label')}
                   value={movBatchNumber}
                   onChangeText={setMovBatchNumber}
                   placeholder="Ex: LOT2024-001"
@@ -2337,7 +2345,7 @@ export default function ProductsScreen() {
                   styles={styles}
                 />
                 <FormField
-                  label="Date de Péremption (AAAA-MM-JJ)"
+                  label={t('products.expiry_date_label')}
                   value={movExpiryDate}
                   onChangeText={setMovExpiryDate}
                   placeholder="Ex: 2025-12-31"
@@ -2347,10 +2355,10 @@ export default function ProductsScreen() {
               </>
             )}
             <FormField
-              label="Raison"
+              label={t('products.reason_label')}
               value={movReason}
               onChangeText={setMovReason}
-              placeholder="Raison du mouvement"
+              placeholder={t('products.reason_placeholder')}
               colors={colors}
               styles={styles}
             />
@@ -2367,7 +2375,7 @@ export default function ProductsScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.submitBtnText}>
-                  {movType === 'in' ? 'Valider l\'entrée' : 'Valider la sortie'}
+                  {movType === 'in' ? t('products.validate_in') : t('products.validate_out')}
                 </Text>
               )}
             </TouchableOpacity>

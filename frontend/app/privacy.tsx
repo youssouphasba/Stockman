@@ -13,8 +13,10 @@ import { useRouter } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { system } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function PrivacyScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { colors } = useTheme();
     const [content, setContent] = useState<string>('');
@@ -31,7 +33,7 @@ export default function PrivacyScreen() {
             const res = await system.getPrivacy();
             setContent(res.content);
         } catch (err) {
-            setError('Impossible de charger la politique de confidentialité.');
+            setError(t('legal.error_loading_privacy'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -44,7 +46,7 @@ export default function PrivacyScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: colors.text }]}>Politique de Confidentialité</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t('legal.privacy_title')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -55,7 +57,7 @@ export default function PrivacyScreen() {
                     <View style={styles.center}>
                         <Text style={{ color: '#EF4444' }}>{error}</Text>
                         <TouchableOpacity onPress={fetchPrivacy} style={[styles.retryButton, { backgroundColor: colors.primary }]}>
-                            <Text style={{ color: '#fff' }}>Réessayer</Text>
+                            <Text style={{ color: '#fff' }}>{t('legal.retry_btn')}</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (

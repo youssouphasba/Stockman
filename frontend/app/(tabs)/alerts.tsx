@@ -22,16 +22,19 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
+import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '../../utils/date';
 
-const RULE_TYPE_CONFIG: Record<string, { label: string; description: string; hasThreshold: boolean }> = {
-  low_stock: { label: 'Stock bas', description: 'Alerte quand le stock descend sous le seuil minimum', hasThreshold: true },
-  out_of_stock: { label: 'Rupture de stock', description: 'Alerte quand un produit est en rupture', hasThreshold: false },
-  overstock: { label: 'Surstock', description: 'Alerte quand le stock dépasse le seuil maximum', hasThreshold: true },
-  slow_moving: { label: 'Produit dormant', description: 'Alerte quand un produit n\'a pas bougé depuis 30 jours', hasThreshold: false },
+const RULE_TYPE_CONFIG: Record<string, { labelKey: string; descKey: string; hasThreshold: boolean }> = {
+  low_stock: { labelKey: 'alerts.config.low_stock.label', descKey: 'alerts.config.low_stock.desc', hasThreshold: true },
+  out_of_stock: { labelKey: 'alerts.config.out_of_stock.label', descKey: 'alerts.config.out_of_stock.desc', hasThreshold: false },
+  overstock: { labelKey: 'alerts.config.overstock.label', descKey: 'alerts.config.overstock.desc', hasThreshold: true },
+  slow_moving: { labelKey: 'alerts.config.slow_moving.label', descKey: 'alerts.config.slow_moving.desc', hasThreshold: false },
 };
 
 export default function AlertsScreen() {
   const { colors, glassStyle } = useTheme();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
 
@@ -53,9 +56,9 @@ export default function AlertsScreen() {
 
   function getSeverityLabel(severity: string) {
     switch (severity) {
-      case 'critical': return 'Critique';
-      case 'warning': return 'Attention';
-      default: return 'Info';
+      case 'critical': return t('alerts.severity_critical');
+      case 'warning': return t('alerts.severity_warning');
+      default: return t('alerts.severity_info');
     }
   }
   const [alertList, setAlertList] = useState<AlertData[]>([]);
@@ -82,7 +85,7 @@ export default function AlertsScreen() {
       setAnomalies(result.anomalies || []);
       setShowAnomalies(true);
     } catch {
-      Alert.alert('Erreur', "Impossible d'analyser les anomalies");
+      Alert.alert(t('common.error'), t('alerts.error_anomaly'));
     } finally {
       setAnomalyLoading(false);
     }
@@ -160,7 +163,7 @@ export default function AlertsScreen() {
       });
       setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
     } catch {
-      Alert.alert('Erreur', 'Impossible de modifier la règle');
+      Alert.alert(t('common.error'), t('alerts.error_rule_update'));
     }
   }
 
@@ -175,13 +178,13 @@ export default function AlertsScreen() {
       });
       setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
     } catch {
-      Alert.alert('Erreur', 'Impossible de modifier le seuil');
+      Alert.alert(t('common.error'), t('alerts.error_threshold_update'));
     }
   }
 
   function formatDate(dateStr: string) {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : i18n.language, {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
@@ -210,9 +213,9 @@ export default function AlertsScreen() {
       >
         <View style={[styles.headerRow, { paddingTop: insets.top }]}>
           <View>
-            <Text style={styles.pageTitle}>Alertes</Text>
+            <Text style={styles.pageTitle}>{t('alerts.title')}</Text>
             <Text style={styles.subtitle}>
-              {unread > 0 ? `${unread} non lue(s)` : 'Tout est en ordre'}
+              {unread > 0 ? t('alerts.subtitle_unread', { count: unread }) : t('alerts.subtitle_empty')}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -239,9 +242,13 @@ export default function AlertsScreen() {
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.anomalyBtnTitle, { color: colors.text }]}>Détection d'anomalies IA</Text>
+            <Text style={[styles.anomalyBtnTitle, { color: colors.text }]}>{t('alerts.detect_anomalies')}</Text>
             <Text style={[styles.anomalyBtnSub, { color: colors.textMuted }]}>
-              {anomalyLoading ? 'Analyse en cours...' : showAnomalies && anomalies.length === 0 ? 'Aucune anomalie détectée' : 'Analyser ventes, stocks et marges'}
+              {anomalyLoading
+                ? t('alerts.analyzing')
+                : showAnomalies && anomalies.length === 0
+                  ? t('alerts.no_anomalies')
+                  : t('alerts.analyze_desc')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -251,7 +258,9 @@ export default function AlertsScreen() {
           <View style={{ marginBottom: Spacing.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.xs }}>
               <Ionicons name="sparkles" size={13} color={colors.primary} />
-              <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Analyse IA — {anomalies.length} anomalie{anomalies.length > 1 ? 's' : ''} détectée{anomalies.length > 1 ? 's' : ''}</Text>
+              <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>
+                {t(anomalies.length > 1 ? 'alerts.anomaly_analysis_summary_plural' : 'alerts.anomaly_analysis_summary', { count: anomalies.length })}
+              </Text>
             </View>
             {anomalies.map((a, idx) => {
               const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -287,8 +296,8 @@ export default function AlertsScreen() {
         {alertList.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle-outline" size={64} color={colors.success} />
-            <Text style={styles.emptyTitle}>Aucune alerte</Text>
-            <Text style={styles.emptyText}>Tous vos stocks sont normaux</Text>
+            <Text style={styles.emptyTitle}>{t('alerts.no_alerts')}</Text>
+            <Text style={styles.emptyText}>{t('alerts.all_stocks_normal')}</Text>
           </View>
         ) : (
           <View>
@@ -323,12 +332,12 @@ export default function AlertsScreen() {
                   {!alert.is_read && (
                     <TouchableOpacity style={styles.alertActionBtn} onPress={() => handleMarkRead(alert.alert_id)}>
                       <Ionicons name="checkmark" size={16} color={colors.success} />
-                      <Text style={[styles.alertActionText, { color: colors.success }]}>Marquer lue</Text>
+                      <Text style={[styles.alertActionText, { color: colors.success }]}>{t('alerts.mark_read')}</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity style={styles.alertActionBtn} onPress={() => handleDismiss(alert.alert_id)}>
                     <Ionicons name="close" size={16} color={colors.textMuted} />
-                    <Text style={[styles.alertActionText, { color: colors.textMuted }]}>Ignorer</Text>
+                    <Text style={[styles.alertActionText, { color: colors.textMuted }]}>{t('alerts.dismiss')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -339,7 +348,9 @@ export default function AlertsScreen() {
                 onPress={() => setShowAllAlerts(!showAllAlerts)}
               >
                 <Text style={styles.seeMoreText}>
-                  {showAllAlerts ? 'Voir moins' : `Voir les ${alertList.length - 10} autres alertes`}
+                  {showAllAlerts
+                    ? t('alerts.see_less')
+                    : t('alerts.see_more_all_count', { count: alertList.length - 10 })}
                 </Text>
                 <Ionicons name={showAllAlerts ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
               </TouchableOpacity>
@@ -355,7 +366,7 @@ export default function AlertsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Règles d'alertes</Text>
+              <Text style={styles.modalTitle}>{t('alerts.rules_title')}</Text>
               <TouchableOpacity onPress={() => setShowRulesModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -366,7 +377,7 @@ export default function AlertsScreen() {
             ) : (
               <ScrollView style={styles.modalScroll}>
                 {rules.length === 0 ? (
-                  <Text style={styles.rulesEmptyText}>Aucune règle configurée</Text>
+                  <Text style={styles.rulesEmptyText}>{t('alerts.no_rules')}</Text>
                 ) : (
                   rules.map((rule) => {
                     const config = RULE_TYPE_CONFIG[rule.type];
@@ -374,8 +385,8 @@ export default function AlertsScreen() {
                       <View key={rule.rule_id} style={styles.ruleCard}>
                         <View style={styles.ruleHeader}>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.ruleTitle}>{config?.label || rule.type}</Text>
-                            <Text style={styles.ruleDesc}>{config?.description || ''}</Text>
+                            <Text style={styles.ruleTitle}>{config ? t(config.labelKey) : rule.type}</Text>
+                            <Text style={styles.ruleDesc}>{config ? t(config.descKey) : ''}</Text>
                           </View>
                           <Switch
                             value={rule.enabled}
@@ -387,7 +398,7 @@ export default function AlertsScreen() {
 
                         {config?.hasThreshold && rule.enabled && (
                           <View style={styles.thresholdRow}>
-                            <Text style={styles.thresholdLabel}>Seuil :</Text>
+                            <Text style={styles.thresholdLabel}>{t('alerts.threshold')}</Text>
                             <TextInput
                               style={styles.thresholdInput}
                               value={String(rule.threshold_percentage ?? 0)}
@@ -409,7 +420,7 @@ export default function AlertsScreen() {
                         )}
 
                         <View style={styles.channelsRow}>
-                          <Text style={styles.channelLabel}>Canaux :</Text>
+                          <Text style={styles.channelLabel}>{t('alerts.channels')}</Text>
                           {rule.notification_channels.map((ch) => (
                             <View key={ch} style={styles.channelBadge}>
                               <Ionicons
@@ -418,7 +429,7 @@ export default function AlertsScreen() {
                                 color={colors.primaryLight}
                               />
                               <Text style={styles.channelText}>
-                                {ch === 'in_app' ? 'App' : ch === 'push' ? 'Push' : ch === 'email' ? 'Email' : ch}
+                                {ch === 'in_app' ? t('common.app') : ch === 'push' ? 'Push' : ch === 'email' ? 'Email' : ch}
                               </Text>
                             </View>
                           ))}

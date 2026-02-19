@@ -19,7 +19,10 @@ import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../const
 import { ApiError } from '../../services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
 
+import { useTranslation } from 'react-i18next';
+
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const { login, isBiometricsEnabled } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,8 +48,8 @@ export default function LoginScreen() {
       const savedEmail = await SecureStore.getItemAsync('user_email');
       const savedPassword = await SecureStore.getItemAsync('user_password');
       if (savedEmail && savedPassword) {
-        setEmail(savedEmail);
-        setPassword(savedPassword);
+        setEmail(savedEmail || '');
+        setPassword(savedPassword || '');
         setRememberMe(true);
       }
     } catch (e) {
@@ -56,7 +59,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
-      setError('Veuillez remplir tous les champs');
+      setError(t('auth.login.errorFillFields'));
       return;
     }
     setError('');
@@ -71,7 +74,7 @@ export default function LoginScreen() {
         await SecureStore.deleteItemAsync('user_password');
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Erreur de connexion');
+      setError(e instanceof ApiError ? e.message : t('auth.login.errorLogin'));
     } finally {
       setLoading(false);
     }
@@ -79,7 +82,7 @@ export default function LoginScreen() {
 
   async function handleBiometricLogin() {
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Connexion biométrique',
+      promptMessage: t('auth.login.biometricLogin'),
     });
 
     if (result.success) {
@@ -90,12 +93,12 @@ export default function LoginScreen() {
         try {
           await login(savedEmail, savedPassword);
         } catch (e) {
-          setError('Erreur de connexion biométrique');
+          setError(t('auth.login.biometricError'));
         } finally {
           setLoading(false);
         }
       } else {
-        setError('Aucun identifiant sauvegardé pour la biométrie');
+        setError(t('auth.login.biometricNoCreds'));
       }
     }
   }
@@ -111,8 +114,8 @@ export default function LoginScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="cube" size={40} color={Colors.primary} />
             </View>
-            <Text style={styles.title}>Stock Manager</Text>
-            <Text style={styles.subtitle}>Connectez-vous pour continuer</Text>
+            <Text style={styles.title}>{t('auth.login.title')}</Text>
+            <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
           </View>
 
           <View style={styles.card}>
@@ -124,12 +127,12 @@ export default function LoginScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t('auth.login.email')}</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="votre@email.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   value={email}
                   onChangeText={setEmail}
@@ -141,12 +144,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mot de passe</Text>
+              <Text style={styles.label}>{t('auth.login.password')}</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Votre mot de passe"
+                  placeholder={t('auth.login.passwordPlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   value={password}
                   onChangeText={setPassword}
@@ -171,7 +174,7 @@ export default function LoginScreen() {
               <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
                 {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.rememberText}>Se souvenir de moi</Text>
+              <Text style={styles.rememberText}>{t('auth.login.rememberMe')}</Text>
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
@@ -183,7 +186,7 @@ export default function LoginScreen() {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Se connecter</Text>
+                  <Text style={styles.buttonText}>{t('auth.login.signIn')}</Text>
                 )}
               </TouchableOpacity>
 
@@ -199,10 +202,10 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Pas encore de compte ? </Text>
+              <Text style={styles.footerText}>{t('auth.login.noAccount')} </Text>
               <Link href="/(auth)/register" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.footerLink}>S'inscrire</Text>
+                  <Text style={styles.footerLink}>{t('auth.login.signUp')}</Text>
                 </TouchableOpacity>
               </Link>
             </View>

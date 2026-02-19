@@ -14,12 +14,14 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 const PIN_LENGTH = 4;
 
 export default function PinScreen() {
     const { isPinSet, isBiometricsEnabled, setPin, unlockWithPin, unlockWithBiometrics, logout } = useAuth();
+    const { t } = useTranslation();
     const router = useRouter();
     const [pin, setPinValue] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -69,7 +71,7 @@ export default function PinScreen() {
                             }).finally(() => setLoading(false));
                         } else {
                             Vibration.vibrate();
-                            setError('Les codes ne correspondent pas');
+                            setError(t('pin.mismatch_error'));
                             setPinValue('');
                         }
                     }
@@ -79,7 +81,7 @@ export default function PinScreen() {
                     unlockWithPin(newPin).then(success => {
                         if (!success) {
                             Vibration.vibrate();
-                            setError('Code PIN incorrect');
+                            setError(t('pin.incorrect_error'));
                             setPinValue('');
                         }
                     }).finally(() => setLoading(false));
@@ -126,13 +128,13 @@ export default function PinScreen() {
                     <Ionicons name="lock-closed" size={48} color={Colors.primary} />
                     <Text style={styles.title}>
                         {!isPinSet
-                            ? (isConfirming ? 'Confirmez votre PIN' : 'Créez un code PIN')
-                            : 'Déverrouillez Stockman'}
+                            ? (isConfirming ? t('pin.confirm_title') : t('pin.create_title'))
+                            : t('pin.unlock_title')}
                     </Text>
                     <Text style={styles.subtitle}>
                         {!isPinSet
-                            ? 'Sécurisez l\'accès à vos données'
-                            : 'Saisissez votre code pour continuer'}
+                            ? t('pin.setup_subtitle')
+                            : t('pin.unlock_subtitle')}
                     </Text>
                 </View>
 
@@ -169,7 +171,7 @@ export default function PinScreen() {
 
                 {isPinSet && (
                     <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-                        <Text style={styles.logoutText}>Se déconnecter</Text>
+                        <Text style={styles.logoutText}>{t('pin.logout_btn')}</Text>
                     </TouchableOpacity>
                 )}
             </SafeAreaView>

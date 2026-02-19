@@ -680,17 +680,17 @@ export default function DashboardScreen() {
             <View style={styles.abcContainer}>
               <View style={[styles.abcCard, { borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
                 <Text style={[styles.abcClass, { color: colors.success }]}>{t('dashboard.class_a')}</Text>
-                <Text style={styles.abcCount}>{stats.abc_analysis.A.length} produits</Text>
+                <Text style={styles.abcCount}>{t('dashboard.products_count', { count: stats.abc_analysis.A.length })}</Text>
                 <Text style={styles.abcDesc}>{t('dashboard.class_a_desc')}</Text>
               </View>
               <View style={[styles.abcCard, { borderLeftColor: colors.primary, borderLeftWidth: 4 }]}>
                 <Text style={[styles.abcClass, { color: colors.primary }]}>{t('dashboard.class_b')}</Text>
-                <Text style={styles.abcCount}>{stats.abc_analysis.B.length} produits</Text>
+                <Text style={styles.abcCount}>{t('dashboard.products_count', { count: stats.abc_analysis.B.length })}</Text>
                 <Text style={styles.abcDesc}>{t('dashboard.class_b_desc')}</Text>
               </View>
               <View style={[styles.abcCard, { borderLeftColor: colors.textMuted, borderLeftWidth: 4 }]}>
                 <Text style={[styles.abcClass, { color: colors.textMuted }]}>{t('dashboard.class_c')}</Text>
-                <Text style={styles.abcCount}>{stats.abc_analysis.C.length} produits</Text>
+                <Text style={styles.abcCount}>{t('dashboard.products_count', { count: stats.abc_analysis.C.length })}</Text>
                 <Text style={styles.abcDesc}>{t('dashboard.class_c_desc')}</Text>
               </View>
             </View>
