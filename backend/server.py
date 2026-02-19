@@ -498,16 +498,6 @@ async def subscribe_newsletter(request: Request, sub: NewsletterSubscription):
         logger.info(f"New newsletter subscriber registered")
     return {"message": "Inscription réussie"}
 
-@public_router.get("/leads")
-async def get_leads(admin: User = Depends(require_superadmin)):
-    """Get all leads (Admin only — secured)"""
-    contacts = await db.contact_messages.find({}, {"_id": 0}).to_list(None)
-    subscribers = await db.newsletter_subscribers.find({}, {"_id": 0}).to_list(None)
-    return {
-        "contacts": contacts,
-        "subscribers": subscribers
-    }
-
 app.include_router(public_router)
 
 
@@ -1151,6 +1141,16 @@ async def require_superadmin(user: User = Depends(require_auth)) -> User:
         raise HTTPException(status_code=403, detail="Accès réservé aux super-administrateurs")
     return user
 
+@api_router.get("/public/leads")
+async def get_leads(admin: User = Depends(require_superadmin)):
+    """Get all leads (Admin only — secured)"""
+    contacts = await db.contact_messages.find({}, {"_id": 0}).to_list(None)
+    subscribers = await db.newsletter_subscribers.find({}, {"_id": 0}).to_list(None)
+    return {
+        "contacts": contacts,
+        "subscribers": subscribers
+    }
+
 @api_router.post("/payment/mock-webhook")
 async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
     """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
@@ -1167,6 +1167,7 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
         }}
     )
     return {"status": "ok"}
+
 
 # ===================== BULK IMPORT ENDPOINTS =====================
 
