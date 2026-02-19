@@ -121,14 +121,14 @@ export default function SupplierCatalogScreen() {
       setShowModal(false);
       loadProducts();
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder le produit');
+      Alert.alert(t('common.error'), t('catalog.save_error'));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(product: CatalogProductData) {
-    const confirmText = `Supprimer "${product.name}" du catalogue ? `;
+    const confirmText = t('catalog.confirm_delete', { name: product.name });
 
     const executeDelete = async () => {
       try {
@@ -145,12 +145,12 @@ export default function SupplierCatalogScreen() {
       }
     } else {
       Alert.alert(
-        'Supprimer',
+        t('common.delete'),
         confirmText,
         [
-          { text: 'Annuler', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Supprimer',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: executeDelete,
           },
@@ -193,7 +193,7 @@ export default function SupplierCatalogScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
       >
         <View style={styles.headerRow}>
-          <Text style={styles.pageTitle}>Mon Catalogue</Text>
+          <Text style={styles.pageTitle}>{t('catalog.title')}</Text>
           <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
@@ -204,7 +204,7 @@ export default function SupplierCatalogScreen() {
           <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un produit..."
+            placeholder={t('catalog.search_placeholder')}
             placeholderTextColor={Colors.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -212,7 +212,7 @@ export default function SupplierCatalogScreen() {
         </View>
 
         {/* Product count */}
-        <Text style={styles.countText}>{filtered.length} produit{filtered.length > 1 ? 's' : ''}</Text>
+        <Text style={styles.countText}>{t('catalog.product_count', { count: filtered.length })}</Text>
 
         {/* Product list */}
         {filtered.map((product) => (
@@ -233,15 +233,15 @@ export default function SupplierCatalogScreen() {
             </View>
             <View style={styles.productBottom}>
               <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>Prix</Text>
+                <Text style={styles.detailLabel}>{t('common.price')}</Text>
                 <Text style={styles.detailValue}>{product.price.toLocaleString()} {t('common.currency_short')}/{product.unit}</Text>
               </View>
               <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>Stock</Text>
+                <Text style={styles.detailLabel}>{t('common.stock')}</Text>
                 <Text style={styles.detailValue}>{product.stock_available}</Text>
               </View>
               <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>Min cmd</Text>
+                <Text style={styles.detailLabel}>{t('catalog.min_order_short')}</Text>
                 <Text style={styles.detailValue}>{product.min_order_quantity}</Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(product)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -255,11 +255,11 @@ export default function SupplierCatalogScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="pricetags-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyText}>
-              {search ? 'Aucun produit trouvé' : 'Votre catalogue est vide'}
+              {search ? t('catalog.no_result') : t('catalog.empty_catalog')}
             </Text>
             {!search && (
               <TouchableOpacity style={styles.emptyBtn} onPress={openAdd}>
-                <Text style={styles.emptyBtnText}>Ajouter un produit</Text>
+                <Text style={styles.emptyBtnText}>{t('catalog.add_product')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -274,7 +274,7 @@ export default function SupplierCatalogScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editing ? 'Modifier le produit' : 'Nouveau produit'}
+                {editing ? t('catalog.edit_product') : t('catalog.new_product')}
               </Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={24} color={Colors.text} />
@@ -282,11 +282,11 @@ export default function SupplierCatalogScreen() {
             </View>
 
             <ScrollView style={styles.modalScroll}>
-              <Text style={styles.label}>Nom *</Text>
-              <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder="Nom du produit" placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('common.name')} *</Text>
+              <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder={t('catalog.product_name_placeholder')} placeholderTextColor={Colors.textMuted} />
 
-              <Text style={styles.label}>Description</Text>
-              <TextInput style={[styles.input, styles.multiline]} value={formDescription} onChangeText={setFormDescription} placeholder="Description" placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
+              <Text style={styles.label}>{t('common.description')}</Text>
+              <TextInput style={[styles.input, styles.multiline]} value={formDescription} onChangeText={setFormDescription} placeholder={t('catalog.description_placeholder')} placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
 
               <CategorySubcategoryPicker
                 selectedCategory={formCategory}
@@ -299,27 +299,27 @@ export default function SupplierCatalogScreen() {
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Prix ({t('common.currency_default')})</Text>
+                  <Text style={styles.label}>{t('common.price')} ({t('common.currency_default')})</Text>
                 </View>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Unité</Text>
-                  <TextInput style={styles.input} value={formUnit} onChangeText={setFormUnit} placeholder="unité" placeholderTextColor={Colors.textMuted} />
+                  <Text style={styles.label}>{t('common.unit')}</Text>
+                  <TextInput style={styles.input} value={formUnit} onChangeText={setFormUnit} placeholder={t('catalog.unit_placeholder')} placeholderTextColor={Colors.textMuted} />
                 </View>
               </View>
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Qté min commande</Text>
+                  <Text style={styles.label}>{t('catalog.min_order_qty')}</Text>
                   <TextInput style={styles.input} value={formMinQty} onChangeText={setFormMinQty} placeholder="1" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Stock disponible</Text>
+                  <Text style={styles.label}>{t('catalog.stock_available')}</Text>
                   <TextInput style={styles.input} value={formStock} onChangeText={setFormStock} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
               </View>
 
               <View style={styles.switchRow}>
-                <Text style={styles.label}>Disponible à la vente</Text>
+                <Text style={styles.label}>{t('catalog.available_for_sale')}</Text>
                 <Switch
                   value={formAvailable}
                   onValueChange={setFormAvailable}
@@ -338,14 +338,14 @@ export default function SupplierCatalogScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.saveBtnText}>
-                  {editing ? 'Enregistrer' : 'Ajouter au catalogue'}
+                  {editing ? t('common.save') : t('catalog.add_to_catalog')}
                 </Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+    </LinearGradient >
   );
 }
 

@@ -1,59 +1,57 @@
 import json
 import os
 
-locales_dir = r"c:\Users\Utilisateur\projet_stock\frontend\locales"
-reference_file = os.path.join(locales_dir, "fr.json")
-english_file = os.path.join(locales_dir, "en.json")
+def sync_locales(base_file, target_dir):
+    with open(base_file, 'r', encoding='utf-8') as f:
+        base_data = json.load(f)
 
-with open(reference_file, 'r', encoding='utf-8') as f:
-    reference_data = json.load(f)
+    # Sort keys for consistency
+    base_data = dict(sorted(base_data.items()))
+    for section in base_data:
+        if isinstance(base_data[section], dict):
+            base_data[section] = dict(sorted(base_data[section].items()))
 
-with open(english_file, 'r', encoding='utf-8') as f:
-    english_data = json.load(f)
-
-def sync_keys(ref, target, eng_ref=None):
-    """Recursively sync keys from ref to target."""
-    synced = {}
-    for key, value in ref.items():
-        if isinstance(value, dict):
-            # Recursively sync nested dicts
-            target_val = target.get(key, {})
-            eng_val = eng_ref.get(key, {}) if eng_ref else {}
-            synced[key] = sync_keys(value, target_val, eng_val)
-        else:
-            # For leaf nodes, if key exists in target, keep it
-            if key in target:
-                # If target value is identical to French value and NOT fr.json itself,
-                # it might be a leaked placeholder.
-                # However, some short words (like "OK", "7d") are same in many languages.
-                # We only flag/replace if it's a long string or specifically known to be French.
-                synced[key] = target[key]
-            else:
-                # If missing, use English as fallback if available, else French
-                if eng_ref and key in eng_ref:
-                    synced[key] = eng_ref[key]
-                else:
-                    synced[key] = value
-    return synced
-
-for filename in os.listdir(locales_dir):
-    if filename.endswith(".json") and filename != "fr.json":
-        filepath = os.path.join(locales_dir, filename)
-        with open(filepath, 'r', encoding='utf-8') as f:
-            try:
+    # Walk through target files
+    for filename in os.listdir(target_dir):
+        if filename.endswith('.json') and filename != os.path.basename(base_file):
+            target_path = os.path.join(target_dir, filename)
+            print(f"Syncing {filename}...")
+            
+            with open(target_path, 'r', encoding='utf-8') as f:
                 target_data = json.load(f)
-            except json.JSONDecodeError:
-                print(f"Error decoding {filename}, skipping.")
-                continue
-        
-        # Determine if we should use English reference
-        # We don't use English reference when syncing en.json itself (to avoid circularity though eng_ref would be same)
-        current_eng_ref = english_data if filename != "en.json" else None
-        
-        synced_data = sync_keys(reference_data, target_data, current_eng_ref)
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(synced_data, f, ensure_ascii=False, indent=2)
-        print(f"Synced {filename}")
 
-print("Sync complete.")
+            synced_data = {}
+            new_keys_count = 0
+
+            # Ensure all sections from base exist in target
+            for section, keys in base_data.items():
+                if section not in target_data:
+                    synced_data[section] = keys # Entire section missing
+                    new_keys_count += len(keys) if isinstance(keys, dict) else 1
+                elif isinstance(keys, dict):
+                    synced_data[section] = target_data[section]
+                    for key, value in keys.items():
+                        if key not in synced_data[section]:
+                            synced_data[section][key] = value
+                            new_keys_count += 1
+                    # Sort section keys
+                    synced_data[section] = dict(sorted(synced_data[section].items()))
+                else:
+                    synced_data[section] = target_data.get(section, keys)
+
+            # Sort top-level keys
+            synced_data = dict(sorted(synced_data.items()))
+
+            with open(target_path, 'w', encoding='utf-8') as f:
+                json.dump(synced_data, f, ensure_ascii=False, indent=2)
+            
+            print(f"  Done. Added {new_keys_count} keys.")
+
+    # Also rewrite base file to ensure it's sorted and clean (removes duplicates too!)
+    with open(base_file, 'w', encoding='utf-8') as f:
+        json.dump(base_data, f, ensure_ascii=False, indent=2)
+    print("Base file cleaned and sorted.")
+
+if __name__ == "__main__":
+    locales_path = r"C:\Users\Utilisateur\projet_stock\frontend\locales"
+    sync_locales(os.path.join(locales_path, "fr.json"), locales_path)

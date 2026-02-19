@@ -2197,7 +2197,7 @@ export default function ProductsScreen() {
                   priceHistoryLoading ? (
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : priceHistory.length === 0 ? (
-                    <Text style={styles.emptyText}>Aucun historique de prix</Text>
+                    <Text style={styles.emptyText}>{t('products.no_price_history')}</Text>
                   ) : (
                     <View>
                       {priceHistory.map((ph) => (

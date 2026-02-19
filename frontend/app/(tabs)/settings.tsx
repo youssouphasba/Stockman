@@ -153,7 +153,7 @@ export default function SettingsScreen() {
 
   function handleLogout() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Voulez-vous vraiment vous déconnecter ?')) {
+      if (window.confirm(t('settings.logout_confirm'))) {
         logout();
       }
     } else {
@@ -268,7 +268,7 @@ export default function SettingsScreen() {
         {/* Team (Owner only) */}
         {user?.role === 'shopkeeper' && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Gestion d'Équipe</Text>
+            <Text style={styles.sectionTitle}>{t('settings.team_title')}</Text>
             <Link href="/(tabs)/users" asChild>
               <TouchableOpacity style={styles.supportRow}>
                 <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
@@ -381,7 +381,7 @@ export default function SettingsScreen() {
 
         {/* Subscription */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Application</Text>
+          <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
           <TouchableOpacity
             style={styles.supportRow}
             onPress={() => router.push('/subscription')}
@@ -399,7 +399,7 @@ export default function SettingsScreen() {
 
         {/* Support */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Aide & Support</Text>
+          <Text style={styles.sectionTitle}>{t('settings.help_support')}</Text>
           <TouchableOpacity style={styles.supportRow}>
             <View style={styles.supportIconWrapper}>
               <Ionicons name="sparkles" size={20} color="#fff" />
@@ -433,7 +433,7 @@ export default function SettingsScreen() {
 
         {/* Signaler un problème */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>⚠️ Signaler un problème</Text>
+          <Text style={styles.sectionTitle}>⚠️ {t('settings.report_problem')}</Text>
           {!showDisputeForm ? (
             <TouchableOpacity onPress={() => setShowDisputeForm(true)} style={styles.supportRow}>
               <View style={[styles.supportIconWrapper, { backgroundColor: '#EF4444' }]}>
@@ -450,10 +450,10 @@ export default function SettingsScreen() {
               <Text style={[styles.settingDesc, { marginBottom: 4 }]}>{t('settings.problem_type')} :</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {[{ id: 'payment', label: '💳 Paiement' }, { id: 'product', label: '📦 Produit' }, { id: 'service', label: '🛠️ Service' }, { id: 'delivery', label: '🚚 Livraison' }, { id: 'other', label: '❓ Autre' }].map(t => (
-                    <TouchableOpacity key={t.id} onPress={() => setDisputeType(t.id)}
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: disputeType === t.id ? colors.primary + '33' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: disputeType === t.id ? colors.primary : 'rgba(255,255,255,0.1)' }}>
-                      <Text style={{ color: disputeType === t.id ? colors.primary : colors.textSecondary, fontSize: 12, fontWeight: '600' }}>{t.label}</Text>
+                  {[{ id: 'payment', label: '💳 ' + t('settings.dispute_payment') }, { id: 'product', label: '📦 ' + t('settings.dispute_product') }, { id: 'service', label: '🛠️ ' + t('settings.dispute_service') }, { id: 'delivery', label: '🚚 ' + t('settings.dispute_delivery') }, { id: 'other', label: '❓ ' + t('settings.dispute_other') }].map(dt => (
+                    <TouchableOpacity key={dt.id} onPress={() => setDisputeType(dt.id)}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: disputeType === dt.id ? colors.primary + '33' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: disputeType === dt.id ? colors.primary : 'rgba(255,255,255,0.1)' }}>
+                      <Text style={{ color: disputeType === dt.id ? colors.primary : colors.textSecondary, fontSize: 12, fontWeight: '600' }}>{dt.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -468,7 +468,7 @@ export default function SettingsScreen() {
                   <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send') || 'Envoyer'}</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -477,7 +477,7 @@ export default function SettingsScreen() {
 
         {/* Security */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Sécurité</Text>
+          <Text style={styles.sectionTitle}>{t('settings.security')}</Text>
 
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>

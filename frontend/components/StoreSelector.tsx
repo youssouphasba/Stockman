@@ -5,8 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { stores as storesApi, Store } from '../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function StoreSelector() {
+    const { t } = useTranslation();
     const { user, switchStore, isLoading: authLoading } = useAuth();
     const [stores, setStores] = useState<Store[]>([]);
     const [showModal, setShowModal] = useState(false);
@@ -26,7 +28,7 @@ export default function StoreSelector() {
             const list = await storesApi.list();
             setStores(list);
         } catch (e) {
-            Alert.alert('Erreur', 'Impossible de charger les magasins');
+            Alert.alert(t('common.error'), t('store_selector.load_error'));
         } finally {
             setLoading(false);
         }
@@ -42,7 +44,7 @@ export default function StoreSelector() {
             await switchStore(storeId);
             setShowModal(false);
         } catch (e) {
-            Alert.alert('Erreur', 'Impossible de changer de magasin');
+            Alert.alert(t('common.error'), t('store_selector.switch_error'));
         } finally {
             setLoading(false);
         }
@@ -58,13 +60,13 @@ export default function StoreSelector() {
             setNewStoreName('');
             setShowModal(false);
         } catch (e) {
-            Alert.alert('Erreur', 'Impossible de créer le magasin');
+            Alert.alert(t('common.error'), t('store_selector.create_error'));
         } finally {
             setLoading(false);
         }
     }
 
-    const activeStore = stores.find(s => s.store_id === user?.active_store_id) || { name: 'Mon Magasin' };
+    const activeStore = stores.find(s => s.store_id === user?.active_store_id) || { name: t('store_selector.default_name') };
 
     if (!user || user.role !== 'shopkeeper') return null;
 
@@ -83,7 +85,7 @@ export default function StoreSelector() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Mes Magasins</Text>
+                            <Text style={styles.modalTitle}>{t('store_selector.my_stores')}</Text>
                             <TouchableOpacity onPress={() => setShowModal(false)}>
                                 <Ionicons name="close" size={24} color={Colors.text} />
                             </TouchableOpacity>
@@ -120,15 +122,15 @@ export default function StoreSelector() {
 
                                         <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateForm(true)}>
                                             <Ionicons name="add" size={20} color={Colors.primary} />
-                                            <Text style={styles.createBtnText}>Nouveau magasin</Text>
+                                            <Text style={styles.createBtnText}>{t('store_selector.new_store')}</Text>
                                         </TouchableOpacity>
                                     </>
                                 ) : (
                                     <View style={styles.createForm}>
-                                        <Text style={styles.subTitle}>Nouveau magasin</Text>
+                                        <Text style={styles.subTitle}>{t('store_selector.new_store')}</Text>
                                         <TextInput
                                             style={styles.input}
-                                            placeholder="Nom du magasin"
+                                            placeholder={t('store_selector.store_name_placeholder')}
                                             placeholderTextColor={Colors.textMuted}
                                             value={newStoreName}
                                             onChangeText={setNewStoreName}
@@ -136,14 +138,14 @@ export default function StoreSelector() {
                                         />
                                         <View style={styles.formActions}>
                                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCreateForm(false)}>
-                                                <Text style={styles.cancelText}>Annuler</Text>
+                                                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={[styles.confirmBtn, !newStoreName.trim() && { opacity: 0.5 }]}
                                                 onPress={handleCreateStore}
                                                 disabled={!newStoreName.trim()}
                                             >
-                                                <Text style={styles.confirmText}>Créer</Text>
+                                                <Text style={styles.confirmText}>{t('store_selector.create')}</Text>
                                             </TouchableOpacity>
                                         </View>
                                     </View>

@@ -53,7 +53,11 @@ type Props = {
   preLoadedCatalog?: CatalogProductData[];
 };
 
-const STEP_LABELS = ['Fournisseur', 'Articles', 'Confirmation'];
+const STEP_LABELS = [
+  'orders.supplier',
+  'orders.items',
+  'orders.confirmation'
+];
 
 // ── Component ──────────────────────────────────────────
 export default function OrderCreationModal({
@@ -243,16 +247,16 @@ export default function OrderCreationModal({
         };
         await ordersApi.create(payload);
         if (Platform.OS === 'web') {
-          window.alert('Commande envoyée avec succès !');
+          window.alert(t('orders.sent_success'));
         } else {
-          RNAlert.alert('Succès', 'Commande envoyée avec succès !');
+          RNAlert.alert(t('common.success'), t('orders.sent_success'));
         }
         onOrderCreated();
       } catch {
         if (Platform.OS === 'web') {
-          window.alert('Impossible de créer la commande');
+          window.alert(t('orders.create_error'));
         } else {
-          RNAlert.alert('Erreur', 'Impossible de créer la commande');
+          RNAlert.alert(t('common.error'), t('orders.create_error'));
         }
       }
       setSubmitting(false);
@@ -270,11 +274,11 @@ export default function OrderCreationModal({
       }
     } else {
       RNAlert.alert(
-        "Confirmation de commande",
+        t('orders.confirmation_title'),
         msg,
         [
-          { text: "Annuler", style: "cancel" },
-          { text: "Confirmer", onPress: performSubmit }
+          { text: t('common.cancel'), style: "cancel" },
+          { text: t('common.confirm'), onPress: performSubmit }
         ]
       );
     }
@@ -342,12 +346,12 @@ export default function OrderCreationModal({
                 />
               </TouchableOpacity>
               <Text style={s.headerTitle}>
-                {step === 1 ? 'Nouvelle commande' : step === 2 ? 'Articles' : 'Récapitulatif'}
+                {step === 1 ? t('orders.new_order') : step === 2 ? t('orders.items') : t('orders.summary')}
               </Text>
-              <Text style={s.stepLabel}>Étape {step}/3</Text>
+              <Text style={s.stepLabel}>{t('common.step', { step, total: 3 })}</Text>
             </View>
 
-            <StepProgressBar currentStep={step} totalSteps={3} labels={STEP_LABELS} />
+            <StepProgressBar currentStep={step} totalSteps={3} labels={STEP_LABELS.map(key => t(key))} />
 
             {/* ═══ STEP 1: Supplier ═══ */}
             {step === 1 && (
@@ -359,7 +363,7 @@ export default function OrderCreationModal({
                     onPress={() => setSupplierTab('manual')}
                   >
                     <Text style={[s.tabText, supplierTab === 'manual' && s.tabTextActive]}>
-                      Mes Fournisseurs
+                      {t('orders.my_suppliers')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -370,7 +374,7 @@ export default function OrderCreationModal({
                     }}
                   >
                     <Text style={[s.tabText, supplierTab === 'marketplace' && s.tabTextActive]}>
-                      Marketplace
+                      {t('orders.marketplace')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -380,7 +384,7 @@ export default function OrderCreationModal({
                   <Ionicons name="search-outline" size={18} color={colors.textMuted} />
                   <TextInput
                     style={s.searchInput}
-                    placeholder="Rechercher..."
+                    placeholder={t('common.search_placeholder')}
                     placeholderTextColor={colors.textMuted}
                     value={supplierSearch}
                     onChangeText={setSupplierSearch}
@@ -419,7 +423,7 @@ export default function OrderCreationModal({
                       </TouchableOpacity>
                     )}
                     ListEmptyComponent={
-                      <Text style={s.emptyText}>Aucun fournisseur trouvé</Text>
+                      <Text style={s.emptyText}>{t('orders.no_supplier_found')}</Text>
                     }
                     contentContainerStyle={{ paddingBottom: Spacing.xxl }}
                   />
@@ -452,7 +456,7 @@ export default function OrderCreationModal({
                       </TouchableOpacity>
                     )}
                     ListEmptyComponent={
-                      <Text style={s.emptyText}>Aucun fournisseur trouvé</Text>
+                      <Text style={s.emptyText}>{t('orders.no_supplier_found')}</Text>
                     }
                     contentContainerStyle={{ paddingBottom: Spacing.xxl }}
                   />
@@ -482,7 +486,7 @@ export default function OrderCreationModal({
                   <View style={s.noticeBanner}>
                     <Ionicons name="information-circle-outline" size={16} color={colors.warning} />
                     <Text style={s.noticeText}>
-                      Aucun produit lié. Affichage de votre inventaire.
+                      {t('orders.no_linked_products_fallback')}
                     </Text>
                   </View>
                 )}
@@ -492,7 +496,7 @@ export default function OrderCreationModal({
                   <Ionicons name="search-outline" size={18} color={colors.textMuted} />
                   <TextInput
                     style={s.searchInput}
-                    placeholder="Filtrer les produits..."
+                    placeholder={t('products.filter_placeholder')}
                     placeholderTextColor={colors.textMuted}
                     value={productSearch}
                     onChangeText={setProductSearch}
@@ -507,7 +511,7 @@ export default function OrderCreationModal({
                     keyExtractor={(item) => item.id}
                     renderItem={renderProductRow}
                     ListEmptyComponent={
-                      <Text style={s.emptyText}>Aucun produit disponible</Text>
+                      <Text style={s.emptyText}>{t('orders.no_product_available')}</Text>
                     }
                     contentContainerStyle={{ paddingBottom: 130 }}
                     initialNumToRender={20}
@@ -525,7 +529,7 @@ export default function OrderCreationModal({
                     onPress={() => setStep(3)}
                     disabled={itemCount === 0}
                   >
-                    <Text style={s.footerBtnText}>Voir le récapitulatif</Text>
+                    <Text style={s.footerBtnText}>{t('orders.see_summary')}</Text>
                     <Ionicons name="arrow-forward" size={18} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -541,11 +545,11 @@ export default function OrderCreationModal({
                   <View style={s.reviewSection}>
                     {/* Supplier */}
                     <View style={s.reviewCard}>
-                      <Text style={s.reviewLabel}>Fournisseur</Text>
+                      <Text style={s.reviewLabel}>{t('orders.supplier')}</Text>
                       <Text style={s.reviewValue}>{selectedSupplier?.name}</Text>
                     </View>
 
-                    <Text style={s.reviewSectionTitle}>Articles ({itemCount})</Text>
+                    <Text style={s.reviewSectionTitle}>{t('orders.items_with_count', { count: itemCount })}</Text>
                   </View>
                 }
                 renderItem={({ item }) => (
@@ -562,10 +566,10 @@ export default function OrderCreationModal({
                 ListFooterComponent={
                   <View style={s.reviewFooter}>
                     {/* Notes */}
-                    <Text style={s.reviewLabel}>Notes (optionnel)</Text>
+                    <Text style={s.reviewLabel}>{t('orders.notes_optional')}</Text>
                     <TextInput
                       style={s.notesInput}
-                      placeholder="Instructions spéciales..."
+                      placeholder={t('orders.notes_placeholder')}
                       placeholderTextColor={colors.textMuted}
                       value={notes}
                       onChangeText={setNotes}
@@ -574,7 +578,7 @@ export default function OrderCreationModal({
 
                     {/* Total */}
                     <View style={s.totalRow}>
-                      <Text style={s.totalLabel}>Total</Text>
+                      <Text style={s.totalLabel}>{t('common.total')}</Text>
                       <Text style={s.totalValue}>{formatNumber(total)} {t('common.currency_default')}</Text>
                     </View>
 
@@ -589,7 +593,7 @@ export default function OrderCreationModal({
                       ) : (
                         <>
                           <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                          <Text style={s.confirmBtnText}>Confirmer la commande</Text>
+                          <Text style={s.confirmBtnText}>{t('orders.confirm_order')}</Text>
                         </>
                       )}
                     </TouchableOpacity>
