@@ -3389,7 +3389,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             value=access_token,
             httponly=True,
             secure=True,
-            samesite="none",
+            samesite="lax",
             max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
             path="/"
         )
