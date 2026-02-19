@@ -302,8 +302,8 @@ export default function AccountingScreen() {
                 <tr>
                     <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${item.desc}</td>
                     <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${item.qty}</td>
-                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${price.toLocaleString('fr-FR')}</td>
-                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${lineTotal.toLocaleString('fr-FR')}</td>
+                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(price)}</td>
+                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(lineTotal)}</td>
                 </tr>`;
             }).join('');
 
@@ -339,8 +339,8 @@ export default function AccountingScreen() {
                 <tr>
                     <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${p.name}</td>
                     <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${p.qty_sold}</td>
-                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${p.revenue.toLocaleString()}</td>
-                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right; color: ${profit >= 0 ? colors.success : colors.danger}">${profit.toLocaleString()}</td>
+                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(p.revenue)}</td>
+                    <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right; color: ${profit >= 0 ? colors.success : colors.danger}">${formatCurrency(profit)}</td>
                 </tr>
                 `;
             }).join('');
@@ -349,7 +349,7 @@ export default function AccountingScreen() {
             <tr>
                 <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${e.category}</td>
                 <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${e.description || '-'}</td>
-                <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${e.amount.toLocaleString()} {t('common.currency_default')}</td>
+                <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(e.amount)}</td>
             </tr>
         `).join('');
 
@@ -399,19 +399,19 @@ export default function AccountingScreen() {
                 <div class="kpi-grid">
                     <div class="kpi-card">
                         <div class="kpi-label">CA total</div>
-                        <div class="kpi-value">${stats.revenue.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
+                        <div class="kpi-value">${formatCurrency(stats.revenue)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">Marge brute</div>
-                        <div class="kpi-value" style="color: ${colors.success}">${stats.gross_profit.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
+                        <div class="kpi-value" style="color: ${colors.success}">${formatCurrency(stats.gross_profit)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">Total charges</div>
-                        <div class="kpi-value" style="color: ${colors.danger}">${stats.expenses.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
+                        <div class="kpi-value" style="color: ${colors.danger}">${formatCurrency(stats.expenses)}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">${t('accounting.net_profit')}</div>
-                        <div class="kpi-value" style="color: ${stats.net_profit >= 0 ? colors.info : colors.danger}">${stats.net_profit.toLocaleString()} ${getCurrencySymbol(user?.currency)}</div>
+                        <div class="kpi-value" style="color: ${stats.net_profit >= 0 ? colors.info : colors.danger}">${formatCurrency(stats.net_profit)}</div>
                     </div>
                 </div>
 
@@ -488,7 +488,7 @@ export default function AccountingScreen() {
     const handleShareEmail = () => {
         const subject = t('accounting.share_email_subject', { client: invoiceClient || t('accounting.client_diverse') });
         const body = t('accounting.share_email_body', {
-            amount: invoiceTotal.toLocaleString(i18n.language),
+            amount: formatCurrency(invoiceTotal),
             store: currentStore?.name || t('common.my_shop')
         });
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);

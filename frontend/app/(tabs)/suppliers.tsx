@@ -44,6 +44,7 @@ import OrderCreationModal from '../../components/OrderCreationModal';
 import ChatModal from '../../components/ChatModal';
 import PremiumGate from '../../components/PremiumGate';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
 
 
 export default function SuppliersScreen() {
@@ -1032,7 +1033,7 @@ export default function SuppliersScreen() {
                           </View>
                         </View>
                         <View style={styles.mpCatalogPriceBox}>
-                          <Text style={styles.mpCatalogPrice}>{p.price.toLocaleString()} {t('common.currency_short')}</Text>
+                          <Text style={styles.mpCatalogPrice}>{formatUserCurrency(p.price, user)}</Text>
                           <Text style={styles.mpCatalogUnit}>/{p.unit}</Text>
                         </View>
                       </TouchableOpacity>
@@ -1221,7 +1222,7 @@ export default function SuppliersScreen() {
                                 <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs }}>
                                   <View style={{ flex: 1, backgroundColor: colors.primary + '12', borderRadius: BorderRadius.sm, padding: Spacing.sm, alignItems: 'center' }}>
                                     <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase' }}>{t('suppliers.stock_value')}</Text>
-                                    <Text style={{ color: colors.primary, fontSize: FontSize.md, fontWeight: '700' }}>{totalValue.toLocaleString()} {t('common.currency_short')}</Text>
+                                    <Text style={{ color: colors.primary, fontSize: FontSize.md, fontWeight: '700' }}>{formatUserCurrency(totalValue, user)}</Text>
                                   </View>
                                   {lowStockCount > 0 && (
                                     <View style={{ flex: 1, backgroundColor: colors.danger + '12', borderRadius: BorderRadius.sm, padding: Spacing.sm, alignItems: 'center' }}>
@@ -1273,11 +1274,11 @@ export default function SuppliersScreen() {
                                     </View>
                                     <View style={styles.metricBox}>
                                       <Text style={styles.metricLabel}>{t('suppliers.supplier_price')}</Text>
-                                      <Text style={styles.metricValue}>{lp.supplier_price.toLocaleString()} {t('common.currency_short')}</Text>
+                                      <Text style={styles.metricValue}>{formatUserCurrency(lp.supplier_price, user)}</Text>
                                     </View>
                                     <View style={styles.metric}>
                                       <Text style={styles.metricLabel}>{t('suppliers.selling_price')}</Text>
-                                      <Text style={styles.metricValue}>{lp.product.selling_price.toLocaleString()} {t('common.currency_short')}</Text>
+                                      <Text style={styles.metricValue}>{formatUserCurrency(lp.product?.selling_price, user)}</Text>
                                     </View>
                                   </View>
 
@@ -1290,11 +1291,11 @@ export default function SuppliersScreen() {
                                     }}>
                                       <Ionicons name={margin > 0 ? 'trending-up' : 'trending-down'} size={12} color={margin > 0 ? colors.success : colors.danger} />
                                       <Text style={{ fontSize: 11, fontWeight: '700', color: margin > 0 ? colors.success : colors.danger }}>
-                                        +{margin.toLocaleString()} {t('common.currency_short')} ({marginPct.toFixed(0)}%)
+                                        +{formatUserCurrency(margin, user)} ({marginPct.toFixed(0)}%)
                                       </Text>
                                     </View>
                                     <Text style={{ color: colors.textMuted, fontSize: 11, marginLeft: Spacing.sm }}>
-                                      Val: {stockValue.toLocaleString()} {t('common.currency_short')}
+                                      Val: {formatUserCurrency(stockValue, user)}
                                     </Text>
                                     <View style={{ flex: 1 }} />
                                     <TouchableOpacity
@@ -1334,7 +1335,7 @@ export default function SuppliersScreen() {
                                 </View>
                               </View>
                               <View style={styles.historyDetails}>
-                                <Text style={styles.historyAmount}>{o.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                                <Text style={styles.historyAmount}>{formatUserCurrency(o.total_amount, user)}</Text>
                                 <Text style={styles.historyDate}>{new Date(o.created_at).toLocaleDateString()}</Text>
                               </View>
                             </TouchableOpacity>
@@ -1366,7 +1367,7 @@ export default function SuppliersScreen() {
                                   {inv.status === 'paid' ? t('suppliers.status_paid') : t('suppliers.status_unpaid')}
                                 </Text>
                               </View>
-                              <Text style={styles.historyAmount}>{inv.amount.toLocaleString()} {t('common.currency_default')}</Text>
+                              <Text style={styles.historyAmount}>{formatUserCurrency(inv.amount, user)}</Text>
                             </View>
                           ))
                         )}
@@ -1441,12 +1442,12 @@ export default function SuppliersScreen() {
                         <Text style={styles.sectionTitle}>{t('suppliers.financial_summary')}</Text>
                         <View style={styles.statsGrid}>
                           <View style={styles.statBox}>
-                            <Text style={styles.statVal}>{detailStats?.total_spent.toLocaleString()} {t('common.currency_default')}</Text>
+                            <Text style={styles.statVal}>{formatUserCurrency(detailStats?.total_spent, user)}</Text>
                             <Text style={styles.statLab}>{t('suppliers.total_volume')}</Text>
                           </View>
                           <View style={styles.statBox}>
                             <Text style={[styles.statVal, { color: colors.warning }]}>
-                              {detailStats?.pending_spent.toLocaleString()} {t('common.currency_default')}
+                              {formatUserCurrency(detailStats?.pending_spent, user)}
                             </Text>
                             <Text style={styles.statLab}>{t('suppliers.pending_payment')}</Text>
                           </View>
@@ -1580,7 +1581,7 @@ export default function SuppliersScreen() {
 
                 {mpSearchType === 'products' && (
                   <>
-                    <Text style={styles.formLabel}>Gamme de prix ({t('common.currency_default')})</Text>
+                    <Text style={styles.formLabel}>Gamme de prix ({getCurrencySymbol(user?.currency)})</Text>
                     <View style={{ flexDirection: 'row', gap: 10, marginBottom: Spacing.md }}>
                       <View style={{ flex: 1 }}>
                         <TextInput
@@ -1746,7 +1747,7 @@ export default function SuppliersScreen() {
                     {mpDetail.profile.min_order_amount > 0 && (
                       <View style={[styles.mpKpiPill, { backgroundColor: colors.warning + '15' }]}>
                         <Ionicons name="cash" size={14} color={colors.warning} />
-                        <Text style={[styles.mpKpiText, { color: colors.warning }]}>Min {mpDetail.profile.min_order_amount.toLocaleString()} {t('common.currency_short')}</Text>
+                        <Text style={[styles.mpKpiText, { color: colors.warning }]}>Min {formatUserCurrency(mpDetail.profile.min_order_amount, user)}</Text>
                       </View>
                     )}
                     <View style={[styles.mpKpiPill, { backgroundColor: colors.primary + '15' }]}>
@@ -1813,7 +1814,7 @@ export default function SuppliersScreen() {
                               ) : null}
                             </View>
                             <View style={styles.mpCatalogPriceBox}>
-                              <Text style={styles.mpCatalogPrice}>{product.price.toLocaleString()} {t('common.currency_short')}</Text>
+                              <Text style={styles.mpCatalogPrice}>{formatUserCurrency(product.price, user)}</Text>
                               <Text style={styles.mpCatalogUnit}>/{product.unit}</Text>
                             </View>
                           </View>

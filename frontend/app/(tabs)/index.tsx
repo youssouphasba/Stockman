@@ -54,7 +54,7 @@ import TipCard from '../../components/TipCard';
 import ForecastCard from '../../components/ForecastCard';
 import SmartRemindersCard from '../../components/SmartRemindersCard';
 import AiDailySummary from '../../components/AiDailySummary';
-import { formatCurrency as globalFormatCurrency } from '../../utils/format';
+import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -363,7 +363,7 @@ export default function DashboardScreen() {
           <AnimatedCounter
             value={numericValue}
             style={[styles.kpiValue, { color: colors.text }]}
-            suffix={isCurrency ? ` ${t('common.currency_default')}` : ''}
+            suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
           />
         ) : (
           <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
@@ -459,7 +459,7 @@ export default function DashboardScreen() {
               width={screenWidth - Spacing.md * 2}
               height={220}
               yAxisLabel=""
-              yAxisSuffix={" " + t('common.currency_short')}
+              yAxisSuffix={" " + getCurrencySymbol(user?.currency)}
               chartConfig={{
                 backgroundColor: colors.bgMid,
                 backgroundGradientFrom: colors.bgMid,
@@ -588,7 +588,7 @@ export default function DashboardScreen() {
                     <Text style={styles.saleDate}>{formatDate(sale.created_at)}</Text>
                     <Text style={styles.saleItemsCount}>{t('common.items_count', { count: sale.items.length })}</Text>
                   </View>
-                  <Text style={styles.saleAmount}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                  <Text style={styles.saleAmount}>{globalFormatCurrency(sale.total_amount, user?.currency)}</Text>
                 </View>
               ))}
             </View>
@@ -616,7 +616,7 @@ export default function DashboardScreen() {
               width={screenWidth - Spacing.md * 2}
               height={220}
               yAxisLabel=""
-              yAxisSuffix={" " + t('common.currency_short')}
+              yAxisSuffix={" " + getCurrencySymbol(user?.currency)}
               yAxisInterval={1}
               chartConfig={{
                 backgroundColor: colors.bgMid,

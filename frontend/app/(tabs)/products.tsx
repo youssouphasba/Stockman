@@ -59,6 +59,7 @@ import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { generateAndSharePdf, generateProductLabelPdf } from '../../utils/pdfReports';
 import BulkImportModal from '../../components/BulkImportModal';
+import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -1094,7 +1095,7 @@ export default function ProductsScreen() {
               <div class="card">
                 ${p.image ? `<img src="${uploads.getFullUrl(p.image) || p.image}" />` : '<div class="placeholder">📦</div>'}
                 <div class="name">${p.name}</div>
-                <div class="price">${p.selling_price.toLocaleString()} {t('common.currency_default')}</div>
+                <div class="price">${formatUserCurrency(p.selling_price, user)}</div>
               </div>
             `).join('')}
           </div>
@@ -1156,7 +1157,7 @@ export default function ProductsScreen() {
         <body>
           <div class="container">
             <h1>${product.name}</h1>
-            <div class="price">${product.selling_price.toLocaleString()} {t('common.currency_default')}</div>
+            <div class="price">${formatUserCurrency(product.selling_price, user)}</div>
             <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${product.sku || product.product_id}" />
             <div class="sku">SKU: ${product.sku || product.product_id.slice(-6).toUpperCase()}</div>
           </div>
@@ -1199,7 +1200,7 @@ export default function ProductsScreen() {
         subtitle: t('products.product_count', { count: filtered.length }),
         kpis: [
           { label: 'Produits', value: filtered.length.toString() },
-          { label: 'Valeur stock', value: `${totalValue.toLocaleString()} ${t('common.currency_short')}` },
+          { label: 'Valeur stock', value: formatUserCurrency(totalValue, user) },
           { label: 'Stock bas', value: lowStock.toString(), color: '#FF9800' },
           { label: 'Ruptures', value: outOfStock.toString(), color: '#f44336' },
         ],
@@ -1214,9 +1215,9 @@ export default function ProductsScreen() {
               cat?.name || '-',
               p.quantity.toString(),
               p.unit,
-              `${p.purchase_price.toLocaleString()} ${t('common.currency_short')}`,
-              `${p.selling_price.toLocaleString()} ${t('common.currency_short')}`,
-              `${(p.quantity * p.purchase_price).toLocaleString()} ${t('common.currency_short')}`,
+              formatUserCurrency(p.purchase_price, user),
+              formatUserCurrency(p.selling_price, user),
+              formatUserCurrency(p.quantity * p.purchase_price, user),
             ];
           }),
         }],
@@ -1396,7 +1397,7 @@ export default function ProductsScreen() {
           <View style={styles.valuationInfo}>
             <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
             <Text style={styles.valuationValue}>
-              {productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0).toLocaleString()} {t('common.currency_default')}
+              {formatUserCurrency(productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0), user)}
             </Text>
           </View>
           <View style={styles.valuationBadge}>
@@ -1464,7 +1465,7 @@ export default function ProductsScreen() {
                       {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
                       <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
                         <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
-                          +{margin.toLocaleString()} {t('common.currency_default')}
+                          +{formatUserCurrency(margin, user)}
                         </Text>
                       </View>
                     </View>
@@ -1547,7 +1548,7 @@ export default function ProductsScreen() {
                       </View>
                       <View style={styles.detailItem}>
                         <Text style={styles.detailLabel}>{t('products.stock_value')}</Text>
-                        <Text style={styles.detailValue}>{(product.quantity * product.purchase_price).toLocaleString()} {t('common.currency_default')}</Text>
+                        <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
                       </View>
                     </View>
 
@@ -1558,7 +1559,7 @@ export default function ProductsScreen() {
                         {product.variants.map(v => (
                           <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${v.selling_price.toLocaleString()} ${t('common.currency_short')}` : ''}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
                           </View>
                         ))}
                       </View>

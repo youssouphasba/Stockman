@@ -1869,6 +1869,7 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
     await _save_ai_message(user.user_id, "user", prompt.message)
 
     try:
+        user_doc = await db.users.find_one({"user_id": user.user_id})
         genai.configure(api_key=api_key)
 
         # 1. Get relevant context via RAG

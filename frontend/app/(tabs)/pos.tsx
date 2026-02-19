@@ -34,6 +34,7 @@ import {
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -371,7 +372,7 @@ export default function POSScreen() {
                                     <Text style={styles.stockText}>{product.quantity}</Text>
                                 </View>
                                 <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                                <Text style={styles.productPrice}>{product.selling_price.toLocaleString()} {t('common.currency_default')}</Text>
+                                <Text style={styles.productPrice}>{formatUserCurrency(product.selling_price, user)}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -445,7 +446,7 @@ export default function POSScreen() {
                                 <View key={item.product.product_id} style={styles.cartItem}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
-                                        <Text style={styles.cartItemPrice}>{(item.product.selling_price * item.quantity).toLocaleString()} {t('common.currency_default')}</Text>
+                                        <Text style={styles.cartItemPrice}>{formatUserCurrency(item.product.selling_price * item.quantity, user)}</Text>
                                     </View>
                                     <View style={styles.qtyContainer}>
                                         <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, -1)}>
@@ -481,7 +482,7 @@ export default function POSScreen() {
                                             onPress={() => prod && addToCart(prod)}
                                         >
                                             <Text style={{ fontSize: 11, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{s.name}</Text>
-                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{s.selling_price.toLocaleString()} {t('common.currency_short')}</Text>
+                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{formatUserCurrency(s.selling_price, user)}</Text>
                                             <Ionicons name="add-circle" size={16} color={colors.primary} />
                                         </TouchableOpacity>
                                     );
@@ -493,7 +494,7 @@ export default function POSScreen() {
                     <View style={styles.checkoutSection}>
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalAmount}>{total.toLocaleString()} {t('common.currency_default')}</Text>
+                            <Text style={styles.totalAmount}>{formatUserCurrency(total, user)}</Text>
                         </View>
 
                         <View style={styles.paymentMethods}>

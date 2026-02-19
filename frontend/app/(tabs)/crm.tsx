@@ -540,8 +540,8 @@ export default function CRMScreen() {
         };
 
         const msg = paymentType === 'payment'
-            ? t('crm.confirm_payment', { amount: amount.toLocaleString() })
-            : t('crm.confirm_debt', { amount: amount.toLocaleString() });
+            ? t('crm.confirm_payment', { amount: formatCurrency(amount, user?.currency) })
+            : t('crm.confirm_debt', { amount: formatCurrency(amount, user?.currency) });
 
         if (Platform.OS === 'web') {
             if (window.confirm(msg)) {

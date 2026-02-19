@@ -6,10 +6,14 @@ import { User } from '../services/api';
  * @param currency Currency code (XOF, EUR, etc.)
  * @returns Formatted string (e.g. "1 500 FCFA" or "1 500 €")
  */
-export function formatCurrency(amount: number, currency: string = 'XOF'): string {
-    if (amount === undefined || amount === null) return '0 ' + getCurrencySymbol(currency);
+export function formatCurrency(amount: number | string | null | undefined, currency: string = 'XOF'): string {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
 
-    const formatted = amount.toLocaleString('fr-FR', {
+    if (numericAmount === undefined || numericAmount === null || isNaN(numericAmount)) {
+        return `0 ${getCurrencySymbol(currency)}`;
+    }
+
+    const formatted = numericAmount.toLocaleString('fr-FR', {
         maximumFractionDigits: 0,
     });
 
