@@ -54,7 +54,7 @@ import PremiumGate from '../../components/PremiumGate';
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
 
@@ -602,7 +602,7 @@ export default function OrdersScreen() {
     }
   }
 
-  const isLocked = user?.plan !== 'premium';
+  const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
 
   if (loading && !isLocked) {
     return (

@@ -87,7 +87,7 @@ export default function AccountingScreen() {
     // Applied dates: only updated when user clicks "Appliquer", not on every keystroke
     const [appliedStart, setAppliedStart] = useState<string>('');
     const [appliedEnd, setAppliedEnd] = useState<string>('');
-    const { user } = useAuth();
+    const { user, isSuperAdmin } = useAuth();
     const [currentStore, setCurrentStore] = useState<Store | null>(null);
 
     // Expenses
@@ -494,7 +494,7 @@ export default function AccountingScreen() {
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
-    const isLocked = user?.plan !== 'premium';
+    const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
 
     if (loading && !isLocked) {
         return (

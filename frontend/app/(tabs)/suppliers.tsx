@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,7 +51,7 @@ import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../uti
 export default function SuppliersScreen() {
   const { colors, glassStyle } = useTheme();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
   const router = useRouter();
@@ -68,6 +69,7 @@ export default function SuppliersScreen() {
   const [filterHasPhone, setFilterHasPhone] = useState(false);
   const [filterHasEmail, setFilterHasEmail] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [filterProduct, setFilterProduct] = useState('');
 
   // Marketplace state
   const [mpSuppliers, setMpSuppliers] = useState<MarketplaceSupplier[]>([]);
@@ -531,7 +533,7 @@ export default function SuppliersScreen() {
     return stars;
   }
 
-  const isLocked = user?.plan !== 'premium';
+  const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
 
   if (loading && !isLocked) {
     return (

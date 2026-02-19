@@ -91,7 +91,7 @@ export default function CRMScreen() {
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
     const styles = getStyles(colors, glassStyle);
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, isSuperAdmin } = useAuth();
     const canWrite = hasPermission('crm', 'write');
     const [customerList, setCustomerList] = useState<Customer[]>([]);
     const [promoList, setPromoList] = useState<Promotion[]>([]);
@@ -576,7 +576,7 @@ export default function CRMScreen() {
         return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     }).length;
 
-    const isLocked = user?.plan !== 'premium';
+    const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
 
     if (loading && !isLocked) {
         return (
