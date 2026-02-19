@@ -12,6 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { formatCurrency, formatNumber } from '../utils/format';
 import { useTheme } from '../contexts/ThemeContext';
 import { orders, products as productsApi, MatchSuggestion, DeliveryMappingItem, Product } from '../services/api';
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
@@ -217,7 +218,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.catalogName, { color: colors.text }]}>{s.catalog_name}</Text>
                             <Text style={[styles.catalogMeta, { color: colors.textMuted }]}>
-                              {s.quantity} x {s.unit_price.toLocaleString()} {t('common.currency_short')}
+                              {s.quantity} x {formatNumber(s.unit_price)} {t('common.currency_short')}
                               {s.catalog_category ? ` | ${s.catalog_category}` : ''}
                               {s.catalog_subcategory ? ` > ${s.catalog_subcategory}` : ''}
                             </Text>

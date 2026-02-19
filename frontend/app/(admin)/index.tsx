@@ -8,6 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { FilterBar, SearchBar, StatCard, Badge, SectionHeader, Card, ActionButton, EmptyState } from '../../components/AdminUI';
+import { formatCurrency, formatNumber } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
@@ -30,10 +31,7 @@ const SEGMENTS: { id: Segment; label: string; icon: string }[] = [
 ];
 
 const fmt = (n: number) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
-const fmtMoney = (n: any, currency?: string) => {
-    const val = Number(n) || 0;
-    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' ' + (currency === 'EUR' ? '€' : 'F');
-};
+const fmtMoney = (n: any, currency?: string) => formatCurrency(n, currency);
 
 export default function AdminDashboard() {
     const { colors } = useTheme();
@@ -230,7 +228,7 @@ export default function AdminDashboard() {
                 <>
                     <SectionHeader title="Revenus" colors={colors} />
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.revenue, user?.currency)}</Text>
+                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
                         <StatCard label="7 jours" value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
                         <StatCard label="30 jours" value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} />
                     </View>
@@ -650,7 +648,7 @@ export default function AdminDashboard() {
                                 <Ionicons name={e.type === 'login_failed' ? 'close-circle' : 'shield-checkmark'} size={18} color={eColor} />
                                 <Text style={{ color: colors.text, fontWeight: '600' }}>{e.type}</Text>
                             </View>
-                            <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(e.created_at).toLocaleString('fr-FR')}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 11 }}>{e.created_at ? new Date(e.created_at).toLocaleString('fr-FR') : '?'}</Text>
                         </View>
                         <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>{e.user_email || e.details}</Text>
                     </Card>
@@ -672,7 +670,7 @@ export default function AdminDashboard() {
                             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: moduleColors[l.module] || '#6B7280' }} />
                             <Badge label={l.module || '?'} color={moduleColors[l.module] || '#6B7280'} />
                         </View>
-                        <Text style={{ color: colors.textMuted, fontSize: 10 }}>{new Date(l.created_at).toLocaleString('fr-FR')}</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 10 }}>{l.created_at ? new Date(l.created_at).toLocaleString('fr-FR') : '?'}</Text>
                     </View>
                     <Text style={{ color: colors.text, fontSize: 13, marginTop: 4 }}>{l.description || l.action}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{l.user_name}</Text>

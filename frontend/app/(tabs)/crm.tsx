@@ -35,7 +35,7 @@ import {
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateAndSharePdf } from '../../utils/pdfReports';
-import { formatCurrency, getCurrencySymbol } from '../../utils/format';
+import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import PremiumGate from '../../components/PremiumGate';
 
 
@@ -957,7 +957,7 @@ export default function CRMScreen() {
                                             </View>
                                             <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
                                             <View style={{ alignItems: 'center' }}>
-                                                <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.success }}>{detailCustomer.total_spent.toLocaleString()}</Text>
+                                                <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.success }}>{formatNumber(detailCustomer.total_spent)}</Text>
                                                 <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('common.currency_default')}</Text>
                                             </View>
                                             <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
@@ -1018,7 +1018,7 @@ export default function CRMScreen() {
                                                                     {detailCustomer.current_debt > 0 ? 'Dette en cours' : 'Crédit (Avance)'}
                                                                 </Text>
                                                                 <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
-                                                                    {Math.abs(detailCustomer.current_debt || 0).toLocaleString()} {t('common.currency_default')}
+                                                                    {formatNumber(Math.abs(detailCustomer.current_debt || 0))} {t('common.currency_default')}
                                                                 </Text>
                                                             </View>
                                                             <TouchableOpacity style={[styles.payBtn, detailCustomer.current_debt < 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
@@ -1090,7 +1090,7 @@ export default function CRMScreen() {
                                                             <Text style={styles.miniStatLabel}>{t('crm.tab_purchases')}</Text>
                                                         </View>
                                                         <View style={styles.miniStat}>
-                                                            <Text style={styles.miniStatValue}>{customerSalesStats.average_basket.toLocaleString()}</Text>
+                                                            <Text style={styles.miniStatValue}>{formatNumber(customerSalesStats.average_basket)}</Text>
                                                             <Text style={styles.miniStatLabel}>{t('crm.avg_basket')}</Text>
                                                         </View>
                                                         <View style={styles.miniStat}>
@@ -1124,12 +1124,12 @@ export default function CRMScreen() {
                                                                         <View key={i} style={styles.saleItemRow}>
                                                                             <Text style={styles.saleItemName}>{item.product_name}</Text>
                                                                             <Text style={styles.saleItemQty}>x{item.quantity}</Text>
-                                                                            <Text style={styles.saleItemPrice}>{item.total.toLocaleString()} {t('common.currency_short')}</Text>
+                                                                            <Text style={styles.saleItemPrice}>{formatNumber(item.total)} {t('common.currency_short')}</Text>
                                                                         </View>
                                                                     ))}
                                                                     <View style={styles.saleTotalRow}>
                                                                         <Text style={styles.saleTotalLabel}>{t('common.total')}</Text>
-                                                                        <Text style={styles.saleTotalValue}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                                                                        <Text style={styles.saleTotalValue}>{formatNumber(sale.total_amount)} {t('common.currency_default')}</Text>
                                                                     </View>
                                                                 </View>
                                                             ))}
@@ -1178,7 +1178,7 @@ export default function CRMScreen() {
                                                                                 fontWeight: 'bold',
                                                                                 color: isDebtIncrease ? colors.danger : colors.success
                                                                             }}>
-                                                                                {isDebtIncrease ? '+' : '-'}{Math.abs(item.amount).toLocaleString()} {t('common.currency_short')}
+                                                                                {isDebtIncrease ? '+' : '-'}{formatNumber(Math.abs(item.amount))} {t('common.currency_short')}
                                                                             </Text>
                                                                         </View>
                                                                         {item.details ? (
@@ -1522,7 +1522,7 @@ export default function CRMScreen() {
                                 <View style={styles.quickAmountsRow}>
                                     {paymentType === 'payment' && (
                                         <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount(detailCustomer?.current_debt.toString() || '0')}>
-                                            <Text style={styles.quickAmountText}>{t('common.all')} ({detailCustomer?.current_debt.toLocaleString()})</Text>
+                                            <Text style={styles.quickAmountText}>{t('common.all')} ({formatNumber(detailCustomer?.current_debt)})</Text>
                                         </TouchableOpacity>
                                     )}
                                     <TouchableOpacity style={styles.quickAmountBtn} onPress={() => setPaymentAmount('5000')}>
@@ -1541,7 +1541,7 @@ export default function CRMScreen() {
                                             styles.balancePreviewValue,
                                             (detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)) > 0 ? { color: colors.danger } : { color: colors.success }
                                         ]}>
-                                            {(detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1)).toLocaleString()} {t('common.currency_default')}
+                                            {formatNumber(detailCustomer.current_debt - (parseFloat(paymentAmount) || 0) * (paymentType === 'payment' ? 1 : -1))} {t('common.currency_default')}
                                         </Text>
                                     </View>
                                 )}

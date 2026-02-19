@@ -803,8 +803,9 @@ export default function SuppliersScreen() {
                 </View>
               ) : (
                 filtered.map((supplier) => {
-                  const initials = supplier.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                  const hue = supplier.name.charCodeAt(0) * 5 % 360;
+                  const name = supplier.name || t('common.unknown');
+                  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  const hue = name.charCodeAt(0) * 5 % 360;
                   const avatarColor = `hsl(${hue}, 60%, 50%)`;
 
                   return (
@@ -1336,7 +1337,7 @@ export default function SuppliersScreen() {
                               </View>
                               <View style={styles.historyDetails}>
                                 <Text style={styles.historyAmount}>{formatUserCurrency(o.total_amount, user)}</Text>
-                                <Text style={styles.historyDate}>{new Date(o.created_at).toLocaleDateString()}</Text>
+                                <Text style={styles.historyDate}>{o.created_at ? new Date(o.created_at).toLocaleDateString() : ''}</Text>
                               </View>
                             </TouchableOpacity>
                           ))
@@ -1428,7 +1429,7 @@ export default function SuppliersScreen() {
                                 <View style={styles.logLine} />
                               </View>
                               <View style={styles.logBody}>
-                                <Text style={styles.logDate}>{new Date(log.created_at).toLocaleString()}</Text>
+                                <Text style={styles.logDate}>{log.created_at ? new Date(log.created_at).toLocaleString() : ''}</Text>
                                 <Text style={styles.logContent}>{log.content}</Text>
                               </View>
                             </View>

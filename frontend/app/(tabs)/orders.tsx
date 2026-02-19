@@ -47,7 +47,7 @@ import OrderStatusProgressBar from '../../components/OrderStatusProgressBar';
 import DeliveryConfirmationModal from '../../components/DeliveryConfirmationModal';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfReports';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 
@@ -1056,11 +1056,11 @@ export default function OrdersScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 13, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
                         <Text style={{ fontSize: 11, color: colors.textMuted }}>
-                          {item.quantity} x {(item.unit_price || 0).toLocaleString()} {t('common.currency_default')}
+                          {item.quantity} x {formatNumber(item.unit_price || 0)} {t('common.currency_default')}
                         </Text>
                       </View>
                       <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
-                        {(item.total || item.quantity * item.unit_price || 0).toLocaleString()} {t('common.currency_short')}
+                        {formatNumber(item.total || item.quantity * item.unit_price || 0)} {t('common.currency_short')}
                       </Text>
                     </View>
                   ))}
@@ -1069,7 +1069,7 @@ export default function OrdersScreen() {
                   {scanResult.total_amount != null && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, marginTop: Spacing.xs }}>
                       <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Total</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{scanResult.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{formatNumber(scanResult.total_amount)} {t('common.currency_default')}</Text>
                     </View>
                   )}
 

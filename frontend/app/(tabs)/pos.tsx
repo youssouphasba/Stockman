@@ -34,7 +34,7 @@ import {
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
+import { formatCurrency, formatUserCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -238,23 +238,23 @@ export default function POSScreen() {
             const newDebt = selectedCustomer.current_debt + total;
             if (Platform.OS === 'web') {
                 if (window.confirm(
-                    `Confirmation Crédit\n\n` +
-                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} ${t('common.currency_short')}\n` +
-                    `Nouveau montant : ${total.toLocaleString()} ${t('common.currency_short')}\n` +
+                    `${t('pos.credit_confirmation_title')}\n\n` +
+                    `${t('pos.old_debt')} : ${formatNumber(selectedCustomer.current_debt)} ${t('common.currency_short')}\n` +
+                    `${t('pos.new_amount')} : ${formatNumber(total)} ${t('common.currency_short')}\n` +
                     `----------------\n` +
-                    `Nouvelle dette : ${newDebt.toLocaleString()} ${t('common.currency_short')}\n\n` +
-                    `Confirmer la vente à crédit ?`
+                    `${t('pos.new_debt')} : ${formatNumber(newDebt)} ${t('common.currency_short')}\n\n` +
+                    `${t('pos.confirm_credit_sale')}`
                 )) {
                     processCheckout(method);
                 }
             } else {
                 Alert.alert(
-                    'Confirmation Crédit',
-                    `Ancienne dette : ${selectedCustomer.current_debt.toLocaleString()} ${t('common.currency_short')}\n` +
-                    `Nouveau montant : ${total.toLocaleString()} ${t('common.currency_short')}\n` +
+                    t('pos.credit_confirmation_title'),
+                    `${t('pos.old_debt')} : ${formatNumber(selectedCustomer.current_debt)} ${t('common.currency_short')}\n` +
+                    `${t('pos.new_amount')} : ${formatNumber(total)} ${t('common.currency_short')}\n` +
                     `----------------\n` +
-                    `Nouvelle dette : ${newDebt.toLocaleString()} ${t('common.currency_short')}\n\n` +
-                    `Confirmer la vente à crédit ?`,
+                    `${t('pos.new_debt')} : ${formatNumber(newDebt)} ${t('common.currency_short')}\n\n` +
+                    `${t('pos.confirm_credit_sale')}`,
                     [
                         { text: 'Annuler', style: 'cancel' },
                         { text: 'Confirmer', onPress: () => processCheckout(method) }
@@ -425,7 +425,7 @@ export default function POSScreen() {
                                             }}>
                                                 <Ionicons name="alert-circle" size={10} color={colors.danger} />
                                                 <Text style={{ fontSize: 10, color: colors.danger, fontWeight: '700' }}>
-                                                    {c.current_debt.toLocaleString()}
+                                                    {formatNumber(c.current_debt)}
                                                 </Text>
                                             </View>
                                         )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { formatCurrency, formatNumber } from '../utils/format';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import StepProgressBar from './StepProgressBar';
 import QuantityStepper from './QuantityStepper';
@@ -62,6 +64,7 @@ export default function OrderCreationModal({
   preLoadedCatalog,
 }: Props) {
   const { colors, glassStyle } = useTheme();
+  const { t } = useTranslation();
   const s = getStyles(colors, glassStyle);
 
   // Steps
@@ -257,7 +260,7 @@ export default function OrderCreationModal({
 
     const msg = t('orders.confirm_send_to', {
       supplier: selectedSupplier.name,
-      amount: total.toLocaleString(),
+      amount: formatNumber(total),
       currency: t('common.currency_default')
     });
 
@@ -301,12 +304,12 @@ export default function OrderCreationModal({
           <View style={s.productInfo}>
             <Text style={s.productName}>{item.name}</Text>
             <Text style={s.productPrice}>
-              {item.unit_price.toLocaleString()} {t('common.currency_short')}/{item.unit}
+              {formatNumber(item.unit_price)} {t('common.currency_short')}/{item.unit}
             </Text>
           </View>
           <View style={s.productRight}>
             {isSelected && (
-              <Text style={s.lineTotal}>{(qty * item.unit_price).toLocaleString()} {t('common.currency_short')}</Text>
+              <Text style={s.lineTotal}>{formatNumber(qty * item.unit_price)} {t('common.currency_short')}</Text>
             )}
             <QuantityStepper
               value={qty}
@@ -515,7 +518,7 @@ export default function OrderCreationModal({
                 <View style={s.stickyFooter}>
                   <View style={s.footerInfo}>
                     <Text style={s.footerCount}>{itemCount} article(s)</Text>
-                    <Text style={s.footerTotal}>{total.toLocaleString()} {t('common.currency_default')}</Text>
+                    <Text style={s.footerTotal}>{formatNumber(total)} {t('common.currency_default')}</Text>
                   </View>
                   <TouchableOpacity
                     style={[s.footerBtn, itemCount === 0 && s.footerBtnDisabled]}
@@ -549,10 +552,10 @@ export default function OrderCreationModal({
                   <View style={s.reviewItem}>
                     <Text style={s.reviewItemName}>{item.name}</Text>
                     <Text style={s.reviewItemDetail}>
-                      {quantities[item.id]} x {item.unit_price.toLocaleString()} {t('common.currency_short')}
+                      {quantities[item.id]} x {formatNumber(item.unit_price)} {t('common.currency_short')}
                     </Text>
                     <Text style={s.reviewItemTotal}>
-                      {((quantities[item.id] || 0) * item.unit_price).toLocaleString()} {t('common.currency_short')}
+                      {formatNumber((quantities[item.id] || 0) * item.unit_price)} {t('common.currency_short')}
                     </Text>
                   </View>
                 )}
@@ -572,7 +575,7 @@ export default function OrderCreationModal({
                     {/* Total */}
                     <View style={s.totalRow}>
                       <Text style={s.totalLabel}>Total</Text>
-                      <Text style={s.totalValue}>{total.toLocaleString()} {t('common.currency_default')}</Text>
+                      <Text style={s.totalValue}>{formatNumber(total)} {t('common.currency_default')}</Text>
                     </View>
 
                     {/* Submit */}

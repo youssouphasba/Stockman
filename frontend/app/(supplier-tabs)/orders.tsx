@@ -10,13 +10,17 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { supplierOrders, SupplierOrderData, updateSupplierOrderStatus } from '../../services/api';
+import { supplierOrders, SupplierOrderData } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatNumber } from '../../utils/format';
+import PeriodSelector, { Period } from '../../components/PeriodSelector';
+import ChatModal from '../../components/ChatModal';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'En attente',
@@ -140,7 +144,7 @@ export default function SupplierOrdersScreen() {
   }
 
   async function handleStatusChange(orderId: string, newStatus: string) {
-    const confirmText = newStatus === 'cancelled' ? 'Refuser cette commande ?' : `Changer le statut en "${STATUS_LABELS[newStatus]}" ? `;
+    const confirmText = newStatus === 'cancelled' ? t('orders.confirm_cancel') : `${t('orders.change_status_to')} "${STATUS_LABELS[newStatus]}" ? `;
 
     const executeChange = async () => {
       setUpdating(true);
@@ -198,7 +202,7 @@ export default function SupplierOrdersScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
       >
-        <Text style={styles.pageTitle}>Commandes reçues</Text>
+        <Text style={styles.pageTitle}>{t('orders.received_orders')}</Text>
 
         {/* Date Filter */}
         <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
@@ -229,7 +233,7 @@ export default function SupplierOrdersScreen() {
         {/* Filters - Clients */}
         {clients.length > 0 && (
           <View style={{ marginBottom: Spacing.md }}>
-            <Text style={styles.filterTitle}>Filtrer par commerçant</Text>
+            <Text style={styles.filterTitle}>{t('orders.filter_by_shopkeeper')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRow}>
               <TouchableOpacity
                 style={[styles.filterChip, !shopkeeperFilter && styles.filterChipActive]}
@@ -264,7 +268,7 @@ export default function SupplierOrdersScreen() {
                 <View>
                   <Text style={styles.orderShopkeeper}>{order.shopkeeper_name}</Text>
                   <Text style={styles.orderDate}>
-                    {new Date(order.created_at).toLocaleDateString('fr-FR')}
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : ''}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
@@ -276,7 +280,7 @@ export default function SupplierOrdersScreen() {
 
               <View style={styles.orderDetails}>
                 <Text style={styles.orderItems}>{order.items_count} article{order.items_count > 1 ? 's' : ''}</Text>
-                <Text style={styles.orderTotal}>{order.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                <Text style={styles.orderTotal}>{formatNumber(order.total_amount)} {t('common.currency_default')}</Text>
               </View>
 
               {actions.length > 0 && (
@@ -300,7 +304,7 @@ export default function SupplierOrdersScreen() {
         {ordersList.length === 0 && (
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>Aucune commande {filter !== 'all' ? FILTER_LABELS[filter].toLowerCase() : ''}</Text>
+            <Text style={styles.emptyText}>{t('orders.no_orders')} {filter !== 'all' ? FILTER_LABELS[filter].toLowerCase() : ''}</Text>
           </View>
         )}
 
@@ -312,7 +316,7 @@ export default function SupplierOrdersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Détail commande</Text>
+              <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
               <TouchableOpacity onPress={() => setShowDetail(false)}>
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
@@ -330,12 +334,12 @@ export default function SupplierOrdersScreen() {
             {selectedOrder && (
               <ScrollView style={styles.modalScroll}>
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Client</Text>
+                  <Text style={styles.detailSectionTitle}>{t('orders.client')}</Text>
                   <Text style={styles.detailText}>{selectedOrder.shopkeeper_name}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Statut</Text>
+                  <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) + '20', alignSelf: 'flex-start' }]}>
                     <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status) }]}>
                       {STATUS_LABELS[selectedOrder.status] ?? selectedOrder.status}
@@ -344,30 +348,30 @@ export default function SupplierOrdersScreen() {
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Date</Text>
+                  <Text style={styles.detailSectionTitle}>{t('common.date')}</Text>
                   <Text style={styles.detailText}>
-                    {new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {
+                    {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                    })}
+                    }) : ''}
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Articles</Text>
+                  <Text style={styles.detailSectionTitle}>{t('orders.items')}</Text>
                   {selectedOrder.items?.map((item, idx) => (
                     <View key={idx} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
                         <Text style={styles.itemName}>{item.product?.name ?? `Produit #${item.product_id.slice(-6)} `}</Text>
-                        <Text style={styles.itemQty}>{item.quantity} x {item.unit_price.toLocaleString()} {t('common.currency_short')}</Text>
+                        <Text style={styles.itemQty}>{item.quantity} x {formatNumber(item.unit_price)} {t('common.currency_short')}</Text>
                       </View>
-                      <Text style={styles.itemTotal}>{item.total_price.toLocaleString()} {t('common.currency_short')}</Text>
+                      <Text style={styles.itemTotal}>{formatNumber(item.total_price)} {t('common.currency_short')}</Text>
                     </View>
                   ))}
                 </View>
 
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>{selectedOrder.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
+                  <Text style={styles.totalLabel}>{t('common.total')}</Text>
+                  <Text style={styles.totalValue}>{formatNumber(selectedOrder.total_amount)} {t('common.currency_default')}</Text>
                 </View>
 
                 {/* Actions */}

@@ -17,6 +17,7 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supplierProfile, SupplierProfileData, SupplierProfileCreate } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { formatNumber } from '../../utils/format';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 
 export default function SupplierSettingsScreen() {
@@ -237,7 +238,7 @@ export default function SupplierSettingsScreen() {
               {profile.city ? <InfoRow label="Ville" value={profile.city} /> : null}
               {profile.categories?.length > 0 && <InfoRow label="Catégories" value={profile.categories.join(', ')} />}
               {profile.delivery_zones?.length > 0 && <InfoRow label="Zones de livraison" value={profile.delivery_zones.join(', ')} />}
-              <InfoRow label="Montant min commande" value={`${profile.min_order_amount.toLocaleString()} ${t('common.currency_default')}`} />
+              <InfoRow label="Montant min commande" value={`${formatNumber(profile.min_order_amount)} ${t('common.currency_default')}`} />
               <InfoRow label="Délai moyen" value={`${profile.average_delivery_days} jours`} />
               <InfoRow label="Note" value={`${profile.rating_average.toFixed(1)}/5 (${profile.rating_count} avis)`} />
             </>

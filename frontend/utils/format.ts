@@ -47,6 +47,21 @@ export function getCurrencySymbol(currency: string = 'XOF'): string {
 }
 
 /**
+ * Safely formats a number without currency symbol.
+ */
+export function formatNumber(amount: number | string | null | undefined): string {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+    if (numericAmount === undefined || numericAmount === null || isNaN(numericAmount)) {
+        return '0';
+    }
+
+    return numericAmount.toLocaleString('fr-FR', {
+        maximumFractionDigits: 0,
+    });
+}
+
+/**
  * Helper to use formatCurrency with a User object.
  */
 export function formatUserCurrency(amount: number, user: User | null): string {

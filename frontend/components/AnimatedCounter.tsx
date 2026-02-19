@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextStyle, Animated, Easing, Platform, StyleProp } from 'react-native';
+import { formatNumber } from '../utils/format';
 
 type AnimatedCounterProps = {
     value: number;
@@ -55,7 +56,7 @@ export default function AnimatedCounter({
             adjustsFontSizeToFit={adjustsFontSizeToFit}
             numberOfLines={numberOfLines}
         >
-            {prefix}{displayValue.toLocaleString()}{suffix}
+            {prefix}{formatNumber(displayValue)}{suffix}
         </Text>
     );
 }

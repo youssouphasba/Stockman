@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { sales, ForecastProduct, SalesForecastResponse } from '../services/api';
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
+import { formatNumber } from '../utils/format';
 
 type Props = {
   onNavigate?: () => void;
@@ -77,13 +78,13 @@ export default function ForecastCard({ onNavigate }: Props) {
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
           <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_7d')}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_7d.toLocaleString()} {data.currency || t('common.currency_default')}
+            {formatNumber(data.total_predicted_revenue_7d)} {data.currency || t('common.currency_default')}
           </Text>
         </View>
         <View style={[styles.kpiBox, { backgroundColor: colors.primary + '15' }]}>
           <Text style={[styles.kpiLabel, { color: colors.textMuted }]}>{t('dashboard.ca_predicted_30d')}</Text>
           <Text style={[styles.kpiValue, { color: colors.primary }]}>
-            {data.total_predicted_revenue_30d.toLocaleString()} {data.currency || t('common.currency_default')}
+            {formatNumber(data.total_predicted_revenue_30d)} {data.currency || t('common.currency_default')}
           </Text>
         </View>
       </View>

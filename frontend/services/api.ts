@@ -1779,6 +1779,7 @@ export type SupplierDashboardData = {
 
 export type SupplierOrderData = Order & {
   shopkeeper_name: string;
+  shopkeeper_user_id: string;
   items_count: number;
   items: OrderItem[];
 };

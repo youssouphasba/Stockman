@@ -59,7 +59,7 @@ import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { generateAndSharePdf, generateProductLabelPdf } from '../../utils/pdfReports';
 import BulkImportModal from '../../components/BulkImportModal';
-import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
+import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -2109,7 +2109,7 @@ export default function ProductsScreen() {
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.historyReason}>{mov.reason || (mov.type === 'in' ? 'Entrée' : 'Sortie')}</Text>
-                            <Text style={styles.historyDate}>{new Date(mov.created_at).toLocaleString()}</Text>
+                            <Text style={styles.historyDate}>{mov.created_at ? new Date(mov.created_at).toLocaleString() : ''}</Text>
                           </View>
                           <Text style={[styles.historyQty, { color: mov.type === 'in' ? colors.success : colors.warning }]}>
                             {mov.type === 'in' ? '+' : '-'}{mov.quantity}
@@ -2136,7 +2136,7 @@ export default function ProductsScreen() {
                     <View>
                       <View style={{ backgroundColor: colors.primary + '10', padding: Spacing.md, borderRadius: BorderRadius.md, marginBottom: Spacing.md, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View>
-                          <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>TOTAL VENDU</Text>
+                          <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>{t('products.total_quantity').toUpperCase()}</Text>
                           <Text style={{ fontSize: 20, fontWeight: '700', color: colors.primary }}>
                             {historySales.reduce((total, sale) => {
                               const item = sale.items.find(i => i.product_id === selectedProduct?.product_id);
@@ -2145,12 +2145,12 @@ export default function ProductsScreen() {
                           </Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>REVENU TOTAL</Text>
+                          <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>{t('products.total_revenue').toUpperCase()}</Text>
                           <Text style={{ fontSize: 16, fontWeight: '700', color: colors.success }}>
                             {historySales.reduce((total, sale) => {
                               const item = sale.items.find(i => i.product_id === selectedProduct?.product_id);
                               return total + (item?.total || 0);
-                            }, 0).toLocaleString()} {t('common.currency_default')}
+                            }, 0)} {t('common.currency_default')}
                           </Text>
                         </View>
                       </View>
@@ -2163,11 +2163,11 @@ export default function ProductsScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.historyReason}>Vente #{sale.sale_id.slice(-6)}</Text>
-                              <Text style={styles.historyDate}>{new Date(sale.created_at).toLocaleString()}</Text>
+                              <Text style={styles.historyDate}>{sale.created_at ? new Date(sale.created_at).toLocaleString() : ''}</Text>
                             </View>
                             <View style={{ alignItems: 'flex-end' }}>
-                              <Text style={[styles.historyQty, { color: colors.text }]}>{item?.quantity} x {item?.selling_price.toLocaleString()}</Text>
-                              <Text style={{ fontSize: 10, color: colors.textMuted }}>Total: {item?.total.toLocaleString()} {t('common.currency_default')}</Text>
+                              <Text style={[styles.historyQty, { color: colors.text }]}>{item?.quantity} x {formatNumber(item?.selling_price)}</Text>
+                              <Text style={{ fontSize: 10, color: colors.textMuted }}>Total: {formatNumber(item?.total)} {t('common.currency_default')}</Text>
                             </View>
                           </View>
                         );
@@ -2202,8 +2202,8 @@ export default function ProductsScreen() {
                             <Text style={styles.historyDate}>{new Date(ph.recorded_at).toLocaleDateString()}</Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={styles.historyQty}>{ph.selling_price.toLocaleString()} {t('common.currency_default')}</Text>
-                            <Text style={{ fontSize: 10, color: colors.textMuted }}>Achat: {ph.purchase_price.toLocaleString()} {t('common.currency_default')}</Text>
+                            <Text style={styles.historyQty}>{formatNumber(ph.selling_price)} {t('common.currency_default')}</Text>
+                            <Text style={{ fontSize: 10, color: colors.textMuted }}>Achat: {formatNumber(ph.purchase_price)} {t('common.currency_default')}</Text>
                           </View>
                         </View>
                       ))}

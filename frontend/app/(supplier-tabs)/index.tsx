@@ -16,6 +16,7 @@ import { useFocusEffect } from 'expo-router';
 import { supplierDashboard, SupplierDashboardData } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatNumber } from '../../utils/format';
 
 interface RatingRecord {
   rating_id: string;
@@ -100,31 +101,31 @@ export default function SupplierDashboard() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
       >
-        <Text style={styles.pageTitle}>Dashboard Fournisseur</Text>
+        <Text style={styles.pageTitle}>{t('supplier.dashboard_title')}</Text>
 
         {/* KPIs */}
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
             <Text style={styles.kpiValue}>{data?.catalog_products ?? 0}</Text>
-            <Text style={styles.kpiLabel}>Produits</Text>
+            <Text style={styles.kpiLabel}>{t('tabs.products')}</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.warning }]}>
             <Text style={styles.kpiValue}>{data?.total_orders ?? 0}</Text>
-            <Text style={styles.kpiLabel}>Commandes</Text>
+            <Text style={styles.kpiLabel}>{t('tabs.orders')}</Text>
           </View>
         </View>
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
-            <Text style={styles.kpiValue}>{(data?.total_revenue ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>CA Total ({t('common.currency_default')})</Text>
+            <Text style={styles.kpiValue}>{formatNumber(data?.total_revenue ?? 0)}</Text>
+            <Text style={styles.kpiLabel}>{t('dashboard.total_revenue_kpi')} ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.primary }]}>
             <View style={styles.ratingRow}>
               <Text style={styles.kpiValue}>{data?.rating_average?.toFixed(1) ?? '-'}</Text>
               <Text style={styles.kpiLabel}>/5</Text>
             </View>
-            <Text style={styles.kpiLabel}>Note ({data?.rating_count ?? 0} avis)</Text>
+            <Text style={styles.kpiLabel}>{t('supplier.rating')} ({data?.rating_count ?? 0} {t('supplier.reviews').toLowerCase()})</Text>
           </View>
         </View>
 
@@ -132,28 +133,28 @@ export default function SupplierDashboard() {
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.danger }]}>
             <Text style={styles.kpiValue}>{data?.pending_action ?? 0}</Text>
-            <Text style={styles.kpiLabel}>Commandes en attente</Text>
+            <Text style={styles.kpiLabel}>{t('supplier.pending_orders')}</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.info }]}>
-            <Text style={styles.kpiValue}>{(data?.revenue_this_month ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>CA ce mois ({t('common.currency_default')})</Text>
+            <Text style={styles.kpiValue}>{formatNumber(data?.revenue_this_month ?? 0)}</Text>
+            <Text style={styles.kpiLabel}>{t('supplier.revenue_this_month')} ({t('common.currency_default')})</Text>
           </View>
         </View>
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
-            <Text style={styles.kpiValue}>{(data?.avg_order_value ?? 0).toLocaleString()}</Text>
-            <Text style={styles.kpiLabel}>Panier moyen ({t('common.currency_default')})</Text>
+            <Text style={styles.kpiValue}>{formatNumber(data?.avg_order_value ?? 0)}</Text>
+            <Text style={styles.kpiLabel}>{t('supplier.average_basket')} ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
             <Text style={styles.kpiValue}>{data?.active_clients ?? 0}</Text>
-            <Text style={styles.kpiLabel}>Clients actifs</Text>
+            <Text style={styles.kpiLabel}>{t('supplier.active_clients')}</Text>
           </View>
         </View>
 
         {/* Top Produits */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Top Produits</Text>
+          <Text style={styles.sectionTitle}>{t('supplier.top_products')}</Text>
           {data?.top_products && data.top_products.length > 0 ? (
             data.top_products.map((product, index) => (
               <View key={index} style={styles.topProductRow}>
@@ -171,18 +172,18 @@ export default function SupplierDashboard() {
 
         {/* Recent orders */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Commandes récentes</Text>
+          <Text style={styles.sectionTitle}>{t('supplier.recent_orders')}</Text>
           {data?.recent_orders && data.recent_orders.length > 0 ? (
             data.recent_orders.slice(0, 5).map((order) => (
               <View key={order.order_id} style={styles.orderRow}>
                 <View style={styles.orderInfo}>
                   <Text style={styles.orderId}>#{order.order_id.slice(-6).toUpperCase()}</Text>
                   <Text style={styles.orderDate}>
-                    {new Date(order.created_at).toLocaleDateString('fr-FR')}
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : ''}
                   </Text>
                 </View>
                 <View style={styles.orderRight}>
-                  <Text style={styles.orderAmount}>{order.total_amount.toLocaleString()} {t('common.currency_short')}</Text>
+                  <Text style={styles.orderAmount}>{formatNumber(order.total_amount)} {t('common.currency_short')}</Text>
                   <View style={[styles.orderStatus, { backgroundColor: getStatusColor(order.status) + '20' }]}>
                     <Text style={[styles.orderStatusText, { color: getStatusColor(order.status) }]}>
                       {STATUS_LABELS[order.status] ?? order.status}
@@ -199,7 +200,7 @@ export default function SupplierDashboard() {
         {/* Reviews Section */}
         <View style={styles.card}>
           <View style={styles.reviewsHeader}>
-            <Text style={styles.sectionTitle}>Avis des clients</Text>
+            <Text style={styles.sectionTitle}>{t('supplier.client_reviews')}</Text>
             {(data?.rating_count ?? 0) > 0 && (
               <View style={styles.ratingBadge}>
                 <Ionicons name="star" size={14} color={Colors.warning} />
@@ -221,7 +222,7 @@ export default function SupplierDashboard() {
                   <Text style={styles.reviewComment}>{rating.comment}</Text>
                 )}
                 <Text style={styles.reviewDate}>
-                  {new Date(rating.created_at).toLocaleDateString('fr-FR')}
+                  {rating.created_at ? new Date(rating.created_at).toLocaleDateString('fr-FR') : ''}
                 </Text>
               </View>
             ))
