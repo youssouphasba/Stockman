@@ -204,31 +204,37 @@ export default function SuppliersScreen() {
     return dp[m][n];
   }
 
-  const filtered = supplierList
-    .filter((s) => {
+  const filtered = useMemo(() => {
+    if (!Array.isArray(supplierList)) return [];
+
+    let res = supplierList.filter(s => {
       const q = search.trim();
-      if (q) {
-        const fields = [
-          s.name,
-          s.contact_name ?? '',
-          s.products_supplied ?? '',
-          s.phone ?? '',
-          s.email ?? '',
-          s.address ?? '',
-        ].join(' ');
-        if (!fuzzyMatch(fields, q)) return false;
-      }
-      if (filterHasPhone && !s.phone) return false;
-      if (filterHasEmail && !s.email) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (filterSort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      if (filterSort === 'delay') return (a.delivery_delay ?? 'zzz').localeCompare(b.delivery_delay ?? 'zzz');
-      return a.name.localeCompare(b.name);
+      const fields = [
+        s.name,
+        s.contact_name ?? '',
+        s.products_supplied ?? '',
+        s.phone ?? '',
+        s.email ?? '',
+        s.address ?? '',
+      ].join(' ');
+      const matchSearch = !q || fuzzyMatch(fields, q);
+
+      const matchProduct = !filterProduct || (s.products_supplied || '').toLowerCase().includes(filterProduct.toLowerCase());
+      const matchPhone = !filterHasPhone || !!s.phone;
+      const matchEmail = !filterHasEmail || !!s.email;
+
+      return matchSearch && matchProduct && matchPhone && matchEmail;
     });
 
-  const activeFilterCount = (filterHasPhone ? 1 : 0) + (filterHasEmail ? 1 : 0) + (filterSort !== 'name' ? 1 : 0);
+    // Safe sort
+    return res.sort((a, b) => {
+      if (filterSort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (filterSort === 'delay') return (a.delivery_delay ?? 'zzz').localeCompare(b.delivery_delay ?? 'zzz');
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [supplierList, search, filterProduct, filterHasPhone, filterHasEmail, filterSort]);
+
+  const activeFilterCount = (filterHasPhone ? 1 : 0) + (filterHasEmail ? 1 : 0) + (filterSort !== 'name' ? 1 : 0) + (filterProduct ? 1 : 0);
 
   const activeMpFilterCount = (mpCity ? 1 : 0) + (mpCategory ? 1 : 0) + (mpMinRating > 0 ? 1 : 0) + (mpVerifiedOnly ? 1 : 0) + (mpPriceMin ? 1 : 0) + (mpPriceMax ? 1 : 0);
 
@@ -641,7 +647,7 @@ export default function SuppliersScreen() {
                   </View>
 
                   <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: 4 }}>{t('suppliers.filter_by')}</Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                     <TouchableOpacity
                       onPress={() => setFilterHasPhone(!filterHasPhone)}
                       style={{
@@ -666,11 +672,20 @@ export default function SuppliersScreen() {
                       <Ionicons name="mail-outline" size={14} color={filterHasEmail ? colors.success : colors.textMuted} />
                       <Text style={{ color: filterHasEmail ? colors.success : colors.text, fontSize: 12, fontWeight: '600' }}>{t('suppliers.with_email')}</Text>
                     </TouchableOpacity>
+                    <View style={{ flex: 1, minWidth: 150 }}>
+                      <TextInput
+                        style={{ ...styles.searchInput, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20, borderWidth: 1, borderColor: filterProduct ? colors.primary : colors.glassBorder, backgroundColor: filterProduct ? colors.primary + '10' : colors.glass }}
+                        placeholder={t('suppliers.filter_product_placeholder')}
+                        placeholderTextColor={colors.textMuted}
+                        value={filterProduct}
+                        onChangeText={setFilterProduct}
+                      />
+                    </View>
                   </View>
 
                   {activeFilterCount > 0 && (
                     <TouchableOpacity
-                      onPress={() => { setFilterSort('name'); setFilterHasPhone(false); setFilterHasEmail(false); }}
+                      onPress={() => { setFilterSort('name'); setFilterHasPhone(false); setFilterHasEmail(false); setFilterProduct(''); }}
                       style={{ alignSelf: 'flex-start', marginTop: 2 }}
                     >
                       <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '600' }}>{t('suppliers.reset_filters')}</Text>
@@ -681,7 +696,7 @@ export default function SuppliersScreen() {
 
               {/* Result count */}
               <Text style={{ color: colors.textMuted, fontSize: FontSize.xs, marginBottom: Spacing.sm }}>
-                {search
+                {search || activeFilterCount > 0
                   ? t('suppliers.supplier_search_count', { count: filtered.length, search })
                   : t('suppliers.supplier_count', { count: filtered.length })
                 }
@@ -804,7 +819,9 @@ export default function SuppliersScreen() {
               ) : (
                 filtered.map((supplier) => {
                   const name = supplier.name || t('common.unknown');
-                  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  const initials = name
+                    ? name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+                    : '??';
                   const hue = name.charCodeAt(0) * 5 % 360;
                   const avatarColor = `hsl(${hue}, 60%, 50%)`;
 
@@ -819,7 +836,7 @@ export default function SuppliersScreen() {
                           <Text style={[styles.avatarText, { color: avatarColor }]}>{initials}</Text>
                         </View>
                         <View style={styles.supplierInfo}>
-                          <Text style={styles.supplierName}>{supplier.name}</Text>
+                          <Text style={styles.supplierName}>{supplier.name || t('common.unknown')}</Text>
                           {supplier.contact_name ? (
                             <Text style={styles.supplierContact}>{supplier.contact_name}</Text>
                           ) : null}
@@ -964,7 +981,7 @@ export default function SuppliersScreen() {
                           <Ionicons name="storefront" size={24} color={colors.secondary} />
                         </View>
                         <View style={styles.supplierInfo}>
-                          <Text style={styles.supplierName}>{ms.company_name}</Text>
+                          <Text style={styles.supplierName}>{ms.company_name || t('common.unknown')}</Text>
                           {ms.city ? (
                             <View style={styles.infoRow}>
                               <Ionicons name="location-outline" size={12} color={colors.textMuted} />
@@ -1027,10 +1044,10 @@ export default function SuppliersScreen() {
                           <Ionicons name="cube-outline" size={20} color={colors.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.mpCatalogName} numberOfLines={1}>{p.name}</Text>
-                          <Text style={styles.mpCatalogCat}>{p.supplier_name} · {p.supplier_city}</Text>
+                          <Text style={styles.mpCatalogName} numberOfLines={1}>{p.name || t('common.unknown')}</Text>
+                          <Text style={styles.mpCatalogCat}>{p.supplier_name || ''} · {p.supplier_city || ''}</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                            <View style={styles.mpStars}>{renderStars(p.supplier_rating)}</View>
+                            <View style={styles.mpStars}>{renderStars(p.supplier_rating || 0)}</View>
                           </View>
                         </View>
                         <View style={styles.mpCatalogPriceBox}>
@@ -1217,8 +1234,8 @@ export default function SuppliersScreen() {
                           <View style={{ gap: Spacing.sm }}>
                             {/* Summary bar */}
                             {(() => {
-                              const totalValue = linkedProducts.reduce((sum, lp) => sum + (lp.supplier_price * lp.product.quantity), 0);
-                              const lowStockCount = linkedProducts.filter(lp => lp.product.quantity <= lp.product.min_stock).length;
+                              const totalValue = Array.isArray(linkedProducts) ? linkedProducts.reduce((sum, lp) => sum + ((lp.supplier_price || 0) * (lp.product?.quantity || 0)), 0) : 0;
+                              const lowStockCount = Array.isArray(linkedProducts) ? linkedProducts.filter(lp => lp.product && lp.product.quantity <= lp.product.min_stock).length : 0;
                               return (
                                 <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs }}>
                                   <View style={{ flex: 1, backgroundColor: colors.primary + '12', borderRadius: BorderRadius.sm, padding: Spacing.sm, alignItems: 'center' }}>
@@ -1336,7 +1353,7 @@ export default function SuppliersScreen() {
                                 </View>
                               </View>
                               <View style={styles.historyDetails}>
-                                <Text style={styles.historyAmount}>{formatUserCurrency(o.total_amount, user)}</Text>
+                                <Text style={styles.historyAmount}>{formatUserCurrency(o.total_amount || 0, user)}</Text>
                                 <Text style={styles.historyDate}>{o.created_at ? new Date(o.created_at).toLocaleDateString() : ''}</Text>
                               </View>
                             </TouchableOpacity>
@@ -1430,7 +1447,7 @@ export default function SuppliersScreen() {
                               </View>
                               <View style={styles.logBody}>
                                 <Text style={styles.logDate}>{log.created_at ? new Date(log.created_at).toLocaleString() : ''}</Text>
-                                <Text style={styles.logContent}>{log.content}</Text>
+                                <Text style={styles.logContent}>{log.content || ''}</Text>
                               </View>
                             </View>
                           ))
@@ -1443,12 +1460,12 @@ export default function SuppliersScreen() {
                         <Text style={styles.sectionTitle}>{t('suppliers.financial_summary')}</Text>
                         <View style={styles.statsGrid}>
                           <View style={styles.statBox}>
-                            <Text style={styles.statVal}>{formatUserCurrency(detailStats?.total_spent, user)}</Text>
+                            <Text style={styles.statVal}>{formatUserCurrency(detailStats?.total_spent || 0, user)}</Text>
                             <Text style={styles.statLab}>{t('suppliers.total_volume')}</Text>
                           </View>
                           <View style={styles.statBox}>
                             <Text style={[styles.statVal, { color: colors.warning }]}>
-                              {formatUserCurrency(detailStats?.pending_spent, user)}
+                              {formatUserCurrency(detailStats?.pending_spent || 0, user)}
                             </Text>
                             <Text style={styles.statLab}>{t('suppliers.pending_payment')}</Text>
                           </View>
@@ -1458,7 +1475,7 @@ export default function SuppliersScreen() {
                         <View style={styles.perfRow}>
                           <View style={styles.perfItem}>
                             <Ionicons name="time-outline" size={24} color={colors.secondary} />
-                            <Text style={styles.perfVal}>{detailStats?.avg_delivery_days} jours</Text>
+                            <Text style={styles.perfVal}>{(detailStats?.avg_delivery_days || 0).toString()} jours</Text>
                             <Text style={styles.perfLab}>{t('suppliers.avg_delivery_time')}</Text>
                           </View>
                           <View style={styles.perfItem}>
