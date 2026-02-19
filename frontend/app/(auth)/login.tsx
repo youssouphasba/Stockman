@@ -46,12 +46,12 @@ export default function LoginScreen() {
   async function loadSavedCredentials() {
     try {
       const savedEmail = await SecureStore.getItemAsync('user_email');
-      const savedPassword = await SecureStore.getItemAsync('user_password');
-      if (savedEmail && savedPassword) {
-        setEmail(savedEmail || '');
-        setPassword(savedPassword || '');
+      if (savedEmail) {
+        setEmail(savedEmail);
         setRememberMe(true);
       }
+      // Security: clean up any legacy saved passwords
+      await SecureStore.deleteItemAsync('user_password');
     } catch (e) {
       console.error("Failed to load credentials", e);
     }
@@ -68,10 +68,8 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       if (rememberMe) {
         await SecureStore.setItemAsync('user_email', email.trim());
-        await SecureStore.setItemAsync('user_password', password);
       } else {
         await SecureStore.deleteItemAsync('user_email');
-        await SecureStore.deleteItemAsync('user_password');
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.login.errorLogin'));
@@ -86,19 +84,28 @@ export default function LoginScreen() {
     });
 
     if (result.success) {
-      const savedEmail = await SecureStore.getItemAsync('user_email');
-      const savedPassword = await SecureStore.getItemAsync('user_password');
-      if (savedEmail && savedPassword) {
-        setLoading(true);
-        try {
-          await login(savedEmail, savedPassword);
-        } catch (e) {
-          setError(t('auth.login.biometricError'));
-        } finally {
-          setLoading(false);
+      // Use existing saved token to verify session (token is already in SecureStore from last login)
+      setLoading(true);
+      try {
+        const { auth: authApi } = require('../../services/api');
+        const userData = await authApi.me();
+        if (userData) {
+          // Token is still valid — session restored by AuthContext
+          const { useAuth: _ } = require('../../contexts/AuthContext');
+          // Force a re-check which will pick up the existing token
+          const token = await SecureStore.getItemAsync('auth_token');
+          if (token) {
+            // Token exists and is valid (me() didn't throw), reload
+            const { router } = require('expo-router');
+            router.replace('/(tabs)');
+          } else {
+            setError(t('auth.login.biometricNoCreds'));
+          }
         }
-      } else {
+      } catch (e) {
         setError(t('auth.login.biometricNoCreds'));
+      } finally {
+        setLoading(false);
       }
     }
   }

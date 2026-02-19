@@ -21,3 +21,9 @@ build/
 *.log
 .gemini/
 projet_stock/projet_stock/
+backend/uploads/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

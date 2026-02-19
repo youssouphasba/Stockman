@@ -203,9 +203,11 @@ Réponds UNIQUEMENT avec la traduction, sans aucun autre texte.
 
 
 @api_router.post("/payment/mock-webhook")
-async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney"):
-    """Simulate the webhook call from the provider"""
-    logger.info(f"PAYMENT VALIDATED: {method} for {user_id}")
+async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
+    """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
+    if IS_PROD:
+        raise HTTPException(status_code=403, detail="Mock webhook disabled in production")
+    logger.info(f"PAYMENT VALIDATED (MOCK): {method} for {user_id} by admin {admin.user_id}")
     # Activate Subscription
     await db.users.update_one(
         {"user_id": user_id},
@@ -497,25 +499,27 @@ class NewsletterSubscription(BaseModel):
 public_router = APIRouter(prefix="/api/public")
 
 @public_router.post("/contact")
-async def contact_form(msg: ContactMessage):
+@limiter.limit("5/minute")
+async def contact_form(request: Request, msg: ContactMessage):
     """Receive contact form submission"""
     await db.contact_messages.insert_one(msg.dict())
-    logger.info(f"New contact message from {msg.email}")
+    logger.info(f"New contact message received")
     return {"message": "Message reçu"}
 
 @public_router.post("/newsletter")
-async def subscribe_newsletter(sub: NewsletterSubscription):
+@limiter.limit("5/minute")
+async def subscribe_newsletter(request: Request, sub: NewsletterSubscription):
     """Subscribe to newsletter"""
     # Check if exists
     existing = await db.newsletter_subscribers.find_one({"email": sub.email})
     if not existing:
         await db.newsletter_subscribers.insert_one(sub.dict())
-        logger.info(f"New newsletter subscriber: {sub.email}")
+        logger.info(f"New newsletter subscriber registered")
     return {"message": "Inscription réussie"}
 
 @public_router.get("/leads")
-async def get_leads():
-    """Get all leads (Admin only - insecure for MVP)"""
+async def get_leads(admin: User = Depends(require_superadmin)):
+    """Get all leads (Admin only — secured)"""
     contacts = await db.contact_messages.find({}, {"_id": 0}).to_list(None)
     subscribers = await db.newsletter_subscribers.find({}, {"_id": 0}).to_list(None)
     return {
@@ -560,10 +564,6 @@ class PasswordChange(BaseModel):
     old_password: str
     new_password: str = Field(..., min_length=8)
 
-class PasswordChange(BaseModel):
-    old_password: str
-    new_password: str = Field(..., min_length=8)
-
 class User(UserBase):
     user_id: str
     created_at: datetime
@@ -583,7 +583,6 @@ class User(UserBase):
     business_type: Optional[str] = None
     how_did_you_hear: Optional[str] = None
     is_phone_verified: bool = False
-    phone_otp: Optional[str] = None
     country_code: Optional[str] = "SN" # Default to Senegal
 
 class UserUpdate(BaseModel):
@@ -1181,8 +1180,15 @@ async def parse_import_file(
     """
     Step 1: Parse the uploaded CSV file and return the columns and sample data.
     """
+    # Security: limit file size to 5 MB
+    MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 5 Mo)")
+    # Security: validate file type
+    if file.content_type and file.content_type not in ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"]:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
     try:
-        content = await file.read()
         return await import_service.parse_csv(content)
     except Exception as e:
         logger.error(f"Error parsing import file: {e}")
@@ -1964,7 +1970,8 @@ async def _save_ai_message(user_id: str, role: str, content: str):
     )
 
 @api_router.post("/ai/support")
-async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
+@limiter.limit("20/minute")
+async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(require_auth)):
     await check_ai_limit(user)
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2120,7 +2127,8 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
         return {"response": "Désolé, je rencontre des difficultés techniques momentanées."}
 
 @api_router.post("/ai/suggest-category")
-async def ai_suggest_category(data: dict = Body(...), user: User = Depends(require_auth)):
+@limiter.limit("20/minute")
+async def ai_suggest_category(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to suggest a category and subcategory for a product name"""
     product_name = data.get("product_name", "").strip()
     lang = data.get("language", "fr")
@@ -2184,7 +2192,8 @@ Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
         return {"category": "Autre", "subcategory": "Autre"}
 
 @api_router.post("/ai/generate-description")
-async def ai_generate_description(data: dict = Body(...), user: User = Depends(require_auth)):
+@limiter.limit("20/minute")
+async def ai_generate_description(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to generate a marketing description for a product"""
     product_name = data.get("product_name", "").strip()
     category = data.get("category", "").strip()
@@ -2224,7 +2233,8 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
         raise HTTPException(status_code=500, detail="Impossible de générer la description")
 
 @api_router.get("/ai/daily-summary")
-async def ai_daily_summary(lang: str = "fr", user: User = Depends(require_auth)):
+@limiter.limit("10/minute")
+async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
     """Generate a daily AI-powered business summary"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2351,7 +2361,8 @@ Maximum 5 anomalies.
         return []
 
 @api_router.get("/ai/detect-anomalies")
-async def ai_detect_anomalies(lang: str = "fr", user: User = Depends(require_auth)):
+@limiter.limit("10/minute")
+async def ai_detect_anomalies(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
     """Use Gemini to detect anomalies in sales, stock and margins"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -2419,7 +2430,8 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
         return {"suggestions": []}
 
 @api_router.get("/ai/replenishment-advice")
-async def ai_replenishment_advice(lang: str = "fr", user: User = Depends(require_auth)):
+@limiter.limit("10/minute")
+async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2472,7 +2484,8 @@ Sois concis et actionnable. Pas de liste, juste du texte fluide.
         raise HTTPException(status_code=500, detail="Impossible de générer les conseils")
 
 @api_router.post("/ai/suggest-price")
-async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_auth)):
+@limiter.limit("20/minute")
+async def ai_suggest_price(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to suggest an optimal selling price for a product"""
     product_id = data.get("product_id", "").strip()
     lang = data.get("language", "fr")
@@ -2589,7 +2602,8 @@ Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)
         raise HTTPException(status_code=500, detail="Impossible de suggérer un prix")
 
 @api_router.post("/ai/scan-invoice")
-async def ai_scan_invoice(data: dict = Body(...), user: User = Depends(require_auth)):
+@limiter.limit("10/minute")
+async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini Vision to extract items from a supplier invoice photo"""
     image_base64 = data.get("image", "")
     lang = data.get("language", "fr")
@@ -2649,7 +2663,8 @@ Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres.
         raise HTTPException(status_code=500, detail="Impossible d'analyser la facture")
 
 @api_router.post("/ai/voice-to-text")
-async def ai_voice_to_text(data: dict = Body(...), user: User = Depends(require_auth)):
+@limiter.limit("20/minute")
+async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to transcribe voice audio and optionally respond"""
     audio_base64 = data.get("audio", "")
     lang = data.get("language", "fr")
@@ -3266,9 +3281,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         hashed_password = get_password_hash(user_data.password)
         
-        # Generate OTP
+        # Generate OTP with expiration
         otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-        logger.info(f"OTP for user {user_data.phone}: {otp}")
+        otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
 
         # Create Default Store
         store_id = f"store_{uuid.uuid4().hex[:12]}"
@@ -3300,6 +3315,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "how_did_you_hear": user_data.how_did_you_hear,
             "is_phone_verified": False,
             "phone_otp": otp,
+            "phone_otp_expiry": otp_expiry,
+            "phone_otp_attempts": 0,
             "country_code": user_data.country_code or "SN",
             "created_at": datetime.now(timezone.utc)
         }
@@ -3405,19 +3422,35 @@ class VerifyPhoneRequest(BaseModel):
     otp: str
 
 @api_router.post("/auth/verify-phone")
-async def verify_phone(data: VerifyPhoneRequest, current_user: User = Depends(require_auth)):
+@limiter.limit("5/minute")
+async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user: User = Depends(require_auth)):
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
+    # Security: check attempt limit
+    attempts = user_doc.get("phone_otp_attempts", 0)
+    if attempts >= 5:
+        raise HTTPException(status_code=429, detail="Trop de tentatives. Veuillez demander un nouveau code.")
+    
+    # Security: check OTP expiration
+    otp_expiry = user_doc.get("phone_otp_expiry")
+    if otp_expiry and datetime.now(timezone.utc) > otp_expiry:
+        raise HTTPException(status_code=400, detail="Code expiré. Veuillez demander un nouveau code.")
+    
     if user_doc.get("phone_otp") == data.otp:
         await db.users.update_one(
             {"user_id": current_user.user_id},
-            {"$set": {"is_phone_verified": True, "phone_otp": None}}
+            {"$set": {"is_phone_verified": True, "phone_otp": None, "phone_otp_expiry": None, "phone_otp_attempts": 0}}
         )
         updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
         return {"message": "Téléphone vérifié avec succès", "user": User(**updated_user)}
     else:
+        # Increment failed attempts
+        await db.users.update_one(
+            {"user_id": current_user.user_id},
+            {"$inc": {"phone_otp_attempts": 1}}
+        )
         raise HTTPException(status_code=400, detail="Code de vérification incorrect")
 
 @api_router.post("/auth/login", response_model=TokenResponse)
@@ -3448,7 +3481,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         value=access_token,
         httponly=True,
         secure=True,
-        samesite="none",
+        samesite="lax",
         max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/"
     )
@@ -9695,7 +9728,6 @@ if __name__ == "__main__":
     for route in app.routes:
         if hasattr(route, "methods") and hasattr(route, "path"):
             logger.info(f"ROUTE: {route.methods} {route.path}")
-    import uvicorn
     import uvicorn
     is_dev = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "development")) != "production"
     uvicorn.run(
