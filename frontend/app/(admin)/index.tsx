@@ -13,6 +13,26 @@ import { formatCurrency, formatNumber } from '../../utils/format';
 const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
 
+const COUNTRY_NAMES: Record<string, string> = {
+    'SN': 'Sénégal',
+    'CI': 'Côte d\'Ivoire',
+    'ML': 'Mali',
+    'BF': 'Burkina Faso',
+    'TG': 'Togo',
+    'BJ': 'Bénin',
+    'NE': 'Niger',
+    'GN': 'Guinée',
+    'CM': 'Cameroun',
+    'FR': 'France',
+    'US': 'USA',
+    'MA': 'Maroc',
+    'TN': 'Tunisie',
+    'DZ': 'Algérie',
+    'GA': 'Gabon',
+    'CG': 'Congo',
+    'CD': 'RDC',
+};
+
 const SEGMENTS: { id: Segment; label: string; icon: string }[] = [
     { id: 'global', label: 'Global', icon: 'grid' },
     { id: 'users', label: 'Utilisateurs', icon: 'people' },
@@ -62,6 +82,7 @@ export default function AdminDashboard() {
     const [disputeFilter, setDisputeFilter] = useState('all');
     const [logModule, setLogModule] = useState('all');
     const [secFilter, setSecFilter] = useState('all');
+    const [countryFilter, setCountryFilter] = useState('all');
     // Compose
     const [msgTitle, setMsgTitle] = useState('');
     const [msgContent, setMsgContent] = useState('');
@@ -265,7 +286,22 @@ export default function AdminDashboard() {
                             <SectionHeader title="Répartition par pays" colors={colors} />
                             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                                 {Object.entries(detailed.users_by_country).map(([country, count]) => (
-                                    <StatCard key={country} label={country} value={count} icon="globe" color="#3B82F6" colors={colors} />
+                                    <TouchableOpacity
+                                        key={country}
+                                        onPress={() => {
+                                            setCountryFilter(country);
+                                            setSeg('users');
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <StatCard
+                                            label={COUNTRY_NAMES[country] || country}
+                                            value={count}
+                                            icon="globe"
+                                            color="#3B82F6"
+                                            colors={colors}
+                                        />
+                                    </TouchableOpacity>
                                 ))}
                             </View>
                         </>
@@ -291,8 +327,34 @@ export default function AdminDashboard() {
             <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'shopkeeper', label: 'Commerçants' }, { id: 'staff', label: 'Staff' }, { id: 'supplier', label: 'Fournisseurs' }, { id: 'superadmin', label: 'Admins' }]}
                 active={roleFilter} onSelect={setRoleFilter} colors={colors} />
             <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un utilisateur..." colors={colors} />
-            <SectionHeader title="Utilisateurs" count={users.filter(u => roleFilter === 'all' || u.role === roleFilter).length} colors={colors} />
-            {users.filter(u => (roleFilter === 'all' || u.role === roleFilter) && (!search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())))
+
+            {countryFilter !== 'all' && (
+                <View style={{ marginBottom: 12 }}>
+                    <TouchableOpacity
+                        onPress={() => setCountryFilter('all')}
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary + '20', padding: 8, borderRadius: 8, alignSelf: 'flex-start' }}
+                    >
+                        <Ionicons name="close-circle" size={16} color={colors.primary} />
+                        <Text style={{ marginLeft: 6, color: colors.primary, fontWeight: '700' }}>
+                            Pays: {COUNTRY_NAMES[countryFilter] || countryFilter}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            <SectionHeader
+                title="Utilisateurs"
+                count={users.filter(u =>
+                    (roleFilter === 'all' || u.role === roleFilter) &&
+                    (countryFilter === 'all' || u.country_code === countryFilter)
+                ).length}
+                colors={colors}
+            />
+            {users.filter(u =>
+                (roleFilter === 'all' || u.role === roleFilter) &&
+                (countryFilter === 'all' || u.country_code === countryFilter) &&
+                (!search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.email || '').toLowerCase().includes(search.toLowerCase()))
+            )
                 .map((u: any) => (
                     <Card key={u.user_id} colors={colors}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -317,11 +379,13 @@ export default function AdminDashboard() {
                             </View>
                             <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                 <Badge label={u.role || 'user'} color={roleColors[u.role] || '#6B7280'} />
-                                <View style={{ flexDirection: 'row', gap: 4 }}>
-                                    {u.is_phone_verified && <Badge label="✓ Tél" color="#10B981" />}
-                                    <TouchableOpacity onPress={() => handleToggleUser(u)}>
-                                        <Badge label={u.is_active === false ? '🔴 Banni' : '🟢 Actif'} color={u.is_active === false ? '#EF4444' : '#10B981'} />
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                                        <Badge label={u.country_code || '??'} color={colors.secondary} />
+                                        {u.is_phone_verified && <Badge label="✓ Tél" color="#10B981" />}
+                                        <TouchableOpacity onPress={() => handleToggleUser(u)}>
+                                            <Badge label={u.is_active === false ? '🔴 Banni' : '🟢 Actif'} color={u.is_active === false ? '#EF4444' : '#10B981'} />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             </View>
                         </View>
@@ -348,576 +412,577 @@ export default function AdminDashboard() {
                             )}
                         </View>
                     </Card>
-                ))}
-            {users.length === 0 && <EmptyState icon="people-outline" message="Aucun utilisateur" colors={colors} />}
-        </View>
+    ))
+}
+{ users.length === 0 && <EmptyState icon="people-outline" message="Aucun utilisateur" colors={colors} /> }
+        </View >
     );
 
-    const renderStores = () => (
-        <View>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un magasin..." colors={colors} />
-            <SectionHeader title="Magasins" count={stores.length} colors={colors} />
-            {stores.filter(s => !search || s.name?.toLowerCase().includes(search.toLowerCase())).map((s: any) => (
-                <Card key={s.store_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Ionicons name="business" size={20} color="#8B5CF6" />
-                            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{s.name}</Text>
-                        </View>
-                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.total_revenue, user?.currency)}</Text>
+const renderStores = () => (
+    <View>
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un magasin..." colors={colors} />
+        <SectionHeader title="Magasins" count={stores.length} colors={colors} />
+        {stores.filter(s => !search || s.name?.toLowerCase().includes(search.toLowerCase())).map((s: any) => (
+            <Card key={s.store_id} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="business" size={20} color="#8B5CF6" />
+                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{s.name}</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>👤 {s.owner_name}</Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>📦 {s.product_count} produits</Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>🛒 {s.sales_count} ventes</Text>
-                    </View>
-                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{s.owner_email}</Text>
-                </Card>
-            ))}
-            {stores.length === 0 && <EmptyState icon="business-outline" message="Aucun magasin" colors={colors} />}
-        </View>
-    );
+                    <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.total_revenue, user?.currency)}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>👤 {s.owner_name}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>📦 {s.product_count} produits</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>🛒 {s.sales_count} ventes</Text>
+                </View>
+                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{s.owner_email}</Text>
+            </Card>
+        ))}
+        {stores.length === 0 && <EmptyState icon="business-outline" message="Aucun magasin" colors={colors} />}
+    </View>
+);
 
-    const renderStock = () => (
-        <View>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un produit..." colors={colors} />
-            <SectionHeader title="Produits" count={products.length} colors={colors} />
-            {products.map((p: any) => {
-                const stockColor = (p.quantity || 0) <= 5 ? '#EF4444' : (p.quantity || 0) <= 15 ? '#F59E0B' : '#10B981';
-                return (
-                    <Card key={p.product_id} colors={colors}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{p.name}</Text>
-                            <Badge label={`${p.quantity || 0} unités`} color={stockColor} />
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Prix: {fmtMoney(p.selling_price || p.sale_price || p.price || 0, user?.currency)}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{p.store_id ? `ID: ${p.store_id.slice(0, 8)}...` : ''}</Text>
-                        </View>
-                        {p.owner_info && (
-                            <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.bgLight, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: colors.primary }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ color: colors.text, fontSize: 11, fontWeight: '700' }}>Vendeur: {p.owner_info.name}</Text>
-                                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>📧 {p.owner_info.email}</Text>
-                                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>📞 {p.owner_info.phone || 'N/A'}</Text>
-                                    </View>
-                                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                                        <TouchableOpacity onPress={() => handleToggleProduct(p)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: p.is_active === false ? '#10B98122' : '#F59E0B22', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Ionicons name={p.is_active === false ? "eye" : "eye-off"} size={16} color={p.is_active === false ? '#10B981' : '#F59E0B'} />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => handleDeleteProduct(p)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EF444422', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Ionicons name="trash" size={16} color="#EF4444" />
-                                        </TouchableOpacity>
-                                    </View>
+const renderStock = () => (
+    <View>
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un produit..." colors={colors} />
+        <SectionHeader title="Produits" count={products.length} colors={colors} />
+        {products.map((p: any) => {
+            const stockColor = (p.quantity || 0) <= 5 ? '#EF4444' : (p.quantity || 0) <= 15 ? '#F59E0B' : '#10B981';
+            return (
+                <Card key={p.product_id} colors={colors}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{p.name}</Text>
+                        <Badge label={`${p.quantity || 0} unités`} color={stockColor} />
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Prix: {fmtMoney(p.selling_price || p.sale_price || p.price || 0, user?.currency)}</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{p.store_id ? `ID: ${p.store_id.slice(0, 8)}...` : ''}</Text>
+                    </View>
+                    {p.owner_info && (
+                        <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.bgLight, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: colors.primary }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: colors.text, fontSize: 11, fontWeight: '700' }}>Vendeur: {p.owner_info.name}</Text>
+                                    <Text style={{ color: colors.textMuted, fontSize: 11 }}>📧 {p.owner_info.email}</Text>
+                                    <Text style={{ color: colors.textMuted, fontSize: 11 }}>📞 {p.owner_info.phone || 'N/A'}</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    <TouchableOpacity onPress={() => handleToggleProduct(p)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: p.is_active === false ? '#10B98122' : '#F59E0B22', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Ionicons name={p.is_active === false ? "eye" : "eye-off"} size={16} color={p.is_active === false ? '#10B981' : '#F59E0B'} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleDeleteProduct(p)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EF444422', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Ionicons name="trash" size={16} color="#EF4444" />
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                        )}
-                    </Card>
-                );
-            })}
-            {products.length === 0 && <EmptyState icon="cube-outline" message="Aucun produit" colors={colors} />}
-        </View>
-    );
-
-    const renderFinance = () => (
-        <View>
-            <SectionHeader title="Vue Financière" colors={colors} />
-            {stats && (
-                <LinearGradient colors={['#7C3AED', '#4F46E5']} style={{ borderRadius: 16, padding: 20, marginBottom: 12 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Chiffre d'affaires total</Text>
-                    <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4 }}>{fmtMoney(stats.total_revenue, user?.currency)}</Text>
-                    <View style={{ flexDirection: 'row', gap: 20, marginTop: 12 }}>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Ventes</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.sales}</Text></View>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Produits</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.products}</Text></View>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Magasins</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.stores}</Text></View>
-                    </View>
-                </LinearGradient>
-            )}
-            {detailed && (
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                    <StatCard label="Aujourd'hui" value={fmtMoney(detailed.revenue_today)} icon="today" color="#10B981" colors={colors} />
-                    <StatCard label="Cette semaine" value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
-                    <StatCard label="Ce mois" value={fmtMoney(detailed.revenue_month)} icon="stats-chart" color="#8B5CF6" colors={colors} />
-                </View>
-            )}
-        </View>
-    );
-
-    const renderCRM = () => (
-        <View>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un client..." colors={colors} />
-            <SectionHeader title="Clients" count={customers.length} colors={colors} />
-            {customers.map((c: any) => (
-                <Card key={c.customer_id || c.name} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#06B6D4', alignItems: 'center', justifyContent: 'center' }}>
-                                <Text style={{ color: '#fff', fontWeight: '700' }}>{(c.name || '?')[0].toUpperCase()}</Text>
-                            </View>
-                            <View>
-                                <Text style={{ color: colors.text, fontWeight: '600' }}>{c.name}</Text>
-                                <Text style={{ color: colors.textMuted, fontSize: 11 }}>{c.phone || c.email || 'N/A'}</Text>
-                            </View>
                         </View>
-                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
-                    </View>
+                    )}
                 </Card>
-            ))}
-            {customers.length === 0 && <EmptyState icon="people-outline" message="Aucun client" colors={colors} />}
-        </View>
-    );
+            );
+        })}
+        {products.length === 0 && <EmptyState icon="cube-outline" message="Aucun produit" colors={colors} />}
+    </View>
+);
 
-    const renderSupport = () => (
-        <View>
-            <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'open', label: 'Ouverts' }, { id: 'pending', label: 'En attente' }, { id: 'closed', label: 'Fermés' }]}
-                active={ticketFilter} onSelect={setTicketFilter} colors={colors} />
-            <SectionHeader title="Tickets" count={tickets.length} colors={colors} />
-            {tickets.map((t: any) => (
-                <Card key={t.ticket_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{t.subject}</Text>
-                        <Badge label={t.status} color={statusColors[t.status] || '#6B7280'} />
+const renderFinance = () => (
+    <View>
+        <SectionHeader title="Vue Financière" colors={colors} />
+        {stats && (
+            <LinearGradient colors={['#7C3AED', '#4F46E5']} style={{ borderRadius: 16, padding: 20, marginBottom: 12 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Chiffre d'affaires total</Text>
+                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4 }}>{fmtMoney(stats.total_revenue, user?.currency)}</Text>
+                <View style={{ flexDirection: 'row', gap: 20, marginTop: 12 }}>
+                    <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Ventes</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.sales}</Text></View>
+                    <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Produits</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.products}</Text></View>
+                    <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Magasins</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.stores}</Text></View>
+                </View>
+            </LinearGradient>
+        )}
+        {detailed && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <StatCard label="Aujourd'hui" value={fmtMoney(detailed.revenue_today)} icon="today" color="#10B981" colors={colors} />
+                <StatCard label="Cette semaine" value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
+                <StatCard label="Ce mois" value={fmtMoney(detailed.revenue_month)} icon="stats-chart" color="#8B5CF6" colors={colors} />
+            </View>
+        )}
+    </View>
+);
+
+const renderCRM = () => (
+    <View>
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher un client..." colors={colors} />
+        <SectionHeader title="Clients" count={customers.length} colors={colors} />
+        {customers.map((c: any) => (
+            <Card key={c.customer_id || c.name} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#06B6D4', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ color: '#fff', fontWeight: '700' }}>{(c.name || '?')[0].toUpperCase()}</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: colors.text, fontWeight: '600' }}>{c.name}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 11 }}>{c.phone || c.email || 'N/A'}</Text>
+                        </View>
                     </View>
-                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t.user_name} • {new Date(t.created_at).toLocaleDateString('fr-FR')}</Text>
-                    {t.messages?.length > 0 && <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }} numberOfLines={2}>{t.messages[t.messages.length - 1]?.content}</Text>}
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                        {t.status !== 'closed' && (
-                            <>
-                                <TouchableOpacity onPress={() => setReplyingTo(replyingTo === t.ticket_id ? null : t.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="chatbubble" size={14} color="#3B82F6" /><Text style={{ color: '#3B82F6', fontSize: 12 }}>Répondre</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleCloseTicket(t.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="checkmark-circle" size={14} color="#10B981" /><Text style={{ color: '#10B981', fontSize: 12 }}>Fermer</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </View>
-                    {replyingTo === t.ticket_id && (
-                        <View style={{ marginTop: 8, gap: 6 }}>
-                            <TextInput value={replyText} onChangeText={setReplyText} placeholder="Votre réponse..." placeholderTextColor={colors.textMuted}
-                                style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }} multiline />
-                            <TouchableOpacity onPress={() => handleReply(t.ticket_id, 'ticket')} style={{ backgroundColor: '#3B82F6', borderRadius: 8, padding: 8, alignItems: 'center' }}>
-                                <Text style={{ color: '#fff', fontWeight: '600' }}>Envoyer</Text>
+                    {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
+                </View>
+            </Card>
+        ))}
+        {customers.length === 0 && <EmptyState icon="people-outline" message="Aucun client" colors={colors} />}
+    </View>
+);
+
+const renderSupport = () => (
+    <View>
+        <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'open', label: 'Ouverts' }, { id: 'pending', label: 'En attente' }, { id: 'closed', label: 'Fermés' }]}
+            active={ticketFilter} onSelect={setTicketFilter} colors={colors} />
+        <SectionHeader title="Tickets" count={tickets.length} colors={colors} />
+        {tickets.map((t: any) => (
+            <Card key={t.ticket_id} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{t.subject}</Text>
+                    <Badge label={t.status} color={statusColors[t.status] || '#6B7280'} />
+                </View>
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t.user_name} • {new Date(t.created_at).toLocaleDateString('fr-FR')}</Text>
+                {t.messages?.length > 0 && <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }} numberOfLines={2}>{t.messages[t.messages.length - 1]?.content}</Text>}
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {t.status !== 'closed' && (
+                        <>
+                            <TouchableOpacity onPress={() => setReplyingTo(replyingTo === t.ticket_id ? null : t.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="chatbubble" size={14} color="#3B82F6" /><Text style={{ color: '#3B82F6', fontSize: 12 }}>Répondre</Text>
                             </TouchableOpacity>
-                        </View>
+                            <TouchableOpacity onPress={() => handleCloseTicket(t.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="checkmark-circle" size={14} color="#10B981" /><Text style={{ color: '#10B981', fontSize: 12 }}>Fermer</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
-                </Card>
-            ))}
-            {tickets.length === 0 && <EmptyState icon="help-buoy-outline" message="Aucun ticket" colors={colors} />}
-        </View>
-    );
-
-    const renderDisputes = () => (
-        <View>
-            <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'open', label: 'Ouverts' }, { id: 'investigating', label: 'En cours' }, { id: 'resolved', label: 'Résolus' }, { id: 'rejected', label: 'Rejetés' }]}
-                active={disputeFilter} onSelect={setDisputeFilter} colors={colors} />
-            {disputeStats && (
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label="Ouverts" value={disputeStats.open} icon="alert-circle" color="#F59E0B" colors={colors} />
-                    <StatCard label="En cours" value={disputeStats.investigating} icon="search" color="#3B82F6" colors={colors} />
-                    <StatCard label="Résolus" value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
                 </View>
-            )}
-            <SectionHeader title="Litiges" count={disputes.length} colors={colors} />
-            {disputes.map((d: any) => (
-                <Card key={d.dispute_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{d.subject}</Text>
-                        <Badge label={d.status} color={statusColors[d.status] || '#6B7280'} />
+                {replyingTo === t.ticket_id && (
+                    <View style={{ marginTop: 8, gap: 6 }}>
+                        <TextInput value={replyText} onChangeText={setReplyText} placeholder="Votre réponse..." placeholderTextColor={colors.textMuted}
+                            style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }} multiline />
+                        <TouchableOpacity onPress={() => handleReply(t.ticket_id, 'ticket')} style={{ backgroundColor: '#3B82F6', borderRadius: 8, padding: 8, alignItems: 'center' }}>
+                            <Text style={{ color: '#fff', fontWeight: '600' }}>Envoyer</Text>
+                        </TouchableOpacity>
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{d.reporter_name} ({d.reporter_id}) • Type: {d.type}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>{d.description}</Text>
+                )}
+            </Card>
+        ))}
+        {tickets.length === 0 && <EmptyState icon="help-buoy-outline" message="Aucun ticket" colors={colors} />}
+    </View>
+);
 
-                    {d.resolution && (
-                        <View style={{ marginTop: 8, padding: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 8 }}>
-                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>RÉSOLUTION :</Text>
-                            <Text style={{ color: colors.text, fontSize: 12 }}>{d.resolution}</Text>
-                        </View>
-                    )}
-                    {d.admin_notes && (
-                        <View style={{ marginTop: 4, padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8 }}>
-                            <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>NOTES ADMIN :</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{d.admin_notes}</Text>
-                        </View>
-                    )}
+const renderDisputes = () => (
+    <View>
+        <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'open', label: 'Ouverts' }, { id: 'investigating', label: 'En cours' }, { id: 'resolved', label: 'Résolus' }, { id: 'rejected', label: 'Rejetés' }]}
+            active={disputeFilter} onSelect={setDisputeFilter} colors={colors} />
+        {disputeStats && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <StatCard label="Ouverts" value={disputeStats.open} icon="alert-circle" color="#F59E0B" colors={colors} />
+                <StatCard label="En cours" value={disputeStats.investigating} icon="search" color="#3B82F6" colors={colors} />
+                <StatCard label="Résolus" value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
+            </View>
+        )}
+        <SectionHeader title="Litiges" count={disputes.length} colors={colors} />
+        {disputes.map((d: any) => (
+            <Card key={d.dispute_id} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{d.subject}</Text>
+                    <Badge label={d.status} color={statusColors[d.status] || '#6B7280'} />
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{d.reporter_name} ({d.reporter_id}) • Type: {d.type}</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>{d.description}</Text>
 
-                    {d.status !== 'resolved' && d.status !== 'rejected' && (
-                        <View style={{ marginTop: 12, gap: 8 }}>
-                            <TextInput
-                                value={disputeResolution}
-                                onChangeText={setDisputeResolution}
-                                placeholder="Résolution (facultatif)..."
-                                placeholderTextColor={colors.textMuted}
-                                style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }}
-                                multiline
-                            />
-                            <TextInput
-                                value={disputeNotes}
-                                onChangeText={setDisputeNotes}
-                                placeholder="Notes administratives..."
-                                placeholderTextColor={colors.textMuted}
-                                style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }}
-                                multiline
-                            />
-                            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                                <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'investigating')} style={{ backgroundColor: '#3B82F622', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="search" size={14} color="#3B82F6" />
-                                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>Enquêter</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'resolved')} style={{ backgroundColor: '#10B98122', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                                    <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600' }}>Résoudre</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'rejected')} style={{ backgroundColor: '#EF444422', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="close-circle" size={14} color="#EF4444" />
-                                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Rejeter</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
-                </Card>
-            ))}
-            {disputes.length === 0 && <EmptyState icon="warning-outline" message="Aucun litige" colors={colors} />}
-        </View>
-    );
-
-    const renderComms = () => (
-        <View>
-            <SectionHeader title="Nouveau Message" colors={colors} />
-            <Card colors={colors}>
-                <TextInput value={msgTitle} onChangeText={setMsgTitle} placeholder="Titre du message" placeholderTextColor={colors.textMuted}
-                    style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, marginBottom: 8 }} />
-                <TextInput value={msgContent} onChangeText={setMsgContent} placeholder="Contenu du message..." placeholderTextColor={colors.textMuted}
-                    style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, minHeight: 80, marginBottom: 8 }} multiline />
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>Cible:</Text>
-                <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'shopkeeper', label: 'Commerçants' }, { id: 'supplier', label: 'Fournisseurs' }, { id: 'specific', label: 'Spécifique' }]} active={msgTarget} onSelect={setMsgTarget} colors={colors} />
-
-                {msgTarget === 'specific' && (
-                    <TextInput
-                        value={targetUserId}
-                        onChangeText={setTargetUserId}
-                        placeholder="ID Utilisateur (ex: user_...)"
-                        placeholderTextColor={colors.textMuted}
-                        style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, marginTop: 8, marginBottom: 8 }}
-                    />
+                {d.resolution && (
+                    <View style={{ marginTop: 8, padding: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 8 }}>
+                        <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>RÉSOLUTION :</Text>
+                        <Text style={{ color: colors.text, fontSize: 12 }}>{d.resolution}</Text>
+                    </View>
+                )}
+                {d.admin_notes && (
+                    <View style={{ marginTop: 4, padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8 }}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>NOTES ADMIN :</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{d.admin_notes}</Text>
+                    </View>
                 )}
 
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    <TouchableOpacity onPress={handleSendMessage} style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>📨 Envoyer</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleBroadcast} style={{ flex: 1, backgroundColor: '#8B5CF6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>📢 Diffuser</Text>
-                    </TouchableOpacity>
-                </View>
-            </Card>
-            <SectionHeader title="Historique" count={messages.length} colors={colors} />
-            {messages.map((m: any, i: number) => (
-                <Card key={m.message_id || i} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <Text style={{ color: colors.text, fontWeight: '600' }}>{m.title}</Text>
-                        <Badge label={m.type} color={m.type === 'broadcast' ? '#8B5CF6' : '#3B82F6'} />
+                {d.status !== 'resolved' && d.status !== 'rejected' && (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                        <TextInput
+                            value={disputeResolution}
+                            onChangeText={setDisputeResolution}
+                            placeholder="Résolution (facultatif)..."
+                            placeholderTextColor={colors.textMuted}
+                            style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }}
+                            multiline
+                        />
+                        <TextInput
+                            value={disputeNotes}
+                            onChangeText={setDisputeNotes}
+                            placeholder="Notes administratives..."
+                            placeholderTextColor={colors.textMuted}
+                            style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }}
+                            multiline
+                        />
+                        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                            <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'investigating')} style={{ backgroundColor: '#3B82F622', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="search" size={14} color="#3B82F6" />
+                                <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>Enquêter</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'resolved')} style={{ backgroundColor: '#10B98122', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                                <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600' }}>Résoudre</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'rejected')} style={{ backgroundColor: '#EF444422', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="close-circle" size={14} color="#EF4444" />
+                                <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Rejeter</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>→ {m.target} • {m.sent_by} • {new Date(m.sent_at).toLocaleDateString('fr-FR')}</Text>
-                </Card>
-            ))}
-            {messages.length === 0 && <EmptyState icon="megaphone-outline" message="Aucun message envoyé" colors={colors} />}
-        </View>
-    );
+                )}
+            </Card>
+        ))}
+        {disputes.length === 0 && <EmptyState icon="warning-outline" message="Aucun litige" colors={colors} />}
+    </View>
+);
 
-    const renderSecurity = () => (
-        <View>
-            {secStats && (
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label="Échecs 24h" value={secStats.failed_logins_24h} icon="close-circle" color="#EF4444" colors={colors} />
-                    <StatCard label="Connexions 24h" value={secStats.successful_logins_24h} icon="checkmark-circle" color="#10B981" colors={colors} />
-                    <StatCard label="Bloqués" value={secStats.blocked_users} icon="lock-closed" color="#F59E0B" colors={colors} />
-                </View>
+const renderComms = () => (
+    <View>
+        <SectionHeader title="Nouveau Message" colors={colors} />
+        <Card colors={colors}>
+            <TextInput value={msgTitle} onChangeText={setMsgTitle} placeholder="Titre du message" placeholderTextColor={colors.textMuted}
+                style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, marginBottom: 8 }} />
+            <TextInput value={msgContent} onChangeText={setMsgContent} placeholder="Contenu du message..." placeholderTextColor={colors.textMuted}
+                style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, minHeight: 80, marginBottom: 8 }} multiline />
+            <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>Cible:</Text>
+            <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'shopkeeper', label: 'Commerçants' }, { id: 'supplier', label: 'Fournisseurs' }, { id: 'specific', label: 'Spécifique' }]} active={msgTarget} onSelect={setMsgTarget} colors={colors} />
+
+            {msgTarget === 'specific' && (
+                <TextInput
+                    value={targetUserId}
+                    onChangeText={setTargetUserId}
+                    placeholder="ID Utilisateur (ex: user_...)"
+                    placeholderTextColor={colors.textMuted}
+                    style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, marginTop: 8, marginBottom: 8 }}
+                />
             )}
-            <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'login_success', label: 'Connexions' }, { id: 'login_failed', label: 'Échecs' }, { id: 'password_changed', label: 'MDP changé' }]}
-                active={secFilter} onSelect={setSecFilter} colors={colors} />
-            <SectionHeader title="Événements" count={secEvents.length} colors={colors} />
-            {secEvents.map((e: any, i: number) => {
-                const eColor = e.type === 'login_failed' ? '#EF4444' : e.type === 'login_success' ? '#10B981' : '#F59E0B';
-                return (
-                    <Card key={e.event_id || i} colors={colors}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <Ionicons name={e.type === 'login_failed' ? 'close-circle' : 'shield-checkmark'} size={18} color={eColor} />
-                                <Text style={{ color: colors.text, fontWeight: '600' }}>{e.type}</Text>
-                            </View>
-                            <Text style={{ color: colors.textMuted, fontSize: 11 }}>{e.created_at ? new Date(e.created_at).toLocaleString('fr-FR') : '?'}</Text>
-                        </View>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>{e.user_email || e.details}</Text>
-                    </Card>
-                );
-            })}
-            {secEvents.length === 0 && <EmptyState icon="shield-outline" message="Aucun événement" colors={colors} />}
-        </View>
-    );
 
-    const renderLogs = () => (
-        <View>
-            <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'stock', label: 'Stock' }, { id: 'auth', label: 'Auth' }, { id: 'crm', label: 'CRM' }, { id: 'pos', label: 'POS' }, { id: 'broadcast', label: 'Diffusion' }]}
-                active={logModule} onSelect={setLogModule} colors={colors} />
-            <SectionHeader title="Logs" count={logs.length} colors={colors} />
-            {logs.map((l: any, i: number) => (
-                <Card key={l.log_id || i} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: moduleColors[l.module] || '#6B7280' }} />
-                            <Badge label={l.module || '?'} color={moduleColors[l.module] || '#6B7280'} />
-                        </View>
-                        <Text style={{ color: colors.textMuted, fontSize: 10 }}>{l.created_at ? new Date(l.created_at).toLocaleString('fr-FR') : '?'}</Text>
-                    </View>
-                    <Text style={{ color: colors.text, fontSize: 13, marginTop: 4 }}>{l.description || l.action}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{l.user_name}</Text>
-                </Card>
-            ))}
-            {logs.length === 0 && <EmptyState icon="list-outline" message="Aucun log" colors={colors} />}
-        </View>
-    );
-
-    const renderSettings = () => (
-        <View>
-            <SectionHeader title="Configuration" colors={colors} />
-            <Card colors={colors}>
-                <View style={{ gap: 16 }}>
-                    {[
-                        { label: 'Version de l\'app', value: health?.version || '1.0.0', icon: 'information-circle' },
-                        { label: 'Statut du serveur', value: health?.status || 'inconnu', icon: 'server' },
-                        { label: 'Base de données', value: health?.database || 'inconnu', icon: 'hardware-chip' },
-                    ].map((item, i) => (
-                        <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: i < 2 ? 1 : 0, borderColor: colors.divider }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                <Ionicons name={item.icon as any} size={20} color={colors.primary} />
-                                <Text style={{ color: colors.text, fontWeight: '500' }}>{item.label}</Text>
-                            </View>
-                            <Text style={{ color: colors.textSecondary }}>{item.value}</Text>
-                        </View>
-                    ))}
-                </View>
-            </Card>
-            <SectionHeader title="Actions" colors={colors} />
-            <View style={{ gap: 8 }}>
-                <TouchableOpacity onPress={() => setShowPwdModal(true)} style={{ backgroundColor: '#F59E0B22', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#F59E0B44' }}>
-                    <Ionicons name="key" size={20} color="#F59E0B" />
-                    <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>Changer le mot de passe</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <TouchableOpacity onPress={handleSendMessage} style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>📨 Envoyer</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => router.push('/(admin)/data-explorer')} style={{ backgroundColor: '#8B5CF622', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#8B5CF644' }}>
-                    <Ionicons name="server" size={20} color="#8B5CF6" />
-                    <Text style={{ color: '#8B5CF6', fontWeight: '700', fontSize: 15 }}>📊 Explorateur de Données (MongoDB)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={{ backgroundColor: '#EF444422', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#EF444444' }}>
-                    <Ionicons name="log-out" size={20} color="#EF4444" />
-                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Déconnexion</Text>
+                <TouchableOpacity onPress={handleBroadcast} style={{ flex: 1, backgroundColor: '#8B5CF6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>📢 Diffuser</Text>
                 </TouchableOpacity>
             </View>
-        </View>
-    );
-
-    const handleSaveCGU = async () => {
-        try {
-            setCguUpdating(true);
-            await admin.updateCGU(cguContent);
-            Alert.alert('Succès', 'Les CGU ont été mises à jour.');
-        } catch (err) {
-            Alert.alert('Erreur', 'Impossible de mettre à jour les CGU.');
-        } finally {
-            setCguUpdating(false);
-        }
-    };
-
-    const renderCGU = () => (
-        <View style={{ gap: 16 }}>
-            <SectionHeader title="Éditeur de CGU" colors={colors} />
-            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 8 }}>
-                Modifiez le contenu Markdown ci-dessous. Le changement sera immédiat pour tous les utilisateurs.
-            </Text>
-            <Card colors={colors}>
-                <TextInput
-                    multiline
-                    value={cguContent}
-                    onChangeText={setCguContent}
-                    style={{
-                        color: colors.text,
-                        fontSize: 14,
-                        minHeight: 400,
-                        textAlignVertical: 'top',
-                        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
-                    }}
-                    placeholder="Contenu Markdown des CGU..."
-                    placeholderTextColor={colors.textMuted}
-                />
+        </Card>
+        <SectionHeader title="Historique" count={messages.length} colors={colors} />
+        {messages.map((m: any, i: number) => (
+            <Card key={m.message_id || i} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>{m.title}</Text>
+                    <Badge label={m.type} color={m.type === 'broadcast' ? '#8B5CF6' : '#3B82F6'} />
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>→ {m.target} • {m.sent_by} • {new Date(m.sent_at).toLocaleDateString('fr-FR')}</Text>
             </Card>
-            <TouchableOpacity
-                onPress={handleSaveCGU}
-                disabled={cguUpdating}
-                style={{
-                    backgroundColor: colors.primary,
-                    padding: 16,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    opacity: cguUpdating ? 0.6 : 1
-                }}
-            >
-                {cguUpdating ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sauvegarder les CGU</Text>
-                )}
-            </TouchableOpacity>
+        ))}
+        {messages.length === 0 && <EmptyState icon="megaphone-outline" message="Aucun message envoyé" colors={colors} />}
+    </View>
+);
 
-            <TouchableOpacity
-                onPress={() => router.push('/terms')}
-                style={{
-                    backgroundColor: colors.bgLight,
-                    padding: 16,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: colors.divider
-                }}
-            >
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Prévisualiser comme Utilisateur</Text>
-            </TouchableOpacity>
-        </View>
-    );
-
-    const handleSavePrivacy = async () => {
-        try {
-            setPrivacyUpdating(true);
-            await admin.updatePrivacy(privacyContent);
-            Alert.alert('Succès', 'La politique de confidentialité a été mise à jour.');
-        } catch (err) {
-            Alert.alert('Erreur', 'Impossible de mettre à jour la politique de confidentialité.');
-        } finally {
-            setPrivacyUpdating(false);
-        }
-    };
-
-    const renderPrivacy = () => (
-        <View style={{ gap: 16 }}>
-            <SectionHeader title="Éditeur de Politique de Confidentialité" colors={colors} />
-            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 8 }}>
-                Modifiez le contenu Markdown ci-dessous. Le changement sera immédiat pour tous les utilisateurs.
-            </Text>
-            <Card colors={colors}>
-                <TextInput
-                    multiline
-                    value={privacyContent}
-                    onChangeText={setPrivacyContent}
-                    style={{
-                        color: colors.text,
-                        fontSize: 14,
-                        minHeight: 400,
-                        textAlignVertical: 'top',
-                        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
-                    }}
-                    placeholder="Contenu Markdown de la Politique de Confidentialité..."
-                    placeholderTextColor={colors.textMuted}
-                />
-            </Card>
-            <TouchableOpacity
-                onPress={handleSavePrivacy}
-                disabled={privacyUpdating}
-                style={{
-                    backgroundColor: colors.primary,
-                    padding: 16,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    opacity: privacyUpdating ? 0.6 : 1
-                }}
-            >
-                {privacyUpdating ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sauvegarder la Politique</Text>
-                )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                onPress={() => router.push('/privacy')}
-                style={{
-                    backgroundColor: colors.bgLight,
-                    padding: 16,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: colors.divider
-                }}
-            >
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Prévisualiser comme Utilisateur</Text>
-            </TouchableOpacity>
-        </View>
-    );
-
-    const segMap: Record<Segment, () => React.ReactNode> = {
-        global: renderGlobal, users: renderUsers, stores: renderStores, stock: renderStock,
-        finance: renderFinance, crm: renderCRM, support: renderSupport, disputes: renderDisputes,
-        comms: renderComms, security: renderSecurity, logs: renderLogs, settings: renderSettings,
-        cgu: renderCGU, privacy: renderPrivacy,
-    };
-
-    return (
-        <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
-            <LinearGradient colors={['#1E1B4B', '#312E81', '#1E1B4B']} style={st.header}>
-                <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+const renderSecurity = () => (
+    <View>
+        {secStats && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <StatCard label="Échecs 24h" value={secStats.failed_logins_24h} icon="close-circle" color="#EF4444" colors={colors} />
+                <StatCard label="Connexions 24h" value={secStats.successful_logins_24h} icon="checkmark-circle" color="#10B981" colors={colors} />
+                <StatCard label="Bloqués" value={secStats.blocked_users} icon="lock-closed" color="#F59E0B" colors={colors} />
+            </View>
+        )}
+        <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'login_success', label: 'Connexions' }, { id: 'login_failed', label: 'Échecs' }, { id: 'password_changed', label: 'MDP changé' }]}
+            active={secFilter} onSelect={setSecFilter} colors={colors} />
+        <SectionHeader title="Événements" count={secEvents.length} colors={colors} />
+        {secEvents.map((e: any, i: number) => {
+            const eColor = e.type === 'login_failed' ? '#EF4444' : e.type === 'login_success' ? '#10B981' : '#F59E0B';
+            return (
+                <Card key={e.event_id || i} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View>
-                            <Text style={st.headerTitle}>Stockman Console</Text>
-                            <Text style={st.headerSub}>{user?.email}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Ionicons name={e.type === 'login_failed' ? 'close-circle' : 'shield-checkmark'} size={18} color={eColor} />
+                            <Text style={{ color: colors.text, fontWeight: '600' }}>{e.type}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <TouchableOpacity onPress={onRefresh} style={st.headerBtn}>
-                                <Ionicons name="refresh" size={18} color="#fff" />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={st.headerBtn}>
-                                <Ionicons name="log-out" size={18} color="#EF4444" />
-                            </TouchableOpacity>
-                        </View>
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>{e.created_at ? new Date(e.created_at).toLocaleString('fr-FR') : '?'}</Text>
                     </View>
-                    {stats && (
-                        <View style={st.quickStats}>
-                            {[
-                                { l: 'Users', v: fmt(stats.users), c: '#3B82F6' },
-                                { l: 'Magasins', v: fmt(stats.stores), c: '#8B5CF6' },
-                                { l: 'Produits', v: fmt(stats.products), c: '#10B981' },
-                                { l: 'Ventes', v: fmt(stats.sales), c: '#F59E0B' },
-                            ].map((s, i) => (
-                                <View key={i} style={st.quickItem}>
-                                    <Text style={[st.quickVal, { color: s.c }]}>{s.v}</Text>
-                                    <Text style={st.quickLabel}>{s.l}</Text>
-                                </View>
-                            ))}
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>{e.user_email || e.details}</Text>
+                </Card>
+            );
+        })}
+        {secEvents.length === 0 && <EmptyState icon="shield-outline" message="Aucun événement" colors={colors} />}
+    </View>
+);
+
+const renderLogs = () => (
+    <View>
+        <FilterBar filters={[{ id: 'all', label: 'Tous' }, { id: 'stock', label: 'Stock' }, { id: 'auth', label: 'Auth' }, { id: 'crm', label: 'CRM' }, { id: 'pos', label: 'POS' }, { id: 'broadcast', label: 'Diffusion' }]}
+            active={logModule} onSelect={setLogModule} colors={colors} />
+        <SectionHeader title="Logs" count={logs.length} colors={colors} />
+        {logs.map((l: any, i: number) => (
+            <Card key={l.log_id || i} colors={colors}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: moduleColors[l.module] || '#6B7280' }} />
+                        <Badge label={l.module || '?'} color={moduleColors[l.module] || '#6B7280'} />
+                    </View>
+                    <Text style={{ color: colors.textMuted, fontSize: 10 }}>{l.created_at ? new Date(l.created_at).toLocaleString('fr-FR') : '?'}</Text>
+                </View>
+                <Text style={{ color: colors.text, fontSize: 13, marginTop: 4 }}>{l.description || l.action}</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{l.user_name}</Text>
+            </Card>
+        ))}
+        {logs.length === 0 && <EmptyState icon="list-outline" message="Aucun log" colors={colors} />}
+    </View>
+);
+
+const renderSettings = () => (
+    <View>
+        <SectionHeader title="Configuration" colors={colors} />
+        <Card colors={colors}>
+            <View style={{ gap: 16 }}>
+                {[
+                    { label: 'Version de l\'app', value: health?.version || '1.0.0', icon: 'information-circle' },
+                    { label: 'Statut du serveur', value: health?.status || 'inconnu', icon: 'server' },
+                    { label: 'Base de données', value: health?.database || 'inconnu', icon: 'hardware-chip' },
+                ].map((item, i) => (
+                    <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: i < 2 ? 1 : 0, borderColor: colors.divider }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+                            <Text style={{ color: colors.text, fontWeight: '500' }}>{item.label}</Text>
                         </View>
-                    )}
-                </Animated.View>
-            </LinearGradient>
-
-            {/* Segments */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[st.segScroll, { borderBottomColor: colors.divider }]} contentContainerStyle={st.segContainer}>
-                {SEGMENTS.map(s => (
-                    <TouchableOpacity key={s.id} onPress={() => { setSeg(s.id); setSearch(''); }} style={[st.segBtn, seg === s.id && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}>
-                        <Ionicons name={s.icon as any} size={16} color={seg === s.id ? colors.primary : colors.textMuted} />
-                        <Text style={[st.segLabel, { color: seg === s.id ? colors.primary : colors.textMuted }]}>{s.label}</Text>
-                    </TouchableOpacity>
+                        <Text style={{ color: colors.textSecondary }}>{item.value}</Text>
+                    </View>
                 ))}
-            </ScrollView>
+            </View>
+        </Card>
+        <SectionHeader title="Actions" colors={colors} />
+        <View style={{ gap: 8 }}>
+            <TouchableOpacity onPress={() => setShowPwdModal(true)} style={{ backgroundColor: '#F59E0B22', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#F59E0B44' }}>
+                <Ionicons name="key" size={20} color="#F59E0B" />
+                <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>Changer le mot de passe</Text>
+            </TouchableOpacity>
 
-            {/* Content */}
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
-                {loading ? <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} /> : segMap[seg]?.()}
-            </ScrollView>
+            <TouchableOpacity onPress={() => router.push('/(admin)/data-explorer')} style={{ backgroundColor: '#8B5CF622', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#8B5CF644' }}>
+                <Ionicons name="server" size={20} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontWeight: '700', fontSize: 15 }}>📊 Explorateur de Données (MongoDB)</Text>
+            </TouchableOpacity>
 
-            <ChangePasswordModal visible={showPwdModal} onClose={() => setShowPwdModal(false)} />
+            <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={{ backgroundColor: '#EF444422', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#EF444444' }}>
+                <Ionicons name="log-out" size={20} color="#EF4444" />
+                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Déconnexion</Text>
+            </TouchableOpacity>
         </View>
-    );
+    </View>
+);
+
+const handleSaveCGU = async () => {
+    try {
+        setCguUpdating(true);
+        await admin.updateCGU(cguContent);
+        Alert.alert('Succès', 'Les CGU ont été mises à jour.');
+    } catch (err) {
+        Alert.alert('Erreur', 'Impossible de mettre à jour les CGU.');
+    } finally {
+        setCguUpdating(false);
+    }
+};
+
+const renderCGU = () => (
+    <View style={{ gap: 16 }}>
+        <SectionHeader title="Éditeur de CGU" colors={colors} />
+        <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 8 }}>
+            Modifiez le contenu Markdown ci-dessous. Le changement sera immédiat pour tous les utilisateurs.
+        </Text>
+        <Card colors={colors}>
+            <TextInput
+                multiline
+                value={cguContent}
+                onChangeText={setCguContent}
+                style={{
+                    color: colors.text,
+                    fontSize: 14,
+                    minHeight: 400,
+                    textAlignVertical: 'top',
+                    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
+                }}
+                placeholder="Contenu Markdown des CGU..."
+                placeholderTextColor={colors.textMuted}
+            />
+        </Card>
+        <TouchableOpacity
+            onPress={handleSaveCGU}
+            disabled={cguUpdating}
+            style={{
+                backgroundColor: colors.primary,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                opacity: cguUpdating ? 0.6 : 1
+            }}
+        >
+            {cguUpdating ? (
+                <ActivityIndicator color="#fff" />
+            ) : (
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sauvegarder les CGU</Text>
+            )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+            onPress={() => router.push('/terms')}
+            style={{
+                backgroundColor: colors.bgLight,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: colors.divider
+            }}
+        >
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Prévisualiser comme Utilisateur</Text>
+        </TouchableOpacity>
+    </View>
+);
+
+const handleSavePrivacy = async () => {
+    try {
+        setPrivacyUpdating(true);
+        await admin.updatePrivacy(privacyContent);
+        Alert.alert('Succès', 'La politique de confidentialité a été mise à jour.');
+    } catch (err) {
+        Alert.alert('Erreur', 'Impossible de mettre à jour la politique de confidentialité.');
+    } finally {
+        setPrivacyUpdating(false);
+    }
+};
+
+const renderPrivacy = () => (
+    <View style={{ gap: 16 }}>
+        <SectionHeader title="Éditeur de Politique de Confidentialité" colors={colors} />
+        <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 8 }}>
+            Modifiez le contenu Markdown ci-dessous. Le changement sera immédiat pour tous les utilisateurs.
+        </Text>
+        <Card colors={colors}>
+            <TextInput
+                multiline
+                value={privacyContent}
+                onChangeText={setPrivacyContent}
+                style={{
+                    color: colors.text,
+                    fontSize: 14,
+                    minHeight: 400,
+                    textAlignVertical: 'top',
+                    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
+                }}
+                placeholder="Contenu Markdown de la Politique de Confidentialité..."
+                placeholderTextColor={colors.textMuted}
+            />
+        </Card>
+        <TouchableOpacity
+            onPress={handleSavePrivacy}
+            disabled={privacyUpdating}
+            style={{
+                backgroundColor: colors.primary,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                opacity: privacyUpdating ? 0.6 : 1
+            }}
+        >
+            {privacyUpdating ? (
+                <ActivityIndicator color="#fff" />
+            ) : (
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Sauvegarder la Politique</Text>
+            )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+            onPress={() => router.push('/privacy')}
+            style={{
+                backgroundColor: colors.bgLight,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: colors.divider
+            }}
+        >
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Prévisualiser comme Utilisateur</Text>
+        </TouchableOpacity>
+    </View>
+);
+
+const segMap: Record<Segment, () => React.ReactNode> = {
+    global: renderGlobal, users: renderUsers, stores: renderStores, stock: renderStock,
+    finance: renderFinance, crm: renderCRM, support: renderSupport, disputes: renderDisputes,
+    comms: renderComms, security: renderSecurity, logs: renderLogs, settings: renderSettings,
+    cgu: renderCGU, privacy: renderPrivacy,
+};
+
+return (
+    <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
+        <LinearGradient colors={['#1E1B4B', '#312E81', '#1E1B4B']} style={st.header}>
+            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                        <Text style={st.headerTitle}>Stockman Console</Text>
+                        <Text style={st.headerSub}>{user?.email}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity onPress={onRefresh} style={st.headerBtn}>
+                            <Ionicons name="refresh" size={18} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={st.headerBtn}>
+                            <Ionicons name="log-out" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                {stats && (
+                    <View style={st.quickStats}>
+                        {[
+                            { l: 'Users', v: fmt(stats.users), c: '#3B82F6' },
+                            { l: 'Magasins', v: fmt(stats.stores), c: '#8B5CF6' },
+                            { l: 'Produits', v: fmt(stats.products), c: '#10B981' },
+                            { l: 'Ventes', v: fmt(stats.sales), c: '#F59E0B' },
+                        ].map((s, i) => (
+                            <View key={i} style={st.quickItem}>
+                                <Text style={[st.quickVal, { color: s.c }]}>{s.v}</Text>
+                                <Text style={st.quickLabel}>{s.l}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </Animated.View>
+        </LinearGradient>
+
+        {/* Segments */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[st.segScroll, { borderBottomColor: colors.divider }]} contentContainerStyle={st.segContainer}>
+            {SEGMENTS.map(s => (
+                <TouchableOpacity key={s.id} onPress={() => { setSeg(s.id); setSearch(''); }} style={[st.segBtn, seg === s.id && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}>
+                    <Ionicons name={s.icon as any} size={16} color={seg === s.id ? colors.primary : colors.textMuted} />
+                    <Text style={[st.segLabel, { color: seg === s.id ? colors.primary : colors.textMuted }]}>{s.label}</Text>
+                </TouchableOpacity>
+            ))}
+        </ScrollView>
+
+        {/* Content */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
+            {loading ? <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} /> : segMap[seg]?.()}
+        </ScrollView>
+
+        <ChangePasswordModal visible={showPwdModal} onClose={() => setShowPwdModal(false)} />
+    </View>
+);
 }
 
 const st = StyleSheet.create({
