@@ -49,24 +49,27 @@ const languageDetector: LanguageDetectorAsyncModule = {
             const isManual = await AsyncStorage.getItem(MANUAL_FLAG_KEY);
             const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
 
-            // If user explicitly chose a language in-app, respect that choice
+            console.log('[i18n] Detection started. Manual flag:', isManual, 'Saved lang:', savedLanguage);
+
             if (isManual === 'true' && savedLanguage) {
-                console.log('Using manually selected language:', savedLanguage);
+                console.log('[i18n] SUCCESS: Using manually selected language:', savedLanguage);
                 return callback(savedLanguage);
             }
 
-            // Clean up stale cache from older app versions (before manual flag existed)
             if (savedLanguage && isManual !== 'true') {
                 await AsyncStorage.removeItem(LANGUAGE_KEY);
-                console.log('Cleared stale language cache, will use system language');
+                console.log('[i18n] CLEANUP: Removed stale language cache');
             }
         } catch (error) {
-            console.error('Error detecting language:', error);
+            console.error('[i18n] Error during detection:', error);
         }
 
-        // Always use the device/system language when no manual override exists
-        const deviceLanguage = Localization.getLocales()?.[0]?.languageCode ?? 'fr';
-        console.log('Using system language:', deviceLanguage);
+        const locales = Localization.getLocales();
+        const deviceLanguage = locales?.[0]?.languageCode ?? 'fr';
+
+        console.log('[i18n] SYSTEM: Device Locales:', JSON.stringify(locales));
+        console.log('[i18n] FINAL CHOICE: Using system language ->', deviceLanguage);
+
         callback(deviceLanguage);
     },
     init: () => { },
