@@ -1,0 +1,33 @@
+﻿Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Android node_modules\expo-router\entry.js ÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ  0.0% (0/1)
+Android Bundling failed 2306ms node_modules\expo-router\entry.js (1 module)
+node : SyntaxError: 
+node_modules\expo-router\entry.js: 
+Cannot read properties of undefined 
+(reading 'wrapModule')
+Au caractère Ligne:1 : 1
++ node node_modules/@expo/cli/build/
+bin/cli.js export --platform androi 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSp 
+   ecified: (SyntaxError: no...g '  
+  wrapModule'):String) [], Remote   
+ Exception
+    + FullyQualifiedErrorId : Nativ 
+   eCommandError
+ 
+TypeError: Cannot read properties 
+of undefined (reading 'wrapModule')
+    at transformJS (C:\Users\Utilisa
+teur\projet_stock\frontend\node_modu
+les\@expo\metro-config\build\transfo
+rm-worker\metro-transform-worker.js:
+318:61)
+    at transformJSWithBabel (C:\User
+s\Utilisateur\projet_stock\frontend\
+node_modules\@expo\metro-config\buil
+d\transform-worker\metro-transform-w
+orker.js:455:18)

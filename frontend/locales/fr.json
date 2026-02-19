@@ -366,6 +366,15 @@
           "Campagnes marketing WhatsApp ciblées",
           "Gestion des dettes et crédits clients"
         ]
+      },
+      "reports": {
+        "title": "Analyses & Rapports",
+        "desc": "Visualisez les performances de votre entreprise avec des graphiques détaillés.",
+        "benefits": [
+          "Export PDF/CSV illimité",
+          "Historique complet des ventes",
+          "Analyses de rentabilité avancées"
+        ]
       }
     }
   },

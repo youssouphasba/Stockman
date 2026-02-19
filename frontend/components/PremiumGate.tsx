@@ -58,7 +58,7 @@ export default function PremiumGate({ featureName, description, benefits, icon =
                     <Text style={[styles.benefitsTitle, { color: colors.text }]}>
                         {t('premium.with_premium_you_can') || 'Avec Premium, vous pouvez :'}
                     </Text>
-                    {benefits.map((b, i) => (
+                    {Array.isArray(benefits) && benefits.map((b, i) => (
                         <View key={i} style={styles.benefitRow}>
                             <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                             <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{b}</Text>

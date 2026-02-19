@@ -354,6 +354,15 @@
           "Targeted WhatsApp marketing campaigns",
           "Customer debt and credit management"
         ]
+      },
+      "reports": {
+        "title": "Analysis & Reports",
+        "desc": "Visualize your business performance with detailed charts.",
+        "benefits": [
+          "Unlimited PDF/CSV export",
+          "Full sales history",
+          "Advanced profitability analysis"
+        ]
       }
     }
   },

@@ -354,6 +354,15 @@
           "Campañas de marketing WhatsApp dirigidas",
           "Gestión de deudas y créditos de clientes"
         ]
+      },
+      "reports": {
+        "title": "Análisis e Informes",
+        "desc": "Visualice el rendimiento de su negocio con gráficos detallados.",
+        "benefits": [
+          "Exportación PDF/CSV ilimitada",
+          "Historial completo de ventas",
+          "Análisis de rentabilidad avanzado"
+        ]
       }
     }
   },
