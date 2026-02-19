@@ -50,7 +50,7 @@ import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../uti
 
 export default function SuppliersScreen() {
   const { colors, glassStyle } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
@@ -714,7 +714,7 @@ export default function SuppliersScreen() {
                       onPress={async () => {
                         setAdviceLoading(true);
                         try {
-                          const res = await aiApi.replenishmentAdvice();
+                          const res = await aiApi.replenishmentAdvice(i18n.language);
                           setReplenishAdvice(res.advice);
                         } catch { /* silent */ }
                         finally { setAdviceLoading(false); }

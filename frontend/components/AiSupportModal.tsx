@@ -18,6 +18,7 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { ai } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 type Message = {
     id: string;
@@ -33,6 +34,7 @@ type AiSupportModalProps = {
 
 export default function AiSupportModal({ visible, onClose }: AiSupportModalProps) {
     const { colors, glassStyle } = useTheme();
+    const { i18n } = useTranslation();
     const styles = getStyles(colors, glassStyle);
     const markdownStyles = getMarkdownStyles(colors);
     const [messages, setMessages] = useState<Message[]>([
@@ -87,7 +89,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                 encoding: FileSystem.EncodingType.Base64,
             });
 
-            const result = await ai.voiceToText(base64);
+            const result = await ai.voiceToText(base64, i18n.language);
             if (result.transcription) {
                 setInputText(result.transcription);
             }
@@ -176,7 +178,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                 content: m.content,
             }));
 
-            const response = await ai.support(userMessage.content, history);
+            const response = await ai.support(userMessage.content, history, i18n.language);
 
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),

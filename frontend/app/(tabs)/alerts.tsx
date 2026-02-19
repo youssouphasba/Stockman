@@ -81,7 +81,7 @@ export default function AlertsScreen() {
   async function handleDetectAnomalies() {
     setAnomalyLoading(true);
     try {
-      const result = await aiApi.detectAnomalies();
+      const result = await aiApi.detectAnomalies(i18n.language);
       setAnomalies(result.anomalies || []);
       setShowAnomalies(true);
     } catch {

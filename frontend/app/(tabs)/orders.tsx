@@ -53,7 +53,7 @@ import PremiumGate from '../../components/PremiumGate';
 
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
@@ -515,7 +515,7 @@ export default function OrdersScreen() {
   async function processInvoiceImage(base64: string) {
     setScanLoading(true);
     try {
-      const result = await aiApi.scanInvoice(base64);
+      const result = await aiApi.scanInvoice(base64, i18n.language);
       if (result.error || !result.items || result.items.length === 0) {
         Alert.alert(t('orders.scan_result_title'), t('orders.scan_no_items'));
         return;

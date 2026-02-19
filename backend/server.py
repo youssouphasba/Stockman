@@ -122,12 +122,43 @@ class PrivacyPolicy(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 @api_router.get("/cgu")
-async def get_cgu():
-    """Get current Terms of Service (Markdown)"""
-    doc = await db.system_configs.find_one({"config_id": "cgu"}, {"_id": 0, "content": 1, "updated_at": 1})
-    if not doc:
-        return {"content": "# CGU Stockman\n\nContenu en attente...", "updated_at": datetime.now(timezone.utc)}
-    return doc
+async def get_cgu(lang: str = "fr"):
+    """Get current Terms of Service (Markdown) with auto-translation and caching"""
+    lang = (lang or "fr").lower().split("-")[0]
+    
+    # 1. Get base document (French)
+    source_doc = await db.system_configs.find_one({"config_id": "cgu"}, {"_id": 0, "content": 1, "updated_at": 1})
+    if not source_doc:
+        source_content = "# CGU Stockman\n\nContenu en attente..."
+        source_updated_at = datetime.now(timezone.utc)
+    else:
+        source_content = source_doc["content"]
+        source_updated_at = source_doc["updated_at"]
+
+    if lang == "fr":
+        return {"content": source_content, "updated_at": source_updated_at}
+
+    # 2. Check cache for translated version
+    cache_id = f"cgu_{lang}"
+    cached_doc = await db.system_configs.find_one({"config_id": cache_id}, {"_id": 0, "content": 1, "updated_at": 1, "source_updated_at": 1})
+    
+    # If cache exists and is up to date with source
+    if cached_doc and cached_doc.get("source_updated_at") == source_updated_at:
+        return {"content": cached_doc["content"], "updated_at": cached_doc["updated_at"]}
+
+    # 3. Translate if not in cache or out of date
+    translated_content = await translate_legal_document(source_content, lang)
+    
+    # 4. Update cache
+    new_cached_doc = {
+        "config_id": cache_id,
+        "content": translated_content,
+        "updated_at": datetime.now(timezone.utc),
+        "source_updated_at": source_updated_at
+    }
+    await db.system_configs.update_one({"config_id": cache_id}, {"$set": new_cached_doc}, upsert=True)
+    
+    return {"content": translated_content, "updated_at": new_cached_doc["updated_at"]}
 
 @admin_router.post("/cgu")
 async def update_cgu(cgu_data: CGU):
@@ -141,6 +172,34 @@ async def update_cgu(cgu_data: CGU):
         upsert=True
     )
     return {"message": "CGU mises à jour avec succès"}
+
+async def translate_legal_document(text: str, target_lang: str) -> str:
+    """Helper to translate legal documents using Gemini"""
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return text # Fallback to original if no key
+    
+    try:
+        genai.configure(api_key=api_key)
+        lang_name = LANGUAGE_NAMES.get(target_lang, target_lang)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""Tu es un traducteur juridique expert. Traduis le document Markdown suivant en {lang_name} ({target_lang}).
+Conserve EXACTEMENT la structure Markdown, les liens, les titres et la mise en forme.
+Le ton doit être professionnel et juridiquement formel.
+
+Document à traduire :
+---
+{text}
+---
+Réponds UNIQUEMENT avec la traduction, sans aucun autre texte.
+"""
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Error translating legal document: {e}")
+        return text # Fallback
+
 
 
 @api_router.post("/payment/mock-webhook")
@@ -159,12 +218,43 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
     return {"status": "ok"}
 
 @api_router.get("/privacy")
-async def get_privacy():
-    """Get current Privacy Policy (Markdown)"""
-    doc = await db.system_configs.find_one({"config_id": "privacy"}, {"_id": 0, "content": 1, "updated_at": 1})
-    if not doc:
-        return {"content": "# Politique de Confidentialité\n\nContenu en attente...", "updated_at": datetime.now(timezone.utc)}
-    return doc
+async def get_privacy(lang: str = "fr"):
+    """Get current Privacy Policy (Markdown) with auto-translation and caching"""
+    lang = (lang or "fr").lower().split("-")[0]
+    
+    # 1. Get base document (French)
+    source_doc = await db.system_configs.find_one({"config_id": "privacy"}, {"_id": 0, "content": 1, "updated_at": 1})
+    if not source_doc:
+        source_content = "# Politique de Confidentialité\n\nContenu en attente..."
+        source_updated_at = datetime.now(timezone.utc)
+    else:
+        source_content = source_doc["content"]
+        source_updated_at = source_doc["updated_at"]
+
+    if lang == "fr":
+        return {"content": source_content, "updated_at": source_updated_at}
+
+    # 2. Check cache for translated version
+    cache_id = f"privacy_{lang}"
+    cached_doc = await db.system_configs.find_one({"config_id": cache_id}, {"_id": 0, "content": 1, "updated_at": 1, "source_updated_at": 1})
+    
+    # If cache exists and is up to date with source
+    if cached_doc and cached_doc.get("source_updated_at") == source_updated_at:
+        return {"content": cached_doc["content"], "updated_at": cached_doc["updated_at"]}
+
+    # 3. Translate if not in cache or out of date
+    translated_content = await translate_legal_document(source_content, lang)
+    
+    # 4. Update cache
+    new_cached_doc = {
+        "config_id": cache_id,
+        "content": translated_content,
+        "updated_at": datetime.now(timezone.utc),
+        "source_updated_at": source_updated_at
+    }
+    await db.system_configs.update_one({"config_id": cache_id}, {"$set": new_cached_doc}, upsert=True)
+    
+    return {"content": translated_content, "updated_at": new_cached_doc["updated_at"]}
 
 @admin_router.post("/privacy")
 async def update_privacy(privacy_data: PrivacyPolicy):
@@ -1800,9 +1890,25 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
         
     return {"data": serialized_docs, "total": total_count, "skip": skip, "limit": limit}
 
+LANGUAGE_NAMES = {
+    "fr": "français", "en": "English", "es": "español", "pt": "português",
+    "ar": "العربية", "de": "Deutsch", "it": "italiano", "zh": "中文",
+    "ru": "русский", "hi": "हिन्दी", "tr": "Türkçe", "wo": "Wolof",
+    "ff": "Pulaar", "pl": "polski", "ro": "română",
+}
+
+def get_language_instruction(lang: str = "fr") -> str:
+    """Return a prompt instruction telling Gemini which language to use."""
+    lang = (lang or "fr").lower().split("-")[0]  # normalize 'fr-FR' -> 'fr'
+    name = LANGUAGE_NAMES.get(lang, lang)
+    if lang == "fr":
+        return "Réponds en français."
+    return f"IMPORTANT: You MUST respond in {name} ({lang}). All text output must be in {name}."
+
 class AiPrompt(BaseModel):
     message: str
     history: List[Dict[str, str]] = []
+    language: str = "fr"
 
 class AiChatMessage(BaseModel):
     role: str
@@ -1906,6 +2012,7 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
         data_summary_short = await _get_ai_data_summary(user.user_id, store_id)
         # Verify if summary is too long, maybe truncate? For now keep it as it's useful baseline.
         
+        lang_instr = get_language_instruction(prompt.language)
         system_instruction = f"""
         {role_context}
         Ton but est d'aider l'utilisateur à naviguer dans l'application ET à analyser son activité.
@@ -1920,6 +2027,8 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
         Adopte un ton pédagogique, professionnel et chaleureux.
         Tes réponses doivent être complètes et explicatives.
         Lorsque tu présentes des chiffres ou des analyses, contextualise-les et propose des conseils d'amélioration si possible.
+
+        {lang_instr}
 
         --- CONTEXTE DOCUMENTAIRE (RAG) ---
         {context_docs}
@@ -2014,6 +2123,7 @@ async def ai_support(prompt: AiPrompt, user: User = Depends(require_auth)):
 async def ai_suggest_category(data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to suggest a category and subcategory for a product name"""
     product_name = data.get("product_name", "").strip()
+    lang = data.get("language", "fr")
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
@@ -2040,6 +2150,7 @@ async def ai_suggest_category(data: dict = Body(...), user: User = Depends(requi
         "Autre": ["Autre"],
     }
 
+    lang_instr = get_language_instruction(lang)
     prompt = f"""Tu es un assistant de catégorisation de produits pour un commerce.
 Produit : "{product_name}"
 
@@ -2049,7 +2160,8 @@ Pour chaque catégorie, voici les sous-catégories possibles :
 {json.dumps(subcategories_map, ensure_ascii=False)}
 
 Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
-{{"category": "NomCatégorie", "subcategory": "NomSousCatégorie"}}"""
+{{"category": "NomCatégorie", "subcategory": "NomSousCatégorie"}}
+{lang_instr}"""
 
     try:
         genai.configure(api_key=api_key)
@@ -2077,6 +2189,7 @@ async def ai_generate_description(data: dict = Body(...), user: User = Depends(r
     product_name = data.get("product_name", "").strip()
     category = data.get("category", "").strip()
     subcategory = data.get("subcategory", "").strip()
+    lang = data.get("language", "fr")
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
@@ -2090,13 +2203,15 @@ async def ai_generate_description(data: dict = Body(...), user: User = Depends(r
         if subcategory:
             cat_context += f" > {subcategory}"
 
+    lang_instr = get_language_instruction(lang)
     prompt = f"""Tu es un expert en rédaction de fiches produits pour un commerce.
 Génère une description marketing courte et vendeuse (2-3 phrases max, 150 caractères max) pour ce produit.
 La description doit être professionnelle, informative et donner envie d'acheter.
 
 Produit : "{product_name}"{cat_context}
 
-Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe."""
+Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
+{lang_instr}"""
 
     try:
         genai.configure(api_key=api_key)
@@ -2109,7 +2224,7 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe."""
         raise HTTPException(status_code=500, detail="Impossible de générer la description")
 
 @api_router.get("/ai/daily-summary")
-async def ai_daily_summary(user: User = Depends(require_auth)):
+async def ai_daily_summary(lang: str = "fr", user: User = Depends(require_auth)):
     """Generate a daily AI-powered business summary"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2120,18 +2235,20 @@ async def ai_daily_summary(user: User = Depends(require_auth)):
         store_id = user.active_store_id
         data_summary = await _get_ai_data_summary(owner_id, store_id)
 
+        lang_instr = get_language_instruction(lang)
         prompt = f"""Tu es un assistant business intelligent pour un commerçant utilisant l'application Stockman.
 Voici les données actuelles du commerce :
 
 {data_summary}
 
-Génère un résumé quotidien concis et actionnable en français (max 200 mots) structuré ainsi :
+Génère un résumé quotidien concis et actionnable (max 200 mots) structuré ainsi :
 1. **Performance** : CA, tendance par rapport à la moyenne
 2. **Alertes** : stocks critiques, ruptures imminentes (les plus urgents uniquement)
 3. **Actions recommandées** : 2-3 actions concrètes prioritaires pour aujourd'hui
 4. **Opportunité** : 1 suggestion pour augmenter les ventes
 
-Sois direct, utilise des chiffres concrets. Pas de formules de politesse."""
+Sois direct, utilise des chiffres concrets. Pas de formules de politesse.
+{lang_instr}"""
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -2141,7 +2258,7 @@ Sois direct, utilise des chiffres concrets. Pas de formules de politesse."""
         logger.error(f"AI daily-summary error: {e}")
         raise HTTPException(status_code=500, detail="Impossible de générer le résumé")
 
-async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None) -> List[dict]:
+async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None, lang: str = "fr") -> List[dict]:
     """Core logic for AI anomaly detection, returns list of anomaly objects"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2208,6 +2325,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
             elif s_prev_daily > 1 and s7_daily < s_prev_daily * 0.3:
                 volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f}")
 
+        lang_instr = get_language_instruction(lang)
         prompt = f"""Tu es un analyste business expert. Analyse ces données d'un commerce et détecte les ANOMALIES.
 CA quotidien (14 derniers jours) : {chr(10).join(revenue_data) if revenue_data else "Aucune"}
 CA moyen journalier : {avg_daily_rev:.0f} {currency}
@@ -2218,7 +2336,8 @@ Ruptures : {len([p for p in products if p.get('quantity', 0) == 0])}
 
 Réponds UNIQUEMENT en JSON (sans markdown) avec ce format :
 [ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
-Maximum 5 anomalies."""
+Maximum 5 anomalies.
+{lang_instr}"""
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -2232,11 +2351,11 @@ Maximum 5 anomalies."""
         return []
 
 @api_router.get("/ai/detect-anomalies")
-async def ai_detect_anomalies(user: User = Depends(require_auth)):
+async def ai_detect_anomalies(lang: str = "fr", user: User = Depends(require_auth)):
     """Use Gemini to detect anomalies in sales, stock and margins"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    anomalies = await detect_anomalies_internal(owner_id, store_id)
+    anomalies = await detect_anomalies_internal(owner_id, store_id, lang=lang)
     return {"anomalies": anomalies}
 
 @api_router.post("/ai/basket-suggestions")
@@ -2300,7 +2419,7 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
         return {"suggestions": []}
 
 @api_router.get("/ai/replenishment-advice")
-async def ai_replenishment_advice(user: User = Depends(require_auth)):
+async def ai_replenishment_advice(lang: str = "fr", user: User = Depends(require_auth)):
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2324,6 +2443,7 @@ async def ai_replenishment_advice(user: User = Depends(require_auth)):
         now = datetime.now(timezone.utc)
         day_name = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"][now.weekday()]
 
+        lang_instr = get_language_instruction(lang)
         prompt = f"""Tu es un expert en gestion des stocks pour un commerçant.
 Aujourd'hui : {day_name} {now.strftime('%d/%m/%Y')}
 
@@ -2337,7 +2457,8 @@ Donne un conseil de réapprovisionnement en 3-4 phrases max :
 2. Si possible, regrouper les commandes par fournisseur pour optimiser
 3. Tenir compte du jour de la semaine (weekend = plus de ventes ?)
 
-Sois concis et actionnable. Pas de liste, juste du texte fluide."""
+Sois concis et actionnable. Pas de liste, juste du texte fluide.
+{lang_instr}"""
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -2354,6 +2475,7 @@ Sois concis et actionnable. Pas de liste, juste du texte fluide."""
 async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to suggest an optimal selling price for a product"""
     product_id = data.get("product_id", "").strip()
+    lang = data.get("language", "fr")
     if not product_id:
         raise HTTPException(status_code=400, detail="product_id required")
 
@@ -2409,6 +2531,7 @@ async def ai_suggest_price(data: dict = Body(...), user: User = Depends(require_
         current_price = product.get("selling_price", 0)
         margin = ((current_price - purchase_price) / current_price * 100) if current_price > 0 else 0
 
+        lang_instr = get_language_instruction(lang)
         prompt = f"""Tu es un expert en pricing pour un commerce de détail.
 
 Produit : {product.get('name')}
@@ -2434,7 +2557,8 @@ Réponds UNIQUEMENT en JSON valide (sans markdown) :
   "reasoning": "<explication courte en 1-2 phrases>"
 }}
 
-Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)."""
+Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché).
+{lang_instr}"""
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
@@ -2468,6 +2592,7 @@ Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)
 async def ai_scan_invoice(data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini Vision to extract items from a supplier invoice photo"""
     image_base64 = data.get("image", "")
+    lang = data.get("language", "fr")
     if not image_base64:
         raise HTTPException(status_code=400, detail="image (base64) required")
 
@@ -2488,26 +2613,28 @@ async def ai_scan_invoice(data: dict = Body(...), user: User = Depends(require_a
             "data": image_base64,
         }
 
-        prompt = """Analyse cette photo de facture/bon de livraison fournisseur.
+        lang_instr = get_language_instruction(lang)
+        prompt = f"""Analyse cette photo de facture/bon de livraison fournisseur.
 Extrais TOUS les articles avec leurs informations.
 
 Réponds UNIQUEMENT en JSON valide (sans markdown) :
-{
+{{
   "supplier_name": "Nom du fournisseur (si visible)",
   "invoice_number": "Numéro de facture (si visible)",
   "date": "Date (si visible, format AAAA-MM-JJ)",
   "items": [
-    {
+    {{
       "name": "Nom du produit",
       "quantity": 0,
       "unit_price": 0,
       "total": 0
-    }
+    }}
   ],
   "total_amount": 0
-}
+}}
 
-Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres."""
+Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres.
+{lang_instr}"""
 
         response = model.generate_content([prompt, image_part])
         text = response.text.strip()
@@ -2525,6 +2652,7 @@ Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres."""
 async def ai_voice_to_text(data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to transcribe voice audio and optionally respond"""
     audio_base64 = data.get("audio", "")
+    lang = data.get("language", "fr")
     if not audio_base64:
         raise HTTPException(status_code=400, detail="audio (base64) required")
 
@@ -2544,7 +2672,8 @@ async def ai_voice_to_text(data: dict = Body(...), user: User = Depends(require_
             "data": audio_base64,
         }
 
-        prompt = "Transcris exactement ce que dit cette personne en français. Réponds UNIQUEMENT avec la transcription, rien d'autre."
+        lang_name = LANGUAGE_NAMES.get((lang or "fr").lower().split("-")[0], "français")
+        prompt = f"Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Réponds UNIQUEMENT avec la transcription, rien d'autre."
 
         response = model.generate_content([prompt, audio_part])
         transcription = response.text.strip()

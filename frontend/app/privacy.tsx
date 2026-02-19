@@ -16,7 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 export default function PrivacyScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const router = useRouter();
     const { colors } = useTheme();
     const [content, setContent] = useState<string>('');
@@ -30,7 +30,7 @@ export default function PrivacyScreen() {
     const fetchPrivacy = async () => {
         try {
             setLoading(true);
-            const res = await system.getPrivacy();
+            const res = await system.getPrivacy(i18n.language);
             setContent(res.content);
         } catch (err) {
             setError(t('legal.error_loading_privacy'));

@@ -761,8 +761,8 @@ export const admin = {
 };
 
 export const system = {
-  getCGU: () => request<{ content: string; updated_at: string }>('/cgu'),
-  getPrivacy: () => request<{ content: string; updated_at: string }>('/privacy'),
+  getCGU: (lang?: string) => request<{ content: string; updated_at: string }>(`/cgu${lang ? `?lang=${lang}` : ''}`),
+  getPrivacy: (lang?: string) => request<{ content: string; updated_at: string }>(`/privacy${lang ? `?lang=${lang}` : ''}`),
 };
 
 
@@ -773,48 +773,48 @@ export const support = {
 };
 
 export const ai = {
-  support: (message: string, history: any[]) =>
+  support: (message: string, history: any[], language: string = 'fr') =>
     request<{ response: string }>('/ai/support', {
       method: 'POST',
-      body: { message, history },
+      body: { message, history, language },
     }),
   getHistory: () => request<{ messages: { role: string; content: string; timestamp: string }[] }>('/ai/history'),
   clearHistory: () => request<{ message: string }>('/ai/history', { method: 'DELETE' }),
-  suggestCategory: (productName: string) =>
+  suggestCategory: (productName: string, language: string = 'fr') =>
     request<{ category: string; subcategory: string }>('/ai/suggest-category', {
       method: 'POST',
-      body: { product_name: productName },
+      body: { product_name: productName, language },
     }),
-  generateDescription: (productName: string, category?: string, subcategory?: string) =>
+  generateDescription: (productName: string, category?: string, subcategory?: string, language: string = 'fr') =>
     request<{ description: string }>('/ai/generate-description', {
       method: 'POST',
-      body: { product_name: productName, category, subcategory },
+      body: { product_name: productName, category, subcategory, language },
     }),
-  dailySummary: () =>
-    request<{ summary: string }>('/ai/daily-summary'),
-  detectAnomalies: () =>
-    request<{ anomalies: AiAnomaly[] }>('/ai/detect-anomalies'),
+  dailySummary: (language: string = 'fr') =>
+    request<{ summary: string }>(`/ai/daily-summary?lang=${language}`),
+  detectAnomalies: (language: string = 'fr') =>
+    request<{ anomalies: AiAnomaly[] }>(`/ai/detect-anomalies?lang=${language}`),
   basketSuggestions: (productIds: string[]) =>
     request<{ suggestions: BasketSuggestion[] }>('/ai/basket-suggestions', {
       method: 'POST',
       body: { product_ids: productIds },
     }),
-  replenishmentAdvice: () =>
-    request<{ advice: string; priority_count: number }>('/ai/replenishment-advice'),
-  suggestPrice: (productId: string) =>
+  replenishmentAdvice: (language: string = 'fr') =>
+    request<{ advice: string; priority_count: number }>(`/ai/replenishment-advice?lang=${language}`),
+  suggestPrice: (productId: string, language: string = 'fr') =>
     request<AiPriceSuggestion>('/ai/suggest-price', {
       method: 'POST',
-      body: { product_id: productId },
+      body: { product_id: productId, language },
     }),
-  scanInvoice: (imageBase64: string) =>
+  scanInvoice: (imageBase64: string, language: string = 'fr') =>
     request<InvoiceScanResult>('/ai/scan-invoice', {
       method: 'POST',
-      body: { image: imageBase64 },
+      body: { image: imageBase64, language },
     }),
-  voiceToText: (audioBase64: string) =>
+  voiceToText: (audioBase64: string, language: string = 'fr') =>
     request<{ transcription: string }>('/ai/voice-to-text', {
       method: 'POST',
-      body: { audio: audioBase64 },
+      body: { audio: audioBase64, language },
     }),
 };
 

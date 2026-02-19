@@ -16,7 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 export default function TermsScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const router = useRouter();
     const { colors } = useTheme();
     const [content, setContent] = useState<string>('');
@@ -30,7 +30,7 @@ export default function TermsScreen() {
     const fetchCGU = async () => {
         try {
             setLoading(true);
-            const res = await system.getCGU();
+            const res = await system.getCGU(i18n.language);
             setContent(res.content);
         } catch (err) {
             setError(t('legal.error_loading_cgu'));

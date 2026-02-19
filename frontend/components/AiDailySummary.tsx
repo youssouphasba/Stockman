@@ -9,7 +9,7 @@ import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 
 export default function AiDailySummary() {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isConnected } = useNetwork();
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function AiDailySummary() {
     if (!isConnected) return;
     setLoading(true);
     try {
-      const result = await ai.dailySummary();
+      const result = await ai.dailySummary(i18n.language);
       setSummary(result.summary);
       setExpanded(true);
     } catch {

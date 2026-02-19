@@ -64,7 +64,7 @@ import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/fo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProductsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, glassStyle } = useTheme();
   const styles = getStyles(colors, glassStyle);
 
@@ -406,7 +406,7 @@ export default function ProductsScreen() {
     }
     setAiCatLoading(true);
     try {
-      const result = await aiApi.suggestCategory(name);
+      const result = await aiApi.suggestCategory(name, i18n.language);
       const cat = result.category;
       const sub = result.subcategory;
       setFormCategoryName(cat);
@@ -442,7 +442,7 @@ export default function ProductsScreen() {
     setAiPriceLoading(true);
     setAiPriceReasoning('');
     try {
-      const result = await aiApi.suggestPrice(editingProduct.product_id);
+      const result = await aiApi.suggestPrice(editingProduct.product_id, i18n.language);
       setFormSellingPrice(String(result.suggested_price));
       setAiPriceReasoning(result.reasoning);
     } catch {
@@ -461,7 +461,7 @@ export default function ProductsScreen() {
     }
     setAiDescLoading(true);
     try {
-      const result = await aiApi.generateDescription(name, formCategoryName || undefined, formSubcategory || undefined);
+      const result = await aiApi.generateDescription(name, formCategoryName || undefined, formSubcategory || undefined, i18n.language);
       setFormDescription(result.description);
     } catch {
       Alert.alert(t('common.error'), t('products.ai_desc_error'));
