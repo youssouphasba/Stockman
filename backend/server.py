@@ -200,25 +200,6 @@ Réponds UNIQUEMENT avec la traduction, sans aucun autre texte.
         logger.error(f"Error translating legal document: {e}")
         return text # Fallback
 
-
-
-@api_router.post("/payment/mock-webhook")
-async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
-    """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
-    if IS_PROD:
-        raise HTTPException(status_code=403, detail="Mock webhook disabled in production")
-    logger.info(f"PAYMENT VALIDATED (MOCK): {method} for {user_id} by admin {admin.user_id}")
-    # Activate Subscription
-    await db.users.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "plan": "premium",
-            "subscription_status": "active",
-            "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
-        }}
-    )
-    return {"status": "ok"}
-
 @api_router.get("/privacy")
 async def get_privacy(lang: str = "fr"):
     """Get current Privacy Policy (Markdown) with auto-translation and caching"""
@@ -1169,6 +1150,23 @@ async def require_superadmin(user: User = Depends(require_auth)) -> User:
     if user.role != "superadmin":
         raise HTTPException(status_code=403, detail="Accès réservé aux super-administrateurs")
     return user
+
+@api_router.post("/payment/mock-webhook")
+async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
+    """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
+    if IS_PROD:
+        raise HTTPException(status_code=403, detail="Mock webhook disabled in production")
+    logger.info(f"PAYMENT VALIDATED (MOCK): {method} for {user_id} by admin {admin.user_id}")
+    # Activate Subscription
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "plan": "premium",
+            "subscription_status": "active",
+            "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
+        }}
+    )
+    return {"status": "ok"}
 
 # ===================== BULK IMPORT ENDPOINTS =====================
 
