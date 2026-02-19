@@ -39,15 +39,18 @@ const resources = {
 };
 
 const LANGUAGE_KEY = 'user-language';
+const MANUAL_FLAG_KEY = 'user-language-manual';
 
 const languageDetector: LanguageDetectorAsyncModule = {
     type: 'languageDetector',
     async: true,
     detect: async (callback: (lng: string) => void) => {
         try {
+            const isManual = await AsyncStorage.getItem(MANUAL_FLAG_KEY);
             const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
-            if (savedLanguage) {
-                console.log('Detecting saved language:', savedLanguage);
+
+            if (isManual === 'true' && savedLanguage) {
+                console.log('Using manually selected language:', savedLanguage);
                 return callback(savedLanguage);
             }
         } catch (error) {
@@ -55,17 +58,13 @@ const languageDetector: LanguageDetectorAsyncModule = {
         }
 
         const deviceLanguage = Localization.getLocales()?.[0]?.languageCode ?? 'fr';
-        console.log('Falling back to device language:', deviceLanguage);
+        console.log('Using system language:', deviceLanguage);
         callback(deviceLanguage);
     },
     init: () => { },
     cacheUserLanguage: async (lng: string) => {
-        try {
-            await AsyncStorage.setItem(LANGUAGE_KEY, lng);
-            console.log('Cached user language:', lng);
-        } catch (error) {
-            console.error('Error saving language:', error);
-        }
+        // Note: Automatic caching is disabled here to avoid locking the system language.
+        // Persistence is handled manually in LanguagePickerModal for user-initiated changes.
     },
 };
 

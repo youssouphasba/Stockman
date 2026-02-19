@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -50,8 +51,14 @@ const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onCl
 
     const currentLanguage = i18n.language.split('-')[0]; // Handle cases like 'en-US'
 
-    const changeLanguage = (code: string) => {
-        i18n.changeLanguage(code);
+    const changeLanguage = async (code: string) => {
+        try {
+            await i18n.changeLanguage(code);
+            await AsyncStorage.setItem('user-language', code);
+            await AsyncStorage.setItem('user-language-manual', 'true');
+        } catch (error) {
+            console.error('Error saving manual language:', error);
+        }
         onClose();
     };
 
