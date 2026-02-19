@@ -19,8 +19,8 @@
     "default_address": "Dirección no indicada",
     "default_store_name": "Mi Tienda Stock",
     "delete_error": "Error al eliminar",
-    "description_optional": "Description (facultatif)",
-    "details_placeholder": "Détails de la dépense...",
+    "description_optional": "Descripción (opcional)",
+    "details_placeholder": "Detalles del gasto...",
     "expense_lines": "{{count}} línea(s) de gasto",
     "expenses": "Gastos",
     "expenses_categories": {
@@ -40,19 +40,19 @@
     "invalid_amount": "Importe no válido",
     "invoice_title": "FACTURA",
     "items_sold": "Artículos Vendidos",
-    "loss_details": "Détails des pertes",
+    "loss_details": "Detalles de las pérdidas",
     "loss_reasons": "{{count}} motivo(s) de pérdida",
     "losses": "Pérdidas / Daños",
-    "margin": "Marge",
+    "margin": "Margen",
     "margin_on_sales": "Margen comercial",
     "margin_on_sales_info": "Diferencia entre el precio de venta y el coste de compra de los productos vendidos.",
     "margin_percentage": "Margen: {{percentage}}%",
     "net_profit": "Resultado Neto",
     "net_profit_info": "Beneficio real después de deducir todos los gastos (alquiler, transporte, etc.).",
-    "new_expense": "Nouvelle dépense",
-    "new_invoice": "Facture",
+    "new_expense": "Nuevo gasto",
+    "new_invoice": "Factura",
     "no_expenses": "Sin gastos",
-    "no_sales": "Aucune vente sur cette période",
+    "no_sales": "Sin ventas en este periodo",
     "payment_card": "Tarjeta",
     "payment_cash": "Efectivo",
     "payment_credit": "Crédito Cliente",
@@ -60,8 +60,8 @@
     "payment_mobile_money": "Mobile Money",
     "payment_transfer": "Transferencia",
     "period_label": "Periodo:",
-    "product": "Produit",
-    "product_performance": "Performance par Produit",
+    "product": "Producto",
+    "product_performance": "Rendimiento por producto",
     "purchases_count": "{{count}} pedido(s)",
     "recent_sales": "Ventas Recientes",
     "recipient_label": "Destinatario:",
@@ -70,17 +70,17 @@
     "report_generation_error": "Error al generar el informe",
     "report_title": "INFORME DE ACTIVIDAD",
     "revenue": "Facturación",
-    "revenue_breakdown": "Répartition du CA",
+    "revenue_breakdown": "Desglose de ingresos",
     "revenue_info": "Total de ventas del periodo antes de deducir gastos.",
-    "revenue_trend": "Évolution du CA",
+    "revenue_trend": "Evolución de ingresos",
     "sales_count_value": "{{count}} venta(s)",
     "save_error": "Error al guardar",
     "see_other_expenses": "Ver {{count}} más",
-    "see_other_products": "Voir les {{count}} autres produits",
+    "see_other_products": "Ver los otros {{count}} productos",
     "share_email_body": "Hola, adjunto encontrará su factura de {{amount}} de {{store}}.",
     "share_email_subject": "Factura {{client}}",
     "share_whatsapp_text": "Hola, aquí tiene su factura de {{amount}} para {{client}}.",
-    "sold": "Vendu",
+    "sold": "Vendido",
     "stock_value_purchase": "Valor Stock (Compra)",
     "stock_value_selling": "Valor Venta: {{value}}",
     "supplier_purchases": "Compras a Proveedores",
@@ -96,141 +96,141 @@
   },
   "admin": {
     "actions": {
-      "confirm": "Confirmation",
-      "cancel": "Annuler",
-      "success": "Succès",
-      "error": "Erreur",
-      "sendSuccess": "✅ Envoyé",
-      "statusUpdated": "✅ Statut mis à jour"
+      "confirm": "Confirmación",
+      "cancel": "Cancelar",
+      "success": "Éxito",
+      "error": "Error",
+      "sendSuccess": "✅ Enviado",
+      "statusUpdated": "✅ Estado actualizado"
     },
     "alerts": {
-      "title": "Alertes",
-      "openTickets": "Tickets ouverts",
-      "lowStock": "Stock bas",
-      "recentSignups": "Inscriptions 7j"
+      "title": "Alertas",
+      "openTickets": "Tickets abiertos",
+      "lowStock": "Stock bajo",
+      "recentSignups": "Inscripciones 7d"
     },
     "comms": {
-      "newMsg": "Nouveau Message",
-      "target": "Cible:",
-      "send": "Envoyer",
-      "broadcast": "Diffuser",
-      "history": "Historique",
-      "broadcastSuccess": "📢 Diffusion : Envoyé à {{count}} appareils"
+      "newMsg": "Nuevo mensaje",
+      "target": "Destino:",
+      "send": "Enviar",
+      "broadcast": "Difundir",
+      "history": "Historial",
+      "broadcastSuccess": "📢 Difusión: Enviado a {{count}} dispositivos"
     },
-    "dashboard": "Tableau de Bord Admin",
+    "dashboard": "Panel de control de administración",
     "disputes": {
-      "title": "Litiges",
-      "investigate": "Enquêter",
-      "resolve": "Résoudre",
-      "reject": "Rejeter",
-      "resolution": "RÉSOLUTION :",
-      "adminNotes": "NOTES ADMIN :"
+      "title": "Disputas",
+      "investigate": "Investigar",
+      "resolve": "Resolver",
+      "reject": "Rechazar",
+      "resolution": "RESOLUCIÓN:",
+      "adminNotes": "NOTAS DE ADMIN:"
     },
     "distribution": {
-      "country": "Répartition par pays",
-      "role": "Utilisateurs par rôle"
+      "country": "Distribución por país",
+      "role": "Usuarios por función"
     },
     "health": {
-      "title": "Santé Système",
-      "database": "Base de données",
-      "online": "EN LIGNE",
-      "error": "ERREUR",
-      "version": "Version {{version}}"
+      "title": "Salud del sistema",
+      "database": "Base de datos",
+      "online": "EN LÍNEA",
+      "error": "ERROR",
+      "version": "Versión {{version}}"
     },
     "logs": {
       "title": "Logs"
     },
     "placeholders": {
-      "searchUsers": "Rechercher un utilisateur...",
-      "searchStores": "Rechercher un magasin...",
-      "searchProducts": "Rechercher un produit...",
-      "searchCustomers": "Rechercher un client...",
-      "msgTitle": "Titre du message",
-      "msgContent": "Contenu du message...",
-      "targetUserId": "ID Utilisateur (ex: user_...)",
-      "replyPlaceholder": "Votre réponse...",
-      "resolutionPlaceholder": "Résolution (facultatif)...",
-      "adminNotesPlaceholder": "Notes administratives..."
+      "searchUsers": "Buscar un usuario...",
+      "searchStores": "Buscar una tienda...",
+      "searchProducts": "Buscar un producto...",
+      "searchCustomers": "Buscar un cliente...",
+      "msgTitle": "Título del mensaje",
+      "msgContent": "Contenido del mensaje...",
+      "targetUserId": "ID de usuario (ej: user_...)",
+      "replyPlaceholder": "Su respuesta...",
+      "resolutionPlaceholder": "Resolución (opcional)...",
+      "adminNotesPlaceholder": "Notas administrativas..."
     },
     "retention": {
-      "title": "Rétention",
-      "deletedTotal": "Supprimés (Total)",
-      "inactive30": "Inactifs (>30j)"
+      "title": "Retención",
+      "deletedTotal": "Eliminados (Total)",
+      "inactive30": "Inactivos (>30d)"
     },
     "revenue": {
-      "title": "Revenus",
-      "today": "Aujourd'hui",
-      "week": "7 jours",
-      "month": "30 jours"
+      "title": "Ingresos",
+      "today": "Hoy",
+      "week": "7 días",
+      "month": "30 días"
     },
     "security": {
-      "failed24h": "Échecs 24h",
-      "success24h": "Connexions 24h",
-      "blocked": "Bloqués",
-      "events": "Événements"
+      "failed24h": "Fallos 24h",
+      "success24h": "Conexiones 24h",
+      "blocked": "Bloqueados",
+      "events": "Eventos"
     },
     "segments": {
       "global": "Global",
-      "users": "Utilisateurs",
-      "stores": "Magasins",
-      "stock": "Gestion Stock",
-      "finance": "Finance",
+      "users": "Usuarios",
+      "stores": "Tiendas",
+      "stock": "Gestión de Stock",
+      "finance": "Finanzas",
       "crm": "CRM",
-      "support": "Support",
-      "disputes": "Litiges",
-      "comms": "Communication",
-      "security": "Sécurité",
-      "logs": "Journal Activité",
-      "settings": "Paramètres",
-      "cgu": "CGU",
-      "privacy": "Confidentialité"
+      "support": "Soporte",
+      "disputes": "Disputas",
+      "comms": "Comunicación",
+      "security": "Seguridad",
+      "logs": "Registro de actividad",
+      "settings": "Ajustes",
+      "cgu": "Términos y condiciones",
+      "privacy": "Privacidad"
     },
     "settings": {
-      "config": "Configuration",
-      "appVersion": "Version de l'app",
-      "serverStatus": "Statut du serveur",
+      "config": "Configuración",
+      "appVersion": "Versión de la aplicación",
+      "serverStatus": "Estado del servidor",
       "actions": "Actions",
-      "dataExplorer": "📊 Explorateur de Données (MongoDB)"
+      "dataExplorer": "📊 Explorador de Datos (MongoDB)"
     },
     "stock": {
-      "title": "Produits",
-      "units": "{{count}} unités",
-      "seller": "Vendeur",
-      "deleteConfirmTitle": "⚠️ Suppression Définitive",
-      "deleteConfirmDesc": "Voulez-vous vraiment supprimer le produit \"{{name}}\" ? Cette action est irréversible."
+      "title": "Productos",
+      "units": "{{count}} unidades",
+      "seller": "Vendedor",
+      "deleteConfirmTitle": "⚠️ Eliminación definitiva",
+      "deleteConfirmDesc": "¿Realmente desea eliminar el producto \"{{name}}\"? Esta acción es irreversible."
     },
     "stores": {
-      "title": "Magasins",
-      "owner": "Propriétaire",
-      "products": "Produits",
-      "sales": "Ventes"
+      "title": "Tiendas",
+      "owner": "Propietario",
+      "products": "Productos",
+      "sales": "Ventas"
     },
     "support": {
       "title": "Tickets",
-      "filterAll": "Tous",
-      "filterOpen": "Ouverts",
-      "filterPending": "En attente",
-      "filterClosed": "Fermés",
-      "reply": "Répondre",
-      "close": "Fermer"
+      "filterAll": "Todos",
+      "filterOpen": "Abiertos",
+      "filterPending": "En espera",
+      "filterClosed": "Cerrados",
+      "reply": "Responder",
+      "close": "Cerrar"
     },
     "topStores": {
-      "title": "Top Magasins"
+      "title": "Tiendas principales"
     },
     "users": {
-      "title": "Utilisateurs",
-      "filterAll": "Tous",
-      "filterShopkeepers": "Commerçants",
-      "filterStaff": "Staff",
-      "filterSuppliers": "Fournisseurs",
-      "filterAdmins": "Admins",
-      "banConfirm": "Bannir cet utilisateur ?",
-      "banDesc": "{{name}} ne pourra plus se connecter.",
-      "banBtn": "Bannir",
-      "reactivateBtn": "Réactiver",
-      "active": "Actif",
-      "banned": "Banni",
-      "countryLabel": "Pays: {{country}}"
+      "title": "Usuarios",
+      "filterAll": "Todos",
+      "filterShopkeepers": "Comerciantes",
+      "filterStaff": "Personal",
+      "filterSuppliers": "Proveedores",
+      "filterAdmins": "Administradores",
+      "banConfirm": "¿Bloquear este usuario?",
+      "banDesc": "{{name}} ya no podrá iniciar sesión.",
+      "banBtn": "Bloquear",
+      "reactivateBtn": "Reactivar",
+      "active": "Activo",
+      "banned": "Bloqueado",
+      "countryLabel": "País: {{country}}"
     }
   },
   "alerts": {
@@ -308,52 +308,52 @@
       "errorLogin": "Error de inicio de sesión"
     },
     "register": {
-      "title": "Créer un compte",
-      "chooseProfile": "Choisissez votre profil",
-      "shopkeeperAccount": "Compte Commerçant",
-      "supplierAccount": "Compte Fournisseur",
-      "shopkeeper": "Commerçant",
-      "shopkeeperDesc": "Gerez vos stocks, commandez auprès de fournisseurs",
-      "supplier": "Fournisseur",
-      "supplierDesc": "Publiez votre catalogue, recevez des commandes",
-      "alreadyHaveAccount": "Déjà un compte ?",
-      "changeProfile": "Changer de profil",
-      "name": "Nom",
-      "namePlaceholder": "Votre nom",
-      "countryCurrency": "Pays et Devise",
-      "phone": "Téléphone",
+      "title": "Crear una cuenta",
+      "chooseProfile": "Elija su perfil",
+      "shopkeeperAccount": "Cuenta de comerciante",
+      "supplierAccount": "Cuenta de proveedor",
+      "shopkeeper": "Comerciante",
+      "shopkeeperDesc": "Gestione su stock, realice pedidos a proveedores",
+      "supplier": "Proveedor",
+      "supplierDesc": "Publique su catálogo, reciba pedidos",
+      "alreadyHaveAccount": "¿Ya tiene cuenta?",
+      "changeProfile": "Cambiar perfil",
+      "name": "Nombre",
+      "namePlaceholder": "Su nombre",
+      "countryCurrency": "País y Moneda",
+      "phone": "Teléfono",
       "phonePlaceholder": "77 000 00 00",
-      "businessType": "Type d'activité",
-      "businessTypePlaceholder": "Ex: Boutique, Quincaillerie...",
-      "howDidYouHear": "Comment nous avez-vous connus ?",
-      "howDidYouHearPlaceholder": "Ex: Facebook, Ami...",
+      "businessType": "Tipo de actividad",
+      "businessTypePlaceholder": "Ej: Tienda, Ferretería...",
+      "howDidYouHear": "¿Cómo nos conoció?",
+      "howDidYouHearPlaceholder": "Ej: Facebook, Amigo...",
       "email": "Email",
-      "password": "Mot de passe",
-      "passwordPlaceholder": "Minimum 6 caractères",
-      "confirmPassword": "Confirmer le mot de passe",
-      "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
-      "acceptTerms": "J'accepte les",
-      "acceptPrivacy": "J'accepte la",
-      "createAccount": "Créer mon compte",
-      "selectCountry": "Sélectionner votre pays",
-      "searchCountry": "Rechercher un pays...",
-      "errorFillRequired": "Veuillez remplir tous les champs (nom, email, mot de passe, téléphone)",
-      "errorPasswordLength": "Le mot de passe doit contenir au moins 6 caractères",
-      "errorPasswordsMismatch": "Les mots de passe ne correspondent pas",
-      "errorTerms": "Veuillez accepter les CGU et la Politique de Confidentialité",
-      "errorRegister": "Erreur lors de l'inscription"
+      "password": "Contraseña",
+      "passwordPlaceholder": "Mínimo 6 caracteres",
+      "confirmPassword": "Confirmar contraseña",
+      "confirmPasswordPlaceholder": "Confirme su contraseña",
+      "acceptTerms": "Acepto los",
+      "acceptPrivacy": "Acepto la",
+      "createAccount": "Crear mi cuenta",
+      "selectCountry": "Seleccione su país",
+      "searchCountry": "Buscar un país...",
+      "errorFillRequired": "Por favor, complete todos los campos (nombre, email, contraseña, teléfono)",
+      "errorPasswordLength": "La contraseña debe tener al menos 6 caracteres",
+      "errorPasswordsMismatch": "Las contraseñas no coinciden",
+      "errorTerms": "Por favor, acepte los Términos y la Política de Privacidad",
+      "errorRegister": "Error al registrarse"
     },
     "verifyPhone": {
-      "title": "Vérification",
-      "sentTo": "Un code de vérification a été envoyé au {{phone}}.",
-      "testTip": "(Pour le test, le code est dans les logs du serveur)",
-      "label": "Code à 6 chiffres",
+      "title": "Verificación",
+      "sentTo": "Se ha enviado un código de verificación al {{phone}}.",
+      "testTip": "(Para el test, el code es en los logs del servidor)",
+      "label": "Código de 6 dígitos",
       "placeholder": "000000",
-      "verify": "Vérifier le numéro",
-      "notReceived": "Je n'ai pas reçu le code",
-      "errorCode": "Veuillez entrer le code à 6 chiffres",
-      "errorIncorrect": "Code incorrect ou expiré",
-      "resendTip": "Fonctionnalité de renvoi bientôt disponible"
+      "verify": "Verificar número",
+      "notReceived": "No recibí el código",
+      "errorCode": "Por favor, introduzca el código de 6 dígitos",
+      "errorIncorrect": "Código incorrecto o expirado",
+      "resendTip": "Función de reenvío disponible pronto"
     }
   },
   "bulk_import": {
@@ -421,21 +421,23 @@
     "back": "Atrás",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
+    "count_warning": "Advertencia de entrada",
     "currency_default": "FCFA",
-    "days_ago": "{{count}} days ago",
+    "days_ago": "hace {{count}} días",
     "delete": "Eliminar",
-    "description": "Description",
+    "description": "Descripción",
     "edit": "Editar",
     "error": "Error",
     "filter": "Filtrar",
+    "generate": "Generar",
     "info": "Info",
     "items_count": "{{count}} artículo(s)",
     "language_choice": "Elegir idioma",
     "loading": "Cargando...",
     "merchant": "Comerciante",
-    "months_ago": "{{count}} months ago",
+    "months_ago": "hace {{count}} meses",
     "my_shop": "Mi Tienda",
-    "name": "Nom",
+    "name": "Nombre",
     "no": "No",
     "none": "Ninguno",
     "offline": "Sin conexión",
@@ -452,20 +454,22 @@
       "last_days": "Últimos {{count}} días"
     },
     "preferences_error": "No se pudieron actualizar sus preferencias.",
-    "price": "Prix",
+    "price": "Precio",
     "save": "Guardar",
     "search": "Buscar",
-    "send": "Envoyer",
-    "step": "Étape {{step}}/{{total}}",
+    "see_feature": "Ver esta función",
+    "send": "Enviar",
+    "step": "Paso {{step}}/{{total}}",
     "stock": "Stock",
     "success": "Éxito",
-    "today": "Today",
+    "tip_of_the_day": "CONSEJO DEL DÍA",
+    "today": "Hoy",
     "total": "Total",
-    "unit": "Unité",
+    "unit": "Unidad",
     "unknown_product": "Producto desconocido",
     "validate": "Validar",
-    "weeks_ago": "{{count}} weeks ago",
-    "years_ago": "{{count}} years ago",
+    "weeks_ago": "hace {{count}} semanas",
+    "years_ago": "hace {{count}} años",
     "yes": "Sí",
     "yesterday": "Ayer"
   },
@@ -618,9 +622,11 @@
   "dashboard": {
     "abc_analysis": "Análisis ABC (Prioridades)",
     "admin_messages": "Mensajes del administrador",
+    "ai_daily_summary": "Resumen diario de IA",
+    "ai_tap_to_generate": "Toca para generar",
     "category_distribution": "Distribución por Categoría",
     "class_a": "Clase A",
-    "class_a_desc": "80% de su facturación",
+    "class_a_desc": "80% de tus ingresos",
     "class_b": "Clase B",
     "class_b_desc": "15% de su facturación",
     "class_c": "Clase C",
@@ -653,20 +659,22 @@
     "overstock": "Exceso de stock",
     "pending_orders": "Pendientes",
     "preferences_error": "No se pudieron actualizar sus preferencias.",
-    "products_count_one": "{{count}} produit",
-    "products_count_other": "{{count}} produits",
+    "products_count_one": "{{count}} producto",
+    "products_count_other": "{{count}} productos",
     "profitability_analysis": "Análisis de Rentabilidad",
     "recent_alerts": "Alertas recientes",
     "recent_sales": "Ventas Recientes",
     "rotating_inventory": "Inventario Rotativo",
-    "see_detail_product": "Voir le détail par produit",
+    "see_detail_product": "Ver detalle por producto",
     "see_feature": "Ver esta funcionalidad",
     "see_less": "Ver menos",
     "see_more": "Ver más",
     "see_more_count": "Ver los otros {{count}} productos críticos",
+    "smart_reminders": "Recordatorios Inteligentes",
     "smart_replenishment": "Reabastecimiento Inteligente",
     "statistics": "Estadísticas",
     "statistics_btn": "Estadísticas",
+    "stats": "Estadísticas",
     "status_distribution": "Distribución de estados",
     "stock_by_category": "Stock por categoría",
     "stock_evolution": "Evolución Valor Stock (7d)",
@@ -674,6 +682,7 @@
     "stock_status": "Estado del stock",
     "stock_value": "Valor del stock",
     "sub_greeting": "Aquí está el estado de su stock",
+    "suggestions_reorder": "Sugerencias de reabastecimiento",
     "threshold": "Umbral",
     "tip_of_day": "CONSEJO DEL DÍA",
     "title": "Panel de control",
@@ -686,383 +695,383 @@
   "help": {
     "faq": {
       "q1": {
-        "q": "Comment ajouter mon premier produit ?",
-        "a": "Allez dans l'onglet Produits, appuyez sur le bouton '+' en bas à droite. Remplissez le nom, le prix de vente et le stock initial. Vous pouvez aussi scanner un code-barres existant."
+        "q": "¿Cómo añadir mi primer producto?",
+        "a": "Vaya a la pestaña Productos, presione el botón '+' en la parte inferior derecha. Complete el nombre, el precio de venta y el stock inicial. También puede escanear un código de barras existente."
       },
       "q2": {
-        "q": "Comment faire une vente ?",
-        "a": "Allez dans l'onglet Caisse. Scannez vos articles ou cherchez-les dans la liste. Ajoutez au panier, associez un client si souhaité, choisissez le mode de paiement et validez."
+        "q": "¿Cómo realizar una venta?",
+        "a": "Vaya a la pestaña Caja. Escanee sus artículos o búsquelos en la lista. Añada al carrito, asocie un cliente si lo desea, elija el método de pago y valide."
       },
       "q3": {
-        "q": "Comment gérer les dettes clients ?",
-        "a": "Dans l'onglet Clients (CRM), sélectionnez un client puis allez dans l'onglet Compte. Vous pouvez enregistrer une dette manuelle ou un paiement. Le solde est mis à jour en temps réel."
+        "q": "¿Cómo gestionar las deudas de los clientes?",
+        "a": "En la pestaña Clientes (CRM), seleccione un cliente y luego vaya a la pestaña Cuenta. Puede registrar una deuda manual o un pago. El saldo se actualiza en tiempo real."
       },
       "q4": {
-        "q": "Comment commander auprès d'un fournisseur ?",
-        "a": "Allez dans Commandes, cliquez sur '+'. Sélectionnez le fournisseur (manuel ou marketplace), ajoutez les produits et validez. À la réception, confirmez la livraison pour mettre à jour le stock."
+        "q": "¿Cómo realizar un pedido a un proveedor?",
+        "a": "Vaya a Pedidos, haga clic en '+'. Seleccione el proveedor (manual o marketplace), añada los productos y valide. Al recibirlo, confirme la entrega para actualizar el stock."
       },
       "q5": {
-        "q": "Comment ajouter un employé ?",
-        "a": "Dans Paramètres > Utilisateurs, ajoutez un nouvel utilisateur avec son email. Définissez ses permissions module par module et partagez les identifiants par WhatsApp."
+        "q": "¿Cómo añadir un empleado?",
+        "a": "En Ajustes > Usuarios, añada un nuevo usuario con su email. Defina sus permisos módulo por módulo y comparta las credenciales por WhatsApp."
       },
       "q6": {
-        "q": "Comment changer de boutique ?",
-        "a": "Utilisez le sélecteur de boutique en haut à droite de l'écran. Toutes les données (stock, ventes, comptabilité) basculent vers la boutique sélectionnée."
+        "q": "¿Cómo cambiar de tienda?",
+        "a": "Use el selector de tienda en la parte superior derecha de la pantalla. Todos los datos (stock, ventas, contabilidad) cambiarán a la tienda seleccionada."
       },
       "q7": {
-        "q": "Mes données sont-elles sauvegardées ?",
-        "a": "Oui ! Vos données sont stockées dans le cloud et synchronisées en temps réel. Un cache local permet de consulter les données même hors connexion."
+        "q": "¿Se guardan mis datos?",
+        "a": "¡Sí! Sus datos se almacenan en la nube y se sincronizan en tiempo real. Una caché local permite consultar los datos incluso sin conexión."
       },
       "q8": {
-        "q": "Comment exporter mes données ?",
-        "a": "Depuis le Dashboard (bouton Historique > icône téléchargement) ou depuis la Comptabilité, exportez en CSV. Les factures s'exportent en PDF."
+        "q": "¿Cómo exportar mis datos?",
+        "a": "Desde el Panel de Control (botón Historial > icono de descarga) o desde Contabilidad, exporte en CSV. Las facturas se exportan en PDF."
       },
       "q9": {
-        "q": "Comment configurer les alertes ?",
-        "a": "Dans l'onglet Alertes, appuyez sur l'icône engrenage pour accéder aux règles. Activez les types d'alertes souhaités et ajustez les seuils selon vos besoins."
+        "q": "¿Cómo configurar las alertas?",
+        "a": "En la pestaña Alertas, presione el icono de engranaje para acceder a las reglas. Active los tipos de alertas deseados y ajuste los umbrales según sus necesidades."
       },
       "q10": {
-        "q": "Comment envoyer un ticket par WhatsApp ?",
-        "a": "Après avoir validé une vente dans la Caisse, l'écran de confirmation propose un bouton 'Partager'. Choisissez WhatsApp et sélectionnez le contact."
+        "q": "¿Cómo enviar un ticket por WhatsApp?",
+        "a": "Después de validar una venta en la Caja, la pantalla de confirmación propone un botón 'Compartir'. Elija WhatsApp y seleccione el contacto."
       },
       "q11": {
-        "q": "Comment créer une facture ?",
-        "a": "Dans l'onglet Comptabilité, appuyez sur 'Créer une facture'. Ajoutez les lignes avec description, quantité, prix et TVA. La facture est générée en PDF."
+        "q": "¿Cómo crear una factura?",
+        "a": "En la pestaña Contabilidad, presione 'Crear una factura'. Añada las líneas con descripción, cantidad, precio e IVA. La factura se genera en PDF."
       },
       "q12": {
-        "q": "Comment fonctionne la fidélité ?",
-        "a": "Activez le programme dans Paramètres > Fidélité. Définissez le ratio de points (ex: 1 point pour un montant fixe). Les points s'accumulent à chaque vente et les clients progressent automatiquement dans les tiers."
+        "q": "¿Cómo funciona la fidelidad?",
+        "a": "Active el programa en Ajustes > Fidelización. Defina el ratio de puntos (ej: 1 punto por un importe fijo). Los puntos se acumulan en cada venta y los clientes progresan automáticamente en los niveles."
       }
     },
-    "faq_title": "QUESTIONS FRÉQUENTES",
-    "features_count_one": "{{count}} fonctionnalité",
-    "features_count_other": "{{count}} fonctionnalités",
-    "launch_guide": "Lancer le guide interactif",
+    "faq_title": "PREGUNTAS FRECUENTES",
+    "features_count_one": "{{count}} funcionalidad",
+    "features_count_other": "{{count}} funcionalidades",
+    "launch_guide": "Iniciar el guía interactiva",
     "modules": {
       "dashboard": {
-        "title": "Tableau de Bord",
+        "title": "Panel de Control",
         "f1": {
-          "t": "KPIs en temps réel",
-          "d": "Suivez votre chiffre d'affaires journalier et mensuel, le nombre de produits et la valeur totale de votre stock. Les compteurs s'animent en temps réel."
+          "t": "KPIs en tiempo real",
+          "d": "Siga sus ingresos diarios y mensuales, el número de productos y el valor total de su stock. Los contadores se animan en tiempo real."
         },
         "f2": {
-          "t": "Santé du Stock",
-          "d": "Visualisez en un coup d'oeil combien de produits sont en rupture (rouge), en stock bas (orange) ou en surstock (bleu). Cliquez sur un badge pour voir les produits concernés."
+          "t": "Salud del Stock",
+          "d": "Visualice de un vistazo cuántos productos están agotados (rojo), en stock bajo (naranja) o en exceso de stock (azul). Haga clic en un distintivo para ver los productos afectados."
         },
         "f3": {
-          "t": "Alertes Péremption",
-          "d": "Si vous gérez des produits avec dates de péremption (lots), ceux arrivant à expiration dans les 30 prochains jours s'affichent automatiquement avec le numéro de lot."
+          "t": "Alertas de Caducidad",
+          "d": "Si gestiona productos con fechas de caducidad (lotes), los que vencen en los próximos 30 días se muestran automáticamente con el número de lote."
         },
         "f4": {
-          "t": "Réapprovisionnement Intelligent",
-          "d": "Le système analyse l'historique de vos ventes et vous suggère automatiquement les produits à commander, avec la quantité optimale et le niveau de priorité."
+          "t": "Reabastecimiento Inteligente",
+          "d": "El sistema analiza su historial de ventas y le sugiere automáticamente los productos que debe pedir, con la cantidad óptima y el nivel de prioridad."
         },
         "f5": {
-          "t": "Analyse ABC",
-          "d": "Vos produits sont classés en 3 groupes selon leur contribution au CA : Classe A (80% du CA), Classe B (15%) et Classe C (5%). Concentrez vos efforts sur la classe A."
+          "t": "Análisis ABC",
+          "d": "Sus productos se clasifican en 3 grupos según su contribución a los ingresos: Clase A (80% del ingreso), Clase B (15%) y Clase C (5%). Concentre sus esfuerzos en la clase A."
         },
         "f6": {
-          "t": "Statistiques & Historique",
-          "d": "Accédez aux graphiques détaillés (évolution du stock, répartition par catégorie) et à l'historique complet des mouvements avec filtres et export CSV."
+          "t": "Estadísticas e Historial",
+          "d": "Acceda a gráficos detallados (evolución del stock, distribución por categoría) y al historial completo de movimientos con filtros y exportación a CSV."
         }
       },
       "products": {
-        "title": "Gestion des Produits",
+        "title": "Gestión de Productos",
         "f1": {
-          "t": "Recherche & Filtres",
-          "d": "Retrouvez un produit en tapant son nom ou son SKU. Filtrez par catégorie grâce aux puces colorées horizontales."
+          "t": "Búsqueda y Filtros",
+          "d": "Encuentre un producto escribiendo su nombre o SKU. Filtre por categoría gracias a los distintivos de colores horizontales."
         },
         "f2": {
-          "t": "Badges de Stock",
-          "d": "Chaque produit affiche un badge coloré : Rouge (Rupture), Orange (Stock bas), Bleu (Surstock), Vert (Normal). Le seuil est configurable par produit."
+          "t": "Distintivos de Stock",
+          "d": "Cada producto muestra un distintivo de color: Rojo (Agotado), Naranja (Stock bajo), Azul (Exceso), Verde (Normal). El umbral es configurable por producto."
         },
         "f3": {
-          "t": "Mouvements Rapides",
-          "d": "Les boutons 'Entrée' et 'Sortie' permettent d'ajuster le stock sans créer de commande. Indiquez la raison (livraison, perte, inventaire, etc.)."
+          "t": "Movimientos Rápidos",
+          "d": "Los botones 'Entrada' y 'Salida' permiten ajustar el stock sin crear un pedido. Indique el motivo (entrega, pérdida, inventario, etc.)."
         },
         "f4": {
-          "t": "Étiquettes PDF",
-          "d": "Générez des étiquettes avec QR Code, nom, prix et code-barres. Imprimez-les pour vos étagères ou partagez-les."
+          "t": "Etiquetas PDF",
+          "d": "Genere etiquetas con código QR, nombre, precio y código de barras. Imprímalas para sus estanterías o compártalas."
         },
         "f5": {
-          "t": "Gestion des Catégories",
-          "d": "L'icône engrenage ouvre le gestionnaire de catégories. Créez, modifiez ou supprimez des catégories avec couleurs et icônes personnalisées."
+          "t": "Gestión de Categorías",
+          "d": "El icono de engranaje abre el administrador de categorías. Cree, modifique o elimine categorías con colores e iconos personalizados."
         },
         "f6": {
-          "t": "Lots & Péremption",
-          "d": "Pour les produits alimentaires, créez des lots avec dates de péremption. Les lots expirant bientôt déclenchent des alertes automatiques."
+          "t": "Lotes y Caducidad",
+          "d": "Para productos alimenticios, cree lotes con fechas de caducidad. Los lotes que vencen pronto activan alertas automáticas."
         },
         "f7": {
-          "t": "Historique des Prix",
-          "d": "Consultez l'évolution des prix d'achat et de vente de chaque produit pour optimiser vos marges."
+          "t": "Historial de Precios",
+          "d": "Consulte la evolución de los precios de compra y venta de cada producto para optimizar sus márgenes."
         }
       },
       "pos": {
-        "title": "Point de Vente (Caisse)",
+        "title": "Punto de Venta (Caja)",
         "f1": {
-          "t": "Scanner de Code-Barres",
-          "d": "Utilisez la caméra pour scanner les articles. Le produit est identifié et ajouté au panier instantanément."
+          "t": "Escáner de Código de Barras",
+          "d": "Use la cámara para escanear artículos. El producto es identificado y añadido al carrito instantáneamente."
         },
         "f2": {
-          "t": "Gestion du Panier",
-          "d": "Ajoutez, supprimez ou modifiez les quantités dans le panier. Le total se recalcule en temps réel avec chaque modification."
+          "t": "Gestión del Carrito",
+          "d": "Añada, elimine o modifique las cantidades en el carrito. El total se recalcula en tiempo real con cada modificación."
         },
         "f3": {
-          "t": "Sélection Client",
-          "d": "Associez un client existant à la vente ou créez-en un nouveau en 2 secondes. Ses points de fidélité sont crédités automatiquement."
+          "t": "Selección de Cliente",
+          "d": "Asocie un cliente existente a la venta o cree uno nuevo en 2 segundos. Sus puntos de fidelidad se acreditan automáticamente."
         },
         "f4": {
-          "t": "Modes de Paiement",
-          "d": "Acceptez 5 modes de paiement : espèces, mobile money, carte bancaire, virement et vente à crédit."
+          "t": "Modos de Pago",
+          "d": "Acepte 5 modos de pago: efectivo, dinero móvil, tarjeta bancaria, transferencia y venta a crédito."
         },
         "f5": {
-          "t": "Tickets de Caisse",
-          "d": "Après validation, imprimez le ticket ou envoyez-le par WhatsApp ou email. Le ticket inclut les détails complets de la transaction."
+          "t": "Tickets de Venta",
+          "d": "Tras la validación, imprima el ticket o envíelo por WhatsApp o email. El ticket incluye los detalles completos de la transacción."
         },
         "f6": {
-          "t": "Fidélité Automatique",
-          "d": "Les points de fidélité sont calculés et crédités automatiquement à chaque achat. Le client progresse dans les tiers (Bronze → Platine)."
+          "t": "Fidelidad Automática",
+          "d": "Los puntos de fidelidad se calculan y acreditan automáticamente en cada compra. El cliente progresa en los niveles (Bronce → Platino)."
         }
       },
       "orders": {
-        "title": "Commandes Fournisseurs",
+        "title": "Pedidos a Proveedores",
         "f1": {
-          "t": "Créer une Commande",
-          "d": "Sélectionnez un fournisseur (manuel ou marketplace), ajoutez les produits avec quantités et prix, définissez la date de livraison prévue."
+          "t": "Crear un Pedido",
+          "d": "Seleccione un proveedor (manual o mercado), añada los productos con cantidades y precios, defina la fecha de entrega prevista."
         },
         "f2": {
-          "t": "Suivi de Statut",
-          "d": "Suivez chaque commande : En attente → Confirmée → Expédiée → Livrée. La barre de progression visuelle montre l'avancement."
+          "t": "Seguimiento de Estado",
+          "d": "Siga cada pedido: Pendiente → Confirmado → Enviado → Entregado. La barra de progreso visual muestra el avance."
         },
         "f3": {
-          "t": "Réception IA",
-          "d": "À la livraison, l'IA analyse les produits reçus et les associe intelligemment à votre inventaire. Validez ou corrigez les suggestions."
+          "t": "Recepción IA",
+          "d": "En la entrega, la IA analiza los productos recibidos y los asocia inteligentemente con su inventario. Valide o corrija las sugerencias."
         },
         "f4": {
-          "t": "Association Manuelle",
-          "d": "Associez manuellement un produit du catalogue fournisseur à un produit de votre inventaire, même après la livraison."
+          "t": "Asociación Manual",
+          "d": "Asocie manualmente un producto del catálogo del proveedor con un producto de su inventario, incluso después de la entrega."
         },
         "f5": {
-          "t": "Filtres Avancés",
-          "d": "Filtrez par statut, fournisseur ou période pour retrouver une commande."
+          "t": "Filtros Avanzados",
+          "d": "Filtre por estado, proveedor o periodo para encontrar un pedido."
         }
       },
       "suppliers": {
-        "title": "Relations Fournisseurs",
+        "title": "Relaciones con Proveedores",
         "f1": {
-          "t": "Annuaire Fournisseurs",
-          "d": "Créez les fiches de vos fournisseurs avec coordonnées, conditions de paiement, délai de livraison et produits fournis."
+          "t": "Directorio de Proveedores",
+          "d": "Cree las fichas de sus proveedores con datos de contacto, condiciones de pago, plazo de entrega y productos suministrados."
         },
         "f2": {
-          "t": "Contact Direct",
-          "d": "Appelez, envoyez un email ou un message WhatsApp à votre fournisseur en un clic depuis sa fiche."
+          "t": "Contacto Directo",
+          "d": "Llame, envíe un email o un mensaje de WhatsApp a su proveedor con un clic desde su ficha."
         },
         "f3": {
-          "t": "Marketplace",
-          "d": "Accédez au réseau de fournisseurs vérifiés. Comparez les prix, consultez les avis et commandez directement."
+          "t": "Mercado (Marketplace)",
+          "d": "Acceda a la red de proveedores verificados. Compare precios, consulte opiniones y haga pedidos directamente."
         },
         "f4": {
-          "t": "Liaison Produits",
-          "d": "Liez vos produits à chaque fournisseur avec son prix, sa référence et marquez-le comme fournisseur préféré."
+          "t": "Vínculo de Productos",
+          "d": "Vincule sus productos a cada proveedor con su precio, referencia y márquelo como proveedor preferido."
         },
         "f5": {
-          "t": "Journal de Contact",
-          "d": "Gardez une trace de vos échanges : appels, visites, emails. Ajoutez des notes pour chaque interaction."
+          "t": "Registro de Contacto",
+          "d": "Mantenga un registro de sus intercambios: llamadas, visitas, correos electrónicos. Añada notas para cada interacción."
         },
         "f6": {
-          "t": "Suggestions Réappro",
-          "d": "Le système identifie les produits sous le seuil minimum et vous suggère les quantités à commander par fournisseur."
+          "t": "Sugerencias de Reabastecimiento",
+          "d": "El sistema identifica los productos por debajo del umbral mínimo y le sugiere las cantidades a pedir por proveedor."
         }
       },
       "crm": {
-        "title": "CRM & Fidélité",
+        "title": "CRM y Fidelización",
         "f1": {
-          "t": "Fichier Client",
-          "d": "Enregistrez vos clients avec nom, téléphone, email et date de naissance. Suivez leur historique d'achats complet."
+          "t": "Ficha del Cliente",
+          "d": "Registre a sus clientes con nombre, teléfono, email y fecha de nacimiento. Siga su historial de compras completo."
         },
         "f2": {
-          "t": "Programme de Fidélité",
-          "d": "Configurez le ratio de points par achat et les paliers de récompense. Les tiers (Bronze, Argent, Or, Platine) se calculent automatiquement."
+          "t": "Programa de Fidelidad",
+          "d": "Configure la proporción de puntos por compra y los niveles de recompensa. Los niveles (Bronce, Plata, Oro, Platino) se calculan automáticamente."
         },
         "f3": {
-          "t": "Gestion des Dettes",
-          "d": "Enregistrez les ventes à crédit et les remboursements. Le solde du client est toujours à jour."
+          "t": "Gestión de Deudas",
+          "d": "Registre las ventas a crédito y los reembolsos. El saldo del cliente está siempre actualizado."
         },
         "f4": {
-          "t": "Campagnes Marketing",
-          "d": "Envoyez des SMS ou emails promotionnels ciblés par tier de fidélité ou sélection individuelle."
+          "t": "Campañas de Marketing",
+          "d": "Envíe SMS o correos electrónicos promocionales dirigidos por nivel de fidelidad o selección individual."
         },
         "f5": {
-          "t": "Promotions",
-          "d": "Créez des promotions avec pourcentage de réduction ou échange de points de fidélité. Activez/désactivez à volonté."
+          "t": "Promociones",
+          "d": "Cree promociones con porcentaje de descuento o intercambio de puntos de fidelidad. Active o desactive a voluntad."
         },
         "f6": {
-          "t": "Anniversaires",
-          "d": "Enregistrez la date de naissance pour des offres personnalisées automatiques et renforcer la relation client."
+          "t": "Cumpleaños",
+          "d": "Registre la fecha de nacimiento para ofertas personalizadas automáticas y fortalecer la relación con el cliente."
         }
       },
       "accounting": {
-        "title": "Comptabilité",
+        "title": "Contabilidad",
         "f1": {
-          "t": "Périodes & Filtres",
-          "d": "Analysez vos finances sur 7, 30 ou 90 jours, ou définissez une période personnalisée. Tous les KPIs s'adaptent."
+          "t": "Periodos y Filtros",
+          "d": "Analice sus finanzas por 7, 30 o 90 días, o defina un periodo personalizado. Todos los KPIs se adaptan."
         },
         "f2": {
-          "t": "Bénéfices & Marges",
-          "d": "Suivez votre CA, coût des marchandises, bénéfice brut et net. Identifiez les produits les plus et moins rentables."
+          "t": "Beneficios y Márgenes",
+          "d": "Siga sus ingresos, costo de mercancías, beneficio bruto y neto. Identifique los productos más y menos rentables."
         },
         "f3": {
-          "t": "Factures PDF",
-          "d": "Créez des factures professionnelles avec TVA, lignes détaillées et coordonnées. Envoyez-les par email ou imprimez."
+          "t": "Facturas PDF",
+          "d": "Cree facturas profesionales con IVA, líneas detalladas y datos de contacto. Envíelas por email o imprímalas."
         },
         "f4": {
-          "t": "Suivi des Dépenses",
-          "d": "Catégorisez vos dépenses (loyer, salaires, transport, électricité, etc.) pour un bilan complet et précis."
+          "t": "Seguimiento de Gastos",
+          "d": "Categorice sus gastos (alquiler, salarios, transporte, electricidad, etc.) para un balance completo y preciso."
         },
         "f5": {
-          "t": "Graphiques",
-          "d": "Visualisez la répartition des paiements, des dépenses par catégorie et l'évolution journalière du CA."
+          "t": "Gráficos",
+          "d": "Visualice la distribución de pagos, gastos por categoría y la evolución diaria de los ingresos."
         },
         "f6": {
-          "t": "Export CSV",
-          "d": "Exportez toutes vos données financières au format CSV pour votre comptable ou logiciel de comptabilité."
+          "t": "Exportación a CSV",
+          "d": "Exporte todos sus datos financieros al formato CSV para su contador o software de contabilidad."
         }
       },
       "alerts": {
-        "title": "Alertes de Stock",
+        "title": "Alertas de Stock",
         "f1": {
-          "t": "Règles Personnalisables",
-          "d": "Définissez vos propres seuils pour chaque type d'alerte : stock bas (%), rupture, surstock, produit dormant."
+          "t": "Reglas Personalizables",
+          "d": "Defina sus propios umbrales para cada tipo de alerta: stock bajo (%), agotado, exceso de stock, producto inactivo."
         },
         "f2": {
-          "t": "Alertes Automatiques",
-          "d": "Les alertes se déclenchent automatiquement quand un produit franchit un seuil. Vous êtes notifié en temps réel."
+          "t": "Alertas Automáticas",
+          "d": "Las alertas se activan automáticamente cuando un producto cruza un umbral. Se le notifica en tiempo real."
         },
         "f3": {
-          "t": "Produits Dormants",
-          "d": "Détectez les produits sans aucune sortie depuis 30 jours. Idéal pour identifier le stock mort."
+          "t": "Productos Inactivos",
+          "d": "Detecte productos sin ninguna salida en 30 días. Ideal para identificar el stock muerto."
         },
         "f4": {
-          "t": "Gestion des Alertes",
-          "d": "Marquez les alertes comme lues, supprimez-les, ou effacez toutes les alertes résolues en un clic."
+          "t": "Gestión de Alertas",
+          "d": "Marque las alertas como leídas, elimínelas o borre todas las alertas resueltas con un clic."
         }
       },
       "activity": {
-        "title": "Flux d'Activité",
+        "title": "Flujo de Actividad",
         "f1": {
-          "t": "Journal Complet",
-          "d": "Chaque action (vente, mouvement de stock, modification produit, connexion) est enregistrée avec date, heure et auteur."
+          "t": "Registro Completo",
+          "d": "Cada acción (venta, movimiento de stock, modificación de producto, inicio de sesión) se registra con fecha, hora y autor."
         },
         "f2": {
-          "t": "Filtres",
-          "d": "Filtrez par module (stock, caisse, CRM, comptabilité), par utilisateur ou par période pour retrouver une action précise."
+          "t": "Filtros",
+          "d": "Filtre por módulo (stock, caja, CRM, contabilidad), por usuario o por periodo para encontrar una acción específica."
         },
         "f3": {
-          "t": "Suivi par Utilisateur",
-          "d": "Identifiez quel employé a effectué chaque action. Essentiel pour la traçabilité et la responsabilisation."
+          "t": "Seguimiento por Usuario",
+          "d": "Identifique qué empleado realizó cada acción. Esencial para la trazabilidad y la responsabilidad."
         }
       },
       "users": {
-        "title": "Gestion des Utilisateurs",
+        "title": "Gestión de Usuarios",
         "f1": {
-          "t": "Créer des Comptes",
-          "d": "Ajoutez un compte pour chaque employé avec email et mot de passe. Partagez les identifiants par WhatsApp."
+          "t": "Crear Cuentas",
+          "d": "Añada una cuenta para cada empleado con correo electrónico y contraseña. Comparta las credenciales por WhatsApp."
         },
         "f2": {
-          "t": "Permissions par Module",
-          "d": "Contrôlez l'accès à chaque module : aucun accès, lecture seule, ou lecture + écriture."
+          "t": "Permisos por Módulo",
+          "d": "Controle el acceso a cada módulo: sin acceso, solo lectura, o lectura + escritura."
         },
         "f3": {
-          "t": "Rôles Adaptés",
-          "d": "Un caissier n'a accès qu'à la caisse, un gérant à tout sauf la comptabilité. Configurez selon vos besoins."
+          "t": "Roles Adaptados",
+          "d": "Un cajero solo tiene acceso a la caja, un gerente a todo excepto la contabilidad. Configure según sus necesidades."
         },
         "f4": {
-          "t": "Gestion des Comptes",
-          "d": "Modifiez les permissions, réinitialisez le mot de passe ou désactivez un compte à tout moment."
+          "t": "Gestión de Cuentas",
+          "d": "Modifique los permisos, restablezca la contraseña o desactive una cuenta en cualquier momento."
         }
       },
       "settings": {
-        "title": "Paramètres",
+        "title": "Ajustes",
         "f1": {
-          "t": "Multi-Boutiques",
-          "d": "Créez et gérez plusieurs points de vente. Chaque boutique possède son propre stock, ses ventes y sa comptabilité."
+          "t": "Multitienda",
+          "d": "Cree y gestione varios puntos de venta. Cada tienda tiene su propio stock, ventas y contabilidad."
         },
         "f2": {
-          "t": "Thème Sombre",
-          "d": "Basculez entre le thème clair et sombre selon votre préférence et vos conditions d'éclairage."
+          "t": "Tema Oscuro",
+          "d": "Cambie entre el tema claro y oscuro según su preferencia y condiciones de iluminación."
         },
         "f3": {
-          "t": "Modules Actifs",
-          "d": "Activez ou désactivez les modules inutiles (CRM, comptabilité, fournisseurs) pour simplifier l'interface."
+          "t": "Módulos Activos",
+          "d": "Active o desactive módulos innecesarios (CRM, contabilidad, proveedores) para simplificar la interfaz."
         },
         "f4": {
-          "t": "Notifications Push",
-          "d": "Activez les notifications pour être alerté en temps réel des ruptures, stocks bas et produits dormants."
+          "t": "Notificaciones Push",
+          "d": "Active las notificaciones para recibir alertas en tiempo real de agotamientos, stock bajo y productos inactivos."
         }
       },
       "supplierDashboard": {
-        "title": "Dashboard Fournisseur",
+        "title": "Panel del Proveedor",
         "f1": {
-          "t": "KPIs Fournisseur",
-          "d": "Suivez votre CA total, le nombre de commandes, le panier moyen et le CA du mois en cours."
+          "t": "KPIs del Proveedor",
+          "d": "Siga sus ingresos totales, el número de pedidos, el promedio de compra y los ingresos del mes en curso."
         },
         "f2": {
-          "t": "Notes & Avis",
-          "d": "Consultez la note moyenne attribuée par vos clients commerçants et lisez leurs commentaires détaillés."
+          "t": "Calificaciones y Opiniones",
+          "d": "Consulte la calificación promedio otorgada por sus clientes comerciantes y lea sus comentarios detallados."
         },
         "f3": {
-          "t": "Top Produits",
-          "d": "Découvrez vos 5 produits les plus commandés avec les quantités vendues. Optimisez votre catalogue en conséquence."
+          "t": "Top Productos",
+          "d": "Descubra sus 5 productos más pedidos con las cantidades vendidas. Optimice su catálogo en consecuencia."
         },
         "f4": {
-          "t": "Clients Actifs",
-          "d": "Voyez combien de commerçants différents ont commandé chez vous. Suivez l'évolution de votre base clients."
+          "t": "Clientes Activos",
+          "d": "Vea cuántos comerciantes diferentes le han pedido. Siga la evolución de su base de clientes."
         }
       },
       "supplierCatalog": {
-        "title": "Catalogue Fournisseur",
+        "title": "Catálogo del Proveedor",
         "f1": {
-          "t": "Ajouter des Produits",
-          "d": "Ajoutez vos produits avec nom, description, catégorie, prix et quantité minimum de commande."
+          "t": "Añadir Productos",
+          "d": "Añada sus productos con nombre, descripción, categoría, precio y cantidad mínima de pedido."
         },
         "f2": {
-          "t": "Tarification",
-          "d": "Définissez vos prix. Mettez-les à jour à tout moment depuis la fiche produit."
+          "t": "Tarificación",
+          "d": "Defina sus precios. Actualícelos en cualquier momento desde la ficha del producto."
         },
         "f3": {
-          "t": "Disponibilité",
-          "d": "Basculez la disponibilité d'un produit en un clic. Les produits indisponibles n'apparaissent plus sur la marketplace."
+          "t": "Disponibilidad",
+          "d": "Cambie la disponibilidad de un producto con un clic. Los productos no disponibles ya no aparecen en el mercado."
         },
         "f4": {
-          "t": "Catégories",
-          "d": "Organisez votre catalogue par catégories et sous-catégories partagées avec vos clients commerçants."
+          "t": "Categorías",
+          "d": "Organice su catálogo por categorías y subcategorías compartidas con sus clientes comerciantes."
         }
       },
       "supplierOrders": {
-        "title": "Commandes Reçues",
+        "title": "Pedidos Recibidos",
         "f1": {
-          "t": "Commandes Entrantes",
-          "d": "Les commandes de vos clients commerçants apparaissent ici avec le détail des produits, quantités et montants."
+          "t": "Pedidos Entrantes",
+          "d": "Los pedidos de sus clientes comerciantes aparecen aquí con el detalle de los productos, cantidades e importes."
         },
         "f2": {
-          "t": "Accepter ou Refuser",
-          "d": "Consultez le détail de chaque commande puis acceptez-la ou refusez-la avec un motif."
+          "t": "Aceptar o Rechazar",
+          "d": "Consulte los detalles de cada pedido y luego acéptelo o rechácelo con un motivo."
         },
         "f3": {
-          "t": "Marquer Expédiée",
-          "d": "Une fois la commande préparée et envoyée, marquez-la comme expédiée. Le client est notifié."
+          "t": "Marcar como Enviado",
+          "d": "Una vez preparado y enviado el pedido, márquelo como enviado. El cliente será notificado."
         },
         "f4": {
-          "t": "Filtres & Historique",
-          "d": "Filtrez par statut (en attente, confirmée, expédiée, livrée) ou par période pour retrouver vos commandes."
+          "t": "Filtros e Historial",
+          "d": "Filtre por estado (pendiente, confirmado, enviado, entregado) o por periodo para encontrar sus pedidos."
         }
       }
     },
-    "modules_title": "FONCTIONNALITÉS PAR MODULE",
-    "no_results": "Aucun résultat pour \"{{query}}\"",
-    "results": "RÉSULTATS",
-    "search_placeholder": "Rechercher une fonctionnalité...",
-    "title": "Centre d'Aide"
+    "modules_title": "FUNCIONALIDADES POR MÓDULO",
+    "no_results": "Sin resultados para \"{{query}}\"",
+    "results": "RESULTADOS",
+    "search_placeholder": "Buscar una funcionalidad...",
+    "title": "Centro de Ayuda"
   },
   "invoice": {
     "add_line": "Añadir línea",
@@ -1078,11 +1087,11 @@
     "total": "TOTAL"
   },
   "legal": {
-    "error_loading_cgu": "Impossible de charger les CGU.",
-    "error_loading_privacy": "Impossible de charger la politique de confidentialité.",
-    "privacy_title": "Politique de Confidentialité",
-    "retry_btn": "Réessayer",
-    "terms_title": "Conditions Générales"
+    "error_loading_cgu": "Imposible cargar los Términos y Condiciones.",
+    "error_loading_privacy": "Imposible cargar la política de privacidad.",
+    "privacy_title": "Política de Privacidad",
+    "retry_btn": "Reintentar",
+    "terms_title": "Términos y Condiciones"
   },
   "marketplace": {
     "all": "Todas",
@@ -1112,44 +1121,44 @@
   "modals": {
     "cancel": "Cancelar",
     "changePassword": {
-      "title": "Changer le mot de passe",
-      "oldLabel": "Ancien mot de passe",
-      "oldPlaceholder": "Entrez votre mot de passe actuel",
-      "newLabel": "Nouveau mot de passe",
-      "newPlaceholder": "Minimum 8 caractères",
-      "confirmLabel": "Confirmer le nouveau mot de passe",
-      "confirmPlaceholder": "Répétez le nouveau mot de passe",
-      "showPasswords": "Afficher les mots de passe",
-      "update": "Mettre à jour",
-      "errorMismatch": "Les nouveaux mots de passe ne correspondent pas",
-      "errorLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "successMessage": "Votre mot de passe a été modifié. Veuillez vous reconnecter."
+      "title": "Cambiar contraseña",
+      "oldLabel": "Contraseña antigua",
+      "oldPlaceholder": "Introduzca su contraseña actual",
+      "newLabel": "Nueva contraseña",
+      "newPlaceholder": "Mínimo 8 caracteres",
+      "confirmLabel": "Confirmar nueva contraseña",
+      "confirmPlaceholder": "Repita su nueva contraseña",
+      "showPasswords": "Mostrar contraseñas",
+      "update": "Actualizar",
+      "errorMismatch": "Las nuevas contraseñas no coinciden",
+      "errorLength": "La contraseña debe tener al menos 8 caracteres",
+      "successMessage": "Su contraseña ha sido cambiada. Por favor, vuelva a iniciar sesión."
     },
     "chat": "Mensajes",
     "close": "Cerrar",
     "confirm": "Confirmar",
     "contactSupport": {
-      "title": "Contacter le Support",
-      "subjectLabel": "Sujet",
-      "subjectPlaceholder": "Ex: Problème d'impression, Suggestion...",
-      "messageLabel": "Message",
-      "messagePlaceholder": "Décrivez votre problème en détail...",
-      "send": "Envoyer le message",
-      "successMessage": "Votre message a été envoyé. Notre équipe vous répondra bientôt."
+      "title": "Contactar Soporte",
+      "subjectLabel": "Asunto",
+      "subjectPlaceholder": "Ej: Problema de impresión, Sugerencia...",
+      "messageLabel": "Mensaje",
+      "messagePlaceholder": "Describa su problema en detalle...",
+      "send": "Enviar mensaje",
+      "successMessage": "Su mensaje ha sido enviado. Nuestro equipo le responderá pronto."
     },
     "deleteAccount": {
-      "dangerZone": "Zone de Danger ⚠️",
-      "warningTitle": "Attention",
-      "warningText": "Vous êtes sur le point de supprimer définitivement votre compte et toutes les données associées.",
-      "confirmationTitle": "Confirmation ultime",
-      "confirmationDesc": "Cette action est irréversible. Toutes vos données (magasins, ventes, clients) seront effacées définitivement. Êtes-vous vraiment sûr ?",
-      "confirmPasswordLabel": "Mot de passe de confirmation",
-      "confirmPasswordPlaceholder": "Entrez votre mot de passe",
-      "deleteBtn": "Supprimer mon compte",
-      "deleteAllBtn": "Tout supprimer",
-      "successTitle": "Adieu",
-      "successDesc": "Votre compte a été supprimé avec succès.",
-      "errorDelete": "Impossible de supprimer le compte."
+      "dangerZone": "Zona de Peligro ⚠️",
+      "warningTitle": "Atención",
+      "warningText": "Está a punto de eliminar definitivamente su cuenta y todos los datos asociados.",
+      "confirmationTitle": "Confirmación final",
+      "confirmationDesc": "Esta acción es irreversible. Todos sus datos (tiendas, ventas, clientes) se borrarán permanentemente. ¿Realmente está seguro?",
+      "confirmPasswordLabel": "Contraseña de confirmación",
+      "confirmPasswordPlaceholder": "Introduzca su contraseña",
+      "deleteBtn": "Eliminar mi cuenta",
+      "deleteAllBtn": "Eliminar todo",
+      "successTitle": "Adiós",
+      "successDesc": "Su cuenta ha sido eliminada con éxito.",
+      "errorDelete": "No se pudo eliminar la cuenta."
     },
     "delete_confirm": "¿Está seguro de que desea eliminar este elemento?",
     "error": "Ha ocurrido un error",
@@ -1259,7 +1268,7 @@
     "reason_placeholder": "Defecto...",
     "received": "Recibido",
     "received_orders": "Pedidos recibidos",
-    "received_qty": "Reçu : {{received}} / {{total}}",
+    "received_qty": "Recibido: {{received}} / {{total}}",
     "rejected": "Rechazado",
     "related_order": "Pedido Relacionado",
     "return_completed_credit_note_generated": "Devolución completada y nota de crédito generada",
@@ -1273,26 +1282,26 @@
     "returns_count_one": "{{count}} retour",
     "returns_count_other": "{{count}} retours",
     "returns_credit_notes": "Devoluciones y Notas de Crédito",
-    "scan_error": "Impossible d'analyser la facture",
-    "scan_invoice_desc": "Prenez en photo une facture fournisseur. L'IA extraira automatiquement les articles.",
-    "scan_invoice_title": "Scanner une facture",
-    "scan_items_ref_hint": "Les articles détectés serviront de référence pour votre commande",
-    "scan_no_items": "Aucun article détecté sur cette image. Essayez avec une photo plus nette.",
-    "scan_result_title": "Résultat",
+    "scan_error": "No se pudo analizar la factura",
+    "scan_invoice_desc": "Tome una foto de una factura de proveedor. La IA extraerá automáticamente los artículos.",
+    "scan_invoice_title": "Escanear una factura",
+    "scan_items_ref_hint": "Los artículos detectados servirán de referencia para su pedido",
+    "scan_no_items": "No se detectó ningún artículo en esta imagen. Inténtelo con una foto más nítida.",
+    "scan_result_title": "Resultado",
     "see_more_items": "Ver {{count}} artículos más",
-    "see_summary": "Voir le récapitulatif",
-    "sent_success": "Commande envoyée avec succès !",
+    "see_summary": "Ver resumen",
+    "sent_success": "¡Pedido enviado con éxito!",
     "share_purchase_order_pdf": "Partager le Bon de Commande (PDF)",
     "shipped": "Enviado",
     "shipping": "En curso",
     "status": "Estado",
     "store_config_missing": "Configuración de la tienda no encontrada",
-    "summary": "Récapitulatif",
-    "summary_desc": "Aperçu des commandes passées",
-    "summary_last_act": "Dernière act.",
-    "summary_orders": "Commandes",
-    "summary_synthesis": "Synthèse : {{name}}",
-    "summary_volume": "Volume total",
+    "summary": "Resumen",
+    "summary_desc": "Vista previa de los pedidos realizados",
+    "summary_last_act": "Última act.",
+    "summary_orders": "Pedidos",
+    "summary_synthesis": "Síntesis: {{name}}",
+    "summary_volume": "Volumen total",
     "supplier": "Proveedor",
     "supplier_return": "Devolución a proveedor",
     "suppliers": "Proveedores",
@@ -1304,19 +1313,19 @@
     "touch_star": "Toque una estrella",
     "update_error": "Error al actualizar el estado",
     "updated_at": "Actualizado el",
-    "validate_receipt": "Valider la réception",
+    "validate_receipt": "Validar recepción",
     "validate_reception": "Validar Recepción",
-    "view_detailed_history": "Voir l'historique détaillé"
+    "view_detailed_history": "Ver historial detallado"
   },
   "pin": {
-    "confirm_title": "Confirmez votre PIN",
-    "create_title": "Créez un code PIN",
-    "incorrect_error": "Code PIN incorrect",
-    "logout_btn": "Se déconnecter",
-    "mismatch_error": "Les codes ne correspondent pas",
-    "setup_subtitle": "Sécurisez l'accès à vos données",
-    "unlock_subtitle": "Saisissez votre code pour continuer",
-    "unlock_title": "Déverrouillez Stockman"
+    "confirm_title": "Confirme su PIN",
+    "create_title": "Cree un código PIN",
+    "incorrect_error": "Código PIN incorrecto",
+    "logout_btn": "Cerrar sesión",
+    "mismatch_error": "Los códigos no coinciden",
+    "setup_subtitle": "Proteja el acceso a sus datos",
+    "unlock_subtitle": "Introduzca su código para continuar",
+    "unlock_title": "Desbloquee Stockman"
   },
   "pos": {
     "anonymous_customer": "Sinuario",
@@ -1463,11 +1472,16 @@
     "default_unit": "Pieza",
     "delete": "Elim.",
     "delete_category_error": "No se pudo eliminar la categoría",
+    "description_placeholder": "Detalles...",
     "edit": "Editar",
     "edit_category": "Editar la categoría",
     "expiry_date_label": "Fecha de Caducidad (AAAA-MM-JJ)",
     "export_history_error": "No se pudo exportar el historial",
     "export_products_error": "No se pudieron exportar los productos",
+    "field_description": "Descripción",
+    "field_name": "Nombre",
+    "field_name_placeholder": "Nombre del producto...",
+    "field_sku": "SKU / Código",
     "gallery": "Galería",
     "history": "Hist.",
     "history_tab_price": "Precio",
@@ -1492,6 +1506,7 @@
     "movements_offline": "Los movimientos de stock no están disponibles sin conexión.",
     "new_category": "Nueva categoría",
     "no_categories": "Sin categorías",
+    "no_price_history": "Sin historial de precios",
     "normal": "Normal",
     "normal_mode": "Modo normal",
     "normal_mode_desc": "Volver al modo de gestión normal.",
@@ -1510,6 +1525,7 @@
     },
     "price_update": "Actualización de precios",
     "print_label_rfid": "Imprimir Etiqueta RFID",
+    "product_count": "{{count}} producto(s)",
     "products_total": "productos en total",
     "purchase": "Compra",
     "purchase_price_short": "Compra",
@@ -1522,11 +1538,13 @@
     "rfid_info_msg": "La lectura RFID requiere un hardware compatible conectado. Puede introducir el ID manualmente.",
     "rfid_info_title": "RFID",
     "search": "Buscar un producto...",
+    "search_placeholder": "Buscar un producto...",
     "see_less": "Ver menos",
     "see_more": "Ver más",
     "see_more_count": "Ver los otros {{count}} movimientos",
     "see_more_sales": "Ver las otras {{count}} ventas",
     "selling": "Venta",
+    "sku_placeholder": "Código de barras...",
     "stock_adjust_error": "Error al ajustar el stock",
     "stock_label": "Stock",
     "stock_movement_in_title": "Entrada de stock para",
@@ -1722,16 +1740,16 @@
     "unavailable": "No disponible"
   },
   "supplier_old": {
-    "active_clients": "Clients actifs",
-    "average_basket": "Panier moyen",
-    "client_reviews": "Avis des clients",
-    "dashboard_title": "Dashboard Fournisseur",
-    "pending_orders": "Commandes en attente",
-    "rating": "Note",
-    "recent_orders": "Commandes récentes",
-    "revenue_this_month": "CA ce mois",
-    "reviews": "Avis",
-    "top_products": "Top Produits"
+    "active_clients": "Clientes activos",
+    "average_basket": "Cesta promedio",
+    "client_reviews": "Opiniones de clientes",
+    "dashboard_title": "Panel del Proveedor",
+    "pending_orders": "Pedidos pendientes",
+    "rating": "Calificación",
+    "recent_orders": "Pedidos recientes",
+    "revenue_this_month": "CA este mes",
+    "reviews": "Opiniones",
+    "top_products": "Top Productos"
   },
   "suppliers": {
     "add_invoice_feature": "Función de carga próximamente",
@@ -1895,36 +1913,50 @@
     "users": "Usuarios"
   },
   "users": {
-    "access_denied": "Accès refusé.",
-    "account_created_title": "Compte créé",
-    "accounting_label": "Comptabilité",
-    "cancel_btn": "Annuler",
-    "create_account_btn": "Créer le compte",
-    "crm_label": "Clients (CRM)",
+    "access_denied": "Acceso denegado.",
+    "account_created_title": "Cuenta creada",
+    "accounting_label": "Contabilidad",
+    "cancel_btn": "Cancelar",
+    "create_account_btn": "Crear cuenta",
+    "crm_label": "Clientes (CRM)",
     "delete_btn": "Supprimer",
-    "delete_user_confirm": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
-    "delete_user_title": "Supprimer l'utilisateur",
+    "delete_user_btn": "Eliminar usuario",
+    "delete_user_confirm": "¿Realmente desea eliminar este usuario?",
+    "delete_user_title": "Eliminar usuario",
     "edit_access_title": "Modifier Accès",
-    "email_label": "Email",
+    "edit_user_title": "Editar usuario",
+    "email_label": "Correo electrónico",
     "empty_state_desc": "Ajoutez vos vendeurs pour leur donner un accès limité.",
     "empty_state_title": "Aucun employé configuré",
-    "form_error_fields": "Veuillez remplir tous les champs obligatoires.",
+    "form_error_fields": "Veuillez remplir tous les champs obligatorios.",
     "full_name_label": "Nom complet",
     "full_name_placeholder": "Ex: Jean Dupont",
+    "loading": "Cargando...",
+    "modules_label": "Acceso a módulos",
+    "name_label": "Nombre completo",
     "new_employee_title": "Nouvel Employé",
-    "password_label": "Mot de passe",
-    "password_placeholder": "Min. 8 caractères",
-    "perm_management": "Modification",
-    "perm_no_access": "Pas d'accès",
-    "perm_read_only": "Lecture Seule",
-    "permissions_section_title": "Permissions (Appuyez pour changer)",
-    "pos_label": "Caisse (POS)",
-    "save_btn": "Enregistrer",
+    "new_user_title": "Nuevo usuario",
+    "no_users_found": "No se encontraron usuarios",
+    "orders_label": "Pedidos",
+    "password_label": "Contraseña",
+    "password_placeholder": "Mín. 6 caracteres",
+    "phone_label": "Teléfono",
+    "pos_label": "Caja (Ventas)",
+    "products_label": "Stock y Productos",
+    "role_admin": "Propietario (Admin)",
+    "role_label": "Rol",
+    "role_staff": "Vendedor (Staff)",
+    "save_btn": "Guardar",
+    "search_placeholder": "Buscar un usuario...",
+    "share_whatsapp_btn": "Compartir por WhatsApp",
+    "share_whatsapp_msg": "Hola {{name}}, aquí tienes tus accesos para la aplicación Stockman: \nEmail: {{email}}\nContraseña: {{password}}\nEnlace: https://stockman-app.com",
+    "status_label": "Estado",
     "stock_label": "Stock & Produits",
-    "suppliers_label": "Fournisseurs",
-    "title": "Gestion d'Équipe",
+    "suppliers_label": "Proveedores",
+    "title": "Gestión de Equipo",
+    "user_details_title": "Detalles del usuario",
     "whatsapp_invite_later": "Plus tard",
-    "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\nVous pouvez accéder à l'application ici : {{url}}\n\nBon travail !",
+    "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\nVous pouvez accéder à l'application aquí : {{url}}\n\nBon travail !",
     "whatsapp_invite_prompt": "Voulez-vous envoyer les accès par WhatsApp ?",
     "whatsapp_invite_send": "Envoyer",
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."

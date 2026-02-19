@@ -2,8 +2,8 @@
   "accounting": {
     "amount": "المبلغ",
     "amount_placeholder": "0.00",
-    "articles_count": "{{count}} articles",
-    "articles_short": "{{count}} art.",
+    "articles_count": "{{count}} مقالات",
+    "articles_short": "{{count}} صنف",
     "avg_sale": "متوسط السلة: {{value}}",
     "category": "الفئة",
     "client_diverse": "عميل متنوع",
@@ -19,8 +19,8 @@
     "default_address": "العنوان غير محدد",
     "default_store_name": "متجري",
     "delete_error": "خطأ في الحذف",
-    "description_optional": "Description (facultatif)",
-    "details_placeholder": "Détails de la dépense...",
+    "description_optional": "وصف (اختياري)",
+    "details_placeholder": "تفاصيل المصاريف...",
     "expense_lines": "{{count}} سطر(أسطر) مصاريف",
     "expenses": "المصاريف",
     "expenses_categories": {
@@ -40,19 +40,19 @@
     "invalid_amount": "مبلغ غير صالح",
     "invoice_title": "فاتورة",
     "items_sold": "المنتجات المباعة",
-    "loss_details": "Détails des pertes",
+    "loss_details": "تفاصيل الخسائر",
     "loss_reasons": "{{count}} سبب خسارة",
     "losses": "خسائر / تلفيات",
-    "margin": "Marge",
+    "margin": "الهامش",
     "margin_on_sales": "الهامش التجاري",
     "margin_on_sales_info": "الفرق بين سعر البيع وتكلفة الشراء للمنتجات المباعة.",
     "margin_percentage": "الهامش: {{percentage}}%",
     "net_profit": "صافي الربح",
     "net_profit_info": "الربح الفعلي بعد خصم جميع المصاريف (إيجار، نقل، إلخ).",
-    "new_expense": "Nouvelle dépense",
-    "new_invoice": "Facture",
+    "new_expense": "مصروف جديد",
+    "new_invoice": "فاتورة",
     "no_expenses": "لا مصاريف",
-    "no_sales": "Aucune vente sur cette période",
+    "no_sales": "لا توجد مبيعات في هذه الفترة",
     "payment_card": "بطاقة",
     "payment_cash": "نقداً",
     "payment_credit": "ائتمان العميل",
@@ -60,8 +60,8 @@
     "payment_mobile_money": "Mobile Money",
     "payment_transfer": "تحويل",
     "period_label": "الفترة:",
-    "product": "Produit",
-    "product_performance": "Performance par Produit",
+    "product": "المنتج",
+    "product_performance": "أداء المنتج",
     "purchases_count": "{{count}} طلب(ات)",
     "recent_sales": "المبيعات الأخيرة",
     "recipient_label": "المستلم:",
@@ -70,9 +70,9 @@
     "report_generation_error": "خطأ أثناء إنشاء التقرير",
     "report_title": "تقرير النشاط",
     "revenue": "الإيرادات",
-    "revenue_breakdown": "Répartition du CA",
+    "revenue_breakdown": "توزيع الإيرادات",
     "revenue_info": "إجمالي المبيعات في الفترة قبل خصم المصاريف.",
-    "revenue_trend": "Évolution du CA",
+    "revenue_trend": "تطور الإيرادات",
     "sales_count_value": "{{count}} عملية بيع",
     "save_error": "خطأ في الحفظ",
     "see_other_expenses": "عرض {{count}} أخرى",
@@ -80,7 +80,7 @@
     "share_email_body": "مرحباً، يرجى الاطلاع على فاتورتك المرفقة بقيمة {{amount}} في {{store}}.",
     "share_email_subject": "فاتورة {{client}}",
     "share_whatsapp_text": "مرحباً، إليك فاتورتك بقيمة {{amount}} لـ {{client}}.",
-    "sold": "Vendu",
+    "sold": "تم البيع",
     "stock_value_purchase": "قيمة المخزون (شراء)",
     "stock_value_selling": "قيمة البيع: {{value}}",
     "supplier_purchases": "مشتريات الموردين",
@@ -90,147 +90,147 @@
     "total_revenue_kpi": "الإيراد الإجمالي"
   },
   "activity": {
-    "no_activity": "Aucune activité enregistrée",
-    "subtitle": "Suivi des actions de votre équipe",
-    "title": "Historique d'Activité"
+    "no_activity": "لا يوجد نشاط مسجل",
+    "subtitle": "متابعة إجراءات فريقك",
+    "title": "سجل النشاط"
   },
   "admin": {
     "actions": {
-      "confirm": "Confirmation",
-      "cancel": "Annuler",
-      "success": "Succès",
-      "error": "Erreur",
-      "sendSuccess": "✅ Envoyé",
-      "statusUpdated": "✅ Statut mis à jour"
+      "confirm": "تأكيد",
+      "cancel": "إلغاء",
+      "success": "تم بنجاح",
+      "error": "خطأ",
+      "sendSuccess": "✅ تم الإرسال",
+      "statusUpdated": "✅ تم تحديث الحالة"
     },
     "alerts": {
-      "title": "Alertes",
-      "openTickets": "Tickets ouverts",
-      "lowStock": "Stock bas",
-      "recentSignups": "Inscriptions 7j"
+      "title": "التنبيهات",
+      "openTickets": "تذاكر مفتوحة",
+      "lowStock": "مخزون منخفض",
+      "recentSignups": "تسجيلات (7 أيام)"
     },
     "comms": {
-      "newMsg": "Nouveau Message",
-      "target": "Cible:",
-      "send": "Envoyer",
-      "broadcast": "Diffuser",
-      "history": "Historique",
-      "broadcastSuccess": "📢 Diffusion : Envoyé à {{count}} appareils"
+      "newMsg": "رسالة جديدة",
+      "target": "المستهدف:",
+      "send": "إرسال",
+      "broadcast": "بث",
+      "history": "السجل",
+      "broadcastSuccess": "📢 البث: تم الإرسال إلى {{count}} أجهزة"
     },
-    "dashboard": "Tableau de Bord Admin",
+    "dashboard": "لوحة تحكم المسؤول",
     "disputes": {
-      "title": "Litiges",
-      "investigate": "Enquêter",
-      "resolve": "Résoudre",
-      "reject": "Rejeter",
-      "resolution": "RÉSOLUTION :",
-      "adminNotes": "NOTES ADMIN :"
+      "title": "النزاعات",
+      "investigate": "تحقيق",
+      "resolve": "حل",
+      "reject": "رفض",
+      "resolution": "الحل:",
+      "adminNotes": "ملاحظات المسؤول:"
     },
     "distribution": {
-      "country": "Répartition par pays",
-      "role": "Utilisateurs par rôle"
+      "country": "التوزيع حسب البلد",
+      "role": "المستخدمون حسب الدور"
     },
     "health": {
-      "title": "Santé Système",
-      "database": "Base de données",
-      "online": "EN LIGNE",
-      "error": "ERREUR",
-      "version": "Version {{version}}"
+      "title": "صحة النظام",
+      "database": "قاعدة البيانات",
+      "online": "متصل",
+      "error": "خطأ",
+      "version": "الإصدار {{version}}"
     },
     "logs": {
-      "title": "Logs"
+      "title": "السجلات"
     },
     "placeholders": {
-      "searchUsers": "Rechercher un utilisateur...",
-      "searchStores": "Rechercher un magasin...",
-      "searchProducts": "Rechercher un produit...",
-      "searchCustomers": "Rechercher un client...",
-      "msgTitle": "Titre du message",
-      "msgContent": "Contenu du message...",
-      "targetUserId": "ID Utilisateur (ex: user_...)",
-      "replyPlaceholder": "Votre réponse...",
-      "resolutionPlaceholder": "Résolution (facultatif)...",
-      "adminNotesPlaceholder": "Notes administratives..."
+      "searchUsers": "البحث عن مستخدم...",
+      "searchStores": "البحث عن متجر...",
+      "searchProducts": "البحث عن منتج...",
+      "searchCustomers": "البحث عن عميل...",
+      "msgTitle": "عنوان الرسالة",
+      "msgContent": "محتوى الرسالة...",
+      "targetUserId": "معرف المستخدم (مثال: user_...)",
+      "replyPlaceholder": "ردك...",
+      "resolutionPlaceholder": "الحل (اختياري)...",
+      "adminNotesPlaceholder": "ملاحظات إدارية..."
     },
     "retention": {
-      "title": "Rétention",
-      "deletedTotal": "Supprimés (Total)",
-      "inactive30": "Inactifs (>30j)"
+      "title": "الاحتفاظ بالعملاء",
+      "deletedTotal": "المحذوفون (الإجمالي)",
+      "inactive30": "غير نشطين (>30 يوم)"
     },
     "revenue": {
-      "title": "Revenus",
-      "today": "Aujourd'hui",
-      "week": "7 jours",
-      "month": "30 jours"
+      "title": "الإيرادات",
+      "today": "اليوم",
+      "week": "7 أيام",
+      "month": "30 يوم"
     },
     "security": {
-      "failed24h": "Échecs 24h",
-      "success24h": "Connexions 24h",
-      "blocked": "Bloqués",
-      "events": "Événements"
+      "failed24h": "فشل (24 ساعة)",
+      "success24h": "تسجيلات ناجحة (24 ساعة)",
+      "blocked": "المحظورون",
+      "events": "الأحداث"
     },
     "segments": {
-      "global": "Global",
-      "users": "Utilisateurs",
-      "stores": "Magasins",
-      "stock": "Gestion Stock",
-      "finance": "Finance",
-      "crm": "CRM",
-      "support": "Support",
-      "disputes": "Litiges",
-      "comms": "Communication",
-      "security": "Sécurité",
-      "logs": "Journal Activité",
-      "settings": "Paramètres",
-      "cgu": "CGU",
-      "privacy": "Confidentialité"
+      "global": "عام",
+      "users": "المستخدمون",
+      "stores": "المتاجر",
+      "stock": "إدارة المخزون",
+      "finance": "المالية",
+      "crm": "إدارة العملاء",
+      "support": "الدعم",
+      "disputes": "النزاعات",
+      "comms": "الاتصالات",
+      "security": "الأمن",
+      "logs": "سجل النشاط",
+      "settings": "الإعدادات",
+      "cgu": "شروط الاستخدام",
+      "privacy": "الخصوصية"
     },
     "settings": {
-      "config": "Configuration",
-      "appVersion": "Version de l'app",
-      "serverStatus": "Statut du serveur",
-      "actions": "Actions",
-      "dataExplorer": "📊 Explorateur de Données (MongoDB)"
+      "config": "التكوين",
+      "appVersion": "إصدار التطبيق",
+      "serverStatus": "حالة الخادم",
+      "actions": "الإجراءات",
+      "dataExplorer": "📊 مستكشف البيانات (MongoDB)"
     },
     "stock": {
-      "title": "Produits",
-      "units": "{{count}} unités",
-      "seller": "Vendeur",
-      "deleteConfirmTitle": "⚠️ Suppression Définitive",
-      "deleteConfirmDesc": "Voulez-vous vraiment supprimer le produit \"{{name}}\" ? Cette action est irréversible."
+      "title": "المنتجات",
+      "units": "{{count}} وحدات",
+      "seller": "البائع",
+      "deleteConfirmTitle": "⚠️ حذف نهائي",
+      "deleteConfirmDesc": "هل تريد حقاً حذف المنتج \"{{name}}\"؟ هذا الإجراء غير قابل للتراجع."
     },
     "stores": {
-      "title": "Magasins",
-      "owner": "Propriétaire",
-      "products": "Produits",
-      "sales": "Ventes"
+      "title": "المتاجر",
+      "owner": "المالك",
+      "products": "المنتجات",
+      "sales": "المبيعات"
     },
     "support": {
-      "title": "Tickets",
-      "filterAll": "Tous",
-      "filterOpen": "Ouverts",
-      "filterPending": "En attente",
-      "filterClosed": "Fermés",
-      "reply": "Répondre",
-      "close": "Fermer"
+      "title": "التذاكر",
+      "filterAll": "الكل",
+      "filterOpen": "مفتوحة",
+      "filterPending": "قيد الانتظار",
+      "filterClosed": "مغلقة",
+      "reply": "رد",
+      "close": "إغلاق"
     },
     "topStores": {
-      "title": "Top Magasins"
+      "title": "أفضل المتاجر"
     },
     "users": {
-      "title": "Utilisateurs",
-      "filterAll": "Tous",
-      "filterShopkeepers": "Commerçants",
-      "filterStaff": "Staff",
-      "filterSuppliers": "Fournisseurs",
-      "filterAdmins": "Admins",
-      "banConfirm": "Bannir cet utilisateur ?",
-      "banDesc": "{{name}} ne pourra plus se connecter.",
-      "banBtn": "Bannir",
-      "reactivateBtn": "Réactiver",
-      "active": "Actif",
-      "banned": "Banni",
-      "countryLabel": "Pays: {{country}}"
+      "title": "المستخدمون",
+      "filterAll": "الكل",
+      "filterShopkeepers": "التجار",
+      "filterStaff": "الموظفون",
+      "filterSuppliers": "الموردون",
+      "filterAdmins": "المسؤولون",
+      "banConfirm": "حظر هذا المستخدم؟",
+      "banDesc": "لن يتمكن {{name}} من تسجيل الدخول مرة أخرى.",
+      "banBtn": "حظر",
+      "reactivateBtn": "إعادة تفعيل",
+      "active": "نشط",
+      "banned": "محظور",
+      "countryLabel": "البلد: {{country}}"
     }
   },
   "alerts": {
@@ -238,122 +238,122 @@
     "all_good": "كل شيء على ما يرام",
     "all_stocks_normal": "جميع مخزوناتك طبيعية",
     "analysis_error": "تعذر تحليل الحالات الشاذة",
-    "analyze_desc": "Analyser ventes, stocks et marges",
-    "analyzing": "Analyse en cours...",
-    "anomaly_analysis_summary": "Analyse IA — {{count}} anomalie détectée",
-    "anomaly_analysis_summary_plural": "Analyse IA — {{count}} anomalies détectées",
-    "channels": "Canaux :",
+    "analyze_desc": "تحليل المبيعات والمخزون والهوامش",
+    "analyzing": "جاري التحليل...",
+    "anomaly_analysis_summary": "تحليل الذكاء الاصطناعي — تم اكتشاف حالة شاذة واحدة",
+    "anomaly_analysis_summary_plural": "تحليل الذكاء الاصطناعي — تم اكتشاف {{count}} حالات شاذة",
+    "channels": "القنوات:",
     "config": {
       "low_stock": {
-        "label": "Stock bas",
-        "desc": "Alerte quand le stock descend sous le seuil minimum"
+        "label": "مخزون منخفض",
+        "desc": "تنبيه عندما ينخفض المخزون عن الحد الأدنى"
       },
       "out_of_stock": {
-        "label": "Rupture de stock",
-        "desc": "Alerte quand un produit est en rupture"
+        "label": "نفاد المخزون",
+        "desc": "تنبيه عندما ينفد منتج من المخزون"
       },
       "overstock": {
-        "label": "Surstock",
-        "desc": "Alerte quand le stock dépasse le seuil maximum"
+        "label": "مخزون زائد",
+        "desc": "تنبيه عندما يتجاوز المخزون الحد الأقصى"
       },
       "slow_moving": {
-        "label": "Produit dormant",
-        "desc": "Alerte quand un produit n'a pas bougé depuis 30 jours"
+        "label": "منتج خامل",
+        "desc": "تنبيه عندما لا يتحرك منتج لمدة 30 يوماً"
       }
     },
-    "detect_anomalies": "Détection d'anomalies IA",
-    "dismiss": "Ignorer",
-    "error_anomaly": "Impossible d'analyser les anomalies",
-    "error_rule_update": "Impossible de modifier la règle",
-    "error_threshold_update": "Impossible de modifier le seuil",
-    "mark_read": "Marquer lue",
+    "detect_anomalies": "كشف الحالات الشاذة بالذكاء الاصطناعي",
+    "dismiss": "تجاهل",
+    "error_anomaly": "تعذر تحليل الحالات الشاذة",
+    "error_rule_update": "تعذر تعديل القاعدة",
+    "error_threshold_update": "تعذر تعديل الحد",
+    "mark_read": "تمييز كمقروء",
     "no_alerts": "لا توجد تنبيهات",
-    "no_anomalies": "Aucune anomalie détectée",
-    "no_rules": "Aucune règle configurée",
+    "no_anomalies": "لم يتم اكتشاف أي حالات شاذة",
+    "no_rules": "لم يتم تكوين أي قواعد",
     "rule_dormant": "منتج خامل",
     "rule_low_stock": "مخزون منخفض",
     "rule_out_of_stock": "نفاد المخزون",
     "rule_overstock": "مخزون زائد",
     "rule_update_error": "تعذر تعديل القاعدة",
-    "rules_title": "Règles d'alertes",
-    "see_less": "Voir moins",
-    "see_more_all_count": "Voir les {{count}} autres alertes",
-    "see_more_count": "Voir plus",
+    "rules_title": "قواعد التنبيهات",
+    "see_less": "عرض أقل",
+    "see_more_all_count": "عرض {{count}} تنبيهات أخرى",
+    "see_more_count": "عرض المزيد",
     "severity_critical": "حرج",
     "severity_info": "معلومات",
     "severity_warning": "تحذير",
-    "subtitle_empty": "Tout est en ordre",
-    "subtitle_unread": "{{count}} non lue(s)",
-    "threshold": "Seuil :",
+    "subtitle_empty": "كل شيء على ما يرام",
+    "subtitle_unread": "{{count}} غير مقروءة",
+    "threshold": "الحد:",
     "threshold_update_error": "تعذر تعديل الحد",
     "title": "التنبيهات",
     "unread": "غير مقروءة"
   },
   "auth": {
     "login": {
-      "title": "Stock Manager",
-      "subtitle": "Connectez-vous pour continuer",
-      "email": "Email",
-      "password": "Mot de passe",
-      "emailPlaceholder": "votre@email.com",
-      "passwordPlaceholder": "Votre mot de passe",
-      "rememberMe": "Se souvenir de moi",
-      "signIn": "Se connecter",
-      "biometricLogin": "Connexion biométrique",
-      "biometricError": "Erreur de connexion biométrique",
-      "biometricNoCreds": "Aucun identifiant sauvegardé pour la biométrie",
-      "noAccount": "Pas encore de compte ?",
-      "signUp": "S'inscrire",
-      "errorFillFields": "Veuillez remplir tous les champs",
-      "errorLogin": "Erreur de connexion"
+      "title": "مدير المخزون",
+      "subtitle": "سجل الدخول للمتابعة",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "emailPlaceholder": "email@example.com",
+      "passwordPlaceholder": "كلمة المرور الخاصة بك",
+      "rememberMe": "تذكرني",
+      "signIn": "تسجيل الدخول",
+      "biometricLogin": "تسجيل الدخول بالبصمة",
+      "biometricError": "خطأ في تسجيل الدخول بالبصمة",
+      "biometricNoCreds": "لا توجد بيانات اعتماد محفوظة للبصمة",
+      "noAccount": "ليس لديك حساب؟",
+      "signUp": "إنشاء حساب",
+      "errorFillFields": "يرجى ملء جميع الحقول",
+      "errorLogin": "خطأ في تسجيل الدخول"
     },
     "register": {
-      "title": "Créer un compte",
-      "chooseProfile": "Choisissez votre profil",
-      "shopkeeperAccount": "Compte Commerçant",
-      "supplierAccount": "Compte Fournisseur",
-      "shopkeeper": "Commerçant",
-      "shopkeeperDesc": "Gerez vos stocks, commandez auprès de fournisseurs",
-      "supplier": "Fournisseur",
-      "supplierDesc": "Publiez votre catalogue, recevez des commandes",
-      "alreadyHaveAccount": "Déjà un compte ?",
-      "changeProfile": "Changer de profil",
-      "name": "Nom",
-      "namePlaceholder": "Votre nom",
-      "countryCurrency": "Pays et Devise",
-      "phone": "Téléphone",
+      "title": "إنشاء حساب",
+      "chooseProfile": "اختر ملفك الشخصي",
+      "shopkeeperAccount": "حساب تاجر",
+      "supplierAccount": "حساب مورد",
+      "shopkeeper": "تاجر",
+      "shopkeeperDesc": "إدارة مخزونك، الطلب من الموردين",
+      "supplier": "مورد",
+      "supplierDesc": "نشر الكتالوج الخاص بك، تلقي الطلبات",
+      "alreadyHaveAccount": "لديك حساب بالفعل؟",
+      "changeProfile": "تغيير الملف الشخصي",
+      "name": "الاسم",
+      "namePlaceholder": "اسمك",
+      "countryCurrency": "البلد والعملة",
+      "phone": "الهاتف",
       "phonePlaceholder": "77 000 00 00",
-      "businessType": "Type d'activité",
-      "businessTypePlaceholder": "Ex: Boutique, Quincaillerie...",
-      "howDidYouHear": "Comment nous avez-vous connus ?",
-      "howDidYouHearPlaceholder": "Ex: Facebook, Ami...",
-      "email": "Email",
-      "password": "Mot de passe",
-      "passwordPlaceholder": "Minimum 6 caractères",
-      "confirmPassword": "Confirmer le mot de passe",
-      "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
-      "acceptTerms": "J'accepte les",
-      "acceptPrivacy": "J'accepte la",
-      "createAccount": "Créer mon compte",
-      "selectCountry": "Sélectionner votre pays",
-      "searchCountry": "Rechercher un pays...",
-      "errorFillRequired": "Veuillez remplir tous les champs (nom, email, mot de passe, téléphone)",
-      "errorPasswordLength": "Le mot de passe doit contenir au moins 6 caractères",
-      "errorPasswordsMismatch": "Les mots de passe ne correspondent pas",
-      "errorTerms": "Veuillez accepter les CGU et la Politique de Confidentialité",
-      "errorRegister": "Erreur lors de l'inscription"
+      "businessType": "نوع النشاط",
+      "businessTypePlaceholder": "مثال: متجر، خردوات...",
+      "howDidYouHear": "كيف سمعت عنا؟",
+      "howDidYouHearPlaceholder": "مثال: فيسبوك، صديق...",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "passwordPlaceholder": "6 أحرف كحد أدنى",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الخاصة بك",
+      "acceptTerms": "أوافق على",
+      "acceptPrivacy": "أوافق على",
+      "createAccount": "إنشاء حسابي",
+      "selectCountry": "اختر بلدك",
+      "searchCountry": "البحث عن بلد...",
+      "errorFillRequired": "يرجى ملء جميع الحقول المطلوبة (الاسم، البريد الإلكتروني، كلمة المرور، الهاتف)",
+      "errorPasswordLength": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل",
+      "errorPasswordsMismatch": "كلمات المرور غير متطابقة",
+      "errorTerms": "يرجى قبول شروط الاستخدام وسياسة الخصوصية",
+      "errorRegister": "خطأ أثناء التسجيل"
     },
     "verifyPhone": {
-      "title": "Vérification",
-      "sentTo": "Un code de vérification a été envoyé au {{phone}}.",
-      "testTip": "(Pour le test, le code est dans les logs du serveur)",
-      "label": "Code à 6 chiffres",
+      "title": "التحقق",
+      "sentTo": "تم إرسال رمز التحقق إلى {{phone}}.",
+      "testTip": "(للاختبار، يوجد الرمز في سجلات الخادم)",
+      "label": "رمز مكون من 6 أرقام",
       "placeholder": "000000",
-      "verify": "Vérifier le numéro",
-      "notReceived": "Je n'ai pas reçu le code",
-      "errorCode": "Veuillez entrer le code à 6 chiffres",
-      "errorIncorrect": "Code incorrect ou expiré",
-      "resendTip": "Fonctionnalité de renvoi bientôt disponible"
+      "verify": "التحقق من الرقم",
+      "notReceived": "لم أستلم الرمز",
+      "errorCode": "يرجى إدخال الرمز المكون من 6 أرقام",
+      "errorIncorrect": "رمز غير صحيح أو منتهي الصلاحية",
+      "resendTip": "ميزة إعادة الإرسال ستتوفر قريباً"
     }
   },
   "bulk_import": {
@@ -396,24 +396,24 @@
     "upload_desc": "اختر ملف CSV يحتوي على منتجاتك. تأكد من أن الأعمدة محددة بشكل صحيح."
   },
   "catalog": {
-    "add_product": "Ajouter un produit",
-    "add_to_catalog": "Ajouter au catalogue",
-    "available_for_sale": "Disponible à la vente",
-    "confirm_delete": "Supprimer \"{{name}}\" du catalogue ?",
-    "description_placeholder": "Description",
-    "edit_product": "Modifier le produit",
-    "empty_catalog": "Votre catalogue est vide",
-    "min_order_qty": "Qté min commande",
-    "min_order_short": "Min cmd",
-    "new_product": "Nouveau produit",
-    "no_result": "Aucun produit trouvé",
-    "product_count": "{{count}} produit(s)",
-    "product_name_placeholder": "Nom du produit",
-    "save_error": "Impossible de sauvegarder le produit",
-    "search_placeholder": "Rechercher un produit...",
-    "stock_available": "Stock disponible",
-    "title": "Mon Catalogue",
-    "unit_placeholder": "unité"
+    "add_product": "إضافة منتج",
+    "add_to_catalog": "إضافة إلى الكتالوج",
+    "available_for_sale": "متاح للبيع",
+    "confirm_delete": "هل تريد حذف \"{{name}}\" من الكتالوج؟",
+    "description_placeholder": "الوصف",
+    "edit_product": "تعديل المنتج",
+    "empty_catalog": "الكتالوج الخاص بك فارغ",
+    "min_order_qty": "أقل كمية للطلب",
+    "min_order_short": "أقل طلب",
+    "new_product": "منتج جديد",
+    "no_result": "لم يتم العثور على أي منتج",
+    "product_count": "{{count}} منتج(ات)",
+    "product_name_placeholder": "اسم المنتج",
+    "save_error": "تعذر حفظ المنتج",
+    "search_placeholder": "البحث عن منتج...",
+    "stock_available": "المخزون المتاح",
+    "title": "كتالوجي",
+    "unit_placeholder": "وحدة"
   },
   "common": {
     "add": "إضافة",
@@ -421,21 +421,23 @@
     "back": "رجوع",
     "cancel": "إلغاء",
     "confirm": "تأكيد",
-    "currency_default": "FCFA",
-    "days_ago": "{{count}} days ago",
+    "count_warning": "تحذير عند الإدخال",
+    "currency_default": "درهم",
+    "days_ago": "قبل {{count}} أيام",
     "delete": "حذف",
-    "description": "Description",
+    "description": "الوصف",
     "edit": "تعديل",
     "error": "خطأ",
     "filter": "تصفية",
+    "generate": "إنشاء",
     "info": "معلومات",
     "items_count": "{{count}} عنصر",
     "language_choice": "اختر اللغة",
     "loading": "جاري التحميل...",
-    "merchant": "Commerçant",
-    "months_ago": "{{count}} months ago",
+    "merchant": "تاجر",
+    "months_ago": "قبل {{count}} شهور",
     "my_shop": "متجري",
-    "name": "Nom",
+    "name": "الاسم",
     "no": "لا",
     "none": "لا شيء",
     "offline": "غير متصل",
@@ -451,46 +453,48 @@
       "apply": "تطبيق",
       "last_days": "آخر {{count}} يوم"
     },
-    "preferences_error": "Impossible de mettre à jour vos préférences.",
-    "price": "Prix",
+    "preferences_error": "تعذر تحديث تفضيلاتك.",
+    "price": "السعر",
     "save": "حفظ",
     "search": "بحث",
-    "send": "Envoyer",
-    "step": "Étape {{step}}/{{total}}",
-    "stock": "Stock",
+    "see_feature": "اكتشاف هذه الميزة",
+    "send": "إرسال",
+    "step": "الخطوة {{step}}/{{total}}",
+    "stock": "مخزون",
     "success": "تم بنجاح",
-    "today": "Today",
-    "total": "Total",
-    "unit": "Unité",
-    "unknown_product": "Produit inconnu",
+    "tip_of_the_day": "نصيحة اليوم",
+    "today": "اليوم",
+    "total": "الإجمالي",
+    "unit": "وحدة",
+    "unknown_product": "منتج مجهول",
     "validate": "تحقق",
-    "weeks_ago": "{{count}} weeks ago",
-    "years_ago": "{{count}} years ago",
+    "weeks_ago": "قبل {{count}} أسابيع",
+    "years_ago": "قبل {{count}} سنوات",
     "yes": "نعم",
-    "yesterday": "Yesterday"
+    "yesterday": "أمس"
   },
   "crm": {
-    "active_30d": "Actifs (30j)",
+    "active_30d": "نشطون (30 يوم)",
     "active_clients": "نشطون (30ي)",
-    "add_credit_debit": "Ajouter crédit/débit",
+    "add_credit_debit": "إضافة رصيد/دين",
     "add_customer": "عميل جديد",
-    "add_debt": "Ajouter une dette",
-    "add_debt_validate": "Ajouter la dette",
-    "amount_label": "Montant",
-    "avg_basket": "Panier moyen",
-    "birthday_label": "Anniversaire",
-    "birthday_placeholder": "Ex: 03-15 (15 mars)",
-    "campaign_message_label": "Message à envoyer",
-    "campaign_placeholder": "Bonjour {nom}, vous avez {points} points...",
+    "add_debt": "إضافة دين",
+    "add_debt_validate": "تأكيد إضافة الدين",
+    "amount_label": "المبلغ",
+    "avg_basket": "متوسط السلة",
+    "birthday_label": "تاريخ الميلاد",
+    "birthday_placeholder": "مثال: 03-15 (15 مارس)",
+    "campaign_message_label": "الرسالة المراد إرسالها",
+    "campaign_placeholder": "مرحباً {nom}، لديك {points} نقاط...",
     "campaign_sent": "تم إرسال الحملة",
-    "campaign_sent_desc": "Campagne envoyée à {{count}} clients",
-    "campaign_variables_hint": "Variables : {nom}, {points}",
-    "category_private": "Particulier",
-    "category_reseller": "Revendeur",
+    "campaign_sent_desc": "تم إرسال الحملة إلى {{count}} عملاء",
+    "campaign_variables_hint": "المتغيرات: {nom}، {points}",
+    "category_private": "فرد",
+    "category_reseller": "موزع",
     "category_vip": "VIP",
-    "check_all": "Tout cocher",
-    "choose_specific_customers": "Choisir des clients spécifiques...",
-    "client_count": "{{count}} clients",
+    "check_all": "تحديد الكل",
+    "choose_specific_customers": "اختر عملاء محددين...",
+    "client_count": "{{count}} عملاء",
     "client_list": "قائمة العملاء",
     "clients": "العملاء",
     "col_debt": "الدين",
@@ -499,125 +503,127 @@
     "col_purchases": "المشتريات",
     "col_tier": "المستوى",
     "col_total_revenue": "الإيراد الإجمالي",
-    "confirm_debt": "Confirmer l'ajout d'une dette de {{amount}} ?",
-    "confirm_delete_customer": "Voulez-vous vraiment supprimer {{name}} ?",
-    "confirm_delete_promo": "Voulez-vous vraiment supprimer {{title}} ?",
-    "confirm_payment": "Confirmer le règlement de {{amount}} ?",
+    "confirm_debt": "تأكيد إضافة دين بمبلغ {{amount}}؟",
+    "confirm_delete_customer": "هل تريد حقاً حذف {{name}}؟",
+    "confirm_delete_promo": "هل تريد حقاً حذف {{title}}؟",
+    "confirm_payment": "تأكيد تسديد مبلغ {{amount}}؟",
     "create_promotion": "إنشاء عرض ترويجي",
-    "credit_advance": "Crédit (Avance)",
-    "customer_file": "Fichier Clients ({{count}})",
-    "customer_name_placeholder": "Nom complet",
-    "customer_since": "Client depuis",
+    "credit_advance": "رصيد (سلفة)",
+    "customer_file": "ملف العملاء ({{count}})",
+    "customer_name_placeholder": "الاسم الكامل",
+    "customer_since": "عميل منذ",
     "debt": "دين",
-    "debt_desc": "Enregistrer une nouvelle dette contractée par ce client",
-    "debt_given": "Dette donnée",
-    "debt_in_progress": "Dette en cours",
-    "debt_ref_placeholder": "Motif de la dette...",
+    "debt_desc": "تسجيل دين جديد على هذا العميل",
+    "debt_given": "دين ممنوح",
+    "debt_in_progress": "دين جاري",
+    "debt_ref_placeholder": "سبب الدين...",
     "debts": "ديون",
     "default_store": "متجري",
     "delete_client": "حذف العميل",
     "delete_confirm": "هل تريد حقاً حذف هذا العميل؟",
-    "delete_customer": "Supprimer le client",
-    "delete_promo": "Supprimer la promotion",
+    "delete_customer": "حذف العميل",
+    "delete_promo": "حذف العرض",
     "delete_promotion": "حذف العرض الترويجي",
     "delete_promotion_confirm": "هل تريد حقاً حذف هذا العرض الترويجي؟",
-    "discount_percent": "Remise (%)",
-    "edit_customer": "Modifier le client",
-    "edit_promotion": "Modifier la promotion",
-    "email_placeholder": "email@exemple.com",
-    "error_delete_customer": "Erreur lors de la suppression",
-    "error_export_csv": "Échec de l'export CSV",
-    "error_export_pdf": "Échec de l'export PDF",
-    "error_invalid_amount": "Montant invalide",
-    "error_message_required": "Le message est obligatoire",
-    "error_name_required": "Le nom est obligatoire",
-    "error_no_targets": "Aucun destinataire avec numéro de téléphone",
-    "error_phone_missing": "Numéro de téléphone manquant",
-    "error_phone_open": "Impossible de passer l'appel",
-    "error_record_failed": "Échec de l'enregistrement",
-    "error_save_customer": "Erreur lors de l'enregistrement du client",
-    "error_save_promo": "Erreur lors de l'enregistrement de la promotion",
-    "error_save_settings": "Erreur lors de la mise à jour des paramètres",
-    "error_sms_open": "Impossible d'envoyer le SMS",
-    "error_whatsapp_open": "Impossible d'ouvrir WhatsApp",
-    "estimated_new_balance": "Nouveau solde estimé",
+    "discount_percent": "خصم (%)",
+    "edit_customer": "تعديل العميل",
+    "edit_promotion": "تعديل العرض الترويجي",
+    "email_placeholder": "email@example.com",
+    "error_delete_customer": "خطأ أثناء الحذف",
+    "error_export_csv": "فشل تصدير CSV",
+    "error_export_pdf": "فشل تصدير PDF",
+    "error_invalid_amount": "مبلغ غير صالح",
+    "error_message_required": "الرسالة مطلوبة",
+    "error_name_required": "الاسم مطلوب",
+    "error_no_targets": "لا يوجد مستلمون بأرقام هواتف",
+    "error_phone_missing": "رقم الهاتف مفقود",
+    "error_phone_open": "تعذر إجراء المكالمة",
+    "error_record_failed": "فشل التسجيل",
+    "error_save_customer": "خطأ أثناء حفظ العميل",
+    "error_save_promo": "خطأ أثناء حفظ العرض الترويجي",
+    "error_save_settings": "خطأ أثناء تحديث الإعدادات",
+    "error_sms_open": "تعذر إرسال الرسالة النصية",
+    "error_whatsapp_open": "تعذر فتح واتساب",
+    "estimated_new_balance": "الرصيد الجديد المقدر",
     "export_error": "تعذر تصدير العملاء",
     "last_purchase": "آخر شراء",
-    "last_purchase_short": "Dernier achat",
-    "loyalty_points": "Cumul de points",
-    "loyalty_points_desc": "Activer le cumul de points lors des ventes",
+    "last_purchase_short": "آخر شراء",
+    "loyalty_points": "تراكم النقاط",
+    "loyalty_points_desc": "تفعيل تراكم النقاط عند البيع",
     "loyalty_strategy": "استراتيجية الولاء",
-    "manual_debt": "Dette manuelle",
-    "manual_payment": "Règlement manuel",
+    "manual_debt": "دين يدوي",
+    "manual_payment": "تسديد يدوي",
     "marketing": "التسويق",
     "never": "أبداً",
-    "new_customer": "Nouveau Client",
-    "new_promotion": "Nouvelle Promotion",
-    "no_customer_found": "Aucun client trouvé",
-    "no_debt": "Aucune dette en cours",
-    "no_history": "Aucun historique d'opérations",
+    "new_customer": "عميل جديد",
+    "new_promotion": "عرض ترويجي جديد",
+    "no_customer_found": "لم يتم العثور على أي عميل",
+    "no_debt": "لا توجد ديون جارية",
+    "no_history": "لا يوجد سجل للعمليات",
     "no_phone_in_tier": "لا يوجد عملاء بأرقام هواتف في هذه الفئة",
-    "no_purchase_recorded": "Aucun achat enregistré",
-    "notes_optional": "Notes (optionnel)",
-    "notes_placeholder": "Remarques sur le client...",
-    "payment_desc": "Enregistrer un règlement reçu de ce client",
-    "payment_received": "Paiement reçu",
-    "payment_ref_placeholder": "Réf. paiement...",
+    "no_purchase_recorded": "لم يتم تسجيل أي شراء",
+    "notes_optional": "ملاحظات (اختياري)",
+    "notes_placeholder": "ملاحظات حول العميل...",
+    "payment_desc": "تسجيل تسديد مستلم من هذا العميل",
+    "payment_received": "دفعة مستلمة",
+    "payment_ref_placeholder": "مرجع الدفع...",
     "phone_placeholder": "+225 XX XX XX XX",
     "points": "نقاط الولاء",
     "points_desc": "تفعيل تراكم النقاط عند البيع",
-    "points_ratio_label": "Ratio (1 pt pour X {{currency}})",
-    "points_required": "Points requis",
-    "points_short": "pts",
-    "promo_description_placeholder": "Détails de l'offre...",
-    "promo_title": "Titre",
-    "promo_title_placeholder": "Ex: Remise Fidélité",
+    "points_ratio_label": "النسبة (نقطة واحدة لكل {{currency}} {{ratio}})",
+    "points_required": "النقاط المطلوبة",
+    "points_short": "نقطة",
+    "promo_description_placeholder": "تفاصيل العرض...",
+    "promo_title": "العنوان",
+    "promo_title_placeholder": "مثال: خصم الولاء",
     "promotions": "العروض الترويجية",
-    "record_payment": "Enregistrer un règlement",
-    "repay": "Régler",
+    "record_payment": "تسجيل تسديد",
+    "repay": "تسديد",
     "report_clients": "العملاء",
     "report_debts": "الديون",
     "report_title": "تقرير العملاء وإدارة العلاقات",
     "report_total_revenue": "الإيراد الإجمالي",
     "reward_threshold": "حد المكافأة",
-    "reward_threshold_label": "Seuil de récompense (pts)",
-    "search_customers_placeholder": "Rechercher un client...",
+    "reward_threshold_label": "حد المكافأة (نقاط)",
+    "search_customers_placeholder": "البحث عن عميل...",
     "search_placeholder": "البحث عن عميل...",
-    "see_other_operations": "Voir les {{count}} autres opérations",
-    "see_other_purchases": "Voir les {{count}} autres achats",
-    "send_campaign": "Envoyer la campagne",
-    "sms_default_msg": "Bonjour {{name}}, ...",
+    "see_other_operations": "عرض {{count}} عمليات أخرى",
+    "see_other_purchases": "عرض {{count}} مشتريات أخرى",
+    "send_campaign": "إرسال الحملة",
+    "sms_default_msg": "مرحباً {{name}}، ...",
     "sort_name": "الاسم",
     "sort_recent": "الأحدث",
     "sort_spent": "المصروفات",
     "sort_visits": "الزيارات",
-    "success_operation_recorded": "Opération enregistrée avec succès",
+    "success_operation_recorded": "تم تسجيل العملية بنجاح",
     "tab_account": "الحساب",
     "tab_contact": "تواصل",
     "tab_info": "معلومات",
-    "tab_infos": "Infos",
+    "tab_infos": "معلومات",
     "tab_purchases": "مشتريات",
-    "target_audience": "Audience cible",
+    "target_audience": "الجمهور المستهدف",
     "tier_bronze": "برونزي",
     "tier_gold": "ذهبي",
     "tier_platinum": "بلاتيني",
     "tier_silver": "فضي",
     "title": "إدارة العملاء والولاء",
-    "total_sales": "Ventes totales",
+    "total_sales": "إجمالي المبيعات",
     "total_spent": "إجمالي المبيعات",
-    "uncheck_all": "Tout décocher",
-    "validate_payment": "Valider le règlement",
-    "visits": "Visites",
-    "visits_count": "{{count}} visites",
-    "visits_to_next_tier": "{{count}} visites avant le tier {{tier}}",
+    "uncheck_all": "إلغاء تحديد الكل",
+    "validate_payment": "تأكيد التسديد",
+    "visits": "زيارات",
+    "visits_count": "{{count}} زيارات",
+    "visits_to_next_tier": "بقي {{count}} زيارات للوصول إلى المستوى {{tier}}",
     "whatsapp_campaign": "حملة واتساب",
-    "whatsapp_campaign_title": "Nouvelle Campagne WhatsApp",
-    "whatsapp_default_msg": "Bonjour {{name}}, nous avons une offre pour vous !",
+    "whatsapp_campaign_title": "حملة واتساب جديدة",
+    "whatsapp_default_msg": "مرحباً {{name}}، لدينا عرض لك!",
     "yesterday": "أمس"
   },
   "dashboard": {
     "abc_analysis": "تحليل ABC (الأولويات)",
-    "admin_messages": "رسائل المسؤول",
+    "admin_messages": "رسائل الإدارة",
+    "ai_daily_summary": "ملخص الذكاء الاصطناعي لليوم",
+    "ai_tap_to_generate": "اضغط للإنشاء",
     "category_distribution": "التوزيع حسب الفئة",
     "class_a": "الفئة أ",
     "class_a_desc": "80% من إيراداتك",
@@ -625,13 +631,13 @@
     "class_b_desc": "15% من إيراداتك",
     "class_c": "الفئة ج",
     "class_c_desc": "5% من إيراداتك",
-    "count_btn": "عدّ",
+    "count_btn": "عد",
     "count_stock": "عد المخزون",
     "count_stock_prompt": "أدخل الكمية الفعلية لـ",
     "critical_products": "منتجات حرجة",
     "default_user": "تاجر",
-    "delivered_orders": "تم التوصيل",
-    "enter_actual_qty": "Enter actual quantity for {{name}}",
+    "delivered_orders": "طلبات مسلمة",
+    "enter_actual_qty": "أدخل الكمية الفعلية لـ {{name}}",
     "entries": "المدخلات",
     "exits": "المخرجات",
     "expected": "المتوقع",
@@ -649,420 +655,423 @@
     "normal": "طبيعي",
     "order_btn": "طلب",
     "orders_section": "الطلبات",
-    "out_of_stock": "نفدت الكمية",
+    "out_of_stock": "نفاد المخزون",
     "overstock": "مخزون زائد",
-    "pending_orders": "قيد الانتظار",
+    "pending_orders": "طلبات قيد الانتظار",
     "preferences_error": "تعذر تحديث تفضيلاتك.",
-    "products_count_one": "{{count}} produit",
-    "products_count_other": "{{count}} produits",
+    "products_count_one": "منتج واحد",
+    "products_count_other": "{{count}} منتجات",
     "profitability_analysis": "تحليل الربحية",
     "recent_alerts": "التنبيهات الأخيرة",
     "recent_sales": "المبيعات الأخيرة",
-    "rotating_inventory": "الجرد الدوري",
-    "see_detail_product": "Voir le détail par produit",
-    "see_feature": "عرض هذه الميزة",
+    "rotating_inventory": "جرد دوري",
+    "see_detail_product": "عرض التفاصيل حسب المنتج",
+    "see_feature": "اكتشاف الميزة",
     "see_less": "عرض أقل",
     "see_more": "عرض المزيد",
-    "see_more_count": "See {{count}} other critical products",
-    "smart_replenishment": "التموين الذكي",
+    "see_more_count": "عرض {{count}} منتجات حرجة أخرى",
+    "smart_reminders": "تذكيرات ذكية",
+    "smart_replenishment": "تموين ذكي",
     "statistics": "الإحصائيات",
     "statistics_btn": "الإحصائيات",
+    "stats": "إحصائيات",
     "status_distribution": "توزيع الحالات",
     "stock_by_category": "المخزون حسب الفئة",
     "stock_evolution": "تطور قيمة المخزون (7 أيام)",
     "stock_label": "المخزون",
     "stock_status": "حالة المخزون",
     "stock_value": "قيمة المخزون",
-    "sub_greeting": "إليك حالة المخزون الخاص بك",
+    "sub_greeting": "إليك حالة مخزونك",
+    "suggestions_reorder": "اقتراحات التموين",
     "threshold": "الحد",
     "tip_of_day": "نصيحة اليوم",
     "title": "لوحة القيادة",
     "today_revenue": "إيرادات اليوم",
     "today_sales": "مبيعات اليوم",
-    "top_products_value": "أفضل المنتجات (قيمة)",
+    "top_products_value": "أفضل المنتجات (حسب القيمة)",
     "total_value": "القيمة الإجمالية",
     "units": "وحدات"
   },
   "help": {
     "faq": {
       "q1": {
-        "q": "Comment ajouter mon premier produit ?",
-        "a": "Allez dans l'onglet Produits, appuyez sur le bouton '+' en bas à droite. Remplissez le nom, le prix de vente et le stock initial. Vous pouvez aussi scanner un code-barres existant."
+        "q": "كيف يمكنني إضافة منتجي الأول؟",
+        "a": "انتقل إلى علامة تبويب المنتجات، واضغط على زر '+' في أسفل اليمين. املأ الاسم، سعر البيع والمخزون الأولي. يمكنك أيضاً مسح رمز شريطي موجود."
       },
       "q2": {
-        "q": "Comment faire une vente ?",
-        "a": "Allez dans l'onglet Caisse. Scannez vos articles ou cherchez-les dans la liste. Ajoutez au panier, associez un client si souhaité, choisissez le mode de paiement et validez."
+        "q": "كيف أقوم بعملية بيع؟",
+        "a": "انتقل إلى علامة تبويب الكاشير. امسح عناصرك ضوئياً أو ابحث عنها في القائمة. أضفها إلى السلة، واربط عميلاً إذا أردت، اختر وسيلة الدفع وأكد العملية."
       },
       "q3": {
-        "q": "Comment gérer les dettes clients ?",
-        "a": "Dans l'onglet Clients (CRM), sélectionnez un client puis allez dans l'onglet Compte. Vous pouvez enregistrer une dette manuelle ou un paiement. Le solde est mis à jour en temps réel."
+        "q": "كيف أدير ديون العملاء؟",
+        "a": "في علامة تبويب العملاء (CRM)، اختر عميلاً ثم انتقل إلى علامة تبويب الحساب. يمكنك تسجيل دين يدوي أو دفعة. يتم تحديث الرصيد في الوقت الفعلي."
       },
       "q4": {
-        "q": "Comment commander auprès d'un fournisseur ?",
-        "a": "Allez dans Commandes, cliquez sur '+'. Sélectionnez le fournisseur (manuel ou marketplace), ajoutez les produits et validez. À la réception, confirmez la livraison pour mettre à jour le stock."
+        "q": "كيف أطلب من مورد؟",
+        "a": "انتقل إلى الطلبات، واضغط على '+'. اختر المورد (يدوياً أو من المتجر)، أضف المنتجات وأكد الطلب. عند الاستلام، أكد التسليم لتحديث المخزون."
       },
       "q5": {
-        "q": "Comment ajouter un employé ?",
-        "a": "Dans Paramètres > Utilisateurs, ajoutez un nouvel utilisateur avec son email. Définissez ses permissions module par module et partagez les identifiants par WhatsApp."
+        "q": "كيف أضيف موظفاً؟",
+        "a": "في الإعدادات > المستخدمون، أضف مستخدماً جديداً ببريده الإلكتروني. حدد صلاحياته لكل وحدة وشارك بيانات الاعتماد عبر واتساب."
       },
       "q6": {
-        "q": "Comment changer de boutique ?",
-        "a": "Utilisez le sélecteur de boutique en haut à droite de l'écran. Toutes les données (stock, ventes, comptabilité) basculent vers la boutique sélectionnée."
+        "q": "كيف أغير المتجر؟",
+        "a": "استخدم محدد المتجر في أعلى يمين الشاشة. ستنتقل جميع البيانات (المخزون، المبيعات، المحاسبة) إلى المتجر المختار."
       },
       "q7": {
-        "q": "Mes données sont-elles sauvegardées ?",
-        "a": "Oui ! Vos données sont stockées dans le cloud et synchronisées en temps réel. Un cache local permet de consulter les données même hors connexion."
+        "q": "هل بياناتي محفوظة؟",
+        "a": "نعم! يتم تخزين بياناتك في السحابة ومزامنتها في الوقت الفعلي. تتيح ذاكرة التخزين المؤقت المحلية عرض البيانات حتى بدون اتصال بالإنترنت."
       },
       "q8": {
-        "q": "Comment exporter mes données ?",
-        "a": "Depuis le Dashboard (bouton Historique > icône téléchargement) ou depuis la Comptabilité, exportez en CSV. Les factures s'exportent en PDF."
+        "q": "كيف أصدر بياناتي؟",
+        "a": "من لوحة القيادة (زر السجل > أيقونة التنزيل) أو من المحاسبة، قم بالتصدير بصيغة CSV. يتم تصدير الفواتير بصيغة PDF."
       },
       "q9": {
-        "q": "Comment configurer les alertes ?",
-        "a": "Dans l'onglet Alertes, appuyez sur l'icône engrenage pour accéder aux règles. Activez les types d'alertes souhaités et ajustez les seuils selon vos besoins."
+        "q": "كيف أكون التنبيهات؟",
+        "a": "في علامة تبويب التنبيهات، اضغط على أيقونة الترس للوصول إلى القواعد. فعل أنواع التنبيهات المطلوبة واضبط الحدود حسب احتياجاتك."
       },
       "q10": {
-        "q": "Comment envoyer un ticket par WhatsApp ?",
-        "a": "Après avoir validé une vente dans la Caisse, l'écran de confirmation propose un bouton 'Partager'. Choisissez WhatsApp et sélectionnez le contact."
+        "q": "كيف أرسل تذكرة عبر واتساب؟",
+        "a": "بعد تأكيد عملية البيع في الكاشير، توفر شاشة التأكيد زر 'مشاركة'. اختر واتساب وحدد جهة الاتصال."
       },
       "q11": {
-        "q": "Comment créer une facture ?",
-        "a": "Dans l'onglet Comptabilité, appuyez sur 'Créer une facture'. Ajoutez les lignes avec description, quantité, prix et TVA. La facture est générée en PDF."
+        "q": "كيف أنشئ فاتورة؟",
+        "a": "في علامة تبويب المحاسبة، اضغط على 'إنشاء فاتورة'. أضف السطور مع الوصف والكمية والسعر والضريبة. سيتم إنشاء الفاتورة بصيغة PDF."
       },
       "q12": {
-        "q": "Comment fonctionne la fidélité ?",
-        "a": "Activez le programme dans Paramètres > Fidélité. Définissez le ratio de points (ex: 1 point pour un montant fixe). Les points s'accumulent à chaque vente et les clients progressent automatiquement dans les tiers."
+        "q": "كيف يعمل برنامج الولاء؟",
+        "a": "فعل البرنامج في الإعدادات > الولاء. حدد نسبة النقاط (مثلاً: نقطة واحدة مقابل مبلغ محدد). تتراكم النقاط مع كل عملية بيع ويرتقي العملاء تلقائياً في المستويات."
       }
     },
-    "faq_title": "QUESTIONS FRÉQUENTES",
-    "features_count_one": "{{count}} fonctionnalité",
-    "features_count_other": "{{count}} fonctionnalités",
-    "launch_guide": "Lancer le guide interactif",
+    "faq_title": "الأسئلة الشائعة",
+    "features_count_one": "ميزة واحدة",
+    "features_count_other": "{{count}} ميزات",
+    "launch_guide": "إطلاق الدليل التفاعلي",
     "modules": {
       "dashboard": {
-        "title": "Tableau de Bord",
+        "title": "لوحة القيادة",
         "f1": {
-          "t": "KPIs en temps réel",
-          "d": "Suivez votre chiffre d'affaires journalier et mensuel, le nombre de produits et la valeur totale de votre stock. Les compteurs s'animent en temps réel."
+          "t": "مؤشرات الأداء في الوقت الفعلي",
+          "d": "تابع إيراداتك اليومية والشهرية، وعدد المنتجات والقيمة الإجمالية لمخزونك. تعمل العدادات في الوقت الفعلي."
         },
         "f2": {
-          "t": "Santé du Stock",
-          "d": "Visualisez en un coup d'oeil combien de produits sont en rupture (rouge), en stock bas (orange) ou en surstock (bleu). Cliquez sur un badge pour voir les produits concernés."
+          "t": "صحة المخزون",
+          "d": "شاهد بلمحة واحدة عدد المنتجات النافدة (أحمر)، أو المنخفضة (برتقالي) أو الزائدة (أزرق). اضغط على الشارة لعرض المنتجات المعنية."
         },
         "f3": {
-          "t": "Alertes Péremption",
-          "d": "Si vous gérez des produits avec dates de péremption (lots), ceux arrivant à expiration dans les 30 prochains jours s'affichent automatiquement avec le numéro de lot."
+          "t": "تنبيهات انتهاء الصلاحية",
+          "d": "إذا كنت تدير منتجات بتواريخ انتهاء صلاحية (شحنات)، فستظهر المنتجات التي ستنتهي صلاحيتها في الثلاثين يوماً القادمة تلقائياً مع رقم الشحنة."
         },
         "f4": {
-          "t": "Réapprovisionnement Intelligent",
-          "d": "Le système analyse l'historique de vos ventes et vous suggère automatiquement les produits à commander, avec la quantité optimale et le niveau de priorité."
+          "t": "تموين ذكي",
+          "d": "يحلل النظام سجل مبيعاتك ويقترح عليك تلقائياً المنتجات التي يجب طلبها، مع الكمية المثالية ومستوى الأولوية."
         },
         "f5": {
-          "t": "Analyse ABC",
-          "d": "Vos produits sont classés en 3 groupes selon leur contribution au CA : Classe A (80% du CA), Classe B (15%) et Classe C (5%). Concentrez vos efforts sur la classe A."
+          "t": "تحليل ABC",
+          "d": "يتم تصنيف منتجاتك إلى 3 مجموعات بناءً على مساهمتها في الإيرادات: الفئة أ (80% من الإيرادات)، الفئة ب (15%) والفئة ج (5%). ركز جهودك على الفئة أ."
         },
         "f6": {
-          "t": "Statistiques & Historique",
-          "d": "Accédez aux graphiques détaillés (évolution du stock, répartition par catégorie) et à l'historique complet des mouvements avec filtres et export CSV."
+          "t": "الإحصائيات والسجل",
+          "d": "الوصول إلى رسوم بيانية مفصلة (تطور المخزون، التوزيع حسب الفئة) والسجل الكامل للحركات مع فلاتر وتصدير CSV."
         }
       },
       "products": {
-        "title": "Gestion des Produits",
+        "title": "إدارة المنتجات",
         "f1": {
-          "t": "Recherche & Filtres",
-          "d": "Retrouvez un produit en tapant son nom ou son SKU. Filtrez par catégorie grâce aux puces colorées horizontales."
+          "t": "البحث والفلاتر",
+          "d": "اعثر على منتج عن طريق كتابة اسمه أو رمزه (SKU). استخدم الفئات الملونة لتصفية العرض."
         },
         "f2": {
-          "t": "Badges de Stock",
-          "d": "Chaque produit affiche un badge coloré : Rouge (Rupture), Orange (Stock bas), Bleu (Surstock), Vert (Normal). Le seuil est configurable par produit."
+          "t": "شارات المخزون",
+          "d": "يعرض كل منتج شارة ملونة: أحمر (نفاد)، برتقالي (منخفض)، أزرق (زائد)، أخضر (طبيعي). الحد قابل للتعديل لكل منتج."
         },
         "f3": {
-          "t": "Mouvements Rapides",
-          "d": "Les boutons 'Entrée' et 'Sortie' permettent d'ajuster le stock sans créer de commande. Indiquez la raison (livraison, perte, inventaire, etc.)."
+          "t": "حركات سريعة",
+          "d": "تتيح أزرار 'إدخال' و'إخراج' تعديل المخزون دون إنشاء طلب. حدد السبب (تسليم، خسارة، جرد، إلخ)."
         },
         "f4": {
-          "t": "Étiquettes PDF",
-          "d": "Générez des étiquettes avec QR Code, nom, prix et code-barres. Imprimez-les pour vos étagères ou partagez-les."
+          "t": "ملصقات PDF",
+          "d": "أنشئ ملصقات تحتوي على رمز QR والاسم والسعر والرمز الشريطي. اطبعها للأرفف أو شاركها."
         },
         "f5": {
-          "t": "Gestion des Catégories",
-          "d": "L'icône engrenage ouvre le gestionnaire de catégories. Créez, modifiez ou supprimez des catégories avec couleurs et icônes personnalisées."
+          "t": "إدارة الفئات",
+          "d": "تفتح أيقونة الترس مدير الفئات. أنشئ أو عدل أو احذف فئات بألوان وأيقونات مخصصة."
         },
         "f6": {
-          "t": "Lots & Péremption",
-          "d": "Pour les produits alimentaires, créez des lots avec dates de péremption. Les lots expirant bientôt déclenchent des alertes automatiques."
+          "t": "الشحنات وانتهاء الصلاحية",
+          "d": "بالنسبة للمنتجات الغذائية، أنشئ شحنات بتواريخ انتهاء صلاحية. الشحنات التي ستنتهي صلاحيتها قريباً تطلق تنبيهات تلقائية."
         },
         "f7": {
-          "t": "Historique des Prix",
-          "d": "Consultez l'évolution des prix d'achat et de vente de chaque produit pour optimiser vos marges."
+          "t": "سجل الأسعار",
+          "d": "اطلع على تطور أسعار الشراء والبيع لكل منتج لتحسين هوامش ربحك."
         }
       },
       "pos": {
-        "title": "Point de Vente (Caisse)",
+        "title": "نقطة البيع (الكاشير)",
         "f1": {
-          "t": "Scanner de Code-Barres",
-          "d": "Utilisez la caméra pour scanner les articles. Le produit est identifié et ajouté au panier instantanément."
+          "t": "ماسح الرمز الشريطي",
+          "d": "استخدم الكاميرا لمسح العناصر. يتم التعرف على المنتج وإضافته إلى السلة فوراً."
         },
         "f2": {
-          "t": "Gestion du Panier",
-          "d": "Ajoutez, supprimez ou modifiez les quantités dans le panier. Le total se recalcule en temps réel avec chaque modification."
+          "t": "إدارة السلة",
+          "d": "أضف أو احذف أو عدل الكميات في السلة. يتم إعادة حساب الإجمالي في الوقت الفعلي مع كل تغيير."
         },
         "f3": {
-          "t": "Sélection Client",
-          "d": "Associez un client existant à la vente ou créez-en un nouveau en 2 secondes. Ses points de fidélité sont crédités automatiquement."
+          "t": "اختيار العميل",
+          "d": "اربط عميلاً موجوداً بالبيع أو أنشئ عميلاً جديداً في ثانيتين. يتم رصد نقاط الولاء تلقائياً."
         },
         "f4": {
-          "t": "Modes de Paiement",
-          "d": "Acceptez 5 modes de paiement : espèces, mobile money, carte bancaire, virement et vente à crédit."
+          "t": "وسائل الدفع",
+          "d": "اقبل 5 وسائل دفع: نقداً، موبايل موني، بطاقة بنكية، تحويل، وبيع بالدين."
         },
         "f5": {
-          "t": "Tickets de Caisse",
-          "d": "Après validation, imprimez le ticket ou envoyez-le par WhatsApp ou email. Le ticket inclut les détails complets de la transaction."
+          "t": "إيصالات البيع",
+          "d": "بعد التأكيد، اطبع الإيصال أو أرسله عبر واتساب أو البريد الإلكتروني. يتضمن الإيصال تفاصيل المعاملة كاملة."
         },
         "f6": {
-          "t": "Fidélité Automatique",
-          "d": "Les points de fidélité sont calculés et crédités automatiquement à chaque achat. Le client progresse dans les tiers (Bronze → Platine)."
+          "t": "ولاء تلقائي",
+          "d": "يتم حساب نقاط الولاء وإضافتها تلقائياً مع كل عملية شراء. يرتقي العميل في المستويات (برونزي ← بلاتيني)."
         }
       },
       "orders": {
-        "title": "Commandes Fournisseurs",
+        "title": "طلبات الموردين",
         "f1": {
-          "t": "Créer une Commande",
-          "d": "Sélectionnez un fournisseur (manuel ou marketplace), ajoutez les produits avec quantités et prix, définissez la date de livraison prévue."
+          "t": "إنشاء طلب",
+          "d": "اختر مورداً (يدوياً أو من المتجر)، أضف المنتجات بالكميات والأسعار، وحدد تاريخ التسليم المتوقع."
         },
         "f2": {
-          "t": "Suivi de Statut",
-          "d": "Suivez chaque commande : En attente → Confirmée → Expédiée → Livrée. La barre de progression visuelle montre l'avancement."
+          "t": "متابعة الحالة",
+          "d": "تابع كل طلب: قيد الانتظار ← مؤكد ← مشحون ← مسلم. يوضح شريط التقدم المرئي حالة الطلب."
         },
         "f3": {
-          "t": "Réception IA",
-          "d": "À la livraison, l'IA analyse les produits reçus et les associe intelligemment à votre inventaire. Validez ou corrigez les suggestions."
+          "t": "استلام ذكي",
+          "d": "عند التسليم، يحلل الذكاء الاصطناعي المنتجات المستلمة ويربطها بذكاء بمخزونك. أكد أو صحح الاقتراحات."
         },
         "f4": {
-          "t": "Association Manuelle",
-          "d": "Associez manuellement un produit du catalogue fournisseur à un produit de votre inventaire, même après la livraison."
+          "t": "ربط يدوي",
+          "d": "اربط يدوياً منتجاً من كتالوج المورد بمنتج في مخزونك، حتى بعد التسليم."
         },
         "f5": {
-          "t": "Filtres Avancés",
-          "d": "Filtrez par statut, fournisseur ou période pour retrouver une commande."
+          "t": "فلاتر متقدمة",
+          "d": "قم بالتصفية حسب الحالة أو المورد أو الفترة للعثور على طلب ما."
         }
       },
       "suppliers": {
-        "title": "Relations Fournisseurs",
+        "title": "علاقات الموردين",
         "f1": {
-          "t": "Annuaire Fournisseurs",
-          "d": "Créez les fiches de vos fournisseurs avec coordonnées, conditions de paiement, délai de livraison et produits fournis."
+          "t": "دليل الموردين",
+          "d": "أنشئ ملفات لمورديك مع بيانات الاتصال، شروط الدفع، مدة التسليم والمنتجات الموردة."
         },
         "f2": {
-          "t": "Contact Direct",
-          "d": "Appelez, envoyez un email ou un message WhatsApp à votre fournisseur en un clic depuis sa fiche."
+          "t": "اتصال مباشر",
+          "d": "اتصل، أرسل بريداً إلكترونياً أو رسالة واتساب لموردك بضغطة واحدة من ملفه الشخصي."
         },
         "f3": {
-          "t": "Marketplace",
-          "d": "Accédez au réseau de fournisseurs vérifiés. Comparez les prix, consultez les avis et commandez directement."
+          "t": "المتجر (Marketplace)",
+          "d": "الوصول إلى شبكة الموردين الموثوقين. قارن الأسعار، واطلع على التقييمات واطلب مباشرة."
         },
         "f4": {
-          "t": "Liaison Produits",
-          "d": "Liez vos produits à chaque fournisseur avec son prix, sa référence et marquez-le comme fournisseur préféré."
+          "t": "ربط المنتجات",
+          "d": "اربط منتجاتك بكل مورد بسعرها ومرجعها، وحدد المورد المفضل."
         },
         "f5": {
-          "t": "Journal de Contact",
-          "d": "Gardez une trace de vos échanges : appels, visites, emails. Ajoutez des notes pour chaque interaction."
+          "t": "سجل التواصل",
+          "d": "احتفظ بسجل لتبادلاتك: مكالمات، زيارات، رسائل. أضف ملاحظات لكل تفاعل."
         },
         "f6": {
-          "t": "Suggestions Réappro",
-          "d": "Le système identifie les produits sous le seuil minimum et vous suggère les quantités à commander par fournisseur."
+          "t": "اقتراحات التموين",
+          "d": "يحدد النظام المنتجات التي تحت الحد الأدنى ويقترح عليك الكميات لطلبها لكل مورد."
         }
       },
       "crm": {
-        "title": "CRM & Fidélité",
+        "title": "إدارة العملاء والولاء",
         "f1": {
-          "t": "Fichier Client",
-          "d": "Enregistrez vos clients avec nom, téléphone, email et date de naissance. Suivez leur historique d'achats complet."
+          "t": "ملف العملاء",
+          "d": "سجل عملائك مع الاسم، الهاتف، البريد الإلكتروني وتاريخ الميلاد. تابع سجل مشترياتهم الكامل."
         },
         "f2": {
-          "t": "Programme de Fidélité",
-          "d": "Configurez le ratio de points par achat et les paliers de récompense. Les tiers (Bronze, Argent, Or, Platine) se calculent automatiquement."
+          "t": "برنامج الولاء",
+          "d": "اضبط نسبة النقاط لكل عملية شراء ومستويات المكافأة. يتم حساب المستويات (برونزي، فضي، ذهبي، بلاتيني) تلقائياً."
         },
         "f3": {
-          "t": "Gestion des Dettes",
-          "d": "Enregistrez les ventes à crédit et les remboursements. Le solde du client est toujours à jour."
+          "t": "إدارة الديون",
+          "d": "سجل مبيعات الدين والتسديدات. رصيد العميل دائماً محدث."
         },
         "f4": {
-          "t": "Campagnes Marketing",
-          "d": "Envoyez des SMS ou emails promotionnels ciblés par tier de fidélité ou sélection individuelle."
+          "t": "حملات التسويق",
+          "d": "أرسل رسائل نصية أو بريداً إلكترونياً ترويجياً مستهدفاً حسب مستوى الولاء أو الاختيار الفردي."
         },
         "f5": {
-          "t": "Promotions",
-          "d": "Créez des promotions avec pourcentage de réduction ou échange de points de fidélité. Activez/désactivez à volonté."
+          "t": "العروض الترويجية",
+          "d": "أنشئ عروضاً بنسبة خصم أو استبدال نقاط الولاء. فعلها أو عطلها حسب الرغبة."
         },
         "f6": {
-          "t": "Anniversaires",
-          "d": "Enregistrez la date de naissance pour des offres personnalisées automatiques et renforcer la relation client."
+          "t": "أعياد الميلاد",
+          "d": "سجل تاريخ الميلاد للحصول على عروض مخصصة تلقائية وتعزيز العلاقة مع العميل."
         }
       },
       "accounting": {
-        "title": "Comptabilité",
+        "title": "المحاسبة",
         "f1": {
-          "t": "Périodes & Filtres",
-          "d": "Analysez vos finances sur 7, 30 ou 90 jours, ou définissez une période personnalisée. Tous les KPIs s'adaptent."
+          "t": "الفترات والفلاتر",
+          "d": "حلل أموالك على مدار 7، 30 أو 90 يوماً، أو حدد فترة مخصصة. تتكيف جميع مؤشرات الأداء تلقائياً."
         },
         "f2": {
-          "t": "Bénéfices & Marges",
-          "d": "Suivez votre CA, coût des marchandises, bénéfice brut et net. Identifiez les produits les plus et moins rentables."
+          "t": "الأرباح والهوامش",
+          "d": "تابع إيراداتك، تكلفة البضائع، الربح الإجمالي والصافي. حدد المنتجات الأكثر والأقل ربحية."
         },
         "f3": {
-          "t": "Factures PDF",
-          "d": "Créez des factures professionnelles avec TVA, lignes détaillées et coordonnées. Envoyez-les par email ou imprimez."
+          "t": "فواتير PDF",
+          "d": "أنشئ فواتير احترافية مع الضريبة، والسطور المفصلة وبيانات الاتصال. أرسلها عبر البريد الإلكتروني أو اطبعها."
         },
         "f4": {
-          "t": "Suivi des Dépenses",
-          "d": "Catégorisez vos dépenses (loyer, salaires, transport, électricité, etc.) pour un bilan complet et précis."
+          "t": "تتبع المصاريف",
+          "d": "صنف مصاريفك (إيجار، رواتب، نقل، كهرباء، إلخ) للحصول على حصيلة كاملة ودقيقة."
         },
         "f5": {
-          "t": "Graphiques",
-          "d": "Visualisez la répartition des paiements, des dépenses par catégorie et l'évolution journalière du CA."
+          "t": "الرسوم البيانية",
+          "d": "شاهد توزيع المدفوعات، والمصاريف حسب الفئة وتطور الإيرادات اليومي."
         },
         "f6": {
-          "t": "Export CSV",
-          "d": "Exportez toutes vos données financières au format CSV pour votre comptable ou logiciel de comptabilité."
+          "t": "تصدير CSV",
+          "d": "صدر جميع بياناتك المالية بصيغة CSV لمحاسبك أو لبرامج المحاسبة."
         }
       },
       "alerts": {
-        "title": "Alertes de Stock",
+        "title": "تنبيهات المخزون",
         "f1": {
-          "t": "Règles Personnalisables",
-          "d": "Définissez vos propres seuils pour chaque type d'alerte : stock bas (%), rupture, surstock, produit dormant."
+          "t": "قواعد قابلة للتخصيص",
+          "d": "حدد حدودك الخاصة لكل نوع من التنبيهات: مخزون منخفض (%)، نفاد، مخزون زائد، منتج خامل."
         },
         "f2": {
-          "t": "Alertes Automatiques",
-          "d": "Les alertes se déclenchent automatiquement quand un produit franchit un seuil. Vous êtes notifié en temps réel."
+          "t": "تنبيهات تلقائية",
+          "d": "تنطلق التنبيهات تلقائياً عندما يتجاوز المنتج حداً معيناً. يتم إخطارك في الوقت الفعلي."
         },
         "f3": {
-          "t": "Produits Dormants",
-          "d": "Détectez les produits sans aucune sortie depuis 30 jours. Idéal pour identifier le stock mort."
+          "t": "المنتجات الخاملة",
+          "d": "اكتشف المنتجات التي لم تباع منذ 30 يوماً. مثالي لتحديد المخزون الراكد."
         },
         "f4": {
-          "t": "Gestion des Alertes",
-          "d": "Marquez les alertes comme lues, supprimez-les, ou effacez toutes les alertes résolues en un clic."
+          "t": "إدارة التنبيهات",
+          "d": "ضع علامة مقروء على التنبيهات، احذفها، أو امسح جميع التنبيهات التي تم حلها بضغطة واحدة."
         }
       },
       "activity": {
-        "title": "Flux d'Activité",
+        "title": "سجل النشاط",
         "f1": {
-          "t": "Journal Complet",
-          "d": "Chaque action (vente, mouvement de stock, modification produit, connexion) est enregistrée avec date, heure et auteur."
+          "t": "سجل كامل",
+          "d": "يتم تسجيل كل إجراء (بيع، حركة مخزون، تعديل منتج، تسجيل دخول) مع التاريخ والوقت والمنفذ."
         },
         "f2": {
-          "t": "Filtres",
-          "d": "Filtrez par module (stock, caisse, CRM, comptabilité), par utilisateur ou par période pour retrouver une action précise."
+          "t": "الفلاتر",
+          "d": "قم بالتصفية حسب الوحدة (مخزون، كاشير، CRM، محاسبة)، أو حسب المستخدم أو الفترة للعثور على إجراء محدد."
         },
         "f3": {
-          "t": "Suivi par Utilisateur",
-          "d": "Identifiez quel employé a effectué chaque action. Essentiel pour la traçabilité et la responsabilisation."
+          "t": "المتابعة حسب المستخدم",
+          "d": "حدد الموظف الذي قام بكل إجراء. ضروري للتتبع والمسؤولية."
         }
       },
       "users": {
-        "title": "Gestion des Utilisateurs",
+        "title": "إدارة المستخدمين",
         "f1": {
-          "t": "Créer des Comptes",
-          "d": "Ajoutez un compte pour chaque employé avec email et mot de passe. Partagez les identifiants par WhatsApp."
+          "t": "إنشاء حسابات",
+          "d": "أضف حساباً لكل موظف ببريده الإلكتروني وكلمة مروره. شارك بيانات الاعتماد عبر واتساب."
         },
         "f2": {
-          "t": "Permissions par Module",
-          "d": "Contrôlez l'accès à chaque module : aucun accès, lecture seule, ou lecture + écriture."
+          "t": "صلاحيات لكل وحدة",
+          "d": "تحكم في الوصول إلى كل وحدة: لا وصول، قراءة فقط، أو قراءة وكتابة."
         },
         "f3": {
-          "t": "Rôles Adaptés",
-          "d": "Un caissier n'a accès qu'à la caisse, un gérant à tout sauf la comptabilité. Configurez selon vos besoins."
+          "t": "أدوار ملائمة",
+          "d": "لا يملك الكاشير وصولاً إلا للكاشير، والمدير لكل شيء عدا المحاسبة. اضبط حسب احتياجاتك."
         },
         "f4": {
-          "t": "Gestion des Comptes",
-          "d": "Modifiez les permissions, réinitialisez le mot de passe ou désactivez un compte à tout moment."
+          "t": "إدارة الحسابات",
+          "d": "عدل الصلاحيات، أعد تعيين كلمة المرور أو عطل الحساب في أي وقت."
         }
       },
       "settings": {
-        "title": "Paramètres",
+        "title": "الإعدادات",
         "f1": {
-          "t": "Multi-Boutiques",
-          "d": "Créez et gérez plusieurs points de vente. Chaque boutique possède son propre stock, ses ventes et sa comptabilité."
+          "t": "متعدد المتاجر",
+          "d": "أنشئ وادر عدة نقاط بيع. كل متجر له مخزونه ومبيعاته ومحاسبته الخاصة."
         },
         "f2": {
-          "t": "Thème Sombre",
-          "d": "Basculez entre le thème clair et sombre selon votre préférence et vos conditions d'éclairage."
+          "t": "الوضع الليلي",
+          "d": "بدل بين الوضع الفاتح والداكن حسب تفضيلك وظروف الإضاءة."
         },
         "f3": {
-          "t": "Modules Actifs",
-          "d": "Activez ou désactivez les modules inutiles (CRM, comptabilité, fournisseurs) pour simplifier l'interface."
+          "t": "الوحدات النشطة",
+          "d": "فعل أو عطل الوحدات غير الضرورية (CRM، المحاسبة، الموردون) لتبسيط الواجهة."
         },
         "f4": {
-          "t": "Notifications Push",
-          "d": "Activez les notifications pour être alerté en temps réel des ruptures, stocks bas et produits dormants."
+          "t": "إشعارات Push",
+          "d": "فعل الإشعارات ليتم تنبيهك في الوقت الفعلي بحالات النفاد، والمخزون المنخفض والمنتجات الخاملة."
         }
       },
       "supplierDashboard": {
-        "title": "Dashboard Fournisseur",
+        "title": "لوحة المورد",
         "f1": {
-          "t": "KPIs Fournisseur",
-          "d": "Suivez votre CA total, le nombre de commandes, le panier moyen et le CA du mois en cours."
+          "t": "مؤشرات المورد",
+          "d": "تابع إجمالي إيراداتك، عدد الطلبات، متوسط السلة وإيرادات الشهر الحالي."
         },
         "f2": {
-          "t": "Notes & Avis",
-          "d": "Consultez la note moyenne attribuée par vos clients commerçants et lisez leurs commentaires détaillés."
+          "t": "التقييمات والمراجعات",
+          "d": "اطلع على متوسط التقييم الذي منحه لك عملاؤك التجار واقرأ تعليقاتهم المفصلة."
         },
         "f3": {
-          "t": "Top Produits",
-          "d": "Découvrez vos 5 produits les plus commandés avec les quantités vendues. Optimisez votre catalogue en conséquence."
+          "t": "أفضل المنتجات",
+          "d": "اكتشف أكثر 5 منتجات طلباً مع الكميات المباعة. حسن كتالوجك وفقاً لذلك."
         },
         "f4": {
-          "t": "Clients Actifs",
-          "d": "Voyez combien de commerçants différents ont commandé chez vous. Suivez l'évolution de votre base clients."
+          "t": "العملاء النشطون",
+          "d": "شاهد عدد التجار المختلفين الذين طلبوا منك. تابع تطور قاعدة عملائك."
         }
       },
       "supplierCatalog": {
-        "title": "Catalogue Fournisseur",
+        "title": "كتالوج المورد",
         "f1": {
-          "t": "Ajouter des Produits",
-          "d": "Ajoutez vos produits avec nom, description, catégorie, prix et quantité minimum de commande."
+          "t": "إضافة منتجات",
+          "d": "أضف منتجاتك بالاسم، الوصف، الفئة، السعر والحد الأدنى للكمية للطلب."
         },
         "f2": {
-          "t": "Tarification",
-          "d": "Définissez vos prix. Mettez-les à jour à tout moment depuis la fiche produit."
+          "t": "التسعير",
+          "d": "حدد أسعارك. حدثها في أي وقت من ملف المنتج."
         },
         "f3": {
-          "t": "Disponibilité",
-          "d": "Basculez la disponibilité d'un produit en un clic. Les produits indisponibles n'apparaissent plus sur la marketplace."
+          "t": "التوفر",
+          "d": "بدل توفر المنتج بضغطة واحدة. لا تظهر المنتجات غير المتوفرة في السوق."
         },
         "f4": {
-          "t": "Catégories",
-          "d": "Organisez votre catalogue par catégories et sous-catégories partagées avec vos clients commerçants."
+          "t": "الفئات",
+          "d": "نظم كتالوجك حسب فئات وفئات فرعية مشتركة مع عملائك التجار."
         }
       },
       "supplierOrders": {
-        "title": "Commandes Reçues",
+        "title": "الطلبات المستلمة",
         "f1": {
-          "t": "Commandes Entrantes",
-          "d": "Les commandes de vos clients commerçants apparaissent ici avec le détail des produits, quantités et montants."
+          "t": "الطلبات الواردة",
+          "d": "تظهر طلبات عملائك التجار هنا مع تفاصيل المنتجات، الكميات والمبالغ."
         },
         "f2": {
-          "t": "Accepter ou Refuser",
-          "d": "Consultez le détail de chaque commande puis acceptez-la ou refusez-la avec un motif."
+          "t": "قبول أو رفض",
+          "d": "اطلع على تفاصيل كل طلب ثم اقبله أو ارفضه مع ذكر السبب."
         },
         "f3": {
-          "t": "Marquer Expédiée",
-          "d": "Une fois la commande préparée et envoyée, marquez-la comme expédiée. Le client est notifié."
+          "t": "وضع علامة مشحون",
+          "d": "بمجرد تجهيز الطلب وإرساله، ضع علامة مشحون. سيتم إخطار العميل."
         },
         "f4": {
-          "t": "Filtres & Historique",
-          "d": "Filtrez par statut (en attente, confirmée, expédiée, livrée) ou par période pour retrouver vos commandes."
+          "t": "الفلاتر والسجل",
+          "d": "قم بالتصفية حسب الحالة (قيد الانتظار، مؤكد، مشحون، مسلم) أو الفترة للعثور على طلباتك."
         }
       }
     },
-    "modules_title": "FONCTIONNALITÉS PAR MODULE",
-    "no_results": "Aucun résultat pour \"{{query}}\"",
-    "results": "RÉSULTATS",
-    "search_placeholder": "Rechercher une fonctionnalité...",
-    "title": "Centre d'Aide"
+    "modules_title": "الميزات حسب الوحدة",
+    "no_results": "لا توجد نتائج لـ \"{{query}}\"",
+    "results": "النتائج",
+    "search_placeholder": "البحث عن ميزة...",
+    "title": "مركز المساعدة"
   },
   "invoice": {
     "add_line": "إضافة سطر",
@@ -1078,11 +1087,11 @@
     "total": "المجموع"
   },
   "legal": {
-    "error_loading_cgu": "Impossible de charger les CGU.",
-    "error_loading_privacy": "Impossible de charger la politique de confidentialité.",
-    "privacy_title": "Politique de Confidentialité",
-    "retry_btn": "Réessayer",
-    "terms_title": "Conditions Générales"
+    "error_loading_cgu": "تعذر تحميل الشروط العامة.",
+    "error_loading_privacy": "تعذر تحميل سياسة الخصوصية.",
+    "privacy_title": "سياسة الخصوصية",
+    "retry_btn": "إعادة المحاولة",
+    "terms_title": "الشروط العامة"
   },
   "marketplace": {
     "all": "الكل",
@@ -1112,44 +1121,44 @@
   "modals": {
     "cancel": "إلغاء",
     "changePassword": {
-      "title": "Changer le mot de passe",
-      "oldLabel": "Ancien mot de passe",
-      "oldPlaceholder": "Entrez votre mot de passe actuel",
-      "newLabel": "Nouveau mot de passe",
-      "newPlaceholder": "Minimum 8 caractères",
-      "confirmLabel": "Confirmer le nouveau mot de passe",
-      "confirmPlaceholder": "Répétez le nouveau mot de passe",
-      "showPasswords": "Afficher les mots de passe",
-      "update": "Mettre à jour",
-      "errorMismatch": "Les nouveaux mots de passe ne correspondent pas",
-      "errorLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "successMessage": "Votre mot de passe a été modifié. Veuillez vous reconnecter."
+      "title": "تغيير كلمة المرور",
+      "oldLabel": "كلمة المرور القديمة",
+      "oldPlaceholder": "أدخل كلمة مرورك الحالية",
+      "newLabel": "كلمة المرور الجديدة",
+      "newPlaceholder": "8 أحرف كحد أدنى",
+      "confirmLabel": "تأكيد كلمة المرور الجديدة",
+      "confirmPlaceholder": "كرر كلمة المرور الجديدة",
+      "showPasswords": "إظهار كلمات المرور",
+      "update": "تحديث",
+      "errorMismatch": "كلمات المرور الجديدة غير متطابقة",
+      "errorLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+      "successMessage": "تم تغيير كلمة مرورك. يرجى تسجيل الدخول مرة أخرى."
     },
     "chat": "الرسائل",
     "close": "إغلاق",
     "confirm": "تأكيد",
     "contactSupport": {
-      "title": "Contacter le Support",
-      "subjectLabel": "Sujet",
-      "subjectPlaceholder": "Ex: Problème d'impression, Suggestion...",
-      "messageLabel": "Message",
-      "messagePlaceholder": "Décrivez votre problème en détail...",
-      "send": "Envoyer le message",
-      "successMessage": "Votre message a été envoyé. Notre équipe vous répondra bientôt."
+      "title": "الاتصال بالدعم",
+      "subjectLabel": "الموضوع",
+      "subjectPlaceholder": "مثال: مشكلة في الطباعة، اقتراح...",
+      "messageLabel": "الرسالة",
+      "messagePlaceholder": "صف مشكلتك بالتفصيل...",
+      "send": "إرسال الرسالة",
+      "successMessage": "تم إرسال رسالتك. سيرد فريقنا عليك قريباً."
     },
     "deleteAccount": {
-      "dangerZone": "Zone de Danger ⚠️",
-      "warningTitle": "Attention",
-      "warningText": "Vous êtes sur le point de supprimer définitivement votre compte et toutes les données associées.",
-      "confirmationTitle": "Confirmation ultime",
-      "confirmationDesc": "Cette action est irréversible. Toutes vos données (magasins, ventes, clients) seront effacées définitivement. Êtes-vous vraiment sûr ?",
-      "confirmPasswordLabel": "Mot de passe de confirmation",
-      "confirmPasswordPlaceholder": "Entrez votre mot de passe",
-      "deleteBtn": "Supprimer mon compte",
-      "deleteAllBtn": "Tout supprimer",
-      "successTitle": "Adieu",
-      "successDesc": "Votre compte a été supprimé avec succès.",
-      "errorDelete": "Impossible de supprimer le compte."
+      "dangerZone": "منطقة خطر ⚠️",
+      "warningTitle": "تحذير",
+      "warningText": "أنت على وشك حذف حسابك وجميع البيانات المرتبطة به نهائياً.",
+      "confirmationTitle": "تأكيد نهائي",
+      "confirmationDesc": "هذا الإجراء غير قابل للتراجع. سيتم حذف جميع بياناتك (المتاجر، المبيعات، العملاء) نهائياً. هل أنت متأكد حقاً؟",
+      "confirmPasswordLabel": "كلمة مرور التأكيد",
+      "confirmPasswordPlaceholder": "أدخل كلمة مرورك",
+      "deleteBtn": "حذف حسابي",
+      "deleteAllBtn": "حذف الكل",
+      "successTitle": "وداعاً",
+      "successDesc": "تم حذف حسابك بنجاح.",
+      "errorDelete": "تعذر حذف الحساب."
     },
     "delete_confirm": "هل أنت متأكد من حذف هذا العنصر؟",
     "error": "حدث خطأ",
@@ -1164,7 +1173,7 @@
     "add_at_least_one_item": "أضف عنصراً واحداً على الأقل",
     "add_product_placeholder": "إضافة منتج...",
     "advance_status": "تأكيد تغيير الحالة",
-    "ai_extraction": "Extraction IA",
+    "ai_extraction": "استخراج بالذكاء الاصطناعي",
     "all": "الكل",
     "all_suppliers": "جميع الموردين",
     "already_received": "المستلم",
@@ -1174,29 +1183,29 @@
     "cancel_error": "خطأ في إلغاء الطلب",
     "cancel_order": "إلغاء الطلب",
     "cancelled": "ملغي",
-    "change_status_to": "Changer le statut en",
-    "client": "Client",
+    "change_status_to": "تغيير الحالة إلى",
+    "client": "العميل",
     "complete_return_error": "تعذر إتمام المرتجع",
     "complete_return_generate_credit_note": "إتمام المرتجع وإنشاء إشعار ائتمان",
     "completed": "مكتمل",
     "confirm_advance_status": "تأكيد التغيير إلى الحالة {{nextStatus}}؟",
     "confirm_cancel": "هل أنت متأكد من الإلغاء؟",
     "confirm_complete_return": "تأكيد إتمام المرتجع؟",
-    "confirm_order": "Confirmer la commande",
+    "confirm_order": "تأكيد الطلب",
     "confirm_partial_delivery": "تأكيد الاستلام الجزئي؟ سيتم تحديث المخزون.",
     "confirm_receipt": "تأكيد الاستلام",
     "confirmation": "تأكيد",
-    "confirmation_title": "Confirmation de commande",
+    "confirmation_title": "تأكيد الطلبية",
     "confirmed": "مؤكد",
-    "create_error": "Impossible de créer la commande",
-    "create_order": "Créer une commande",
+    "create_error": "تعذر إنشاء الطلب",
+    "create_order": "إنشاء طلب",
     "create_return": "إنشاء مرتجع",
     "create_return_error": "تعذر إنشاء المرتجع",
     "created_at": "أنشئ في",
     "credit_note_generated": "إشعار ائتمان صادر",
     "credit_notes_count": "{{count}} إشعار ائتمان",
-    "credit_notes_count_one": "{{count}} avoir disponible",
-    "credit_notes_count_other": "{{count}} avoirs disponibles",
+    "credit_notes_count_one": "{{count}} إشعار ائتمان متاح",
+    "credit_notes_count_other": "{{count}} إشعارات ائتمان متاحة",
     "customer": "العميل",
     "customer_return": "مرتجع عميل",
     "dates": "التواريخ",
@@ -1204,61 +1213,61 @@
     "details": "تفاصيل الطلب",
     "empty": "لا توجد طلبات",
     "enter_received_quantities": "أدخل الكميات المستلمة",
-    "exceeds_ordered_qty": "Dépasse la quantité commandée ({{count}})",
+    "exceeds_ordered_qty": "يتجاوز الكمية المطلوبة ({{count}})",
     "expected_delivery": "التوصيل المتوقع",
-    "export_pdf_list_title": "Liste des commandes",
-    "export_pdf_subtitle": "{{count}} commandes",
-    "export_pdf_title": "RAPPORT DES COMMANDES",
-    "filter_by_shopkeeper": "Filtrer par commerçant",
+    "export_pdf_list_title": "قائمة الطلبات",
+    "export_pdf_subtitle": "{{count}} طلبات",
+    "export_pdf_title": "تقرير الطلبات",
+    "filter_by_shopkeeper": "تصفية حسب التاجر",
     "history": "السجل",
-    "invoice_number_label": "N° facture :",
-    "invoice_scanned": "Facture scannée",
+    "invoice_number_label": "رقم الفاتورة:",
+    "invoice_scanned": "فواتير ممسوحة",
     "items": "العناصر",
     "items_count": "{{count}} عنصر",
-    "items_detected_one": "{{count}} article détecté",
-    "items_detected_other": "{{count}} articles détectés",
+    "items_detected_one": "تم اكتشاف {{count}} عنصر",
+    "items_detected_other": "تم اكتشاف {{count}} عناصر",
     "items_to_return": "العناصر المراد إرجاعها",
-    "items_with_count": "Articles ({{count}})",
-    "kpi_delivered": "Livrées",
-    "kpi_pending": "En cours",
-    "kpi_total_amount": "Montant total",
-    "kpi_total_orders": "Total commandes",
-    "marketplace": "Marketplace",
-    "my_suppliers": "Mes Fournisseurs",
+    "items_with_count": "عناصر ({{count}})",
+    "kpi_delivered": "مسلمة",
+    "kpi_pending": "قيد التنفيذ",
+    "kpi_total_amount": "المبلغ الإجمالي",
+    "kpi_total_orders": "إجمالي الطلبات",
+    "marketplace": "سوق",
+    "my_suppliers": "مورديني",
     "new_order": "طلب جديد",
     "new_return": "مرتجع جديد",
-    "next": "Suivant",
-    "no_linked_products_fallback": "Aucun produit lié. Affichage de votre inventaire.",
+    "next": "التالي",
+    "no_linked_products_fallback": "لا توجد منتجات مرتبطة. عرض مخزونك.",
     "no_orders": "لا طلبات",
     "no_orders_bulk_desc": "لا توجد طلبات جماعية قيد التنفيذ",
     "no_orders_desc": "أنشئ أول طلب مورد",
-    "no_product_available": "Aucun produit disponible",
+    "no_product_available": "لا يوجد منتج متاح",
     "no_returns": "لا مرتجعات",
     "no_returns_desc": "ستظهر المرتجعات هنا",
-    "no_supplier_found": "Aucun fournisseur trouvé",
-    "notes_optional": "Notes (optionnel)",
-    "notes_placeholder": "Instructions spéciales...",
-    "order_associated_stock": "Associé au stock local",
+    "no_supplier_found": "لم يتم العثور على مورد",
+    "notes_optional": "ملاحظات (اختياري)",
+    "notes_placeholder": "تعليمات خاصة...",
+    "order_associated_stock": "مرتبط بالمخزون المحلي",
     "order_detail": "تفاصيل الطلب",
     "ordered": "المطلوب",
     "orders_count": "{{count}} طلب(ات)",
-    "orders_count_one": "{{count}} commande",
-    "orders_count_other": "{{count}} commandes",
+    "orders_count_one": "طلب واحد",
+    "orders_count_other": "{{count}} طلبات",
     "partial_delivery": "استلام جزئي",
     "partial_notes_placeholder": "مثال: طرد تالف...",
-    "partial_receipt": "Réception partielle",
+    "partial_receipt": "استلام جزئي",
     "partially_delivered": "توصيل جزئي",
     "pdf_error": "خطأ في إنشاء ملف PDF",
     "pending": "قيد الانتظار",
-    "product": "Produit",
+    "product": "المنتج",
     "rate_supplier": "تقييم المورد",
-    "rating_error": "Impossible de soumettre l'avis",
-    "rating_saved": "Votre avis a été enregistré",
+    "rating_error": "تعذر تقديم التقييم",
+    "rating_saved": "تم حفظ تقييمك",
     "reason": "السبب",
     "reason_placeholder": "عيب...",
     "received": "مستلم",
-    "received_orders": "Commandes reçues",
-    "received_qty": "Reçu : {{received}} / {{total}}",
+    "received_orders": "الطلبات المستلمة",
+    "received_qty": "المستلم: {{received}} / {{total}}",
     "rejected": "مرفوض",
     "related_order": "الطلب المرتبط",
     "return_completed_credit_note_generated": "تم إتمام المرتجع وإنشاء إشعار الائتمان",
@@ -1269,107 +1278,107 @@
     "returned_items": "العناصر المرتجعة",
     "returns": "المرتجعات",
     "returns_count": "{{count}} مرتجع(ات)",
-    "returns_count_one": "{{count}} retour",
-    "returns_count_other": "{{count}} retours",
+    "returns_count_one": "مرتجع واحد",
+    "returns_count_other": "{{count}} مرتجعات",
     "returns_credit_notes": "المرتجعات وإشعارات الائتمان",
-    "scan_error": "Impossible d'analyser la facture",
-    "scan_invoice_desc": "Prenez en photo une facture fournisseur. L'IA extraira automatiquement les articles.",
-    "scan_invoice_title": "Scanner une facture",
-    "scan_items_ref_hint": "Les articles détectés serviront de référence pour votre commande",
-    "scan_no_items": "Aucun article détecté sur cette image. Essayez avec une photo plus nette.",
-    "scan_result_title": "Résultat",
+    "scan_error": "تعذر تحليل الفاتورة",
+    "scan_invoice_desc": "قم بتصوير فاتورة مورد. سيستخرج الذكاء الاصطناعي العناصر تلقائياً.",
+    "scan_invoice_title": "مسح فاتورة",
+    "scan_items_ref_hint": "العناصر المكتشفة ستكون مرجعاً لطلبك",
+    "scan_no_items": "لم يتم اكتشاف أي عناصر في هذه الصورة. حاول بصورة أكثر وضوحاً.",
+    "scan_result_title": "النتيجة",
     "see_more_items": "عرض {{count}} عناصر أخرى",
-    "see_summary": "Voir le récapitulatif",
-    "sent_success": "Commande envoyée avec succès !",
-    "share_purchase_order_pdf": "Partager le Bon de Commande (PDF)",
+    "see_summary": "عرض الملخص",
+    "sent_success": "تم إرسال الطلب بنجاح!",
+    "share_purchase_order_pdf": "مشاركة أمر الشراء (PDF)",
     "shipped": "تم الشحن",
     "shipping": "جاري الشحن",
     "status": "الحالة",
     "store_config_missing": "إعدادات المتجر غير موجودة",
-    "summary": "Récapitulatif",
-    "summary_desc": "Aperçu des commandes passées",
-    "summary_last_act": "Dernière act.",
-    "summary_orders": "Commandes",
-    "summary_synthesis": "Synthèse : {{name}}",
-    "summary_volume": "Volume total",
+    "summary": "الملخص",
+    "summary_desc": "نظرة عامة على الطلبات السابقة",
+    "summary_last_act": "آخر نشاط",
+    "summary_orders": "الطلبات",
+    "summary_synthesis": "ملخص: {{name}}",
+    "summary_volume": "الحجم الإجمالي",
     "supplier": "المورد",
     "supplier_return": "مرتجع مورد",
     "suppliers": "الموردين",
-    "thanks": "Merci",
+    "thanks": "شكراً",
     "title": "الطلبات",
     "total": "المجموع",
-    "total_orders": "{{count}} طلب إجمالي",
+    "total_orders": "{{count}} طلبات إجمالية",
     "total_return": "إجمالي المرتجع",
     "touch_star": "اضغط على نجمة",
     "update_error": "خطأ في تحديث الحالة",
     "updated_at": "آخر تحديث",
-    "validate_receipt": "Valider la réception",
+    "validate_receipt": "تأكيد الاستلام",
     "validate_reception": "تأكيد الاستلام",
-    "view_detailed_history": "Voir l'historique détaillé"
+    "view_detailed_history": "عرض السجل المفصل"
   },
   "pin": {
-    "confirm_title": "Confirmez votre PIN",
-    "create_title": "Créez un code PIN",
-    "incorrect_error": "Code PIN incorrect",
-    "logout_btn": "Se déconnecter",
-    "mismatch_error": "Les codes ne correspondent pas",
-    "setup_subtitle": "Sécurisez l'accès à vos données",
-    "unlock_subtitle": "Saisissez votre code pour continuer",
-    "unlock_title": "Déverrouillez Stockman"
+    "confirm_title": "أكد رمز PIN الخاص بك",
+    "create_title": "أنشئ رمز PIN",
+    "incorrect_error": "رمز PIN غير صحيح",
+    "logout_btn": "تسجيل الخروج",
+    "mismatch_error": "الرموز غير متطابقة",
+    "setup_subtitle": "أمن الوصول إلى بياناتك",
+    "unlock_subtitle": "أدخل رمزك للمتابعة",
+    "unlock_title": "فك قفل Stockman"
   },
   "pos": {
-    "anonymous_customer": "Passant",
+    "anonymous_customer": "عابر",
     "cart": "السلة",
-    "cart_title": "Panier",
+    "cart_title": "السلة",
     "cash": "نقداً",
     "checkout": "الدفع",
     "clear": "تفريغ",
-    "clear_cart": "Vider",
+    "clear_cart": "تفريغ",
     "client_create_error": "تعذر إنشاء العميل",
-    "client_created": "تم إنشاء العميل واختياره",
-    "confirm_credit_sale": "Confirmer la vente à crédit ?",
-    "create_customer_btn": "Créer le client",
+    "client_created": "تم إنشاء واختيار العميل",
+    "confirm_credit_sale": "تأكيد البيع بالائتمان؟",
+    "create_customer_btn": "إنشاء العميل",
     "credit": "بيع بالائتمان",
     "credit_confirmation": "تأكيد الائتمان",
-    "credit_confirmation_title": "Confirmation Crédit",
+    "credit_confirmation_title": "تأكيد الائتمان",
     "credit_select_client": "يرجى اختيار عميل للبيع بالائتمان.",
     "credit_success": "تم تسجيل البيع بالائتمان بنجاح.",
-    "customer_create_error": "Impossible de créer le client",
-    "customer_created": "Client créé et sélectionné",
-    "customer_name_label": "Nom du client *",
-    "customer_name_placeholder": "Ex: Jean Dupont",
-    "customer_name_required": "Le nom est obligatoire",
-    "customer_phone_label": "Téléphone",
-    "customer_phone_placeholder": "Ex: 77 000 00 00",
+    "customer_create_error": "تعذر إنشاء العميل",
+    "customer_created": "تم إنشاء واختيار العميل",
+    "customer_name_label": "اسم العميل *",
+    "customer_name_placeholder": "مثال: أحمد محمد",
+    "customer_name_required": "الاسم مطلوب",
+    "customer_phone_label": "الهاتف",
+    "customer_phone_placeholder": "مثال: 0612345678",
     "empty_cart": "السلة فارغة",
-    "error_save_sale": "Impossible d'enregistrer la vente",
+    "error_save_sale": "تعذر حفظ البيع",
     "insufficient_stock": "مخزون غير كافٍ",
     "mobile_money": "Mobile Money",
     "name_required": "الاسم مطلوب",
-    "new_amount": "Nouveau montant",
-    "new_customer_title": "Nouveau Client",
-    "new_debt": "Nouvelle dette",
-    "not_enough_stock_detail": "Il ne reste que {{qty}} {{unit}}(s) de {{name}}",
-    "old_debt": "Ancienne dette",
-    "out_of_stock_msg": "Le produit {{name}} n'est plus en stock.",
-    "out_of_stock_title": "Stock épuisé",
-    "payment_cash": "Espèces",
-    "payment_credit": "À crédit",
-    "payment_mobile": "Mobile",
-    "product_not_found": "Produit non trouvé",
+    "new_amount": "المبلغ الجديد",
+    "new_customer_title": "عميل جديد",
+    "new_debt": "دين جديد",
+    "not_enough_stock_detail": "بقي {{qty}} {{unit}} فقط من {{name}}",
+    "old_debt": "دين قديم",
+    "out_of_stock_msg": "المنتج {{name}} نفد من المخزون.",
+    "out_of_stock_title": "نفاد المخزون",
+    "payment_cash": "نقداً",
+    "payment_credit": "بالائتمان",
+    "payment_mobile": "موبايل",
+    "product_not_found": "المنتج غير موجود",
     "sale_error": "تعذر تسجيل البيع",
-    "sale_success": "Vente enregistrée !",
+    "sale_success": "تم تسجيل البيع!",
     "search_placeholder": "البحث عن منتج...",
-    "select_customer_credit": "Veuillez sélectionner un client pour une vente à crédit.",
+    "select_customer_credit": "يرجى اختيار عميل للبيع بالائتمان.",
     "sku_not_found": "لم يتم العثور على منتج بالرمز:",
     "stock_depleted": "المخزون نفد",
     "success": "تم تسجيل البيع",
-    "suggestions_title": "Souvent achetés ensemble",
+    "suggestions_title": "غالباً ما تُشترى معاً",
     "title": "نقطة البيع",
-    "total": "Total",
+    "total": "المجموع",
     "unknown": "مجهول",
-    "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
-    "unknown_product_title": "Produit inconnu"
+    "unknown_product_msg": "لم يتم العثور على منتج بالرمز: {{sku}}",
+    "unknown_product_title": "منتج مجهول"
   },
   "premium": {
     "features": {
@@ -1417,78 +1426,84 @@
   },
   "products": {
     "add_btn": "إضافة",
-    "add_photo_title": "Ajouter une photo",
+    "add_photo_title": "إضافة صورة",
     "add_product": "إضافة منتج",
     "add_stock": "+مخزون",
-    "add_variant": "Ajouter une variante",
-    "ai_advice": "Conseil IA",
-    "ai_cat_hint": "Laissez l'IA suggérer la catégorie...",
+    "add_variant": "إضافة نوع",
+    "ai_advice": "نصيحة الذكاء الاصطناعي",
+    "ai_cat_hint": "دع الذكاء الاصطناعي يقترح الفئة...",
     "ai_category_error": "تعذر اقتراح فئة",
     "ai_desc_error": "تعذر إنشاء الوصف",
     "ai_offline": "اقتراح الذكاء الاصطناعي يتطلب اتصالاً بالإنترنت.",
     "ai_price_error": "تعذر اقتراح سعر",
     "ai_price_info": "اقتراح السعر متاح فقط للمنتجات الموجودة",
     "all": "الكل",
-    "batch_number_label": "Numéro de Lot (Optionnel)",
-    "bulk_delete_msg": "Voulez-vous supprimer les {{count}} produits sélectionnés ?",
-    "bulk_delete_title": "Suppression groupée",
-    "camera": "Caméra",
+    "batch_number_label": "رقم الدفعة (اختياري)",
+    "bulk_delete_msg": "هل تريد حذف {{count}} منتجاً مختاراً؟",
+    "bulk_delete_title": "حذف جماعي",
+    "camera": "الكاميرا",
     "catalog": "كتالوج",
-    "catalog_title": "Catalogue Produits",
+    "catalog_title": "كتالوج المنتجات",
     "categories_exist": "جميع الفئات موجودة بالفعل.",
     "categories_imported": "فئات مستوردة",
     "categories_offline": "إدارة الفئات غير متاحة بدون اتصال.",
-    "category_name_placeholder": "Nom de la catégorie",
+    "category_name_placeholder": "اسم الفئة",
     "category_save_error": "تعذر حفظ الفئة",
-    "choose_source": "Choisissez une source",
-    "color_label": "Couleur",
-    "confirm_adjust_stock": "Voulez-vous ajuster le stock de {{name}} de {{oldQty}} à {{newQty}} ?",
-    "confirm_delete_msg": "Voulez-vous vraiment supprimer ce produit ?",
-    "confirm_delete_title": "Supprimer le produit",
-    "confirm_import_msg": "Voulez-vous vraiment importer les catégories standards ? Cela pourrait créer des doublons.",
-    "confirm_import_title": "Importer des catégories",
-    "confirm_inventory": "Confirmer l'inventaire",
+    "choose_source": "اختر المصدر",
+    "color_label": "اللون",
+    "confirm_adjust_stock": "هل تريد تعديل مخزون {{name}} من {{oldQty}} إلى {{newQty}}؟",
+    "confirm_delete_msg": "هل تريد حقاً حذف هذا المنتج؟",
+    "confirm_delete_title": "حذف المنتج",
+    "confirm_import_msg": "هل تريد حقاً استيراد الفئات القياسية؟ قد يؤدي ذلك إلى تكرار الفئات.",
+    "confirm_import_title": "استيراد الفئات",
+    "confirm_inventory": "تأكيد الجرد",
     "create_error": "تعذر إنشاء/تعديل المنتج",
-    "current_stock_label": "Stock actuel",
+    "current_stock_label": "المخزون الحالي",
     "default_unit": "قطعة",
     "delete": "حذف",
-    "delete_category_error": "Impossible de supprimer la catégorie",
+    "delete_category_error": "تعذر حذف الفئة",
+    "description_placeholder": "تفاصيل...",
     "edit": "تعديل",
-    "edit_category": "Modifier la catégorie",
-    "expiry_date_label": "Date de Péremption (AAAA-MM-JJ)",
+    "edit_category": "تعديل الفئة",
+    "expiry_date_label": "تاريخ الانتهاء (YYYY-MM-DD)",
     "export_history_error": "تعذر تصدير السجل",
     "export_products_error": "تعذر تصدير المنتجات",
-    "gallery": "Galerie",
-    "history": "تاريخ",
-    "history_tab_price": "Prix",
-    "history_tab_sales": "Ventes",
-    "history_tab_stock": "Stock",
+    "field_description": "الوصف",
+    "field_name": "الاسم",
+    "field_name_placeholder": "اسم المنتج...",
+    "field_sku": "الرمز / الكود",
+    "gallery": "المعرض",
+    "history": "السجل",
+    "history_tab_price": "السعر",
+    "history_tab_sales": "المبيعات",
+    "history_tab_stock": "المخزون",
     "import_error": "حدث خطأ أثناء الاستيراد.",
     "import_offline": "الاستيراد يتطلب اتصالاً بالإنترنت.",
-    "import_standard_btn": "Importer les catégories standards",
+    "import_standard_btn": "استيراد الفئات القياسية",
     "invalid_quantity": "يرجى إدخال كمية صالحة",
-    "inventory_mode": "Mode inventaire",
-    "inventory_mode_desc": "Mode optimisation pour l'inventaire physique.",
-    "inventory_report_title": "Rapport d'inventaire",
-    "kpi_low_stock": "Stock bas",
-    "kpi_out_of_stock": "Ruptures",
-    "kpi_products": "Produits",
-    "kpi_stock_value": "Valeur stock",
+    "inventory_mode": "وضع الجرد",
+    "inventory_mode_desc": "وضع محسّن للجرد الفعلي للمخزون.",
+    "inventory_report_title": "تقرير الجرد",
+    "kpi_low_stock": "مخزون منخفض",
+    "kpi_out_of_stock": "نفاد المخزون",
+    "kpi_products": "المنتجات",
+    "kpi_stock_value": "قيمة المخزون",
     "low_stock": "مخزون منخفض",
-    "manage_categories": "Gérer les catégories",
+    "manage_categories": "إدارة الفئات",
     "modify_btn": "تعديل",
-    "mov_in": "Entrée",
-    "mov_out": "Sortie",
+    "mov_in": "دخول",
+    "mov_out": "خروج",
     "movements_offline": "حركات المخزون غير متاحة بدون اتصال.",
-    "new_category": "Nouvelle catégorie",
-    "no_categories": "Aucune catégorie",
+    "new_category": "فئة جديدة",
+    "no_categories": "لا توجد فئات",
+    "no_price_history": "لا يوجد سجل للأسعار",
     "normal": "طبيعي",
-    "normal_mode": "Mode normal",
-    "normal_mode_desc": "Retour au mode de gestion normal.",
+    "normal_mode": "الوضع العادي",
+    "normal_mode_desc": "العودة إلى وضع الإدارة العادي.",
     "offline_saved": "تم حفظ المنتج محلياً. سيتم مزامنته عند الاتصال بالإنترنت.",
     "out_of_stock": "نفدت الكمية",
     "overstock": "مخزون زائد",
-    "pdf_error": "Impossible de générer le PDF",
+    "pdf_error": "تعذر إنشاء ملف PDF",
     "pdf_headers": {
       "product": "المنتج",
       "category": "الفئة",
@@ -1498,49 +1513,53 @@
       "selling_price": "سعر البيع",
       "value": "القيمة"
     },
-    "price_update": "Mise à jour des prix",
-    "print_label_rfid": "Imprimer Étiquette RFID",
+    "price_update": "تحديث الأسعار",
+    "print_label_rfid": "طباعة ملصق RFID",
+    "product_count": "{{count}} منتج(ات)",
     "products_total": "إجمالي المنتجات",
-    "purchase": "Achat",
-    "purchase_price_short": "Achat",
-    "qty": "Qté",
-    "reason_label": "Raison",
-    "reason_placeholder": "Raison du mouvement",
-    "remove_photo": "Supprimer la photo",
+    "purchase": "شراء",
+    "purchase_price_short": "شراء",
+    "qty": "كمية",
+    "reason_label": "السبب",
+    "reason_placeholder": "سبب الحركة",
+    "remove_photo": "حذف الصورة",
     "remove_stock": "-مخزون",
-    "report_section_stock": "État du stock",
-    "rfid_info_msg": "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.",
+    "report_section_stock": "حالة المخزون",
+    "rfid_info_msg": "قراءة RFID تتطلب جهازاً متوافقاً. يمكنك إدخال المعرف يدوياً.",
     "rfid_info_title": "RFID",
     "search": "البحث عن منتج...",
-    "see_less": "Voir moins",
-    "see_more": "Voir plus",
-    "see_more_count": "Voir les {{count}} autres mouvements",
-    "see_more_sales": "Voir les {{count}} autres ventes",
-    "selling": "Vente",
+    "search_placeholder": "ابحث عن منتج...",
+    "see_less": "عرض أقل",
+    "see_more": "عرض المزيد",
+    "see_more_count": "عرض {{count}} حركات أخرى",
+    "see_more_others": "عرض {{count}} عناصر أخرى",
+    "see_more_sales": "عرض {{count}} مبيعات أخرى",
+    "selling": "بيع",
+    "sku_placeholder": "رمز الباركود...",
     "stock_adjust_error": "فشل تعديل المخزون",
     "stock_label": "المخزون",
-    "stock_movement_in_title": "Entrée de stock pour",
-    "stock_movement_out_title": "Sortie de stock pour",
+    "stock_movement_in_title": "دخول مخزون لـ",
+    "stock_movement_out_title": "خروج مخزون لـ",
     "stock_update_error": "تعذر تحديث المخزون",
     "stock_value": "قيمة المخزون",
-    "suggest_price": "Suggérer un prix (IA)",
+    "suggest_price": "اقتراح سعر (ذكاء اصطناعي)",
     "title": "المنتجات",
-    "total_quantity": "Quantité Totale",
-    "total_revenue": "Revenu Total",
+    "total_quantity": "الكمية الإجمالية",
+    "total_revenue": "إجمالي الدخل",
     "total_stock_value": "القيمة الإجمالية للمخزون",
-    "total_stock_value_label": "VALEUR TOTALE DU STOCK",
-    "total_stock_variants_label": "Total: {{count}} {{unit}}",
+    "total_stock_value_label": "القيمة الإجمالية للمخزون",
+    "total_stock_variants_label": "الإجمالي: {{count}} {{unit}}",
     "trend_forecast": "الاتجاه / التوقعات",
     "unit_piece": "قطعة",
-    "unit_piece_short": "pc",
+    "unit_piece_short": "قطعة",
     "unit_pieces": "قطعة/قطع",
     "unit_units": "وحدة/وحدات",
-    "unit_units_short": "ut",
+    "unit_units_short": "وحدة",
     "validate_btn": "تحقق",
-    "validate_in": "Valider l'entrée",
-    "validate_out": "Valider la sortie",
-    "variant_name_placeholder": "Nom de la variante (ex: XL, Rouge...)",
-    "variants": "Variantes"
+    "validate_in": "تأكيد الدخول",
+    "validate_out": "تأكيد الخروج",
+    "variant_name_placeholder": "اسم النوع (مثال: XL، أحمر...)",
+    "variants": "الأنواع"
   },
   "settings": {
     "about": "حول",
@@ -1561,11 +1580,11 @@
     "data_sync": "البيانات والمزامنة",
     "delete_account": "حذف حسابي",
     "delete_account_desc": "إجراء غير قابل للتراجع. يحذف جميع البيانات.",
-    "dispute_delivery": "Livraison",
-    "dispute_other": "Autre",
-    "dispute_payment": "Paiement",
-    "dispute_product": "Produit",
-    "dispute_service": "Service",
+    "dispute_delivery": "توصيل",
+    "dispute_other": "أخرى",
+    "dispute_payment": "دفع",
+    "dispute_product": "منتج",
+    "dispute_service": "خدمة",
     "export_data": "تصدير بياناتي",
     "export_data_desc": "تحميل نسخة كاملة من بياناتك (JSON)",
     "export_error": "فشل تصدير البيانات.",
@@ -1623,18 +1642,18 @@
     "version": "الإصدار"
   },
   "store_selector": {
-    "category_placeholder": "Filtrer par catégorie...",
+    "category_placeholder": "تصفية حسب الفئة...",
     "create": "إنشاء",
     "create_error": "تعذر إنشاء المتجر",
     "default_name": "متجري",
-    "edit_error": "Impossible de mettre à jour le produit",
-    "edit_success": "Produit mis à jour avec succès",
-    "edit_title": "Modifier le produit",
+    "edit_error": "تعذر تحديث المنتج",
+    "edit_success": "تم تحديث المنتج بنجاح",
+    "edit_title": "تعديل المنتج",
     "load_error": "تعذر تحميل المتاجر",
     "my_stores": "متاجري",
     "new_store": "متجر جديد",
-    "no_price_history": "Aucun historique de prix",
-    "price_update": "Mise à jour prix",
+    "no_price_history": "لا يوجد سجل للأسعار",
+    "price_update": "تحديث السعر",
     "store_name_placeholder": "اسم المتجر",
     "switch_error": "تعذر تغيير المتجر"
   },
@@ -1671,15 +1690,15 @@
     "free_trial": "تجربة مجانية",
     "iap_not_available": "المشتريات داخل التطبيق غير متاحة. استخدم Mobile Money.",
     "mm_providers": "Orange Money، Wave، MTN Money، Moov Money",
-    "mobile_money_label": " (Mobile Money)",
+    "mobile_money_label": " (موبايل موني)",
     "no_purchase_found": "لم يتم العثور على عملية شراء.",
     "pay_app_store": "الدفع عبر App Store",
     "pay_google_play": "الدفع عبر Google Play",
     "pay_mobile_money": "الدفع عبر Mobile Money",
     "payment_failed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
     "per_month": "/شهرياً",
-    "plan_premium": "Premium",
-    "plan_starter": "Starter",
+    "plan_premium": "بريميوم",
+    "plan_starter": "ستارتر",
     "popular": "الأكثر شيوعاً",
     "premium_active_text": "اشتراك Premium الخاص بك نشط. شكراً لثقتك!",
     "renewal": "التجديد: {{date}}",
@@ -1701,7 +1720,7 @@
     "dashboard": "لوحة المورد",
     "delivery_zones": "مناطق التوصيل",
     "min_order": "الحد الأدنى للطلب",
-    "order_id": "Code commande",
+    "order_id": "رمز الطلب",
     "orders": "الطلبات المستلمة",
     "pending_orders": "طلبات قيد الانتظار",
     "refuse": "رفض",
@@ -1712,58 +1731,58 @@
     "unavailable": "غير متاح"
   },
   "supplier_old": {
-    "active_clients": "Clients actifs",
-    "average_basket": "Panier moyen",
-    "client_reviews": "Avis des clients",
-    "dashboard_title": "Dashboard Fournisseur",
-    "pending_orders": "Commandes en attente",
-    "rating": "Note",
-    "recent_orders": "Commandes récentes",
-    "revenue_this_month": "CA ce mois",
-    "reviews": "Avis",
-    "top_products": "Top Produits"
+    "active_clients": "العملاء النشطون",
+    "average_basket": "متوسط السلة",
+    "client_reviews": "تقييمات العملاء",
+    "dashboard_title": "لوحة المورد",
+    "pending_orders": "الطلبات المعلقة",
+    "rating": "التقييم",
+    "recent_orders": "الطلبات الأخيرة",
+    "revenue_this_month": "إيرادات هذا الشهر",
+    "reviews": "التقييمات",
+    "top_products": "أفضل المنتجات"
   },
   "suppliers": {
     "add_invoice_feature": "ميزة الرفع قريباً",
     "add_note": "إضافة ملاحظة",
     "add_suppliers_hint": "أضف الموردين المعتادين",
-    "ai_advice": "Conseil IA",
+    "ai_advice": "نصيحة الذكاء الاصطناعي",
     "ai_suggestions": "اقتراحات التموين (ذكاء اصطناعي)",
     "alert": "تنبيه",
-    "apply_btn": "Appliquer",
+    "apply_btn": "تطبيق",
     "avg_delivery_time": "متوسط مدة التوصيل",
     "call": "اتصال",
-    "catalog_title": "Catalogue ({{count}})",
-    "categories_label": "CATÉGORIES",
-    "category_label": "Catégorie",
-    "category_placeholder": "Ex: Alimentation, Électronique...",
-    "chat_btn": "Discuter",
-    "city_label": "Ville",
-    "city_placeholder": "Ex: Dakar, Paris...",
+    "catalog_title": "كتالوج ({{count}})",
+    "categories_label": "الفئات",
+    "category_label": "الفئة",
+    "category_placeholder": "مثال: أغذية، إلكترونيات...",
+    "chat_btn": "دردشة",
+    "city_label": "المدينة",
+    "city_placeholder": "مثال: داكار، باريس...",
     "critical_alert": "حرج",
-    "days_delivery": "{{days}}j livraison",
-    "days_remaining": "⌛ {{count}}j restants",
+    "days_delivery": "{{days}} يوم للتوصيل",
+    "days_remaining": "⌛ {{count}} أيام متبقية",
     "delete_confirm": "هل أنت متأكد من حذف \"{{name}}\"؟",
     "delete_error": "تعذر الحذف",
     "delete_title": "حذف المورد",
     "draft_success": "تم إنشاء مسودة الطلب بنجاح",
     "edit_supplier": "تعديل المورد",
-    "empty_catalog": "Aucun produit dans le catalogue",
-    "filter_by": "تصفية",
-    "filter_product_placeholder": "Filtrer par type de produit...",
+    "empty_catalog": "لا يوجد منتجات في الكتالوج",
+    "filter_by": "تصفية حسب",
+    "filter_product_placeholder": "تصفية حسب نوع المنتج...",
     "financial_summary": "الملخص المالي",
     "form_address": "العنوان",
-    "form_address_placeholder": "الموقع",
+    "form_address_placeholder": "الموقع الجغرافي",
     "form_contact": "جهة الاتصال",
     "form_contact_placeholder": "اسم جهة الاتصال",
     "form_delay": "مدة التوصيل",
     "form_delay_placeholder": "مثال: 2-3 أيام",
     "form_email": "البريد الإلكتروني",
-    "form_email_placeholder": "email@mithal.com",
+    "form_email_placeholder": "email@example.com",
     "form_name": "الاسم *",
     "form_name_placeholder": "الاسم التجاري",
     "form_notes": "ملاحظات",
-    "form_notes_placeholder": "ملاحظات...",
+    "form_notes_placeholder": "ملاحظات إضافية...",
     "form_payment": "شروط الدفع",
     "form_payment_placeholder": "مثال: عند التوصيل",
     "form_phone": "الهاتف",
@@ -1774,8 +1793,8 @@
     "interaction_log": "سجل التواصل",
     "invite": "دعوة للتسجيل",
     "invite_error": "تعذر إرسال الدعوة",
-    "invite_modal_desc": "Envoyez une invitation pour que ce fournisseur crée son compte et gère directement son catalogue et ses commandes.",
-    "invite_modal_title": "Inviter à s'inscrire",
+    "invite_modal_desc": "أرسل دعوة لهذا المورد ليقوم بإنشاء حسابه وإدارة منتجاته وطلباته مباشرة.",
+    "invite_modal_title": "دعوة للتسجيل",
     "invite_sent": "تم إرسال الدعوة",
     "invite_sent_desc": "تم إرسال دعوة إلى {{email}}",
     "invoices_safe": "خزنة الفواتير",
@@ -1791,53 +1810,53 @@
     "low_stock_count": "{{count}} منتج(ات)",
     "low_stock_label": "مخزون منخفض",
     "marketplace": "السوق",
-    "marketplace_filters_title": "Filtres Marketplace",
-    "max_placeholder": "Max",
-    "min_order_prefix": "Min",
-    "min_placeholder": "Min",
-    "min_rating_label": "Note minimale (Fournisseur)",
-    "mp_detail_default_name": "Fournisseur",
-    "my_suppliers": "الموردين الخاصين بي",
+    "marketplace_filters_title": "فلاتر السوق",
+    "max_placeholder": "الأقصى",
+    "min_order_prefix": "الأدنى",
+    "min_placeholder": "الأدنى",
+    "min_rating_label": "التقييم الأدنى (مورد)",
+    "mp_detail_default_name": "مورد",
+    "my_suppliers": "مورديني",
     "new_supplier": "مورد جديد",
-    "no_invoices": "لا فواتير مسجلة",
-    "no_linked_products": "لا منتجات مرتبطة بهذا المورد",
+    "no_invoices": "لا توجد فواتير",
+    "no_linked_products": "لا يوجد منتجات مرتبطة بهذا المورد",
     "no_logs": "لا يوجد سجل تواصل",
-    "no_orders": "لا طلبات سابقة",
-    "no_products_available": "لا منتجات متاحة",
-    "no_results": "لا نتائج",
+    "no_orders": "لا توجد طلبات سابقة",
+    "no_products_available": "لا توجد منتجات متاحة",
+    "no_results": "لا توجد نتائج",
     "no_suppliers": "لا يوجد موردين",
     "order_action": "طلب",
-    "order_commander": "Commander {{count}}",
+    "order_commander": "طلب {{count}}",
     "order_history": "سجل الطلبات",
-    "order_sent_desc": "Votre commande a été transmise au fournisseur",
-    "order_sent_title": "Commande envoyée",
-    "order_status_cancelled": "ANNULÉ",
-    "order_status_confirmed": "CONFIRMÉ",
-    "order_status_delivered": "LIVRÉ",
-    "order_status_pending": "EN ATTENTE",
-    "order_status_shipped": "EXPÉDIÉ",
+    "order_sent_desc": "تم إرسال طلبك إلى المورد",
+    "order_sent_title": "تم إرسال الطلب",
+    "order_status_cancelled": "ملغي",
+    "order_status_confirmed": "مؤكد",
+    "order_status_delivered": "مسلم",
+    "order_status_pending": "قيد الانتظار",
+    "order_status_shipped": "مشحون",
     "other": "أخرى",
     "out_of_stock": "نفد المخزون",
-    "out_of_stock_alert": "Rupture !",
+    "out_of_stock_alert": "نفاد!",
     "payment_label": "الدفع",
-    "pending_payment": "قيد الدفع",
-    "phone_missing": "رقم الهاتف غير متوفر",
-    "price_range_label": "Gamme de prix ({{currency}})",
+    "pending_payment": "في انتظار الدفع",
+    "phone_missing": "الهاتف مفقود",
+    "price_range_label": "نطاق السعر ({{currency}})",
     "product_link_error": "تعذر ربط المنتج",
     "product_unlink_error": "تعذر إلغاء ربط المنتج",
-    "products_count": "{{count}} produits",
-    "rating_all": "Toutes",
+    "products_count": "{{count}} منتجات",
+    "rating_all": "الكل",
     "reliable_supplier": "هذا المورد موثوق جداً في المواعيد.",
-    "reset_btn": "Réinitialiser",
+    "reset_btn": "إعادة تعيين",
     "reset_filters": "إعادة تعيين الفلاتر",
-    "reviews_title": "Avis ({{count}})",
+    "reviews_title": "التقييمات ({{count}})",
     "save_error": "تعذر حفظ المورد",
     "search_placeholder": "اسم، جهة اتصال، منتج، هاتف...",
-    "see_less": "Voir moins",
-    "see_more_others": "Voir les {{count}} autres",
+    "see_less": "عرض أقل",
+    "see_more_others": "عرض {{count}} أخرى",
     "select_product": "اختر منتجاً:",
     "selling_price": "سعر البيع",
-    "send_invite_btn": "Envoyer l'invitation",
+    "send_invite_btn": "إرسال الدعوة",
     "send_message": "إرسال رسالة",
     "sort_by": "ترتيب حسب",
     "sort_delay": "مدة التوصيل",
@@ -1848,24 +1867,24 @@
     "stock": "المخزون",
     "stock_value": "قيمة المخزون",
     "subtitle": "إدارة جهات الاتصال والطلبات",
-    "successful_deliveries": "التوصيلات الناجحة",
-    "suggestion_ai_notes": "Commande suggérée par IA (Vitesse: {{velocity}}/jour)",
-    "suggestion_order_desc": "{{product}}: المخزون الحالي {{current}}. الاقتراح: طلب {{suggested}} وحدة من {{supplier}}.",
-    "suggestion_order_title": "اقتراح طلب",
-    "supplier_count": "{{count}} مورد(ين)",
-    "supplier_email_label": "Email du fournisseur",
-    "supplier_no_phone_error": "لا يوجد مورد مرتبط بهذا المنتج",
+    "successful_deliveries": "توصيلات ناجحة",
+    "suggestion_ai_notes": "طلب مقترح بالذكاء الاصطناعي (السرعة: {{velocity}}/يوم)",
+    "suggestion_order_desc": "{{product}}: المخزون الحالي {{current}}. المقترح: طلب {{suggested}} وحدة من {{supplier}}.",
+    "suggestion_order_title": "اقتراح طلب ذكي",
+    "supplier_count": "{{count}} موردين",
+    "supplier_email_label": "بريد المورد الإلكتروني",
+    "supplier_no_phone_error": "لا يوجد رقم للمورد",
     "supplier_price": "سعر المورد",
-    "supplier_search_count": "{{count}} مورد(ين) لـ \"{{search}}\"",
+    "supplier_search_count": "{{count}} موردين لـ \"{{search}}\"",
     "title": "الموردين",
-    "total_volume": "إجمالي المبالغ المدفوعة",
+    "total_volume": "الحجم الإجمالي",
     "unlink": "إلغاء الربط",
-    "val_prefix": "Val:",
-    "verified_only_label": "Vérifiés uniquement",
+    "val_prefix": "قيمة:",
+    "verified_only_label": "الموثقون فقط",
     "visit": "زيارة",
-    "warning_supplier": "خصص هامش أمان لطلباتك.",
-    "whatsapp_log": "تم بدء محادثة واتساب من التطبيق",
-    "whatsapp_not_installed": "واتساب غير مثبت على هذا الجهاز",
+    "warning_supplier": "تنبيه المورد",
+    "whatsapp_log": "سجل واتساب",
+    "whatsapp_not_installed": "واتساب غير مثبت",
     "with_email": "مع بريد",
     "with_phone": "مع هاتف"
   },
@@ -1885,38 +1904,56 @@
     "users": "المستخدمين"
   },
   "users": {
-    "access_denied": "Accès refusé.",
-    "account_created_title": "Compte créé",
-    "accounting_label": "Comptabilité",
-    "cancel_btn": "Annuler",
-    "create_account_btn": "Créer le compte",
-    "crm_label": "Clients (CRM)",
-    "delete_btn": "Supprimer",
-    "delete_user_confirm": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
-    "delete_user_title": "Supprimer l'utilisateur",
-    "edit_access_title": "Modifier Accès",
-    "email_label": "Email",
-    "empty_state_desc": "Ajoutez vos vendeurs pour leur donner un accès limité.",
-    "empty_state_title": "Aucun employé configuré",
-    "form_error_fields": "Veuillez remplir tous les champs obligatoires.",
-    "full_name_label": "Nom complet",
-    "full_name_placeholder": "Ex: Jean Dupont",
-    "new_employee_title": "Nouvel Employé",
-    "password_label": "Mot de passe",
-    "password_placeholder": "Min. 8 caractères",
-    "perm_management": "Modification",
-    "perm_no_access": "Pas d'accès",
-    "perm_read_only": "Lecture Seule",
-    "permissions_section_title": "Permissions (Appuyez pour changer)",
-    "pos_label": "Caisse (POS)",
-    "save_btn": "Enregistrer",
-    "stock_label": "Stock & Produits",
-    "suppliers_label": "Fournisseurs",
-    "title": "Gestion d'Équipe",
-    "whatsapp_invite_later": "Plus tard",
-    "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\nVous pouvez accéder à l'application ici : {{url}}\n\nBon travail !",
-    "whatsapp_invite_prompt": "Voulez-vous envoyer les accès par WhatsApp ?",
-    "whatsapp_invite_send": "Envoyer",
-    "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."
+    "access_denied": "تم رفض الوصول.",
+    "account_created_title": "تم إنشاء الحساب",
+    "accounting_label": "المحاسبة",
+    "cancel_btn": "إلغاء",
+    "create_account_btn": "إنشاء الحساب",
+    "crm_label": "العملاء (CRM)",
+    "delete_btn": "حذف",
+    "delete_user_btn": "حذف المستخدم",
+    "delete_user_confirm": "هل أنت متأكد من حذف هذا المستخدم؟",
+    "delete_user_title": "حذف المستخدم",
+    "edit_access_title": "تعديل الصلاحيات",
+    "edit_user_title": "تعديل المستخدم",
+    "email_label": "البريد الإلكتروني",
+    "empty_state_desc": "أضف بائعيك لمنحهم وصولاً محدوداً.",
+    "empty_state_title": "لا يوجد موظفون مضافون",
+    "form_error_fields": "يرجى ملء جميع الحقول المطلوبة.",
+    "full_name_label": "الاسم الكامل",
+    "full_name_placeholder": "مثال: أحمد محمد",
+    "loading": "جاري التحميل...",
+    "modules_label": "الوصول إلى الوحدات",
+    "name_label": "الاسم الكامل",
+    "new_employee_title": "موظف جديد",
+    "new_user_title": "مستخدم جديد",
+    "no_users_found": "لم يتم العثور على مستخدمين",
+    "orders_label": "الطلب",
+    "password_label": "كلمة المرور",
+    "password_placeholder": "8 أحرف كحد أدنى",
+    "perm_management": "تعديل",
+    "perm_no_access": "لا يوجد وصول",
+    "perm_read_only": "قراءة فقط",
+    "permissions_section_title": "الصلاحيات (اضغط للتغيير)",
+    "phone_label": "الهاتف",
+    "pos_label": "الكاشير (POS)",
+    "products_label": "المخزون والمنتجات",
+    "role_admin": "مالك (مسؤول)",
+    "role_label": "الدور",
+    "role_staff": "بائع (موظف)",
+    "save_btn": "حفظ",
+    "search_placeholder": "ابحث عن مستخدم...",
+    "share_whatsapp_btn": "مشاركة عبر واتساب",
+    "share_whatsapp_msg": "مرحباً {{name}}، إليك بيانات دخولك لتطبيق Stockman: \nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\nالرابط: https://stockman-app.com",
+    "status_label": "الحالة",
+    "stock_label": "المخزون والمنتجات",
+    "suppliers_label": "الموردين",
+    "title": "إدارة الفريق",
+    "user_details_title": "تفاصيل المستخدم",
+    "whatsapp_invite_later": "لاحقاً",
+    "whatsapp_invite_msg": "مرحباً {{name}}!\n\nإليك بيانات دخولك لتطبيق Stockman:\n📧 البريد الإلكتروني: {{email}}\n🔑 كلمة المرور: {{password}}\n\nيمكنك الوصول إلى التطبيق هنا: {{url}}\n\nبالتوفيق!",
+    "whatsapp_invite_prompt": "هل تريد إرسال بيانات الدخول عبر واتساب؟",
+    "whatsapp_invite_send": "إرسال",
+    "whatsapp_not_installed": "واتساب غير مثبت على هذا الجهاز."
   }
 }

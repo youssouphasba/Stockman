@@ -75,7 +75,7 @@ export default function SupplierSettingsScreen() {
 
   async function handleSave() {
     if (!companyName.trim()) {
-      Alert.alert('Erreur', 'Le nom de l\'entreprise est requis');
+      Alert.alert(t('common.error'), t('supplier_settings.error_company_required'));
       return;
     }
     setSaving(true);
@@ -101,7 +101,7 @@ export default function SupplierSettingsScreen() {
       setIsNew(false);
       setIsEditing(false);
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder le profil');
+      Alert.alert(t('common.error'), t('supplier_settings.error_save'));
     } finally {
       setSaving(false);
     }
@@ -109,16 +109,16 @@ export default function SupplierSettingsScreen() {
 
   function handleLogout() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Voulez-vous vraiment vous déconnecter ?')) {
+      if (window.confirm(t('auth.logout_confirm'))) {
         logout();
       }
     } else {
       Alert.alert(
-        'Déconnexion',
-        'Voulez-vous vraiment vous déconnecter ?',
+        t('auth.logout_title'),
+        t('auth.logout_confirm'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Déconnexion', style: 'destructive', onPress: () => logout() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('auth.logout_btn'), style: 'destructive', onPress: () => logout() },
         ]
       );
     }
@@ -137,7 +137,7 @@ export default function SupplierSettingsScreen() {
   return (
     <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Paramètres</Text>
+        <Text style={styles.pageTitle}>{t('supplier_settings.page_title')}</Text>
 
         {/* User info */}
         <View style={styles.card}>
@@ -151,7 +151,7 @@ export default function SupplierSettingsScreen() {
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>Fournisseur</Text>
+                <Text style={styles.roleText}>{t('supplier_settings.role_supplier')}</Text>
               </View>
             </View>
           </View>
@@ -160,7 +160,7 @@ export default function SupplierSettingsScreen() {
         {/* Commercial profile */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Profil commercial</Text>
+            <Text style={styles.sectionTitle}>{t('supplier_settings.commercial_profile')}</Text>
             {!isEditing && profile && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
                 <Ionicons name="create-outline" size={20} color={Colors.secondary} />
@@ -170,34 +170,34 @@ export default function SupplierSettingsScreen() {
 
           {isEditing ? (
             <>
-              <Text style={styles.label}>Nom de l'entreprise *</Text>
-              <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder="Nom de l'entreprise" placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('supplier_settings.company_name_label')}</Text>
+              <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder={t('supplier_settings.company_name_ph')} placeholderTextColor={Colors.textMuted} />
 
-              <Text style={styles.label}>Description</Text>
-              <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder="Décrivez votre activité" placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
+              <Text style={styles.label}>{t('supplier_settings.description_label')}</Text>
+              <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder={t('supplier_settings.description_ph')} placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
 
-              <Text style={styles.label}>Téléphone</Text>
+              <Text style={styles.label}>{t('supplier_settings.phone_label')}</Text>
               <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+221 xx xxx xx xx" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
 
-              <Text style={styles.label}>Adresse</Text>
-              <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Adresse complète" placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('supplier_settings.address_label')}</Text>
+              <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder={t('supplier_settings.address_ph')} placeholderTextColor={Colors.textMuted} />
 
-              <Text style={styles.label}>Ville</Text>
-              <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="Ex: Dakar, Abidjan..." placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('supplier_settings.city_label')}</Text>
+              <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder={t('supplier_settings.city_ph')} placeholderTextColor={Colors.textMuted} />
 
-              <Text style={styles.label}>Catégories (séparées par des virgules)</Text>
-              <TextInput style={styles.input} value={categoriesText} onChangeText={setCategoriesText} placeholder="Alimentaire, Cosmétique, Textile..." placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('supplier_settings.categories_label')}</Text>
+              <TextInput style={styles.input} value={categoriesText} onChangeText={setCategoriesText} placeholder={t('supplier_settings.categories_ph')} placeholderTextColor={Colors.textMuted} />
 
-              <Text style={styles.label}>Zones de livraison (séparées par des virgules)</Text>
-              <TextInput style={styles.input} value={zonesText} onChangeText={setZonesText} placeholder="Dakar, Thiès, Saint-Louis..." placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>{t('supplier_settings.zones_label')}</Text>
+              <TextInput style={styles.input} value={zonesText} onChangeText={setZonesText} placeholder={t('supplier_settings.zones_ph')} placeholderTextColor={Colors.textMuted} />
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Montant min commande ({t('common.currency_default')})</Text>
+                  <Text style={styles.label}>{t('supplier_settings.min_order_label')} ({t('common.currency_default')})</Text>
                   <TextInput style={styles.input} value={minOrder} onChangeText={setMinOrder} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Délai moyen (jours)</Text>
+                  <Text style={styles.label}>{t('supplier_settings.avg_delivery_label')}</Text>
                   <TextInput style={styles.input} value={avgDays} onChangeText={setAvgDays} placeholder="3" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
               </View>
@@ -211,7 +211,7 @@ export default function SupplierSettingsScreen() {
                       if (profile) populateForm(profile);
                     }}
                   >
-                    <Text style={styles.cancelBtnText}>Annuler</Text>
+                    <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -223,7 +223,7 @@ export default function SupplierSettingsScreen() {
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <Text style={styles.saveBtnText}>
-                      {isNew ? 'Créer mon profil' : 'Enregistrer'}
+                      {isNew ? t('supplier_settings.create_profile') : t('common.save')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -231,23 +231,23 @@ export default function SupplierSettingsScreen() {
             </>
           ) : profile ? (
             <>
-              <InfoRow label="Entreprise" value={profile.company_name} />
-              {profile.description ? <InfoRow label="Description" value={profile.description} /> : null}
-              {profile.phone ? <InfoRow label="Téléphone" value={profile.phone} /> : null}
-              {profile.address ? <InfoRow label="Adresse" value={profile.address} /> : null}
-              {profile.city ? <InfoRow label="Ville" value={profile.city} /> : null}
-              {profile.categories?.length > 0 && <InfoRow label="Catégories" value={profile.categories.join(', ')} />}
-              {profile.delivery_zones?.length > 0 && <InfoRow label="Zones de livraison" value={profile.delivery_zones.join(', ')} />}
-              <InfoRow label="Montant min commande" value={`${formatNumber(profile.min_order_amount)} ${t('common.currency_default')}`} />
-              <InfoRow label="Délai moyen" value={`${profile.average_delivery_days} jours`} />
-              <InfoRow label="Note" value={`${profile.rating_average.toFixed(1)}/5 (${profile.rating_count} avis)`} />
+              <InfoRow label={t('supplier_settings.info_company')} value={profile.company_name} />
+              {profile.description ? <InfoRow label={t('supplier_settings.info_description')} value={profile.description} /> : null}
+              {profile.phone ? <InfoRow label={t('supplier_settings.info_phone')} value={profile.phone} /> : null}
+              {profile.address ? <InfoRow label={t('supplier_settings.info_address')} value={profile.address} /> : null}
+              {profile.city ? <InfoRow label={t('supplier_settings.info_city')} value={profile.city} /> : null}
+              {profile.categories?.length > 0 && <InfoRow label={t('supplier_settings.info_categories')} value={profile.categories.join(', ')} />}
+              {profile.delivery_zones?.length > 0 && <InfoRow label={t('supplier_settings.info_zones')} value={profile.delivery_zones.join(', ')} />}
+              <InfoRow label={t('supplier_settings.info_min_order')} value={`${formatNumber(profile.min_order_amount)} ${t('common.currency_default')}`} />
+              <InfoRow label={t('supplier_settings.info_avg_delivery')} value={`${profile.average_delivery_days} ${t('supplier_settings.days')}`} />
+              <InfoRow label={t('supplier_settings.info_note')} value={`${profile.rating_average.toFixed(1)}/5 (${profile.rating_count} ${t('supplier_settings.reviews')})`} />
             </>
           ) : null}
         </View>
 
         {/* Application / Language */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Application</Text>
+          <Text style={styles.sectionTitle}>{t('supplier_settings.application')}</Text>
           <TouchableOpacity
             style={infoStyles.row}
             onPress={() => setShowLanguageModal(true)}
@@ -265,7 +265,7 @@ export default function SupplierSettingsScreen() {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
-          <Text style={styles.logoutText}>Se déconnecter</Text>
+          <Text style={styles.logoutText}>{t('auth.logout_btn')}</Text>
         </TouchableOpacity>
 
         <LanguagePickerModal

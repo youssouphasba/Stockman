@@ -474,7 +474,7 @@ export default function ProductsScreen() {
     setFormName('');
     setFormSku('');
     setFormQuantity('0');
-    setFormUnit('Pièce');
+    setFormUnit(t('products.default_unit'));
     setFormPurchasePrice('0');
     setFormSellingPrice('0');
     setFormMinStock('0');
@@ -837,7 +837,7 @@ export default function ProductsScreen() {
 
   async function handleDeleteCategory(catId: string) {
     if (!isConnected) {
-      Alert.alert('Hors ligne', 'La suppression de catégorie est indisponible hors ligne.');
+      Alert.alert(t('common.offline'), t('products.categories_offline'));
       return;
     }
     try {
@@ -972,7 +972,7 @@ export default function ProductsScreen() {
           style: "destructive",
           onPress: () => setFormImage(null),
         },
-        { text: "Annuler", style: "cancel" }
+        { text: t('common.cancel'), style: "cancel" }
       ]
     );
   }
@@ -1000,9 +1000,9 @@ export default function ProductsScreen() {
       t('products.bulk_delete_title'),
       t('products.bulk_delete_msg', { count: selectedProductIds.size }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
@@ -1548,7 +1548,7 @@ export default function ProductsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                               <Ionicons name={trendIcon as any} size={16} color={trendColor} />
                               <Text style={[styles.detailValue, { color: trendColor }]}>
-                                {forecast.predicted_sales_7d} prédits (7j)
+                                {t('products.forecast_7d_unit', { count: forecast.predicted_sales_7d })}
                               </Text>
                             </View>
                           );
@@ -1784,7 +1784,7 @@ export default function ProductsScreen() {
                   <TouchableOpacity
                     style={[styles.scanBtnMini, { backgroundColor: colors.info + '20' }]}
                     onPress={() => {
-                      Alert.alert("RFID", "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.");
+                      Alert.alert(t('products.rfid_info_title'), t('products.rfid_reading_not_supported'));
                     }}
                   >
                     <Ionicons name="radio-outline" size={24} color={colors.info} />
@@ -1794,7 +1794,7 @@ export default function ProductsScreen() {
                 {editingProduct && (
                   <TouchableOpacity
                     style={[styles.actionBtn, { marginVertical: Spacing.sm, backgroundColor: colors.info + '15', borderColor: colors.info, borderWidth: 1 }]}
-                    onPress={() => generateProductLabelPdf(editingProduct, user?.name || "Stockman")}
+                    onPress={() => generateProductLabelPdf(editingProduct, currentStore?.name || t('accounting.default_store_name'))}
                   >
                     <Ionicons name="pricetag-outline" size={18} color={colors.info} />
                     <Text style={[styles.actionText, { color: colors.info }]}>{t('products.print_label_rfid')}</Text>
@@ -1807,7 +1807,7 @@ export default function ProductsScreen() {
                       label={t('products.field_expiry')}
                       value={formExpiryDate}
                       onChangeText={setFormExpiryDate}
-                      placeholder="AAAA-MM-JJ"
+                      placeholder={t('products.date_format_placeholder')}
                       colors={colors}
                       styles={styles}
                     />
@@ -2340,7 +2340,7 @@ export default function ProductsScreen() {
                   label={t('products.batch_number_label')}
                   value={movBatchNumber}
                   onChangeText={setMovBatchNumber}
-                  placeholder="Ex: LOT2024-001"
+                  placeholder={t('products.batch_number_placeholder_hint')}
                   colors={colors}
                   styles={styles}
                 />
@@ -2348,7 +2348,7 @@ export default function ProductsScreen() {
                   label={t('products.expiry_date_label')}
                   value={movExpiryDate}
                   onChangeText={setMovExpiryDate}
-                  placeholder="Ex: 2025-12-31"
+                  placeholder={t('products.expiry_date_placeholder_hint')}
                   colors={colors}
                   styles={styles}
                 />

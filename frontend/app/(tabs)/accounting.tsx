@@ -52,12 +52,7 @@ import {
 
 const screenWidth = Dimensions.get('window').width;
 
-const PERIODS = [
-    { label: '7j', value: 7 },
-    { label: '30j', value: 30 },
-    { label: '90j', value: 90 },
-    { label: '1 an', value: 365 },
-];
+// PERIODS constant removed as it's handled inside the component or by PeriodSelector
 
 const PAYMENT_LABELS: Record<string, string> = {
     cash: 'accounting.payment_cash',
@@ -93,7 +88,7 @@ export default function AccountingScreen() {
     // Expenses
     const [expensesList, setExpensesList] = useState<Expense[]>([]);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
-    const [expenseCategory, setExpenseCategory] = useState('Autre');
+    const [expenseCategory, setExpenseCategory] = useState('other');
     const [expenseAmount, setExpenseAmount] = useState('');
     const [expenseDescription, setExpenseDescription] = useState('');
     const [savingExpense, setSavingExpense] = useState(false);
@@ -167,7 +162,7 @@ export default function AccountingScreen() {
 
     const openExpenseModal = () => {
         // console.log("Opening expense modal");
-        setExpenseCategory('Autre');
+        setExpenseCategory('other');
         setExpenseAmount('');
         setExpenseDescription('');
         setShowExpenseModal(true);
@@ -231,7 +226,7 @@ export default function AccountingScreen() {
     }
 
     function formatDate(dateStr: string) {
-        return new Date(dateStr).toLocaleDateString('fr-FR', {
+        return new Date(dateStr).toLocaleDateString(i18n.language, {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
@@ -353,9 +348,9 @@ export default function AccountingScreen() {
             </tr>
         `).join('');
 
-        const storeName = currentStore?.name || "Ma Boutique Stock";
-        const storeAddress = currentStore?.address || "Adresse non renseignée";
-        const periodLabel = stats.period_label || `${selectedPeriod} derniers jours`;
+        const storeName = currentStore?.name || t('accounting.default_store_name');
+        const storeAddress = currentStore?.address || t('accounting.default_address');
+        const periodLabel = stats.period_label || (typeof selectedPeriod === 'number' ? t('accounting.last_days_label', { count: selectedPeriod }) : t('common.periods.custom'));
 
         const html = `
             <html>
@@ -398,15 +393,15 @@ export default function AccountingScreen() {
 
                 <div class="kpi-grid">
                     <div class="kpi-card">
-                        <div class="kpi-label">CA total</div>
+                        <div class="kpi-label">${t('accounting.revenue_kpi')}</div>
                         <div class="kpi-value">${formatCurrency(stats.revenue)}</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-label">Marge brute</div>
+                        <div class="kpi-label">${t('accounting.gross_margin_kpi')}</div>
                         <div class="kpi-value" style="color: ${colors.success}">${formatCurrency(stats.gross_profit)}</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-label">Total charges</div>
+                        <div class="kpi-label">${t('accounting.total_expenses_kpi')}</div>
                         <div class="kpi-value" style="color: ${colors.danger}">${formatCurrency(stats.expenses)}</div>
                     </div>
                     <div class="kpi-card">
@@ -416,7 +411,7 @@ export default function AccountingScreen() {
                 </div>
 
                 <section>
-                    <h3>Top 10 Produits par Performance</h3>
+                    <h3>${t('accounting.pdf_top_products')}</h3>
                     <table>
                         <thead>
                             <tr>
@@ -431,7 +426,7 @@ export default function AccountingScreen() {
                 </section>
 
                 <section>
-                    <h3>Détail des Charges</h3>
+                    <h3>${t('accounting.pdf_expenses_detail')}</h3>
                     <table>
                         <thead>
                             <tr>
@@ -440,7 +435,7 @@ export default function AccountingScreen() {
                                 <th style="text-align:right">${t('accounting.col_amount')}</th>
                             </tr>
                         </thead>
-                        <tbody>${expensesHtml || '<tr><td colspan="3" style="text-align:center; padding: 20px;">Aucune dépense sur cette période</td></tr>'}</tbody>
+                        <tbody>${expensesHtml || `<tr><td colspan="3" style="text-align:center; padding: 20px;">${t('accounting.no_expenses')}</td></tr>`}</tbody>
                     </table>
                 </section>
 
@@ -464,11 +459,11 @@ export default function AccountingScreen() {
                 setTimeout(() => document.body.removeChild(iframe), 1000);
             } else {
                 const { uri } = await Print.printToFileAsync({ html });
-                await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: `Rapport Activité ${periodLabel}` });
+                await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: t('accounting.report_activity_dialog', { period: periodLabel }) });
             }
         } catch (error) {
             console.error(error);
-            alert("Erreur lors de la génération du rapport");
+            alert(t('accounting.report_gen_error'));
         }
     };
 
@@ -996,7 +991,7 @@ export default function AccountingScreen() {
                                             style={[styles.input, { width: 50, textAlign: 'center' }]}
                                             value={item.tva}
                                             onChangeText={v => updateInvoiceLine(index, 'tva', v)}
-                                            placeholder="TVA%"
+                                            placeholder={t('invoice.tva_percentage')}
                                             keyboardType="numeric"
                                             placeholderTextColor={colors.textMuted}
                                         />

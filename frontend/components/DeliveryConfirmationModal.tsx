@@ -73,7 +73,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
       }
       setDecisions(decs);
     } catch (e: any) {
-      Alert.alert('Erreur', e.message || 'Impossible de charger les suggestions');
+      Alert.alert(t('common.error'), e.message || t('delivery.error_load_suggestions'));
     } finally {
       setLoading(false);
     }
@@ -108,10 +108,10 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
       });
 
       await orders.confirmDelivery(orderId, mappings);
-      Alert.alert('Livraison confirmée', 'Le stock a été mis à jour.');
+      Alert.alert(t('delivery.confirmed_title'), t('delivery.confirmed_msg'));
       onConfirmed();
     } catch (e: any) {
-      Alert.alert('Erreur', e.message || 'Impossible de confirmer la livraison');
+      Alert.alert(t('common.error'), e.message || t('delivery.error_confirm'));
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +125,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
     if (s.source === 'mapping') return { icon: 'checkmark-circle' as const, color: colors.success, label: 'Auto' };
     if (s.confidence >= 0.7) return { icon: 'thumbs-up' as const, color: colors.success, label: `${Math.round(s.confidence * 100)}%` };
     if (s.confidence >= 0.4) return { icon: 'help-circle' as const, color: colors.warning, label: `${Math.round(s.confidence * 100)}%` };
-    return { icon: 'close-circle' as const, color: colors.danger, label: 'Aucun' };
+    return { icon: 'close-circle' as const, color: colors.danger, label: t('common.none') };
   }
 
   const searchingSuggestion = searchingFor ? suggestions.find((s) => s.catalog_id === searchingFor) : null;
@@ -142,7 +142,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                 <Ionicons name="arrow-back" size={24} color={colors.text} />
               </TouchableOpacity>
               <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-                Associer : {searchingSuggestion?.catalog_name}
+                {t('delivery.associate_for', { name: searchingSuggestion?.catalog_name })}
               </Text>
               <View style={{ width: 24 }} />
             </View>
@@ -151,7 +151,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
               <Ionicons name="search" size={18} color={colors.textMuted} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Rechercher un produit..."
+                placeholder={t('delivery.search_product')}
                 placeholderTextColor={colors.textMuted}
                 value={searchText}
                 onChangeText={setSearchText}
@@ -169,7 +169,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.productName, { color: colors.text }]}>{p.name}</Text>
                     <Text style={[styles.productMeta, { color: colors.textMuted }]}>
-                      Stock: {p.quantity} {p.unit}
+                      {t('delivery.stock_label')} {p.quantity} {p.unit}
                     </Text>
                   </View>
                   <Ionicons name="add-circle" size={24} color={colors.primary} />
@@ -177,7 +177,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
               ))}
               {filteredInventory.length === 0 && (
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  Aucun produit trouvé
+                  {t('delivery.no_product_found')}
                 </Text>
               )}
             </ScrollView>
@@ -189,7 +189,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
               <TouchableOpacity onPress={onClose} disabled={submitting}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Confirmer la réception</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('delivery.confirm_reception')}</Text>
               <View style={{ width: 24 }} />
             </View>
 
@@ -197,14 +197,14 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-                  Analyse IA des produits...
+                  {t('delivery.ai_analysis')}
                 </Text>
               </View>
             ) : (
               <>
                 <ScrollView style={styles.scrollContent} contentContainerStyle={{ paddingBottom: 100 }}>
                   <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                    {suggestions.length} produit{suggestions.length > 1 ? 's' : ''} à associer
+                    {t('delivery.products_to_match', { count: suggestions.length })}
                   </Text>
 
                   {suggestions.map((s) => {
@@ -232,7 +232,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                         {/* AI reason */}
                         {s.reason && s.source !== 'mapping' && (
                           <Text style={[styles.reason, { color: colors.textMuted }]}>
-                            IA : {s.reason}
+                            {t('delivery.ai_reason', { reason: s.reason })}
                           </Text>
                         )}
 
@@ -248,26 +248,26 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                                 onPress={() => setSearchingFor(s.catalog_id)}
                                 style={[styles.smallBtn, { borderColor: colors.divider }]}
                               >
-                                <Text style={[styles.smallBtnText, { color: colors.primary }]}>Changer</Text>
+                                <Text style={[styles.smallBtnText, { color: colors.primary }]}>{t('common.change')}</Text>
                               </TouchableOpacity>
                               <TouchableOpacity
                                 onPress={() => toggleCreateNew(s.catalog_id)}
                                 style={[styles.smallBtn, { borderColor: colors.divider }]}
                               >
-                                <Text style={[styles.smallBtnText, { color: colors.warning }]}>Nouveau</Text>
+                                <Text style={[styles.smallBtnText, { color: colors.warning }]}>{t('common.new')}</Text>
                               </TouchableOpacity>
                             </View>
                           ) : (
                             <View style={styles.decisionRow}>
                               <Ionicons name="add-circle" size={16} color={colors.warning} />
                               <Text style={[styles.decisionText, { color: colors.warning }]}>
-                                Créer un nouveau produit
+                                {t('delivery.create_new_product')}
                               </Text>
                               <TouchableOpacity
                                 onPress={() => setSearchingFor(s.catalog_id)}
                                 style={[styles.smallBtn, { borderColor: colors.divider }]}
                               >
-                                <Text style={[styles.smallBtnText, { color: colors.primary }]}>Associer</Text>
+                                <Text style={[styles.smallBtnText, { color: colors.primary }]}>{t('common.associate')}</Text>
                               </TouchableOpacity>
                             </View>
                           )}
@@ -289,7 +289,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                     ) : (
                       <>
                         <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                        <Text style={styles.confirmBtnText}>Confirmer la réception</Text>
+                        <Text style={styles.confirmBtnText}>{t('delivery.confirm_reception')}</Text>
                       </>
                     )}
                   </TouchableOpacity>

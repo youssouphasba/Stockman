@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { products as productsApi, replenishment } from '../../services/api';
 import BatchScanner from '../../components/BatchScanner';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 
 export default function BatchScanScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { colors, glassStyle } = useTheme();
     const [showScanner, setShowScanner] = useState(true);
@@ -30,7 +32,7 @@ export default function BatchScanScreen() {
 
     const processBatch = async () => {
         if (!action) {
-            Alert.alert("Action requise", "Veuillez choisir une action à effectuer sur les articles scannés.");
+            Alert.alert(t('batch_scan.action_required'), t('batch_scan.choose_action'));
             return;
         }
 
@@ -38,26 +40,26 @@ export default function BatchScanScreen() {
         try {
             if (action === 'replenish') {
                 const res = await replenishment.automate();
-                Alert.alert("Succès", `${res.created_count} bons de commande générés.`);
+                Alert.alert(t('common.success'), t('batch_scan.orders_generated', { count: res.created_count }));
                 router.back();
             } else if (action === 'inventory') {
                 const res = await productsApi.batchStockUpdate(scannedCodes, 1);
 
                 let message = res.message;
                 if (res.not_found_count && res.not_found_count > 0) {
-                    message += `\n\n${res.not_found_count} codes sont inconnus : ${res.not_found.join(', ')}`;
+                    message += `\n\n${t('batch_scan.unknown_codes', { count: res.not_found_count })} : ${res.not_found.join(', ')}`;
                 }
 
                 Alert.alert(
-                    (res.not_found_count && res.not_found_count > 0) ? "Résultat partiel" : "Succès",
+                    (res.not_found_count && res.not_found_count > 0) ? t('batch_scan.partial_result') : t('common.success'),
                     message,
                     [{ text: "OK", onPress: () => router.back() }]
                 );
             } else if (action === 'associate_rfid') {
-                Alert.alert("Info", "L'association RFID par lot nécessite de sélectionner un produit cible. Cette option sera disponible dans le menu 'Associer' du catalogue.");
+                Alert.alert(t('common.info'), t('batch_scan.rfid_bulk_info'));
             }
         } catch (error: any) {
-            Alert.alert("Erreur", error.message || "Une erreur est survenue.");
+            Alert.alert(t('common.error'), error.message || t('common.generic_error'));
         } finally {
             setLoading(false);
         }
@@ -68,7 +70,7 @@ export default function BatchScanScreen() {
             <BatchScanner
                 onComplete={handleScanComplete}
                 onCancel={() => router.back()}
-                title="Scan Rapide (Lot)"
+                title={t('batch_scan.title')}
             />
         );
     }
@@ -79,17 +81,17 @@ export default function BatchScanScreen() {
                 <TouchableOpacity onPress={() => setShowScanner(true)}>
                     <Ionicons name="camera-reverse-outline" size={24} color={colors.primary} />
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: colors.text }]}>Traitement du lot</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t('batch_scan.processing_title')}</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             <ScrollView style={styles.content}>
                 <View style={styles.scannedCountContainer}>
                     <Text style={[styles.scannedCount, { color: colors.primary }]}>{scannedCodes.length}</Text>
-                    <Text style={[styles.scannedLabel, { color: colors.text }]}>Articles identifiés</Text>
+                    <Text style={[styles.scannedLabel, { color: colors.text }]}>{t('batch_scan.items_identified')}</Text>
                 </View>
 
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Sélectionner une action</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('batch_scan.select_action')}</Text>
 
                 <TouchableOpacity
                     style={[styles.actionCard, action === 'inventory' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }]}
@@ -99,8 +101,8 @@ export default function BatchScanScreen() {
                         <Ionicons name="list-outline" size={24} color={colors.success} />
                     </View>
                     <View style={styles.actionInfo}>
-                        <Text style={[styles.actionTitle, { color: colors.text }]}>Inventaire rapide</Text>
-                        <Text style={styles.actionDesc}>Marquer ces articles comme présents en stock</Text>
+                        <Text style={[styles.actionTitle, { color: colors.text }]}>{t('batch_scan.quick_inventory')}</Text>
+                        <Text style={styles.actionDesc}>{t('batch_scan.quick_inventory_desc')}</Text>
                     </View>
                     {action === 'inventory' && <Ionicons name="checkmark-circle" size={24} color={colors.primary} />}
                 </TouchableOpacity>
@@ -113,8 +115,8 @@ export default function BatchScanScreen() {
                         <Ionicons name="refresh-outline" size={24} color={colors.warning} />
                     </View>
                     <View style={styles.actionInfo}>
-                        <Text style={[styles.actionTitle, { color: colors.text }]}>Réapprovisionnement auto</Text>
-                        <Text style={styles.actionDesc}>Générer des bons de commande pour les manquants</Text>
+                        <Text style={[styles.actionTitle, { color: colors.text }]}>{t('batch_scan.auto_replenish')}</Text>
+                        <Text style={styles.actionDesc}>{t('batch_scan.auto_replenish_desc')}</Text>
                     </View>
                     {action === 'replenish' && <Ionicons name="checkmark-circle" size={24} color={colors.primary} />}
                 </TouchableOpacity>
@@ -127,8 +129,8 @@ export default function BatchScanScreen() {
                         <Ionicons name="radio-outline" size={24} color={colors.info} />
                     </View>
                     <View style={styles.actionInfo}>
-                        <Text style={[styles.actionTitle, { color: colors.text }]}>Association RFID</Text>
-                        <Text style={styles.actionDesc}>Associer ces codes à des tags RFID</Text>
+                        <Text style={[styles.actionTitle, { color: colors.text }]}>{t('batch_scan.rfid_associate')}</Text>
+                        <Text style={styles.actionDesc}>{t('batch_scan.rfid_associate_desc')}</Text>
                     </View>
                     {action === 'associate_rfid' && <Ionicons name="checkmark-circle" size={24} color={colors.primary} />}
                 </TouchableOpacity>
@@ -144,7 +146,7 @@ export default function BatchScanScreen() {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.processBtnText}>Appliquer l'action</Text>
+                        <Text style={styles.processBtnText}>{t('batch_scan.apply_action')}</Text>
                     )}
                 </TouchableOpacity>
             </View>
