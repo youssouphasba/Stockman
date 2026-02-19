@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,15 +9,18 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import { ApiError } from '../../services/api';
+import { authApi, ApiError } from '../../services/api';
 
 import { useTranslation } from 'react-i18next';
+
+const RESEND_COOLDOWN = 60; // seconds
 
 export default function VerifyPhoneScreen() {
     const { t } = useTranslation();
@@ -25,7 +28,17 @@ export default function VerifyPhoneScreen() {
     const router = useRouter();
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [cooldown, setCooldown] = useState(0);
+
+    // Cooldown timer
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [cooldown]);
 
     async function handleVerify() {
         if (otp.length !== 6) {
@@ -34,6 +47,7 @@ export default function VerifyPhoneScreen() {
         }
 
         setError('');
+        setSuccess('');
         setLoading(true);
         try {
             await verifyPhone(otp);
@@ -44,6 +58,29 @@ export default function VerifyPhoneScreen() {
             setLoading(false);
         }
     }
+
+    const handleResend = useCallback(async () => {
+        if (cooldown > 0 || resending) return;
+        setResending(true);
+        setError('');
+        setSuccess('');
+        try {
+            const result = await authApi.resendOtp();
+            setSuccess(result.message);
+            // In dev mode, show the OTP fallback if WhatsApp failed
+            if (result.otp_fallback) {
+                Alert.alert(
+                    "Code de test (DEV)",
+                    `Votre code OTP : ${result.otp_fallback}\n\n(Visible uniquement en mode développement)`,
+                );
+            }
+            setCooldown(RESEND_COOLDOWN);
+        } catch (e) {
+            setError(e instanceof ApiError ? e.message : "Erreur lors du renvoi du code");
+        } finally {
+            setResending(false);
+        }
+    }, [cooldown, resending]);
 
     return (
         <LinearGradient colors={[Colors.bgDark, Colors.bgMid]} style={styles.gradient}>
@@ -70,6 +107,13 @@ export default function VerifyPhoneScreen() {
                             <View style={styles.errorBox}>
                                 <Ionicons name="alert-circle" size={18} color={Colors.danger} />
                                 <Text style={styles.errorText}>{error}</Text>
+                            </View>
+                        ) : null}
+
+                        {success ? (
+                            <View style={styles.successBox}>
+                                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+                                <Text style={styles.successText}>{success}</Text>
                             </View>
                         ) : null}
 
@@ -102,10 +146,20 @@ export default function VerifyPhoneScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.resendBtn}
-                            onPress={() => setError(t('auth.verifyPhone.resendTip'))}
+                            style={[styles.resendBtn, (cooldown > 0 || resending) && styles.buttonDisabled]}
+                            onPress={handleResend}
+                            disabled={cooldown > 0 || resending}
                         >
-                            <Text style={styles.resendText}>{t('auth.verifyPhone.notReceived')}</Text>
+                            {resending ? (
+                                <ActivityIndicator size="small" color={Colors.primaryLight} />
+                            ) : (
+                                <Text style={styles.resendText}>
+                                    {cooldown > 0
+                                        ? `${t('auth.verifyPhone.notReceived')} (${cooldown}s)`
+                                        : t('auth.verifyPhone.notReceived')
+                                    }
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -162,6 +216,20 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: Colors.danger,
+        fontSize: FontSize.sm,
+        flex: 1,
+    },
+    successBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+        borderRadius: BorderRadius.sm,
+        padding: Spacing.sm,
+        marginBottom: Spacing.md,
+        gap: Spacing.sm,
+    },
+    successText: {
+        color: Colors.success,
         fontSize: FontSize.sm,
         flex: 1,
     },

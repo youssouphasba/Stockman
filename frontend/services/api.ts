@@ -270,7 +270,11 @@ export const auth = {
     request<{ message: string }>('/auth/change-password', {
       method: 'POST',
       body: { old_password: oldPassword, new_password: newPassword }
-    })
+    }),
+  resendOtp: () =>
+    request<{ message: string; otp_fallback?: string }>('/auth/resend-otp', {
+      method: 'POST',
+    }),
 };
 
 export type ActivityLog = {

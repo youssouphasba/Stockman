@@ -3452,6 +3452,46 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
         )
         raise HTTPException(status_code=400, detail="Code de vérification incorrect")
 
+@api_router.post("/auth/resend-otp")
+@limiter.limit("2/minute")
+async def resend_otp(request: Request, current_user: User = Depends(require_auth)):
+    """Resend a new OTP via WhatsApp"""
+    user_doc = await db.users.find_one({"user_id": current_user.user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    if user_doc.get("is_phone_verified"):
+        raise HTTPException(status_code=400, detail="Téléphone déjà vérifié")
+    
+    phone = user_doc.get("phone")
+    if not phone:
+        raise HTTPException(status_code=400, detail="Aucun numéro de téléphone associé au compte")
+    
+    # Generate new OTP
+    otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
+    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {
+            "phone_otp": otp,
+            "phone_otp_expiry": otp_expiry,
+            "phone_otp_attempts": 0
+        }}
+    )
+    
+    # Send via WhatsApp
+    sent = False
+    try:
+        sent = await twilio_service.send_whatsapp_otp(phone, otp)
+    except Exception as e:
+        logger.error(f"Failed to send OTP via WhatsApp: {e}")
+    
+    if sent:
+        return {"message": "Nouveau code envoyé par WhatsApp"}
+    else:
+        return {"message": "Le code a été généré mais l'envoi WhatsApp a échoué. Contactez le support.", "otp_fallback": otp if not IS_PROD else None}
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def login(request: Request, user_data: UserLogin, response: Response):
