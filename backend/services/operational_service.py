@@ -1,12 +1,13 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
+from utils.i18n import i18n
 
 logger = logging.getLogger(__name__)
 
 class OperationalService:
     @staticmethod
-    async def calculate_abc_classes(db, user_id: str, store_id: str = None):
+    async def calculate_abc_classes(db, user_id: str, store_id: str = None, lang: str = "fr"):
         """
         Perform ABC Analysis on inventory based on last 30 days revenue.
         A-Items: Top 80% of revenue (Vital few)
@@ -39,11 +40,11 @@ class OperationalService:
             product_stats = await db.sales.aggregate(pipeline).to_list(None)
             
             if not product_stats:
-                return {"message": "Pas assez de données de vente pour l'analyse ABC."}
+                return {"message": i18n.t("abc.not_enough_data", lang)}
                 
             total_revenue = sum(p["revenue"] for p in product_stats)
             if total_revenue == 0:
-                return {"message": "Aucun revenu généré sur la période."}
+                return {"message": i18n.t("abc.no_revenue", lang)}
                 
             # 2. Assign Classes
             cumulative_revenue = 0

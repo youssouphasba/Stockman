@@ -2,7 +2,7 @@ import json
 import os
 
 def sync_locales(base_file, target_dir):
-    with open(base_file, 'r', encoding='utf-8') as f:
+    with open(base_file, 'r', encoding='utf-8-sig') as f:
         base_data = json.load(f)
 
     # Sort keys for consistency
@@ -17,7 +17,7 @@ def sync_locales(base_file, target_dir):
             target_path = os.path.join(target_dir, filename)
             print(f"Syncing {filename}...")
             
-            with open(target_path, 'r', encoding='utf-8') as f:
+            with open(target_path, 'r', encoding='utf-8-sig') as f:
                 target_data = json.load(f)
 
             synced_data = {}
@@ -42,13 +42,13 @@ def sync_locales(base_file, target_dir):
             # Sort top-level keys
             synced_data = dict(sorted(synced_data.items()))
 
-            with open(target_path, 'w', encoding='utf-8') as f:
+            with open(target_path, 'w', encoding='utf-8-sig') as f:
                 json.dump(synced_data, f, ensure_ascii=False, indent=2)
             
             print(f"  Done. Added {new_keys_count} keys.")
 
     # Also rewrite base file to ensure it's sorted and clean (removes duplicates too!)
-    with open(base_file, 'w', encoding='utf-8') as f:
+    with open(base_file, 'w', encoding='utf-8-sig') as f:
         json.dump(base_data, f, ensure_ascii=False, indent=2)
     print("Base file cleaned and sorted.")
 

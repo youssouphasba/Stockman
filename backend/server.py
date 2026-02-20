@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
+from utils.i18n import i18n
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import json
@@ -555,6 +556,7 @@ class User(UserBase):
     how_did_you_hear: Optional[str] = None
     is_phone_verified: bool = False
     country_code: Optional[str] = "SN" # Default to Senegal
+    language: str = "fr" # User preferred language
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -1138,7 +1140,7 @@ def require_permission(module: str, level: str = "read"):
 
 async def require_superadmin(user: User = Depends(require_auth)) -> User:
     if user.role != "superadmin":
-        raise HTTPException(status_code=403, detail="Accès réservé aux super-administrateurs")
+        raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
     return user
 
 @api_router.get("/public/leads")
@@ -1305,7 +1307,7 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     
     result = await db.users.delete_one({"user_id": sub_user_id, "parent_user_id": user.user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
     
     # Also delete credentials
     await db.credentials.delete_one({"user_id": sub_user_id})
@@ -1701,7 +1703,7 @@ async def admin_toggle_user(user_id: str):
     """Toggle user active/inactive status"""
     user_doc = await db.users.find_one({"user_id": user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
     
     new_status = not user_doc.get("is_active", True)
     await db.users.update_one(
@@ -1762,7 +1764,7 @@ async def run_abc_analysis(user: User = Depends(require_auth)):
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     
-    result = await OperationalService.calculate_abc_classes(db, owner_id, store_id)
+    result = await OperationalService.calculate_abc_classes(db, owner_id, store_id, lang=user.language)
     return result
 
 class BatchActionRequest(BaseModel):
@@ -1904,11 +1906,12 @@ LANGUAGE_NAMES = {
 
 def get_language_instruction(lang: str = "fr") -> str:
     """Return a prompt instruction telling Gemini which language to use."""
-    lang = (lang or "fr").lower().split("-")[0]  # normalize 'fr-FR' -> 'fr'
+    lang = (lang or "fr").lower().split("-")[0]
     name = LANGUAGE_NAMES.get(lang, lang)
+    persona = i18n.t("ai.persona_name", lang)
     if lang == "fr":
-        return "Réponds en français."
-    return f"IMPORTANT: You MUST respond in {name} ({lang}). All text output must be in {name}."
+        return f"Tu es {persona}. Réponds en français."
+    return f"IMPORTANT: You are {persona}. You MUST respond in {name} ({lang}). All text output must be in {name}."
 
 class AiPrompt(BaseModel):
     message: str
@@ -1974,7 +1977,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
     await check_ai_limit(user)
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée sur le serveur")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     await track_ai_usage(user.user_id)
     # Save User Message
@@ -1999,8 +2002,11 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
         
+        lang_code = (prompt.language or user.language or "fr").lower().split("-")[0]
+        lang_instr = get_language_instruction(lang_code)
+
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
-        ai_tools = AiTools(user_id=owner_id, store_id=store_id, currency=currency)
+        ai_tools = AiTools(user_id=owner_id, store_id=store_id, currency=currency, lang=lang_code)
         tools_list = [
             ai_tools.get_sales_stats, 
             ai_tools.get_product_info,
@@ -2008,32 +2014,30 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             ai_tools.get_seasonal_forecast,
             ai_tools.get_system_alerts
         ]
-
-        if user.role in ["admin", "superadmin"]:
-            role_context = "Tu es l'assistant personnel de l'ADMINISTRATEUR de Stockman. Tu as accès aux métriques globales. SI TU DÉTECTES UNE ALERTE CRITIQUE DANS L'APERÇU GÉNÉRAL (SECTION ALERTES) OU VIA TES OUTILS, MENTIONNE-LA IMMÉDIATEMENT DANS TON INTRODUCTION."
-        else:
-            role_context = "Tu es l'assistant intelligent expert de l'application Stockman pour les commerçants."
-
-        # Reduced data summary to save tokens, rely on tools for details
-        data_summary_short = await _get_ai_data_summary(user.user_id, store_id)
-        # Verify if summary is too long, maybe truncate? For now keep it as it's useful baseline.
         
-        lang_instr = get_language_instruction(prompt.language)
+        if user.role in ["admin", "superadmin"]:
+            role_context = i18n.t("ai.summary_role_admin", lang_code)
+            special_instr = i18n.t("ai.summary_instruction_admin", lang_code)
+        else:
+            role_context = i18n.t("ai.summary_role_merchant", lang_code)
+            special_instr = ""
+
+        summary_goal = i18n.t("ai.summary_goal", lang_code)
+        summary_tone = i18n.t("ai.summary_tone", lang_code)
+
         system_instruction = f"""
         {role_context}
-        Ton but est d'aider l'utilisateur à naviguer dans l'application ET à analyser son activité.
+        {summary_goal}
         
         TU DISPOSES D'OUTILS POUR ACCÉDER AUX DONNÉES PRÉCISES (Ventes, Stocks, Produits, Alertes Système).
         UTILISE-LES SI LA QUESTION PORTE SUR DES CHIFFRES OU SI TU DÉCOUVRES UN PROBLÈME.
         
-        SI L'UTILISATEUR EST ADMIN, COMMENCE TA PREMIÈRE RÉPONSE PAR UN BREF RÉSUMÉ DE LA SANTÉ DU SYSTÈME SI DES ALERTES SONT PRÉSENTES.
+        {special_instr}
         
         UTILISE LE CONTEXTE DOCUMENTAIRE CI-DESSOUS POUR RÉPONDRE AUX QUESTIONS TECHNIQUES.
         
-        Adopte un ton pédagogique, professionnel et chaleureux.
-        Tes réponses doivent être complètes et explicatives.
-        Lorsque tu présentes des chiffres ou des analyses, contextualise-les et propose des conseils d'amélioration si possible.
-
+        {summary_tone}
+        
         {lang_instr}
 
         --- CONTEXTE DOCUMENTAIRE (RAG) ---
@@ -2136,7 +2140,7 @@ async def ai_suggest_category(request: Request, data: dict = Body(...), user: Us
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     categories_list = [
         "Alimentation", "Hygiène & Beauté", "Maison & Entretien", "Bébé",
@@ -2203,7 +2207,7 @@ async def ai_generate_description(request: Request, data: dict = Body(...), user
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     cat_context = ""
     if category:
@@ -2229,7 +2233,7 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
         return {"description": description}
     except Exception as e:
         logger.error(f"AI generate-description error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible de générer la description")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.ai_generation_error", user.language))
 
 @api_router.get("/ai/daily-summary")
 @limiter.limit("10/minute")
@@ -2237,7 +2241,7 @@ async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depe
     """Generate a daily AI-powered business summary"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     try:
         owner_id = get_owner_id(user)
@@ -2265,7 +2269,7 @@ Sois direct, utilise des chiffres concrets. Pas de formules de politesse.
         return {"summary": response.text.strip()}
     except Exception as e:
         logger.error(f"AI daily-summary error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible de générer le résumé")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.ai_generation_error", user.language))
 
 async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None, lang: str = "fr") -> List[dict]:
     """Core logic for AI anomaly detection, returns list of anomaly objects"""
@@ -2434,7 +2438,7 @@ async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     try:
         suggestions = await get_replenishment_suggestions(user)
@@ -2480,7 +2484,7 @@ Sois concis et actionnable. Pas de liste, juste du texte fluide.
         }
     except Exception as e:
         logger.error(f"AI replenishment-advice error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible de générer les conseils")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.ai_generation_error", user.language))
 
 @api_router.post("/ai/suggest-price")
 @limiter.limit("20/minute")
@@ -2493,7 +2497,7 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     try:
         owner_id = get_owner_id(user)
@@ -2598,7 +2602,7 @@ Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)
         raise
     except Exception as e:
         logger.error(f"AI suggest-price error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible de suggérer un prix")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.ai_generation_error", user.language))
 
 @api_router.post("/ai/scan-invoice")
 @limiter.limit("10/minute")
@@ -2611,7 +2615,7 @@ async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User =
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     try:
         # Clean base64
@@ -2672,7 +2676,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Clé API Gemini non configurée")
+        raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
     try:
         if "," in audio_base64:
@@ -2686,15 +2690,16 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
             "data": audio_base64,
         }
 
-        lang_name = LANGUAGE_NAMES.get((lang or "fr").lower().split("-")[0], "français")
-        prompt = f"Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Réponds UNIQUEMENT avec la transcription, rien d'autre."
+        lang_code = (lang or "fr").lower().split("-")[0]
+        lang_name = LANGUAGE_NAMES.get(lang_code, "français")
+        prompt = i18n.t("ai.voice_to_text_prompt", lang_code, lang_name=lang_name)
 
         response = model.generate_content([prompt, audio_part])
         transcription = response.text.strip()
         return {"transcription": transcription}
     except Exception as e:
         logger.error(f"AI voice-to-text error: {e}")
-        raise HTTPException(status_code=500, detail="Impossible de transcrire l'audio")
+        raise HTTPException(status_code=500, detail=i18n.t("ai.voice_to_text_error", lang_code))
 
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
@@ -3425,7 +3430,7 @@ class VerifyPhoneRequest(BaseModel):
 async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user: User = Depends(require_auth)):
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
     
     # Security: check attempt limit
     attempts = user_doc.get("phone_otp_attempts", 0)
@@ -3458,7 +3463,7 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
     """Resend a new OTP via WhatsApp"""
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
     
     if user_doc.get("is_phone_verified"):
         raise HTTPException(status_code=400, detail="Téléphone déjà vérifié")
@@ -4065,7 +4070,7 @@ async def submit_inventory_result(
 ):
     task = await db.inventory_tasks.find_one({"task_id": task_id, "user_id": user.user_id})
     if not task:
-        raise HTTPException(status_code=404, detail="Tâche non trouvée")
+        raise HTTPException(status_code=404, detail=i18n.t("inventory.task_not_found", user.language))
         
     actual = update.actual_quantity
     expected = task["expected_quantity"]
@@ -4574,8 +4579,8 @@ async def get_expenses(
 async def delete_expense(expense_id: str, user: User = Depends(require_auth)):
     result = await db.expenses.delete_one({"expense_id": expense_id, "user_id": user.user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Charge non trouvée")
-    return {"message": "Charge supprimée"}
+        raise HTTPException(status_code=404, detail=i18n.t("accounting.expense_not_found", user.language))
+    return {"message": i18n.t("accounting.expense_deleted", user.language)}
 
 @api_router.get("/accounting/stats", response_model=AccountingStats)
 async def get_accounting_stats(
@@ -7115,10 +7120,11 @@ async def check_db():
 # ===================== AI TOOLS =====================
 
 class AiTools:
-    def __init__(self, user_id: str, store_id: Optional[str] = None, currency: str = "XOF"):
+    def __init__(self, user_id: str, store_id: Optional[str] = None, currency: str = "XOF", lang: str = "fr"):
         self.user_id = user_id
         self.store_id = store_id
         self.currency = currency
+        self.lang = lang
 
     async def get_sales_stats(self, period: str = "today", start_date: str = None, end_date: str = None):
         """
@@ -7152,7 +7158,7 @@ class AiTools:
                 elif start_date:
                     e_date = s_date + timedelta(days=1)
             except ValueError:
-                return "Format de date invalide. Utilisez YYYY-MM-DD."
+                return i18n.t("ai.tools.forecast.invalid_date", self.lang)
             
         initial_query = {"user_id": self.user_id, "created_at": {"$gte": s_date}}
         if e_date:
@@ -7192,15 +7198,16 @@ class AiTools:
             
         products = await db.products.find(query).limit(5).to_list(5)
         if not products:
-            return f"Aucun produit trouvé pour '{name}'."
+            return i18n.t("ai.tools.product_info.not_found", self.lang, name=name)
             
         info = []
         for p in products:
+            status = i18n.t("ai.tools.product_info.status_out", self.lang) if p.get("quantity", 0) <= 0 else i18n.t("ai.tools.product_info.status_in", self.lang)
             info.append({
                 "name": p.get("name"),
                 "stock": p.get("quantity"),
                 "price": p.get("selling_price"),
-                "status": "En rupture" if p.get("quantity", 0) <= 0 else "En stock"
+                "status": status
             })
         return info
 
@@ -7216,10 +7223,10 @@ class AiTools:
         
         alerts = []
         for p in low_stock:
-             alerts.append(f"{p.get('name')}: Stock={p.get('quantity')} (Min={p.get('min_stock', '?')})")
+             alerts.append(i18n.t("ai.tools.inventory_alerts.format", self.lang, name=p.get('name'), quantity=p.get('quantity'), min_stock=p.get('min_stock', '?')))
              
         if not alerts:
-            return "Aucune alerte de stock critique."
+            return i18n.t("ai.tools.inventory_alerts.empty", self.lang)
         return {"alerts": alerts, "count": len(alerts)}
     
     async def get_system_alerts(self):
@@ -7244,12 +7251,12 @@ class AiTools:
         
         alerts = []
         if failed_logins > 10:
-            alerts.append(f"CRITICAL: {failed_logins} échecs de connexion détectés en 24h. Risque de Brute-force.")
+            alerts.append(i18n.t("ai.tools.system_alerts.critical_login", self.lang, count=failed_logins))
         if open_tickets > 5:
-            alerts.append(f"ALERTE: Backlog support élevé ({open_tickets} tickets ouverts).")
+            alerts.append(i18n.t("ai.tools.system_alerts.support_backlog", self.lang, count=open_tickets))
             
         if not alerts:
-            return "Santé du système d'administration excellente. Aucune alerte critique."
+            return i18n.t("ai.tools.system_alerts.empty", self.lang)
         return {"system_alerts": alerts, "status": "ATTENTION"}
 
     async def get_data_summary(self):
@@ -7269,7 +7276,7 @@ class AiTools:
         product = await db.products.find_one(query)
         
         if not product:
-            return f"Produit '{product_name}' non trouvé pour l'analyse."
+            return i18n.t("ai.tools.forecast.not_found", self.lang, name=product_name)
             
         pid = product["product_id"]
         
@@ -9390,7 +9397,7 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         "subscription_provider": 1, "subscription_end": 1,
     })
     if not user_doc:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
 
     # Calculate remaining days
     remaining_days = 0

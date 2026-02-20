@@ -718,8 +718,8 @@ export default function DashboardScreen() {
                 <View key={item.product_id} style={styles.reorderCard}>
                   <View style={[styles.reorderStatus, { backgroundColor: item.priority === 'critical' ? colors.danger : colors.warning }]} />
                   <Text style={styles.reorderName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.reorderMeta}>Stock: {item.current_quantity} (Seuil: {item.reorder_point})</Text>
-                  <Text style={styles.reorderSuggest}>Suggéré: +{item.suggested_quantity}</Text>
+                  <Text style={styles.reorderMeta}>{t('dashboard.reorder_stock_meta', { current: item.current_quantity, threshold: item.reorder_point })}</Text>
+                  <Text style={styles.reorderSuggest}>{t('dashboard.reorder_suggested', { qty: item.suggested_quantity })}</Text>
                   <TouchableOpacity
                     style={styles.orderButton}
                     onPress={() => router.push('/orders')}
@@ -747,7 +747,7 @@ export default function DashboardScreen() {
                 <View key={task.task_id} style={styles.inventoryItem}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.inventoryProductName}>{task.product_name}</Text>
-                    <Text style={styles.inventoryMeta}>Attendu: {task.expected_quantity}</Text>
+                    <Text style={styles.inventoryMeta}>{t('dashboard.expected_qty', { qty: task.expected_quantity })}</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.countButton}

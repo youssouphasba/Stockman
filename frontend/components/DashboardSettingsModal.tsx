@@ -10,6 +10,7 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { UserSettings } from '../services/api';
 
@@ -22,6 +23,7 @@ interface Props {
 
 export default function DashboardSettingsModal({ visible, onClose, settings, onUpdate }: Props) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
 
     const layout = settings?.dashboard_layout || {
         show_kpi: true,
@@ -47,19 +49,19 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
     };
 
     const widgets = [
-        { key: 'show_kpi', label: 'KPIs (CA, Ventes, etc.)', icon: 'stats-chart-outline' },
-        { key: 'show_profitability', label: 'Rentabilité par catégorie', icon: 'cash-outline' },
-        { key: 'show_stock_status', label: 'Statut des stocks', icon: 'cube-outline' },
-        { key: 'show_smart_reminders', label: 'Rappels intelligents', icon: 'bulb-outline' },
-        { key: 'show_forecast', label: 'Prévisions de ventes', icon: 'trending-up-outline' },
-        { key: 'show_recent_alerts', label: 'Alertes récentes', icon: 'notifications-outline' },
-        { key: 'show_recent_sales', label: 'Dernières ventes', icon: 'receipt-outline' },
-        { key: 'show_stock_chart', label: 'Évolution valeur stock', icon: 'analytics-outline' },
-        { key: 'show_category_chart', label: 'Répartition par catégorie', icon: 'pie-chart-outline' },
-        { key: 'show_abc_analysis', label: 'Analyse ABC', icon: 'list-outline' },
-        { key: 'show_reorder', label: 'Réapprovisionnement', icon: 'refresh-outline' },
-        { key: 'show_inventory_tasks', label: 'Tâches inventaire', icon: 'checkbox-outline' },
-        { key: 'show_expiry_alerts', label: 'Alertes péremption', icon: 'time-outline' },
+        { key: 'show_kpi', labelKey: 'dashboard.widget_kpi', icon: 'stats-chart-outline' },
+        { key: 'show_profitability', labelKey: 'dashboard.widget_profitability', icon: 'cash-outline' },
+        { key: 'show_stock_status', labelKey: 'dashboard.widget_stock_status', icon: 'cube-outline' },
+        { key: 'show_smart_reminders', labelKey: 'dashboard.widget_smart_reminders', icon: 'bulb-outline' },
+        { key: 'show_forecast', labelKey: 'dashboard.widget_forecast', icon: 'trending-up-outline' },
+        { key: 'show_recent_alerts', labelKey: 'dashboard.widget_recent_alerts', icon: 'notifications-outline' },
+        { key: 'show_recent_sales', labelKey: 'dashboard.widget_recent_sales', icon: 'receipt-outline' },
+        { key: 'show_stock_chart', labelKey: 'dashboard.widget_stock_chart', icon: 'analytics-outline' },
+        { key: 'show_category_chart', labelKey: 'dashboard.widget_category_chart', icon: 'pie-chart-outline' },
+        { key: 'show_abc_analysis', labelKey: 'dashboard.widget_abc_analysis', icon: 'list-outline' },
+        { key: 'show_reorder', labelKey: 'dashboard.widget_reorder', icon: 'refresh-outline' },
+        { key: 'show_inventory_tasks', labelKey: 'dashboard.widget_inventory_tasks', icon: 'checkbox-outline' },
+        { key: 'show_expiry_alerts', labelKey: 'dashboard.widget_expiry_alerts', icon: 'time-outline' },
     ];
 
     return (
@@ -72,14 +74,14 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
             <View style={styles.centeredView}>
                 <View style={[styles.modalView, { backgroundColor: colors.background }]}>
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>Personnaliser le Dashboard</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.settings_title')}</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
 
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Activez ou désactivez les éléments que vous souhaitez voir sur votre écran d'accueil.
+                        {t('dashboard.settings_subtitle')}
                     </Text>
 
                     <ScrollView style={styles.scrollView}>
@@ -87,7 +89,7 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
                             <View key={item.key} style={[styles.item, { borderBottomColor: colors.border }]}>
                                 <View style={styles.itemLeft}>
                                     <Ionicons name={item.icon as any} size={22} color={colors.primary} style={styles.icon} />
-                                    <Text style={[styles.itemLabel, { color: colors.text }]}>{item.label}</Text>
+                                    <Text style={[styles.itemLabel, { color: colors.text }]}>{t(item.labelKey)}</Text>
                                 </View>
                                 <Switch
                                     trackColor={{ false: '#767577', true: colors.primaryLight }}
@@ -104,7 +106,7 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
                         style={[styles.saveButton, { backgroundColor: colors.primary }]}
                         onPress={onClose}
                     >
-                        <Text style={styles.saveButtonText}>Terminer</Text>
+                        <Text style={styles.saveButtonText}>{t('dashboard.settings_done')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
