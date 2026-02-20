@@ -2026,6 +2026,8 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         summary_goal = i18n.t("ai.summary_goal", lang_code)
         summary_tone = i18n.t("ai.summary_tone", lang_code)
 
+        data_summary = await _get_ai_data_summary(owner_id, store_id)
+
         system_instruction = f"""
         {role_context}
         {summary_goal}
@@ -2045,7 +2047,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         {context_docs}
 
         --- APERÇU GÉNÉRAL ---
-        {data_summary_short}
+        {data_summary}
         
         Date actuelle: {datetime.now(timezone.utc).strftime("%A %d %B %Y")}
         """
