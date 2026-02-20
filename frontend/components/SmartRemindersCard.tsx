@@ -146,7 +146,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
               <Ionicons name={(reminder.icon || 'alert-circle-outline') as any} size={18} color={sevColor} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.reminderTitle, { color: colors.text }]}>{reminder.title}</Text>
+              <Text style={[styles.reminderTitle, { color: colors.text }]}>{t(reminder.title)}</Text>
               <Text style={[styles.reminderMessage, { color: colors.textSecondary }]} numberOfLines={2}>
                 {reminder.message}
               </Text>

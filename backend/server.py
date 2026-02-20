@@ -4453,7 +4453,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
             product_id=si.product_id,
             type="out",
             quantity=si.quantity,
-            reason=f"Vente POS"
+            reason="stock.reasons.pos_sale"
         )
         
         # Actually call the logic of create_stock_movement but avoid re-auth check
@@ -4891,7 +4891,7 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     store_id=effective_store_id,
                     product_id=product.product_id,
                     type="low_stock",
-                    title="Stock faible",
+                    title="reminders.low_stock_label",
                     message=f"{product.name}: {product.quantity} {product.unit}(s) restant(s)",
                     severity="warning"
                 )
@@ -4984,7 +4984,7 @@ async def check_slow_moving(user_id: str):
                     user_id=user_id,
                     product_id=product["product_id"],
                     type="slow_moving",
-                    title="Produit dormant",
+                    title="reminders.dormant_products_label",
                     message=f"{product['name']} n'a eu aucune sortie depuis 30 jours",
                     severity="info"
                 )
@@ -6920,7 +6920,7 @@ async def check_late_deliveries_internal(user_id: str):
             alert = Alert(
                 user_id=user_id,
                 type="late_delivery",
-                title="Livraison en retard",
+                title="reminders.late_deliveries_label",
                 message=f"Commande {order['order_id']} ({supplier_name}) aurait dû être livrée le {str(order['expected_delivery'])[:10]}",
                 severity="warning"
             )
@@ -8918,7 +8918,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
             reminders.append(SmartReminder(
                 category="stock",
                 type="dormant_product",
-                title="Produit dormant",
+                title="reminders.dormant_products_label",
                 message=f"'{product['name']}' — {product['quantity']} en stock, aucune vente depuis {dorm_days}j. Valeur immobilisée: {int(stock_value):,} F",
                 severity="warning",
                 icon="moon-outline",
@@ -9000,7 +9000,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 reminders.append(SmartReminder(
                     category="orders",
                     type="replenishment",
-                    title="Réapprovisionnement suggéré",
+                    title="reminders.replenishment_label",
                     message=f"'{product['name']}' — stock {product['quantity']}/{product['min_stock']} (seuil min). Aucune commande en cours.",
                     severity="warning",
                     icon="cart-outline",

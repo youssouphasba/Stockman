@@ -566,7 +566,7 @@ export default function DashboardScreen() {
                   }
                 />
                 <View style={styles.alertInfo}>
-                  <Text style={styles.alertTitle}>{alert.title}</Text>
+                  <Text style={styles.alertTitle}>{t(alert.title)}</Text>
                   <Text style={styles.alertMessage}>{alert.message}</Text>
                 </View>
               </View>
@@ -903,7 +903,7 @@ export default function DashboardScreen() {
                           <Text style={styles.movementQty}>
                             {mov.type === 'in' ? '+' : '-'}{mov.quantity} ({mov.previous_quantity} → {mov.new_quantity})
                           </Text>
-                          {mov.reason ? <Text style={styles.movementReason}>{mov.reason}</Text> : null}
+                          {mov.reason ? <Text style={styles.movementReason}>{t(mov.reason)}</Text> : null}
                           <Text style={styles.movementDate}>{formatDate(mov.created_at)}</Text>
                         </View>
                       </View>
