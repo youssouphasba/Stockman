@@ -1,58 +1,58 @@
 {
     "nav": {
         "features": "Xarala yi",
-        "resources": "Ressources",
+        "resources": "Lireul",
         "blog": "Blog",
         "home": "Connexion",
-        "login": "Ubbi sa sët",
-        "free_trial": "Essai Gratuit"
+        "login": "connectel fi",
+        "free_trial": "Essayé ko"
     },
     "hero": {
         "title_start": "Saytul",
-        "title_end": "ni njiit",
-        "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
-        "cta": "Démarrer maintenant"
+        "title_end": "Sa Bitik",
+        "subtitle": "Lii mo bakh ci sa bitik bi. Do amati benneu thiono pour kham linga am ci sa bitik, gaaw na yomb na.",
+        "cta": "Tambalil leegui"
     },
     "stats": {
-        "shops": "Commerces équipés",
+        "shops": "Bitik am negn ko",
         "transactions": "Njaay ci weer bi",
-        "satisfaction": "Clients satisfaits",
+        "satisfaction": "Gni ci am contentement",
         "support": "Ndimal 24/7"
     },
     "features": {
-        "title": "Vos outils quotidiens",
+        "title": "Lii mo nekk ci biir",
         "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
         "dashboard": {
-            "title": "Accueil",
-            "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
+            "title": "Lepp li khew si bitik bi",
+            "desc": "Fii ngay guissé lou bari li khew si bitik bi. Sou amé probleme di ngako kham fii ak you baré"
         },
         "products": {
             "title": "Produits",
-            "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
+            "desc": "Fii nga toppato wé sa produits yi, meune nga yokk ak wagni ak khol lepp li fi khew. ."
         },
         "pos": {
             "title": "Caisse",
-            "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
+            "desc": "Fii meune nga fi djay. Dangay djay produit bi rek mou wagnékou ci stock bi ci sass yi"
         },
         "suppliers": {
             "title": "Fournisseurs",
-            "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
+            "desc": "Fii ngay ngay guiss say fournisseurs ak yénéne fournisseur, comme ça say produits dou meuss diekh. Meune nga commander fi wala nga message lene"
         },
         "orders": {
             "title": "Commandes",
-            "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
+            "desc": "Fii ngay gueusto commandes yi nga def ci fournisseurs yi, li nga djot dey yokk ci stock bi ci sass yi."
         },
         "accounting": {
             "title": "Comptabilité",
-            "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
+            "desc": "Fii nga khamé niata nga djay, niata nga dépensé ak li nga perte,manam dinga kham ndakh bitik bi dokh na am deet. Mom moy calculé lepp nga nopalou."
         },
         "clients": {
             "title": "Clients",
-            "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
+            "desc": "Fii nga am sa clients yeupp, Meune nga kham li niou djeunde, meune nga lene sakh message whatssap pour présenté lene say prouits you bess."
         },
         "settings": {
             "title": "Réglages",
-            "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
+            "desc": "Fii meune nga fii deffar lou bari. Ni nga beugue kham fii ngakey réglé."
         }
     },
     "showcase": {
