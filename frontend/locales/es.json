@@ -340,6 +340,13 @@
     "unread": "no leída(s)"
   },
   "auth": {
+    "errors": {
+      "biometric_failed": "Autenticación biométrica fallida.",
+      "invalid_code": "Código de verificación inválido.",
+      "login_failed": "Error al iniciar sesión.",
+      "register_failed": "Error al crear la cuenta.",
+      "user_exists": "Este usuario ya existe."
+    },
     "login": {
       "title": "Stock Manager",
       "subtitle": "Inicie sesión para continuar",
@@ -410,13 +417,6 @@
       "errorCode": "Por favor, introduzca el código de 6 dígitos",
       "errorIncorrect": "Código incorrecto o expirado",
       "resendTip": "Función de reenvío disponible pronto"
-    },
-    "errors": {
-      "biometric_failed": "Autenticación biométrica fallida.",
-      "invalid_code": "Código de verificación inválido.",
-      "login_failed": "Error al iniciar sesión.",
-      "register_failed": "Error al crear la cuenta.",
-      "user_exists": "Este usuario ya existe."
     }
   },
   "batch_scan": {
@@ -499,12 +499,14 @@
   },
   "common": {
     "add": "Añadir",
+    "add_product": "Añadir producto",
     "all": "Todos",
     "back": "Atrás",
     "batch": "Lote",
     "batch_number": "Número de lote",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
+    "confirm_reception": "Confirmar recepción",
     "count_warning": "Advertencia de entrada",
     "currency_default": "FCFA",
     "currency_short": "F",
@@ -513,6 +515,11 @@
     "description": "Descripción",
     "edit": "Editar",
     "error": "Error",
+    "errors": {
+      "loading": "Error al cargar los datos.",
+      "saving": "Error al guardar los cambios.",
+      "deleting": "Error al eliminar el elemento."
+    },
     "export": "Exportar",
     "filter": "Filtrar",
     "generate": "Generar",
@@ -559,14 +566,7 @@
     "weeks_ago": "hace {{count}} semanas",
     "years_ago": "hace {{count}} años",
     "yes": "Sí",
-    "yesterday": "Ayer",
-    "errors": {
-      "loading": "Error al cargar los datos.",
-      "saving": "Error al guardar los cambios.",
-      "deleting": "Error al eliminar el elemento."
-    },
-    "add_product": "Añadir producto",
-    "confirm_reception": "Confirmar recepción"
+    "yesterday": "Ayer"
   },
   "crm": {
     "active_30d": "Activos (30 días)",
@@ -824,15 +824,6 @@
   },
   "errors": {
     "ai_generation_error": "Error en la generación de la IA. Inténtelo de nuevo.",
-    "expense_deleted": "Charge supprimée",
-    "expense_not_found": "Charge non trouvée",
-    "forbidden": "Accès refusé",
-    "gemini_api_missing": "Clé API Gemini non configurée",
-    "product_not_found": "Producto no encontrado.",
-    "server_error": "Error del servidor (500).",
-    "task_not_found": "Tâche non trouvée",
-    "unauthorized": "No autorizado.",
-    "user_not_found": "Usuario no encontrado.",
     "ai_not_configured": "La IA no está configurada correctamente.",
     "analysis_failed": "El análisis ha fallado.",
     "auth_required": "Se requiere autenticación.",
@@ -840,6 +831,10 @@
     "cannot_delete_product_with_stock": "No se puede eliminar un producto con stock activo.",
     "connection_failed": "Error de conexión. Compruebe su red.",
     "database_error": "Error interno de la base de datos.",
+    "expense_deleted": "Charge supprimée",
+    "expense_not_found": "Charge non trouvée",
+    "forbidden": "Accès refusé",
+    "gemini_api_missing": "Clé API Gemini non configurée",
     "generic": "Ha ocurrido un error inesperado.",
     "invalid_amount": "Importe inválido.",
     "invalid_credentials": "Credenciales inválidas.",
@@ -856,13 +851,18 @@
     "password_too_short": "La contraseña es demasiado corta.",
     "payment_failed": "El pago ha fallado.",
     "product_already_exists": "Este producto ya existe en el catálogo.",
+    "product_not_found": "Producto no encontrado.",
     "required_field": "Este campo es obligatorio.",
+    "server_error": "Error del servidor (500).",
     "session_expired": "Su sesión ha expirado.",
     "stock_empty": "Stock agotado.",
     "supplier_not_found": "Proveedor no encontrado.",
+    "task_not_found": "Tâche non trouvée",
+    "unauthorized": "No autorizado.",
     "unknown_error": "Error desconocido.",
     "update_failed": "La actualización ha fallado.",
     "upload_failed": "La subida ha fallado.",
+    "user_not_found": "Usuario no encontrado.",
     "validation_failed": "La validación ha fallado."
   },
   "help": {
@@ -1285,6 +1285,7 @@
     "price_range": "Rango de precios",
     "products": "Productos",
     "reset": "Reiniciar",
+    "search_placeholder": "Search for products or suppliers...",
     "search_product": "Buscar un producto...",
     "search_supplier": "Buscar un proveedor...",
     "send_invitation": "Enviar invitación",
@@ -1505,6 +1506,7 @@
   "pos": {
     "anonymous_customer": "Sinuario",
     "cart": "Carrito",
+    "cart_empty": "El carrito está vacío",
     "cart_title": "Carrito",
     "cash": "Efectivo",
     "checkout": "Pagar",
@@ -1540,6 +1542,7 @@
     "out_of_stock_title": "Stock agotado",
     "payment_cash": "Efectivo",
     "payment_credit": "A crédito",
+    "payment_method": "Método de pago",
     "payment_mobile": "Móvil",
     "product_not_found": "Producto no encontrado",
     "sale_error": "No se pudo registrar la venta",
@@ -1554,9 +1557,7 @@
     "total": "Total",
     "unknown": "Desconocido",
     "unknown_product_msg": "No se encontró ningún producto con el SKU: {{sku}}",
-    "unknown_product_title": "Producto desconocido",
-    "cart_empty": "El carrito está vacío",
-    "payment_method": "Método de pago"
+    "unknown_product_title": "Producto desconocido"
   },
   "premium": {
     "features": {
@@ -1754,34 +1755,27 @@
     "variants": "Variantes"
   },
   "reminders": {
-    "birthdays_desc": "Cumpleaños del cliente hoy o próximamente",
-    "birthdays_label": "Anniversaires clients",
-    "client_reactivation_desc": "En espera desde hace {{count}} días",
-    "client_reactivation_label": "Réactivation clients",
-    "debt_recovery": "Recuperación de deuda",
-    "debt_recovery_desc": "Gestione recordatorios automáticos de deudas según el historial.",
-    "debt_recovery_label": "Debt Recovery",
-    "dormant_products_desc": "Sin ventas desde hace {{count}} días",
-    "dormant_products_label": "Producto inactivo",
-    "expense_spike_desc": "Alert if expenses increase abnormally",
-    "expense_spike_label": "Hausse des dépenses",
-    "inventory_check_desc": "Realizar en los últimos días del mes",
-    "inventory_check_label": "Vérification inventaire",
-    "late_deliveries_desc": "Pedidos con más de {{count}} días de retraso",
-    "late_deliveries_label": "Entrega atrasada",
-    "low_stock_label": "Stock bajo",
-    "monthly_report_desc": "Availability of the monthly accounting summary",
-    "monthly_report_label": "Monthly Report",
-    "pending_invitations_desc": "Enviado hace {{count}} días",
-    "pending_invitations_label": "Pending Invitations",
-    "replenishment_desc": "Purchase suggestions based on out-of-stock items",
-    "replenishment_label": "Sugerencia de reabastecimiento",
-    "stock_alerts": "Critical alerts for low stock or expired products.",
-    "title": "Recordatorios inteligentes",
-    "unit_days": "days",
-    "low_stock_desc": "Artículos por debajo del umbral mínimo",
-    "debt_followup_desc": "Deuda pendiente desde hace {{count}} días",
-    "last_reorder_desc": "Último pedido hace {{count}} días"
+    "inventory_check_label": "Verificación de inventario",
+    "inventory_check_desc": "Alerta si no hay inventario desde hace X días",
+    "dormant_products_label": "Productos inactivos",
+    "dormant_products_desc": "Productos sin ventas desde hace X días",
+    "late_deliveries_label": "Entregas tardías",
+    "late_deliveries_desc": "Crítico después de X días de retraso",
+    "replenishment_label": "Reposición",
+    "replenishment_desc": "Productos por debajo del stock mínimo",
+    "pending_invitations_label": "Invitaciones pendientes",
+    "pending_invitations_desc": "Pendiente desde hace X días",
+    "debt_recovery_label": "Recuperación de deudas",
+    "debt_recovery_desc": "Recordatorios de deudas pendientes",
+    "client_reactivation_label": "Reactivación de clientes",
+    "client_reactivation_desc": "Clientes fieles inactivos desde hace X días",
+    "birthdays_label": "Cumpleaños",
+    "birthdays_desc": "Notificación de próximos cumpleaños",
+    "monthly_report_label": "Informe mensual",
+    "monthly_report_desc": "Generar resumen de rendimiento",
+    "expense_spike_label": "Pico de gastos",
+    "expense_spike_desc": "Alerta si los gastos aumentan un X%",
+    "unit_days": "días"
   },
   "settings": {
     "about": "Acerca de",
@@ -1860,22 +1854,22 @@
     "team": "Gestión de Equipo",
     "team_title": "Gestión de Equipo",
     "terms": "Términos y Condiciones (CGU)",
+    "theme": "Tema",
+    "title": "Ajustes",
     "users_permissions": "Usuarios y Permisos",
     "users_permissions_desc": "Gestione los accesos de sus empleados",
-    "version": "Versión",
-    "title": "Ajustes",
-    "theme": "Tema"
+    "version": "Versión"
   },
   "stock": {
+    "inventory": "Inventario",
+    "movements": "Movimientos",
     "reasons": {
       "pos_sale": "Venta POS",
       "inventory_adjustment": "Ajuste de inventario",
       "supplier_reception": "Recepción de proveedor",
       "loss_damage": "Loss or Damage"
     },
-    "title": "Gestión de Stock",
-    "inventory": "Inventario",
-    "movements": "Movimientos"
+    "title": "Gestión de Stock"
   },
   "store_selector": {
     "category_placeholder": "Filtrar por categoría...",
@@ -1921,7 +1915,19 @@
       "consultation": "Solo consulta",
       "full_management": "Gestión completa",
       "email_24h": "Email (24h)",
-      "whatsapp_2h": "WhatsApp prioritario (2h)"
+      "whatsapp_2h": "WhatsApp prioritario (2h)",
+      "products_desc": "Gérez votre catalogue complet : ajout, modification, code-barres, photos, catégories et suivi des prix d'achat/vente.",
+      "stores_desc": "Gérez un ou plusieurs magasins avec stocks indépendants et suivi séparé des performances de chaque emplacement.",
+      "users_desc": "Ajoutez des collaborateurs (vendeurs, gérants) avec des rôles et permissions personnalisés pour chaque membre de l'équipe.",
+      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (espèces, Mobile Money, carte), receipts numériques et gestion des ventes à crédit.",
+      "pdf_receipts_desc": "Générez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonnées.",
+      "reports_desc": "Tableaux de bord détaillés : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
+      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de réapprovisionnement, analyse des ventes, prévisions de stock et conseils de gestion.",
+      "suppliers_orders_desc": "Carnet de fournisseurs complet, création de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des échanges.",
+      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos données (produits, ventes, clients) en un clic.",
+      "crm_loyalty_desc": "Base clients avec historique d'achats, système de points de fidélité, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
+      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
+      "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman."
     },
     "free_trial": "Prueba gratuita",
     "iap_not_available": "Las compras in-app no están disponibles. Usa Mobile Money.",
@@ -1956,12 +1962,21 @@
     "dashboard": "Panel del Proveedor",
     "delivery_zones": "Zonas de entrega",
     "min_order": "Pedido mín.",
+    "no_orders": "No orders found",
+    "order_date": "Order Date",
+    "order_details": "Order Details",
     "order_id": "Código de pedido",
+    "order_items": "Items",
+    "order_status": "Status",
+    "order_summary": "Summary",
+    "order_total": "Total",
     "orders": "Pedidos Recibidos",
+    "orders_history": "Order History",
     "pending_orders": "Pedidos Pendientes",
     "refuse": "Rechazar",
     "revenue_month": "Facturación del mes",
     "reviews": "Opiniones de Clientes",
+    "search_orders": "Search orders...",
     "ship": "Enviar",
     "top_products": "Top Productos",
     "unavailable": "No disponible"
@@ -1990,6 +2005,8 @@
     "commercial_profile": "Profil commercial",
     "company_name_label": "Last Namebre de la empresa *",
     "company_name_ph": "Last Namebre de la empresa",
+    "contact_email": "Contact Email",
+    "contact_phone": "Contact Phone",
     "create_profile": "Crear mi perfil",
     "days": "days",
     "description_label": "Descripción",
@@ -2209,6 +2226,7 @@
     "delete_user_confirm": "¿Realmente desea eliminar este usuario?",
     "delete_user_title": "Eliminar usuario",
     "edit_access_title": "FIXME",
+    "edit_btn": "Editar",
     "edit_user_title": "Editar usuario",
     "email_label": "Correo electrónico",
     "empty_state_desc": "Añada sus empleados para darles acceso limitado.",
@@ -2244,22 +2262,6 @@
     "whatsapp_invite_msg": "Hola {{name}}! Aquí tienes tus accesos para la app Stockman:\n📧 Email: {{email}}\n🔑 Contraseña: {{password}}\nPuedes acceder aquí: {{url}}",
     "whatsapp_invite_prompt": "¿Quieres enviar los accesos por WhatsApp?",
     "whatsapp_invite_send": "Send",
-    "whatsapp_not_installed": "WhatsApp no está instalado en este dispositivo.",
-    "edit_btn": "Editar"
-  },
-  "validation": {
-    "email": "Introduzca un correo electrónico válido.",
-    "email_invalid": "Formato de correo electrónico inválido.",
-    "max_length": "Máximo {{count}} caracteres.",
-    "min_length": "Mínimo {{count}} caracteres.",
-    "number": "Debe ser un número.",
-    "positive_number": "Debe ser un número positivo.",
-    "required": "Este campo es obligatorio.",
-    "required_field": "Campo obligatorio.",
-    "password_mismatch": "Las contraseñas no coinciden.",
-    "phone_invalid": "Número de teléfono inválido.",
-    "price_required": "El precio es obligatorio.",
-    "quantity_required": "La cantidad es obligatoria.",
-    "username_required": "El Last Namebre de usuario es obligatorio."
+    "whatsapp_not_installed": "WhatsApp no está instalado en este dispositivo."
   }
 }

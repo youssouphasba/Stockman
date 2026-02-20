@@ -1230,6 +1230,7 @@
     "price_range": "Njeeri",
     "products": "Gollé ɗé",
     "reset": "Faraat",
+    "search_placeholder": "Search for products or suppliers...",
     "search_product": "Yiylo huunde...",
     "search_supplier": "Yiylo jeeyoowo...",
     "send_invitation": "Envoyer invitation",
@@ -1539,6 +1540,15 @@
           "Kampaaɲ marketing WhatsApp ndeenɗineeɗe",
           "Saytu bortaaje e crédit njuɓɓuɗi"
         ]
+      },
+      "reports": {
+        "title": "Analysis & Reports",
+        "desc": "Visualize your business performance with detailed charts.",
+        "benefits": [
+          "Unlimited PDF/CSV export",
+          "Full sales history",
+          "Advanced profitability analysis"
+        ]
       }
     },
     "pricing_hint": "{{price}} {{currency}} {{period}}",
@@ -1847,7 +1857,19 @@
       "consultation": "Ɓeydagol tan",
       "full_management": "Saytu timmuɗo",
       "email_24h": "Email (24 waktu)",
-      "whatsapp_2h": "WhatsApp ɓenndaango (2 waktu)"
+      "whatsapp_2h": "WhatsApp ɓenndaango (2 waktu)",
+      "products_desc": "Gérez votre catalogue complet : ajout, modification, code-barres, photos, catégories et suivi des prix d'achat/vente.",
+      "stores_desc": "Gérez un ou plusieurs magasins avec stocks indépendants et suivi séparé des performances de chaque emplacement.",
+      "users_desc": "Ajoutez des collaborateurs (vendeurs, gérants) avec des rôles et permissions personnalisés pour chaque membre de l'équipe.",
+      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (espèces, Mobile Money, carte), receipts numériques et gestion des ventes à crédit.",
+      "pdf_receipts_desc": "Générez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonnées.",
+      "reports_desc": "Tableaux de bord détaillés : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
+      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de réapprovisionnement, analyse des ventes, prévisions de stock et conseils de gestion.",
+      "suppliers_orders_desc": "Carnet de fournisseurs complet, création de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des échanges.",
+      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos données (produits, ventes, clients) en un clic.",
+      "crm_loyalty_desc": "Base clients avec historique d'achats, système de points de fidélité, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
+      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
+      "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman."
     },
     "free_trial": "Eeltugol alaa jaango",
     "iap_not_available": "Soode e nder jaaynde ɗee heɓaani. Huutoro Mobile Money.",
@@ -1882,12 +1904,21 @@
     "dashboard": "Supplier Dashboard",
     "delivery_zones": "Delivery Zones",
     "min_order": "Min Order",
+    "no_orders": "No orders found",
+    "order_date": "Order Date",
+    "order_details": "Order Details",
     "order_id": "Order ID",
+    "order_items": "Items",
+    "order_status": "Status",
+    "order_summary": "Summary",
+    "order_total": "Total",
     "orders": "Orders Received",
+    "orders_history": "Order History",
     "pending_orders": "Pending Orders",
     "refuse": "Refuse",
     "revenue_month": "Revenue this month",
     "reviews": "Customer Reviews",
+    "search_orders": "Search orders...",
     "ship": "Ship",
     "top_products": "Top Products",
     "unavailable": "Unavailable"
@@ -1916,6 +1947,8 @@
     "commercial_profile": "Profil commercial",
     "company_name_label": "Company Name *",
     "company_name_ph": "Company Name",
+    "contact_email": "Contact Email",
+    "contact_phone": "Contact Phone",
     "create_profile": "Create Profile",
     "days": "days",
     "description_label": "Description",

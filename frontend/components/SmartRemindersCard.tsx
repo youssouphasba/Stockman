@@ -86,7 +86,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="notifications-outline" size={20} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.smart_reminders') || 'Rappels intelligents'}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.smart_reminders') || 'Smart Reminders'}</Text>
           <View style={[styles.totalBadge, { backgroundColor: colors.primary + '20' }]}>
             <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '800' }}>{visibleReminders.length}</Text>
           </View>

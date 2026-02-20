@@ -337,7 +337,20 @@
   "auth": {
     "login": {
       "errorFillFields": "Si prega di compilare tutti i campi",
-      "errorLogin": "Errore di connessione"
+      "errorLogin": "Errore di connessione",
+      "title": "Stock Manager",
+      "subtitle": "Log in to continue",
+      "email": "Email",
+      "password": "Password",
+      "emailPlaceholder": "your@email.com",
+      "passwordPlaceholder": "Your password",
+      "rememberMe": "Remember me",
+      "signIn": "Sign In",
+      "biometricLogin": "Biometric Login",
+      "biometricError": "Biometric login error",
+      "biometricNoCreds": "No credentials saved for biometrics",
+      "noAccount": "No account yet?",
+      "signUp": "Sign Up"
     },
     "logout_btn": "Log out",
     "logout_confirm": "Are you sure you want to log out?",
@@ -1110,12 +1123,68 @@
           "d": "Attiva o disattiva i moduli non necessari (CRM, contabilità, fornitori) per semplificare l'interfaccia."
         },
         "f4": {
-          "d": "Attiva le notifiche per essere avvisato in tempo reale di esaurimenti, sottoscorta e prodotti dormienti."
+          "d": "Attiva le notifiche per essere avvisato in tempo reale di esaurimenti, sottoscorta e prodotti dormienti.",
+          "t": "Push Notifications"
         }
       },
       "supplierDashboard": {
         "t": "Clients Actifs",
-        "d": "Voyez combien de shopkeepers différents ont commandé chez vous. Suivez l'évolution de votre base clients."
+        "d": "Voyez combien de shopkeepers différents ont commandé chez vous. Suivez l'évolution de votre base clients.",
+        "title": "Supplier Dashboard",
+        "f1": {
+          "t": "Supplier KPIs",
+          "d": "Track your total revenue, number of orders, average basket size, and current month's revenue."
+        },
+        "f2": {
+          "t": "Ratings & Reviews",
+          "d": "Consult the average rating given by your merchant clients and read their detailed comments."
+        },
+        "f3": {
+          "t": "Top Products",
+          "d": "Discover your top 5 products with quantities sold. Optimize your catalog accordingly."
+        },
+        "f4": {
+          "t": "Active Clients",
+          "d": "See how many different merchants have ordered from you. Track your client base evolution."
+        }
+      },
+      "supplierCatalog": {
+        "title": "Supplier Catalog",
+        "f1": {
+          "t": "Add Products",
+          "d": "Add your products with name, description, category, price, and minimum order quantity."
+        },
+        "f2": {
+          "t": "Pricing",
+          "d": "Set your prices. Update them at any time from the product sheet."
+        },
+        "f3": {
+          "t": "Availability",
+          "d": "Toggle product availability with one click. Unavailable products no longer appear on the marketplace."
+        },
+        "f4": {
+          "t": "Categories",
+          "d": "Organize your catalog by categories and sub-categories shared with your merchant clients."
+        }
+      },
+      "supplierOrders": {
+        "title": "Received Orders",
+        "f1": {
+          "t": "Incoming Orders",
+          "d": "Orders from your merchant clients appear here with product details, quantities, and amounts."
+        },
+        "f2": {
+          "t": "Accept or Reject",
+          "d": "Consult each order's detail then accept or reject it with a reason."
+        },
+        "f3": {
+          "t": "Mark Shipped",
+          "d": "Once the order is prepared and sent, mark it as shipped. The client is notified."
+        },
+        "f4": {
+          "t": "Filters & History",
+          "d": "Filter by status (pending, confirmed, shipped, delivered) or by period to find your orders."
+        }
       }
     },
     "modules_title": "FEATURES PER MODULE",
@@ -1201,6 +1270,7 @@
     "price_range": "Fascia di prezzo",
     "products": "Prodotti",
     "reset": "Reimposta",
+    "search_placeholder": "Search for products or suppliers...",
     "search_product": "Cerca un prodotto...",
     "search_supplier": "Cerca un fornitore...",
     "send_invitation": "Invia invito",
@@ -1510,6 +1580,15 @@
           "Campagne marketing WhatsApp mirate",
           "Gestione debiti e crediti clienti"
         ]
+      },
+      "reports": {
+        "title": "Analysis & Reports",
+        "desc": "Visualize your business performance with detailed charts.",
+        "benefits": [
+          "Unlimited PDF/CSV export",
+          "Full sales history",
+          "Advanced profitability analysis"
+        ]
       }
     },
     "pricing_hint": "{{price}} {{currency}} {{period}}",
@@ -1660,9 +1739,9 @@
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",
-    "birthdays_label": "Anniversaires clients",
+    "birthdays_label": "Birthdays",
     "client_reactivation_desc": "Alert if a VIP customer has not returned",
-    "client_reactivation_label": "Réactivation clients",
+    "client_reactivation_label": "Client Reactivation",
     "debt_recovery": "Debt Recovery",
     "debt_recovery_desc": "Dettes clients dépassant le seuil",
     "debt_recovery_label": "Debt Recovery",
@@ -1671,7 +1750,7 @@
     "expense_spike_desc": "Alert if expenses increase abnormally",
     "expense_spike_label": "Hausse des dépenses",
     "inventory_check_desc": "Reminder to verify physical stock of a product",
-    "inventory_check_label": "Vérification inventaire",
+    "inventory_check_label": "Inventory Check",
     "late_deliveries_desc": "Alert if a supplier delivery is overdue",
     "late_deliveries_label": "Late Delivery",
     "low_stock_label": "Low Stock",
@@ -1680,7 +1759,7 @@
     "pending_invitations_desc": "Reminder for unaccepted team invitations",
     "pending_invitations_label": "Pending Invitations",
     "replenishment_desc": "Purchase suggestions based on out-of-stock items",
-    "replenishment_label": "Réapprovisionnement",
+    "replenishment_label": "Replenishment",
     "stock_alerts": "Critical alerts for low stock or expired products.",
     "title": "Reminder Rules",
     "unit_days": "days"
@@ -1818,7 +1897,19 @@
       "consultation": "Solo consultazione",
       "full_management": "Gestione completa",
       "email_24h": "Email (24h)",
-      "whatsapp_2h": "WhatsApp prioritario (2h)"
+      "whatsapp_2h": "WhatsApp prioritario (2h)",
+      "products_desc": "Gérez votre catalogue complet : ajout, modification, code-barres, photos, catégories et suivi des prix d'achat/vente.",
+      "stores_desc": "Gérez un ou plusieurs magasins avec stocks indépendants et suivi séparé des performances de chaque emplacement.",
+      "users_desc": "Ajoutez des collaborateurs (vendeurs, gérants) avec des rôles et permissions personnalisés pour chaque membre de l'équipe.",
+      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (espèces, Mobile Money, carte), receipts numériques et gestion des ventes à crédit.",
+      "pdf_receipts_desc": "Générez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonnées.",
+      "reports_desc": "Tableaux de bord détaillés : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
+      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de réapprovisionnement, analyse des ventes, prévisions de stock et conseils de gestion.",
+      "suppliers_orders_desc": "Carnet de fournisseurs complet, création de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des échanges.",
+      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos données (produits, ventes, clients) en un clic.",
+      "crm_loyalty_desc": "Base clients avec historique d'achats, système de points de fidélité, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
+      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
+      "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman."
     },
     "free_trial": "Prova gratuita",
     "iap_not_available": "Gli acquisti in-app non sono disponibili. Usa Mobile Money.",
@@ -1853,12 +1944,21 @@
     "dashboard": "Dashboard Fornitore",
     "delivery_zones": "Zone di consegna",
     "min_order": "Ordine min.",
+    "no_orders": "No orders found",
+    "order_date": "Order Date",
+    "order_details": "Order Details",
     "order_id": "Codice ordine",
+    "order_items": "Items",
+    "order_status": "Status",
+    "order_summary": "Summary",
+    "order_total": "Total",
     "orders": "Ordini ricevuti",
+    "orders_history": "Order History",
     "pending_orders": "Ordini in attesa",
     "refuse": "Rifiuta",
     "revenue_month": "Fatturato del mese",
     "reviews": "Recensioni clienti",
+    "search_orders": "Search orders...",
     "ship": "Spedisci",
     "top_products": "Top Prodotti",
     "unavailable": "Non disponibile"
@@ -1887,6 +1987,8 @@
     "commercial_profile": "Profil commercial",
     "company_name_label": "Company Name *",
     "company_name_ph": "Company Name",
+    "contact_email": "Contact Email",
+    "contact_phone": "Contact Phone",
     "create_profile": "Create Profile",
     "days": "days",
     "description_label": "Description",

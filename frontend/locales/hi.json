@@ -1230,6 +1230,7 @@
     "price_range": "मूल्य सीमा",
     "products": "उत्पाद",
     "reset": "रीसेट करें",
+    "search_placeholder": "Search for products or suppliers...",
     "search_product": "उत्पाद खोजें...",
     "search_supplier": "आपूर्तिकर्ता खोजें...",
     "send_invitation": "निमंत्रण भेजें",
@@ -1505,7 +1506,12 @@
     "features": {
       "accounting": {
         "desc": "संपूर्ण वित्तीय ट्रैकिंग: आय, व्यय और लाभ की गणना।",
-        "title": "उन्नत लेखांकन"
+        "title": "उन्नत लेखांकन",
+        "benefits": [
+          "Detailed profit/loss analysis",
+          "Professional PDF/Excel reports",
+          "Multi-currency support"
+        ]
       },
       "ai_assistant": {
         "desc": "निर्णय लेने में आपकी सहायता के लिए कृत्रिम बुद्धिमत्ता (AI)।",
@@ -1521,7 +1527,40 @@
       },
       "suppliers": {
         "desc": "आपूर्तिकर्ता ऑर्डर और स्टॉक पुनः आपूर्ति का प्रबंधन।",
-        "title": "आपूर्तिकर्ता प्रबंधन"
+        "title": "आपूर्तिकर्ता प्रबंधन",
+        "benefits": [
+          "Global marketplace access",
+          "Direct supplier chat",
+          "Exclusive bulk discounts"
+        ]
+      },
+      "orders": {
+        "title": "Smart Ordering",
+        "desc": "Automate your orders and manage returns professionally.",
+        "benefits": [
+          "Auto-generate orders based on stock",
+          "Advanced return management",
+          "Supplier performance tracking"
+        ]
+      },
+      "crm": {
+        "title": "CRM & Loyalty Program",
+        "desc": "Build customer loyalty with personalized tracking and a rewards program.",
+        "benefits": [
+          "Customer database with full purchase history",
+          "Loyalty program (Bronze, Silver, Gold, Platinum)",
+          "Targeted WhatsApp marketing campaigns",
+          "Customer debt and credit management"
+        ]
+      },
+      "reports": {
+        "title": "Analysis & Reports",
+        "desc": "Visualize your business performance with detailed charts.",
+        "benefits": [
+          "Unlimited PDF/CSV export",
+          "Full sales history",
+          "Advanced profitability analysis"
+        ]
       }
     },
     "free_plan": "मुफ्त प्लान",
@@ -1716,9 +1755,9 @@
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",
-    "birthdays_label": "Anniversaires clients",
+    "birthdays_label": "Birthdays",
     "client_reactivation_desc": "Alert if a VIP customer has not returned",
-    "client_reactivation_label": "Réactivation clients",
+    "client_reactivation_label": "Client Reactivation",
     "debt_recovery": "Debt Recovery",
     "debt_recovery_desc": "Dettes clients dépassant le seuil",
     "debt_recovery_label": "Debt Recovery",
@@ -1727,7 +1766,7 @@
     "expense_spike_desc": "Alert if expenses increase abnormally",
     "expense_spike_label": "Hausse des dépenses",
     "inventory_check_desc": "Reminder to verify physical stock of a product",
-    "inventory_check_label": "Vérification inventaire",
+    "inventory_check_label": "Inventory Check",
     "late_deliveries_desc": "Alert if a supplier delivery is overdue",
     "late_deliveries_label": "Late Delivery",
     "low_stock_label": "Low Stock",
@@ -1736,7 +1775,7 @@
     "pending_invitations_desc": "Reminder for unaccepted team invitations",
     "pending_invitations_label": "Pending Invitations",
     "replenishment_desc": "Purchase suggestions based on out-of-stock items",
-    "replenishment_label": "Réapprovisionnement",
+    "replenishment_label": "Replenishment",
     "stock_alerts": "Critical alerts for low stock or expired products.",
     "title": "Reminder Rules",
     "unit_days": "days"
@@ -1874,7 +1913,19 @@
       "consultation": "केवल परामर्श",
       "full_management": "पूर्ण प्रबंधन",
       "email_24h": "ईमेल (24 घंटे)",
-      "whatsapp_2h": "प्राथमिकता WhatsApp (2 घंटे)"
+      "whatsapp_2h": "प्राथमिकता WhatsApp (2 घंटे)",
+      "products_desc": "Gérez votre catalogue complet : ajout, modification, code-barres, photos, catégories et suivi des prix d'achat/vente.",
+      "stores_desc": "Gérez un ou plusieurs magasins avec stocks indépendants et suivi séparé des performances de chaque emplacement.",
+      "users_desc": "Ajoutez des collaborateurs (vendeurs, gérants) avec des rôles et permissions personnalisés pour chaque membre de l'équipe.",
+      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (espèces, Mobile Money, carte), receipts numériques et gestion des ventes à crédit.",
+      "pdf_receipts_desc": "Générez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonnées.",
+      "reports_desc": "Tableaux de bord détaillés : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
+      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de réapprovisionnement, analyse des ventes, prévisions de stock et conseils de gestion.",
+      "suppliers_orders_desc": "Carnet de fournisseurs complet, création de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des échanges.",
+      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos données (produits, ventes, clients) en un clic.",
+      "crm_loyalty_desc": "Base clients avec historique d'achats, système de points de fidélité, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
+      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
+      "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman."
     },
     "free_trial": "मुफ्त परीक्षण",
     "iap_not_available": "इन-ऐप खरीदारी उपलब्ध नहीं है। Mobile Money का उपयोग करें।",
@@ -1909,12 +1960,21 @@
     "dashboard": "आपूर्तिकर्ता डैशबोर्ड",
     "delivery_zones": "डिलीवरी क्षेत्र",
     "min_order": "न्यूनतम ऑर्डर",
+    "no_orders": "No orders found",
+    "order_date": "Order Date",
+    "order_details": "Order Details",
     "order_id": "ऑर्डर कोड",
+    "order_items": "Items",
+    "order_status": "Status",
+    "order_summary": "Summary",
+    "order_total": "Total",
     "orders": "प्राप्त ऑर्डर",
+    "orders_history": "Order History",
     "pending_orders": "लंबित ऑर्डर",
     "refuse": "अस्वीकार करें",
     "revenue_month": "इस महीने का राजस्व",
     "reviews": "ग्राहक समीक्षाएं",
+    "search_orders": "Search orders...",
     "ship": "शिप करें",
     "top_products": "शीर्ष उत्पाद",
     "unavailable": "अनुपलब्ध"
@@ -1943,6 +2003,8 @@
     "commercial_profile": "Profil commercial",
     "company_name_label": "Company Name *",
     "company_name_ph": "Company Name",
+    "contact_email": "Contact Email",
+    "contact_phone": "Contact Phone",
     "create_profile": "Create Profile",
     "days": "days",
     "description_label": "Description",
