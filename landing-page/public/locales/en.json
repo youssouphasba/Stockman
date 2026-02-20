@@ -10,7 +10,7 @@
     "hero": {
         "title_start": "Unleash the potential of your",
         "title_end": "business",
-        "subtitle": "The AI-powered smart inventory management solution to automate your orders and maximize your profits.",
+        "subtitle": "The AI-powered smart inventory management solution to automate your operation and maximize your profits.",
         "cta": "Get Started Now"
     },
     "stats": {
@@ -97,7 +97,7 @@
         "starter": {
             "name": "Starter",
             "f1": "1 User, 1 Store",
-            "f2": "100 products",
+            "f2": "unlimited",
             "f3": "14 AI Requests / week",
             "f4": "30-day reports",
             "cta": "3 Months Free"
