@@ -183,7 +183,7 @@ async def translate_legal_document(text: str, target_lang: str) -> str:
     try:
         genai.configure(api_key=api_key)
         lang_name = LANGUAGE_NAMES.get(target_lang, target_lang)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""Tu es un traducteur juridique expert. Traduis le document Markdown suivant en {lang_name} ({target_lang}).
 Conserve EXACTEMENT la structure Markdown, les liens, les titres et la mise en forme.
@@ -2050,7 +2050,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         Date actuelle: {datetime.now(timezone.utc).strftime("%A %d %B %Y")}
         """
 
-        model = genai.GenerativeModel('gemini-2.0-flash', system_instruction=system_instruction, tools=tools_list)
+        model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_instruction, tools=tools_list)
         
         # Load full history from DB
         db_history = await db.ai_conversations.find_one({"user_id": user.user_id})
@@ -2177,7 +2177,7 @@ Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -2228,7 +2228,7 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         description = response.text.strip().strip('"').strip("'")
         return {"description": description}
@@ -2265,7 +2265,7 @@ Sois direct, utilise des chiffres concrets. Pas de formules de politesse.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         return {"summary": response.text.strip()}
     except Exception as e:
@@ -2354,7 +2354,7 @@ Maximum 5 anomalies.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -2477,7 +2477,7 @@ Sois concis et actionnable. Pas de liste, juste du texte fluide.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         return {
             "advice": response.text.strip(),
@@ -2578,7 +2578,7 @@ Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -2624,7 +2624,7 @@ async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User =
             image_base64 = image_base64.split(",", 1)[1]
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         image_part = {
             "mime_type": "image/jpeg",
@@ -2684,7 +2684,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
             audio_base64 = audio_base64.split(",", 1)[1]
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         audio_part = {
             "mime_type": "audio/mp4",
@@ -7930,7 +7930,7 @@ Par exemple "Riz brisé 25kg" et "Riz cassé sac 25" sont le même produit.
 Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour), format:
 [{{"catalog_id": "...", "matched_product_id": "..." ou null si aucun match, "confidence": 0.0 à 1.0, "reason": "explication courte"}}]"""
 
-                model = genai.GenerativeModel(model_name='gemini-2.0-flash')
+                model = genai.GenerativeModel(model_name='gemini-2.5-flash')
                 response = model.generate_content(prompt)
                 response_text = response.text.strip()
 
@@ -8423,7 +8423,7 @@ Produits critiques: {critical_count} | Attention: {warning_count}
 Top produits:
 {items_text}
 """
-            model = genai.GenerativeModel(model_name='gemini-2.0-flash')
+            model = genai.GenerativeModel(model_name='gemini-2.5-flash')
             response = model.generate_content(prompt_text)
             ai_summary = response.text
         except Exception as e:
