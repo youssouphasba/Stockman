@@ -1222,6 +1222,8 @@
     "min_price": "الأدنى",
     "min_rating": "أقل تقييم",
     "modify_criteria": "تعديل معايير البحث",
+    "order_sent_description": "Commande fournisseur {order_id} envoyée ({count} articles)",
+    "order_sent_message": "Commande envoyée au fournisseur",
     "price_range": "نطاق السعر",
     "products": "المنتجات",
     "reset": "إعادة تعيين",

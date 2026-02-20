@@ -1222,6 +1222,8 @@
     "min_price": "Min",
     "min_rating": "Rating minim",
     "modify_criteria": "Modificați criteriile de căutare",
+    "order_sent_description": "Commande fournisseur {order_id} envoyée ({count} articles)",
+    "order_sent_message": "Commande envoyée au fournisseur",
     "price_range": "Interval de preț",
     "products": "Produse",
     "reset": "Resetează",

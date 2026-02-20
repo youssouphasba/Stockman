@@ -1,4 +1,5 @@
 import logging
+from utils.i18n import i18n
 from datetime import datetime, timezone
 import uuid
 
@@ -6,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class MarketplaceAutomationService:
     @staticmethod
-    async def send_order(db, user_id: str, items: list, supplier_id: str = None, store_id: str = None):
+    async def send_order(db, user_id: str, items: list, supplier_id: str = None, store_id: str = None, lang: str = "fr"):
         """
         Simulate sending an order to a supplier/marketplace.
         In real life, this would call an external API.
@@ -46,12 +47,12 @@ class MarketplaceAutomationService:
                 "owner_id": user_id, # Simplified
                 "module": "marketplace",
                 "action": "send_order",
-                "description": f"Commande fournisseur {order_id} envoyée ({len(items)} articles)",
+                "description": i18n.t("marketplace.order_sent_description", lang, order_id=order_id, count=len(items)),
                 "created_at": datetime.now(timezone.utc)
             })
             
             logger.info(f"Marketplace Order {order_id} sent for user {user_id}")
-            return {"status": "success", "order_id": order_id, "message": "Commande envoyée au fournisseur"}
+            return {"status": "success", "order_id": order_id, "message": i18n.t("marketplace.order_sent_message", lang)}
             
         except Exception as e:
             logger.error(f"Error sending marketplace order: {e}")

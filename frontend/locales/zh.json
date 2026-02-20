@@ -1222,6 +1222,8 @@
     "min_price": "最低价",
     "min_rating": "最低评分",
     "modify_criteria": "修改您的搜索条件",
+    "order_sent_description": "Commande fournisseur {order_id} envoyée ({count} articles)",
+    "order_sent_message": "Commande envoyée au fournisseur",
     "price_range": "价格范围",
     "products": "产品",
     "reset": "重置",

@@ -165,7 +165,7 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
             </View>
 
             <View style={styles.ruleContent}>
-              <Text style={[styles.ruleLabel, { color: colors.text }]}>{config.label}</Text>
+              <Text style={[styles.ruleLabel, { color: colors.text }]}>{t(config.label)}</Text>
               <Text style={[styles.ruleDesc, { color: colors.textMuted }]}>
                 {t(config.description)}
               </Text>

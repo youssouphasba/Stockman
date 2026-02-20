@@ -1832,7 +1832,8 @@ async def send_marketplace_order(order: SupplierOrderRequest, user: User = Depen
         owner_id, 
         order.items, 
         order.supplier_id, 
-        store_id
+        store_id,
+        user.language
     )
     return result
 

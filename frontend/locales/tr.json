@@ -1222,6 +1222,8 @@
     "min_price": "Min",
     "min_rating": "Minimum Puan",
     "modify_criteria": "Arama kriterlerinizi değiştirin",
+    "order_sent_description": "Commande fournisseur {order_id} envoyée ({count} articles)",
+    "order_sent_message": "Commande envoyée au fournisseur",
     "price_range": "Fiyat Aralığı",
     "products": "Ürünler",
     "reset": "Sıfırla",
