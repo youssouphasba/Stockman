@@ -1,3 +1,4 @@
+import '../utils/trusted-types';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';

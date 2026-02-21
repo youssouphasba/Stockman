@@ -1,0 +1,596 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDateFormatter } from '../hooks/useDateFormatter';
+import {
+    Users,
+    UserPlus,
+    Search,
+    Phone,
+    Mail,
+    CreditCard,
+    MessageSquare,
+    ChevronRight,
+    MoreVertical,
+    Filter,
+    Shield,
+    ShieldCheck,
+    ShieldQuestion,
+    ExternalLink,
+    AlertCircle,
+    History,
+    TrendingUp,
+    TrendingDown,
+    Download,
+    Megaphone,
+    Settings,
+    FileText,
+    Zap
+} from 'lucide-react';
+import { customers as customersApi, settings as settingsApi } from '../services/api';
+import Modal from './Modal';
+import LoyaltySettingsModal from './LoyaltySettingsModal';
+import CampaignModal from './CampaignModal';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+export default function CRM() {
+    const { t } = useTranslation();
+    const { formatDate, formatCurrency } = useDateFormatter();
+    const [customers, setCustomers] = useState<any[]>([]);
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    // Modal & Detail State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isLoyaltyModalOpen, setIsLoyaltyModalOpen] = useState(false);
+    const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [detailTab, setDetailTab] = useState<'info' | 'history'>('info');
+    const [debtHistory, setDebtHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', notes: '', category: 'particulier' });
+    const [saving, setSaving] = useState(false);
+
+    const TIER_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
+        bronze: { color: 'text-amber-700', icon: Shield, label: 'Bronze' },
+        argent: { color: 'text-slate-400', icon: ShieldCheck, label: 'Argent' },
+        or: { color: 'text-amber-400', icon: ShieldCheck, label: 'Or' },
+        platine: { color: 'text-blue-200', icon: ShieldCheck, label: 'Platine' },
+    };
+
+    const getTier = (customer: any) => {
+        const spent = customer.total_spent || 0;
+        if (spent > 1000000) return 'platine';
+        if (spent > 500000) return 'or';
+        if (spent > 100000) return 'argent';
+        return 'bronze';
+    };
+
+    useEffect(() => {
+        loadCustomers();
+    }, []);
+
+    const loadCustomers = async () => {
+        setLoading(true);
+        try {
+            const res = await customersApi.list();
+            setCustomers(res.items || res);
+        } catch (err) {
+            console.error("CRM load error", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOpenAddModal = () => {
+        setCustomerForm({ name: '', phone: '', email: '', notes: '', category: 'particulier' });
+        setIsAddModalOpen(true);
+    };
+
+    const handleExportCSV = () => {
+        const headers = ["Nom", "Téléphone", "Email", "Catégorie", "Dette", "Points", "Tier"];
+        const rows = filteredCustomers.map(c => [
+            c.name,
+            c.phone || '',
+            c.email || '',
+            c.category || 'particulier',
+            c.total_debt || 0,
+            c.loyalty_points || 0,
+            c.tier || 'Bronze'
+        ]);
+
+        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `crm_export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF() as any;
+        doc.setFontSize(18);
+        doc.text("Liste des Clients - Stockman", 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Date d'export: ${new Date().toLocaleDateString()}`, 14, 30);
+
+        const tableData = filteredCustomers.map(c => [
+            c.name,
+            c.phone || '-',
+            c.category || 'particulier',
+            formatCurrency(c.total_debt || 0),
+            c.loyalty_points || 0,
+            c.tier || 'Bronze'
+        ]);
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Nom', 'Téléphone', 'Catégorie', 'Dette', 'Points', 'Niveau']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [79, 70, 229] }
+        });
+
+        doc.save(`crm_export_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
+    const handleSaveCustomer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!customerForm.name) return;
+        setSaving(true);
+        try {
+            await customersApi.create(customerForm);
+            setIsAddModalOpen(false);
+            loadCustomers();
+        } catch (err) {
+            console.error("Create customer error", err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleOpenDetail = async (customer: any) => {
+        setSelectedCustomer(customer);
+        setDetailTab('info');
+        setIsDetailModalOpen(true);
+        setLoadingHistory(true);
+        try {
+            const res = await customersApi.getDebts(customer.customer_id);
+            setDebtHistory(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+        } catch (err) {
+            console.error("Error loading debt history", err);
+            setDebtHistory([]);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const handleWhatsApp = (phone: string) => {
+        if (!phone) return;
+        const cleanPhone = phone.replace(/\D/g, '');
+        window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    };
+
+    if (loading && customers.length === 0) {
+        return (
+            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.phone?.includes(search)
+    );
+
+    return (
+        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+            <header className="flex justify-between items-center mb-10">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">{t('crm.title') || 'Gestion Clients (CRM)'}</h1>
+                    <p className="text-slate-400">{t('crm.subtitle') || 'Fidélisez votre clientèle et suivez les dettes.'}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={() => setIsCampaignModalOpen(true)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
+                    >
+                        <Megaphone size={20} className="text-primary" /> Campagne
+                    </button>
+                    <button
+                        onClick={() => setIsLoyaltyModalOpen(true)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
+                    >
+                        <Settings size={20} className="text-primary" /> Fidélité
+                    </button>
+                    <div className="h-10 w-[1px] bg-white/10 mx-1"></div>
+                    <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                        <button
+                            onClick={handleExportCSV}
+                            className="px-4 py-3 hover:bg-white/5 text-slate-400 hover:text-white transition-all order-r border-white/10"
+                            title="Exporter CSV"
+                        >
+                            <Download size={18} />
+                        </button>
+                        <button
+                            onClick={handleExportPDF}
+                            className="px-4 py-3 hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                            title="Exporter PDF"
+                        >
+                            <FileText size={18} />
+                        </button>
+                    </div>
+                    <button
+                        onClick={handleOpenAddModal}
+                        className="btn-primary rounded-xl px-5 py-3 flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105"
+                    >
+                        <UserPlus size={20} /> {t('crm.add_customer') || 'Nouveau Client'}
+                    </button>
+                </div>
+            </header>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="glass-card p-6 flex flex-col gap-2">
+                    <span className="text-slate-400 text-sm">{t('crm.total_customers') || 'Total Clients'}</span>
+                    <div className="flex items-center justify-between">
+                        <span className="text-3xl font-bold text-white">{customers.length}</span>
+                        <div className="p-3 rounded-xl bg-primary/10 text-primary"><Users size={24} /></div>
+                    </div>
+                </div>
+                <div className="glass-card p-6 flex flex-col gap-2 border-amber-500/20">
+                    <span className="text-slate-400 text-sm">{t('crm.customers_with_debts') || 'Clients avec Dettes'}</span>
+                    <div className="flex items-center justify-between">
+                        <span className="text-3xl font-bold text-amber-500">
+                            {(Array.isArray(customers) ? customers : []).filter(c => (c.total_debt || 0) > 0).length}
+                        </span>
+                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500"><CreditCard size={24} /></div>
+                    </div>
+                </div>
+                <div className="glass-card p-6 flex flex-col gap-2 border-rose-500/20">
+                    <span className="text-slate-400 text-sm">{t('crm.total_outstanding') || 'Encours Total'}</span>
+                    <div className="flex items-center justify-between">
+                        <span className="text-3xl font-bold text-rose-500">
+                            {formatCurrency((Array.isArray(customers) ? customers : []).reduce((sum, c) => sum + (c.total_debt || 0), 0))}
+                        </span>
+                        <div className="p-3 rounded-xl bg-rose-500/10 text-rose-500"><TrendingUp size={24} /></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder={t('crm.search_placeholder') || "Rechercher un client..."}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                    />
+                </div>
+                <div className="flex gap-2">
+                    <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                        <Filter size={20} />
+                        <span className="hidden md:inline">{t('common.filter') || 'Filtrer'}</span>
+                    </button>
+                    <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
+                        <History size={20} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Client List */}
+            <div className="glass-card overflow-hidden">
+                {filteredCustomers.length === 0 ? (
+                    <div className="p-20 text-center text-slate-500 flex flex-col items-center gap-4">
+                        <Users size={48} className="opacity-20" />
+                        <p>{t('crm.no_customers_found') || 'Aucun client trouvé.'}</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-white/5 text-slate-500 uppercase text-[10px] tracking-widest bg-white/5">
+                                    <th className="px-6 py-4 font-semibold">{t('crm.col_customer') || 'Client'}</th>
+                                    <th className="px-6 py-4 font-semibold">{t('crm.col_tier') || 'Rang'}</th>
+                                    <th className="px-6 py-4 font-semibold">{t('crm.col_status') || 'Statut'}</th>
+                                    <th className="px-6 py-4 font-semibold text-right">{t('crm.col_debt') || 'Encours'}</th>
+                                    <th className="px-6 py-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {filteredCustomers.map((c) => {
+                                    const tier = getTier(c);
+                                    const tc = TIER_CONFIG[tier];
+                                    const TierIcon = tc.icon;
+
+                                    return (
+                                        <tr key={c.customer_id} className="hover:bg-white/5 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border-2 border-primary/10">
+                                                        {c.name.charAt(0)}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-white font-bold">{c.name}</span>
+                                                        <span className="text-xs text-slate-500">{c.phone || t('crm.no_phone') || 'Sans mobile'}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className={`flex items-center gap-2 ${tc.color} font-bold text-xs uppercase tracking-tighter`}>
+                                                    <TierIcon size={14} />
+                                                    {tc.label}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${(c.total_debt || 0) > 0 ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                                    }`}>
+                                                    {(c.total_debt || 0) > 0 ? (t('crm.status_debt') || 'En Dette') : (t('crm.status_settled') || 'À Jour')}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className={`font-bold ${(c.total_debt || 0) > 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                                    {formatCurrency(c.total_debt || 0)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleOpenDetail(c)}
+                                                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                                                >
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Add Customer Modal */}
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title={t('crm.add_customer') || 'Ajouter un Client'}
+            >
+                <form onSubmit={handleSaveCustomer} className="space-y-4">
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">{t('common.name') || 'Nom'}</label>
+                            <input
+                                required
+                                type="text"
+                                placeholder="Jean Dupont"
+                                value={customerForm.name}
+                                onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">{t('common.phone') || 'Téléphone'}</label>
+                            <input
+                                type="tel"
+                                placeholder="+225 ..."
+                                value={customerForm.phone}
+                                onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">{t('common.email') || 'Email'}</label>
+                            <input
+                                type="email"
+                                placeholder="client@email.com"
+                                value={customerForm.email}
+                                onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex gap-4 pt-6 mt-6 border-t border-white/10">
+                        <button
+                            type="button"
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="flex-1 px-4 py-2 text-slate-400 hover:text-white transition-colors font-bold"
+                        >
+                            {t('common.cancel') || 'Annuler'}
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="flex-1 btn-primary py-2 rounded-lg font-bold shadow-lg shadow-primary/20 disabled:opacity-50"
+                        >
+                            {saving ? '...' : (t('common.save') || 'Enregistrer')}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Customer Detail Modal */}
+            <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title={selectedCustomer?.name || ''}
+                maxWidth="xl"
+            >
+                {selectedCustomer && (
+                    <div className="space-y-6">
+                        {/* Profile Header & Tabs */}
+                        <div className="flex flex-col items-center gap-6 border-b border-white/10 pb-6">
+                            <div className="flex flex-col items-center gap-3 text-center">
+                                <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-3xl font-bold text-primary border-4 border-primary/10">
+                                    {selectedCustomer.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">{selectedCustomer.name}</h3>
+                                    <div className={`flex items-center justify-center gap-2 ${TIER_CONFIG[getTier(selectedCustomer)].color} font-bold text-[10px] uppercase tracking-widest`}>
+                                        {React.createElement(TIER_CONFIG[getTier(selectedCustomer)].icon, { size: 14 })}
+                                        {TIER_CONFIG[getTier(selectedCustomer)].label}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex p-1 bg-white/5 rounded-xl border border-white/5">
+                                <button
+                                    onClick={() => setDetailTab('info')}
+                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'info' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                >
+                                    Informations
+                                </button>
+                                <button
+                                    onClick={() => setDetailTab('history')}
+                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'history' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                >
+                                    Historique & Dettes
+                                </button>
+                            </div>
+                        </div>
+
+                        {detailTab === 'info' ? (
+                            <div className="animate-in fade-in duration-300 space-y-8">
+                                {/* Contact Quick Actions */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <button
+                                        onClick={() => handleWhatsApp(selectedCustomer.phone)}
+                                        className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all text-emerald-400 border border-emerald-500/10"
+                                    >
+                                        <MessageSquare size={20} />
+                                        <span className="text-[10px] font-bold uppercase">WhatsApp</span>
+                                    </button>
+                                    <button className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-blue-500/10 hover:border-blue-500/30 transition-all text-blue-400 border border-blue-500/10">
+                                        <Phone size={20} />
+                                        <span className="text-[10px] font-bold uppercase">Appeler</span>
+                                    </button>
+                                    <button className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-purple-500/10 hover:border-purple-500/30 transition-all text-purple-400 border border-purple-500/10">
+                                        <Mail size={20} />
+                                        <span className="text-[10px] font-bold uppercase">Email</span>
+                                    </button>
+                                    <div className="flex flex-col items-center gap-2 p-4 glass-card bg-primary/5 border-primary/20 text-primary">
+                                        <Zap size={20} />
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-sm font-black">{selectedCustomer.loyalty_points || 0}</span>
+                                            <span className="text-[9px] font-bold uppercase tracking-tighter">Points</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stats & Category */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl space-y-1">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Catégorie</p>
+                                        <div className="flex items-center gap-2 text-white font-bold">
+                                            <Shield size={16} className="text-primary" />
+                                            {selectedCustomer.category || 'Particulier'}
+                                        </div>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl space-y-1">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Total Dépensé</p>
+                                        <p className="text-xl font-black text-white">{formatCurrency(selectedCustomer.total_spent || 0)}</p>
+                                    </div>
+                                    <div className="p-5 bg-rose-500/5 border border-rose-500/20 rounded-3xl space-y-1">
+                                        <p className="text-[10px] font-black text-rose-500/50 uppercase">Dette Actuelle</p>
+                                        <p className="text-xl font-black text-rose-500">{formatCurrency(selectedCustomer.total_debt || 0)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="animate-in fade-in duration-300 space-y-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="text-sm font-black text-white uppercase tracking-widest px-1 border-l-4 border-primary">Dernières Opérations</h4>
+                                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded font-bold">{debtHistory.length} opérations</span>
+                                </div>
+
+                                {loadingHistory ? (
+                                    <div className="py-10 flex justify-center">
+                                        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                                    </div>
+                                ) : debtHistory.length === 0 ? (
+                                    <div className="py-20 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <History size={40} className="mx-auto text-slate-700 mb-3" />
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun historique trouvé</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                                        {(Array.isArray(debtHistory) ? debtHistory : []).map((debt, idx) => (
+                                            <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center group hover:bg-white/10 transition-all">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${debt.is_payment ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                        {debt.is_payment ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-white">{debt.description || (debt.is_payment ? 'Remboursement' : 'Achat à crédit')}</p>
+                                                        <p className="text-[10px] text-slate-500 font-medium">{formatDate(debt.date)} • {debt.reference || '-'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`text-sm font-black ${debt.is_payment ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                        {debt.is_payment ? '-' : '+'}{formatCurrency(debt.amount || 0)}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-600 font-bold uppercase">Solde: {formatCurrency(debt.remaining || 0)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Financial Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="glass-card p-6 bg-rose-500/5 border-rose-500/10">
+                                <span className="text-rose-400 text-sm font-medium">Encours Actuel</span>
+                                <div className="text-3xl font-bold text-rose-500 mt-1">{formatCurrency(selectedCustomer.total_debt || 0)}</div>
+                                <button className="mt-4 w-full py-2 bg-rose-500 text-white rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20">
+                                    Encaisser un paiement
+                                </button>
+                            </div>
+                            <div className="glass-card p-6 bg-emerald-500/5 border-emerald-500/10">
+                                <span className="text-emerald-400 text-sm font-medium">Total Achats</span>
+                                <div className="text-3xl font-bold text-emerald-500 mt-1">{formatCurrency(selectedCustomer.total_spent || 0)}</div>
+                                <div className="mt-4 flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                    <span>{selectedCustomer.visit_count || 0} visites</span>
+                                    <span>Dernier: {selectedCustomer.last_purchase_date ? formatDate(selectedCustomer.last_purchase_date) : 'Jamais'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notes */}
+                        <div className="glass-card p-6">
+                            <h4 className="text-white font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-widest text-slate-400">
+                                <MoreVertical size={14} /> Notes & Informations
+                            </h4>
+                            <p className="text-slate-300 text-sm leading-relaxed">
+                                {selectedCustomer.notes || "Aucune note particulière pour ce client. Utilisez cet espace pour noter ses préférences ou habitudes d'achat."}
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </Modal >
+
+            {/* Loyalty Settings Modal */}
+            <LoyaltySettingsModal
+                isOpen={isLoyaltyModalOpen}
+                onClose={() => setIsLoyaltyModalOpen(false)}
+            />
+
+            {/* Marketing Campaign Modal */}
+            <CampaignModal
+                isOpen={isCampaignModalOpen}
+                onClose={() => setIsCampaignModalOpen(false)}
+            />
+        </div >
+    );
+}

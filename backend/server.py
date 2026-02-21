@@ -1240,7 +1240,7 @@ async def log_activity(user: User, action: str, module: str, description: str, d
 
 # ===================== SUB-USER MANAGEMENT =====================
 
-@api_router.get("/users/sub-users", response_model=List[User])
+@api_router.get("/sub-users", response_model=List[User])
 async def list_sub_users(user: User = Depends(require_auth)):
     # Only owners can list sub-users
     if user.role != "shopkeeper":
@@ -1249,7 +1249,7 @@ async def list_sub_users(user: User = Depends(require_auth)):
     sub_users = await db.users.find({"parent_user_id": user.user_id}).to_list(100)
     return sub_users
 
-@api_router.post("/users/sub-users", response_model=User)
+@api_router.post("/sub-users", response_model=User)
 async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(require_auth)):
     if user.role != "shopkeeper":
         raise HTTPException(status_code=403, detail="Seul le propriétaire peut créer des utilisateurs")
@@ -1283,7 +1283,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     
     return new_user
 
-@api_router.put("/users/sub-users/{sub_user_id}", response_model=User)
+@api_router.put("/sub-users/{sub_user_id}", response_model=User)
 async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User = Depends(require_auth)):
     if user.role != "shopkeeper":
         raise HTTPException(status_code=403, detail="Seul le propriétaire peut modifier les utilisateurs")
@@ -1300,7 +1300,7 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
     updated = await db.users.find_one({"user_id": sub_user_id}, {"_id": 0})
     return User(**updated)
 
-@api_router.delete("/users/sub-users/{sub_user_id}")
+@api_router.delete("/sub-users/{sub_user_id}")
 async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     if user.role != "shopkeeper":
         raise HTTPException(status_code=403, detail="Seul le propriétaire peut supprimer des utilisateurs")
