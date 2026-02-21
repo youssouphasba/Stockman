@@ -12,16 +12,23 @@ import {
     History
 } from 'lucide-react';
 import { statistics as statsApi } from '../services/api';
+import OrderReturnModal from './OrderReturnModal';
 
 export default function ExpiryAlerts() {
     const { t } = useTranslation();
     const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [selectedAlertForReturn, setSelectedAlertForReturn] = useState<any>(null);
 
     useEffect(() => {
         loadAlerts();
     }, []);
+
+    const handleDeleteAlert = (alertIndex: number) => {
+        setAlerts(prev => prev.filter((_, i) => i !== alertIndex));
+    };
 
     const loadAlerts = async () => {
         setLoading(true);
@@ -96,7 +103,11 @@ export default function ExpiryAlerts() {
                                     <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(days)}`}>
                                         {days < 0 ? 'PÉRIMÉ' : `${days} jours restants`}
                                     </div>
-                                    <button className="text-slate-600 hover:text-rose-400 transition-colors">
+                                    <button
+                                        onClick={() => handleDeleteAlert(i)}
+                                        className="text-slate-600 hover:text-rose-400 transition-colors p-1 rounded-lg hover:bg-rose-500/10"
+                                        title="Supprimer l'alerte"
+                                    >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
@@ -115,7 +126,10 @@ export default function ExpiryAlerts() {
                                     </div>
                                 </div>
 
-                                <button className="w-full bg-white/5 hover:bg-rose-500/10 text-white py-3 rounded-xl border border-white/5 hover:border-rose-500/20 transition-all font-bold text-sm flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => { setSelectedAlertForReturn(alert); setIsReturnModalOpen(true); }}
+                                    className="w-full bg-white/5 hover:bg-rose-500/10 text-white py-3 rounded-xl border border-white/5 hover:border-rose-500/20 transition-all font-bold text-sm flex items-center justify-center gap-2"
+                                >
                                     Gérer le retrait <ArrowRight size={16} />
                                 </button>
                             </div>
@@ -123,6 +137,16 @@ export default function ExpiryAlerts() {
                     })}
                 </div>
             )}
+
+            <OrderReturnModal
+                isOpen={isReturnModalOpen}
+                onClose={() => { setIsReturnModalOpen(false); setSelectedAlertForReturn(null); }}
+                order={selectedAlertForReturn ? {
+                    order_id: selectedAlertForReturn.product_id || 'expiry',
+                    items: [{ product_name: selectedAlertForReturn.name, quantity: selectedAlertForReturn.quantity }]
+                } : undefined}
+                onSuccess={() => { setIsReturnModalOpen(false); loadAlerts(); }}
+            />
         </div>
     );
 }

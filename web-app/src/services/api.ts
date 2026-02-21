@@ -112,6 +112,8 @@ export const products = {
     importConfirm: (importData: any[], mapping: any) =>
         request<any>('/products/import/confirm', { method: 'POST', body: { importData, mapping } }),
     getPriceHistory: (id: string) => request<any[]>(`/products/${id}/price-history`),
+    batchStockUpdate: (codes: string[], increment: number = 1) =>
+        request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
 };
 
 export const dashboard = {
@@ -196,6 +198,8 @@ export const customers = {
         }),
     delete: (id: string) => request<any>(`/customers/${id}`, { method: 'DELETE' }),
     getDebts: (id: string) => request<any>(`/customers/${id}/debts`),
+    addDebt: (id: string, data: { amount: number; is_payment: boolean; description?: string }) =>
+        request<any>(`/customers/${id}/debts`, { method: 'POST', body: data }),
 };
 
 export const suppliers = {
@@ -294,13 +298,35 @@ export const ai = {
         request<{ description: string }>(`/ai/generate-description?name=${encodeURIComponent(name)}&category=${category || ''}&subcategory=${subcategory || ''}&lang=${lang}`),
     suggestPrice: (productId: string, lang: string = 'fr') =>
         request<{ suggested_price: number; reasoning: string }>(`/ai/suggest-price/${productId}?lang=${lang}`),
-    detectAnomalies: (language: string = 'fr') =>
-        request<{ anomalies: any[] }>(`/ai/detect-anomalies?lang=${language}`),
     basketSuggestions: (productIds: string[]) =>
         request<{ suggestions: any[] }>('/ai/basket-suggestions', {
             method: 'POST',
             body: { product_ids: productIds },
         }),
+    scanInvoice: (base64: string, lang: string = 'fr') =>
+        request<any>('/ai/scan-invoice', {
+            method: 'POST',
+            body: { image: base64, lang },
+        }),
+    detectAnomalies: (language: string = 'fr') =>
+        request<{ anomalies: any[] }>(`/ai/detect-anomalies?lang=${language}`),
+    support: (message: string, history: any[], language: string = 'fr') =>
+        request<{ response: string }>('/ai/support', {
+            method: 'POST',
+            body: { message, history, language },
+        }),
+};
+
+export const returns = {
+    list: () => request<any>('/returns'),
+    get: (id: string) => request<any>(`/returns/${id}`),
+    create: (data: any) => request<any>('/returns', { method: 'POST', body: data }),
+    complete: (id: string) => request<any>(`/returns/${id}/complete`, { method: 'POST' }),
+};
+
+export const creditNotes = {
+    list: () => request<any>('/credit-notes'),
+    get: (id: string) => request<any>(`/credit-notes/${id}`),
 };
 
 export const subUsers = {
@@ -340,6 +366,63 @@ export const admin = {
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
+    // Disputes
+    listDisputes: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
+        const query = new URLSearchParams(params as any || {}).toString();
+        return request<{ items: any[]; total: number }>(`/admin/disputes?${query}`);
+    },
+    replyDispute: (id: string, content: string) =>
+        request<any>(`/admin/disputes/${id}/reply`, { method: 'POST', body: { content } }),
+    updateDisputeStatus: (id: string, status: string, resolution?: string) =>
+        request<any>(`/admin/disputes/${id}/status`, { method: 'PUT', body: { status, resolution } }),
+    getDisputeStats: () => request<any>('/admin/disputes/stats'),
+    // Security
+    listSecurityEvents: (type?: string, skip = 0, limit = 100) => {
+        const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
+        return request<{ items: any[]; total: number }>(`/admin/security/events?${params}`);
+    },
+    getSecurityStats: () => request<any>('/admin/security/stats'),
+    getActiveSessions: () => request<any[]>('/admin/security/sessions'),
+    // Communication
+    broadcast: (message: string, title?: string) =>
+        request<any>('/admin/broadcast', { method: 'POST', body: { message, title } }),
+    sendMessage: (data: { title: string; content: string; target?: string }) =>
+        request<any>('/admin/messages/send', { method: 'POST', body: data }),
+};
+
+// ── Chat / Messagerie ────────────────────────────────────────────────────────
+
+export type ChatMessage = {
+    message_id: string;
+    conversation_id: string;
+    sender_id: string;
+    sender_name: string;
+    content: string;
+    created_at: string;
+    read: boolean;
+};
+
+export type Conversation = {
+    conversation_id: string;
+    shopkeeper_id: string;
+    shopkeeper_name: string;
+    supplier_id: string;
+    supplier_name: string;
+    last_message?: string;
+    last_message_at?: string;
+    unread_shopkeeper: number;
+    unread_supplier: number;
+};
+
+export const chat = {
+    listConversations: () => request<Conversation[]>('/conversations'),
+    createConversation: (partnerId: string, partnerName: string) =>
+        request<Conversation>(`/conversations?partner_id=${partnerId}&partner_name=${encodeURIComponent(partnerName)}`, { method: 'POST' }),
+    getMessages: (conversationId: string, skip = 0, limit = 100) =>
+        request<{ items: ChatMessage[]; total: number }>(`/conversations/${conversationId}/messages?skip=${skip}&limit=${limit}`),
+    sendMessage: (conversationId: string, content: string) =>
+        request<ChatMessage>(`/conversations/${conversationId}/messages`, { method: 'POST', body: { content } }),
+    getUnreadCount: () => request<{ unread: number }>('/conversations/unread-count'),
 };
 
 export const supplierDashboard = {

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     Package,
@@ -16,7 +16,14 @@ import {
     AlertCircle,
     BarChart3,
     History as HistoryIcon,
-    ShieldCheck
+    ShieldCheck,
+    MessageCircle,
+    ChevronDown,
+    ChevronRight,
+    ClipboardList,
+    X,
+    UserCheck,
+    RefreshCcw,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,74 +32,288 @@ interface SidebarProps {
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
     user?: any;
+    isMobileOpen: boolean;
+    onMobileClose: () => void;
+    onOpenChat: () => void;
+    unreadMessages?: number;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, user }: SidebarProps) {
+type SidebarItem = {
+    id: string;
+    icon: any;
+    label: string;
+    roles?: string[];
+};
+
+type SidebarGroup = {
+    id: string;
+    icon: any;
+    label: string;
+    children: SidebarItem[];
+    roles?: string[];
+};
+
+type SidebarEntry = SidebarItem | (SidebarGroup & { children: SidebarItem[] });
+
+function isGroup(entry: SidebarEntry): entry is SidebarGroup {
+    return 'children' in entry;
+}
+
+export default function Sidebar({
+    activeTab,
+    setActiveTab,
+    onLogout,
+    user,
+    isMobileOpen,
+    onMobileClose,
+    onOpenChat,
+    unreadMessages = 0,
+}: SidebarProps) {
     const { t } = useTranslation();
 
-    const menuItems = [
+    const menuEntries: SidebarEntry[] = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
         { id: 'pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'orders', icon: ShoppingCart, label: 'Commandes', roles: ['shopkeeper', 'admin'] },
+        { id: 'orders', icon: ClipboardList, label: 'Commandes', roles: ['shopkeeper', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: 'Finance', roles: ['shopkeeper', 'admin'] },
+        {
+            id: 'stock_group',
+            icon: Package,
+            label: 'Stock & Inventaire',
+            roles: ['shopkeeper', 'staff', 'admin'],
+            children: [
+                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
+                { id: 'stock_history', icon: HistoryIcon, label: 'Historique Stock', roles: ['shopkeeper', 'admin'] },
+                { id: 'inventory_counting', icon: RefreshCcw, label: 'Inventaire Tournant', roles: ['shopkeeper', 'admin'] },
+                { id: 'expiry_alerts', icon: AlertCircle, label: 'Péremption', roles: ['shopkeeper', 'admin'] },
+                { id: 'stats', icon: BarChart3, label: 'Analyses ABC', roles: ['shopkeeper', 'admin'] },
+            ],
+        },
         { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'staff', icon: ShieldCheck, label: 'Personnel', roles: ['shopkeeper', 'admin'] },
-        { id: 'suppliers', icon: Users, label: 'Fournisseurs', roles: ['shopkeeper', 'admin'] },
-        { id: 'supplier_portal', icon: Truck, label: 'Portail Fournisseur', roles: ['supplier', 'admin'] },
-        { id: 'stock_history', icon: HistoryIcon, label: 'Historique Stock', roles: ['shopkeeper', 'admin'] },
-        { id: 'activity', icon: Clock, label: 'Historique Système', roles: ['shopkeeper', 'admin'] },
-        { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'stats', icon: BarChart3, label: 'Analyses ABC', roles: ['shopkeeper', 'admin'] },
-        { id: 'subscription', icon: CreditCard, label: 'Abonnement', roles: ['shopkeeper', 'admin'] },
-        { id: 'inventory_counting', icon: ShieldCheck, label: 'Inventaire Tournant', roles: ['shopkeeper', 'admin'] },
-        { id: 'expiry_alerts', icon: AlertCircle, label: 'Péremption', roles: ['shopkeeper', 'admin'] },
+        { id: 'staff', icon: UserCheck, label: 'Personnel', roles: ['shopkeeper', 'admin'] },
+        {
+            id: 'suppliers_group',
+            icon: Truck,
+            label: 'Fournisseurs',
+            roles: ['shopkeeper', 'supplier', 'admin'],
+            children: [
+                { id: 'suppliers', icon: Users, label: 'Mes Fournisseurs', roles: ['shopkeeper', 'admin'] },
+                { id: 'supplier_portal', icon: Truck, label: 'Portail Fournisseur', roles: ['supplier', 'admin'] },
+            ],
+        },
+        {
+            id: 'system_group',
+            icon: AlertCircle,
+            label: 'Système',
+            roles: ['shopkeeper', 'staff', 'admin'],
+            children: [
+                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+                { id: 'activity', icon: Clock, label: 'Historique Système', roles: ['shopkeeper', 'admin'] },
+            ],
+        },
         { id: 'admin', icon: Globe, label: 'Admin', roles: ['admin'] },
-        { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
+        {
+            id: 'account_group',
+            icon: Settings,
+            label: 'Compte',
+            children: [
+                { id: 'subscription', icon: CreditCard, label: 'Abonnement', roles: ['shopkeeper', 'admin'] },
+                { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
+            ],
+        },
     ];
 
-    const filteredMenu = menuItems.filter(item => {
-        if (!item.roles) return true;
-        if (!user) return true; // Show all for demo if no user object
-        return item.roles.includes(user.role);
-    });
+    const canSeeItem = (roles?: string[]) => {
+        if (!roles) return true;
+        if (!user) return true;
+        return roles.includes(user.role);
+    };
+
+    const getDefaultOpenGroups = (): Set<string> => {
+        const open = new Set<string>();
+        for (const entry of menuEntries) {
+            if (isGroup(entry)) {
+                for (const child of entry.children) {
+                    if (child.id === activeTab) {
+                        open.add(entry.id);
+                    }
+                }
+            }
+        }
+        return open;
+    };
+
+    const [openGroups, setOpenGroups] = useState<Set<string>>(getDefaultOpenGroups);
+
+    useEffect(() => {
+        for (const entry of menuEntries) {
+            if (isGroup(entry)) {
+                for (const child of entry.children) {
+                    if (child.id === activeTab) {
+                        setOpenGroups(prev => new Set([...prev, entry.id]));
+                        return;
+                    }
+                }
+            }
+        }
+    }, [activeTab]);
+
+    const toggleGroup = (groupId: string) => {
+        setOpenGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(groupId)) {
+                next.delete(groupId);
+            } else {
+                next.add(groupId);
+            }
+            return next;
+        });
+    };
+
+    const handleTabClick = (tabId: string) => {
+        setActiveTab(tabId);
+        onMobileClose();
+    };
+
+    const renderItem = (item: SidebarItem, indent = false) => {
+        if (!canSeeItem(item.roles)) return null;
+        const Icon = item.icon;
+        const isActive = activeTab === item.id;
+        return (
+            <button
+                key={item.id}
+                onClick={() => handleTabClick(item.id)}
+                className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group ${
+                    indent ? 'py-2 pl-8 pr-3' : 'p-3'
+                } ${
+                    isActive
+                        ? 'bg-primary/10 text-primary border border-primary/20'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+            >
+                <Icon
+                    size={16}
+                    className={isActive ? 'text-primary shrink-0' : 'group-hover:text-primary transition-colors shrink-0'}
+                />
+                <span className="font-medium text-sm text-left">{item.label}</span>
+            </button>
+        );
+    };
+
+    const renderGroup = (group: SidebarGroup) => {
+        if (!canSeeItem(group.roles)) return null;
+        const visibleChildren = group.children.filter(c => canSeeItem(c.roles));
+        if (visibleChildren.length === 0) return null;
+
+        const isOpen = openGroups.has(group.id);
+        const hasActiveChild = group.children.some(c => c.id === activeTab);
+        const GroupIcon = group.icon;
+
+        return (
+            <div key={group.id} className="flex flex-col">
+                <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
+                        hasActiveChild
+                            ? 'text-primary'
+                            : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                >
+                    <GroupIcon
+                        size={16}
+                        className={hasActiveChild ? 'text-primary shrink-0' : 'group-hover:text-primary transition-colors shrink-0'}
+                    />
+                    <span className="font-medium text-sm flex-1 text-left">{group.label}</span>
+                    {isOpen
+                        ? <ChevronDown size={13} className="shrink-0 opacity-60" />
+                        : <ChevronRight size={13} className="shrink-0 opacity-60" />
+                    }
+                </button>
+
+                <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        isOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                >
+                    <div className="flex flex-col gap-0.5 py-1 pl-3 border-l border-white/10 ml-5 mt-0.5">
+                        {visibleChildren.map(child => renderItem(child, true))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <aside className="w-64 h-screen bg-[#0F172A] border-r border-white/10 flex flex-col p-6 fixed left-0 top-0 z-50">
-            <div className="flex items-center gap-3 mb-10">
-                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                    <Package className="text-white" size={24} />
-                </div>
-                <h2 className="text-2xl text-gradient tracking-tight">Stockman</h2>
-            </div>
+        <>
+            {/* Mobile overlay */}
+            {isMobileOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+                    onClick={onMobileClose}
+                />
+            )}
 
-            <nav className="flex-1 flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 -mr-4">
-                {filteredMenu.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${isActive
-                                ? 'bg-primary/10 text-primary border border-primary/20'
-                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                        >
-                            <Icon size={20} className={isActive ? 'text-primary' : 'group-hover:text-primary transition-colors'} />
-                            <span className="font-medium">{item.label}</span>
-                        </button>
-                    );
-                })}
-            </nav>
-
-            <button
-                onClick={onLogout}
-                className="flex items-center gap-4 p-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all mt-auto"
+            <aside
+                className={`w-64 h-screen bg-[#0F172A] border-r border-white/10 flex flex-col p-4 fixed left-0 top-0 z-50 transition-transform duration-300 ${
+                    isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                }`}
             >
-                <LogOut size={20} />
-                <span className="font-medium">Déconnexion</span>
-            </button>
-        </aside>
+                {/* Logo */}
+                <div className="flex items-center gap-3 mb-6 px-1">
+                    <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+                        <Package className="text-white" size={18} />
+                    </div>
+                    <h2 className="text-xl text-gradient tracking-tight flex-1">Stockman</h2>
+                    <button
+                        onClick={onMobileClose}
+                        className="md:hidden text-slate-400 hover:text-white transition-colors p-1"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar pr-1">
+                    {menuEntries.map(entry =>
+                        isGroup(entry) ? renderGroup(entry) : renderItem(entry)
+                    )}
+                </nav>
+
+                {/* Messages button */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                    <button
+                        onClick={() => {
+                            onOpenChat();
+                            onMobileClose();
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all group"
+                    >
+                        <div className="relative shrink-0">
+                            <MessageCircle size={16} className="group-hover:text-primary transition-colors" />
+                            {unreadMessages > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                                </span>
+                            )}
+                        </div>
+                        <span className="font-medium text-sm flex-1 text-left">Messages</span>
+                        {unreadMessages > 0 && (
+                            <span className="bg-rose-500/20 text-rose-400 text-[9px] font-black px-2 py-0.5 rounded-full">
+                                {unreadMessages}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Logout */}
+                <button
+                    onClick={onLogout}
+                    className="flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all mt-1"
+                >
+                    <LogOut size={16} />
+                    <span className="font-medium text-sm">Déconnexion</span>
+                </button>
+            </aside>
+        </>
     );
 }

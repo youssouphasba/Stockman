@@ -16,13 +16,15 @@ import {
     History,
     ChevronDown,
     ChevronUp,
-    DollarSign
+    DollarSign,
+    Layers
 } from 'lucide-react';
 import { products as productsApi, categories as categoriesApi, ai as aiApi } from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
 import BarcodeScanner from './BarcodeScanner';
+import BatchScanModal from './BatchScanModal';
 
 export default function Inventory() {
     const { t, i18n } = useTranslation();
@@ -36,6 +38,7 @@ export default function Inventory() {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [isBatchScanOpen, setIsBatchScanOpen] = useState(false);
     const [selectedProductForHistory, setSelectedProductForHistory] = useState<any>(null);
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [formLoading, setFormLoading] = useState(false);
@@ -245,6 +248,13 @@ export default function Inventory() {
                     >
                         <Upload size={16} />
                         Importer
+                    </button>
+                    <button
+                        onClick={() => setIsBatchScanOpen(true)}
+                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                    >
+                        <Layers size={16} />
+                        Scan par lot
                     </button>
                     <button
                         onClick={handleOpenAddModal}
@@ -583,6 +593,10 @@ export default function Inventory() {
                     onScan={(sku) => setForm(prev => ({ ...prev, sku }))}
                     onClose={() => setIsScannerOpen(false)}
                 />
+            )}
+
+            {isBatchScanOpen && (
+                <BatchScanModal onClose={() => setIsBatchScanOpen(false)} />
             )}
         </div>
     );

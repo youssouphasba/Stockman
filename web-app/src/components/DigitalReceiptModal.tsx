@@ -82,9 +82,24 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale }: DigitalRe
                         <Printer size={18} />
                         Imprimer
                     </button>
+                    {typeof navigator !== 'undefined' && navigator.share && (
+                        <button
+                            onClick={() => {
+                                navigator.share({
+                                    title: 'Reçu Stockman',
+                                    text: `Ticket #${sale.sale_id?.substring(0, 8).toUpperCase()} - Total: ${sale.total_amount} F`,
+                                    url: window.location.href,
+                                }).catch(() => { });
+                            }}
+                            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            <Share2 size={18} />
+                            Partager
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
-                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all col-span-2 md:col-span-1"
                     >
                         Terminer
                     </button>

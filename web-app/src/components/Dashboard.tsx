@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     TrendingUp,
     ShoppingCart,
     Package,
     Clock,
-    ArrowUpRight,
+    ChevronDown,
+    ChevronUp,
+    CheckCircle,
     Sparkles,
+    ArrowUpRight,
     AlertTriangle,
     AlertCircle,
+    Eye,
+    EyeOff,
     Settings,
     ChevronRight,
     PieChart as PieChartIcon,
+    X,
 } from 'lucide-react';
 import {
     LineChart as ReLineChart,
@@ -29,8 +35,15 @@ import {
 } from 'recharts';
 import StatCard from './StatCard';
 import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi } from '../services/api';
+import AiSummaryModal from './AiSummaryModal';
+import DigitalReceiptModal from './DigitalReceiptModal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
-export default function Dashboard() {
+interface DashboardProps {
+    onNavigate?: (tab: string) => void;
+}
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
     const { t, i18n } = useTranslation();
     const [data, setData] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
@@ -38,6 +51,12 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<number>(30); // Default 30 days
     const [aiSummary, setAiSummary] = useState<string>('');
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [anomalies, setAnomalies] = useState<any[]>([]);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [selectedSale, setSelectedSale] = useState<any>(null);
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const settingsPanelRef = useRef<HTMLDivElement>(null);
 
     // Visibility Toggles
     const [visibleSections, setVisibleSections] = useState<Record<string, boolean>>({
@@ -54,16 +73,18 @@ export default function Dashboard() {
         async function fetchDashboard() {
             setLoading(true);
             try {
-                const [res, statsRes, aiRes, forecastRes] = await Promise.all([
+                const [res, statsRes, aiRes, forecastRes, anomaliesRes] = await Promise.all([
                     dashboardApi.get(),
                     statsApi.get(period),
                     aiApi.dailySummary(i18n.language),
-                    salesApi.forecast()
+                    salesApi.forecast(),
+                    aiApi.detectAnomalies(i18n.language)
                 ]);
                 setData(res);
                 setStats(statsRes);
                 setAiSummary(aiRes.summary);
                 setForecast(forecastRes);
+                setAnomalies(anomaliesRes.anomalies || []);
             } catch (err) {
                 console.error('Error fetching dashboard', err);
             } finally {
@@ -87,23 +108,107 @@ export default function Dashboard() {
         setVisibleSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
+    const handleExportStats = () => {
+        const rows = [
+            ['Métrique', 'Valeur'],
+            ['CA Aujourd\'hui', data?.today_revenue || 0],
+            ['Ventes Aujourd\'hui', data?.today_sales_count || 0],
+            ['Valeur du Stock', data?.total_stock_value || 0],
+            ['CA du Mois', data?.month_revenue || 0],
+            ['Ruptures de Stock', data?.out_of_stock_count || 0],
+            ['Stock Faible', data?.low_stock_count || 0],
+        ];
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dashboard_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Close settings panel on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (settingsPanelRef.current && !settingsPanelRef.current.contains(e.target as Node)) {
+                setIsSettingsOpen(false);
+            }
+        };
+        if (isSettingsOpen) document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isSettingsOpen]);
+
+    const dashboardSteps: GuideStep[] = [
+        {
+            title: "Bienvenue sur votre Dashboard",
+            content: "C'est ici que vous pouvez suivre la santé de votre commerce en un coup d'œil.",
+            position: "center"
+        },
+        {
+            title: "Indicateurs Clés (KPI)",
+            content: "Suivez votre chiffre d'affaires, le nombre de ventes et la valeur de votre stock en temps réel.",
+            targetId: "kpi-stats"
+        },
+        {
+            title: "Prévisions IA",
+            content: "Notre intelligence artificielle analyse vos données pour prédire vos ventes futures et vous aider à anticiper.",
+            targetId: "sales-forecast"
+        },
+        {
+            title: "Smart Reminders",
+            content: "L'IA vous donne des conseils personnalisés et vous rappelle les actions urgentes à effectuer.",
+            targetId: "smart-reminders"
+        }
+    ];
+
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A] animate-in fade-in duration-700">
+            <ScreenGuide guideKey="dashboard_tour" steps={dashboardSteps} />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">{t('dashboard.title')}</h1>
                     <p className="text-slate-400 font-medium">{t('dashboard.sub_greeting')}</p>
                 </div>
                 <div className="flex flex-wrap gap-4">
-                    <button
-                        onClick={() => {
-                            const section = prompt('Entrez le code de la section à basculer (kpi, forecast, reminders, etc.)', '');
-                            if (section && visibleSections.hasOwnProperty(section)) toggleSection(section);
-                        }}
-                        className="glass-card p-2 text-slate-400 hover:text-white transition-all outline-none"
-                    >
-                        <Settings size={20} />
-                    </button>
+                    {anomalies.length > 0 && (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 animate-pulse">
+                            <AlertTriangle size={18} />
+                            <span className="text-xs font-black uppercase tracking-widest">{anomalies.length} Anomalies détectées</span>
+                        </div>
+                    )}
+
+                    {/* Settings panel */}
+                    <div className="relative" ref={settingsPanelRef}>
+                        <button
+                            onClick={() => setIsSettingsOpen(prev => !prev)}
+                            className={`glass-card p-2 transition-all outline-none ${isSettingsOpen ? 'text-primary border-primary/30' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <Settings size={20} />
+                        </button>
+                        {isSettingsOpen && (
+                            <div className="absolute top-full right-0 mt-2 w-56 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Sections visibles</span>
+                                    <button onClick={() => setIsSettingsOpen(false)} className="text-slate-500 hover:text-white">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                {Object.entries(visibleSections).map(([key, visible]) => (
+                                    <label key={key} className="flex items-center justify-between py-2 cursor-pointer group">
+                                        <span className="text-sm text-slate-300 group-hover:text-white capitalize">{key.replace('_', ' ')}</span>
+                                        <div
+                                            onClick={() => toggleSection(key)}
+                                            className={`w-8 h-4 rounded-full transition-all cursor-pointer ${visible ? 'bg-primary' : 'bg-white/10'}`}
+                                        >
+                                            <div className={`w-3 h-3 rounded-full bg-white shadow mt-0.5 transition-all ${visible ? 'ml-4.5 translate-x-4' : 'ml-0.5'}`} />
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <select
                         value={period}
                         onChange={(e) => setPeriod(Number(e.target.value))}
@@ -114,10 +219,16 @@ export default function Dashboard() {
                         <option value={30}>{t('common.last_30_days')}</option>
                         <option value={90}>{t('common.last_90_days')}</option>
                     </select>
-                    <button className="glass-card px-4 py-2 text-sm font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors border border-white/5">
+                    <button
+                        onClick={handleExportStats}
+                        className="glass-card px-4 py-2 text-sm font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors border border-white/5"
+                    >
                         {t('common.export')}
                     </button>
-                    <button className="btn-primary py-2 px-6 shadow-lg shadow-primary/20 font-black uppercase tracking-widest">
+                    <button
+                        onClick={() => onNavigate?.('pos')}
+                        className="btn-primary py-2 px-6 shadow-lg shadow-primary/20 font-black uppercase tracking-widest"
+                    >
                         + {t('dashboard.today_sales')}
                     </button>
                 </div>
@@ -258,7 +369,12 @@ export default function Dashboard() {
                         <div className="glass-card p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-white uppercase tracking-tighter">{t('dashboard.recent_sales')}</h3>
-                                <button className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline">{t('dashboard.see_more')}</button>
+                                <button
+                                    onClick={() => onNavigate?.('pos')}
+                                    className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline"
+                                >
+                                    {t('dashboard.see_more')}
+                                </button>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
@@ -282,7 +398,11 @@ export default function Dashboard() {
                                                     {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </td>
                                                 <td className="py-4 text-right">
-                                                    <button className="p-2 rounded-lg hover:bg-primary/10 text-slate-400 hover:text-primary transition-all">
+                                                    <button
+                                                        onClick={() => { setSelectedSale(sale); setIsReceiptModalOpen(true); }}
+                                                        className="p-2 rounded-lg hover:bg-primary/10 text-slate-400 hover:text-primary transition-all"
+                                                        title="Voir le reçu"
+                                                    >
                                                         <ArrowUpRight size={18} />
                                                     </button>
                                                 </td>
@@ -319,7 +439,10 @@ export default function Dashboard() {
                                     <p className="text-sm text-slate-500 italic">{t('dashboard.ai_loading')}</p>
                                 )}
                             </div>
-                            <button className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+                            <button
+                                onClick={() => setIsAiModalOpen(true)}
+                                className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all outline-none"
+                            >
                                 Voir le rapport complet <ChevronRight size={14} />
                             </button>
                         </div>
@@ -388,6 +511,18 @@ export default function Dashboard() {
                     )}
                 </div>
             </div>
+
+            <AiSummaryModal
+                isOpen={isAiModalOpen}
+                onClose={() => setIsAiModalOpen(false)}
+                summary={aiSummary}
+            />
+
+            <DigitalReceiptModal
+                isOpen={isReceiptModalOpen}
+                onClose={() => { setIsReceiptModalOpen(false); setSelectedSale(null); }}
+                sale={selectedSale}
+            />
         </div>
     );
 }

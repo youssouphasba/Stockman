@@ -31,6 +31,9 @@ import {
 import BarcodeScanner from './BarcodeScanner';
 import QuickCustomerModal from './QuickCustomerModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
+import { syncService } from '../services/syncService';
+import { WifiOff, HelpCircle } from 'lucide-react';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function POS() {
     const { t } = useTranslation();
@@ -157,6 +160,16 @@ export default function POS() {
                 payment_method: method,
                 customer_id: selectedCustomer?.customer_id
             };
+
+            if (!navigator.onLine) {
+                syncService.queueSale(saleData);
+                setLastSale({ ...saleData, id: 'offline-' + Date.now(), items: cart, is_offline: true });
+                setCart([]);
+                setSelectedCustomer(null);
+                setIsReceiptOpen(true);
+                return;
+            }
+
             const result = await salesApi.create(saleData);
             setLastSale({ ...result, items: cart });
             setCart([]);
@@ -167,7 +180,24 @@ export default function POS() {
             const prodsRes = await productsApi.list(undefined, 0, 500);
             setAllProducts(prodsRes.items || prodsRes);
         } catch (err: any) {
-            setError(err?.message || "Erreur lors de la validation");
+            if (!navigator.onLine) {
+                // Fallback if network dropped exactly during call
+                syncService.queueSale({
+                    items: cart.map(item => ({
+                        product_id: item.product_id,
+                        quantity: item.quantity,
+                        price: item.selling_price
+                    })),
+                    total_amount: calculateTotal(),
+                    payment_method: method,
+                    customer_id: selectedCustomer?.customer_id
+                });
+                setLastSale({ items: cart, total_amount: calculateTotal(), payment_method: method, is_offline: true });
+                setCart([]);
+                setIsReceiptOpen(true);
+            } else {
+                setError(err?.message || "Erreur lors de la validation");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -187,6 +217,29 @@ export default function POS() {
         return matchesSearch && matchesCategory;
     });
 
+    const posSteps: GuideStep[] = [
+        {
+            title: "Bienvenue au POS",
+            content: "C'est ici que vous effectuez vos ventes rapidement.",
+            position: "center"
+        },
+        {
+            title: "Recherche & Scan",
+            content: "Recherchez un produit par son nom ou utilisez le scanner de code-barres pour aller plus vite.",
+            targetId: "pos-search"
+        },
+        {
+            title: "Gestion du Panier",
+            content: "Vos articles s'affichent ici. Vous pouvez ajuster les quantités ou supprimer des produits.",
+            targetId: "pos-cart"
+        },
+        {
+            title: "Paiement & Validation",
+            content: "Choisissez le mode de paiement (Cash, Mobile, Crédit) pour finaliser la vente.",
+            targetId: "pos-checkout"
+        }
+    ];
+
     if (loading && allProducts.length === 0) {
         return (
             <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
@@ -197,10 +250,11 @@ export default function POS() {
 
     return (
         <div className="flex h-full overflow-hidden bg-slate-950">
+            <ScreenGuide guideKey="pos_tour" steps={posSteps} />
             {/* Products Column */}
             <div className="flex-1 flex flex-col p-6 min-w-0">
                 <header className="mb-6 flex gap-4 items-center">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative" id="pos-search">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
                         <input
                             type="text"
@@ -222,7 +276,7 @@ export default function POS() {
                 <div className="flex gap-2 overflow-x-auto pb-4 mb-2 custom-scrollbar no-scrollbar">
                     <button
                         onClick={() => setSelectedCategory(null)}
-                        className={`px - 6 py - 2 rounded - xl whitespace - nowrap transition - all font - black text - xs uppercase tracking - widest ${!selectedCategory ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'} `}
+                        className={`px-6 py-2 rounded-xl whitespace-nowrap transition-all font-black text-xs uppercase tracking-widest ${!selectedCategory ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'}`}
                     >
                         Tous
                     </button>
@@ -230,7 +284,7 @@ export default function POS() {
                         <button
                             key={cat.category_id}
                             onClick={() => setSelectedCategory(cat.category_id)}
-                            className={`px - 6 py - 2 rounded - xl whitespace - nowrap transition - all font - black text - xs uppercase tracking - widest ${selectedCategory === cat.category_id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'} `}
+                            className={`px-6 py-2 rounded-xl whitespace-nowrap transition-all font-black text-xs uppercase tracking-widest ${selectedCategory === cat.category_id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'}`}
                         >
                             {cat.name}
                         </button>
@@ -244,7 +298,7 @@ export default function POS() {
                                 key={p.product_id}
                                 onClick={() => addToCart(p)}
                                 disabled={p.quantity <= 0}
-                                className={`glass - card p - 4 flex flex - col h - full hover: border - primary / 50 hover: bg - white / 5 transition - all text - left relative overflow - hidden group ${p.quantity <= 0 ? 'opacity-40 grayscale' : ''} `}
+                                className={`glass-card p-4 flex flex-col h-full hover:border-primary/50 hover:bg-white/5 transition-all text-left relative overflow-hidden group ${p.quantity <= 0 ? 'opacity-40 grayscale' : ''}`}
                             >
                                 <div className="aspect-square rounded-xl bg-white/5 mb-3 flex items-center justify-center overflow-hidden">
                                     {p.image ? (
@@ -256,7 +310,7 @@ export default function POS() {
                                 <h3 className="text-sm font-bold text-white mb-1 line-clamp-2">{p.name}</h3>
                                 <div className="flex justify-between items-end mt-auto">
                                     <span className="text-primary font-black text-base">{formatCurrency(p.selling_price)}</span>
-                                    <span className={`text - [10px] font - bold px - 2 py - 0.5 rounded - full ${p.quantity < 5 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/5 text-slate-500'} `}>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.quantity < 5 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/5 text-slate-500'}`}>
                                         {p.quantity} en stock
                                     </span>
                                 </div>
@@ -267,7 +321,7 @@ export default function POS() {
             </div>
 
             {/* Cart Column */}
-            <div className="w-[450px] bg-white/[0.02] border-l border-white/10 flex flex-col p-6 backdrop-blur-3xl">
+            <div className="hidden lg:flex w-[450px] bg-white/[0.02] border-l border-white/10 flex-col p-6 backdrop-blur-3xl" id="pos-cart">
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
@@ -385,7 +439,7 @@ export default function POS() {
 
                         {error && <p className="text-xs text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
 
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-3" id="pos-checkout">
                             <button
                                 onClick={() => handleCheckout('cash')}
                                 disabled={cart.length === 0 || submitting}

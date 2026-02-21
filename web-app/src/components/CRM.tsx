@@ -28,7 +28,7 @@ import {
     FileText,
     Zap
 } from 'lucide-react';
-import { customers as customersApi, settings as settingsApi } from '../services/api';
+import { customers as customersApi } from '../services/api';
 import Modal from './Modal';
 import LoyaltySettingsModal from './LoyaltySettingsModal';
 import CampaignModal from './CampaignModal';
@@ -51,8 +51,30 @@ export default function CRM() {
     const [detailTab, setDetailTab] = useState<'info' | 'history'>('info');
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', notes: '', category: 'particulier' });
+    const [customerForm, setCustomerForm] = useState({
+        name: '',
+        phone: '',
+        email: '',
+        notes: '',
+        category: 'particulier',
+        birthday: ''
+    });
     const [saving, setSaving] = useState(false);
+
+    // Debt Management State
+    const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
+    const [debtForm, setDebtForm] = useState({ amount: '', type: 'addition', reason: '' });
+
+    // Filter State
+    const [filterCategory, setFilterCategory] = useState<string>('all');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    const CATEGORIES = [
+        { id: 'particulier', label: 'Particulier', color: 'bg-slate-500/10 text-slate-500' },
+        { id: 'revendeur', label: 'Revendeur', color: 'bg-blue-500/10 text-blue-500' },
+        { id: 'pro', label: 'Professionnel', color: 'bg-indigo-500/10 text-indigo-500' },
+        { id: 'elite', label: 'Elite / VIP', color: 'bg-amber-500/10 text-amber-500' },
+    ];
 
     const TIER_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
         bronze: { color: 'text-amber-700', icon: Shield, label: 'Bronze' },
@@ -86,7 +108,7 @@ export default function CRM() {
     };
 
     const handleOpenAddModal = () => {
-        setCustomerForm({ name: '', phone: '', email: '', notes: '', category: 'particulier' });
+        setCustomerForm({ name: '', phone: '', email: '', notes: '', category: 'particulier', birthday: '' });
         setIsAddModalOpen(true);
     };
 
@@ -185,10 +207,11 @@ export default function CRM() {
         );
     }
 
-    const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone?.includes(search)
-    );
+    const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c => {
+        const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search);
+        const matchCategory = filterCategory === 'all' || (c.category || 'particulier') === filterCategory;
+        return matchSearch && matchCategory;
+    });
 
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
@@ -277,12 +300,47 @@ export default function CRM() {
                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
                     />
                 </div>
-                <div className="flex gap-2">
-                    <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                <div className="flex gap-2 relative">
+                    <button
+                        onClick={() => setIsFilterOpen(prev => !prev)}
+                        className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${
+                            filterCategory !== 'all'
+                                ? 'bg-primary/10 border-primary/30 text-primary'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                    >
                         <Filter size={20} />
                         <span className="hidden md:inline">{t('common.filter') || 'Filtrer'}</span>
                     </button>
-                    <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
+                    {isFilterOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2">
+                            <button
+                                onClick={() => { setFilterCategory('all'); setIsFilterOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                Tous les clients
+                            </button>
+                            {CATEGORIES.map(cat => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => { setFilterCategory(cat.id); setIsFilterOpen(false); }}
+                                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    {cat.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <button
+                        onClick={() => {
+                            if (selectedCustomer) {
+                                setDetailTab('history');
+                                setIsDetailModalOpen(true);
+                            }
+                        }}
+                        title="Historique (sélectionnez d'abord un client)"
+                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
+                    >
                         <History size={20} />
                     </button>
                 </div>
@@ -399,6 +457,27 @@ export default function CRM() {
                                 className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
                             />
                         </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Catégorie</label>
+                            <select
+                                value={customerForm.category}
+                                onChange={(e) => setCustomerForm({ ...customerForm, category: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium appearance-none"
+                            >
+                                {CATEGORIES.map(cat => (
+                                    <option key={cat.id} value={cat.id} className="bg-[#0F172A]">{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Date de Naissance (Optionnel)</label>
+                            <input
+                                type="date"
+                                value={customerForm.birthday}
+                                onChange={(e) => setCustomerForm({ ...customerForm, birthday: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                            />
+                        </div>
                     </div>
                     <div className="flex gap-4 pt-6 mt-6 border-t border-white/10">
                         <button
@@ -435,10 +514,16 @@ export default function CRM() {
                                     {selectedCustomer.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-white">{selectedCustomer.name}</h3>
-                                    <div className={`flex items-center justify-center gap-2 ${TIER_CONFIG[getTier(selectedCustomer)].color} font-bold text-[10px] uppercase tracking-widest`}>
-                                        {React.createElement(TIER_CONFIG[getTier(selectedCustomer)].icon, { size: 14 })}
-                                        {TIER_CONFIG[getTier(selectedCustomer)].label}
+                                    <div className="flex gap-2 justify-center mt-1">
+                                        <div className={`flex items-center gap-2 ${TIER_CONFIG[getTier(selectedCustomer)].color} font-bold text-[10px] uppercase tracking-widest`}>
+                                            {React.createElement(TIER_CONFIG[getTier(selectedCustomer)].icon, { size: 14 })}
+                                            {TIER_CONFIG[getTier(selectedCustomer)].label}
+                                        </div>
+                                        {selectedCustomer.category && selectedCustomer.category !== 'particulier' && (
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${CATEGORIES.find(cat => cat.id === selectedCustomer.category)?.color || 'bg-white/10 text-slate-400'}`}>
+                                                {CATEGORIES.find(cat => cat.id === selectedCustomer.category)?.label}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -470,11 +555,19 @@ export default function CRM() {
                                         <MessageSquare size={20} />
                                         <span className="text-[10px] font-bold uppercase">WhatsApp</span>
                                     </button>
-                                    <button className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-blue-500/10 hover:border-blue-500/30 transition-all text-blue-400 border border-blue-500/10">
+                                    <button
+                                        onClick={() => selectedCustomer.phone && window.open(`tel:${selectedCustomer.phone}`, '_self')}
+                                        disabled={!selectedCustomer.phone}
+                                        className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-blue-500/10 hover:border-blue-500/30 transition-all text-blue-400 border border-blue-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
                                         <Phone size={20} />
                                         <span className="text-[10px] font-bold uppercase">Appeler</span>
                                     </button>
-                                    <button className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-purple-500/10 hover:border-purple-500/30 transition-all text-purple-400 border border-purple-500/10">
+                                    <button
+                                        onClick={() => selectedCustomer.email && window.open(`mailto:${selectedCustomer.email}`, '_blank')}
+                                        disabled={!selectedCustomer.email}
+                                        className="flex flex-col items-center gap-2 p-4 glass-card hover:bg-purple-500/10 hover:border-purple-500/30 transition-all text-purple-400 border border-purple-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
                                         <Mail size={20} />
                                         <span className="text-[10px] font-bold uppercase">Email</span>
                                     </button>
@@ -553,8 +646,11 @@ export default function CRM() {
                             <div className="glass-card p-6 bg-rose-500/5 border-rose-500/10">
                                 <span className="text-rose-400 text-sm font-medium">Encours Actuel</span>
                                 <div className="text-3xl font-bold text-rose-500 mt-1">{formatCurrency(selectedCustomer.total_debt || 0)}</div>
-                                <button className="mt-4 w-full py-2 bg-rose-500 text-white rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20">
-                                    Encaisser un paiement
+                                <button
+                                    onClick={() => setIsDebtModalOpen(true)}
+                                    className="mt-4 w-full py-2 bg-rose-500 text-white rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20"
+                                >
+                                    Gérer la Dette (Manuel)
                                 </button>
                             </div>
                             <div className="glass-card p-6 bg-emerald-500/5 border-emerald-500/10">
@@ -591,6 +687,89 @@ export default function CRM() {
                 isOpen={isCampaignModalOpen}
                 onClose={() => setIsCampaignModalOpen(false)}
             />
-        </div >
+            {/* Manual Debt Modal */}
+            <Modal
+                isOpen={isDebtModalOpen}
+                onClose={() => setIsDebtModalOpen(false)}
+                title={`Gérer Dette: ${selectedCustomer?.name}`}
+            >
+                <div className="space-y-4">
+                    <div className="flex p-1 bg-white/5 rounded-xl border border-white/5 mb-4">
+                        <button
+                            onClick={() => setDebtForm({ ...debtForm, type: 'addition' })}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${debtForm.type === 'addition' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-500 hover:text-white'}`}
+                        >
+                            Ajouter Dette
+                        </button>
+                        <button
+                            onClick={() => setDebtForm({ ...debtForm, type: 'payment' })}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${debtForm.type === 'payment' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-white'}`}
+                        >
+                            Encaisser Paiement
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Montant</label>
+                            <input
+                                type="number"
+                                placeholder="0.00"
+                                value={debtForm.amount}
+                                onChange={(e) => setDebtForm({ ...debtForm, amount: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-bold text-xl"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Motif / Commentaire</label>
+                            <input
+                                type="text"
+                                placeholder="Paiement partiel, Achat à crédit..."
+                                value={debtForm.reason}
+                                onChange={(e) => setDebtForm({ ...debtForm, reason: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-6 mt-6 border-t border-white/10">
+                        <button
+                            type="button"
+                            onClick={() => setIsDebtModalOpen(false)}
+                            className="flex-1 px-4 py-2 text-slate-400 hover:text-white transition-colors font-bold"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (!debtForm.amount || !selectedCustomer) return;
+                                setSaving(true);
+                                try {
+                                    await customersApi.addDebt(selectedCustomer.customer_id, {
+                                        amount: parseFloat(debtForm.amount),
+                                        is_payment: debtForm.type === 'payment',
+                                        description: debtForm.reason || undefined,
+                                    });
+                                    setIsDebtModalOpen(false);
+                                    setDebtForm({ amount: '', type: 'addition', reason: '' });
+                                    // Refresh customer details
+                                    const res = await customersApi.getDebts(selectedCustomer.customer_id);
+                                    setDebtHistory(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+                                    loadCustomers();
+                                } catch (err) {
+                                    console.error(err);
+                                } finally {
+                                    setSaving(false);
+                                }
+                            }}
+                            disabled={saving}
+                            className={`flex-1 py-2 rounded-lg font-bold shadow-lg disabled:opacity-50 ${debtForm.type === 'addition' ? 'bg-rose-500 shadow-rose-500/20' : 'bg-emerald-500 shadow-emerald-500/20'} text-white`}
+                        >
+                            {saving ? '...' : 'Confirmer'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
     );
 }

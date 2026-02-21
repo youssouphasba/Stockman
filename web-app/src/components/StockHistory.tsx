@@ -68,6 +68,26 @@ export default function StockHistory() {
         }
     };
 
+    const handleDownloadCSV = () => {
+        const headers = ['Date', 'Produit', 'Mouvement', 'Quantité', 'Auteur', 'Raison'];
+        const rows = movements.map(m => [
+            new Date(m.created_at).toLocaleString(),
+            m.product_name || '',
+            m.type === 'in' ? 'Entrée' : m.type === 'out' ? 'Sortie' : 'Ajustement',
+            m.quantity,
+            m.user_name || 'Système',
+            m.reason || ''
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `historique_stock_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
@@ -84,12 +104,16 @@ export default function StockHistory() {
                         <input
                             type="text"
                             placeholder="Rechercher un produit..."
-                            className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm outline-none focus:border-primary/50 w-64"
+                            className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm outline-none focus:border-primary/50 w-full md:w-64"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <button className="glass-card p-2 text-slate-400 hover:text-white border border-white/5">
+                    <button
+                        onClick={handleDownloadCSV}
+                        className="glass-card p-2 text-slate-400 hover:text-white border border-white/5 transition-all hover:text-primary"
+                        title="Exporter CSV"
+                    >
                         <Download size={20} />
                     </button>
                 </div>

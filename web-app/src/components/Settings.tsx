@@ -15,6 +15,7 @@ import {
     LogOut
 } from 'lucide-react';
 import { settings as settingsApi, auth as authApi } from '../services/api';
+import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
@@ -22,6 +23,7 @@ export default function Settings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [profileName, setProfileName] = useState('');
 
     useEffect(() => {
         loadSettings();
@@ -32,6 +34,7 @@ export default function Settings() {
         try {
             const res = await settingsApi.get();
             setSettings(res);
+            setProfileName(res?.user_name || '');
         } catch (err) {
             console.error("Settings load error", err);
         } finally {
@@ -95,7 +98,8 @@ export default function Settings() {
                                 <label className="text-sm text-slate-400">Nom complet</label>
                                 <input
                                     type="text"
-                                    defaultValue={settings?.user_name || 'Gérant Stockman'}
+                                    value={profileName}
+                                    onChange={(e) => setProfileName(e.target.value)}
                                     className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
                                 />
                             </div>
@@ -109,9 +113,29 @@ export default function Settings() {
                                 />
                             </div>
                         </div>
-                        <button className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
-                            <Save size={18} /> Mettre à jour le profil
+                        <button
+                            onClick={() => handleUpdateSettings({ user_name: profileName })}
+                            disabled={saving}
+                            className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Enregistrement...' : 'Mettre à jour le profil'}
                         </button>
+                    </div>
+
+                    {/* Smart Reminder Rules */}
+                    <div className="glass-card p-8">
+                        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+                            <Bell size={24} className="text-primary" />
+                            Règles de Rappel Intelligent
+                        </h3>
+                        <p className="text-slate-500 text-sm mb-6">
+                            Configurez les seuils et activez/désactivez les rappels automatiques générés par l'IA.
+                        </p>
+                        <ReminderRulesSettings
+                            rules={settings?.reminder_rules ?? {} as ReminderRuleSettings}
+                            onUpdate={(newRules) => handleUpdateSettings({ reminder_rules: newRules })}
+                        />
                     </div>
 
                     {/* Preferences */}

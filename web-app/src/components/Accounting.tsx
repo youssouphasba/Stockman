@@ -55,6 +55,19 @@ export default function Accounting() {
     const [newExpense, setNewExpense] = useState({ category: 'other', amount: '', description: '' });
     const [saving, setSaving] = useState(false);
 
+    // Filter state
+    const [filterExpenseCategory, setFilterExpenseCategory] = useState('all');
+    const [isExpenseFilterOpen, setIsExpenseFilterOpen] = useState(false);
+
+    const EXPENSE_CATEGORIES = [
+        { value: 'rent', label: 'Loyer' },
+        { value: 'salary', label: 'Salaires' },
+        { value: 'transport', label: 'Transport' },
+        { value: 'water', label: 'Eau / Électricité' },
+        { value: 'merchandise', label: 'Marchandises' },
+        { value: 'other', label: 'Autres' },
+    ];
+
     useEffect(() => {
         loadData();
     }, [period]);
@@ -258,16 +271,40 @@ export default function Accounting() {
                                 <Wallet size={20} className="text-primary" />
                                 Historique des Dépenses
                             </h3>
-                            <button className="text-slate-400 hover:text-white transition-colors">
-                                <Filter size={18} />
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsExpenseFilterOpen(prev => !prev)}
+                                    className={`p-2 rounded-lg transition-all ${filterExpenseCategory !== 'all' ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Filter size={18} />
+                                </button>
+                                {isExpenseFilterOpen && (
+                                    <div className="absolute top-full right-0 mt-2 w-44 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2">
+                                        <button
+                                            onClick={() => { setFilterExpenseCategory('all'); setIsExpenseFilterOpen(false); }}
+                                            className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                        >
+                                            Toutes catégories
+                                        </button>
+                                        {EXPENSE_CATEGORIES.map(cat => (
+                                            <button
+                                                key={cat.value}
+                                                onClick={() => { setFilterExpenseCategory(cat.value); setIsExpenseFilterOpen(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat.value ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            {expenses.length === 0 ? (
+                            {expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory).length === 0 ? (
                                 <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
                             ) : (
-                                expenses.map((exp: any) => (
+                                expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory).map((exp: any) => (
                                     <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 text-xs font-black">

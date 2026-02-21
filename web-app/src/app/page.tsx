@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon } from "lucide-react";
+import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
 import Inventory from "../components/Inventory";
@@ -22,7 +22,8 @@ import StockHistory from "../components/StockHistory";
 import AbcAnalysis from "../components/AbcAnalysis";
 import InventoryCounting from "../components/InventoryCounting";
 import ExpiryAlerts from "../components/ExpiryAlerts";
-import { auth, ApiError } from "../services/api";
+import ChatModal from "../components/ChatModal";
+import { auth, chat as chatApi, ApiError } from "../services/api";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -33,6 +34,11 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Sidebar & Chat state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Check for existing session
   useEffect(() => {
@@ -52,6 +58,23 @@ export default function Home() {
       setIsLogged(false);
     }
   };
+
+  // Poll unread message count every 30 seconds when logged in
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await chatApi.getUnreadCount();
+      setUnreadMessages(res.unread || 0);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLogged) return;
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [isLogged, fetchUnread]);
 
   const handleLogin = async () => {
     setError(null);
@@ -80,34 +103,71 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Show a blank or loading state while translations are fetching or before client hydration
   if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
 
   if (isLogged) {
     return (
-      <main className="min-h-screen bg-[#0F172A] pl-64 flex">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} user={user} />
+      <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onLogout={handleLogout}
+          user={user}
+          isMobileOpen={isSidebarOpen}
+          onMobileClose={() => setIsSidebarOpen(false)}
+          onOpenChat={() => setIsChatOpen(true)}
+          unreadMessages={unreadMessages}
+        />
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'pos' && <POS />}
-          {activeTab === 'inventory' && <Inventory />}
-          {activeTab === 'orders' && <Orders />}
-          {activeTab === 'accounting' && <Accounting />}
-          {activeTab === 'crm' && <CRM />}
-          {activeTab === 'staff' && <Staff />}
-          {activeTab === 'suppliers' && <Suppliers />}
-          {activeTab === 'activity' && <Activity />}
-          {activeTab === 'alerts' && <Alerts />}
-          {activeTab === 'stock_history' && <StockHistory />}
-          {activeTab === 'stats' && <AbcAnalysis />}
-          {activeTab === 'inventory_counting' && <InventoryCounting />}
-          {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
-          {activeTab === 'subscription' && <Subscription />}
-          {activeTab === 'admin' && <AdminDashboard />}
-          {activeTab === 'supplier_portal' && <SupplierPortal />}
-          {activeTab === 'settings' && <Settings />}
+          {/* Mobile top bar */}
+          <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                <Package className="text-white" size={14} />
+              </div>
+              <span className="text-white font-bold text-gradient">Stockman</span>
+            </div>
+          </div>
+
+          {/* Page content */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'pos' && <POS />}
+            {activeTab === 'inventory' && <Inventory />}
+            {activeTab === 'orders' && <Orders />}
+            {activeTab === 'accounting' && <Accounting />}
+            {activeTab === 'crm' && <CRM />}
+            {activeTab === 'staff' && <Staff />}
+            {activeTab === 'suppliers' && <Suppliers />}
+            {activeTab === 'activity' && <Activity />}
+            {activeTab === 'alerts' && <Alerts />}
+            {activeTab === 'stock_history' && <StockHistory />}
+            {activeTab === 'stats' && <AbcAnalysis />}
+            {activeTab === 'inventory_counting' && <InventoryCounting />}
+            {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
+            {activeTab === 'subscription' && <Subscription />}
+            {activeTab === 'admin' && <AdminDashboard />}
+            {activeTab === 'supplier_portal' && <SupplierPortal />}
+            {activeTab === 'settings' && <Settings />}
+          </div>
         </div>
+
+        {/* Chat modal — overlay, does not change activeTab */}
+        <ChatModal
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            fetchUnread();
+          }}
+          currentUser={user}
+        />
       </main>
     );
   }
@@ -163,7 +223,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Side: Simple Login Card */}
+        {/* Right Side: Login Card */}
         <div className="glass-card flex flex-col gap-8 shadow-2xl relative overflow-hidden group p-8">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
 
@@ -200,6 +260,7 @@ export default function Home() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
               />
             </div>

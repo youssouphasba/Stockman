@@ -88,6 +88,10 @@ export default function Suppliers() {
     const [showSupplierDetails, setShowSupplierDetails] = useState(false);
     const [supplierTab, setSupplierTab] = useState<'perf' | 'logs' | 'invoices'>('perf');
     const [partialItems, setPartialItems] = useState<any[]>([]);
+    const [contextMenuSupplierId, setContextMenuSupplierId] = useState<string | null>(null);
+    const [regionFilter, setRegionFilter] = useState('');
+    const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+    const [automating, setAutomating] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -97,6 +101,33 @@ export default function Suppliers() {
         if (!phone) return;
         const cleanPhone = phone.replace(/[^\d]/g, '');
         window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    };
+
+    const handleAutomate = async () => {
+        setAutomating(true);
+        try {
+            await replenishmentApi.automate();
+            setSuccess("Réapprovisionnement automatique lancé avec succès !");
+            loadData();
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error("Automate error", err);
+        } finally {
+            setAutomating(false);
+        }
+    };
+
+    const handleDeleteSupplier = async (supplierId: string) => {
+        if (!confirm('Supprimer ce fournisseur ?')) return;
+        try {
+            await suppliersApi.delete(supplierId);
+            setSuccess("Fournisseur supprimé.");
+            setContextMenuSupplierId(null);
+            loadData();
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error("Delete supplier error", err);
+        }
     };
 
     const loadData = async () => {
@@ -326,9 +357,30 @@ export default function Suppliers() {
                                                     <p className="text-sm text-slate-500">{s.contact_name || 'Aucun contact'}</p>
                                                 </div>
                                             </div>
-                                            <button className="text-slate-500 hover:text-white p-2">
-                                                <MoreVertical size={20} />
-                                            </button>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setContextMenuSupplierId(contextMenuSupplierId === s.supplier_id ? null : s.supplier_id); }}
+                                                    className="text-slate-500 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all"
+                                                >
+                                                    <MoreVertical size={20} />
+                                                </button>
+                                                {contextMenuSupplierId === s.supplier_id && (
+                                                    <div className="absolute top-full right-0 mt-1 w-40 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                                        <button
+                                                            onClick={() => { setSelectedSupplier(s); setShowSupplierModal(false); setShowSupplierDetails(true); setContextMenuSupplierId(null); }}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
+                                                        >
+                                                            Voir les détails
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { handleDeleteSupplier(s.supplier_id); }}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-all"
+                                                        >
+                                                            Supprimer
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2 mb-6">
@@ -455,9 +507,13 @@ export default function Suppliers() {
                                     <p className="text-sm text-slate-400">Ces suggestions sont basées sur votre vélocité de vente des 30 derniers jours.</p>
                                 </div>
                             </div>
-                            <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2">
-                                <RefreshCcw size={18} />
-                                Tout Automatiser
+                            <button
+                                onClick={handleAutomate}
+                                disabled={automating}
+                                className="btn-primary bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <RefreshCcw size={18} className={automating ? 'animate-spin' : ''} />
+                                {automating ? 'En cours...' : 'Tout Automatiser'}
                             </button>
                         </div>
 
@@ -547,10 +603,36 @@ export default function Suppliers() {
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all text-lg"
                                 />
                             </div>
-                            <button className="px-6 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white flex items-center gap-2 transition-all">
-                                <FilterIcon size={20} />
-                                <span>Région</span>
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsRegionDropdownOpen(prev => !prev)}
+                                    className={`px-6 py-4 rounded-2xl border flex items-center gap-2 transition-all ${regionFilter ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
+                                >
+                                    <FilterIcon size={20} />
+                                    <span>{regionFilter || 'Région'}</span>
+                                </button>
+                                {isRegionDropdownOpen && (
+                                    <div className="absolute top-full right-0 mt-2 w-40 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
+                                        {['Dakar', 'Abidjan', 'Douala', 'Lagos', 'Accra'].map(region => (
+                                            <button
+                                                key={region}
+                                                onClick={() => { setRegionFilter(region === regionFilter ? '' : region); setIsRegionDropdownOpen(false); setSearch(region === regionFilter ? '' : region); }}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${regionFilter === region ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                {region}
+                                            </button>
+                                        ))}
+                                        {regionFilter && (
+                                            <button
+                                                onClick={() => { setRegionFilter(''); setIsRegionDropdownOpen(false); setSearch(''); }}
+                                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all mt-1 border-t border-white/5"
+                                            >
+                                                Effacer le filtre
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {loading && marketplaceSuppliers.length === 0 ? (
@@ -606,7 +688,10 @@ export default function Suppliers() {
 
                                             <div className="pt-3 border-t border-white/5 flex items-center justify-between">
                                                 <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Catalogue</span>
-                                                <button className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
+                                                <button
+                                                    onClick={() => { setSelectedSupplier(s); setShowSupplierDetails(true); }}
+                                                    className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all"
+                                                >
                                                     <ChevronRightIcon size={16} />
                                                 </button>
                                             </div>
