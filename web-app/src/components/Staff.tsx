@@ -22,6 +22,23 @@ import {
 import { subUsers as subUsersApi } from '../services/api';
 import Modal from './Modal';
 
+const MODULE_LABELS: Record<string, string> = {
+    pos:        '🧾 Ventes (POS)',
+    stock:      '📦 Stock',
+    accounting: '💼 Comptabilité',
+    crm:        '👥 Clients (CRM)',
+    suppliers:  '🚚 Fournisseurs',
+    staff:      '🏪 Gestion équipe',
+};
+
+const ROLE_TEMPLATES: Record<string, { label: string; permissions: Record<string, string> }> = {
+    cashier:       { label: '🧾 Caissier',       permissions: { pos: 'write', stock: 'read',  accounting: 'none',  crm: 'read',  suppliers: 'none',  staff: 'none'  } },
+    stock_manager: { label: '📦 Stock',           permissions: { pos: 'none',  stock: 'write', accounting: 'none',  crm: 'none',  suppliers: 'read',  staff: 'none'  } },
+    accountant:    { label: '💼 Comptable',       permissions: { pos: 'read',  stock: 'read',  accounting: 'write', crm: 'none',  suppliers: 'read',  staff: 'none'  } },
+    manager:       { label: '🏪 Manager',         permissions: { pos: 'write', stock: 'write', accounting: 'read',  crm: 'write', suppliers: 'write', staff: 'write' } },
+    crm_agent:     { label: '👥 CRM / Clients',   permissions: { pos: 'read',  stock: 'none',  accounting: 'none',  crm: 'write', suppliers: 'none',  staff: 'none'  } },
+};
+
 export default function Staff() {
     const { t } = useTranslation();
     const [users, setUsers] = useState<any[]>([]);
@@ -44,6 +61,7 @@ export default function Staff() {
             crm: 'none',
             pos: 'read',
             suppliers: 'none',
+            staff: 'none',
         }
     });
 
@@ -77,6 +95,7 @@ export default function Staff() {
                 crm: 'none',
                 pos: 'read',
                 suppliers: 'none',
+                staff: 'none',
             }
         });
         setIsModalOpen(true);
@@ -94,6 +113,7 @@ export default function Staff() {
                 crm: 'none',
                 pos: 'read',
                 suppliers: 'none',
+                staff: 'none',
             }
         });
         setIsModalOpen(true);
@@ -311,10 +331,25 @@ export default function Staff() {
 
                     <div className="space-y-4 pt-4 border-t border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-widest">{t('users.permissions_section_title')}</h3>
+
+                        {/* Role Templates */}
+                        <div className="flex flex-wrap gap-2">
+                            {Object.entries(ROLE_TEMPLATES).map(([key, tpl]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, permissions: { ...tpl.permissions } }))}
+                                    className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-all"
+                                >
+                                    {tpl.label}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="space-y-2">
-                            {['pos', 'stock', 'accounting', 'crm', 'suppliers'].map(mod => (
+                            {['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'].map(mod => (
                                 <div key={mod} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
-                                    <span className="text-slate-200 capitalize font-medium">{mod}</span>
+                                    <span className="text-slate-200 font-medium">{MODULE_LABELS[mod] || mod}</span>
                                     <button
                                         type="button"
                                         onClick={() => togglePermission(mod)}

@@ -19,18 +19,22 @@ import {
     X,
     ChevronRight,
     CheckCircle,
-    Package
+    Package,
+    Tag,
+    RotateCcw
 } from 'lucide-react';
 import {
     products as productsApi,
     sales as salesApi,
     categories as categoriesApi,
     customers as customersApi,
-    ai as aiApi
+    ai as aiApi,
+    settings as settingsApi
 } from '../services/api';
 import BarcodeScanner from './BarcodeScanner';
 import QuickCustomerModal from './QuickCustomerModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
+import OrderReturnModal from './OrderReturnModal';
 import { syncService } from '../services/syncService';
 import { WifiOff, HelpCircle } from 'lucide-react';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -53,9 +57,25 @@ export default function POS() {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [lastSale, setLastSale] = useState<any>(null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Discount state
+    const [discountType, setDiscountType] = useState<'%' | 'F'>('F');
+    const [discountValue, setDiscountValue] = useState<number>(0);
+
+    // Store settings (terminals + receipt info)
+    const [storeSettings, setStoreSettings] = useState<any>(null);
+    const [selectedTerminal, setSelectedTerminal] = useState<string>('');
+
+    // Split payment
+    const [isSplitPayment, setIsSplitPayment] = useState(false);
+    const [splitPayments, setSplitPayments] = useState([
+        { method: 'cash', amount: 0 },
+        { method: 'mobile_money', amount: 0 },
+    ]);
 
     // AI Suggestions
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -64,14 +84,20 @@ export default function POS() {
     const loadInitialData = async () => {
         try {
             setLoading(true);
-            const [prodsRes, catsRes, custsRes] = await Promise.all([
+            const [prodsRes, catsRes, custsRes, settingsRes] = await Promise.all([
                 productsApi.list(undefined, 0, 500),
                 categoriesApi.list(),
-                customersApi.list()
+                customersApi.list(),
+                settingsApi.get().catch(() => null)
             ]);
             setAllProducts((prodsRes.items || prodsRes));
             setCategoriesList(catsRes);
             setCustomersList(custsRes.items || custsRes);
+            if (settingsRes) {
+                setStoreSettings(settingsRes);
+                // Auto-select terminal if only one
+                if (settingsRes.terminals?.length === 1) setSelectedTerminal(settingsRes.terminals[0]);
+            }
         } catch (err) {
             console.error("Load error", err);
         } finally {
@@ -136,11 +162,28 @@ export default function POS() {
         setCart(current => current.filter(item => item.product_id !== productId));
     };
 
-    const calculateTotal = () => {
-        return cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+    const calculateSubtotal = () =>
+        cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+
+    const calculateDiscount = () => {
+        const sub = calculateSubtotal();
+        if (discountType === '%') return Math.round(sub * Math.min(discountValue, 100) / 100);
+        return Math.min(discountValue, sub);
     };
 
-    const handleCheckout = async (method: string) => {
+    const calculateTotal = () => Math.max(0, calculateSubtotal() - calculateDiscount());
+
+    const handleSplitCheckout = async () => {
+        const total = calculateTotal();
+        const paid = splitPayments.reduce((s, p) => s + (p.amount || 0), 0);
+        if (Math.abs(paid - total) > 0.01) {
+            setError(`Les paiements (${paid}) ne couvrent pas le total (${total})`);
+            return;
+        }
+        await handleCheckout(splitPayments[0].method, splitPayments);
+    };
+
+    const handleCheckout = async (method: string, payments?: { method: string; amount: number }[]) => {
         if (cart.length === 0 || submitting) return;
         if (method === 'credit' && !selectedCustomer) {
             setError("Veuillez sélectionner un client pour une vente à crédit.");
@@ -150,16 +193,20 @@ export default function POS() {
         setSubmitting(true);
         setError(null);
         try {
-            const saleData = {
+            const discountAmount = calculateDiscount();
+            const saleData: any = {
                 items: cart.map(item => ({
                     product_id: item.product_id,
                     quantity: item.quantity,
                     price: item.selling_price
                 })),
                 total_amount: calculateTotal(),
+                discount_amount: discountAmount,
                 payment_method: method,
-                customer_id: selectedCustomer?.customer_id
+                customer_id: selectedCustomer?.customer_id,
+                terminal_id: selectedTerminal || undefined,
             };
+            if (payments && payments.length > 1) saleData.payments = payments;
 
             if (!navigator.onLine) {
                 syncService.queueSale(saleData);
@@ -174,6 +221,9 @@ export default function POS() {
             setLastSale({ ...result, items: cart });
             setCart([]);
             setSelectedCustomer(null);
+            setDiscountValue(0);
+            setIsSplitPayment(false);
+            setSplitPayments([{ method: 'cash', amount: 0 }, { method: 'mobile_money', amount: 0 }]);
             setIsReceiptOpen(true);
 
             // Refresh products
@@ -430,41 +480,164 @@ export default function POS() {
                         </div>
                     )}
 
+                    {/* Terminal selector */}
+                    {storeSettings?.terminals?.length > 1 && (
+                        <div className="mb-2 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                            <span className="text-xs text-slate-400 font-medium shrink-0">Caisse</span>
+                            <select
+                                value={selectedTerminal}
+                                onChange={e => setSelectedTerminal(e.target.value)}
+                                className="ml-auto bg-transparent text-white font-bold text-xs outline-none"
+                            >
+                                <option value="" className="bg-slate-900">— Sélectionner —</option>
+                                {storeSettings.terminals.map((t: string) => (
+                                    <option key={t} value={t} className="bg-slate-900">{t}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Footer / Summary */}
                     <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
+
+                        {/* Discount row */}
+                        {cart.length > 0 && (
+                            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                                <Tag size={14} className="text-slate-500 shrink-0" />
+                                <span className="text-xs text-slate-400 font-medium">Remise</span>
+                                <div className="ml-auto flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setDiscountType(t => t === '%' ? 'F' : '%'); setDiscountValue(0); }}
+                                        className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 w-6 text-center"
+                                    >
+                                        {discountType}
+                                    </button>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={discountType === '%' ? 100 : undefined}
+                                        value={discountValue || ''}
+                                        onChange={e => setDiscountValue(Math.max(0, Number(e.target.value)))}
+                                        placeholder="0"
+                                        className="w-20 bg-transparent text-white font-black text-sm outline-none text-right"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex justify-between items-end border-b border-white/5 pb-4">
                             <span className="text-3xl font-black text-white tracking-tighter italic">TOTAL</span>
-                            <span className="text-4xl font-black text-white tracking-tighter">{calculateTotal()} F</span>
+                            <div className="text-right">
+                                {calculateDiscount() > 0 && (
+                                    <p className="text-xs text-slate-500 line-through">{formatCurrency(calculateSubtotal())}</p>
+                                )}
+                                <span className="text-4xl font-black text-white tracking-tighter">{formatCurrency(calculateTotal())}</span>
+                                {calculateDiscount() > 0 && (
+                                    <p className="text-xs text-rose-400 font-bold">-{formatCurrency(calculateDiscount())} remise</p>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Return button for last sale */}
+                        {lastSale && cart.length === 0 && (
+                            <button
+                                onClick={() => setIsReturnModalOpen(true)}
+                                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-white bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+                            >
+                                <RotateCcw size={14} /> Retour sur dernière vente
+                            </button>
+                        )}
 
                         {error && <p className="text-xs text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
 
-                        <div className="grid grid-cols-3 gap-3" id="pos-checkout">
+                        {isSplitPayment ? (
+                            <div className="space-y-3" id="pos-checkout">
+                                {splitPayments.map((sp, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <select
+                                            value={sp.method}
+                                            onChange={e => setSplitPayments(prev => prev.map((p, i) => i === idx ? { ...p, method: e.target.value } : p))}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none flex-1"
+                                        >
+                                            <option value="cash" className="bg-slate-900">Cash</option>
+                                            <option value="mobile_money" className="bg-slate-900">Mobile Money</option>
+                                            <option value="card" className="bg-slate-900">Carte</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={sp.amount || ''}
+                                            onChange={e => {
+                                                const val = Number(e.target.value);
+                                                setSplitPayments(prev => {
+                                                    const next = [...prev];
+                                                    next[idx] = { ...next[idx], amount: val };
+                                                    // Auto-fill other with remainder
+                                                    if (prev.length === 2) {
+                                                        const other = idx === 0 ? 1 : 0;
+                                                        next[other] = { ...next[other], amount: Math.max(0, calculateTotal() - val) };
+                                                    }
+                                                    return next;
+                                                });
+                                            }}
+                                            placeholder="Montant"
+                                            className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-black text-sm outline-none text-right"
+                                        />
+                                    </div>
+                                ))}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setIsSplitPayment(false)}
+                                        className="flex-1 py-2 text-xs font-bold text-slate-400 bg-white/5 rounded-xl border border-white/10"
+                                    >Annuler</button>
+                                    <button
+                                        onClick={handleSplitCheckout}
+                                        disabled={submitting}
+                                        className="flex-1 py-2 text-xs font-black text-white bg-primary rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50"
+                                    >{submitting ? '...' : 'Confirmer'}</button>
+                                </div>
+                            </div>
+                        ) : (
+                        <div className="space-y-3" id="pos-checkout">
+                            <div className="grid grid-cols-3 gap-3">
+                                <button
+                                    onClick={() => handleCheckout('cash')}
+                                    disabled={cart.length === 0 || submitting}
+                                    className="flex flex-col items-center gap-2 p-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all disabled:opacity-50 group shadow-lg shadow-emerald-500/10"
+                                >
+                                    <Wallet size={24} className="group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Cash</span>
+                                </button>
+                                <button
+                                    onClick={() => handleCheckout('mobile_money')}
+                                    disabled={cart.length === 0 || submitting}
+                                    className="flex flex-col items-center gap-2 p-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all disabled:opacity-50 group shadow-lg shadow-amber-500/10"
+                                >
+                                    <Smartphone size={24} className="group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Mobile</span>
+                                </button>
+                                <button
+                                    onClick={() => handleCheckout('credit')}
+                                    disabled={cart.length === 0 || submitting}
+                                    className="flex flex-col items-center gap-2 p-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all disabled:opacity-50 group shadow-lg shadow-indigo-500/10"
+                                >
+                                    <CreditCard size={24} className="group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Crédit</span>
+                                </button>
+                            </div>
                             <button
-                                onClick={() => handleCheckout('cash')}
-                                disabled={cart.length === 0 || submitting}
-                                className="flex flex-col items-center gap-2 p-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all disabled:opacity-50 group shadow-lg shadow-emerald-500/10"
+                                onClick={() => {
+                                    setSplitPayments([{ method: 'cash', amount: 0 }, { method: 'mobile_money', amount: calculateTotal() }]);
+                                    setIsSplitPayment(true);
+                                }}
+                                disabled={cart.length === 0}
+                                className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-30"
                             >
-                                <Wallet size={24} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Cash</span>
-                            </button>
-                            <button
-                                onClick={() => handleCheckout('mobile_money')}
-                                disabled={cart.length === 0 || submitting}
-                                className="flex flex-col items-center gap-2 p-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all disabled:opacity-50 group shadow-lg shadow-amber-500/10"
-                            >
-                                <Smartphone size={24} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Mobile</span>
-                            </button>
-                            <button
-                                onClick={() => handleCheckout('credit')}
-                                disabled={cart.length === 0 || submitting}
-                                className="flex flex-col items-center gap-2 p-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all disabled:opacity-50 group shadow-lg shadow-indigo-500/10"
-                            >
-                                <CreditCard size={24} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Crédit</span>
+                                ⇄ Paiement partagé
                             </button>
                         </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -490,6 +663,17 @@ export default function POS() {
                 isOpen={isReceiptOpen}
                 onClose={() => setIsReceiptOpen(false)}
                 sale={lastSale}
+                businessInfo={{
+                    name: storeSettings?.receipt_business_name,
+                    footer: storeSettings?.receipt_footer,
+                }}
+            />
+
+            <OrderReturnModal
+                isOpen={isReturnModalOpen}
+                onClose={() => setIsReturnModalOpen(false)}
+                order={lastSale}
+                onSuccess={() => setIsReturnModalOpen(false)}
             />
         </div>
     );

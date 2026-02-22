@@ -94,6 +94,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         fetchDashboard();
     }, [period, i18n.language]);
 
+    // Close settings panel on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (settingsPanelRef.current && !settingsPanelRef.current.contains(e.target as Node)) {
+                setIsSettingsOpen(false);
+            }
+        };
+        if (isSettingsOpen) document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isSettingsOpen]);
+
     if (loading && !data) {
         return (
             <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
@@ -128,16 +139,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         URL.revokeObjectURL(url);
     };
 
-    // Close settings panel on outside click
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (settingsPanelRef.current && !settingsPanelRef.current.contains(e.target as Node)) {
-                setIsSettingsOpen(false);
-            }
-        };
-        if (isSettingsOpen) document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [isSettingsOpen]);
+
 
     const dashboardSteps: GuideStep[] = [
         {

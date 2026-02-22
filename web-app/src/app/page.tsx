@@ -22,6 +22,7 @@ import StockHistory from "../components/StockHistory";
 import AbcAnalysis from "../components/AbcAnalysis";
 import InventoryCounting from "../components/InventoryCounting";
 import ExpiryAlerts from "../components/ExpiryAlerts";
+import MultiStoreDashboard from "../components/MultiStoreDashboard";
 import ChatModal from "../components/ChatModal";
 import { auth, chat as chatApi, ApiError } from "../services/api";
 
@@ -139,6 +140,7 @@ export default function Home() {
           {/* Page content */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'multi_stores' && <MultiStoreDashboard />}
             {activeTab === 'pos' && <POS />}
             {activeTab === 'inventory' && <Inventory />}
             {activeTab === 'orders' && <Orders />}

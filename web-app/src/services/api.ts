@@ -86,6 +86,8 @@ export const auth = {
             body: { email, password },
         }),
     me: () => request<any>('/auth/me'),
+    updateProfile: (data: { name?: string; currency?: string }) =>
+        request<any>('/auth/profile', { method: 'PUT', body: data }),
     logout: () => {
         removeToken();
         return Promise.resolve({ message: 'Success' });
@@ -93,9 +95,10 @@ export const auth = {
 };
 
 export const products = {
-    list: (categoryId?: string, skip = 0, limit = 50) => {
+    list: (categoryId?: string, skip = 0, limit = 50, locationId?: string) => {
         const qs = new URLSearchParams();
         if (categoryId) qs.set('category_id', categoryId);
+        if (locationId) qs.set('location_id', locationId);
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<any>(`/products?${qs.toString()}`);
@@ -114,6 +117,13 @@ export const products = {
     getPriceHistory: (id: string) => request<any[]>(`/products/${id}/price-history`),
     batchStockUpdate: (codes: string[], increment: number = 1) =>
         request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
+};
+
+export const locations = {
+    list: () => request<any[]>('/locations'),
+    create: (data: { name: string; type: string }) => request<any>('/locations', { method: 'POST', body: data }),
+    update: (id: string, data: { name: string; type: string }) => request<any>(`/locations/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<any>(`/locations/${id}`, { method: 'DELETE' }),
 };
 
 export const dashboard = {
@@ -180,12 +190,16 @@ export const expenses = {
             method: 'POST',
             body: data,
         }),
+    update: (id: string, data: { category: string; amount: number; description?: string }) =>
+        request<any>(`/expenses/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/expenses/${id}`, { method: 'DELETE' }),
 };
 
 export const customers = {
-    list: (skip = 0, limit = 50) => request<any>(`/customers?skip=${skip}&limit=${limit}`),
+    list: (skip = 0, limit = 50, sortBy = 'name') => request<any>(`/customers?skip=${skip}&limit=${limit}&sort_by=${sortBy}`),
     get: (id: string) => request<any>(`/customers/${id}`),
+    getSales: (id: string) => request<any>(`/customers/${id}/sales`),
+    getBirthdays: (days = 7) => request<any[]>(`/customers/birthdays?days=${days}`),
     create: (data: { name: string; email?: string; phone?: string; notes?: string; birthday?: string; category?: string }) =>
         request<any>('/customers', {
             method: 'POST',
@@ -347,6 +361,20 @@ export const subscription = {
     getDetails: () => request<any>('/subscription/details'),
     sync: () => request<any>('/subscription/sync', { method: 'POST' }),
     initCinetPay: () => request<{ payment_url: string }>('/subscription/cinetpay/init', { method: 'POST' }),
+};
+
+export const stores = {
+    list: () => request<any[]>('/stores'),
+    create: (data: { name: string; address?: string }) =>
+        request<any>('/stores', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string; address?: string; currency?: string; receipt_business_name?: string; receipt_footer?: string; terminals?: string[] }) =>
+        request<any>(`/stores/${id}`, { method: 'PUT', body: data }),
+    setActive: (storeId: string) =>
+        request<any>('/auth/active-store', { method: 'PUT', body: { store_id: storeId } }),
+    getConsolidatedStats: (days = 30) =>
+        request<any>(`/stores/consolidated-stats?days=${days}`),
+    transferStock: (data: { product_id: string; from_store_id: string; to_store_id: string; quantity: number; note?: string }) =>
+        request<any>('/stock/transfer', { method: 'POST', body: data }),
 };
 
 export const admin = {

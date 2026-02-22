@@ -26,7 +26,11 @@ import {
     Megaphone,
     Settings,
     FileText,
-    Zap
+    Zap,
+    Cake,
+    ArrowUpDown,
+    ShoppingBag,
+    X
 } from 'lucide-react';
 import { customers as customersApi } from '../services/api';
 import Modal from './Modal';
@@ -65,9 +69,16 @@ export default function CRM() {
     const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
     const [debtForm, setDebtForm] = useState({ amount: '', type: 'addition', reason: '' });
 
-    // Filter State
+    // Filter & Sort State
     const [filterCategory, setFilterCategory] = useState<string>('all');
+    const [filterTier, setFilterTier] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<string>('name');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // Birthdays & Sales
+    const [birthdays, setBirthdays] = useState<any[]>([]);
+    const [customerSales, setCustomerSales] = useState<any[]>([]);
+    const [loadingSales, setLoadingSales] = useState(false);
 
     const CATEGORIES = [
         { id: 'particulier', label: 'Particulier', color: 'bg-slate-500/10 text-slate-500' },
@@ -93,18 +104,30 @@ export default function CRM() {
 
     useEffect(() => {
         loadCustomers();
+        loadBirthdays();
     }, []);
+
+    useEffect(() => {
+        loadCustomers();
+    }, [sortBy]);
 
     const loadCustomers = async () => {
         setLoading(true);
         try {
-            const res = await customersApi.list();
+            const res = await customersApi.list(0, 200, sortBy);
             setCustomers(res.items || res);
         } catch (err) {
             console.error("CRM load error", err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadBirthdays = async () => {
+        try {
+            const res = await customersApi.getBirthdays(7);
+            setBirthdays(Array.isArray(res) ? res : []);
+        } catch { /* silent */ }
     };
 
     const handleOpenAddModal = () => {
@@ -182,11 +205,16 @@ export default function CRM() {
         setDetailTab('info');
         setIsDetailModalOpen(true);
         setLoadingHistory(true);
+        setCustomerSales([]);
         try {
-            const res = await customersApi.getDebts(customer.customer_id);
-            setDebtHistory(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+            const [debtsRes, salesRes] = await Promise.all([
+                customersApi.getDebts(customer.customer_id),
+                customersApi.getSales(customer.customer_id)
+            ]);
+            setDebtHistory(Array.isArray(debtsRes?.items) ? debtsRes.items : (Array.isArray(debtsRes) ? debtsRes : []));
+            setCustomerSales(salesRes?.sales || []);
         } catch (err) {
-            console.error("Error loading debt history", err);
+            console.error("Error loading customer detail", err);
             setDebtHistory([]);
         } finally {
             setLoadingHistory(false);
@@ -210,8 +238,19 @@ export default function CRM() {
     const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search);
         const matchCategory = filterCategory === 'all' || (c.category || 'particulier') === filterCategory;
-        return matchSearch && matchCategory;
+        const matchTier = filterTier === 'all' || getTier(c) === filterTier;
+        return matchSearch && matchCategory && matchTier;
     });
+
+    // CRM summary stats
+    const avgBasket = customers.length > 0
+        ? customers.reduce((s, c) => s + (c.average_basket || 0), 0) / customers.filter(c => (c.visit_count || 0) > 0).length || 0
+        : 0;
+    const inactiveCount = customers.filter(c => {
+        if (!c.last_purchase_date) return true;
+        const diff = (Date.now() - new Date(c.last_purchase_date).getTime()) / (1000 * 60 * 60 * 24);
+        return diff > 30;
+    }).length;
 
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
@@ -259,33 +298,91 @@ export default function CRM() {
                 </div>
             </header>
 
+            {/* Birthday banner */}
+            {birthdays.length > 0 && (
+                <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-4">
+                    <Cake size={20} className="text-amber-400 shrink-0" />
+                    <div className="flex-1">
+                        <span className="text-amber-400 font-bold text-sm">
+                            {birthdays.length === 1
+                                ? `🎂 Anniversaire dans 7 jours : ${birthdays[0].name}`
+                                : `🎂 ${birthdays.length} anniversaires à venir : ${birthdays.slice(0, 3).map((b: any) => b.name).join(', ')}${birthdays.length > 3 ? '…' : ''}`
+                            }
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setIsCampaignModalOpen(true);
+                        }}
+                        className="text-xs font-black text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl hover:bg-amber-500/20 transition-all shrink-0"
+                    >
+                        Envoyer vœux
+                    </button>
+                </div>
+            )}
+
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass-card p-6 flex flex-col gap-2">
-                    <span className="text-slate-400 text-sm">{t('crm.total_customers') || 'Total Clients'}</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="glass-card p-5 flex flex-col gap-2">
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Total Clients</span>
                     <div className="flex items-center justify-between">
                         <span className="text-3xl font-bold text-white">{customers.length}</span>
-                        <div className="p-3 rounded-xl bg-primary/10 text-primary"><Users size={24} /></div>
+                        <div className="p-3 rounded-xl bg-primary/10 text-primary"><Users size={20} /></div>
                     </div>
                 </div>
-                <div className="glass-card p-6 flex flex-col gap-2 border-amber-500/20">
-                    <span className="text-slate-400 text-sm">{t('crm.customers_with_debts') || 'Clients avec Dettes'}</span>
+                <div className="glass-card p-5 flex flex-col gap-2">
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Panier Moyen</span>
+                    <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-white">{formatCurrency(avgBasket)}</span>
+                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400"><ShoppingBag size={20} /></div>
+                    </div>
+                </div>
+                <div className="glass-card p-5 flex flex-col gap-2">
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Clients en Dette</span>
                     <div className="flex items-center justify-between">
                         <span className="text-3xl font-bold text-amber-500">
                             {(Array.isArray(customers) ? customers : []).filter(c => (c.total_debt || 0) > 0).length}
                         </span>
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500"><CreditCard size={24} /></div>
+                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500"><CreditCard size={20} /></div>
                     </div>
                 </div>
-                <div className="glass-card p-6 flex flex-col gap-2 border-rose-500/20">
-                    <span className="text-slate-400 text-sm">{t('crm.total_outstanding') || 'Encours Total'}</span>
+                <div className="glass-card p-5 flex flex-col gap-2">
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Inactifs +30j</span>
                     <div className="flex items-center justify-between">
-                        <span className="text-3xl font-bold text-rose-500">
-                            {formatCurrency((Array.isArray(customers) ? customers : []).reduce((sum, c) => sum + (c.total_debt || 0), 0))}
-                        </span>
-                        <div className="p-3 rounded-xl bg-rose-500/10 text-rose-500"><TrendingUp size={24} /></div>
+                        <span className="text-3xl font-bold text-rose-400">{inactiveCount}</span>
+                        <div className="p-3 rounded-xl bg-rose-500/10 text-rose-400"><AlertCircle size={20} /></div>
                     </div>
                 </div>
+            </div>
+
+            {/* Tier & Sort chips */}
+            <div className="flex flex-wrap gap-2 mb-4">
+                {/* Tier filter */}
+                {[
+                    { key: 'all', label: 'Tous' },
+                    { key: 'bronze', label: '🥉 Bronze' },
+                    { key: 'argent', label: '🥈 Argent' },
+                    { key: 'or', label: '🥇 Or' },
+                    { key: 'platine', label: '💎 Platine' },
+                ].map(t => (
+                    <button key={t.key} onClick={() => setFilterTier(t.key)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${filterTier === t.key ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white hover:border-primary/40'}`}>
+                        {t.label}
+                    </button>
+                ))}
+                <div className="h-6 w-px bg-white/10 mx-1 self-center" />
+                {/* Sort */}
+                {[
+                    { key: 'name', label: 'A→Z' },
+                    { key: 'total_spent', label: 'Plus dépensé' },
+                    { key: 'visits', label: 'Plus visités' },
+                    { key: 'last_purchase', label: 'Récents' },
+                ].map(s => (
+                    <button key={s.key} onClick={() => setSortBy(s.key)}
+                        className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${sortBy === s.key ? 'bg-white/20 text-white border-white/30' : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300'}`}>
+                        <ArrowUpDown size={10} /> {s.label}
+                    </button>
+                ))}
             </div>
 
             {/* Search and Filters */}
@@ -358,10 +455,11 @@ export default function CRM() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-white/5 text-slate-500 uppercase text-[10px] tracking-widest bg-white/5">
-                                    <th className="px-6 py-4 font-semibold">{t('crm.col_customer') || 'Client'}</th>
-                                    <th className="px-6 py-4 font-semibold">{t('crm.col_tier') || 'Rang'}</th>
-                                    <th className="px-6 py-4 font-semibold">{t('crm.col_status') || 'Statut'}</th>
-                                    <th className="px-6 py-4 font-semibold text-right">{t('crm.col_debt') || 'Encours'}</th>
+                                    <th className="px-6 py-4 font-semibold">Client</th>
+                                    <th className="px-6 py-4 font-semibold">Rang</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Panier moy.</th>
+                                    <th className="px-6 py-4 font-semibold">Dernière visite</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Encours</th>
                                     <th className="px-6 py-4"></th>
                                 </tr>
                             </thead>
@@ -390,11 +488,16 @@ export default function CRM() {
                                                     {tc.label}
                                                 </div>
                                             </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-white font-bold text-sm">{formatCurrency(c.average_basket || 0)}</span>
+                                                <p className="text-[10px] text-slate-500">{c.visit_count || 0} visites</p>
+                                            </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${(c.total_debt || 0) > 0 ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                                                    }`}>
-                                                    {(c.total_debt || 0) > 0 ? (t('crm.status_debt') || 'En Dette') : (t('crm.status_settled') || 'À Jour')}
-                                                </span>
+                                                {c.last_purchase_date ? (
+                                                    <span className="text-xs text-slate-400">{formatDate(c.last_purchase_date)}</span>
+                                                ) : (
+                                                    <span className="text-xs text-slate-600 italic">Jamais</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <span className={`font-bold ${(c.total_debt || 0) > 0 ? 'text-rose-500' : 'text-slate-400'}`}>
@@ -531,15 +634,21 @@ export default function CRM() {
                             <div className="flex p-1 bg-white/5 rounded-xl border border-white/5">
                                 <button
                                     onClick={() => setDetailTab('info')}
-                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'info' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                    className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'info' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                                 >
-                                    Informations
+                                    Infos
                                 </button>
                                 <button
                                     onClick={() => setDetailTab('history')}
-                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'history' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                    className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'history' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                                 >
-                                    Historique & Dettes
+                                    Dettes
+                                </button>
+                                <button
+                                    onClick={() => setDetailTab('purchases' as any)}
+                                    className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === ('purchases' as any) ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                >
+                                    Achats ({customerSales.length})
                                 </button>
                             </div>
                         </div>
@@ -633,6 +742,48 @@ export default function CRM() {
                                                         {debt.is_payment ? '-' : '+'}{formatCurrency(debt.amount || 0)}
                                                     </p>
                                                     <p className="text-[9px] text-slate-600 font-bold uppercase">Solde: {formatCurrency(debt.remaining || 0)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Purchases tab */}
+                        {detailTab === ('purchases' as any) && (
+                            <div className="animate-in fade-in duration-300 space-y-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="text-sm font-black text-white uppercase tracking-widest px-1 border-l-4 border-emerald-500">Historique des Achats</h4>
+                                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold">{customerSales.length} transactions</span>
+                                </div>
+                                {loadingHistory ? (
+                                    <div className="py-10 flex justify-center">
+                                        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                    </div>
+                                ) : customerSales.length === 0 ? (
+                                    <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <ShoppingBag size={40} className="mx-auto text-slate-700 mb-3" />
+                                        <p className="text-sm text-slate-500 font-bold">Aucun achat enregistré</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                                        {customerSales.map((sale: any, idx: number) => (
+                                            <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center hover:bg-white/10 transition-all">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                                        <ShoppingBag size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-white">
+                                                            #{(sale.sale_id || '').substring(0, 8).toUpperCase()}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-500">{formatDate(sale.created_at)} · {(sale.items || []).length} article(s)</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount || 0)}</p>
+                                                    <p className="text-[10px] text-slate-600 uppercase">{sale.payment_method || 'cash'}</p>
                                                 </div>
                                             </div>
                                         ))}

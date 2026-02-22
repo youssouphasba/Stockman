@@ -17,9 +17,11 @@ import {
     ChevronDown,
     ChevronUp,
     DollarSign,
-    Layers
+    Layers,
+    MapPin,
+    ArrowLeftRight
 } from 'lucide-react';
-import { products as productsApi, categories as categoriesApi, ai as aiApi } from '../services/api';
+import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi } from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
@@ -30,6 +32,8 @@ export default function Inventory() {
     const { t, i18n } = useTranslation();
     const [products, setProducts] = useState<any[]>([]);
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
+    const [locationsList, setLocationsList] = useState<any[]>([]);
+    const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -54,6 +58,7 @@ export default function Inventory() {
         min_stock: 0,
         max_stock: 100,
         category_id: '',
+        location_id: '',
         description: '',
         image: '',
         has_variants: false,
@@ -62,15 +67,26 @@ export default function Inventory() {
 
     const [showVariantForm, setShowVariantForm] = useState(false);
 
-    const fetchProducts = async () => {
+    // Transfer state
+    const [isTransferOpen, setIsTransferOpen] = useState(false);
+    const [transferProduct, setTransferProduct] = useState<any>(null);
+    const [storeList, setStoreList] = useState<any[]>([]);
+    const [transferQty, setTransferQty] = useState(1);
+    const [transferDest, setTransferDest] = useState('');
+    const [transferring, setTransferring] = useState(false);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
         try {
-            const [prodsRes, catsRes] = await Promise.all([
-                productsApi.list(undefined, 0, 500),
-                categoriesApi.list()
+            const [prodsRes, catsRes, locsRes] = await Promise.all([
+                productsApi.list(undefined, 0, 500, locationFilter || selectedLocation || undefined),
+                categoriesApi.list(),
+                locationsApi.list()
             ]);
             setProducts(prodsRes.items || prodsRes);
             setCategoriesList(catsRes);
+            setLocationsList(locsRes);
         } catch (err) {
             console.error('Error fetching inventory data', err);
         } finally {
@@ -80,6 +96,12 @@ export default function Inventory() {
 
     useEffect(() => {
         fetchProducts();
+        // Load stores + user for transfer feature
+        Promise.all([storesApi.list(), import('../services/api').then(m => m.auth.me())])
+            .then(([storesRes, userRes]) => {
+                setStoreList(storesRes || []);
+                setCurrentUser(userRes);
+            }).catch(() => {});
     }, []);
 
     const handleOpenAddModal = () => {
@@ -94,6 +116,7 @@ export default function Inventory() {
             min_stock: 0,
             max_stock: 100,
             category_id: '',
+            location_id: '',
             description: '',
             image: '',
             has_variants: false,
@@ -114,6 +137,7 @@ export default function Inventory() {
             min_stock: product.min_stock || 0,
             max_stock: product.max_stock || 100,
             category_id: product.category_id || '',
+            location_id: product.location_id || '',
             description: product.description || '',
             image: product.image || '',
             has_variants: product.has_variants || false,
@@ -125,6 +149,33 @@ export default function Inventory() {
     const handleOpenHistory = (product: any) => {
         setSelectedProductForHistory(product);
         setIsHistoryModalOpen(true);
+    };
+
+    const handleOpenTransfer = (product: any) => {
+        setTransferProduct(product);
+        setTransferQty(1);
+        const otherStores = storeList.filter(s => s.store_id !== currentUser?.active_store_id);
+        setTransferDest(otherStores[0]?.store_id || '');
+        setIsTransferOpen(true);
+    };
+
+    const handleTransfer = async () => {
+        if (!transferProduct || !transferDest || transferQty <= 0) return;
+        setTransferring(true);
+        try {
+            await storesApi.transferStock({
+                product_id: transferProduct.product_id,
+                from_store_id: currentUser?.active_store_id,
+                to_store_id: transferDest,
+                quantity: transferQty,
+            });
+            setIsTransferOpen(false);
+            fetchProducts();
+        } catch (err: any) {
+            alert(err?.message || 'Erreur lors du transfert');
+        } finally {
+            setTransferring(false);
+        }
     };
 
     const handleSubmitProduct = async (e: React.FormEvent) => {
@@ -284,6 +335,27 @@ export default function Inventory() {
                 </button>
             </div>
 
+            {/* Location filter chips */}
+            {locationsList.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                    <button
+                        onClick={() => { setSelectedLocation(''); fetchProducts(''); }}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === '' ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                    >
+                        <MapPin size={12} /> Tous
+                    </button>
+                    {locationsList.map(loc => (
+                        <button
+                            key={loc.location_id}
+                            onClick={() => { setSelectedLocation(loc.location_id); fetchProducts(loc.location_id); }}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                        >
+                            <MapPin size={12} /> {loc.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {/* Products Table */}
             <div className="glass-card overflow-hidden">
                 <table className="w-full text-left border-collapse">
@@ -315,6 +387,11 @@ export default function Inventory() {
                                             <div className="flex flex-col">
                                                 <span className="font-bold">{p.name}</span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
+                                                {p.location_id && (
+                                                    <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
+                                                        <MapPin size={9} /> {locationsList.find(l => l.location_id === p.location_id)?.name}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </td>
@@ -351,6 +428,15 @@ export default function Inventory() {
                                             >
                                                 <History size={18} />
                                             </button>
+                                            {storeList.length > 1 && (
+                                                <button
+                                                    onClick={() => handleOpenTransfer(p)}
+                                                    className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
+                                                    title="Transférer vers une autre boutique"
+                                                >
+                                                    <ArrowLeftRight size={18} />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => handleOpenEditModal(p)}
                                                 className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
@@ -456,6 +542,22 @@ export default function Inventory() {
                                     </div>
                                 </div>
                             </div>
+
+                            {locationsList.length > 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 flex items-center gap-1"><MapPin size={14} className="text-primary" /> Emplacement</label>
+                                    <select
+                                        value={form.location_id}
+                                        onChange={(e) => setForm({ ...form, location_id: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
+                                    >
+                                        <option value="">Aucun emplacement</option>
+                                        {locationsList.map(loc => (
+                                            <option key={loc.location_id} value={loc.location_id}>{loc.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -597,6 +699,71 @@ export default function Inventory() {
 
             {isBatchScanOpen && (
                 <BatchScanModal onClose={() => setIsBatchScanOpen(false)} />
+            )}
+
+            {/* Stock Transfer Modal */}
+            {isTransferOpen && transferProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <div className="flex items-center gap-3 mb-5">
+                            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                                <ArrowLeftRight size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-white">Transfert de Stock</h3>
+                                <p className="text-xs text-slate-400">{transferProduct.name}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 block">
+                                    Boutique destination
+                                </label>
+                                <select
+                                    value={transferDest}
+                                    onChange={e => setTransferDest(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
+                                >
+                                    {storeList.filter(s => s.store_id !== currentUser?.active_store_id).map(s => (
+                                        <option key={s.store_id} value={s.store_id} className="bg-[#1a1f2e]">
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 block">
+                                    Quantité (stock dispo : {transferProduct.quantity})
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={transferProduct.quantity}
+                                    value={transferQty}
+                                    onChange={e => setTransferQty(Math.max(1, parseInt(e.target.value) || 1))}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setIsTransferOpen(false)}
+                                className="flex-1 py-2 text-slate-400 hover:text-white font-bold transition-colors"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleTransfer}
+                                disabled={!transferDest || transferQty <= 0 || transferring}
+                                className="flex-1 py-2 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                            >
+                                {transferring ? 'Transfert...' : 'Confirmer'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -9,9 +9,10 @@ interface DigitalReceiptModalProps {
     isOpen: boolean;
     onClose: () => void;
     sale: any;
+    businessInfo?: { name?: string; footer?: string };
 }
 
-export default function DigitalReceiptModal({ isOpen, onClose, sale }: DigitalReceiptModalProps) {
+export default function DigitalReceiptModal({ isOpen, onClose, sale, businessInfo }: DigitalReceiptModalProps) {
     const { t } = useTranslation();
 
     if (!sale) return null;
@@ -31,11 +32,13 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale }: DigitalRe
                 <div className="bg-white text-slate-900 p-8 rounded-xl shadow-inner receipt-print-area">
                     {/* Receipt Header */}
                     <div className="text-center border-b-2 border-dashed border-slate-200 pb-6 mb-6">
-                        <h2 className="text-2xl font-black uppercase tracking-tighter mb-1">Stockman</h2>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Solutions d'Inventaire Intelligentes</p>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter mb-1">
+                            {businessInfo?.name || 'Mon Commerce'}
+                        </h2>
                         <div className="mt-4 text-xs font-medium text-slate-400">
                             <p>Date: {new Date(sale.created_at || Date.now()).toLocaleString()}</p>
                             <p>Ticket: #{sale.sale_id?.substring(0, 8).toUpperCase()}</p>
+                            {sale.terminal_id && <p>Caisse: {sale.terminal_id}</p>}
                         </div>
                     </div>
 
@@ -54,22 +57,38 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale }: DigitalRe
 
                     {/* Totals */}
                     <div className="border-t-2 border-dashed border-slate-200 pt-6 space-y-2">
-                        <div className="flex justify-between text-sm font-medium">
-                            <span className="text-slate-500">Sous-total</span>
-                            <span>{sale.total_amount} F</span>
-                        </div>
+                        {sale.discount_amount > 0 && (
+                            <>
+                                <div className="flex justify-between text-sm font-medium">
+                                    <span className="text-slate-500">Sous-total</span>
+                                    <span>{(sale.total_amount + sale.discount_amount)} F</span>
+                                </div>
+                                <div className="flex justify-between text-sm font-medium text-rose-500">
+                                    <span>Remise</span>
+                                    <span>-{sale.discount_amount} F</span>
+                                </div>
+                            </>
+                        )}
                         <div className="flex justify-between text-xl font-black pt-2">
                             <span>TOTAL</span>
                             <span className="text-primary">{sale.total_amount} F</span>
                         </div>
-                        <div className="pt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
-                            Paiement: {sale.payment_method || 'Cash'}
+                        <div className="pt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center space-y-1">
+                            {sale.payments && sale.payments.length > 1 ? (
+                                sale.payments.map((p: any, i: number) => (
+                                    <p key={i}>{p.method?.replace('_', ' ').toUpperCase()}: {p.amount} F</p>
+                                ))
+                            ) : (
+                                <p>Paiement: {sale.payment_method?.replace('_', ' ') || 'Cash'}</p>
+                            )}
                         </div>
                     </div>
 
                     {/* Footer */}
                     <div className="mt-10 pt-6 border-t border-slate-100 text-center">
-                        <p className="text-xs font-bold text-slate-400 italic">Merci de votre visite !</p>
+                        <p className="text-xs font-bold text-slate-400 italic">
+                            {businessInfo?.footer || 'Merci de votre visite !'}
+                        </p>
                         <p className="text-[8px] mt-2 text-slate-300 font-medium tracking-tight">Logiciel de gestion propulsé par Stockman</p>
                     </div>
                 </div>

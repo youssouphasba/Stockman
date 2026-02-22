@@ -24,6 +24,7 @@ import {
     X,
     UserCheck,
     RefreshCcw,
+    Store,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -43,6 +44,7 @@ type SidebarItem = {
     icon: any;
     label: string;
     roles?: string[];
+    permission?: string; // module permission key required for staff users
 };
 
 type SidebarGroup = {
@@ -51,6 +53,7 @@ type SidebarGroup = {
     label: string;
     children: SidebarItem[];
     roles?: string[];
+    permission?: string;
 };
 
 type SidebarEntry = SidebarItem | (SidebarGroup & { children: SidebarItem[] });
@@ -73,6 +76,7 @@ export default function Sidebar({
 
     const menuEntries: SidebarEntry[] = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
+        { id: 'multi_stores', icon: Store, label: 'Multi-Boutiques', roles: ['shopkeeper', 'admin'] },
         { id: 'pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'orders', icon: ClipboardList, label: 'Commandes', roles: ['shopkeeper', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: 'Finance', roles: ['shopkeeper', 'admin'] },
@@ -90,7 +94,7 @@ export default function Sidebar({
             ],
         },
         { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'staff', icon: UserCheck, label: 'Personnel', roles: ['shopkeeper', 'admin'] },
+        { id: 'staff', icon: UserCheck, label: 'Personnel', roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
             id: 'suppliers_group',
             icon: Truck,
@@ -123,10 +127,18 @@ export default function Sidebar({
         },
     ];
 
-    const canSeeItem = (roles?: string[]) => {
+    const canSeeItem = (roles?: string[], permission?: string) => {
         if (!roles) return true;
         if (!user) return true;
-        return roles.includes(user.role);
+        if (roles.includes(user.role)) {
+            // For staff with a permission requirement, check it
+            if (user.role === 'staff' && permission) {
+                const perm = user.permissions?.[permission];
+                return perm === 'read' || perm === 'write';
+            }
+            return true;
+        }
+        return false;
     };
 
     const getDefaultOpenGroups = (): Set<string> => {
@@ -176,7 +188,7 @@ export default function Sidebar({
     };
 
     const renderItem = (item: SidebarItem, indent = false) => {
-        if (!canSeeItem(item.roles)) return null;
+        if (!canSeeItem(item.roles, item.permission)) return null;
         const Icon = item.icon;
         const isActive = activeTab === item.id;
         return (
@@ -201,8 +213,8 @@ export default function Sidebar({
     };
 
     const renderGroup = (group: SidebarGroup) => {
-        if (!canSeeItem(group.roles)) return null;
-        const visibleChildren = group.children.filter(c => canSeeItem(c.roles));
+        if (!canSeeItem(group.roles, group.permission)) return null;
+        const visibleChildren = group.children.filter(c => canSeeItem(c.roles, c.permission));
         if (visibleChildren.length === 0) return null;
 
         const isOpen = openGroups.has(group.id);

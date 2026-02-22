@@ -412,11 +412,30 @@ class Store(BaseModel):
     user_id: str # Owner
     name: str
     address: Optional[str] = None
+    currency: Optional[str] = None
+    receipt_business_name: Optional[str] = None
+    receipt_footer: Optional[str] = None
+    terminals: Optional[List[str]] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StoreCreate(BaseModel):
     name: str
     address: Optional[str] = None
+
+class StoreUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    currency: Optional[str] = None
+    receipt_business_name: Optional[str] = None
+    receipt_footer: Optional[str] = None
+    terminals: Optional[List[str]] = None
+
+class StockTransfer(BaseModel):
+    product_id: str
+    from_store_id: str
+    to_store_id: str
+    quantity: float
+    note: Optional[str] = None
 
 class PublicReceiptItem(BaseModel):
     product_name: str
@@ -565,6 +584,10 @@ class UserUpdate(BaseModel):
     permissions: Optional[Dict[str, str]] = None
     active_store_id: Optional[str] = None
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    currency: Optional[str] = None
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -601,6 +624,18 @@ class ProductVariant(BaseModel):
     selling_price: Optional[float] = None   # None means use parent price
     is_active: bool = True
 
+class Location(BaseModel):
+    location_id: str = Field(default_factory=lambda: f"loc_{uuid.uuid4().hex[:10]}")
+    user_id: str
+    store_id: Optional[str] = None
+    name: str
+    type: str = "shelf"  # "shelf", "warehouse", "dock"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LocationCreate(BaseModel):
+    name: str
+    type: str = "shelf"
+
 class Product(BaseModel):
     product_id: str = Field(default_factory=lambda: f"prod_{uuid.uuid4().hex[:12]}")
     name: str
@@ -618,6 +653,7 @@ class Product(BaseModel):
     image: Optional[str] = None  # base64
     rfid_tag: Optional[str] = None
     expiry_date: Optional[datetime] = None
+    location_id: Optional[str] = None
     abc_class: Optional[str] = None # "A", "B", "C"
     abc_revenue_30d: Optional[float] = None
     source_catalog_id: Optional[str] = None  # catalog_id if created from marketplace delivery
@@ -645,6 +681,7 @@ class ProductCreate(BaseModel):
     image: Optional[str] = None
     rfid_tag: Optional[str] = None
     expiry_date: Optional[datetime] = None
+    location_id: Optional[str] = None
     variants: List[ProductVariant] = []
     has_variants: bool = False
 
@@ -664,6 +701,7 @@ class ProductUpdate(BaseModel):
     image: Optional[str] = None
     rfid_tag: Optional[str] = None
     expiry_date: Optional[datetime] = None
+    location_id: Optional[str] = None
     is_active: Optional[bool] = None
     variants: Optional[List[ProductVariant]] = None
     has_variants: Optional[bool] = None
@@ -683,6 +721,7 @@ class Batch(BaseModel):
     store_id: Optional[str] = None
     batch_number: str
     quantity: int
+    location_id: Optional[str] = None
     expiry_date: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -691,6 +730,7 @@ class BatchCreate(BaseModel):
     product_id: str
     batch_number: str
     quantity: int
+    location_id: Optional[str] = None
     expiry_date: Optional[datetime] = None
 
 class InventoryTask(BaseModel):
@@ -817,6 +857,11 @@ class UserSettings(BaseModel):
         "show_expiry_alerts": True,
         "show_profitability": True
     })
+    # Multi-caisse
+    terminals: List[str] = Field(default_factory=list)
+    # Personnalisation reçu
+    receipt_business_name: Optional[str] = None
+    receipt_footer: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -844,8 +889,11 @@ class Sale(BaseModel):
     store_id: str
     items: List[SaleItem]
     total_amount: float
-    payment_method: str = "cash"  # "cash", "mobile_money", "card"
+    discount_amount: float = 0.0
+    payment_method: str = "cash"  # primary method (backward compat)
+    payments: List[dict] = Field(default_factory=list)  # [{method, amount}] for split
     customer_id: Optional[str] = None
+    terminal_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -853,6 +901,9 @@ class SaleCreate(BaseModel):
     items: List[dict] # [{product_id, quantity}]
     payment_method: str = "cash"
     customer_id: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
+    payments: Optional[List[dict]] = None  # [{method, amount}] — si fourni, écrase payment_method
+    terminal_id: Optional[str] = None
 
 class AccountingStats(BaseModel):
     revenue: float
@@ -1242,17 +1293,28 @@ async def log_activity(user: User, action: str, module: str, description: str, d
 
 @api_router.get("/sub-users", response_model=List[User])
 async def list_sub_users(user: User = Depends(require_auth)):
-    # Only owners can list sub-users
-    if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="Seul le propriétaire peut gérer les utilisateurs")
-    
-    sub_users = await db.users.find({"parent_user_id": user.user_id}).to_list(100)
+    perms = user.permissions or {}
+    if user.role == "shopkeeper":
+        # Owner voit tous ses sub-users
+        sub_users = await db.users.find({"parent_user_id": user.user_id}, {"_id": 0}).to_list(100)
+    elif user.role == "staff" and perms.get("staff") in ("read", "write"):
+        # Manager délégué : voit les employés sans staff:write (ne peut pas gérer d'autres managers)
+        owner_id = user.parent_user_id
+        all_subs = await db.users.find({"parent_user_id": owner_id}, {"_id": 0}).to_list(100)
+        sub_users = [u for u in all_subs if u.get("user_id") != user.user_id and (u.get("permissions") or {}).get("staff") != "write"]
+    else:
+        raise HTTPException(status_code=403, detail="Accès refusé")
     return sub_users
 
 @api_router.post("/sub-users", response_model=User)
 async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(require_auth)):
-    if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="Seul le propriétaire peut créer des utilisateurs")
+    perms = user.permissions or {}
+    is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
+    if user.role != "shopkeeper" and not is_delegated_manager:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    # Anti-escalade : un manager délégué ne peut pas créer d'autres managers
+    if is_delegated_manager and (sub_user_data.permissions or {}).get("staff") == "write":
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
     
     # Check if email exists
     if await db.users.find_one({"email": sub_user_data.email}):
@@ -1261,13 +1323,15 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     new_user_id = f"user_{uuid.uuid4().hex[:12]}"
     hashed_password = pwd_context.hash(sub_user_data.password)
     
+    # Si c'est un manager délégué, les sous-utilisateurs appartiennent au même owner
+    owner_parent_id = user.parent_user_id if is_delegated_manager else user.user_id
     new_user = User(
         user_id=new_user_id,
         email=sub_user_data.email,
         name=sub_user_data.name,
         role="staff",
         permissions=sub_user_data.permissions,
-        parent_user_id=user.user_id,
+        parent_user_id=owner_parent_id,
         auth_type="email",
         active_store_id=user.active_store_id,
         store_ids=user.store_ids,
@@ -1280,38 +1344,59 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         "user_id": new_user_id,
         "password_hash": hashed_password
     })
-    
+
+    await log_activity(user, "staff_created", "staff", f"Employé '{new_user.name}' créé ({new_user.email})", {"sub_user_id": new_user_id})
+
     return new_user
 
 @api_router.put("/sub-users/{sub_user_id}", response_model=User)
 async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User = Depends(require_auth)):
-    if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="Seul le propriétaire peut modifier les utilisateurs")
-    
-    # Verify the sub-user belongs to this owner
-    target = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": user.user_id})
+    perms = user.permissions or {}
+    is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
+    if user.role != "shopkeeper" and not is_delegated_manager:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    owner_id = user.user_id if user.role == "shopkeeper" else user.parent_user_id
+    target = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id})
     if not target:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé ou accès refusé")
+    # Anti-escalade : manager délégué ne peut pas modifier un autre manager ni lui donner staff:write
+    if is_delegated_manager:
+        if (target.get("permissions") or {}).get("staff") == "write":
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier un autre manager")
+        if (update_data.permissions or {}).get("staff") == "write":
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
     
     update_dict = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
     if update_dict:
         await db.users.update_one({"user_id": sub_user_id}, {"$set": update_dict})
-    
+
     updated = await db.users.find_one({"user_id": sub_user_id}, {"_id": 0})
+    await log_activity(user, "staff_updated", "staff", f"Employé '{updated.get('name', sub_user_id)}' modifié", {"sub_user_id": sub_user_id})
     return User(**updated)
 
 @api_router.delete("/sub-users/{sub_user_id}")
 async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
-    if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="Seul le propriétaire peut supprimer des utilisateurs")
+    perms = user.permissions or {}
+    is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
+    if user.role != "shopkeeper" and not is_delegated_manager:
+        raise HTTPException(status_code=403, detail="Accès refusé")
     
-    result = await db.users.delete_one({"user_id": sub_user_id, "parent_user_id": user.user_id})
+    owner_id = user.user_id if user.role == "shopkeeper" else user.parent_user_id
+    target_user = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id}, {"name": 1, "permissions": 1})
+    # Anti-escalade : manager délégué ne peut pas supprimer un autre manager
+    if is_delegated_manager and target_user and (target_user.get("permissions") or {}).get("staff") == "write":
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas supprimer un autre manager")
+    result = await db.users.delete_one({"user_id": sub_user_id, "parent_user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
-    
+
     # Also delete credentials
     await db.credentials.delete_one({"user_id": sub_user_id})
-    
+
+    if target_user:
+        await log_activity(user, "staff_deleted", "staff", f"Employé '{target_user.get('name', sub_user_id)}' supprimé", {"sub_user_id": sub_user_id})
+
     return {"message": "Utilisateur supprimé"}
 
 @api_router.get("/activity-logs")
@@ -3585,6 +3670,15 @@ async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
     return user
 
+@api_router.put("/auth/profile")
+async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)):
+    """Update user profile fields (name, currency)"""
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update:
+        return {"message": "Aucune modification"}
+    await db.users.update_one({"user_id": user.user_id}, {"$set": update})
+    return {"message": "Profil mis à jour"}
+
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
     """Logout user"""
@@ -3668,6 +3762,113 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
     user.active_store_id = store_id
     return user
 
+@api_router.put("/stores/{store_id}", response_model=Store)
+async def update_store(store_id: str, data: StoreUpdate, user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
+    await db.stores.update_one({"store_id": store_id, "user_id": owner_id}, {"$set": update})
+    doc = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Boutique non trouvée")
+    return Store(**doc)
+
+@api_router.get("/stores/consolidated-stats")
+async def get_consolidated_stats(days: int = 30, user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
+    stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    consolidated = []
+    total_revenue = 0.0
+    total_orders = 0
+
+    for store in stores:
+        sid = store["store_id"]
+        sales = await db.sales.find(
+            {"user_id": owner_id, "store_id": sid, "created_at": {"$gte": start_date}},
+            {"total_amount": 1}
+        ).to_list(5000)
+        revenue = sum(s.get("total_amount", 0.0) for s in sales)
+        total_revenue += revenue
+        total_orders += len(sales)
+
+        products_count = await db.products.count_documents({"user_id": owner_id, "store_id": sid})
+        low_stock = await db.products.count_documents({
+            "user_id": owner_id, "store_id": sid,
+            "$expr": {"$lte": ["$quantity", "$min_stock"]}
+        })
+
+        consolidated.append({
+            "store_id": sid,
+            "store_name": store["name"],
+            "address": store.get("address"),
+            "revenue": revenue,
+            "orders": len(sales),
+            "products_count": products_count,
+            "low_stock_count": low_stock,
+        })
+
+    return {
+        "stores": consolidated,
+        "total_revenue": total_revenue,
+        "total_orders": total_orders,
+        "days": days,
+    }
+
+@api_router.post("/stock/transfer")
+async def transfer_stock(data: StockTransfer, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+
+    from_store = await db.stores.find_one({"store_id": data.from_store_id, "user_id": owner_id})
+    to_store = await db.stores.find_one({"store_id": data.to_store_id, "user_id": owner_id})
+    if not from_store or not to_store:
+        raise HTTPException(status_code=400, detail="Boutique invalide")
+
+    from_product = await db.products.find_one(
+        {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id},
+        {"_id": 0}
+    )
+    if not from_product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé dans la boutique source")
+    if from_product.get("quantity", 0) < data.quantity:
+        raise HTTPException(status_code=400, detail=f"Stock insuffisant ({from_product.get('quantity', 0)} disponibles)")
+
+    # Deduct from source
+    await db.products.update_one(
+        {"product_id": data.product_id, "store_id": data.from_store_id},
+        {"$inc": {"quantity": -data.quantity}}
+    )
+
+    # Find matching product in destination (by barcode or name)
+    barcode = from_product.get("barcode")
+    dest_query: dict = {"user_id": owner_id, "store_id": data.to_store_id, "name": from_product["name"]}
+    if barcode:
+        dest_query = {"user_id": owner_id, "store_id": data.to_store_id, "barcode": barcode}
+    to_product = await db.products.find_one(dest_query)
+
+    if to_product:
+        await db.products.update_one(
+            {"product_id": to_product["product_id"]},
+            {"$inc": {"quantity": data.quantity}}
+        )
+    else:
+        new_product = {k: v for k, v in from_product.items() if k != "_id"}
+        new_product["product_id"] = f"prod_{uuid.uuid4().hex[:12]}"
+        new_product["store_id"] = data.to_store_id
+        new_product["quantity"] = data.quantity
+        new_product["created_at"] = datetime.now(timezone.utc)
+        await db.products.insert_one(new_product)
+
+    await log_activity(user, "stock_transfer", "stock",
+        f"Transfert {data.quantity}x '{from_product['name']}' : {from_store['name']} → {to_store['name']}",
+        {"product_id": data.product_id, "quantity": data.quantity,
+         "from_store": data.from_store_id, "to_store": data.to_store_id}
+    )
+
+    return {"message": f"Transfert de {data.quantity} unité(s) effectué"}
+
 # ===================== CATEGORY ROUTES =====================
 
 # ===================== CATEGORY ROUTES =====================
@@ -3723,8 +3924,9 @@ async def delete_category(category_id: str, user: User = Depends(require_auth)):
 
 @api_router.get("/products")
 async def get_products(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("stock", "read")),
     category_id: Optional[str] = None,
+    location_id: Optional[str] = None,
     active_only: bool = True,
     store_id: Optional[str] = None,
     skip: int = 0,
@@ -3740,6 +3942,9 @@ async def get_products(
     if category_id:
         query["category_id"] = category_id
 
+    if location_id:
+        query["location_id"] = location_id
+
     if active_only:
         query["is_active"] = {"$ne": False}
 
@@ -3749,21 +3954,23 @@ async def get_products(
     return {"items": [Product(**prod) for prod in products], "total": total}
 
 @api_router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: str, user: User = Depends(require_auth)):
+async def get_product(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     product = await db.products.find_one({"product_id": product_id, "user_id": user.user_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     return Product(**product)
 
 @api_router.post("/products", response_model=Product)
-async def create_product(prod_data: ProductCreate, user: User = Depends(require_auth)):
+async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
     product = Product(
         **prod_data.model_dump(),
         user_id=user.user_id,
         store_id=user.active_store_id
     )
     await db.products.insert_one(product.model_dump())
-    
+
+    await log_activity(user, "product_created", "stock", f"Produit '{product.name}' créé", {"product_id": product.product_id})
+
     # Log initial price
     await db.price_history.insert_one(PriceHistory(
         product_id=product.product_id,
@@ -3778,7 +3985,7 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     return product
 
 @api_router.put("/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_auth)):
+async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_permission("stock", "write"))):
     update_dict = {k: v for k, v in prod_data.model_dump().items() if v is not None}
     update_dict["updated_at"] = datetime.now(timezone.utc)
     
@@ -3814,7 +4021,9 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     
     result.pop("_id", None)
     product = Product(**result)
-    
+
+    await log_activity(user, "product_updated", "stock", f"Produit '{product.name}' modifié", {"product_id": product_id})
+
     # Check and create alerts if needed
     await check_and_create_alerts(product, user.user_id, store_id=user.active_store_id)
 
@@ -3830,7 +4039,7 @@ async def get_product_price_history(product_id: str, user: User = Depends(requir
     return [PriceHistory(**h) for h in history]
 
 @api_router.post("/products/{product_id}/adjust", response_model=Product)
-async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest, user: User = Depends(require_auth)):
+async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
@@ -3879,16 +4088,18 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     return Product(**product)
 
 @api_router.delete("/products/{product_id}")
-async def delete_product(product_id: str, user: User = Depends(require_auth)):
+async def delete_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
+    product = await db.products.find_one({"product_id": product_id, "user_id": user.user_id}, {"name": 1})
     result = await db.products.delete_one({"product_id": product_id, "user_id": user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await log_activity(user, "product_deleted", "stock", f"Produit '{product.get('name', product_id)}' supprimé", {"product_id": product_id})
     return {"message": "Produit supprimé"}
 
 # ===================== STOCK MOVEMENT ROUTES =====================
 
 @api_router.post("/stock/movement", response_model=StockMovement)
-async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depends(require_auth)):
+async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": mov_data.product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
@@ -3978,7 +4189,8 @@ async def get_batches(
     store_id: Optional[str] = None,
     active_only: bool = True
 ):
-    query = {"user_id": user.user_id}
+    owner_id = get_owner_id(user)
+    query = {"user_id": owner_id}
     target_store = store_id or user.active_store_id
     if target_store:
         query["store_id"] = target_store
@@ -3986,7 +4198,7 @@ async def get_batches(
         query["product_id"] = product_id
     if active_only:
         query["quantity"] = {"$gt": 0}
-        
+
     batches = await db.batches.find(query, {"_id": 0}).sort("expiry_date", 1).to_list(1000)
     return [Batch(**b) for b in batches]
 
@@ -4005,6 +4217,43 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_aut
     # If created separately, we should probably record a movement to keep product total sync.
     
     return batch
+
+# ===================== LOCATION ROUTES =====================
+
+@api_router.get("/locations")
+async def get_locations(user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
+    query = {"user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    locs = await db.locations.find(query, {"_id": 0}).sort("name", 1).to_list(200)
+    return [Location(**l) for l in locs]
+
+@api_router.post("/locations", response_model=Location)
+async def create_location(data: LocationCreate, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    loc = Location(**data.model_dump(), user_id=owner_id, store_id=user.active_store_id)
+    await db.locations.insert_one(loc.model_dump())
+    return loc
+
+@api_router.put("/locations/{location_id}", response_model=Location)
+async def update_location(location_id: str, data: LocationCreate, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    await db.locations.update_one({"location_id": location_id, "user_id": owner_id}, {"$set": update})
+    loc = await db.locations.find_one({"location_id": location_id}, {"_id": 0})
+    if not loc:
+        raise HTTPException(404, "Emplacement non trouvé")
+    return Location(**loc)
+
+@api_router.delete("/locations/{location_id}")
+async def delete_location(location_id: str, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    # Unlink products from this location before deleting
+    await db.products.update_many({"location_id": location_id, "user_id": owner_id}, {"$unset": {"location_id": ""}})
+    await db.batches.update_many({"location_id": location_id, "user_id": owner_id}, {"$unset": {"location_id": ""}})
+    await db.locations.delete_one({"location_id": location_id, "user_id": owner_id})
+    return {"message": "Emplacement supprimé"}
 
 # ===================== INVENTORY ROUTES =====================
 
@@ -4128,7 +4377,7 @@ async def submit_inventory_result(
 
 @api_router.get("/sales")
 async def get_sales(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("pos", "read")),
     store_id: Optional[str] = None,
     days: Optional[int] = None,
     start_date: Optional[str] = None,
@@ -4187,7 +4436,7 @@ def _compute_tier(visit_count: int) -> str:
 
 @api_router.get("/customers")
 async def get_customers(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("crm", "read")),
     sort_by: str = Query("name", pattern="^(name|total_spent|last_purchase|visits)$"),
     skip: int = 0,
     limit: int = 50
@@ -4318,7 +4567,7 @@ async def get_customer_sales(customer_id: str, user: User = Depends(require_auth
     }
 
 @api_router.post("/customers", response_model=Customer)
-async def create_customer(customer_data: CustomerCreate, user: User = Depends(require_auth)):
+async def create_customer(customer_data: CustomerCreate, user: User = Depends(require_permission("crm", "write"))):
     owner_id = get_owner_id(user)
     customer = Customer(
         user_id=owner_id,
@@ -4337,7 +4586,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
     return customer
 
 @api_router.get("/customers/{customer_id}", response_model=Customer)
-async def get_customer(customer_id: str, user: User = Depends(require_auth)):
+async def get_customer(customer_id: str, user: User = Depends(require_permission("crm", "read"))):
     owner_id = get_owner_id(user)
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
@@ -4353,7 +4602,7 @@ async def get_customer(customer_id: str, user: User = Depends(require_auth)):
     return Customer(**cust)
 
 @api_router.put("/customers/{customer_id}", response_model=Customer)
-async def update_customer(customer_id: str, customer_data: CustomerCreate, user: User = Depends(require_auth)):
+async def update_customer(customer_id: str, customer_data: CustomerCreate, user: User = Depends(require_permission("crm", "write"))):
     owner_id = get_owner_id(user)
     update_dict = customer_data.model_dump()
     result = await db.customers.find_one_and_update(
@@ -4367,10 +4616,12 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
     return Customer(**result)
 
 @api_router.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str, user: User = Depends(require_auth)):
+async def delete_customer(customer_id: str, user: User = Depends(require_permission("crm", "write"))):
+    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": user.user_id}, {"name": 1})
     result = await db.customers.delete_one({"customer_id": customer_id, "user_id": user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Client non trouvé")
+    await log_activity(user, "customer_deleted", "crm", f"Client '{cust.get('name', customer_id)}' supprimé", {"customer_id": customer_id})
     return {"message": "Client supprimé"}
 
 @api_router.get("/promotions", response_model=List[Promotion])
@@ -4412,7 +4663,7 @@ async def delete_promotion(promotion_id: str, user: User = Depends(require_auth)
     return {"message": "Promotion supprimée"}
 
 @api_router.post("/sales", response_model=Sale)
-async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth)):
+async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permission("pos", "write"))):
     user_id = user.user_id
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -4463,14 +4714,31 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
         # For now, let's replicate the core logic for brevity or call the function
         await create_stock_movement(movement_data, user)
 
-    # 3. Save Sale
+    # 3. Apply discount (validated server-side: cannot exceed subtotal)
+    discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
+    actual_total = round(total_amount - discount, 2)
+
+    # 4. Resolve payment method(s)
+    payments: List[dict] = []
+    primary_method = sale_data.payment_method
+    if sale_data.payments:
+        paid_sum = sum(p.get("amount", 0) for p in sale_data.payments)
+        if round(paid_sum, 2) != actual_total:
+            raise HTTPException(status_code=400, detail=f"Paiements ({paid_sum}) ne couvrent pas le total ({actual_total})")
+        payments = sale_data.payments
+        primary_method = sale_data.payments[0].get("method", "cash")
+
+    # 5. Save Sale
     sale = Sale(
         user_id=owner_id,
         store_id=store_id,
         items=sale_items,
-        total_amount=total_amount,
-        payment_method=sale_data.payment_method,
-        customer_id=sale_data.customer_id
+        total_amount=actual_total,
+        discount_amount=discount,
+        payment_method=primary_method,
+        payments=payments,
+        customer_id=sale_data.customer_id,
+        terminal_id=sale_data.terminal_id
     )
     
     # Log activity
@@ -4478,8 +4746,8 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
         user=user,
         action="sale",
         module="pos",
-        description=f"Vente de {total_amount:,} FCFA ({len(sale_items)} articles)",
-        details={"sale_id": sale.sale_id, "total": total_amount, "customer_id": sale_data.customer_id}
+        description=f"Vente de {actual_total:,} FCFA ({len(sale_items)} articles)" + (f" — remise {discount:,}" if discount > 0 else ""),
+        details={"sale_id": sale.sale_id, "total": actual_total, "discount": discount, "customer_id": sale_data.customer_id}
     )
     
     # Update Customer Stats if applicable
@@ -4488,7 +4756,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
         if sale_data.payment_method == 'credit':
             await db.customers.update_one(
                 {"customer_id": sale_data.customer_id, "user_id": owner_id},
-                {"$inc": {"current_debt": total_amount}}
+                {"$inc": {"current_debt": actual_total}}
             )
 
         # Fetch loyalty settings
@@ -4498,15 +4766,15 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
             ratio = settings_doc["loyalty"].get("ratio", 1000)
             if not settings_doc["loyalty"].get("is_active", True):
                 ratio = 0 # Disable points if loyalty program is inactive
-        
+
         if ratio > 0:
-            points_earned = int(total_amount / ratio)
+            points_earned = int(actual_total / ratio)
             await db.customers.update_one(
                 {"customer_id": sale_data.customer_id, "user_id": owner_id},
                 {
                     "$inc": {
                         "loyalty_points": points_earned,
-                        "total_spent": total_amount
+                        "total_spent": actual_total
                     }
                 }
             )
@@ -4518,7 +4786,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_auth))
 # ===================== EXPENSE ROUTES =====================
 
 @api_router.post("/expenses", response_model=Expense)
-async def create_expense(expense_data: ExpenseCreate, user: User = Depends(require_auth)):
+async def create_expense(expense_data: ExpenseCreate, user: User = Depends(require_permission("accounting", "write"))):
     owner_id = get_owner_id(user)
     expense = Expense(
         user_id=owner_id,
@@ -4545,7 +4813,7 @@ async def create_expense(expense_data: ExpenseCreate, user: User = Depends(requi
 
 @api_router.get("/expenses")
 async def get_expenses(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("accounting", "read")),
     days: Optional[int] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -4578,8 +4846,20 @@ async def get_expenses(
     expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return {"items": [Expense(**e) for e in expenses], "total": total}
 
+@api_router.put("/expenses/{expense_id}", response_model=Expense)
+async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: User = Depends(require_permission("accounting", "write"))):
+    owner_id = get_owner_id(user)
+    update = {k: v for k, v in expense_data.model_dump().items() if v is not None}
+    if "date" in update:
+        update["created_at"] = update.pop("date")
+    await db.expenses.update_one({"expense_id": expense_id, "user_id": owner_id}, {"$set": update})
+    doc = await db.expenses.find_one({"expense_id": expense_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Dépense non trouvée")
+    return Expense(**doc)
+
 @api_router.delete("/expenses/{expense_id}")
-async def delete_expense(expense_id: str, user: User = Depends(require_auth)):
+async def delete_expense(expense_id: str, user: User = Depends(require_permission("accounting", "write"))):
     result = await db.expenses.delete_one({"expense_id": expense_id, "user_id": user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=i18n.t("accounting.expense_not_found", user.language))
@@ -4590,7 +4870,7 @@ async def get_accounting_stats(
     days: Optional[int] = 30, 
     start_date_str: Optional[str] = Query(None, alias="start_date"),
     end_date_str: Optional[str] = Query(None, alias="end_date"),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_permission("accounting", "read"))
 ):
     user_id = user.user_id
     store_id = user.active_store_id
@@ -4796,7 +5076,7 @@ async def get_accounting_stats(
 
 @api_router.get("/stock/movements")
 async def get_stock_movements(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("stock", "read")),
     product_id: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
@@ -5255,7 +5535,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
 # ===================== SUPPLIER ROUTES =====================
 
 @api_router.get("/suppliers")
-async def get_suppliers(user: User = Depends(require_auth), skip: int = 0, limit: int = 50, search: Optional[str] = None):
+async def get_suppliers(user: User = Depends(require_permission("suppliers", "read")), skip: int = 0, limit: int = 50, search: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id, "is_active": True}
     if search:
@@ -5286,14 +5566,14 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_auth)):
     return Supplier(**supplier)
 
 @api_router.post("/suppliers", response_model=Supplier)
-async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require_auth)):
+async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = Supplier(**sup_data.model_dump(), user_id=owner_id)
     await db.suppliers.insert_one(supplier.model_dump())
     return supplier
 
 @api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
-async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User = Depends(require_auth)):
+async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     update_dict = sup_data.model_dump()
     update_dict["updated_at"] = datetime.now(timezone.utc)
@@ -5308,7 +5588,7 @@ async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User
     return Supplier(**result)
 
 @api_router.delete("/suppliers/{supplier_id}")
-async def delete_supplier(supplier_id: str, user: User = Depends(require_auth)):
+async def delete_supplier(supplier_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     result = await db.suppliers.update_one(
         {"supplier_id": supplier_id, "user_id": owner_id},
