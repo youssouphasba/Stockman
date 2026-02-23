@@ -6772,6 +6772,24 @@ async def get_statistics(user: User = Depends(require_auth)):
     
     # Top products by value (Stock Value)
     products_by_value = sorted(products, key=lambda p: p.get("quantity", 0) * p.get("purchase_price", 0), reverse=True)[:5]
+
+    # Profit by category (last 30 days) — merged from duplicate endpoint
+    profit_pipeline = [
+        {"$match": {"user_id": user_id, "created_at": {"$gte": thirty_days_ago}}},
+        {"$unwind": "$items"},
+        {"$lookup": {"from": "products", "localField": "items.product_id", "foreignField": "product_id", "as": "pi"}},
+        {"$unwind": "$pi"},
+        {"$project": {
+            "category_id": "$pi.category_id",
+            "profit": {"$multiply": [{"$subtract": ["$pi.selling_price", "$pi.purchase_price"]}, "$items.quantity"]}
+        }},
+        {"$group": {"_id": "$category_id", "total_profit": {"$sum": "$profit"}}},
+        {"$lookup": {"from": "categories", "localField": "_id", "foreignField": "category_id", "as": "cat_info"}},
+        {"$unwind": {"path": "$cat_info", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"_id": 0, "name": {"$ifNull": ["$cat_info.name", "Non classé"]}, "value": "$total_profit"}},
+        {"$sort": {"value": -1}}
+    ]
+    profit_by_category = await db.sales.aggregate(profit_pipeline).to_list(10)
         
     # ABC Analysis (Pareto Principle) based on REVENUE (Sales)
     # Class A: Top 80% of revenue
@@ -6919,7 +6937,8 @@ async def get_statistics(user: User = Depends(require_auth)):
             for p in products_by_value
         ],
         "stock_value_history": stock_value_chart,
-        "revenue_history": revenue_chart # Added this field
+        "revenue_history": revenue_chart,
+        "profit_by_category": profit_by_category
     }
 
 # (Duplicate accounting endpoint removed — using the one above at /accounting/stats)
@@ -10419,95 +10438,6 @@ async def payment_cancel():
         </html>
     """)
 
-
-@api_router.get("/statistics")
-async def get_statistics(user: User = Depends(require_auth)):
-    """Get advanced statistics including profitability"""
-    owner_id = get_owner_id(user)
-    
-    # 1. Base Stats (Stock Value, etc.)
-    # Reuse existing aggregations or simplify for now
-    
-    # ... (Existing logic or placeholder)
-    
-    # 2. Profit by Category (Last 30 Days)
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    
-    pipeline = [
-        {"$match": {
-            "user_id": owner_id,
-            "created_at": {"$gte": thirty_days_ago}
-        }},
-        {"$unwind": "$items"},
-        {"$lookup": {
-            "from": "products",
-            "localField": "items.product_id",
-            "foreignField": "product_id",
-            "as": "product_info"
-        }},
-        {"$unwind": "$product_info"},
-        {"$project": {
-            "category_id": "$product_info.category_id",
-            "profit": {
-                "$multiply": [
-                    {"$subtract": ["$product_info.selling_price", "$product_info.purchase_price"]},
-                    "$items.quantity"
-                ]
-            }
-        }},
-        {"$group": {
-            "_id": "$category_id",
-            "total_profit": {"$sum": "$profit"}
-        }},
-        {"$lookup": {
-            "from": "categories",
-            "localField": "_id",
-            "foreignField": "category_id",
-            "as": "cat_info"
-        }},
-        {"$unwind": {"path": "$cat_info", "preserveNullAndEmptyArrays": True}},
-        {"$project": {
-            "_id": 0,
-            "name": {"$ifNull": ["$cat_info.name", "Non classé"]},
-            "value": "$total_profit"
-        }},
-        {"$sort": {"value": -1}}
-    ]
-    
-    profit_by_category = await db.sales.aggregate(pipeline).to_list(10)
-    
-    # Return placeholder for other stats as well if needed by frontend
-    # Since specific searches failed, I assume frontend expects specific structure.
-    # I will adapt based on error or frontend check.
-    
-    # Checking frontend expectation: StatisticsData in api.ts
-    # It likely expects: stock_value_history, stock_by_category, abc_analysis, reorder_recommendations, expiry_alerts
-    
-    # Let's perform those queries quickly to prevent breaking frontend
-    
-    # Stock by Category
-    cat_pipeline = [
-        {"$match": {"user_id": owner_id}},
-        {"$group": {"_id": "$category_id", "count": {"$sum": 1}}},
-        {"$lookup": {
-            "from": "categories",
-            "localField": "_id",
-            "foreignField": "category_id",
-            "as": "cat"
-        }},
-        {"$unwind": {"path": "$cat", "preserveNullAndEmptyArrays": True}},
-        {"$project": {"name": {"$ifNull": ["$cat.name", "Autre"]}, "value": "$count"}}
-    ]
-    stock_by_category = await db.products.aggregate(cat_pipeline).to_list(10)
-
-    return {
-        "stock_value_history": [], # Placeholder
-        "stock_by_category": stock_by_category,
-        "abc_analysis": {"A": [], "B": [], "C": []}, # Placeholder
-        "reorder_recommendations": [],
-        "expiry_alerts": [],
-        "profit_by_category": profit_by_category # NEW
-    }
 
 app.include_router(api_router)
 app.include_router(admin_router, prefix="/api", dependencies=[Depends(require_superadmin)])

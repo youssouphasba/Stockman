@@ -280,12 +280,22 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <div className="text-[10px] text-primary font-black uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">Confidence: 94%</div>
                             </div>
                             <div className="flex-1 w-full min-h-[250px]">
+                                {(!forecast?.daily_forecast || forecast.daily_forecast.length === 0) ? (
+                                    <div className="h-full flex items-center justify-center text-slate-500 text-sm flex-col gap-2">
+                                        <Package size={32} className="text-slate-700" />
+                                        <p>Pas assez de données de ventes pour générer une prévision</p>
+                                    </div>
+                                ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <AreaChart data={Array.isArray(forecast?.daily_forecast) ? forecast.daily_forecast : []}>
+                                    <AreaChart data={forecast.daily_forecast}>
                                         <defs>
-                                            <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                                            <linearGradient id="colorForecastReal" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
                                                 <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorForecastPred" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
@@ -302,16 +312,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             fontSize={10}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)}
                                         />
                                         <ReTooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
                                             labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            formatter={(value: any, _: any, props: any) => {
+                                                const isPred = props?.payload?.is_predicted;
+                                                return [`${Number(value).toLocaleString('fr-FR')}`, isPred ? 'Prévu' : 'Réel'];
+                                            }}
                                         />
-                                        <Area type="monotone" dataKey="expected_revenue" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorForecast)" />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="expected_revenue"
+                                            stroke="#3B82F6"
+                                            strokeWidth={2.5}
+                                            fillOpacity={1}
+                                            fill="url(#colorForecastReal)"
+                                            dot={false}
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                                )}
                             </div>
                         </div>
                     )}
@@ -327,8 +350,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Historique {period}J</div>
                             </div>
                             <div className="flex-1 w-full min-h-[300px]">
+                                {(!stats?.stock_value_history || stats.stock_value_history.length === 0 || stats.stock_value_history.every((d: any) => d.value === 0)) ? (
+                                    <div className="h-full flex items-center justify-center text-slate-500 text-sm flex-col gap-2">
+                                        <Package size={32} className="text-slate-700" />
+                                        <p>Aucune donnée de stock disponible pour cette période</p>
+                                    </div>
+                                ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <AreaChart data={Array.isArray(stats?.stock_value_history) ? stats.stock_value_history : []}>
+                                    <AreaChart data={stats.stock_value_history}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
@@ -349,16 +378,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             fontSize={10}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)}
                                         />
                                         <ReTooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
                                             labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')}`, 'Valeur stock']}
                                         />
-                                        <Area type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={3} fillOpacity={1} fill="url(#colorStock)" />
+                                        <Area type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorStock)" dot={false} />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                                )}
                             </div>
                         </div>
                     )}
