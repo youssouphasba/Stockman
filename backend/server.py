@@ -6677,10 +6677,15 @@ async def get_statistics(user: User = Depends(require_auth)):
     history_dates.reverse() # Oldest to newest
     
     # Current total value
-    current_total_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
+    # Product price map (with fallback to 70% of selling price if purchase price is 0)
+    price_map = {}
+    for p in products:
+        pp = p.get("purchase_price", 0)
+        if pp == 0:
+            pp = p.get("selling_price", 0) * 0.7
+        price_map[p["product_id"]] = pp
     
-    # Product price map
-    price_map = {p["product_id"]: p.get("purchase_price", 0) for p in products}
+    current_total_value = sum(p.get("quantity", 0) * price_map[p["product_id"]] for p in products)
     
     stock_value_chart = []
     
@@ -9010,8 +9015,10 @@ class SalesForecastResponse(BaseModel):
     products: List[ForecastProduct] = []
     total_predicted_revenue_7d: float = 0.0
     total_predicted_revenue_30d: float = 0.0
+    daily_forecast: List[Dict[str, Any]] = [] # Added for dashboard charts
     ai_summary: str = ""
     generated_at: str = ""
+    currency: str = "XOF"
 
 @api_router.get("/sales/forecast")
 async def get_sales_forecast(user: User = Depends(require_auth)):
@@ -9120,6 +9127,42 @@ async def get_sales_forecast(user: User = Depends(require_auth)):
                 risk_level=risk,
             ))
     
+    # Generate daily_forecast for the AreaChart in the dashboard
+    # We mix actual sales from last 7 days + projected sales for next 14 days
+    daily_forecast = []
+    
+    # Past 7 days actual revenue
+    for i in range(7, 0, -1):
+        date = now - timedelta(days=i)
+        d_str = date.strftime("%Y-%m-%d")
+        # Sum revenue for all products on this day from sales_30
+        day_rev = 0
+        for s in sales_30:
+            s_date = s.get("created_at")
+            if isinstance(s_date, str):
+                try:
+                    s_date = datetime.fromisoformat(s_date.replace("Z", "+00:00"))
+                except:
+                    continue
+            if s_date and s_date.strftime("%Y-%m-%d") == d_str:
+                day_rev += s.get("total_amount", 0)
+        daily_forecast.append({"date": d_str, "expected_revenue": day_rev, "is_predicted": False})
+        
+    # Future 14 days projected revenue
+    total_daily_velocity_rev = sum(
+        (qty_7d[p["product_id"]] / 7.0 if qty_7d[p["product_id"]] > 0 else qty_30d[p["product_id"]] / 30.0) * p.get("selling_price", 0)
+        for p in products
+    )
+    
+    for i in range(14):
+        date = now + timedelta(days=i)
+        d_str = date.strftime("%Y-%m-%d")
+        daily_forecast.append({
+            "date": d_str, 
+            "expected_revenue": round(total_daily_velocity_rev, 2),
+            "is_predicted": True
+        })
+    
     # Sort: critical first, then by velocity desc
     risk_order = {"critical": 0, "warning": 1, "ok": 2}
     forecast_products.sort(key=lambda x: (risk_order.get(x.risk_level, 2), -x.velocity))
@@ -9164,6 +9207,7 @@ Top produits:
         products=forecast_products[:30],
         total_predicted_revenue_7d=round(total_rev_7d),
         total_predicted_revenue_30d=round(total_rev_30d),
+        daily_forecast=daily_forecast,
         ai_summary=ai_summary,
         currency=currency,
         generated_at=now.isoformat(),
