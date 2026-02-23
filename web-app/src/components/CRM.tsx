@@ -36,8 +36,8 @@ import { customers as customersApi } from '../services/api';
 import Modal from './Modal';
 import LoyaltySettingsModal from './LoyaltySettingsModal';
 import CampaignModal from './CampaignModal';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { exportCRM } from '../utils/ExportService';
+
 
 export default function CRM() {
     const { t } = useTranslation();
@@ -135,55 +135,8 @@ export default function CRM() {
         setIsAddModalOpen(true);
     };
 
-    const handleExportCSV = () => {
-        const headers = ["Nom", "Téléphone", "Email", "Catégorie", "Dette", "Points", "Tier"];
-        const rows = filteredCustomers.map(c => [
-            c.name,
-            c.phone || '',
-            c.email || '',
-            c.category || 'particulier',
-            c.total_debt || 0,
-            c.loyalty_points || 0,
-            c.tier || 'Bronze'
-        ]);
-
-        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `crm_export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const handleExportPDF = () => {
-        const doc = new jsPDF() as any;
-        doc.setFontSize(18);
-        doc.text("Liste des Clients - Stockman", 14, 22);
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Date d'export: ${new Date().toLocaleDateString()}`, 14, 30);
-
-        const tableData = filteredCustomers.map(c => [
-            c.name,
-            c.phone || '-',
-            c.category || 'particulier',
-            formatCurrency(c.total_debt || 0),
-            c.loyalty_points || 0,
-            c.tier || 'Bronze'
-        ]);
-
-        doc.autoTable({
-            startY: 40,
-            head: [['Nom', 'Téléphone', 'Catégorie', 'Dette', 'Points', 'Niveau']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [79, 70, 229] }
-        });
-
-        doc.save(`crm_export_${new Date().toISOString().split('T')[0]}.pdf`);
-    };
+    const handleExportExcel = () => exportCRM(filteredCustomers, 'F', 'excel');
+    const handleExportPDF = () => exportCRM(filteredCustomers, 'F', 'pdf');
 
     const handleSaveCustomer = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -275,15 +228,15 @@ export default function CRM() {
                     <div className="h-10 w-[1px] bg-white/10 mx-1"></div>
                     <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                         <button
-                            onClick={handleExportCSV}
-                            className="px-4 py-3 hover:bg-white/5 text-slate-400 hover:text-white transition-all order-r border-white/10"
-                            title="Exporter CSV"
+                            onClick={handleExportExcel}
+                            className="px-4 py-3 hover:bg-white/5 text-emerald-400 hover:text-emerald-300 transition-all border-r border-white/10"
+                            title="Exporter Excel (.xlsx)"
                         >
                             <Download size={18} />
                         </button>
                         <button
                             onClick={handleExportPDF}
-                            className="px-4 py-3 hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                            className="px-4 py-3 hover:bg-white/5 text-red-400 hover:text-red-300 transition-all"
                             title="Exporter PDF"
                         >
                             <FileText size={18} />
@@ -400,11 +353,10 @@ export default function CRM() {
                 <div className="flex gap-2 relative">
                     <button
                         onClick={() => setIsFilterOpen(prev => !prev)}
-                        className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${
-                            filterCategory !== 'all'
+                        className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${filterCategory !== 'all'
                                 ? 'bg-primary/10 border-primary/30 text-primary'
                                 : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                        }`}
+                            }`}
                     >
                         <Filter size={20} />
                         <span className="hidden md:inline">{t('common.filter') || 'Filtrer'}</span>

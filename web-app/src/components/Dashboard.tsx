@@ -38,6 +38,7 @@ import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales a
 import AiSummaryModal from './AiSummaryModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import { exportDashboard } from '../utils/ExportService';
 
 interface DashboardProps {
     onNavigate?: (tab: string) => void;
@@ -119,24 +120,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         setVisibleSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
-    const handleExportStats = () => {
-        const rows = [
-            ['Métrique', 'Valeur'],
-            ['CA Aujourd\'hui', data?.today_revenue || 0],
-            ['Ventes Aujourd\'hui', data?.today_sales_count || 0],
-            ['Valeur du Stock', data?.total_stock_value || 0],
-            ['CA du Mois', data?.month_revenue || 0],
-            ['Ruptures de Stock', data?.out_of_stock_count || 0],
-            ['Stock Faible', data?.low_stock_count || 0],
-        ];
-        const csv = rows.map(r => r.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dashboard_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+    const handleExportStats = (format: 'excel' | 'pdf' = 'excel') => {
+        exportDashboard(data, 'F', period, format);
     };
 
 
@@ -221,12 +206,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         <option value={30}>{t('common.last_30_days')}</option>
                         <option value={90}>{t('common.last_90_days')}</option>
                     </select>
-                    <button
-                        onClick={handleExportStats}
-                        className="glass-card px-4 py-2 text-sm font-black uppercase tracking-widest text-white hover:bg-white/10 transition-colors border border-white/5"
-                    >
-                        {t('common.export')}
-                    </button>
+                    <div className="flex gap-1">
+                        <button
+                            onClick={() => handleExportStats('excel')}
+                            className="glass-card px-3 py-2 text-sm font-black text-emerald-400 hover:bg-white/10 transition-colors border border-white/5 flex items-center gap-1.5"
+                            title="Exporter Excel"
+                        >
+                            <ChevronDown size={14} />
+                            XLS
+                        </button>
+                        <button
+                            onClick={() => handleExportStats('pdf')}
+                            className="glass-card px-3 py-2 text-sm font-black text-red-400 hover:bg-white/10 transition-colors border border-white/5"
+                            title="Exporter PDF"
+                        >
+                            PDF
+                        </button>
+                    </div>
                     <button
                         onClick={() => onNavigate?.('pos')}
                         className="btn-primary py-2 px-6 shadow-lg shadow-primary/20 font-black uppercase tracking-widest"

@@ -36,9 +36,11 @@ import {
   sales as salesApi,
   batches,
   ai as aiApi,
+  locations as locationsApi,
   Product,
   ProductVariant,
   Category,
+  Location,
   ProductCreate,
   StockMovement,
   Sale,
@@ -46,7 +48,9 @@ import {
   API_URL,
   getToken,
   uploads,
+  ApiError,
 } from '../../services/api';
+import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -92,6 +96,8 @@ export default function ProductsScreen() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [locationList, setLocationList] = useState<Location[]>([]);
 
   // Add/Edit product form
   const [formName, setFormName] = useState('');
@@ -188,15 +194,18 @@ export default function ProductsScreen() {
   const loadData = useCallback(async () => {
     try {
       if (isConnected) {
-        const [prodsRes, cats, forecast] = await Promise.all([
+        const isEnterprise = user?.plan === 'enterprise';
+        const [prodsRes, cats, forecast, locsRes] = await Promise.all([
           productsApi.list(selectedCategory ?? undefined, 0, 500),
           categoriesApi.list(),
           salesApi.forecast(),
+          isEnterprise ? locationsApi.list() : Promise.resolve([]),
         ]);
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
         setCategoryList(cats);
         setForecastData(forecast);
+        if (isEnterprise) setLocationList(locsRes as Location[]);
         // Determine whether to cache: only cache full list (no category filter)
         if (!selectedCategory) {
           await cache.set(KEYS.PRODUCTS, prods);
@@ -214,7 +223,13 @@ export default function ProductsScreen() {
         }
         if (cachedCats) setCategoryList(cachedCats);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setAccessDenied(true);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
       // Fallback to cache on error
       const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
       if (cachedProds) {
@@ -1235,6 +1250,10 @@ export default function ProductsScreen() {
     }
   }
 
+  if (accessDenied) {
+    return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
+  }
+
   if (loading) {
     return (
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
@@ -1469,13 +1488,24 @@ export default function ProductsScreen() {
                   </View>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
                       <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
                         <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
                           +{formatUserCurrency(margin, user)}
                         </Text>
                       </View>
+                      {user?.plan === 'enterprise' && product.location_id && (() => {
+                        const loc = locationList.find(l => l.location_id === product.location_id);
+                        return loc ? (
+                          <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
+                            <Ionicons name="location-outline" size={10} color={colors.info} />
+                            <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
+                              {loc.name}
+                            </Text>
+                          </View>
+                        ) : null;
+                      })()}
                     </View>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
@@ -2884,6 +2914,19 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   marginText: {
     fontSize: 10,
     fontWeight: '700',
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  locationBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    maxWidth: 80,
   },
   filterWrapper: {
     paddingVertical: Spacing.sm,

@@ -615,7 +615,7 @@ export default function Accounting() {
             </div>
 
             {/* Modals */}
-            <AccountingReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} stats={stats} expenses={expenses} period={period} />
+            <AccountingReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} stats={stats} expenses={expenses} period={period} startDate={startDate} endDate={endDate} />
             <InvoiceModal isOpen={showInvoiceModal} onClose={() => setShowInvoiceModal(false)} />
 
             {/* Expense Add/Edit Modal */}

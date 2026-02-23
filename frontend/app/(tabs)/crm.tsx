@@ -31,7 +31,9 @@ import {
     DebtTransaction,
     getToken,
     API_URL,
+    ApiError,
 } from '../../services/api';
+import AccessDenied from '../../components/AccessDenied';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateAndSharePdf } from '../../utils/pdfReports';
@@ -99,6 +101,7 @@ export default function CRMScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
+    const [accessDenied, setAccessDenied] = useState(false);
 
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<SortKey>('name');
@@ -155,7 +158,11 @@ export default function CRMScreen() {
             setPromoList(promos);
             setLoyaltySettings(userSettings.loyalty);
         } catch (error) {
-            console.error(error);
+            if (error instanceof ApiError && error.status === 403) {
+                setAccessDenied(true);
+            } else {
+                console.error(error);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -576,7 +583,11 @@ export default function CRMScreen() {
         return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     }).length;
 
-    const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
+    const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise', 'premium'].includes(user?.plan || '') && user?.plan !== 'trial';
+
+    if (accessDenied) {
+        return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
+    }
 
     if (loading && !isLocked) {
         return (

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, Download, User, FileText, Send } from 'lucide-react';
 import Modal from './Modal';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
 
 interface InvoiceModalProps {
     isOpen: boolean;
@@ -72,7 +73,8 @@ export default function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
                 `${(item.quantity * item.price).toLocaleString()} F`
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
+
                 startY: TABLE_TOP,
                 head: [['Désignation', 'Quantité', 'Prix Unitaire', 'Total']],
                 body: tableBody,
@@ -81,7 +83,8 @@ export default function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
                 styles: { fontSize: 9 }
             });
 
-            const finalY = (doc as any).lastAutoTable.cursor + 10;
+            const finalY = (doc as any).lastAutoTable.finalY + 10;
+
 
             // Totals
             doc.setFont('helvetica', 'bold');

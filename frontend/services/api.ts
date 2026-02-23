@@ -177,6 +177,10 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
       }
     }
 
+    if (response.status === 403) {
+      throw new ApiError('Accès refusé. Contactez votre manager.', 403);
+    }
+
     if (response.status === 429) {
       throw new ApiError('Trop de tentatives. Veuillez réessayer plus tard.', 429);
     }
@@ -962,7 +966,7 @@ export type User = {
   created_at: string;
   active_store_id?: string;
   store_ids?: string[];
-  plan?: 'trial' | 'premium';
+  plan?: 'trial' | 'starter' | 'pro' | 'enterprise' | 'premium';
   subscription_status?: 'active' | 'expired';
   trial_ends_at?: string;
   currency?: string;
@@ -1000,6 +1004,7 @@ export type Product = {
   image?: string;
   rfid_tag?: string;
   expiry_date?: string;
+  location_id?: string;
   user_id: string;
   is_active: boolean;
   variants: ProductVariant[];
@@ -1821,7 +1826,7 @@ export type MarketplaceCatalogProduct = CatalogProductData & {
 };
 
 export type SubscriptionData = {
-  plan: 'trial' | 'premium';
+  plan: 'trial' | 'starter' | 'pro' | 'enterprise' | 'premium';
   status: 'active' | 'expired' | 'cancelled';
   trial_ends_at: string;
   subscription_end?: string;
@@ -1844,4 +1849,15 @@ export const subscription = {
   getDetails: () => request<SubscriptionData>('/subscription/me'),
   initCinetPay: () => request<{ payment_url: string }>('/payment/cinetpay/init', { method: 'POST' }),
   sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
+};
+
+export type Location = {
+  location_id: string;
+  name: string;
+  description?: string;
+  store_id?: string;
+};
+
+export const locations = {
+  list: () => request<Location[]>('/locations'),
 };

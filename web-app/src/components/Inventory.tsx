@@ -19,8 +19,11 @@ import {
     DollarSign,
     Layers,
     MapPin,
-    ArrowLeftRight
+    ArrowLeftRight,
+    FileSpreadsheet,
+    FileText
 } from 'lucide-react';
+import { exportInventory } from '../utils/ExportService';
 import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi } from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
@@ -75,6 +78,7 @@ export default function Inventory() {
     const [transferDest, setTransferDest] = useState('');
     const [transferring, setTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
@@ -293,6 +297,35 @@ export default function Inventory() {
                     <p className="text-slate-400">{t('catalog.product_count', { count: filteredProducts.length })}</p>
                 </div>
                 <div className="flex gap-4">
+                    {/* Export Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(v => !v)}
+                            className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                        >
+                            <Download size={16} />
+                            Exporter
+                            <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
+                                <button
+                                    onClick={() => { exportInventory(filteredProducts, 'F', 'excel'); setShowExportMenu(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                >
+                                    <FileSpreadsheet size={16} className="text-emerald-400" />
+                                    Excel (.xlsx)
+                                </button>
+                                <button
+                                    onClick={() => { exportInventory(filteredProducts, 'F', 'pdf'); setShowExportMenu(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                >
+                                    <FileText size={16} className="text-red-400" />
+                                    PDF
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={() => setIsImportModalOpen(true)}
                         className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"

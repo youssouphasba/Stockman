@@ -59,6 +59,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         const error = await response.json().catch(() => ({ detail: 'Erreur serveur' }));
         let message = 'Erreur serveur';
 
+        console.warn(`API ${response.status} on ${endpoint}:`, error?.detail ?? error);
+
         if (error.detail) {
             if (typeof error.detail === 'string') {
                 message = error.detail;
@@ -172,6 +174,13 @@ export const accounting = {
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
         return request<any>(`/accounting/stats?${qs.toString()}`);
+    },
+    getGrandLivre: (days?: number, startDate?: string, endDate?: string) => {
+        const qs = new URLSearchParams();
+        if (days) qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        return request<any>(`/grand-livre?${qs.toString()}`);
     }
 };
 

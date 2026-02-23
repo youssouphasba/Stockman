@@ -35,12 +35,14 @@ import {
     Expense,
     API_URL,
     getToken,
+    ApiError,
 } from '../../services/api';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import PremiumGate from '../../components/PremiumGate';
+import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector from '../../components/PeriodSelector';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 import {
@@ -96,6 +98,7 @@ export default function AccountingScreen() {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [showAllPerf, setShowAllPerf] = useState(false);
     const [showAllExpenses, setShowAllExpenses] = useState(false);
+    const [accessDenied, setAccessDenied] = useState(false);
     const [invoiceClient, setInvoiceClient] = useState('');
     const [invoiceItems, setInvoiceItems] = useState([{ desc: '', qty: '1', price: '', tva: '0' }]);
     const [invoiceNote, setInvoiceNote] = useState('');
@@ -120,7 +123,11 @@ export default function AccountingScreen() {
                 if (active) setCurrentStore(active);
             }
         } catch (error) {
-            console.error(error);
+            if (error instanceof ApiError && error.status === 403) {
+                setAccessDenied(true);
+            } else {
+                console.error(error);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -489,7 +496,11 @@ export default function AccountingScreen() {
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
-    const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
+    const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise', 'premium'].includes(user?.plan || '') && user?.plan !== 'trial';
+
+    if (accessDenied) {
+        return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(selectedPeriod, appliedStart, appliedEnd); }} />;
+    }
 
     if (loading && !isLocked) {
         return (

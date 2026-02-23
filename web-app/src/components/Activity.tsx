@@ -10,13 +10,19 @@ import {
     Clock,
     ArrowRight,
     Database,
-    Layers
+    Layers,
+    Download,
+    FileSpreadsheet,
+    FileText,
+    ChevronDown
 } from 'lucide-react';
 import { activityLogs as logsApi } from '../services/api';
+import { exportActivity } from '../utils/ExportService';
 
 export default function Activity() {
     const { t } = useTranslation();
     const [logs, setLogs] = useState<any[]>([]);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -54,9 +60,39 @@ export default function Activity() {
 
     return (
         <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
-            <header className="mb-10">
-                <h1 className="text-3xl font-bold text-white mb-2">Historique d'Activité</h1>
-                <p className="text-slate-400">Journal d'audit complet de toutes les actions système.</p>
+            <header className="flex justify-between items-start mb-10">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Historique d'Activité</h1>
+                    <p className="text-slate-400">Journal d'audit complet de toutes les actions système.</p>
+                </div>
+                <div className="relative">
+                    <button
+                        onClick={() => setShowExportMenu(v => !v)}
+                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                    >
+                        <Download size={16} />
+                        Exporter
+                        <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showExportMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
+                            <button
+                                onClick={() => { exportActivity(logs, 'excel'); setShowExportMenu(false); }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                            >
+                                <FileSpreadsheet size={16} className="text-emerald-400" />
+                                Excel (.xlsx)
+                            </button>
+                            <button
+                                onClick={() => { exportActivity(logs, 'pdf'); setShowExportMenu(false); }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                            >
+                                <FileText size={16} className="text-red-400" />
+                                PDF
+                            </button>
+                        </div>
+                    )}
+                </div>
             </header>
 
             <div className="max-w-4xl">

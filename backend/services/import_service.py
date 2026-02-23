@@ -14,13 +14,33 @@ class ImportService:
         self.db = db
 
     async def parse_csv(self, content: bytes) -> Dict[str, Any]:
-        """Parse CSV content and return headers + rows"""
-        decoded = content.decode("utf-8-sig")  # Handle BOM
-        reader = csv.DictReader(io.StringIO(decoded))
+        """Parse CSV content and return columns + rows"""
+        text = ""
+        # Try different encodings
+        for encoding in ["utf-8-sig", "utf-8", "latin-1", "cp1252"]:
+            try:
+                text = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if not text:
+            raise ValueError("Impossible de décoder le fichier. Essayez un format UTF-8 standard.")
+
+        # Detect delimiter if possible, fallback to comma
+        sample = text[:2000]
+        delimiter = ","
+        if ";" in sample and sample.count(";") > sample.count(","):
+            delimiter = ";"
+
+        reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
         rows = list(reader)
-        headers = reader.fieldnames or []
+        columns = reader.fieldnames or []
+        
+        logger.info(f"CSV Parsed: {len(rows)} rows, delimiter='{delimiter}', columns={columns}")
+        
         return {
-            "headers": headers,
+            "columns": columns,
             "data": rows,
             "row_count": len(rows)
         }

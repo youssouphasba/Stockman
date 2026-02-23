@@ -23,6 +23,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const [mapping, setMapping] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [importSummary, setImportSummary] = useState<any>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -38,16 +39,19 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             const res = await productsApi.importParse(uploadFile);
             setParseResult(res);
 
-            // Auto-mapping logic
-            const newMapping: Record<string, string> = {};
+            // Smart mapping logic: Priority to AI, fallback to local heuristics
+            const newMapping: Record<string, string> = { ...(res.ai_mapping || {}) };
             const columns = res.columns || [];
 
             [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].forEach(field => {
-                const match = columns.find((col: string) =>
-                    col.toLowerCase() === field.toLowerCase() ||
-                    col.toLowerCase().includes(field.toLowerCase())
-                );
-                if (match) newMapping[field] = match;
+                // Only try heuristics if AI didn't find anything for this field
+                if (!newMapping[field]) {
+                    const match = columns.find((col: string) =>
+                        col.toLowerCase() === field.toLowerCase() ||
+                        col.toLowerCase().includes(field.toLowerCase())
+                    );
+                    if (match) newMapping[field] = match;
+                }
             });
 
             setMapping(newMapping);
@@ -68,7 +72,8 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         setLoading(true);
         setError(null);
         try {
-            await productsApi.importConfirm(parseResult.data, mapping);
+            const res = await productsApi.importConfirm(parseResult.data, mapping);
+            setImportSummary(res);
             setStep('confirm');
         } catch (err: any) {
             setError(err.message || "Erreur lors de l'importation");
@@ -128,7 +133,14 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                 <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-primary/20">
                                     <div className="flex-1">
                                         <span className="text-xs font-black uppercase text-rose-400 block mb-1">Obligatoire</span>
-                                        <span className="text-white font-bold">{t(`common.${field}`)}</span>
+                                        <span className="text-white font-bold flex items-center gap-2">
+                                            {t(`common.${field}`)}
+                                            {parseResult.ai_mapping?.[field] && (
+                                                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
+                                                    IA ✨
+                                                </span>
+                                            )}
+                                        </span>
                                     </div>
                                     <ArrowRight size={16} className="text-slate-600" />
                                     <select
@@ -137,7 +149,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                         className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
                                     >
                                         <option value="">Sélectionner...</option>
-                                        {parseResult.columns.map((col: string) => (
+                                        {parseResult.columns?.map((col: string) => (
                                             <option key={col} value={col}>{col}</option>
                                         ))}
                                     </select>
@@ -148,7 +160,14 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                 <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-white/5">
                                     <div className="flex-1">
                                         <span className="text-xs font-black uppercase text-slate-500 block mb-1">Optionnel</span>
-                                        <span className="text-white font-bold">{t(`common.${field}`)}</span>
+                                        <span className="text-white font-bold flex items-center gap-2">
+                                            {t(`common.${field}`)}
+                                            {parseResult.ai_mapping?.[field] && (
+                                                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
+                                                    IA ✨
+                                                </span>
+                                            )}
+                                        </span>
                                     </div>
                                     <ArrowRight size={16} className="text-slate-600" />
                                     <select
@@ -157,7 +176,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                         className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
                                     >
                                         <option value="">Ignorer</option>
-                                        {parseResult.columns.map((col: string) => (
+                                        {parseResult.columns?.map((col: string) => (
                                             <option key={col} value={col}>{col}</option>
                                         ))}
                                     </select>
@@ -183,8 +202,16 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                         <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mb-6 animate-bounce">
                             <CheckCircle size={48} />
                         </div>
-                        <h3 className="text-2xl font-black text-white mb-2">Importation Réussie !</h3>
-                        <p className="text-slate-400 mb-8 max-w-sm">Vos produits ont été ajoutés avec succès à votre inventaire.</p>
+                        <h3 className="text-2xl font-black text-white mb-2">Importation Terminée !</h3>
+                        <p className="text-slate-400 mb-2 max-w-sm">
+                            {importSummary?.count || 0} produits ont été ajoutés avec succès.
+                        </p>
+                        {importSummary?.errors?.length > 0 && (
+                            <p className="text-rose-400 text-xs mb-8 italic">
+                                ({importSummary.errors.length} erreurs ignorées)
+                            </p>
+                        )}
+                        <div className="mb-8" />
                         <button
                             onClick={() => { onSuccess(); onClose(); reset(); }}
                             className="btn-primary px-12 py-3 rounded-xl font-black shadow-xl shadow-primary/20"

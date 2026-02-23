@@ -46,6 +46,18 @@ try:
 except Exception:
     RAGService = None
 
+# Gemini model initialization
+google_key = os.environ.get('GOOGLE_API_KEY')
+gemini_model = None
+if google_key:
+    try:
+        genai.configure(api_key=google_key)
+        # Using Gemini 2.0 Flash (referred to as 2.5 by the user)
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+        logger.info("Gemini 2.0 Flash Model initialized for Import Service")
+    except Exception as e:
+        logger.error(f"Failed to initialize Gemini: {e}")
+
 # RAG Service (initialized later if API key exists)
 rag_service = None
 
@@ -1310,7 +1322,18 @@ async def parse_import_file(
     if file.content_type and file.content_type not in ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"]:
         raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
     try:
-        return await import_service.parse_csv(content)
+        res = await import_service.parse_csv(content)
+        
+        # AI Mapping (Smart detection)
+        ai_mapping = {}
+        if gemini_model and res.get("data"):
+            try:
+                ai_mapping = await import_service.infer_mapping_with_ai(res["data"][:5], gemini_model)
+                logger.info(f"AI Mapping detection: {ai_mapping}")
+            except Exception as ai_e:
+                logger.error(f"AI Mapping failed: {ai_e}")
+
+        return {**res, "ai_mapping": ai_mapping}
     except Exception as e:
         logger.error(f"Error parsing import file: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de l'analyse du fichier: {str(e)}")
@@ -1332,7 +1355,7 @@ async def confirm_import(
         
         # Use user_id from the authenticated user
         user_id = current_user.user_id
-        return await import_service.confirm_import(user_id, import_data, mapping)
+        return await import_service.process_import(import_data, mapping, user_id)
     except Exception as e:
         logger.error(f"Error confirming import: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de l'importation: {str(e)}")
@@ -6713,6 +6736,160 @@ async def get_statistics(user: User = Depends(require_auth)):
     }
 
 # (Duplicate accounting endpoint removed — using the one above at /accounting/stats)
+
+# ===================== GRAND LIVRE (GENERAL LEDGER) =====================
+
+@api_router.get("/grand-livre")
+async def get_grand_livre(
+    days: Optional[int] = 30,
+    start_date_str: Optional[str] = Query(None, alias="start_date"),
+    end_date_str: Optional[str] = Query(None, alias="end_date"),
+    user: User = Depends(require_permission("accounting", "read"))
+):
+    """
+    Returns a unified chronological ledger of all financial transactions:
+    sales (income), expenses (outflow), stock losses, and delivered supplier orders.
+    Each entry includes: date, type, reference, description, amount_in, amount_out, running_balance.
+    """
+    user_id = user.user_id
+    store_id = user.active_store_id
+
+    # Resolve date range
+    now = datetime.now(timezone.utc)
+    if start_date_str or end_date_str:
+        try:
+            if start_date_str:
+                if "T" not in start_date_str:
+                    start_date_str += "T00:00:00"
+                start_date = datetime.fromisoformat(start_date_str.replace("Z", "+00:00"))
+                if start_date.tzinfo is None:
+                    start_date = start_date.replace(tzinfo=timezone.utc)
+            else:
+                start_date = now - timedelta(days=365)
+            if end_date_str:
+                if "T" not in end_date_str:
+                    end_date_str += "T23:59:59"
+                end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+                if end_date.tzinfo is None:
+                    end_date = end_date.replace(tzinfo=timezone.utc)
+            else:
+                end_date = now
+        except Exception:
+            start_date = now - timedelta(days=days or 30)
+            end_date = now
+    else:
+        start_date = now - timedelta(days=days or 30)
+        end_date = now
+
+    date_filter = {"$gte": start_date, "$lte": end_date}
+    base_q = {"user_id": user_id}
+    if store_id:
+        base_q["store_id"] = store_id
+
+    entries = []
+
+    # 1. SALES → income
+    sales = await db.sales.find({**base_q, "created_at": date_filter}).to_list(5000)
+    for s in sales:
+        amount = s.get("total_amount", 0) or 0
+        items_desc = ", ".join(
+            f"{i.get('product_name','?')} x{i.get('quantity',0)}"
+            for i in s.get("items", [])[:3]
+        )
+        if len(s.get("items", [])) > 3:
+            items_desc += f" (+{len(s['items'])-3})"
+        entries.append({
+            "date": s.get("created_at", now).isoformat() if hasattr(s.get("created_at", now), "isoformat") else str(s.get("created_at", "")),
+            "type": "Vente",
+            "type_code": "sale",
+            "reference": ("VNT-" + s.get("sale_id", "")[-6:].upper()) if s.get("sale_id") else "VNT-???",
+            "description": items_desc or "Vente POS",
+            "payment_method": s.get("payment_method", ""),
+            "amount_in": round(amount, 2),
+            "amount_out": 0,
+        })
+
+    # 2. EXPENSES → outflow
+    expenses = await db.expenses.find({**base_q, "created_at": date_filter}).to_list(5000)
+    for e in expenses:
+        amount = e.get("amount", 0) or 0
+        entries.append({
+            "date": e.get("created_at", now).isoformat() if hasattr(e.get("created_at", now), "isoformat") else str(e.get("created_at", "")),
+            "type": "Dépense",
+            "type_code": "expense",
+            "reference": ("DEP-" + e.get("expense_id", "")[-6:].upper()) if e.get("expense_id") else "DEP-???",
+            "description": f"{e.get('category','').capitalize()} — {e.get('description','') or ''}".strip(" —"),
+            "payment_method": "",
+            "amount_in": 0,
+            "amount_out": round(amount, 2),
+        })
+
+    # 3. STOCK LOSSES (movements that are not POS sales) → outflow (stock value lost)
+    products = await db.products.find({"user_id": user_id}, {"_id": 0, "product_id": 1, "name": 1, "purchase_price": 1}).to_list(2000)
+    prod_map = {p["product_id"]: p for p in products}
+    losses = await db.stock_movements.find({
+        **base_q,
+        "type": "out",
+        "created_at": date_filter,
+        "reason": {"$nin": ["Vente POS", "pos_sale", "stock.reasons.pos_sale"]}
+    }).to_list(5000)
+    for m in losses:
+        p = prod_map.get(m.get("product_id", ""), {})
+        unit_price = p.get("purchase_price", 0) or 0
+        qty = m.get("quantity", 0) or 0
+        loss_val = round(unit_price * qty, 2)
+        entries.append({
+            "date": m.get("created_at", now).isoformat() if hasattr(m.get("created_at", now), "isoformat") else str(m.get("created_at", "")),
+            "type": "Perte / Démarque",
+            "type_code": "loss",
+            "reference": ("MOV-" + m.get("movement_id", "")[-6:].upper()) if m.get("movement_id") else "MOV-???",
+            "description": f"{p.get('name','?')} x{qty} — {m.get('reason','?')}",
+            "payment_method": "",
+            "amount_in": 0,
+            "amount_out": loss_val,
+        })
+
+    # 4. DELIVERED SUPPLIER ORDERS → outflow (purchase cost)
+    orders = await db.orders.find({
+        **{k: v for k, v in base_q.items() if k != "store_id"},
+        "status": {"$in": ["delivered", "received", "partially_received", "partial"]},
+        "updated_at": date_filter
+    }).to_list(1000)
+    for o in orders:
+        amount = o.get("total_amount", 0) or 0
+        entries.append({
+            "date": o.get("updated_at", o.get("created_at", now)).isoformat() if hasattr(o.get("updated_at", now), "isoformat") else str(o.get("updated_at", "")),
+            "type": "Achat Fournisseur",
+            "type_code": "purchase",
+            "reference": ("ACH-" + o.get("order_id", "")[-6:].upper()) if o.get("order_id") else "ACH-???",
+            "description": f"Commande — {o.get('supplier_name', o.get('notes', 'Fournisseur')[:30] if o.get('notes') else 'Fournisseur')}",
+            "payment_method": "",
+            "amount_in": 0,
+            "amount_out": round(amount, 2),
+        })
+
+    # Sort all entries chronologically
+    entries.sort(key=lambda x: x["date"])
+
+    # Compute running balance
+    balance = 0.0
+    for e in entries:
+        balance += e["amount_in"] - e["amount_out"]
+        e["balance"] = round(balance, 2)
+
+    # Summary
+    total_in = sum(e["amount_in"] for e in entries)
+    total_out = sum(e["amount_out"] for e in entries)
+
+    return {
+        "entries": entries,
+        "total_in": round(total_in, 2),
+        "total_out": round(total_out, 2),
+        "net_balance": round(total_in - total_out, 2),
+        "count": len(entries),
+        "period_start": start_date.isoformat(),
+        "period_end": end_date.isoformat(),
+    }
 
 # ===================== SUPPLIER PROFILE ROUTES (CAS 1) =====================
 

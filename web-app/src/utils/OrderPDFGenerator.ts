@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
 
 export const generateOrderPDF = (order: any) => {
     const doc = new jsPDF() as any;
@@ -31,7 +32,8 @@ export const generateOrderPDF = (order: any) => {
         `${((item.unit_price || item.price || 0) * item.quantity).toLocaleString()} F`
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
+
         startY: 70,
         head: [['Article', 'Quantité', 'Prix Unitaire', 'Total']],
         body: tableData,
@@ -40,7 +42,8 @@ export const generateOrderPDF = (order: any) => {
         styles: { fontSize: 9 },
     });
 
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
 
     // Totals
     doc.setFontSize(12);

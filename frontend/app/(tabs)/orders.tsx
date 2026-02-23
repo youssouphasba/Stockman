@@ -36,6 +36,7 @@ import {
   CreditNote,
   Store,
   InvoiceScanResult,
+  ApiError,
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -50,6 +51,7 @@ import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfRe
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
+import AccessDenied from '../../components/AccessDenied';
 
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
@@ -79,6 +81,7 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('orders');
 
   useEffect(() => {
@@ -180,8 +183,10 @@ export default function OrdersScreen() {
         const active = stores.find((s: any) => s.store_id === user.active_store_id);
         if (active) setCurrentStore(active);
       }
-    } catch {
-      // silently fail
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 403) {
+        setAccessDenied(true);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -602,7 +607,11 @@ export default function OrdersScreen() {
     }
   }
 
-  const isLocked = !isSuperAdmin && user?.plan !== 'premium' && user?.plan !== 'trial';
+  const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise', 'premium'].includes(user?.plan || '') && user?.plan !== 'trial';
+
+  if (accessDenied) {
+    return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
+  }
 
   if (loading && !isLocked) {
     return (

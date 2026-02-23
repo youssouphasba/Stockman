@@ -144,17 +144,28 @@ export default function SubscriptionScreen() {
     }
 
     const currentPlan = data?.plan || 'starter';
-    const isPremium = currentPlan === 'premium' && data?.status === 'active';
+    const isPaidPlan = ['starter', 'pro', 'enterprise', 'premium'].includes(currentPlan) && data?.status === 'active';
+    // Legacy: 'premium' maps to Pro for display purposes
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
     const isNative = Platform.OS !== 'web';
     const selectedPrice = selectedPlan === 'premium' ? prices.premium : prices.starter;
 
+    const planDisplayName = (() => {
+        switch (currentPlan) {
+            case 'starter': return t('subscription.plan_starter');
+            case 'pro': return t('subscription.plan_pro') || 'Pro';
+            case 'enterprise': return t('subscription.plan_enterprise') || 'Enterprise';
+            case 'premium': return t('subscription.plan_premium');
+            default: return t('subscription.plan_starter');
+        }
+    })();
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
             {/* Header */}
             <LinearGradient
-                colors={isPremium ? ['#F59E0B', '#D97706'] : ['#3B82F6', '#2563EB']}
+                colors={currentPlan === 'enterprise' ? ['#7C3AED', '#5B21B6'] : isPaidPlan ? ['#F59E0B', '#D97706'] : ['#3B82F6', '#2563EB']}
                 style={[styles.header, { paddingTop: insets.top + 20 }]}
             >
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -163,7 +174,7 @@ export default function SubscriptionScreen() {
                 <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
                 <View style={styles.planBadge}>
                     <Text style={styles.planBadgeText}>
-                        {isPremium ? t('subscription.plan_premium') : t('subscription.plan_starter')}
+                        {planDisplayName}
                         {isFreeTrial ? ` (${t('subscription.free_trial')})` : ''}
                     </Text>
                 </View>
@@ -176,7 +187,7 @@ export default function SubscriptionScreen() {
 
             <View style={styles.content}>
                 {/* Plan Selector */}
-                {!isPremium && (
+                {!isPaidPlan && (
                     <View style={styles.planSelector}>
                         <TouchableOpacity
                             style={[styles.planTab, selectedPlan === 'starter' && styles.planTabActive]}
@@ -250,7 +261,7 @@ export default function SubscriptionScreen() {
                 </View>
 
                 {/* Payment Buttons */}
-                {!isPremium && (
+                {!isPaidPlan && (
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>
                             {t('subscription.choose_plan', { plan: selectedPlan === 'premium' ? t('subscription.plan_premium') : t('subscription.plan_starter') })}
@@ -306,14 +317,14 @@ export default function SubscriptionScreen() {
                 )}
 
                 {/* Restore */}
-                {isNative && !isPremium && (
+                {isNative && !isPaidPlan && (
                     <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
                         <Text style={styles.restoreText}>{t('subscription.restore_purchase')}</Text>
                     </TouchableOpacity>
                 )}
 
-                {/* Premium active info */}
-                {isPremium && (
+                {/* Plan active info */}
+                {isPaidPlan && (
                     <View style={styles.card}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                             <Ionicons name="checkmark-circle" size={24} color="#10B981" />

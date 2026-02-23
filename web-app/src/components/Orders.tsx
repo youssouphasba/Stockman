@@ -17,11 +17,15 @@ import {
     FileImage,
     Loader2,
     ArrowLeftRight,
-    Undo2
+    Undo2,
+    Download,
+    FileSpreadsheet,
+    FileText
 } from 'lucide-react';
 import { supplier_orders as ordersApi, ai as aiApi, returns as returnsApi, creditNotes as creditNotesApi } from '../services/api';
 import Modal from './Modal';
 import OrderReturnModal from './OrderReturnModal';
+import { exportOrders } from '../utils/ExportService';
 
 export default function Orders() {
     const { t } = useTranslation();
@@ -30,6 +34,7 @@ export default function Orders() {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
     const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     // Returns & Credit Notes State
     const [returnsList, setReturnsList] = useState<any[]>([]);
@@ -145,6 +150,35 @@ export default function Orders() {
                     <p className="text-slate-400">Suivez vos approvisionnements et réceptions de stock.</p>
                 </div>
                 <div className="flex gap-4">
+                    {/* Export dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(v => !v)}
+                            className="glass-card px-4 py-3 text-white hover:bg-white/10 transition-colors flex items-center gap-2 text-sm font-medium"
+                        >
+                            <Download size={16} />
+                            Exporter
+                            <ChevronRight size={14} className={`transition-transform ${showExportMenu ? 'rotate-90' : ''}`} />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
+                                <button
+                                    onClick={() => { exportOrders(orders, 'F', 'excel'); setShowExportMenu(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                >
+                                    <FileSpreadsheet size={16} className="text-emerald-400" />
+                                    Excel (.xlsx)
+                                </button>
+                                <button
+                                    onClick={() => { exportOrders(orders, 'F', 'pdf'); setShowExportMenu(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                >
+                                    <FileText size={16} className="text-red-400" />
+                                    PDF
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={handleScanInvoice}
                         disabled={scanLoading}
