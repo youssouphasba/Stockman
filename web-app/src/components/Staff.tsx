@@ -23,20 +23,29 @@ import { subUsers as subUsersApi } from '../services/api';
 import Modal from './Modal';
 
 const MODULE_LABELS: Record<string, string> = {
-    pos:        '🧾 Ventes (POS)',
-    stock:      '📦 Stock',
+    pos: '🧾 Ventes (POS)',
+    stock: '📦 Stock',
     accounting: '💼 Comptabilité',
-    crm:        '👥 Clients (CRM)',
-    suppliers:  '🚚 Fournisseurs',
-    staff:      '🏪 Gestion équipe',
+    crm: '👥 Clients (CRM)',
+    suppliers: '🚚 Fournisseurs',
+    staff: '🏪 Gestion équipe',
 };
 
-const ROLE_TEMPLATES: Record<string, { label: string; permissions: Record<string, string> }> = {
-    cashier:       { label: '🧾 Caissier',       permissions: { pos: 'write', stock: 'read',  accounting: 'none',  crm: 'read',  suppliers: 'none',  staff: 'none'  } },
-    stock_manager: { label: '📦 Stock',           permissions: { pos: 'none',  stock: 'write', accounting: 'none',  crm: 'none',  suppliers: 'read',  staff: 'none'  } },
-    accountant:    { label: '💼 Comptable',       permissions: { pos: 'read',  stock: 'read',  accounting: 'write', crm: 'none',  suppliers: 'read',  staff: 'none'  } },
-    manager:       { label: '🏪 Manager',         permissions: { pos: 'write', stock: 'write', accounting: 'read',  crm: 'write', suppliers: 'write', staff: 'write' } },
-    crm_agent:     { label: '👥 CRM / Clients',   permissions: { pos: 'read',  stock: 'none',  accounting: 'none',  crm: 'write', suppliers: 'none',  staff: 'none'  } },
+interface StaffPermissions {
+    stock: string;
+    accounting: string;
+    crm: string;
+    pos: string;
+    suppliers: string;
+    staff: string;
+}
+
+const ROLE_TEMPLATES: Record<string, { label: string; permissions: StaffPermissions }> = {
+    cashier: { label: '🧾 Caissier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
+    stock_manager: { label: '📦 Stock', permissions: { pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
+    accountant: { label: '💼 Comptable', permissions: { pos: 'read', stock: 'read', accounting: 'write', crm: 'none', suppliers: 'read', staff: 'none' } },
+    manager: { label: '🏪 Manager', permissions: { pos: 'write', stock: 'write', accounting: 'read', crm: 'write', suppliers: 'write', staff: 'write' } },
+    crm_agent: { label: '👥 CRM / Clients', permissions: { pos: 'read', stock: 'none', accounting: 'none', crm: 'write', suppliers: 'none', staff: 'none' } },
 };
 
 export default function Staff() {
@@ -51,7 +60,12 @@ export default function Staff() {
     const [editingUser, setEditingUser] = useState<any>(null);
     const [saving, setSaving] = useState(false);
 
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        permissions: StaffPermissions;
+    }>({
         name: '',
         email: '',
         password: '',
