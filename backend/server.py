@@ -6677,13 +6677,8 @@ async def get_statistics(user: User = Depends(require_auth)):
     history_dates.reverse() # Oldest to newest
     
     # Current total value
-    # Product price map (with fallback to 70% of selling price if purchase price is 0)
-    price_map = {}
-    for p in products:
-        pp = p.get("purchase_price", 0)
-        if pp == 0:
-            pp = p.get("selling_price", 0) * 0.7
-        price_map[p["product_id"]] = pp
+    # Product price map
+    price_map = {p["product_id"]: p.get("purchase_price", 0) for p in products}
     
     current_total_value = sum(p.get("quantity", 0) * price_map[p["product_id"]] for p in products)
     
