@@ -1,4 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from dotenv import load_dotenv
 load_dotenv()
 from starlette.middleware.cors import CORSMiddleware
@@ -564,7 +566,7 @@ class User(UserBase):
     parent_user_id: Optional[str] = None
     active_store_id: Optional[str] = None # The store currently being managed
     store_ids: List[str] = [] # List of stores this user has access to
-    plan: str = "starter" # "starter", "premium"
+    plan: str = "starter" # "starter", "pro", "enterprise" (legacy: "premium")
     subscription_status: str = "active" # "active", "expired", "cancelled"
     subscription_provider: str = "none" # "none", "revenuecat", "cinetpay"
     subscription_provider_id: Optional[str] = None
@@ -1137,7 +1139,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+# Security scheme for Swagger UI
+api_security = HTTPBearer(auto_error=False)
+
 async def get_current_user(request: Request) -> Optional[User]:
+
     # Try cookie first
     token = request.cookies.get("session_token")
     # Then try Authorization header
@@ -1165,7 +1171,8 @@ async def get_current_user(request: Request) -> Optional[User]:
 
     return None
 
-async def require_auth(request: Request) -> User:
+async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredentials] = Depends(api_security)) -> User:
+
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Non authentifié")
@@ -1190,6 +1197,7 @@ def require_permission(module: str, level: str = "read"):
     return permission_checker
 
 async def require_superadmin(user: User = Depends(require_auth)) -> User:
+
     if user.role != "superadmin":
         raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
     return user
@@ -1220,6 +1228,67 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
         }}
     )
     return {"status": "ok"}
+
+@api_router.post("/admin/set-plan")
+async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_superadmin)):
+    """Force le plan d'un user — SUPERADMIN ONLY. Pour tests et migrations."""
+    valid_plans = ("starter", "pro", "enterprise", "premium")
+    if plan not in valid_plans:
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"plan": plan, "subscription_status": "active"}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User non trouvé")
+    return {"status": "ok", "user_id": user_id, "plan": plan}
+
+@api_router.post("/admin/set-plan-all")
+async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = Depends(require_superadmin)):
+    """Force le plan sur tous les users d'un rôle — SUPERADMIN ONLY. Pour tests."""
+    valid_plans = ("starter", "pro", "enterprise", "premium")
+    if plan not in valid_plans:
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
+    result = await db.users.update_many(
+        {"role": role},
+        {"$set": {"plan": plan, "subscription_status": "active"}}
+    )
+    return {"status": "ok", "modified": result.modified_count, "plan": plan}
+
+@api_router.delete("/admin/users")
+async def admin_delete_user(email: str, admin: User = Depends(require_superadmin)):
+    """Supprime un compte et toutes ses données — SUPERADMIN ONLY. Pour nettoyer les comptes de test."""
+    target = await db.users.find_one({"email": email})
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Aucun user trouvé avec l'email : {email}")
+    if target.get("role") == "superadmin":
+        raise HTTPException(status_code=403, detail="Impossible de supprimer un superadmin.")
+
+    owner_id = target["user_id"]
+
+    # Cascade delete : toutes les collections liées à ce compte
+    collections = [
+        "products", "sales", "customers", "expenses", "batches", "stock_movements",
+        "alerts", "alert_rules", "suppliers", "supplier_products", "orders",
+        "categories", "locations", "activity_logs", "ai_conversations",
+        "promotions", "stores", "notifications",
+    ]
+    deleted_counts = {}
+    for col in collections:
+        r = await db[col].delete_many({"user_id": owner_id})
+        if r.deleted_count:
+            deleted_counts[col] = r.deleted_count
+
+    # Sous-utilisateurs (staff)
+    r = await db.users.delete_many({"parent_user_id": owner_id})
+    deleted_counts["sub_users"] = r.deleted_count
+    await db.credentials.delete_many({"parent_user_id": owner_id})
+
+    # Compte principal
+    await db.users.delete_one({"user_id": owner_id})
+    await db.credentials.delete_one({"user_id": owner_id})
+
+    return {"status": "ok", "deleted_email": email, "details": deleted_counts}
 
 
 # ===================== BULK IMPORT ENDPOINTS =====================
@@ -1316,6 +1385,16 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     if is_delegated_manager and (sub_user_data.permissions or {}).get("staff") == "write":
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
     
+    # Plan limits on staff count
+    STAFF_LIMITS = {"starter": 1, "premium": 5, "pro": 5, "enterprise": 9999}
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id})
+    owner_plan = (owner_doc or {}).get("plan", "starter")
+    staff_limit = STAFF_LIMITS.get(owner_plan, 1)
+    current_staff = await db.users.count_documents({"parent_user_id": owner_id})
+    if current_staff >= staff_limit:
+        raise HTTPException(status_code=403, detail=f"Votre plan {owner_plan} est limité à {staff_limit} utilisateur(s). Passez à un plan supérieur.")
+
     # Check if email exists
     if await db.users.find_one({"email": sub_user_data.email}):
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
@@ -2012,8 +2091,8 @@ class AiChatMessage(BaseModel):
 AI_STARTER_WEEKLY_LIMIT = 14
 
 async def check_ai_limit(user: User):
-    """Starter plan: 14 AI requests/week. Premium: unlimited."""
-    if user.plan == "premium":
+    """Starter plan: 14 AI requests/week. Pro/Enterprise/Premium: unlimited."""
+    if user.plan in ("premium", "pro", "enterprise"):
         return
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     count = await db.ai_usage.count_documents({
@@ -3733,6 +3812,11 @@ async def get_stores(user: User = Depends(require_auth)):
 
 @api_router.post("/stores", response_model=Store)
 async def create_store(store_data: StoreCreate, user: User = Depends(require_auth)):
+    STORE_LIMITS = {"starter": 1, "premium": 1, "pro": 2, "enterprise": 9999}
+    limit = STORE_LIMITS.get(user.plan, 1)
+    current_count = len(user.store_ids)
+    if current_count >= limit:
+        raise HTTPException(status_code=403, detail=f"Votre plan {user.plan} est limité à {limit} boutique(s). Passez à un plan supérieur.")
     store = Store(**store_data.model_dump(), user_id=user.user_id)
     await db.stores.insert_one(store.model_dump())
     
