@@ -196,8 +196,8 @@ export default function Accounting() {
         );
     }
 
-    // Chart data — backend returns daily_revenue array
-    const chartData = stats?.daily_revenue || [];
+    // Chart data — backend returns daily_revenue array; filter out items with missing date
+    const chartData = (stats?.daily_revenue || []).filter((d: any) => d?.date != null);
 
     // Product performance — top 8 by revenue
     const topProducts = (stats?.product_performance || [])
@@ -423,7 +423,7 @@ export default function Accounting() {
                                         <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
                                             tickFormatter={(str) => { if (!str) return ''; const d = new Date(str); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
                                         <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
-                                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val} />
+                                            tickFormatter={(val) => val == null ? '' : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)} />
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}

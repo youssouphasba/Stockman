@@ -287,7 +287,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                     </div>
                                 ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <AreaChart data={forecast.daily_forecast}>
+                                    <AreaChart data={forecast.daily_forecast.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorForecastReal" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
@@ -357,7 +357,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                     </div>
                                 ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <AreaChart data={stats.stock_value_history}>
+                                    <AreaChart data={stats.stock_value_history.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />

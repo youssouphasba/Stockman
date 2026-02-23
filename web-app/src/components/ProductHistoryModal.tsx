@@ -91,7 +91,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     Mouvements de stock (30j)
                                 </h3>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={movements}>
+                                    <AreaChart data={(movements || []).filter((m: any) => m?.created_at != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
@@ -103,7 +103,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                             dataKey="created_at"
                                             stroke="#475569"
                                             fontSize={10}
-                                            tickFormatter={(val) => new Date(val).toLocaleDateString()}
+                                            tickFormatter={(val) => { if (!val) return ''; const d = new Date(val); return isNaN(d.getTime()) ? '' : d.toLocaleDateString(); }}
                                             axisLine={false}
                                             tickLine={false}
                                         />
@@ -124,13 +124,13 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     Historique des prix
                                 </h3>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={priceHistory}>
+                                    <BarChart data={(priceHistory || []).filter((p: any) => p?.recorded_at != null)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                                         <XAxis
                                             dataKey="recorded_at"
                                             stroke="#475569"
                                             fontSize={10}
-                                            tickFormatter={(val) => new Date(val).toLocaleDateString()}
+                                            tickFormatter={(val) => { if (!val) return ''; const d = new Date(val); return isNaN(d.getTime()) ? '' : d.toLocaleDateString(); }}
                                             axisLine={false}
                                             tickLine={false}
                                         />

@@ -1,10 +1,8 @@
 const CACHE_NAME = 'stockman-cache-v1';
 const ASSETS_TO_CACHE = [
     '/',
-    '/index.html',
     '/manifest.json',
-    '/icon.png',
-    // Add other critical static assets here
+    // Removed index.html and icon.png as they don't exist in public/
 ];
 
 self.addEventListener('install', (event) => {

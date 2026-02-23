@@ -115,7 +115,7 @@ export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: 
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={order ? `Retour Commande #${order.order_id.substring(0, 8).toUpperCase()}` : "Nouveau Retour Fournisseur"}
+            title={order ? `Retour #${(order.order_id || order.sale_id || '').substring(0, 8).toUpperCase()}` : "Nouveau Retour Fournisseur"}
             maxWidth="lg"
         >
             <div className="space-y-6">
