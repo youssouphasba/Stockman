@@ -42,19 +42,19 @@ export default function BatchScanModal({ onClose }: Props) {
                     setScannedCodes(prev => prev.includes(decodedText) ? prev : [decodedText, ...prev]);
                 },
                 undefined
-            ).catch(() => {});
+            ).catch(() => { });
         } else {
             if (html5QrRef.current) {
-                html5QrRef.current.stop().catch(() => {}).finally(() => {
-                    html5QrRef.current?.clear().catch(() => {});
+                html5QrRef.current.stop().catch(() => { }).finally(() => {
+                    html5QrRef.current?.clear();
                     html5QrRef.current = null;
                 });
             }
         }
         return () => {
             if (html5QrRef.current) {
-                html5QrRef.current.stop().catch(() => {}).finally(() => {
-                    html5QrRef.current?.clear().catch(() => {});
+                html5QrRef.current.stop().catch(() => { }).finally(() => {
+                    html5QrRef.current?.clear();
                     html5QrRef.current = null;
                 });
             }
@@ -162,7 +162,7 @@ export default function BatchScanModal({ onClose }: Props) {
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-sm w-fit ${cameraActive
                                 ? 'border-primary/50 bg-primary/10 text-primary'
                                 : 'border-white/10 text-slate-400 hover:bg-white/5'
-                            }`}
+                                }`}
                         >
                             <Scan size={16} />
                             {cameraActive ? 'Arrêter la caméra' : 'Activer la caméra'}
