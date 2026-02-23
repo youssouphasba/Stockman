@@ -87,6 +87,7 @@ export default function Sidebar({
             roles: ['shopkeeper', 'staff', 'admin'],
             children: [
                 { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
+                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
                 { id: 'stock_history', icon: HistoryIcon, label: 'Historique Stock', roles: ['shopkeeper', 'admin'] },
                 { id: 'inventory_counting', icon: RefreshCcw, label: 'Inventaire Tournant', roles: ['shopkeeper', 'admin'] },
                 { id: 'expiry_alerts', icon: AlertCircle, label: 'Péremption', roles: ['shopkeeper', 'admin'] },
@@ -107,11 +108,10 @@ export default function Sidebar({
         },
         {
             id: 'system_group',
-            icon: AlertCircle,
+            icon: Clock,
             label: 'Système',
             roles: ['shopkeeper', 'staff', 'admin'],
             children: [
-                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
                 { id: 'activity', icon: Clock, label: 'Historique Système', roles: ['shopkeeper', 'admin'] },
             ],
         },
@@ -195,13 +195,11 @@ export default function Sidebar({
             <button
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
-                className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group ${
-                    indent ? 'py-2 pl-8 pr-3' : 'p-3'
-                } ${
-                    isActive
+                className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group ${indent ? 'py-2 pl-8 pr-3' : 'p-3'
+                    } ${isActive
                         ? 'bg-primary/10 text-primary border border-primary/20'
                         : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                }`}
+                    }`}
             >
                 <Icon
                     size={16}
@@ -225,11 +223,10 @@ export default function Sidebar({
             <div key={group.id} className="flex flex-col">
                 <button
                     onClick={() => toggleGroup(group.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
-                        hasActiveChild
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${hasActiveChild
                             ? 'text-primary'
                             : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                    }`}
+                        }`}
                 >
                     <GroupIcon
                         size={16}
@@ -243,9 +240,8 @@ export default function Sidebar({
                 </button>
 
                 <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-                    }`}
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+                        }`}
                 >
                     <div className="flex flex-col gap-0.5 py-1 pl-3 border-l border-white/10 ml-5 mt-0.5">
                         {visibleChildren.map(child => renderItem(child, true))}
@@ -266,9 +262,8 @@ export default function Sidebar({
             )}
 
             <aside
-                className={`w-64 h-screen bg-[#0F172A] border-r border-white/10 flex flex-col p-4 fixed left-0 top-0 z-50 transition-transform duration-300 ${
-                    isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-                }`}
+                className={`w-64 h-screen bg-[#0F172A] border-r border-white/10 flex flex-col p-4 fixed left-0 top-0 z-50 transition-transform duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                    }`}
             >
                 {/* Logo */}
                 <div className="flex items-center gap-3 mb-6 px-1">

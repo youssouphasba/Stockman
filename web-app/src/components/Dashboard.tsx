@@ -489,21 +489,69 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <AlertTriangle size={18} className="text-amber-500" />
                                 {t('dashboard.stock_status')}
                             </h3>
-                            <div className="flex flex-col gap-4">
-                                <div className="flex justify-between items-center p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 group hover:bg-rose-500/20 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <span className="text-rose-400 text-xs font-black uppercase tracking-widest">{t('dashboard.out_of_stock')}</span>
-                                        <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Action requise</span>
-                                    </div>
-                                    <span className="text-2xl font-black text-white">{data?.out_of_stock_count || 0}</span>
+                            <div className="flex flex-col gap-3">
+                                {/* Out of stock summary row */}
+                                <div className="flex justify-between items-center p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                                    <span className="text-rose-400 text-xs font-black uppercase tracking-widest">{t('dashboard.out_of_stock')}</span>
+                                    <span className="text-xl font-black text-white">{data?.out_of_stock_count || 0}</span>
                                 </div>
-                                <div className="flex justify-between items-center p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 group hover:bg-amber-500/20 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <span className="text-amber-400 text-xs font-black uppercase tracking-widest">{t('dashboard.low_stock')}</span>
-                                        <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Surveiller attentivement</span>
+                                {/* Out-of-stock products */}
+                                {(data?.critical_products || []).filter((p: any) => p.quantity === 0).map((p: any) => (
+                                    <div key={p.product_id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-rose-500/5 border border-rose-500/10">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-white text-sm font-semibold truncate">{p.name}</span>
+                                            {p.sku && <span className="text-slate-500 text-[10px] font-mono">{p.sku}</span>}
+                                        </div>
+                                        <span className="text-rose-400 text-sm font-black shrink-0 ml-2">0 {p.unit || 'pcs'}</span>
                                     </div>
-                                    <span className="text-2xl font-black text-white">{data?.low_stock_count || 0}</span>
+                                ))}
+
+                                {/* Low stock summary row */}
+                                <div className="flex justify-between items-center p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mt-1">
+                                    <span className="text-amber-400 text-xs font-black uppercase tracking-widest">{t('dashboard.low_stock')}</span>
+                                    <span className="text-xl font-black text-white">{data?.low_stock_count || 0}</span>
                                 </div>
+                                {/* Low-stock products */}
+                                {(data?.critical_products || []).filter((p: any) => p.quantity > 0).map((p: any) => (
+                                    <div key={p.product_id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-white text-sm font-semibold truncate">{p.name}</span>
+                                            {p.sku && <span className="text-slate-500 text-[10px] font-mono">{p.sku}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            <span className="text-amber-400 text-sm font-black">{p.quantity}</span>
+                                            <span className="text-slate-500 text-xs">{p.unit || 'pcs'}</span>
+                                            {p.min_stock > 0 && (
+                                                <span className="text-slate-600 text-[10px]">/ min {p.min_stock}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Overstock if any */}
+                                {(data?.overstock_products || []).length > 0 && (
+                                    <>
+                                        <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 mt-1">
+                                            <span className="text-blue-400 text-xs font-black uppercase tracking-widest">Surstock</span>
+                                            <span className="text-xl font-black text-white">{data?.overstock_count || 0}</span>
+                                        </div>
+                                        {(data?.overstock_products || []).map((p: any) => (
+                                            <div key={p.product_id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-white text-sm font-semibold truncate">{p.name}</span>
+                                                    {p.sku && <span className="text-slate-500 text-[10px] font-mono">{p.sku}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                    <span className="text-blue-400 text-sm font-black">{p.quantity}</span>
+                                                    <span className="text-slate-500 text-xs">{p.unit || 'pcs'}</span>
+                                                    {p.max_stock > 0 && (
+                                                        <span className="text-slate-600 text-[10px]">/ max {p.max_stock}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

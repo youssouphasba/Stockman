@@ -5467,7 +5467,7 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     store_id=effective_store_id,
                     product_id=product.product_id,
                     type="low_stock",
-                    title="reminders.low_stock_label",
+                    title="Stock faible",
                     message=f"{product.name}: {product.quantity} {product.unit}(s) restant(s)",
                     severity="warning"
                 )
