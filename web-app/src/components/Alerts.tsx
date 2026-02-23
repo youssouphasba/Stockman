@@ -53,6 +53,14 @@ export default function Alerts() {
 
     useEffect(() => {
         loadAlerts();
+        // Auto-detect anomalies on mount (silent, no loading spinner)
+        aiApi.detectAnomalies(i18n.language).then(result => {
+            const detected = Array.isArray(result?.anomalies) ? result.anomalies : [];
+            if (detected.length > 0) {
+                setAnomalies(detected);
+                setShowAnomalies(true);
+            }
+        }).catch(() => {});
     }, []);
 
     const loadAlerts = async () => {

@@ -21,7 +21,8 @@ import {
     MapPin,
     ArrowLeftRight,
     FileSpreadsheet,
-    FileText
+    FileText,
+    X
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
 import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi } from '../services/api';
@@ -80,6 +81,11 @@ export default function Inventory() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
 
+    // AI Replenishment advice
+    const [replenishAdvice, setReplenishAdvice] = useState<{ advice: string; priority_count: number } | null>(null);
+    const [replenishLoading, setReplenishLoading] = useState(false);
+    const [showReplenish, setShowReplenish] = useState(false);
+
     const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
         try {
@@ -107,6 +113,19 @@ export default function Inventory() {
                 setCurrentUser(userRes);
             }).catch(() => {});
     }, []);
+
+    const handleReplenishAdvice = async () => {
+        setReplenishLoading(true);
+        setShowReplenish(true);
+        try {
+            const res = await aiApi.replenishmentAdvice(i18n.language);
+            setReplenishAdvice(res);
+        } catch (err) {
+            console.error('Replenishment advice error', err);
+        } finally {
+            setReplenishLoading(false);
+        }
+    };
 
     const handleOpenAddModal = () => {
         setEditingProduct(null);
@@ -341,6 +360,14 @@ export default function Inventory() {
                         Scan par lot
                     </button>
                     <button
+                        onClick={handleReplenishAdvice}
+                        disabled={replenishLoading}
+                        className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <Sparkles size={16} />
+                        {replenishLoading ? 'Analyse...' : 'IA Réappro'}
+                    </button>
+                    <button
                         onClick={handleOpenAddModal}
                         className="btn-primary py-2 px-6 flex items-center gap-2"
                     >
@@ -349,6 +376,34 @@ export default function Inventory() {
                     </button>
                 </div>
             </header>
+
+            {/* AI Replenishment Advice Banner */}
+            {showReplenish && (
+                <div className="mb-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                            <Sparkles size={20} className="text-violet-400 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-violet-300 font-bold text-sm mb-1">
+                                    IA — Conseils de réapprovisionnement
+                                    {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
+                                </p>
+                                {replenishLoading ? (
+                                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                        <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                                        Analyse en cours...
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice?.advice}</p>
+                                )}
+                            </div>
+                        </div>
+                        <button onClick={() => setShowReplenish(false)} className="text-slate-500 hover:text-slate-300 transition-colors shrink-0">
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Filters & Search */}
             <div className="flex gap-4 mb-8">

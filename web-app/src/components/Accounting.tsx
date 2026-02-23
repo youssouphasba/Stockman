@@ -31,7 +31,7 @@ import {
     BarChart,
     Bar
 } from 'recharts';
-import { accounting as accountingApi, expenses as expensesApi } from '../services/api';
+import { accounting as accountingApi, expenses as expensesApi, ai as aiApi } from '../services/api';
 import StatCard from './StatCard';
 import AccountingReportModal from './AccountingReportModal';
 import InvoiceModal from './InvoiceModal';
@@ -82,6 +82,15 @@ export default function Accounting() {
     // Tab for right panel
     const [rightTab, setRightTab] = useState<'profitability' | 'payments' | 'losses' | 'products'>('profitability');
 
+    // AI P&L analysis
+    const [aiAnalysis, setAiAnalysis] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [showMonthlyReport, setShowMonthlyReport] = useState(false);
+    const [monthlyReport, setMonthlyReport] = useState('');
+    const [reportLoading, setReportLoading] = useState(false);
+
+    const { i18n } = useTranslation();
+
     useEffect(() => {
         if (!useCustomRange) loadData();
     }, [period, useCustomRange]);
@@ -99,11 +108,36 @@ export default function Accounting() {
             ]);
             setStats(statsRes);
             setExpenses(Array.isArray(expensesRes?.items) ? expensesRes.items : (Array.isArray(expensesRes) ? expensesRes : []));
+            // Auto-load AI analysis after data
+            aiApi.plAnalysis(i18n.language, period).then(res => setAiAnalysis(res.analysis)).catch(() => {});
         } catch (err) {
             console.error("Accounting load error", err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGenerateReport = async () => {
+        setReportLoading(true);
+        setShowMonthlyReport(true);
+        try {
+            const res = await aiApi.monthlyReport(i18n.language);
+            setMonthlyReport(res.report);
+        } catch (e) {
+            setMonthlyReport('Erreur lors de la génération du rapport.');
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
+    const handleDownloadReport = () => {
+        const blob = new Blob([monthlyReport], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport_mensuel_${new Date().toISOString().split('T')[0]}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const handleApplyCustomRange = () => {
@@ -235,6 +269,12 @@ export default function Accounting() {
                     )}
 
                     <button
+                        onClick={handleGenerateReport}
+                        className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-purple-300 hover:text-white hover:bg-purple-500/20 transition-all font-bold"
+                    >
+                        <BarChart2 size={18} className="text-purple-400" /> Rapport IA
+                    </button>
+                    <button
                         onClick={() => setShowReportModal(true)}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
@@ -254,6 +294,44 @@ export default function Accounting() {
                     </button>
                 </div>
             </header>
+
+            {/* AI P&L Analysis */}
+            {aiAnalysis && (
+                <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <BarChart2 size={16} className="text-purple-400" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Analyse IA</p>
+                        <p className="text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Monthly Report Modal */}
+            {showMonthlyReport && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowMonthlyReport(false)}>
+                    <div className="bg-[#1E293B] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-white/10">
+                            <h2 className="text-white font-bold text-lg flex items-center gap-2"><BarChart2 size={20} className="text-purple-400" /> Rapport Mensuel IA</h2>
+                            <div className="flex gap-2">
+                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> Télécharger</button>}
+                                <button onClick={() => setShowMonthlyReport(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                        </div>
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                            {reportLoading ? (
+                                <div className="flex items-center justify-center py-10 gap-3">
+                                    <div className="w-6 h-6 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"></div>
+                                    <span className="text-slate-400 text-sm">Génération en cours…</span>
+                                </div>
+                            ) : (
+                                <pre className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">{monthlyReport}</pre>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

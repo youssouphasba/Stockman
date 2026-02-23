@@ -2855,6 +2855,193 @@ Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres.
         logger.error(f"AI scan-invoice error: {e}")
         raise HTTPException(status_code=500, detail="Impossible d'analyser la facture")
 
+@api_router.get("/ai/pl-analysis")
+@limiter.limit("10/minute")
+async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, user: User = Depends(require_auth)):
+    """AI narrative analysis of P&L for the Accounting screen"""
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        query_base = {"user_id": owner_id}
+        if store_id:
+            query_base["store_id"] = store_id
+
+        sales = await db.sales.find({**query_base, "created_at": {"$gte": since}}, {"total_amount": 1, "items": 1, "created_at": 1}).to_list(2000)
+        expenses = await db.expenses.find({**query_base, "created_at": {"$gte": since}}, {"amount": 1, "category": 1}).to_list(500)
+
+        revenue = sum(s.get("total_amount", 0) for s in sales)
+        total_expenses = sum(e.get("amount", 0) for e in expenses)
+
+        # Cost of goods sold
+        cogs = 0
+        for s in sales:
+            for item in s.get("items", []):
+                cogs += item.get("purchase_price", 0) * item.get("quantity", 0)
+
+        gross_profit = revenue - cogs
+        net_profit = gross_profit - total_expenses
+        margin_pct = round((gross_profit / revenue * 100) if revenue > 0 else 0, 1)
+
+        expense_by_cat = {}
+        for e in expenses:
+            cat = e.get("category", "other")
+            expense_by_cat[cat] = expense_by_cat.get(cat, 0) + e.get("amount", 0)
+        top_expense = max(expense_by_cat, key=expense_by_cat.get) if expense_by_cat else "N/A"
+
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
+
+        prompt = f"""Tu es un analyste financier pour une PME africaine/internationale.
+{lang_instr}
+Données P&L sur {days} derniers jours :
+- CA : {revenue:.0f}
+- Coût marchandises : {cogs:.0f}
+- Marge brute : {gross_profit:.0f} ({margin_pct}%)
+- Charges totales : {total_expenses:.0f} (poste principal: {top_expense})
+- Résultat net : {net_profit:.0f}
+- Nombre de ventes : {len(sales)}
+
+Rédige une analyse narrative concise en 3 phrases max. Identifie le point fort, le point faible, et donne 1 action concrète. Sois direct, pas de bullet points."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return {
+            "analysis": response.text.strip(),
+            "kpis": {"revenue": revenue, "gross_profit": gross_profit, "net_profit": net_profit, "margin_pct": margin_pct, "top_expense": top_expense}
+        }
+    except Exception as e:
+        logger.error(f"AI pl-analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Erreur analyse P&L")
+
+
+@api_router.get("/ai/churn-prediction")
+@limiter.limit("10/minute")
+async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+    """AI churn prediction — identifies at-risk customers"""
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        query = {"user_id": owner_id}
+        if store_id:
+            query["store_id"] = store_id
+
+        customers = await db.customers.find(query, {"_id": 0, "customer_id": 1, "name": 1, "last_purchase_date": 1, "total_spent": 1, "visits": 1, "loyalty_tier": 1}).to_list(500)
+        if not customers:
+            return {"at_risk": [], "summary": "Aucun client trouvé."}
+
+        now = datetime.now(timezone.utc)
+        at_risk = []
+        for c in customers:
+            lpd = c.get("last_purchase_date")
+            if lpd:
+                try:
+                    d = lpd if isinstance(lpd, datetime) else datetime.fromisoformat(str(lpd))
+                    if d.tzinfo is None:
+                        d = d.replace(tzinfo=timezone.utc)
+                    days_inactive = (now - d).days
+                    if days_inactive >= 30:
+                        at_risk.append({
+                            "customer_id": c.get("customer_id"),
+                            "name": c.get("name", ""),
+                            "days_inactive": days_inactive,
+                            "total_spent": c.get("total_spent", 0),
+                            "tier": c.get("loyalty_tier", "bronze"),
+                        })
+                except Exception:
+                    pass
+
+        at_risk.sort(key=lambda x: (-x["total_spent"], x["days_inactive"]))
+        top_at_risk = at_risk[:10]
+
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
+
+        summary_prompt = f"""{lang_instr}
+{len(at_risk)} clients inactifs depuis 30j ou plus. Top clients à risque :
+{chr(10).join([f"- {c['name']}: {c['days_inactive']}j inactif, {c['total_spent']:.0f} dépensé, tier {c['tier']}" for c in top_at_risk[:5]])}
+Rédige 2 phrases : constat + 1 action de rétention ciblée. Sois direct."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(summary_prompt)
+
+        return {"at_risk": top_at_risk, "total_at_risk": len(at_risk), "summary": response.text.strip()}
+    except Exception as e:
+        logger.error(f"AI churn-prediction error: {e}")
+        raise HTTPException(status_code=500, detail="Erreur prédiction churn")
+
+
+@api_router.get("/ai/monthly-report")
+@limiter.limit("5/minute")
+async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+    """Generate a full AI monthly report (narrative, exportable)"""
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
+    try:
+        owner_id = get_owner_id(user)
+        store_id = user.active_store_id
+        since = datetime.now(timezone.utc) - timedelta(days=30)
+        query = {"user_id": owner_id}
+        if store_id:
+            query["store_id"] = store_id
+
+        sales = await db.sales.find({**query, "created_at": {"$gte": since}}, {"total_amount": 1, "items": 1}).to_list(3000)
+        expenses_list = await db.expenses.find({**query, "created_at": {"$gte": since}}, {"amount": 1, "category": 1}).to_list(500)
+        products = await db.products.find(query, {"name": 1, "quantity": 1, "min_stock": 1, "selling_price": 1, "purchase_price": 1}).to_list(200)
+        customers = await db.customers.find(query, {"last_purchase_date": 1, "total_spent": 1}).to_list(500)
+
+        revenue = sum(s.get("total_amount", 0) for s in sales)
+        total_exp = sum(e.get("amount", 0) for e in expenses_list)
+        cogs = sum(item.get("purchase_price", 0) * item.get("quantity", 0) for s in sales for item in s.get("items", []))
+        net = revenue - cogs - total_exp
+        low_stock = [p for p in products if p.get("quantity", 0) <= p.get("min_stock", 0)]
+
+        now = datetime.now(timezone.utc)
+        inactive = sum(1 for c in customers if c.get("last_purchase_date") and (now - (c["last_purchase_date"] if isinstance(c["last_purchase_date"], datetime) else datetime.fromisoformat(str(c["last_purchase_date"])).replace(tzinfo=timezone.utc))).days >= 30)
+
+        # Top products by revenue
+        prod_revenue: dict = {}
+        for s in sales:
+            for item in s.get("items", []):
+                pid = item.get("product_id", "")
+                prod_revenue[pid] = prod_revenue.get(pid, 0) + item.get("total_price", 0)
+        top_pids = sorted(prod_revenue, key=prod_revenue.get, reverse=True)[:3]
+        prod_names = {p.get("product_id", ""): p.get("name", "") for p in await db.products.find({"product_id": {"$in": top_pids}}, {"product_id": 1, "name": 1}).to_list(3)}
+        top_products_str = ", ".join([prod_names.get(pid, pid) for pid in top_pids])
+
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Rédige en {lang_map.get(lang, 'français')}."
+
+        prompt = f"""{lang_instr}
+Génère un rapport mensuel complet et professionnel pour un gérant de boutique.
+Données du mois :
+- CA : {revenue:.0f} | Charges : {total_exp:.0f} | Résultat net : {net:.0f}
+- Ventes : {len(sales)} transactions
+- Top produits : {top_products_str}
+- Ruptures/stock bas : {len(low_stock)} produits
+- Clients inactifs +30j : {inactive}
+
+Structure : 1) Synthèse executive (2 phrases) 2) Performance commerciale 3) Gestion des stocks 4) Relation client 5) Recommandations prioritaires (3 actions).
+Sois concis, professionnel, chiffré. Format markdown."""
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return {"report": response.text.strip(), "generated_at": now.isoformat()}
+    except Exception as e:
+        logger.error(f"AI monthly-report error: {e}")
+        raise HTTPException(status_code=500, detail="Erreur génération rapport")
+
+
 @api_router.post("/ai/voice-to-text")
 @limiter.limit("20/minute")
 async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):

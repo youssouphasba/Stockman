@@ -32,7 +32,7 @@ import {
     ShoppingBag,
     X
 } from 'lucide-react';
-import { customers as customersApi } from '../services/api';
+import { customers as customersApi, ai as aiApi } from '../services/api';
 import Modal from './Modal';
 import LoyaltySettingsModal from './LoyaltySettingsModal';
 import CampaignModal from './CampaignModal';
@@ -40,7 +40,7 @@ import { exportCRM } from '../utils/ExportService';
 
 
 export default function CRM() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     const [customers, setCustomers] = useState<any[]>([]);
     const [search, setSearch] = useState('');
@@ -78,6 +78,10 @@ export default function CRM() {
     // Birthdays & Sales
     const [birthdays, setBirthdays] = useState<any[]>([]);
     const [customerSales, setCustomerSales] = useState<any[]>([]);
+
+    // AI Churn Prediction
+    const [churnData, setChurnData] = useState<{ at_risk: any[]; total_at_risk: number; summary: string } | null>(null);
+    const [showChurn, setShowChurn] = useState(true);
     const [loadingSales, setLoadingSales] = useState(false);
 
     const CATEGORIES = [
@@ -116,6 +120,8 @@ export default function CRM() {
         try {
             const res = await customersApi.list(0, 200, sortBy);
             setCustomers(res.items || res);
+            // Auto-trigger churn prediction
+            aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => {});
         } catch (err) {
             console.error("CRM load error", err);
         } finally {
@@ -271,6 +277,38 @@ export default function CRM() {
                     >
                         Envoyer vœux
                     </button>
+                </div>
+            )}
+
+            {/* AI Churn Prediction Banner */}
+            {churnData && showChurn && churnData.total_at_risk > 0 && (
+                <div className="mb-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                            <Zap size={20} className="text-violet-400 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-violet-300 font-bold text-sm mb-1">
+                                    IA — {churnData.total_at_risk} clients à risque de churn
+                                </p>
+                                <p className="text-slate-300 text-sm leading-relaxed">{churnData.summary}</p>
+                                {churnData.at_risk.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {churnData.at_risk.slice(0, 5).map((c: any) => (
+                                            <span key={c.customer_id} className="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-lg font-medium">
+                                                {c.name}
+                                            </span>
+                                        ))}
+                                        {churnData.at_risk.length > 5 && (
+                                            <span className="text-xs text-slate-500">+{churnData.at_risk.length - 5} autres</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <button onClick={() => setShowChurn(false)} className="text-slate-500 hover:text-slate-300 transition-colors shrink-0">
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
             )}
 

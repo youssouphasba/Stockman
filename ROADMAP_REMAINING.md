@@ -178,9 +178,18 @@
 
 ---
 
+## ✅ Phase IA — Améliorations Intelligentes (Web)
+- [x] **Accounting.tsx** : P&L auto-analysis (Gemini, auto-load) + Rapport mensuel IA (modal markdown + download)
+- [x] **CRM.tsx** : Churn prediction auto-load (banner violet, liste clients à risque)
+- [x] **Alerts.tsx** : Détection anomalies auto-load au montage (affichage si ≥1 anomalie)
+- [x] **Inventory.tsx** : Bouton "IA Réappro" → conseil réapprovisionnement (banner violet, priority_count)
+- [x] Backend : 3 nouveaux endpoints `/ai/pl-analysis`, `/ai/churn-prediction`, `/ai/monthly-report`
+- [x] `api.ts` web : 4 méthodes AI ajoutées (plAnalysis, churnPrediction, monthlyReport, replenishmentAdvice)
+
 ## 🐛 Bugs Connus
 - [x] **Accounting.tsx** : `stats?.daily_stats` → `stats?.daily_revenue` corrigé (Phase 4)
 - [x] `get_batches` : `user.user_id` → `get_owner_id(user)` corrigé (staff voit maintenant les lots du propriétaire)
+- [x] Import produits : `confirm_import` utilisait `user_id` au lieu de `get_owner_id()` + `store_id` était None
 - [ ] Export CSV accounting n'inclut pas les dépenses dans le total
 
 ---

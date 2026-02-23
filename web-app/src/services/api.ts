@@ -338,6 +338,14 @@ export const ai = {
             method: 'POST',
             body: { message, history, language },
         }),
+    plAnalysis: (lang: string = 'fr', days: number = 30) =>
+        request<{ analysis: string; kpis: any }>(`/ai/pl-analysis?lang=${lang}&days=${days}`),
+    churnPrediction: (lang: string = 'fr') =>
+        request<{ at_risk: any[]; total_at_risk: number; summary: string }>(`/ai/churn-prediction?lang=${lang}`),
+    monthlyReport: (lang: string = 'fr') =>
+        request<{ report: string; generated_at: string }>(`/ai/monthly-report?lang=${lang}`),
+    replenishmentAdvice: (lang: string = 'fr') =>
+        request<{ advice: string; priority_count: number }>(`/ai/replenishment-advice?lang=${lang}`),
 };
 
 export const returns = {
