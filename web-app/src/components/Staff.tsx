@@ -168,9 +168,9 @@ export default function Staff() {
         }
     };
 
-    const togglePermission = (module: string) => {
+    const togglePermission = (module: keyof StaffPermissions) => {
         const levels: ('none' | 'read' | 'write')[] = ['none', 'read', 'write'];
-        const current = (form.permissions as any)[module] || 'none';
+        const current = form.permissions[module] || 'none';
         const currentIndex = levels.indexOf(current as any);
         const next = levels[(currentIndex + 1) % levels.length];
 
@@ -352,7 +352,7 @@ export default function Staff() {
                                 <button
                                     key={key}
                                     type="button"
-                                    onClick={() => setForm(f => ({ ...f, permissions: { ...tpl.permissions } }))}
+                                    onClick={() => setForm(f => ({ ...f, permissions: tpl.permissions }))}
                                     className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-all"
                                 >
                                     {tpl.label}
@@ -361,7 +361,7 @@ export default function Staff() {
                         </div>
 
                         <div className="space-y-2">
-                            {['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'].map(mod => (
+                            {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
                                 <div key={mod} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
                                     <span className="text-slate-200 font-medium">{MODULE_LABELS[mod] || mod}</span>
                                     <button
@@ -369,7 +369,7 @@ export default function Staff() {
                                         onClick={() => togglePermission(mod)}
                                         className="transition-all active:scale-95"
                                     >
-                                        {getPermissionBadge((form.permissions as any)[mod])}
+                                        {getPermissionBadge(form.permissions[mod])}
                                     </button>
                                 </div>
                             ))}
