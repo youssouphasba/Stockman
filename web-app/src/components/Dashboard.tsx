@@ -609,6 +609,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 isOpen={isAiModalOpen}
                 onClose={() => setIsAiModalOpen(false)}
                 summary={aiSummary}
+                data={data}
             />
 
             <DigitalReceiptModal
