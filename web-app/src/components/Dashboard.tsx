@@ -18,6 +18,7 @@ import {
     ChevronRight,
     PieChart as PieChartIcon,
     X,
+    Bell,
 } from 'lucide-react';
 import {
     LineChart as ReLineChart,
@@ -416,35 +417,81 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 {/* AI & Quick Insights Column */}
                 <div className="flex flex-col gap-8">
                     {/* Smart Reminders (Mobile Parity) */}
-                    {visibleSections.reminders && (
-                        <div className="glass-card p-8 bg-gradient-to-br from-primary/10 to-transparent border-primary/20 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl -mr-12 -mt-12 group-hover:bg-primary/20 transition-all"></div>
-                            <div className="flex items-center gap-3 mb-6 relative z-10">
-                                <Sparkles className="text-primary animate-pulse" size={28} />
-                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Smart Reminders</h3>
-                            </div>
-                            <div className="space-y-4 relative z-10">
-                                {aiSummary ? aiSummary.split('.').filter(s => s.trim().length > 10).slice(0, 3).map((tip, idx) => (
-                                    <div key={idx} className="flex gap-3 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                            <AlertCircle size={16} className="text-primary" />
+                    {visibleSections.reminders && (() => {
+                        // Build real data-driven reminders
+                        const reminders: { icon: React.ReactNode; label: string; value: string; color: string; bg: string; border: string }[] = [];
+
+                        if ((data?.out_of_stock_count || 0) > 0) reminders.push({
+                            icon: <AlertTriangle size={15} />,
+                            label: 'Rupture de stock',
+                            value: `${data.out_of_stock_count} produit${data.out_of_stock_count > 1 ? 's' : ''}`,
+                            color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20'
+                        });
+                        if ((data?.low_stock_count || 0) > 0) reminders.push({
+                            icon: <AlertCircle size={15} />,
+                            label: 'Stock faible',
+                            value: `${data.low_stock_count} produit${data.low_stock_count > 1 ? 's' : ''} sous le seuil`,
+                            color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20'
+                        });
+                        if ((data?.unread_alerts || 0) > 0) reminders.push({
+                            icon: <Bell size={15} />,
+                            label: 'Alertes non lues',
+                            value: `${data.unread_alerts} alerte${data.unread_alerts > 1 ? 's' : ''}`,
+                            color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20'
+                        });
+                        if ((data?.overstock_count || 0) > 0) reminders.push({
+                            icon: <Package size={15} />,
+                            label: 'Surstock détecté',
+                            value: `${data.overstock_count} produit${data.overstock_count > 1 ? 's' : ''} en excès`,
+                            color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20'
+                        });
+                        if ((data?.today_sales_count || 0) > 0) reminders.push({
+                            icon: <ShoppingCart size={15} />,
+                            label: "Ventes aujourd'hui",
+                            value: `${data.today_sales_count} vente${data.today_sales_count > 1 ? 's' : ''}`,
+                            color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20'
+                        });
+
+                        return (
+                            <div className="glass-card p-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/20 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl -mr-12 -mt-12"></div>
+                                <div className="flex items-center gap-3 mb-5 relative z-10">
+                                    <Sparkles className="text-primary animate-pulse" size={22} />
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tighter">Smart Reminders</h3>
+                                </div>
+
+                                <div className="space-y-2 relative z-10">
+                                    {reminders.length === 0 ? (
+                                        <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                            <CheckCircle size={16} className="text-emerald-400 shrink-0" />
+                                            <p className="text-sm text-emerald-300 font-semibold">Tout est à jour — aucun problème détecté</p>
                                         </div>
-                                        <p className="text-[11px] text-slate-300 font-medium leading-relaxed">
-                                            {tip.trim()}.
-                                        </p>
+                                    ) : reminders.map((r, idx) => (
+                                        <div key={idx} className={`flex items-center justify-between gap-3 p-3 rounded-lg ${r.bg} border ${r.border}`}>
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <span className={`shrink-0 ${r.color}`}>{r.icon}</span>
+                                                <span className={`text-xs font-bold ${r.color} uppercase tracking-wide`}>{r.label}</span>
+                                            </div>
+                                            <span className="text-white text-xs font-black shrink-0">{r.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* AI summary as a separate sub-section */}
+                                {aiSummary && (
+                                    <div className="mt-4 pt-4 border-t border-white/5 relative z-10">
+                                        <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-3">{aiSummary}</p>
+                                        <button
+                                            onClick={() => setIsAiModalOpen(true)}
+                                            className="mt-3 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all outline-none"
+                                        >
+                                            Voir le rapport complet <ChevronRight size={14} />
+                                        </button>
                                     </div>
-                                )) : (
-                                    <p className="text-sm text-slate-500 italic">{t('dashboard.ai_loading')}</p>
                                 )}
                             </div>
-                            <button
-                                onClick={() => setIsAiModalOpen(true)}
-                                className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all outline-none"
-                            >
-                                Voir le rapport complet <ChevronRight size={14} />
-                            </button>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Category Distribution (Mobile Parity) */}
                     {visibleSections.distribution && (
