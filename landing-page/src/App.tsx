@@ -22,7 +22,7 @@ import Analytics from './components/Analytics';
 import AdminLeads from './components/AdminLeads';
 import Hero from './components/landing/Hero';
 import Features from './components/landing/Features';
-import Showcase from './components/landing/Showcase';
+
 import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css'
@@ -129,7 +129,7 @@ function Landing() {
 
       <Features />
 
-      <Showcase />
+
 
       <WebAppShowcase />
 
