@@ -1353,8 +1353,7 @@ async def confirm_import(
         if not import_data or not mapping:
             raise HTTPException(status_code=400, detail="Données d'importation ou mappage manquants")
         
-        # Use user_id from the authenticated user
-        user_id = current_user.user_id
+        user_id = get_owner_id(current_user)
         return await import_service.process_import(import_data, mapping, user_id)
     except Exception as e:
         logger.error(f"Error confirming import: {e}")

@@ -124,7 +124,7 @@
 - [ ] Page pricing sur landing-page (déjà partiellement là, à compléter)
 
 ### Implémentation Frontend Mobile
-- [x] `isLocked` mis à jour dans `accounting.tsx`, `crm.tsx`, `orders.tsx` : `starter`, `pro`, `enterprise`, `premium` → déverrouillé
+- [x] `isLocked` mis à jour dans `accounting.tsx`, `crm.tsx`, `orders.tsx`, `suppliers.tsx` : `['starter', 'pro', 'enterprise']` uniquement, `premium` supprimé
 - [x] `EnterpriseGate` (nouveau composant) pour les features avancées mobile : `locked = plan !== 'enterprise'`
 - [x] Afficher badge plan correct dans écran Subscription (Starter / Pro / Enterprise)
 

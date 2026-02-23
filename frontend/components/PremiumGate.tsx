@@ -6,40 +6,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
-
 type Props = {
-    /** Feature name shown in the title */
     featureName: string;
-    /** Description of what this feature does */
     description: string;
-    /** List of benefits the user gets with Premium */
     benefits: string[];
-    /** Icon name */
     icon?: string;
-    /** If true, renders the gate. If false, renders children. */
     locked: boolean;
     children: React.ReactNode;
 };
 
 /**
- * Wraps a screen to gate it behind Premium plan.
- * Starter users see an informative upgrade message.
- * Premium users see the normal content.
+ * Wraps a screen to gate it behind a paid plan (Starter / Pro / Enterprise).
+ * Trial-expired users see an upgrade prompt.
  */
 export default function PremiumGate({ featureName, description, benefits, icon = 'lock-closed', locked, children }: Props) {
     const { t } = useTranslation();
     const router = useRouter();
     const { colors, glassStyle } = useTheme();
-    const { user } = useAuth();
-    const currency = user?.currency || 'XOF';
-    const price = currency === 'EUR' ? '7,99' : '2 500';
-    const premiumPrice = t('premium.pricing_hint', {
-        price,
-        currency,
-        period: t('subscription.per_month')
-    });
-
     if (!locked) {
         return <>{children}</>;
     }
@@ -56,7 +39,7 @@ export default function PremiumGate({ featureName, description, benefits, icon =
 
                 <View style={[styles.benefitsCard, glassStyle]}>
                     <Text style={[styles.benefitsTitle, { color: colors.text }]}>
-                        {t('premium.with_premium_you_can') || 'Avec Premium, vous pouvez :'}
+                        {t('subscription.unlock_to_access') || 'Activez un plan pour accéder à :'}
                     </Text>
                     {Array.isArray(benefits) && benefits.map((b, i) => (
                         <View key={i} style={styles.benefitRow}>
@@ -78,14 +61,10 @@ export default function PremiumGate({ featureName, description, benefits, icon =
                     >
                         <Ionicons name="star" size={20} color="white" />
                         <Text style={styles.upgradeText}>
-                            {t('premium.upgrade_now') || 'Passer à Premium'}
+                            {t('subscription.see_plans') || 'Voir les plans'}
                         </Text>
                     </LinearGradient>
                 </TouchableOpacity>
-
-                <Text style={styles.priceHint}>
-                    {premiumPrice}
-                </Text>
             </View>
         </View>
     );
@@ -161,10 +140,5 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: FontSize.md,
         fontWeight: 'bold',
-    },
-    priceHint: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.4)',
-        marginTop: Spacing.md,
     },
 });

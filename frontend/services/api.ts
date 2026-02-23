@@ -966,7 +966,7 @@ export type User = {
   created_at: string;
   active_store_id?: string;
   store_ids?: string[];
-  plan?: 'trial' | 'starter' | 'pro' | 'enterprise' | 'premium';
+  plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   subscription_status?: 'active' | 'expired';
   trial_ends_at?: string;
   currency?: string;
@@ -1826,7 +1826,7 @@ export type MarketplaceCatalogProduct = CatalogProductData & {
 };
 
 export type SubscriptionData = {
-  plan: 'trial' | 'starter' | 'pro' | 'enterprise' | 'premium';
+  plan: 'trial' | 'starter' | 'pro' | 'enterprise';
   status: 'active' | 'expired' | 'cancelled';
   trial_ends_at: string;
   subscription_end?: string;

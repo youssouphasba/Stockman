@@ -533,7 +533,7 @@ export default function SuppliersScreen() {
     return stars;
   }
 
-  const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise', 'premium'].includes(user?.plan || '') && user?.plan !== 'trial';
+  const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise'].includes(user?.plan || '');
 
   if (loading && !isLocked) {
     return (

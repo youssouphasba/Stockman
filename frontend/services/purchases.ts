@@ -3,12 +3,16 @@ import { Platform } from 'react-native';
 let isInitialized = false;
 let PurchasesSDK: any = null;
 
+// RevenueCat product identifiers — à mettre à jour quand les IDs sont confirmés
 const PRODUCT_IDS = {
     starter: 'prod8c5386b688',
-    premium: 'prod2fdacd46f0',
+    pro: 'prod2fdacd46f0',   // ancien 'premium', mappé sur Pro
 };
 
-const ENTITLEMENT_ID = 'premium';
+const ENTITLEMENTS = {
+    starter: 'starter',
+    pro: 'pro',
+};
 
 export async function initPurchases(userId: string): Promise<void> {
     if (isInitialized || Platform.OS === 'web') return;
@@ -55,13 +59,11 @@ export async function purchaseStarter(): Promise<{ success: boolean; plan?: stri
         const pkg = offerings.current?.availablePackages?.find(
             (p: any) => p.product?.identifier === PRODUCT_IDS.starter
         );
-        if (!pkg) {
-            console.warn('Starter package not found in offerings');
-            return { success: false };
-        }
+        if (!pkg) return { success: false };
         const { customerInfo } = await PurchasesSDK.purchasePackage(pkg);
-        const hasEntitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
-        return { success: true, plan: hasEntitlement ? 'premium' : 'starter' };
+        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
+        const hasStarter = customerInfo.entitlements.active[ENTITLEMENTS.starter];
+        return { success: true, plan: hasPro ? 'pro' : hasStarter ? 'starter' : 'starter' };
     } catch (e: any) {
         if (e.userCancelled) return { success: false };
         console.warn('RevenueCat purchaseStarter failed:', e);
@@ -69,23 +71,20 @@ export async function purchaseStarter(): Promise<{ success: boolean; plan?: stri
     }
 }
 
-export async function purchasePremium(): Promise<{ success: boolean; plan?: string }> {
+export async function purchasePro(): Promise<{ success: boolean; plan?: string }> {
     if (!isPurchasesAvailable()) return { success: false };
     try {
         const offerings = await PurchasesSDK.getOfferings();
         const pkg = offerings.current?.availablePackages?.find(
-            (p: any) => p.product?.identifier === PRODUCT_IDS.premium
+            (p: any) => p.product?.identifier === PRODUCT_IDS.pro
         );
-        if (!pkg) {
-            console.warn('Premium package not found in offerings');
-            return { success: false };
-        }
+        if (!pkg) return { success: false };
         const { customerInfo } = await PurchasesSDK.purchasePackage(pkg);
-        const hasEntitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
-        return { success: true, plan: hasEntitlement ? 'premium' : 'starter' };
+        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
+        return { success: true, plan: hasPro ? 'pro' : 'starter' };
     } catch (e: any) {
         if (e.userCancelled) return { success: false };
-        console.warn('RevenueCat purchasePremium failed:', e);
+        console.warn('RevenueCat purchasePro failed:', e);
         return { success: false };
     }
 }
@@ -94,8 +93,10 @@ export async function restorePurchases(): Promise<{ success: boolean; plan?: str
     if (!isPurchasesAvailable()) return { success: false };
     try {
         const customerInfo = await PurchasesSDK.restorePurchases();
-        const hasEntitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
-        return { success: true, plan: hasEntitlement ? 'premium' : 'starter' };
+        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
+        const hasStarter = customerInfo.entitlements.active[ENTITLEMENTS.starter];
+        const plan = hasPro ? 'pro' : hasStarter ? 'starter' : undefined;
+        return { success: true, plan };
     } catch (e) {
         console.warn('RevenueCat restorePurchases failed:', e);
         return { success: false };
@@ -106,12 +107,13 @@ export async function getCustomerInfo(): Promise<{ plan: string; expiresAt?: str
     if (!isPurchasesAvailable()) return null;
     try {
         const customerInfo = await PurchasesSDK.getCustomerInfo();
-        const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
-        if (entitlement) {
-            return {
-                plan: entitlement.productIdentifier === PRODUCT_IDS.premium ? 'premium' : 'starter',
-                expiresAt: entitlement.expirationDate,
-            };
+        const proEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.pro];
+        const starterEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.starter];
+        if (proEntitlement) {
+            return { plan: 'pro', expiresAt: proEntitlement.expirationDate };
+        }
+        if (starterEntitlement) {
+            return { plan: 'starter', expiresAt: starterEntitlement.expirationDate };
         }
         return { plan: 'free' };
     } catch (e) {

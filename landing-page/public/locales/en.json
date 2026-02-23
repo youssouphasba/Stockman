@@ -151,6 +151,20 @@
         "legal_notice": "Legal Notice",
         "copyright": "© 2026 Stockman. All rights reserved."
     },
+    "web_app": {
+        "title": "Stockman Web: Power Management on Large Screens",
+        "subtitle": "Access all your data, manage your stocks, and analyze your performance with unparalleled clarity from your computer or tablet.",
+        "f1_title": "Multi-platform",
+        "f1_desc": "Compatible with Windows, Mac, and Tablets via any browser.",
+        "f2_title": "PWA Installation",
+        "f2_desc": "Install Stockman as a native app for fast access and offline use.",
+        "f3_title": "Instant Sync",
+        "f3_desc": "All your data is synchronized in real-time between your phone and your computer.",
+        "f4_title": "Optimized Interface",
+        "f4_desc": "A complete dashboard with detailed charts for a 360° view of your business.",
+        "cta": "Access Web App",
+        "secure": "Secure Access ✨"
+    },
     "delete_account": {
         "title": "Account & Data Deletion",
         "subtitle": "In accordance with General Data Protection Regulation (GDPR) and the Right to be Forgotten.",

@@ -583,7 +583,7 @@ export default function CRMScreen() {
         return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     }).length;
 
-    const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise', 'premium'].includes(user?.plan || '') && user?.plan !== 'trial';
+    const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise'].includes(user?.plan || '');
 
     if (accessDenied) {
         return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;

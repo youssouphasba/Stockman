@@ -17,27 +17,56 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { purchaseStarter, purchasePremium, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
+import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
 
-type FeatureRow = {
-    label: string;
-    starter: string;
-    premium: string;
+type PlanKey = 'starter' | 'pro' | 'enterprise';
+
+type PlanConfig = {
+    key: PlanKey;
+    labelKey: string;
+    gradient: [string, string];
+    icon: string;
+    stores: string;
+    users: string;
+    web: boolean;
+    priceEUR: string;
+    priceXOF: string;
 };
 
-const FEATURES: FeatureRow[] = [
-    { label: 'subscription.features.products', starter: 'subscription.features.unlimited', premium: 'subscription.features.unlimited' },
-    { label: 'subscription.features.stores', starter: '1', premium: 'subscription.features.unlimited' },
-    { label: 'subscription.features.users', starter: '1', premium: 'subscription.features.unlimited' },
-    { label: 'subscription.features.pos', starter: 'common.yes', premium: 'common.yes' },
-    { label: 'subscription.features.pdf_receipts', starter: 'subscription.features.with_watermark', premium: 'subscription.features.custom_logo' },
-    { label: 'subscription.features.reports', starter: 'subscription.features.30_days', premium: 'subscription.features.full_history' },
-    { label: 'subscription.features.ai_assistant', starter: 'subscription.features.14_req_week', premium: 'subscription.features.unlimited' },
-    { label: 'subscription.features.suppliers_orders', starter: 'subscription.features.consultation', premium: 'subscription.features.full_management' },
-    { label: 'subscription.features.csv_import_export', starter: '—', premium: 'common.yes' },
-    { label: 'subscription.features.crm_loyalty', starter: '—', premium: 'common.yes' },
-    { label: 'subscription.features.sms_alerts', starter: '—', premium: 'common.yes' },
-    { label: 'subscription.features.support', starter: 'subscription.features.email_24h', premium: 'subscription.features.whatsapp_2h' },
+const PLANS: PlanConfig[] = [
+    {
+        key: 'starter',
+        labelKey: 'subscription.plan_starter',
+        gradient: ['#3B82F6', '#2563EB'],
+        icon: 'storefront-outline',
+        stores: '1',
+        users: '1',
+        web: false,
+        priceEUR: '3,99 €',
+        priceXOF: '1 000',
+    },
+    {
+        key: 'pro',
+        labelKey: 'subscription.plan_pro',
+        gradient: ['#F59E0B', '#D97706'],
+        icon: 'rocket-outline',
+        stores: '2',
+        users: '5',
+        web: false,
+        priceEUR: '7,99 €',
+        priceXOF: '2 500',
+    },
+    {
+        key: 'enterprise',
+        labelKey: 'subscription.plan_enterprise',
+        gradient: ['#7C3AED', '#5B21B6'],
+        icon: 'business-outline',
+        stores: '∞',
+        users: '∞',
+        web: true,
+        priceEUR: '19,99 €',
+        priceXOF: '6 500',
+    },
 ];
 
 export default function SubscriptionScreen() {
@@ -48,17 +77,12 @@ export default function SubscriptionScreen() {
     const [loading, setLoading] = useState(true);
     const [payLoading, setPayLoading] = useState(false);
     const [data, setData] = useState<SubscriptionData | null>(null);
-    const [selectedPlan, setSelectedPlan] = useState<'starter' | 'premium'>('premium');
+    const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
 
     const isEUR = user?.currency === 'EUR';
-    const prices = {
-        starter: isEUR ? '3,99 €' : `1 000 ${t('common.currency_default')}`,
-        premium: isEUR ? '7,99 €' : `2 500 ${t('common.currency_default')}`,
-    };
+    const isNative = Platform.OS !== 'web';
 
-    useEffect(() => {
-        fetchSubscription();
-    }, []);
+    useEffect(() => { fetchSubscription(); }, []);
 
     const fetchSubscription = async () => {
         try {
@@ -72,15 +96,15 @@ export default function SubscriptionScreen() {
         }
     };
 
-    const handleRevenueCatPurchase = async (plan: string) => {
+    const handleRevenueCatPurchase = async (plan: PlanKey) => {
         if (!isPurchasesAvailable()) {
             Alert.alert(t('common.info'), t('subscription.iap_not_available'));
             return;
         }
         try {
             setPayLoading(true);
-            const result = plan === 'premium'
-                ? await purchasePremium()
+            const result = plan === 'pro'
+                ? await purchasePro()
                 : await purchaseStarter();
             if (result.success) {
                 await subscription.sync();
@@ -143,38 +167,33 @@ export default function SubscriptionScreen() {
         );
     }
 
-    const currentPlan = data?.plan || 'starter';
-    const isPaidPlan = ['starter', 'pro', 'enterprise', 'premium'].includes(currentPlan) && data?.status === 'active';
-    // Legacy: 'premium' maps to Pro for display purposes
+    const currentPlan = data?.plan;
+    const isActive = data?.status === 'active';
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
-    const isNative = Platform.OS !== 'web';
-    const selectedPrice = selectedPlan === 'premium' ? prices.premium : prices.starter;
+    const activePlanConfig = PLANS.find(p => p.key === currentPlan);
+    const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan)!;
+    const selectedPrice = isEUR ? selectedPlanConfig.priceEUR : `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}`;
 
-    const planDisplayName = (() => {
-        switch (currentPlan) {
-            case 'starter': return t('subscription.plan_starter');
-            case 'pro': return t('subscription.plan_pro') || 'Pro';
-            case 'enterprise': return t('subscription.plan_enterprise') || 'Enterprise';
-            case 'premium': return t('subscription.plan_premium');
-            default: return t('subscription.plan_starter');
-        }
-    })();
+    const headerGradient: [string, string] = activePlanConfig
+        ? activePlanConfig.gradient
+        : ['#3B82F6', '#2563EB'];
+
+    const planLabel = activePlanConfig
+        ? t(activePlanConfig.labelKey) || activePlanConfig.key.charAt(0).toUpperCase() + activePlanConfig.key.slice(1)
+        : t('subscription.plan_starter');
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
             {/* Header */}
-            <LinearGradient
-                colors={currentPlan === 'enterprise' ? ['#7C3AED', '#5B21B6'] : isPaidPlan ? ['#F59E0B', '#D97706'] : ['#3B82F6', '#2563EB']}
-                style={[styles.header, { paddingTop: insets.top + 20 }]}
-            >
+            <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
                 <View style={styles.planBadge}>
                     <Text style={styles.planBadgeText}>
-                        {planDisplayName}
+                        {planLabel}
                         {isFreeTrial ? ` (${t('subscription.free_trial')})` : ''}
                     </Text>
                 </View>
@@ -186,96 +205,66 @@ export default function SubscriptionScreen() {
             </LinearGradient>
 
             <View style={styles.content}>
-                {/* Plan Selector */}
-                {!isPaidPlan && (
-                    <View style={styles.planSelector}>
-                        <TouchableOpacity
-                            style={[styles.planTab, selectedPlan === 'starter' && styles.planTabActive]}
-                            onPress={() => setSelectedPlan('starter')}
-                        >
-                            <Text style={[styles.planTabText, selectedPlan === 'starter' && styles.planTabTextActive]}>
-                                {t('subscription.plan_starter')}
-                            </Text>
-                            <Text style={[styles.planTabPrice, selectedPlan === 'starter' && styles.planTabTextActive]}>
-                                {prices.starter}{t('subscription.per_month')}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.planTab, selectedPlan === 'premium' && styles.planTabActivePremium]}
-                            onPress={() => setSelectedPlan('premium')}
-                        >
-                            <View style={styles.popularBadge}>
-                                <Text style={styles.popularText}>{t('subscription.popular')}</Text>
-                            </View>
-                            <Text style={[styles.planTabText, selectedPlan === 'premium' && styles.planTabTextActive]}>
-                                {t('subscription.plan_premium')}
-                            </Text>
-                            <Text style={[styles.planTabPrice, selectedPlan === 'premium' && styles.planTabTextActive]}>
-                                {prices.premium}{t('subscription.per_month')}
-                            </Text>
-                        </TouchableOpacity>
+                {/* Plan Cards */}
+                {(!isActive || isFreeTrial) && (
+                    <View style={styles.planCards}>
+                        {PLANS.map(plan => {
+                            const price = isEUR ? plan.priceEUR : `${plan.priceXOF} ${t('common.currency_default')}`;
+                            const isSelected = selectedPlan === plan.key;
+                            return (
+                                <TouchableOpacity
+                                    key={plan.key}
+                                    style={[styles.planCard, isSelected && styles.planCardSelected]}
+                                    onPress={() => setSelectedPlan(plan.key)}
+                                    activeOpacity={0.8}
+                                >
+                                    {plan.key === 'pro' && (
+                                        <View style={styles.popularBadge}>
+                                            <Text style={styles.popularText}>{t('subscription.popular')}</Text>
+                                        </View>
+                                    )}
+                                    <LinearGradient
+                                        colors={plan.gradient}
+                                        style={styles.planCardIcon}
+                                    >
+                                        <Ionicons name={plan.icon as any} size={22} color="white" />
+                                    </LinearGradient>
+                                    <Text style={styles.planCardName}>
+                                        {t(plan.labelKey) || plan.key}
+                                    </Text>
+                                    <Text style={styles.planCardPrice}>
+                                        {price}{t('subscription.per_month')}
+                                    </Text>
+                                    <View style={styles.planCardDetails}>
+                                        <Text style={styles.planCardDetail}>🏪 {plan.stores} {t('subscription.features.stores')}</Text>
+                                        <Text style={styles.planCardDetail}>👥 {plan.users} {t('subscription.features.users')}</Text>
+                                        {plan.web && <Text style={styles.planCardDetail}>🌐 {t('subscription.features.web_access') || 'Accès Web'}</Text>}
+                                    </View>
+                                    {isSelected && (
+                                        <View style={styles.selectedCheck}>
+                                            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 )}
 
-                {/* Trial info */}
-                <View style={styles.trialBanner}>
-                    <Ionicons name="gift-outline" size={20} color="#3B82F6" />
-                    <Text style={styles.trialBannerText}>
-                        {t('subscription.trial_banner', { price: selectedPrice })}
-                    </Text>
-                </View>
-
-                {/* Feature Comparison Table */}
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>{t('subscription.compare_plans')}</Text>
-
-                    {/* Table Header */}
-                    <View style={styles.tableHeader}>
-                        <View style={styles.tableColLabel} />
-                        <View style={styles.tableColValue}>
-                            <Text style={styles.tableHeaderText}>{t('subscription.plan_starter')}</Text>
-                        </View>
-                        <View style={styles.tableColValue}>
-                            <Text style={[styles.tableHeaderText, { color: '#F59E0B' }]}>{t('subscription.plan_premium')}</Text>
-                        </View>
-                    </View>
-
-                    {/* Feature Rows */}
-                    {FEATURES.map((f, i) => (
-                        <View key={i} style={[styles.tableRow, i % 2 === 0 && styles.tableRowAlt]}>
-                            <View style={styles.tableColLabel}>
-                                <Text style={styles.featureLabel}>{t(f.label)}</Text>
-                            </View>
-                            <View style={styles.tableColValue}>
-                                <Text style={[styles.featureValue, f.starter === '—' && styles.featureDisabled]}>
-                                    {f.starter.includes('.') ? t(f.starter) : f.starter}
-                                </Text>
-                            </View>
-                            <View style={styles.tableColValue}>
-                                <Text style={[styles.featureValue, styles.featurePremium]}>
-                                    {f.premium.includes('.') ? t(f.premium) : f.premium}
-                                </Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-
                 {/* Payment Buttons */}
-                {!isPaidPlan && (
+                {(!isActive || isFreeTrial) && selectedPlan !== 'enterprise' && (
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>
-                            {t('subscription.choose_plan', { plan: selectedPlan === 'premium' ? t('subscription.plan_premium') : t('subscription.plan_starter') })}
+                            {t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
                         </Text>
 
                         {isNative && (
                             <TouchableOpacity
-                                style={[styles.payButton, selectedPlan === 'premium' ? styles.premiumBtn : styles.starterBtn]}
+                                style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
                                 onPress={() => handleRevenueCatPurchase(selectedPlan)}
                                 disabled={payLoading}
                             >
-                                {payLoading ? (
-                                    <ActivityIndicator size="small" color="white" />
-                                ) : (
+                                {payLoading ? <ActivityIndicator size="small" color="white" /> : (
                                     <>
                                         <Ionicons
                                             name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
@@ -303,9 +292,7 @@ export default function SubscriptionScreen() {
                             onPress={handleCinetPayPurchase}
                             disabled={payLoading}
                         >
-                            {payLoading ? (
-                                <ActivityIndicator size="small" color="white" />
-                            ) : (
+                            {payLoading ? <ActivityIndicator size="small" color="white" /> : (
                                 <>
                                     <Ionicons name="phone-portrait-outline" size={22} color="white" />
                                     <Text style={styles.payButtonText}>{t('subscription.pay_mobile_money')}</Text>
@@ -316,21 +303,48 @@ export default function SubscriptionScreen() {
                     </View>
                 )}
 
+                {/* Enterprise contact CTA */}
+                {(!isActive || isFreeTrial) && selectedPlan === 'enterprise' && (
+                    <View style={styles.card}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                            <Ionicons name="business-outline" size={24} color="#7C3AED" />
+                            <Text style={[styles.sectionTitle, { marginBottom: 0, color: '#7C3AED' }]}>
+                                {t('subscription.plan_enterprise') || 'Enterprise'}
+                            </Text>
+                        </View>
+                        <Text style={styles.enterpriseDesc}>
+                            {t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise (Web + Mobile avancé), contactez-nous.'}
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
+                            onPress={() => handleCinetPayPurchase()}
+                            disabled={payLoading}
+                        >
+                            {payLoading ? <ActivityIndicator size="small" color="white" /> : (
+                                <>
+                                    <Ionicons name="mail-outline" size={22} color="white" />
+                                    <Text style={styles.payButtonText}>{t('subscription.contact_sales') || 'Contacter le commercial'}</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {/* Restore */}
-                {isNative && !isPaidPlan && (
+                {isNative && (!isActive || isFreeTrial) && (
                     <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
                         <Text style={styles.restoreText}>{t('subscription.restore_purchase')}</Text>
                     </TouchableOpacity>
                 )}
 
-                {/* Plan active info */}
-                {isPaidPlan && (
+                {/* Active plan info */}
+                {isActive && !isFreeTrial && activePlanConfig && (
                     <View style={styles.card}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
                             <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                            <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>{t('subscription.active')}</Text>
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('subscription.active')}</Text>
                         </View>
-                        <Text style={styles.premiumActiveText}>
+                        <Text style={styles.activeText}>
                             {t('subscription.premium_active_text')}
                         </Text>
                         {data?.subscription_end && (
@@ -358,31 +372,30 @@ const styles = StyleSheet.create({
     trialDaysText: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 8 },
     content: { marginTop: -20, paddingHorizontal: 16 },
 
-    // Plan Selector
-    planSelector: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    planTab: {
-        flex: 1, backgroundColor: 'white', borderRadius: 16, padding: 16, alignItems: 'center',
-        borderWidth: 2, borderColor: '#E5E7EB',
+    // Plan Cards
+    planCards: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    planCard: {
+        flex: 1,
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 12,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
         shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
     },
-    planTabActive: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-    planTabActivePremium: { borderColor: '#F59E0B', backgroundColor: '#FFFBEB' },
-    planTabText: { fontSize: 18, fontWeight: 'bold', color: '#374151' },
-    planTabTextActive: { color: '#111827' },
-    planTabPrice: { fontSize: 14, color: '#6B7280', marginTop: 4 },
+    planCardSelected: { borderColor: '#10B981', backgroundColor: '#F0FDF4' },
+    planCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    planCardName: { fontSize: 13, fontWeight: 'bold', color: '#111827', marginBottom: 2, textAlign: 'center' },
+    planCardPrice: { fontSize: 11, color: '#6B7280', marginBottom: 8, textAlign: 'center' },
+    planCardDetails: { width: '100%', gap: 3 },
+    planCardDetail: { fontSize: 10, color: '#374151' },
     popularBadge: {
         position: 'absolute', top: -10, right: -10,
-        backgroundColor: '#F59E0B', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+        backgroundColor: '#F59E0B', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
     },
-    popularText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-
-    // Trial Banner
-    trialBanner: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF',
-        borderRadius: 12, padding: 12, marginBottom: 16, gap: 8,
-        borderWidth: 1, borderColor: '#BFDBFE',
-    },
-    trialBannerText: { flex: 1, fontSize: 13, color: '#1E40AF', lineHeight: 18 },
+    popularText: { color: 'white', fontSize: 9, fontWeight: 'bold' },
+    selectedCheck: { position: 'absolute', top: 8, right: 8 },
 
     // Card
     card: {
@@ -391,35 +404,24 @@ const styles = StyleSheet.create({
     },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
 
-    // Feature Table
-    tableHeader: { flexDirection: 'row', paddingBottom: 8, borderBottomWidth: 1, borderColor: '#E5E7EB' },
-    tableColLabel: { flex: 1.2 },
-    tableColValue: { flex: 1, alignItems: 'center' },
-    tableHeaderText: { fontSize: 13, fontWeight: 'bold', color: '#3B82F6' },
-    tableRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 0.5, borderColor: '#F3F4F6' },
-    tableRowAlt: { backgroundColor: '#FAFAFA' },
-    featureLabel: { fontSize: 12, color: '#374151', fontWeight: '500' },
-    featureValue: { fontSize: 11, color: '#6B7280', textAlign: 'center' },
-    featureDisabled: { color: '#D1D5DB' },
-    featurePremium: { color: '#059669', fontWeight: '500' },
-
     // Payment
     payButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 16, borderRadius: 12, gap: 10,
+        paddingVertical: 16, borderRadius: 12, gap: 10, marginBottom: 8,
     },
-    starterBtn: { backgroundColor: '#3B82F6' },
-    premiumBtn: { backgroundColor: '#F59E0B' },
     mobileMoneyButton: { backgroundColor: '#10B981' },
     payButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-    mmSubtext: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 6 },
-    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 14 },
+    mmSubtext: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 2 },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
     dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
     dividerText: { marginHorizontal: 12, color: '#9CA3AF', fontSize: 13 },
     restoreButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 16 },
     restoreText: { color: '#3B82F6', fontSize: 14, fontWeight: '500' },
 
-    // Premium Active
-    premiumActiveText: { fontSize: 15, color: '#059669', fontWeight: '500', lineHeight: 22 },
+    // Enterprise
+    enterpriseDesc: { fontSize: 14, color: '#4B5563', lineHeight: 20, marginBottom: 16 },
+
+    // Active
+    activeText: { fontSize: 15, color: '#059669', fontWeight: '500', lineHeight: 22 },
     renewalText: { fontSize: 13, color: '#6B7280', marginTop: 8 },
 });
