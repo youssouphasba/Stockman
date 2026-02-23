@@ -121,14 +121,34 @@ class ImportService:
         }
 
     async def execute_bulk_insert(self, products: List[Dict[str, Any]]) -> int:
-        """Insert products into the database"""
+        """Insert products into the database and record initial stock movements"""
         if not products:
             return 0
         
         result = await self.db.products.insert_many(products)
         
-        # Log activity
-        # Note: In a real scenario, we might want to log this to activity_logs
+        # Prepare stock movements for products with quantity > 0
+        movements = []
+        now = datetime.now(timezone.utc)
+        for p in products:
+            qty = p.get("quantity", 0)
+            if qty > 0:
+                movements.append({
+                    "movement_id": f"mov_{uuid.uuid4().hex[:12]}",
+                    "product_id": p["product_id"],
+                    "product_name": p["name"],
+                    "user_id": p["user_id"],
+                    "store_id": p.get("store_id"),
+                    "type": "in",
+                    "quantity": qty,
+                    "reason": "Importation initiale (Bulk)",
+                    "previous_quantity": 0,
+                    "new_quantity": qty,
+                    "created_at": now
+                })
+        
+        if movements:
+            await self.db.stock_movements.insert_many(movements)
         
         return len(result.inserted_ids)
 

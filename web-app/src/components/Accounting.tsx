@@ -407,7 +407,7 @@ export default function Accounting() {
                         </div>
                         <div className="h-64">
                             {chartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <AreaChart data={chartData}>
                                         <defs>
                                             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -421,7 +421,7 @@ export default function Accounting() {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                                         <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
-                                            tickFormatter={(str) => { const d = new Date(str); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
+                                            tickFormatter={(str) => { if (!str) return ''; const d = new Date(str); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
                                         <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
                                             tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val} />
                                         <Tooltip

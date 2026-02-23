@@ -279,7 +279,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <div className="text-[10px] text-primary font-black uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">Confidence: 94%</div>
                             </div>
                             <div className="flex-1 w-full min-h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <AreaChart data={Array.isArray(forecast?.daily_forecast) ? forecast.daily_forecast : []}>
                                         <defs>
                                             <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
@@ -294,7 +294,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             fontSize={10}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(str) => str.split('-').slice(1).reverse().join('/')}
+                                            tickFormatter={(str) => str ? str.split('-').slice(1).reverse().join('/') : ''}
                                         />
                                         <YAxis
                                             stroke="#475569"
@@ -326,7 +326,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Historique {period}J</div>
                             </div>
                             <div className="flex-1 w-full min-h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <AreaChart data={Array.isArray(stats?.stock_value_history) ? stats.stock_value_history : []}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -341,7 +341,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             fontSize={10}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(str) => str.split('-').slice(1).reverse().join('/')}
+                                            tickFormatter={(str) => str ? str.split('-').slice(1).reverse().join('/') : ''}
                                         />
                                         <YAxis
                                             stroke="#475569"
