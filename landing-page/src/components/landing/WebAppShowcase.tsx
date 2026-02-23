@@ -43,8 +43,8 @@ const WebAppShowcase: React.FC = () => {
                     </div>
                     <div className="mockup-screen">
                         <img
-                            src="/assets/screenshots/dashboard-kpi.jpg"
-                            alt="Stockman Web Dashboard"
+                            src="/assets/screenshots/stockman-enterprise-preview.png"
+                            alt="Stockman Enterprise Dashboard"
                             className="mockup-image"
                         />
                         <div className="mockup-overlay">
