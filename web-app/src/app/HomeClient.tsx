@@ -31,15 +31,8 @@ export default function Home() {
   const { t, ready } = useTranslation();
   const [isLogged, setIsLogged] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('demo@stockman.pro');
   const [password, setPassword] = useState('password123');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('shopkeeper');
-  const [businessType, setBusinessType] = useState('');
-  const [howDidYouHear, setHowDidYouHear] = useState('');
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -84,38 +77,6 @@ export default function Home() {
     const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
   }, [isLogged, fetchUnread]);
-
-  const switchMode = (m: 'login' | 'register') => {
-    setMode(m);
-    setError(null);
-    setPassword('');
-    setConfirmPassword('');
-    if (m === 'register') { setEmail(''); }
-    else { setEmail('demo@stockman.pro'); setPassword('password123'); }
-  };
-
-  const handleRegister = async () => {
-    setError(null);
-    if (!name.trim() || !email.trim() || !password) return setError('Nom, email et mot de passe sont requis.');
-    if (password.length < 8) return setError('Le mot de passe doit contenir au moins 8 caractères.');
-    if (password !== confirmPassword) return setError('Les mots de passe ne correspondent pas.');
-    setLoading(true);
-    try {
-      const response = await auth.register({
-        email, password, name, role,
-        phone: phone || undefined,
-        business_type: businessType || undefined,
-        how_did_you_hear: howDidYouHear || undefined,
-      });
-      localStorage.setItem('auth_token', response.access_token);
-      setUser(response.user);
-      setIsLogged(true);
-    } catch (err: any) {
-      setError(err instanceof ApiError ? err.message : "Erreur lors de l'inscription");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogin = async () => {
     setError(null);
@@ -581,8 +542,8 @@ export default function Home() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
 
           <div className="flex flex-col gap-1 relative z-10">
-            <h3 className="text-2xl font-bold text-white">{mode === 'login' ? 'Connexion' : 'Créer un compte'}</h3>
-            <p className="text-slate-400">{mode === 'login' ? 'Accédez à votre espace professionnel' : 'Essai gratuit 3 mois — sans carte bancaire'}</p>
+            <h3 className="text-2xl font-bold text-white">Connexion</h3>
+            <p className="text-slate-400">Accédez à votre espace professionnel Enterprise</p>
           </div>
 
           {error && (
@@ -593,19 +554,6 @@ export default function Home() {
           )}
 
           <div className="flex flex-col gap-4 relative z-10">
-            {mode === 'register' && (
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Nom complet</label>
-                <input
-                  type="text"
-                  placeholder="Votre nom"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                />
-              </div>
-            )}
-
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-300">Email professionnel</label>
               <input
@@ -617,117 +565,46 @@ export default function Home() {
               />
             </div>
 
-            {mode === 'register' && (
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Téléphone WhatsApp <span className="text-slate-500 font-normal">(optionnel — détecte la devise)</span></label>
-                <input
-                  type="tel"
-                  placeholder="+221 77 000 00 00"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                />
-              </div>
-            )}
-
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
-                {mode === 'login' && <a href="#" className="text-xs text-primary hover:underline">Oublié ?</a>}
+                <a href="#" className="text-xs text-primary hover:underline">Oublié ?</a>
               </div>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => mode === 'login' && e.key === 'Enter' && handleLogin()}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
               />
             </div>
-
-            {mode === 'register' && (<>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Confirmer le mot de passe</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Vous êtes</label>
-                <div className="flex gap-2">
-                  {[{ val: 'shopkeeper', label: 'Commerçant' }, { val: 'supplier', label: 'Fournisseur' }].map(r => (
-                    <button
-                      key={r.val}
-                      onClick={() => setRole(r.val)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border ${role === r.val ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
-                    >{r.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Type de commerce <span className="text-slate-500 font-normal">(optionnel)</span></label>
-                <select
-                  value={businessType}
-                  onChange={(e) => setBusinessType(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                >
-                  <option value="" className="bg-[#1E293B]">Choisir...</option>
-                  {['Boutique générale', 'Épicerie / Alimentation', 'Quincaillerie', 'Pharmacie', 'Grossiste', 'Restaurant / Snack', 'Autre'].map(bt => (
-                    <option key={bt} value={bt} className="bg-[#1E293B]">{bt}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Comment avez-vous connu Stockman ? <span className="text-slate-500 font-normal">(optionnel)</span></label>
-                <select
-                  value={howDidYouHear}
-                  onChange={(e) => setHowDidYouHear(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
-                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                >
-                  <option value="" className="bg-[#1E293B]">Choisir...</option>
-                  {['Bouche à oreille', 'Réseau social', 'Google', 'Un ami / collègue', 'Autre'].map(h => (
-                    <option key={h} value={h} className="bg-[#1E293B]">{h}</option>
-                  ))}
-                </select>
-              </div>
-            </>)}
           </div>
 
           <div className="flex flex-col gap-4 relative z-10">
             <button
-              onClick={mode === 'login' ? handleLogin : handleRegister}
+              onClick={handleLogin}
               disabled={loading}
               className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading ? 'opacity-70 cursor-wait' : ''}`}
             >
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {mode === 'login' ? 'Connexion...' : 'Création...'}
+                  Connexion...
                 </>
-              ) : mode === 'login' ? (
-                <><LogIn size={20} /> Se connecter</>
               ) : (
-                <><LogIn size={20} /> Créer mon compte</>
+                <><LogIn size={20} /> Se connecter</>
               )}
             </button>
             <div className="text-center">
-              {mode === 'login' ? (
-                <span className="text-sm text-muted">Pas encore membre ?{' '}
-                  <button onClick={() => switchMode('register')} className="text-primary font-bold hover:underline">S'inscrire</button>
-                </span>
-              ) : (
-                <span className="text-sm text-muted">Déjà membre ?{' '}
-                  <button onClick={() => switchMode('login')} className="text-primary font-bold hover:underline">Se connecter</button>
-                </span>
-              )}
+              <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
+                <a
+                  href="https://stockman.pro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary font-bold hover:underline"
+                >S'inscrire sur stockman.pro</a>
+              </span>
             </div>
           </div>
         </div>
