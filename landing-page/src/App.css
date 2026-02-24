@@ -1,3 +1,105 @@
+/* ── Profile Selector ── */
+.profile-selector {
+  margin-bottom: 2rem;
+}
+
+.profile-selector-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}
+
+.profile-selector-options {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.profile-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  text-align: left;
+}
+
+.profile-option:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-option.active {
+  border-color: var(--primary);
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.profile-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.2rem;
+}
+
+.profile-option strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.profile-option.active strong {
+  color: var(--primary);
+}
+
+.profile-option span:last-child {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* ── Enterprise pricing teaser (Commerçant view) ── */
+.pricing-grid--mobile {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.pricing-card-enterprise-teaser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.75rem;
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.enterprise-teaser-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.pricing-card-enterprise-teaser p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Enterprise pricing redirect ── */
+.pricing-enterprise-redirect {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Hero ── */
 .hero {
   padding: 120px 0 80px;
   min-height: 90vh;

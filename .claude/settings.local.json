@@ -30,7 +30,8 @@
       "Bash(node:*)",
       "Bash(/usr/bin/python3.12:*)",
       "Bash(head:*)",
-      "Bash(\"/mnt/c/ProgramData/chocolatey/bin/python3.14.exe\" -c \"import pymongo; print\\('pymongo ok', pymongo.version\\)\" 2>&1 || \"/mnt/c/ProgramData/chocolatey/bin/python3.14.exe\" -c \"import motor; print\\('motor ok'\\)\" 2>&1)"
+      "Bash(\"/mnt/c/ProgramData/chocolatey/bin/python3.14.exe\" -c \"import pymongo; print\\('pymongo ok', pymongo.version\\)\" 2>&1 || \"/mnt/c/ProgramData/chocolatey/bin/python3.14.exe\" -c \"import motor; print\\('motor ok'\\)\" 2>&1)",
+      "Bash(tail:*)"
     ]
   }
 }

@@ -3703,12 +3703,29 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         }
         
         await db.users.insert_one(user_doc)
-        
+
         # Log registration activity
+        log_user = User(
+            user_id=user_id,
+            email=user_data.email,
+            name=user_data.name,
+            phone=user_data.phone,
+            picture=None,
+            created_at=user_doc["created_at"],
+            auth_type="email",
+            role=role,
+            active_store_id=store_id,
+            store_ids=[store_id],
+            plan="starter",
+            subscription_status="active",
+            trial_ends_at=trial_ends_at,
+            currency=user_doc["currency"],
+            country_code=user_data.country_code or "SN",
+        )
         await log_activity(
-            User(**user_doc), 
-            "registration", 
-            "auth", 
+            log_user,
+            "registration",
+            "auth",
             f"Nouvel utilisateur: {user_data.name} ({user_data.business_type or 'N/A'})",
             {"how_did_you_hear": user_data.how_did_you_hear}
         )
@@ -3793,6 +3810,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         )
 
         return TokenResponse(access_token=access_token, user=user)
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()

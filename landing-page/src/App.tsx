@@ -20,7 +20,7 @@ import SEO from './components/SEO';
 import ContactSection from './components/ContactSection';
 import Analytics from './components/Analytics';
 import AdminLeads from './components/AdminLeads';
-import Hero from './components/landing/Hero';
+import Hero, { type Profile } from './components/landing/Hero';
 import Features from './components/landing/Features';
 
 import WebAppShowcase from './components/landing/WebAppShowcase';
@@ -32,6 +32,7 @@ import { getPricingByLanguage, formatPrice } from './utils/pricing';
 function Landing() {
   const { t, i18n } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState<Profile>('merchant');
   useScrollReveal();
 
   const pricingData = getPricingByLanguage(i18n.language);
@@ -98,7 +99,7 @@ function Landing() {
         </div>
       </nav>
 
-      <Hero />
+      <Hero profile={profile} onProfileChange={setProfile} />
 
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <ComparisonTable />
@@ -129,9 +130,7 @@ function Landing() {
 
       <Features />
 
-
-
-      <WebAppShowcase />
+      {profile === 'enterprise' && <WebAppShowcase />}
 
       <section className="how-it-works container reveal reveal-right">
         <div className="section-title">
@@ -186,50 +185,78 @@ function Landing() {
 
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
-          <h2>{t('pricing.title')}</h2>
-          <p className="text-muted">{t('pricing.subtitle')}</p>
+          <h2>{profile === 'enterprise' ? 'Une solution taillée pour votre ambition' : t('pricing.title')}</h2>
+          <p className="text-muted">{profile === 'enterprise' ? 'Back-office web + application mobile inclus dans chaque licence Enterprise.' : t('pricing.subtitle')}</p>
         </div>
 
-        <div className="pricing-grid">
-          <div className="pricing-card glass-card">
-            <h3>{t('pricing.starter.name')}</h3>
-            <div className="price">{formatPrice(pricingData.starter, pricingData.currency)} <span>{t('pricing.month')}</span></div>
-            <ul className="pricing-features">
-              <li><span className="check-icon">✓</span> {t('pricing.starter.f1')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.starter.f2')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.starter.f3')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.starter.f4')}</li>
-            </ul>
-            <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)' }}>{t('pricing.starter.cta')}</button>
-          </div>
+        {profile === 'merchant' ? (
+          <div className="pricing-grid pricing-grid--mobile">
+            <div className="pricing-card glass-card">
+              <h3>{t('pricing.starter.name')}</h3>
+              <div className="price">{formatPrice(pricingData.starter, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <ul className="pricing-features">
+                <li><span className="check-icon">✓</span> {t('pricing.starter.f1')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.starter.f2')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.starter.f3')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.starter.f4')}</li>
+              </ul>
+              <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)' }}>{t('pricing.starter.cta')}</button>
+            </div>
 
-          <div className="pricing-card glass-card popular">
-            <div className="popular-tag">{t('pricing.popular')}</div>
-            <h3>{t('pricing.business.name')}</h3>
-            <div className="price">{formatPrice(pricingData.premium, pricingData.currency)} <span>{t('pricing.month')}</span></div>
-            <ul className="pricing-features">
-              <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.business.f3')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.business.f4')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.business.f5')}</li>
-            </ul>
-            <button className="btn-primary">{t('pricing.business.cta')}</button>
-          </div>
+            <div className="pricing-card glass-card popular">
+              <div className="popular-tag">{t('pricing.popular')}</div>
+              <h3>{t('pricing.business.name')}</h3>
+              <div className="price">{formatPrice(pricingData.premium, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <ul className="pricing-features">
+                <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.business.f3')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.business.f4')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.business.f5')}</li>
+              </ul>
+              <button className="btn-primary">{t('pricing.business.cta')}</button>
+            </div>
 
-          <div className="pricing-card glass-card">
-            <h3>{t('pricing.enterprise.name')}</h3>
-            <div className="price">{t('pricing.enterprise.price')}<span></span></div>
-            <ul className="pricing-features">
-              <li><span className="check-icon">✓</span> {t('pricing.enterprise.f1')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.enterprise.f2')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.enterprise.f3')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.enterprise.f4')}</li>
-              <li><span className="check-icon">✓</span> {t('pricing.enterprise.f5')}</li>
-            </ul>
-            <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)' }}>{t('pricing.enterprise.cta')}</button>
+            <div className="pricing-card-enterprise-teaser glass-card">
+              <div className="enterprise-teaser-badge">🏢 Entreprise multi-sites ?</div>
+              <p>Gérez plusieurs boutiques avec un back-office web complet, des rapports avancés et une gestion d'équipe dédiée.</p>
+              <a
+                href="https://app.stockman.pro/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+                style={{ display: 'inline-block', marginTop: '0.5rem' }}
+              >
+                Voir le plan Enterprise →
+              </a>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="pricing-enterprise-redirect">
+            <div className="pricing-card glass-card popular" style={{ maxWidth: 480, margin: '0 auto' }}>
+              <div className="popular-tag">🏢 Enterprise</div>
+              <h3>{t('pricing.enterprise.name')}</h3>
+              <div className="price">{t('pricing.enterprise.price')}</div>
+              <ul className="pricing-features">
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f1')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f2')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f3')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f4')}</li>
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f5')}</li>
+                <li><span className="check-icon">✓</span> Application mobile incluse pour vos équipes terrain</li>
+              </ul>
+              <a
+                href="https://app.stockman.pro/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{ display: 'block', textAlign: 'center', marginTop: '1rem' }}
+              >
+                Démarrer l'essai Enterprise →
+              </a>
+            </div>
+          </div>
+        )}
       </section>
 
       <Newsletter />
