@@ -9,6 +9,7 @@ import {
   Modal,
   Linking,
   Alert,
+  Share,
   Image,
   Platform,
   Dimensions,
@@ -70,10 +71,41 @@ type KpiCardProps = {
   isCurrency?: boolean;
 };
 
+function KpiCard({ icon, label, value, color, isCurrency = false }: KpiCardProps & { user: any, colors: any, styles: any }) {
+  const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
+  const isNumber = !isNaN(numericValue);
+
+  return (
+    <View style={[styles.kpiCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+      <View style={[styles.kpiIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      {isNumber ? (
+        <AnimatedCounter
+          value={numericValue}
+          style={[styles.kpiValue, { color: colors.text }]}
+          suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
+        />
+      ) : (
+        <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
+      )}
+      <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>{label}</Text>
+    </View>
+  );
+}
+
+function StatusBadge({ label, count, color, styles }: { label: string; count: number; color: string; styles: any }) {
+  return (
+    <View style={[styles.statusBadge, { borderColor: color + '40' }]}>
+      <Text style={[styles.statusCount, { color }]}>{count}</Text>
+      <Text style={styles.statusLabel}>{label}</Text>
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isConnected } = useNetwork();
@@ -156,7 +188,9 @@ export default function DashboardScreen() {
       const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
       if (cached) setData(prev => prev ?? cached);
     } finally {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      if (Platform.OS !== 'web') {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
       setLoading(false);
       setRefreshing(false);
       loadingRef.current = false;
@@ -215,12 +249,18 @@ export default function DashboardScreen() {
           value={data?.today_revenue ?? 0}
           color={colors.success}
           isCurrency
+          user={user}
+          colors={colors}
+          styles={styles}
         />
         <KpiCard
           icon="receipt-outline"
           label={t('dashboard.today_sales')}
           value={data?.today_sales_count ?? 0}
           color={colors.info}
+          user={user}
+          colors={colors}
+          styles={styles}
         />
         <KpiCard
           icon="cube-outline"
@@ -228,6 +268,9 @@ export default function DashboardScreen() {
           value={data?.total_stock_value ?? 0}
           color={colors.warning}
           isCurrency
+          user={user}
+          colors={colors}
+          styles={styles}
         />
         <KpiCard
           icon="card-outline"
@@ -235,11 +278,31 @@ export default function DashboardScreen() {
           value={data?.month_revenue ?? 0}
           color={colors.primary}
           isCurrency
+          user={user}
+          colors={colors}
+          styles={styles}
         />
       </View>
     );
   };
 
+
+  const handleShareReport = async () => {
+    if (!data) return;
+    const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const deltaRevPct = data.yesterday_revenue > 0
+      ? ((data.today_revenue - data.yesterday_revenue) / data.yesterday_revenue * 100).toFixed(0)
+      : null;
+    const topProds = (data.top_selling_today ?? []).map((p, i) => `  ${i + 1}. ${p.name} — ${p.qty} vendu(s)`).join('\n') || '  Aucune vente aujourd\'hui';
+    const message =
+      `📊 Rapport du Jour — ${date}\n\n` +
+      `💰 CA : ${formatCurrency(data.today_revenue)}${deltaRevPct ? ` (${Number(deltaRevPct) >= 0 ? '+' : ''}${deltaRevPct}% vs hier)` : ''}\n` +
+      `🛍️  Ventes : ${data.today_sales_count} (hier : ${data.yesterday_sales_count})\n\n` +
+      `🏆 Top produits :\n${topProds}`;
+    try {
+      await Share.share({ message });
+    } catch { /* ignore */ }
+  };
 
   async function loadHistory(period: Period, start?: Date, end?: Date) {
     setHistoryLoading(true);
@@ -350,37 +413,7 @@ export default function DashboardScreen() {
     );
   }
 
-  function KpiCard({ icon, label, value, color, isCurrency = false }: KpiCardProps) {
-    const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
-    const isNumber = !isNaN(numericValue);
-
-    return (
-      <View style={[styles.kpiCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
-        <View style={[styles.kpiIcon, { backgroundColor: color + '20' }]}>
-          <Ionicons name={icon} size={22} color={color} />
-        </View>
-        {isNumber ? (
-          <AnimatedCounter
-            value={numericValue}
-            style={[styles.kpiValue, { color: colors.text }]}
-            suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
-          />
-        ) : (
-          <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
-        )}
-        <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>{label}</Text>
-      </View>
-    );
-  }
-
-  function StatusBadge({ label, count, color }: { label: string; count: number; color: string }) {
-    return (
-      <View style={[styles.statusBadge, { borderColor: color + '40' }]}>
-        <Text style={[styles.statusCount, { color }]}>{count}</Text>
-        <Text style={styles.statusLabel}>{label}</Text>
-      </View>
-    );
-  }
+  // Removed nested defined components
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
@@ -447,6 +480,75 @@ export default function DashboardScreen() {
 
         {renderKPIs()}
 
+        {/* Rapport du Jour — Enterprise */}
+        {(user?.plan === 'enterprise' || hasPermission('accounting', 'read')) && data && (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>{t('dashboard.daily_report')}</Text>
+              <TouchableOpacity onPress={handleShareReport} style={{ padding: 6 }}>
+                <Ionicons name="share-social-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* CA + Ventes row */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+              {/* CA du jour */}
+              <View style={[styles.reportMetricCard, { flex: 1, borderColor: colors.success + '40' }]}>
+                <Ionicons name="cash-outline" size={16} color={colors.success} style={{ marginBottom: 4 }} />
+                <Text style={[styles.reportMetricValue, { color: colors.success }]}>{formatCurrency(data.today_revenue)}</Text>
+                <Text style={styles.reportMetricLabel}>{t('dashboard.today_revenue')}</Text>
+                {data.yesterday_revenue > 0 && (() => {
+                  const pct = ((data.today_revenue - data.yesterday_revenue) / data.yesterday_revenue * 100);
+                  return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 }}>
+                      <Ionicons name={pct >= 0 ? 'trending-up' : 'trending-down'} size={12} color={pct >= 0 ? colors.success : colors.danger} />
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: pct >= 0 ? colors.success : colors.danger }}>
+                        {pct >= 0 ? '+' : ''}{pct.toFixed(0)}% vs hier
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+
+              {/* Ventes du jour */}
+              <View style={[styles.reportMetricCard, { flex: 1, borderColor: colors.primary + '40' }]}>
+                <Ionicons name="receipt-outline" size={16} color={colors.primary} style={{ marginBottom: 4 }} />
+                <Text style={[styles.reportMetricValue, { color: colors.primary }]}>{data.today_sales_count}</Text>
+                <Text style={styles.reportMetricLabel}>{t('dashboard.today_sales')}</Text>
+                {data.yesterday_sales_count > 0 && (() => {
+                  const diff = data.today_sales_count - data.yesterday_sales_count;
+                  return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 }}>
+                      <Ionicons name={diff >= 0 ? 'trending-up' : 'trending-down'} size={12} color={diff >= 0 ? colors.success : colors.danger} />
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: diff >= 0 ? colors.success : colors.danger }}>
+                        {diff >= 0 ? '+' : ''}{diff} vs hier
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+            </View>
+
+            {/* Top 3 produits */}
+            {(data.top_selling_today ?? []).length > 0 && (
+              <View style={{ backgroundColor: colors.glass, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.glassBorder }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                  {t('dashboard.top_products_today')}
+                </Text>
+                {data.top_selling_today.map((p, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: 10 }}>
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary + '20', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary }}>#{i + 1}</Text>
+                    </View>
+                    <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>{p.name}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textMuted }}>{p.qty} {t('dashboard.units')}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Profitability Analysis — NEW */}
         {userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
           <View style={styles.section}>
@@ -481,9 +583,9 @@ export default function DashboardScreen() {
           <View style={styles.statusSection}>
             <Text style={styles.sectionTitle}>{t('dashboard.stock_status')}</Text>
             <View style={styles.statusRow}>
-              <StatusBadge label={t('dashboard.out_of_stock')} count={data?.out_of_stock_count ?? 0} color={colors.danger} />
-              <StatusBadge label={t('dashboard.low_stock')} count={data?.low_stock_count ?? 0} color={colors.warning} />
-              <StatusBadge label={t('dashboard.overstock')} count={data?.overstock_count ?? 0} color={colors.info} />
+              <StatusBadge label={t('dashboard.out_of_stock')} count={data?.out_of_stock_count ?? 0} color={colors.danger} styles={styles} />
+              <StatusBadge label={t('dashboard.low_stock')} count={data?.low_stock_count ?? 0} color={colors.warning} styles={styles} />
+              <StatusBadge label={t('dashboard.overstock')} count={data?.overstock_count ?? 0} color={colors.info} styles={styles} />
             </View>
             {data?.critical_products && data.critical_products.length > 0 && (
               <View style={{ marginTop: Spacing.md }}>
@@ -1187,6 +1289,9 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   kpiValue: { fontSize: FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs },
   kpiLabel: { fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center' },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
+  reportMetricCard: { padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: colors.glass },
+  reportMetricValue: { fontSize: 22, fontWeight: '800' },
+  reportMetricLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
   statusSection: { backgroundColor: colors.bgMid, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.xl },
   statusRow: { flexDirection: 'row', gap: Spacing.sm },
   abcContainer: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: Spacing.sm },

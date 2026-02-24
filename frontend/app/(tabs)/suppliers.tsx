@@ -1080,15 +1080,15 @@ export default function SuppliersScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalScroll}>
-                <FormField label={t('suppliers.form_name')} value={formName} onChangeText={setFormName} placeholder={t('suppliers.form_name_placeholder')} />
-                <FormField label={t('suppliers.form_contact')} value={formContactName} onChangeText={setFormContactName} placeholder={t('suppliers.form_contact_placeholder')} />
-                <FormField label={t('suppliers.form_phone')} value={formPhone} onChangeText={setFormPhone} placeholder={t('suppliers.form_phone_placeholder')} keyboardType="numeric" />
-                <FormField label={t('suppliers.form_email')} value={formEmail} onChangeText={setFormEmail} placeholder={t('suppliers.form_email_placeholder')} />
-                <FormField label={t('suppliers.form_address')} value={formAddress} onChangeText={setFormAddress} placeholder={t('suppliers.form_address_placeholder')} />
-                <FormField label={t('suppliers.form_products')} value={formProductsSupplied} onChangeText={setFormProductsSupplied} placeholder={t('suppliers.form_products_placeholder')} />
-                <FormField label={t('suppliers.form_delay')} value={formDeliveryDelay} onChangeText={setFormDeliveryDelay} placeholder={t('suppliers.form_delay_placeholder')} />
-                <FormField label={t('suppliers.form_payment')} value={formPaymentConditions} onChangeText={setFormPaymentConditions} placeholder={t('suppliers.form_payment_placeholder')} />
-                <FormField label={t('suppliers.form_notes')} value={formNotes} onChangeText={setFormNotes} placeholder={t('suppliers.form_notes_placeholder')} />
+                <FormField label={t('suppliers.form_name')} value={formName} onChangeText={setFormName} placeholder={t('suppliers.form_name_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_contact')} value={formContactName} onChangeText={setFormContactName} placeholder={t('suppliers.form_contact_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_phone')} value={formPhone} onChangeText={setFormPhone} placeholder={t('suppliers.form_phone_placeholder')} keyboardType="numeric" colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_email')} value={formEmail} onChangeText={setFormEmail} placeholder={t('suppliers.form_email_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_address')} value={formAddress} onChangeText={setFormAddress} placeholder={t('suppliers.form_address_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_products')} value={formProductsSupplied} onChangeText={setFormProductsSupplied} placeholder={t('suppliers.form_products_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_delay')} value={formDeliveryDelay} onChangeText={setFormDeliveryDelay} placeholder={t('suppliers.form_delay_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_payment')} value={formPaymentConditions} onChangeText={setFormPaymentConditions} placeholder={t('suppliers.form_payment_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('suppliers.form_notes')} value={formNotes} onChangeText={setFormNotes} placeholder={t('suppliers.form_notes_placeholder')} colors={colors} styles={styles} />
                 <TouchableOpacity
                   style={[styles.submitBtn, formLoading && styles.submitBtnDisabled]}
                   onPress={handleSaveSupplier}
@@ -1155,12 +1155,12 @@ export default function SuppliersScreen() {
                     {detailTab === 'info' && (
                       <View style={styles.tabContent}>
                         {detailSupplier.contact_name ? (
-                          <DetailRow icon="person-outline" label={t('suppliers.form_contact')} value={detailSupplier.contact_name} />
+                          <DetailRow icon="person-outline" label={t('suppliers.form_contact')} value={detailSupplier.contact_name} colors={colors} styles={styles} />
                         ) : null}
                         <View style={styles.rowCentered}>
                           <View style={{ flex: 1 }}>
                             {detailSupplier.phone ? (
-                              <DetailRow icon="call-outline" label={t('suppliers.form_phone')} value={detailSupplier.phone} />
+                              <DetailRow icon="call-outline" label={t('suppliers.form_phone')} value={detailSupplier.phone} colors={colors} styles={styles} />
                             ) : null}
                           </View>
                           <TouchableOpacity
@@ -1173,22 +1173,22 @@ export default function SuppliersScreen() {
                         </View>
 
                         {detailSupplier.email ? (
-                          <DetailRow icon="mail-outline" label={t('suppliers.form_email')} value={detailSupplier.email} />
+                          <DetailRow icon="mail-outline" label={t('suppliers.form_email')} value={detailSupplier.email} colors={colors} styles={styles} />
                         ) : null}
                         {detailSupplier.address ? (
-                          <DetailRow icon="location-outline" label={t('suppliers.form_address')} value={detailSupplier.address} />
+                          <DetailRow icon="location-outline" label={t('suppliers.form_address')} value={detailSupplier.address} colors={colors} styles={styles} />
                         ) : null}
                         {detailSupplier.products_supplied ? (
-                          <DetailRow icon="cube-outline" label={t('marketplace.products')} value={detailSupplier.products_supplied} />
+                          <DetailRow icon="cube-outline" label={t('marketplace.products')} value={detailSupplier.products_supplied} colors={colors} styles={styles} />
                         ) : null}
                         {detailSupplier.delivery_delay ? (
-                          <DetailRow icon="time-outline" label={t('suppliers.form_delay')} value={detailSupplier.delivery_delay} />
+                          <DetailRow icon="time-outline" label={t('suppliers.form_delay')} value={detailSupplier.delivery_delay} colors={colors} styles={styles} />
                         ) : null}
                         {detailSupplier.payment_conditions ? (
-                          <DetailRow icon="card-outline" label={t('suppliers.payment_label')} value={detailSupplier.payment_conditions} />
+                          <DetailRow icon="card-outline" label={t('suppliers.payment_label')} value={detailSupplier.payment_conditions} colors={colors} styles={styles} />
                         ) : null}
                         {detailSupplier.notes ? (
-                          <DetailRow icon="document-text-outline" label={t('suppliers.form_notes')} value={detailSupplier.notes} />
+                          <DetailRow icon="document-text-outline" label={t('suppliers.form_notes')} value={detailSupplier.notes} colors={colors} styles={styles} />
                         ) : null}
 
                         {detailSupplier.user_id && (
@@ -1521,6 +1521,8 @@ export default function SuppliersScreen() {
                 onChangeText={setLinkPrice}
                 placeholder="0.00"
                 keyboardType="numeric"
+                colors={colors}
+                styles={styles}
               />
 
               <Text style={styles.formLabel}>{t('suppliers.select_product')}</Text>
@@ -1577,8 +1579,8 @@ export default function SuppliersScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalScroll}>
-                <FormField label={t('common.city')} value={mpCity} onChangeText={setMpCity} placeholder={t('marketplace.city_placeholder')} />
-                <FormField label={t('common.category')} value={mpCategory} onChangeText={setMpCategory} placeholder={t('marketplace.category_placeholder')} />
+                <FormField label={t('common.city')} value={mpCity} onChangeText={setMpCity} placeholder={t('marketplace.city_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('common.category')} value={mpCategory} onChangeText={setMpCategory} placeholder={t('marketplace.category_placeholder')} colors={colors} styles={styles} />
 
                 <Text style={styles.formLabel}>{t('marketplace.min_rating_supplier')}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: Spacing.md }}>
@@ -1691,6 +1693,8 @@ export default function SuppliersScreen() {
                 value={inviteEmail}
                 onChangeText={setInviteEmail}
                 placeholder="email@fournisseur.com"
+                colors={colors}
+                styles={styles}
               />
 
               <TouchableOpacity
@@ -1948,46 +1952,50 @@ export default function SuppliersScreen() {
       default: return colors.textMuted;
     }
   }
+}
 
-  function DetailRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
-    return (
-      <View style={styles.detailRow}>
-        <Ionicons name={icon} size={18} color={colors.textMuted} />
-        <View style={styles.detailRowInfo}>
-          <Text style={styles.detailLabel}>{label}</Text>
-          <Text style={styles.detailValue}>{value}</Text>
-        </View>
+function DetailRow({ icon, label, value, colors, styles }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string, colors: any, styles: any }) {
+  return (
+    <View style={styles.detailRow}>
+      <Ionicons name={icon} size={18} color={colors.textMuted} />
+      <View style={styles.detailRowInfo}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
       </View>
-    );
-  }
+    </View>
+  );
+}
 
-  function FormField({
-    label,
-    value,
-    onChangeText,
-    placeholder,
-    keyboardType,
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (t: string) => void;
-    placeholder?: string;
-    keyboardType?: 'numeric' | 'default';
-  }) {
-    return (
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>{label}</Text>
-        <TextInput
-          style={styles.formInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
-          keyboardType={keyboardType}
-        />
-      </View>
-    );
-  }
+function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  colors,
+  styles,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder?: string;
+  keyboardType?: 'numeric' | 'default';
+  colors: any;
+  styles: any;
+}) {
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>{label}</Text>
+      <TextInput
+        style={styles.formInput}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardType={keyboardType}
+      />
+    </View>
+  );
 }
 
 const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({

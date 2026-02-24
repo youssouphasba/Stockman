@@ -154,13 +154,15 @@
 - Afficher le terminal actif dans le header POS
 - Infrastructure backend déjà prête (`terminal_id` dans `SaleCreate`)
 
-### Tâche 4 — Rapport journalier simplifié ⭐⭐ Moyenne
-**Fichiers** : `frontend/app/(tabs)/index.tsx` (Dashboard mobile)
-- Section "Rapport du Jour" sur le dashboard si `plan === 'enterprise'`
-- Données depuis `GET /dashboard` (déjà disponible) : CA du jour, nb ventes, top 3 produits
-- Comparaison avec hier (delta +/-)
-- Bouton "Partager" → `Share.share()` Expo (résumé texte)
-- Visible aussi pour staff avec `accounting:read`
+### ✅ Tâche 4 — Rapport journalier simplifié ⭐⭐ Moyenne
+- [x] Section "Rapport du Jour" sur le dashboard si `plan === 'enterprise'`
+- [x] Backend : `yesterday_revenue`, `yesterday_sales_count`, `top_selling_today` ajoutés à `GET /dashboard`
+- [x] CA du jour vs hier (delta % affiché)
+- [x] Nb ventes vs hier (delta absolu)
+- [x] Top 3 produits du jour (agrégation MongoDB)
+- [x] Bouton "Partager" → `Share.share()` Expo (résumé texte formaté)
+- [x] Visible aussi pour staff avec `accounting:read`
+- [x] i18n : 14 langues (fr, en, ar, de, es, ff, hi, it, pl, pt, ro, ru, tr, wo, zh)
 
 ### Tâche 5 — Push notifications alertes stock bas ⭐⭐⭐ Haute
 **Fichiers** : `backend/server.py`, `frontend/hooks/useNotifications.ts`

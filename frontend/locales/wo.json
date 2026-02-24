@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -781,7 +781,9 @@
     "widget_reorder": "Yokk Stock",
     "widget_smart_reminders": "Fattali bu xaragne",
     "widget_stock_chart": "Doxaliinu stock bi",
-    "widget_stock_status": "État stock bi"
+    "widget_stock_status": "État stock bi",
+    "daily_report": "Rapport bu bés bi",
+    "top_products_today": "Yëgël yu neex tey"
   },
   "delivery": {
     "ai_analysis": "AI Analysis of products...",

@@ -36,7 +36,8 @@ import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatUserCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 
-const screenWidth = Dimensions.get('window').width;
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isMobile = screenWidth < 768;
 
 type CartItem = {
     product: Product;
@@ -330,9 +331,74 @@ export default function POSScreen() {
         );
     }
 
+    // Checkout bar — rendered inside rightPanel on tablet, pinned below on mobile
+    const checkoutBar = (
+        <View style={isMobile ? styles.checkoutBar : styles.checkoutSection}>
+            {/* Basket Suggestions */}
+            {basketSuggestions.length > 0 && (
+                <View style={[styles.suggestionsRow, { borderTopColor: colors.divider }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                        <Ionicons name="sparkles" size={13} color={colors.primary} />
+                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('pos.suggestions_title')}</Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {basketSuggestions.map(s => {
+                            const prod = productList.find(p => p.product_id === s.product_id);
+                            return (
+                                <TouchableOpacity
+                                    key={s.product_id}
+                                    style={[styles.suggestionChip, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
+                                    onPress={() => prod && addToCart(prod)}
+                                >
+                                    <Text style={{ fontSize: 11, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{s.name}</Text>
+                                    <Text style={{ fontSize: 10, color: colors.textMuted }}>{formatUserCurrency(s.selling_price, user)}</Text>
+                                    <Ionicons name="add-circle" size={16} color={colors.primary} />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+            )}
+
+            <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{t('pos.total')}</Text>
+                <Text style={styles.totalAmount}>{formatUserCurrency(total, user)}</Text>
+            </View>
+
+            <View style={styles.paymentMethods}>
+                <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: colors.success }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
+                    onPress={() => handleCheckout('cash')}
+                    disabled={!canWrite || checkoutLoading || cart.length === 0}
+                >
+                    <Ionicons name="cash-outline" size={20} color="#fff" />
+                    <Text style={styles.payButtonText}>{t('pos.payment_cash')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: colors.primary }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
+                    onPress={() => handleCheckout('mobile_money')}
+                    disabled={!canWrite || checkoutLoading || cart.length === 0}
+                >
+                    <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
+                    <Text style={styles.payButtonText}>{t('pos.payment_mobile')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: colors.warning }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
+                    onPress={() => handleCheckout('credit')}
+                    disabled={!canWrite || checkoutLoading || cart.length === 0}
+                >
+                    <Ionicons name="time-outline" size={20} color="#fff" />
+                    <Text style={styles.payButtonText}>{t('pos.payment_credit')}</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
     return (
         <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-            <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            <View style={[styles.content, { paddingTop: insets.top }]}>
                 {/* Left Side: Product Selection */}
                 <View style={styles.leftPanel}>
                     <View style={styles.searchContainer}>
@@ -378,7 +444,7 @@ export default function POSScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Right Side: Cart & Checkout */}
+                {/* Right Side: Cart (checkout pinned at bottom on mobile) */}
                 <View style={styles.rightPanel}>
                     <View style={styles.cartHeader}>
                         <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
@@ -465,69 +531,13 @@ export default function POSScreen() {
                         )}
                     </ScrollView>
 
-                    {/* Basket Suggestions */}
-                    {basketSuggestions.length > 0 && (
-                        <View style={[styles.suggestionsRow, { borderTopColor: colors.divider }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-                                <Ionicons name="sparkles" size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('pos.suggestions_title')}</Text>
-                            </View>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                {basketSuggestions.map(s => {
-                                    const prod = productList.find(p => p.product_id === s.product_id);
-                                    return (
-                                        <TouchableOpacity
-                                            key={s.product_id}
-                                            style={[styles.suggestionChip, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
-                                            onPress={() => prod && addToCart(prod)}
-                                        >
-                                            <Text style={{ fontSize: 11, color: colors.text, fontWeight: '600' }} numberOfLines={1}>{s.name}</Text>
-                                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{formatUserCurrency(s.selling_price, user)}</Text>
-                                            <Ionicons name="add-circle" size={16} color={colors.primary} />
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
-                        </View>
-                    )}
-
-                    <View style={styles.checkoutSection}>
-                        <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>{t('pos.total')}</Text>
-                            <Text style={styles.totalAmount}>{formatUserCurrency(total, user)}</Text>
-                        </View>
-
-                        <View style={styles.paymentMethods}>
-                            <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: colors.success }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
-                                onPress={() => handleCheckout('cash')}
-                                disabled={!canWrite || checkoutLoading || cart.length === 0}
-                            >
-                                <Ionicons name="cash-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>{t('pos.payment_cash')}</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: colors.primary }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
-                                onPress={() => handleCheckout('mobile_money')}
-                                disabled={!canWrite || checkoutLoading || cart.length === 0}
-                            >
-                                <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>{t('pos.payment_mobile')}</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: colors.warning }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
-                                onPress={() => handleCheckout('credit')}
-                                disabled={!canWrite || checkoutLoading || cart.length === 0}
-                            >
-                                <Ionicons name="time-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>{t('pos.payment_credit')}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                    {/* Checkout inline (tablet only) */}
+                    {!isMobile && checkoutBar}
                 </View>
             </View>
+
+            {/* Checkout bar pinned at bottom (mobile only) */}
+            {isMobile && checkoutBar}
 
             {/* Customer Creation Modal */}
             <Modal visible={showCustomerModal} animationType="slide" transparent>
@@ -611,23 +621,36 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     content: {
         flex: 1,
-        flexDirection: screenWidth < 768 ? 'column' : 'row',
+        flexDirection: isMobile ? 'column' : 'row',
         padding: Spacing.md,
-        paddingBottom: Spacing.md + (Platform.OS === 'android' ? 24 : 0)
+        paddingBottom: isMobile ? 0 : Spacing.md,
     },
 
     leftPanel: {
-        flex: screenWidth < 768 ? undefined : 2,
-        marginRight: screenWidth < 768 ? 0 : Spacing.md,
-        marginBottom: screenWidth < 768 ? Spacing.md : 0,
-        maxHeight: screenWidth < 768 ? '50%' : undefined,
+        // Mobile: fixed height = 35% of screen, products scroll inside
+        // Tablet: flex 2 (takes 2/3 of row)
+        flex: isMobile ? undefined : 2,
+        height: isMobile ? Math.round(screenHeight * 0.35) : undefined,
+        marginRight: isMobile ? 0 : Spacing.md,
+        marginBottom: isMobile ? Spacing.sm : 0,
     },
     rightPanel: {
         flex: 1,
         ...glassStyle,
         padding: Spacing.md,
         borderRadius: BorderRadius.lg,
-        minHeight: screenWidth < 768 ? 400 : undefined,
+        // On mobile: rightPanel sits between products and checkout bar
+        marginBottom: isMobile ? Spacing.sm : 0,
+    },
+
+    // Mobile: checkout always pinned at the very bottom
+    checkoutBar: {
+        paddingHorizontal: Spacing.md,
+        paddingTop: Spacing.sm,
+        paddingBottom: Spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: colors.divider,
+        backgroundColor: colors.bgMid,
     },
 
     customerSelector: {

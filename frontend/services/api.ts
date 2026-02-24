@@ -1096,8 +1096,11 @@ export type DashboardData = {
   recent_alerts: Alert[];
   recent_sales: Sale[];
   today_revenue: number;
+  yesterday_revenue: number;
   month_revenue: number;
   today_sales_count: number;
+  yesterday_sales_count: number;
+  top_selling_today: { name: string; qty: number }[];
 };
 
 export type StatisticsData = {

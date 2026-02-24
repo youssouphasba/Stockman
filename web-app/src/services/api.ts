@@ -90,6 +90,10 @@ export const auth = {
     me: () => request<any>('/auth/me'),
     updateProfile: (data: { name?: string; currency?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
+    register: (data: {
+        email: string; password: string; name: string;
+        role: string; phone?: string; business_type?: string; how_did_you_hear?: string;
+    }) => request<{ access_token: string; user: any }>('/auth/register', { method: 'POST', body: data }),
     logout: () => {
         removeToken();
         return Promise.resolve({ message: 'Success' });
@@ -151,8 +155,8 @@ export const statistics = {
 
 export const inventory = {
     getTasks: (status: string = 'pending') => request<any[]>(`/inventory/tasks?status=${status}`),
-    generateTasks: () => request<any>('/inventory/tasks/generate', { method: 'POST' }),
-    submitResult: (taskId: string, count: number) => request<any>(`/inventory/tasks/${taskId}/submit`, { method: 'POST', body: { count } }),
+    generateTasks: () => request<any>('/inventory/generate', { method: 'POST' }),
+    submitResult: (taskId: string, count: number) => request<any>(`/inventory/tasks/${taskId}`, { method: 'PUT', body: { actual_quantity: count } }),
 };
 
 export const sales = {

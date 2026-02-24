@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Nessun ricavo generato in questo periodo.",
     "not_enough_data": "Dati di vendita insufficienti per l'analisi ABC."
@@ -781,7 +781,9 @@
     "widget_reorder": "Réapprovisionnement",
     "widget_smart_reminders": "Rappels intelligents",
     "widget_stock_chart": "Évolution valeur stock",
-    "widget_stock_status": "Statut des stocks"
+    "widget_stock_status": "Statut des stocks",
+    "daily_report": "Rapporto giornaliero",
+    "top_products_today": "Prodotti più venduti oggi"
   },
   "delivery": {
     "ai_analysis": "AI Analysis of products...",

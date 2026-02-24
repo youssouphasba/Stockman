@@ -4556,7 +4556,9 @@ async def get_inventory_tasks(
     user: User = Depends(require_auth),
     status: Optional[str] = "pending"
 ):
-    query = {"user_id": user.user_id, "store_id": user.active_store_id}
+    query: dict = {"user_id": user.user_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
     if status:
         query["status"] = status
         
@@ -4565,24 +4567,31 @@ async def get_inventory_tasks(
 
 @api_router.post("/inventory/generate")
 async def generate_inventory_tasks(user: User = Depends(require_auth)):
-    """Generate cyclic inventory tasks based on ABC priority"""
+    """Generate cyclic inventory tasks prioritizing out-of-stock and low-stock products"""
     user_id = user.user_id
     store_id = user.active_store_id
-    
-    # Get current statistics for ABC info
-    from fastapi.testclient import TestClient # Hack to reuse logic if it's purely internal or just call function
-    # Better: just use the logic directly
-    
-    products = await db.products.find({"user_id": user_id, "store_id": store_id, "is_active": True}, {"_id": 0}).to_list(None)
-    
-    # Simple logic: pick a few products that haven't been counted recently
-    # For a real implementation, we'd check 'last_counted_at' field (need to add it)
-    # Let's pick 5 random products for now, weighted by A (3), B (1), C (1) if they exist
-    
-    # We'll use the ABC logic from get_statistics (abstracted logic would be better but let's keep it simple)
-    # Pick 5 products
+
+    # Build product query — store_id may be None for single-store users
+    product_query: dict = {"user_id": user_id, "is_active": True}
+    if store_id:
+        product_query["store_id"] = store_id
+
+    products = await db.products.find(product_query, {"_id": 0}).to_list(None)
+
     import random
-    selected = random.sample(products, min(len(products), 5))
+
+    # Prioritize: 1) out of stock, 2) low stock (qty <= min_stock), 3) random others
+    out_of_stock = [p for p in products if (p.get("quantity") or 0) == 0]
+    low_stock = [p for p in products
+                 if (p.get("quantity") or 0) > 0
+                 and (p.get("min_stock") or 0) > 0
+                 and p.get("quantity", 0) <= p.get("min_stock", 0)]
+    others = [p for p in products if p not in out_of_stock and p not in low_stock]
+
+    selected = out_of_stock + low_stock
+    remaining_slots = max(10, len(selected)) - len(selected)  # at least 10 tasks total
+    if remaining_slots > 0 and others:
+        selected += random.sample(others, min(len(others), remaining_slots))
     
     new_tasks = []
     for p in selected:
@@ -5772,13 +5781,14 @@ async def get_dashboard(user: User = Depends(require_auth)):
     recent_sales = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(5)
 
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_start = today_start - timedelta(days=1)
     month_start = datetime.now(timezone.utc) - timedelta(days=30)
-    
+
     # Optimization: Use DB-level filtering and field selection for stats
     # Reduced memory by fetching only required fields: created_at, total_amount
     stats_query = {**sales_query, "created_at": {"$gte": month_start}}
     stats_sales = await db.sales.find(
-        stats_query, 
+        stats_query,
         {"_id": 0, "created_at": 1, "total_amount": 1}
     ).to_list(5000)
     
@@ -5796,17 +5806,34 @@ async def get_dashboard(user: User = Depends(require_auth)):
         return None
 
     today_sales = []
+    yesterday_sales = []
     month_sales = []
-    
+
     for s in stats_sales:
         s_date = parse_date(s.get("created_at"))
         if s_date:
             if s_date >= today_start:
                 today_sales.append(s)
-            month_sales.append(s) # Already filtered by $gte month_start in DB
+            elif s_date >= yesterday_start:
+                yesterday_sales.append(s)
+            month_sales.append(s)  # Already filtered by $gte month_start in DB
 
     today_revenue = sum(s.get("total_amount", 0) for s in today_sales)
+    yesterday_revenue = sum(s.get("total_amount", 0) for s in yesterday_sales)
     month_revenue = sum(s.get("total_amount", 0) for s in month_sales)
+
+    # Top 3 selling products today (by quantity sold)
+    top_today_pipeline = [
+        {"$match": {**sales_query, "created_at": {"$gte": today_start}}},
+        {"$unwind": "$items"},
+        {"$group": {"_id": "$items.product_id", "qty": {"$sum": "$items.quantity"}}},
+        {"$sort": {"qty": -1}},
+        {"$limit": 3},
+        {"$lookup": {"from": "products", "localField": "_id", "foreignField": "product_id", "as": "p"}},
+        {"$unwind": {"path": "$p", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"name": {"$ifNull": ["$p.name", "Inconnu"]}, "qty": 1, "_id": 0}},
+    ]
+    top_selling_today = await db.sales.aggregate(top_today_pipeline).to_list(3)
 
     return {
         "total_products": total_products,
@@ -5822,8 +5849,11 @@ async def get_dashboard(user: User = Depends(require_auth)):
         "recent_alerts": alerts[:5],
         "recent_sales": recent_sales,
         "today_revenue": round(today_revenue, 0),
+        "yesterday_revenue": round(yesterday_revenue, 0),
         "month_revenue": round(month_revenue, 0),
         "today_sales_count": len(today_sales),
+        "yesterday_sales_count": len(yesterday_sales),
+        "top_selling_today": top_selling_today,
     }
 
 # ===================== SUPPLIER ROUTES =====================

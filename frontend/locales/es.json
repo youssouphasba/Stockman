@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "description_a": "Clase A: Artículos de alta prioridad (80% del valor del stock).",
     "description_b": "Clase B: Artículos de prioridad media (15% del valor del stock).",
@@ -805,7 +805,9 @@
     "widget_reorder": "Reabastecimiento",
     "widget_smart_reminders": "Recordatorios inteligentes",
     "widget_stock_chart": "Evolución del valor del stock",
-    "widget_stock_status": "Estado de los stocks"
+    "widget_stock_status": "Estado de los stocks",
+    "daily_report": "Informe diario",
+    "top_products_today": "Productos más vendidos hoy"
   },
   "delivery": {
     "ai_analysis": "Análisis IA de productos...",

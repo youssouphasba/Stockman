@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Walaa ngalu heɓaa e ndee sahaa.",
     "not_enough_data": "Kabaruuji njeeygu mbeebaa ngam taskagol ABC."
@@ -781,7 +781,9 @@
     "widget_reorder": "Réapprovisionnement",
     "widget_smart_reminders": "Rappels intelligents",
     "widget_stock_chart": "Évolution valeur stock",
-    "widget_stock_status": "Statut des stocks"
+    "widget_stock_status": "Statut des stocks",
+    "daily_report": "Rapport Ñalnde",
+    "top_products_today": "Juulde mawɗe ñalnde"
   },
   "delivery": {
     "ai_analysis": "AI Analysis of products...",

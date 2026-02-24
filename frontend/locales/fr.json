@@ -766,6 +766,8 @@
     "title": "Tableau de bord",
     "today_revenue": "CA du jour",
     "today_sales": "Ventes jour",
+    "daily_report": "Rapport du Jour",
+    "top_products_today": "Top produits du jour",
     "top_products_value": "Top produits (valeur)",
     "total_value": "Valeur totale",
     "units": "unités",

@@ -1,0 +1,36 @@
+﻿node.exe : 
+(node:19272) 
+[DEP0040] 
+DeprecationWarning: 
+The `punycode` module 
+is deprecated. Please 
+use a userland 
+alternative instead.
+Au caractère C:\Users\
+Utilisateur\node-v22\n
+ode-v22.13.1-win-x64\n
+px.ps1:29 : 3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ((node:1927   
+ 2) [D...native in    
+stead.:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+Failed to read the app config from the project using "npx expo config" command: npx expo config --json --type public exited with non-zero code: 1.
+Falling back to the version of "@expo/config" shipped with the EAS CLI.
+Failed to resolve plugin for module "expo-router" relative to "C:\Users\Utilisateur\projet_stock\frontend"
+    Error: update 
+command failed.

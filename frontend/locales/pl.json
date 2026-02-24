@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Brak przychodów w tym okresie.",
     "not_enough_data": "Niewystarczająca ilość danych do analizy ABC."
@@ -781,7 +781,9 @@
     "widget_reorder": "Réapprovisionnement",
     "widget_smart_reminders": "Rappels intelligents",
     "widget_stock_chart": "Évolution valeur stock",
-    "widget_stock_status": "Statut des stocks"
+    "widget_stock_status": "Statut des stocks",
+    "daily_report": "Raport dzienny",
+    "top_products_today": "Najlepsze produkty dziś"
   },
   "delivery": {
     "ai_analysis": "AI Analysis of products...",
