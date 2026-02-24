@@ -99,11 +99,12 @@ export function detectRegion(): Region {
         // Tout le reste (Amérique, Asie, Océanie...)
         return 'global';
     } catch {
-        // Fallback sur la langue du navigateur
-        const lang = navigator.language?.split('-')[0] || 'fr';
-        if (['wo', 'ff'].includes(lang)) return 'africa_xof';
-        if (lang === 'fr') return 'africa_xof'; // cible principale
-        if (['de', 'it', 'es', 'pl', 'ro', 'nl', 'pt'].includes(lang)) return 'europe';
+        // Fallback sur la langue du navigateur (uniquement si Intl échoue)
+        const lang = (navigator.language || '').split('-')[0].toLowerCase();
+        // Langues exclusivement africaines → FCFA
+        if (['wo', 'ff', 'ha', 'yo', 'ig', 'sw'].includes(lang)) return 'africa_xof';
+        // Toutes les grandes langues européennes → EUR
+        if (['fr', 'de', 'it', 'es', 'pl', 'ro', 'nl', 'pt', 'sv', 'da', 'fi', 'el'].includes(lang)) return 'europe';
         return 'global';
     }
 }

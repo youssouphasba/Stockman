@@ -48,8 +48,9 @@ function Landing() {
     return () => clearTimeout(timer);
   }, [profile]);
 
-  // Détection de région par timezone navigateur (une seule fois au montage)
-  const [pricingData] = useState(() => getPricingByRegion(detectRegion()));
+  // Détection de région par timezone + switcher manuel
+  const [region, setRegion] = useState<import('./utils/pricing').Region>(() => detectRegion());
+  const pricingData = getPricingByRegion(region);
 
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
@@ -202,14 +203,29 @@ function Landing() {
         <div className="section-title">
           <h2>{profile === 'enterprise' ? 'Une solution taillée pour votre ambition' : t('pricing.title')}</h2>
           <p className="text-muted">{profile === 'enterprise' ? 'Back-office web + application mobile inclus dans chaque licence Enterprise.' : t('pricing.subtitle')}</p>
-          {/* Badge devise détectée */}
-          <div className="pricing-currency-badge">
-            <span>{pricingData.useMobileMoney ? '📱' : '💳'}</span>
-            <span>
-              Prix en <strong>{pricingData.currency}</strong>
-              {' · '}
-              {pricingData.useMobileMoney ? 'Orange Money · Wave · MTN' : 'Visa · Mastercard · Stripe'}
-            </span>
+          {/* Switcher devise */}
+          <div className="pricing-currency-switcher">
+            <span className="pricing-currency-label">Afficher les prix en :</span>
+            <div className="pricing-currency-tabs">
+              <button
+                className={`currency-tab${region === 'africa_xof' || region === 'africa_xaf' ? ' active' : ''}`}
+                onClick={() => setRegion('africa_xof')}
+              >
+                📱 FCFA
+              </button>
+              <button
+                className={`currency-tab${region === 'europe' ? ' active' : ''}`}
+                onClick={() => setRegion('europe')}
+              >
+                💳 EUR €
+              </button>
+              <button
+                className={`currency-tab${region === 'global' ? ' active' : ''}`}
+                onClick={() => setRegion('global')}
+              >
+                💳 USD $
+              </button>
+            </div>
           </div>
         </div>
 
