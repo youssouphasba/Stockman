@@ -79,7 +79,8 @@ export default function SubscriptionScreen() {
     const [data, setData] = useState<SubscriptionData | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
 
-    const isEUR = user?.currency === 'EUR';
+    const userCurrency = user?.currency || 'XOF';
+    const useMobileMoney = ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
     const isNative = Platform.OS !== 'web';
 
     useEffect(() => { fetchSubscription(); }, []);
@@ -120,10 +121,10 @@ export default function SubscriptionScreen() {
         }
     };
 
-    const handleCinetPayPurchase = async () => {
+    const handleCinetPayPurchase = async (plan: PlanKey = selectedPlan) => {
         try {
             setPayLoading(true);
-            const res = await subscription.initCinetPay();
+            const res = await subscription.checkout(plan);
             if (res.payment_url) {
                 await WebBrowser.openBrowserAsync(res.payment_url);
                 await subscription.sync();
@@ -173,7 +174,9 @@ export default function SubscriptionScreen() {
     const remainingDays = data?.remaining_days || 0;
     const activePlanConfig = PLANS.find(p => p.key === currentPlan);
     const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan)!;
-    const selectedPrice = isEUR ? selectedPlanConfig.priceEUR : `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}`;
+    const selectedPrice = useMobileMoney
+        ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}`
+        : selectedPlanConfig.priceEUR;
 
     const headerGradient: [string, string] = activePlanConfig
         ? activePlanConfig.gradient
@@ -209,7 +212,9 @@ export default function SubscriptionScreen() {
                 {(!isActive || isFreeTrial) && (
                     <View style={styles.planCards}>
                         {PLANS.map(plan => {
-                            const price = isEUR ? plan.priceEUR : `${plan.priceXOF} ${t('common.currency_default')}`;
+                            const price = useMobileMoney
+                                    ? `${plan.priceXOF} ${t('common.currency_default')}`
+                                    : plan.priceEUR;
                             const isSelected = selectedPlan === plan.key;
                             return (
                                 <TouchableOpacity
@@ -258,48 +263,44 @@ export default function SubscriptionScreen() {
                             {t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
                         </Text>
 
-                        {isNative && (
-                            <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
-                                onPress={() => handleRevenueCatPurchase(selectedPlan)}
-                                disabled={payLoading}
-                            >
-                                {payLoading ? <ActivityIndicator size="small" color="white" /> : (
-                                    <>
-                                        <Ionicons
-                                            name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
-                                            size={22}
-                                            color="white"
-                                        />
-                                        <Text style={styles.payButtonText}>
-                                            {Platform.OS === 'ios' ? t('subscription.pay_app_store') : t('subscription.pay_google_play')}
-                                        </Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
+                        {useMobileMoney ? (
+                            <>
+                                <TouchableOpacity
+                                    style={[styles.payButton, styles.mobileMoneyButton]}
+                                    onPress={() => handleCinetPayPurchase(selectedPlan)}
+                                    disabled={payLoading}
+                                >
+                                    {payLoading ? <ActivityIndicator size="small" color="white" /> : (
+                                        <>
+                                            <Ionicons name="phone-portrait-outline" size={22} color="white" />
+                                            <Text style={styles.payButtonText}>{t('subscription.pay_mobile_money')}</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                                <Text style={styles.mmSubtext}>{t('subscription.mm_providers')}</Text>
+                            </>
+                        ) : (
+                            isNative && (
+                                <TouchableOpacity
+                                    style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
+                                    onPress={() => handleRevenueCatPurchase(selectedPlan)}
+                                    disabled={payLoading}
+                                >
+                                    {payLoading ? <ActivityIndicator size="small" color="white" /> : (
+                                        <>
+                                            <Ionicons
+                                                name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
+                                                size={22}
+                                                color="white"
+                                            />
+                                            <Text style={styles.payButtonText}>
+                                                {Platform.OS === 'ios' ? t('subscription.pay_app_store') : t('subscription.pay_google_play')}
+                                            </Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            )
                         )}
-
-                        {isNative && (
-                            <View style={styles.divider}>
-                                <View style={styles.dividerLine} />
-                                <Text style={styles.dividerText}>{t('common.or')}</Text>
-                                <View style={styles.dividerLine} />
-                            </View>
-                        )}
-
-                        <TouchableOpacity
-                            style={[styles.payButton, styles.mobileMoneyButton]}
-                            onPress={handleCinetPayPurchase}
-                            disabled={payLoading}
-                        >
-                            {payLoading ? <ActivityIndicator size="small" color="white" /> : (
-                                <>
-                                    <Ionicons name="phone-portrait-outline" size={22} color="white" />
-                                    <Text style={styles.payButtonText}>{t('subscription.pay_mobile_money')}</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                        <Text style={styles.mmSubtext}>{t('subscription.mm_providers')}</Text>
                     </View>
                 )}
 

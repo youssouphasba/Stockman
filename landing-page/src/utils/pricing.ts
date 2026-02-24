@@ -1,65 +1,122 @@
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-export interface PriceInfo {
-    amount: string;
-    currency: string;
-    period: string;
+export type Region = 'africa_xof' | 'africa_xaf' | 'europe' | 'global';
+
+export interface RegionPricing {
+    region: Region;
+    currency: string;   // affichage label
+    symbol: string;     // symbole court
+    starter: string;    // montant formaté
+    pro: string;
+    enterprise: string;
+    useMobileMoney: boolean;  // true → CinetPay, false → Stripe
 }
 
-export interface Pricing {
-    starter: PriceInfo;
-    premium: PriceInfo;
-    enterprise: {
-        name: string;
-        price: string;
-    };
-}
+// ─── Prix par région ─────────────────────────────────────────────────────────
 
-const REGION_PRICING = {
-    africa: {
+export const REGION_PRICING: Record<Region, RegionPricing> = {
+    africa_xof: {
+        region: 'africa_xof',
         currency: 'FCFA',
-        starter: '1000',
-        premium: '2500',
+        symbol: 'FCFA',
+        starter: '1 000',
+        pro: '2 500',
+        enterprise: '10 000',
+        useMobileMoney: true,
+    },
+    africa_xaf: {
+        region: 'africa_xaf',
+        currency: 'FCFA',
+        symbol: 'FCFA',
+        starter: '1 000',
+        pro: '2 500',
+        enterprise: '10 000',
+        useMobileMoney: true,
     },
     europe: {
-        currency: '€',
+        region: 'europe',
+        currency: 'EUR',
+        symbol: '€',
         starter: '3,99',
-        premium: '7,99',
+        pro: '7,99',
+        enterprise: '29,99',
+        useMobileMoney: false,
     },
     global: {
-        currency: '$',
+        region: 'global',
+        currency: 'USD',
+        symbol: '$',
         starter: '3.99',
-        premium: '7.99',
-    }
+        pro: '7.99',
+        enterprise: '29.99',
+        useMobileMoney: false,
+    },
 };
 
-export const getPricingByLanguage = (lng: string) => {
-    const lang = lng.split('-')[0];
+// ─── Timezones africaines ─────────────────────────────────────────────────────
 
-    // Africa-centered languages
-    if (['wo', 'ff'].includes(lang)) {
-        return REGION_PRICING.africa;
-    }
+// Zone UEMOA — franc CFA ouest-africain (XOF)
+const XOF_TIMEZONES = new Set([
+    'Africa/Dakar',        // Sénégal
+    'Africa/Abidjan',      // Côte d'Ivoire
+    'Africa/Bamako',       // Mali
+    'Africa/Ouagadougou',  // Burkina Faso
+    'Africa/Niamey',       // Niger
+    'Africa/Lome',         // Togo
+    'Africa/Cotonou',      // Bénin
+    'Africa/Bissau',       // Guinée-Bissau
+]);
 
-    // Languages likely in Europe (simple heuristic)
-    if (['de', 'it', 'es', 'pl', 'ro', 'tr'].includes(lang)) {
-        return REGION_PRICING.europe;
-    }
+// Zone CEMAC — franc CFA d'Afrique centrale (XAF)
+const XAF_TIMEZONES = new Set([
+    'Africa/Douala',       // Cameroun
+    'Africa/Libreville',   // Gabon
+    'Africa/Brazzaville',  // Congo
+    'Africa/Kinshasa',     // Congo RDC
+    'Africa/Bangui',       // Centrafrique
+    'Africa/Ndjamena',     // Tchad
+    'Africa/Malabo',       // Guinée Équatoriale
+    'Africa/Conakry',      // Guinée (GNF, mais CinetPay opère ici)
+    'Africa/Freetown',     // Sierra Leone
+    'Africa/Monrovia',     // Liberia
+]);
 
-    // French can be both, default to Africa for Stockman target
-    if (lang === 'fr') {
-        return REGION_PRICING.africa;
-    }
+// ─── Détection ────────────────────────────────────────────────────────────────
 
-    // Default for others (English, Chinese, Hindi, etc.)
-    return REGION_PRICING.global;
-};
+export function detectRegion(): Region {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-export const formatPrice = (amount: string, currency: string) => {
-    if (currency === 'FCFA') {
-        return `${amount} ${currency}`;
+        if (XOF_TIMEZONES.has(tz)) return 'africa_xof';
+        if (XAF_TIMEZONES.has(tz)) return 'africa_xaf';
+
+        // Reste de l'Afrique → XOF par défaut (marché cible Stockman)
+        if (tz.startsWith('Africa/')) return 'africa_xof';
+
+        // Europe
+        if (tz.startsWith('Europe/')) return 'europe';
+
+        // Tout le reste (Amérique, Asie, Océanie...)
+        return 'global';
+    } catch {
+        // Fallback sur la langue du navigateur
+        const lang = navigator.language?.split('-')[0] || 'fr';
+        if (['wo', 'ff'].includes(lang)) return 'africa_xof';
+        if (lang === 'fr') return 'africa_xof'; // cible principale
+        if (['de', 'it', 'es', 'pl', 'ro', 'nl', 'pt'].includes(lang)) return 'europe';
+        return 'global';
     }
-    if (currency === '€') {
-        return `${amount}${currency}`;
-    }
-    return `${currency}${amount}`;
-};
+}
+
+export function getPricingByRegion(region: Region): RegionPricing {
+    return REGION_PRICING[region];
+}
+
+// ─── Formatage ────────────────────────────────────────────────────────────────
+
+export function formatPrice(amount: string, currency: string): string {
+    if (currency === 'FCFA') return `${amount} FCFA`;
+    if (currency === 'EUR') return `${amount} €`;
+    if (currency === 'USD') return `$${amount}`;
+    return `${amount} ${currency}`;
+}

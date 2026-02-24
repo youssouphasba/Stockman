@@ -12,3 +12,4 @@ twilio
 httpx
 pydantic[email]
 python-multipart
+stripe

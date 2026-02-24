@@ -93,6 +93,23 @@
   margin: 0;
 }
 
+/* ── Currency detection badge ── */
+.pricing-currency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.pricing-currency-badge strong {
+  color: var(--text);
+}
+
 /* ── Enterprise pricing redirect ── */
 .pricing-enterprise-redirect {
   display: flex;

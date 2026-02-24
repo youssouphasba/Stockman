@@ -2,9 +2,11 @@ import os
 import json
 import logging
 import uuid
+import asyncio
 from datetime import datetime, timezone, timedelta
 
 import httpx
+import stripe as stripe_lib
 
 logger = logging.getLogger(__name__)
 
@@ -14,31 +16,49 @@ CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID", "")
 CINETPAY_SECRET_KEY = os.environ.get("CINETPAY_SECRET_KEY", "")
 BASE_URL = os.environ.get("API_URL", "https://stockman-production-149d.up.railway.app")
 
+# Stripe configuration
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
 # RevenueCat webhook secret
 REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 
+# Devises gérées par CinetPay (Mobile Money Afrique)
+CINETPAY_CURRENCIES = {"XOF", "XAF", "GNF", "CDF"}
+
 # Pricing (per month, after 3-month free trial)
+# XOF/XAF = FCFA CinetPay | EUR in cents for Stripe
 PRICES = {
-    "starter": {"XOF": 1000, "EUR": 399},   # 1000 FCFA or 3.99€
-    "premium": {"XOF": 2500, "EUR": 799},    # 2500 FCFA or 7.99€
+    "starter":    {"XOF": 1000,  "XAF": 1000,  "GNF": 10000, "EUR": 399},
+    "pro":        {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},
+    "enterprise": {"XOF": 10000, "XAF": 10000, "GNF": 100000, "EUR": 2999},
+    "premium":    {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},  # rétrocompat
 }
-PREMIUM_PRICE_XOF = 2500  # backward compat
+PLAN_LABELS = {
+    "starter":    "Stockman Starter - 1 mois",
+    "pro":        "Stockman Pro - 1 mois",
+    "enterprise": "Stockman Enterprise - 1 mois",
+    "premium":    "Stockman Pro - 1 mois",
+}
 
 
-async def create_cinetpay_session(user: dict) -> dict:
+# ─── CinetPay ────────────────────────────────────────────────────────────────
+
+async def create_cinetpay_session(user: dict, plan: str = "pro") -> dict:
     """Initialize a CinetPay payment session for Mobile Money."""
     transaction_id = f"stk_{uuid.uuid4().hex[:16]}"
 
     user_currency = user.get("currency", "XOF")
-    amount = PRICES.get("premium", {}).get(user_currency, PREMIUM_PRICE_XOF)
-    
+    plan_prices = PRICES.get(plan, PRICES["pro"])
+    amount = plan_prices.get(user_currency) or plan_prices["XOF"]
+
     payload = {
         "apikey": CINETPAY_API_KEY,
         "site_id": CINETPAY_SITE_ID,
         "transaction_id": transaction_id,
         "amount": amount,
         "currency": user_currency,
-        "description": "Stockman Premium - 1 mois",
+        "description": PLAN_LABELS.get(plan, "Stockman - 1 mois"),
         "notify_url": f"{BASE_URL}/api/webhooks/cinetpay",
         "return_url": f"{BASE_URL}/api/payment/success",
         "cancel_url": f"{BASE_URL}/api/payment/cancel",
@@ -81,6 +101,47 @@ async def verify_cinetpay_transaction(transaction_id: str) -> dict:
         )
         return resp.json()
 
+
+# ─── Stripe ──────────────────────────────────────────────────────────────────
+
+async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
+    """Create a Stripe Checkout session (card payment, EUR)."""
+    stripe_lib.api_key = STRIPE_SECRET_KEY
+    amount_eur = PRICES.get(plan, PRICES["enterprise"])["EUR"]
+    label = PLAN_LABELS.get(plan, "Stockman - 1 mois")
+
+    def _create():
+        return stripe_lib.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {"name": label},
+                    "unit_amount": amount_eur,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{BASE_URL}/api/payment/success",
+            cancel_url=f"{BASE_URL}/api/payment/cancel",
+            customer_email=user.get("email") or None,
+            metadata={"user_id": user["user_id"], "plan": plan},
+        )
+
+    session = await asyncio.to_thread(_create)
+    return {"checkout_url": session.url, "session_id": session.id}
+
+
+def verify_stripe_event(payload: bytes, sig_header: str):
+    """Verify Stripe webhook signature and return the event."""
+    if not STRIPE_WEBHOOK_SECRET:
+        logger.warning("STRIPE_WEBHOOK_SECRET not set, skipping signature verification")
+        import json as _json
+        return _json.loads(payload)
+    return stripe_lib.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+
+
+# ─── RevenueCat ──────────────────────────────────────────────────────────────
 
 def verify_revenuecat_webhook(auth_header: str) -> bool:
     """Verify RevenueCat webhook authorization header."""

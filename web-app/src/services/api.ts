@@ -379,9 +379,10 @@ export const alertRules = {
 };
 
 export const subscription = {
-    getDetails: () => request<any>('/subscription/details'),
+    getDetails: () => request<any>('/subscription/me'),
     sync: () => request<any>('/subscription/sync', { method: 'POST' }),
-    initCinetPay: () => request<{ payment_url: string }>('/subscription/cinetpay/init', { method: 'POST' }),
+    checkout: (plan: string) => request<{ payment_url: string; transaction_id: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
+    stripeCheckout: (plan: string) => request<{ checkout_url: string; session_id: string }>(`/billing/stripe-checkout?plan=${plan}`, { method: 'POST' }),
 };
 
 export const stores = {

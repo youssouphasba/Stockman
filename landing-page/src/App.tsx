@@ -27,7 +27,7 @@ import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css'
 
-import { getPricingByLanguage, formatPrice } from './utils/pricing';
+import { detectRegion, getPricingByRegion, formatPrice } from './utils/pricing';
 
 function Landing() {
   const { t, i18n } = useTranslation();
@@ -48,7 +48,8 @@ function Landing() {
     return () => clearTimeout(timer);
   }, [profile]);
 
-  const pricingData = getPricingByLanguage(i18n.language);
+  // Détection de région par timezone navigateur (une seule fois au montage)
+  const [pricingData] = useState(() => getPricingByRegion(detectRegion()));
 
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
@@ -201,6 +202,15 @@ function Landing() {
         <div className="section-title">
           <h2>{profile === 'enterprise' ? 'Une solution taillée pour votre ambition' : t('pricing.title')}</h2>
           <p className="text-muted">{profile === 'enterprise' ? 'Back-office web + application mobile inclus dans chaque licence Enterprise.' : t('pricing.subtitle')}</p>
+          {/* Badge devise détectée */}
+          <div className="pricing-currency-badge">
+            <span>{pricingData.useMobileMoney ? '📱' : '💳'}</span>
+            <span>
+              Prix en <strong>{pricingData.currency}</strong>
+              {' · '}
+              {pricingData.useMobileMoney ? 'Orange Money · Wave · MTN' : 'Visa · Mastercard · Stripe'}
+            </span>
+          </div>
         </div>
 
         {profile === 'merchant' ? (
@@ -220,7 +230,7 @@ function Landing() {
             <div className="pricing-card glass-card popular">
               <div className="popular-tag">{t('pricing.popular')}</div>
               <h3>{t('pricing.business.name')}</h3>
-              <div className="price">{formatPrice(pricingData.premium, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <div className="price">{formatPrice(pricingData.pro, pricingData.currency)} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>
@@ -250,7 +260,7 @@ function Landing() {
             <div className="pricing-card glass-card popular" style={{ maxWidth: 480, margin: '0 auto' }}>
               <div className="popular-tag">🏢 Enterprise</div>
               <h3>{t('pricing.enterprise.name')}</h3>
-              <div className="price">{t('pricing.enterprise.price')}</div>
+              <div className="price">{formatPrice(pricingData.enterprise, pricingData.currency)} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">✓</span> {t('pricing.enterprise.f1')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.enterprise.f2')}</li>
@@ -266,7 +276,7 @@ function Landing() {
                 className="btn-primary"
                 style={{ display: 'block', textAlign: 'center', marginTop: '1rem' }}
               >
-                Démarrer l'essai Enterprise →
+                {pricingData.useMobileMoney ? 'Payer via Mobile Money →' : 'Démarrer l\'essai Enterprise →'}
               </a>
             </div>
           </div>

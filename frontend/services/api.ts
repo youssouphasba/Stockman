@@ -1850,7 +1850,7 @@ export const profile = {
 
 export const subscription = {
   getDetails: () => request<SubscriptionData>('/subscription/me'),
-  initCinetPay: () => request<{ payment_url: string }>('/payment/cinetpay/init', { method: 'POST' }),
+  checkout: (plan: string) => request<{ payment_url: string; transaction_id: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
   sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
 };
 

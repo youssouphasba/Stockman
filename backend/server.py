@@ -406,8 +406,13 @@ async def create_indexes_and_init():
                 await asyncio.sleep(86400)  # Run every 24h
                 now = datetime.now(timezone.utc)
                 result = await db.users.update_many(
-                    {"plan": "premium", "subscription_provider": "cinetpay", "subscription_end": {"$lt": now}},
-                    {"$set": {"plan": "starter", "subscription_status": "expired"}}
+                    {
+                        "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
+                        "subscription_provider": "cinetpay",
+                        "subscription_end": {"$lt": now},
+                        "subscription_status": "active",
+                    },
+                    {"$set": {"subscription_status": "expired"}}
                 )
                 if result.modified_count:
                     logger.info(f"Expired {result.modified_count} CinetPay subscriptions")
@@ -1224,6 +1229,120 @@ async def get_leads(admin: User = Depends(require_superadmin)):
         "subscribers": subscribers
     }
 
+@api_router.post("/billing/checkout")
+async def create_billing_checkout(plan: str, user: User = Depends(require_auth)):
+    """Crée une session de paiement CinetPay (Mobile Money, Afrique)."""
+    if plan not in ("starter", "pro", "enterprise"):
+        raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    user_currency = user_doc.get("currency", "XOF")
+    if user_currency not in CINETPAY_CURRENCIES:
+        raise HTTPException(status_code=400, detail=f"CinetPay ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
+    try:
+        session = await create_cinetpay_session(user_doc, plan)
+    except Exception as e:
+        logger.error(f"CinetPay session error for {user.user_id}: {e}")
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
+    await db.pending_transactions.insert_one({
+        "transaction_id": session["transaction_id"],
+        "user_id": user.user_id,
+        "plan": plan,
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"payment_url": session["payment_url"], "transaction_id": session["transaction_id"]}
+
+
+@api_router.post("/billing/stripe-checkout")
+async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
+    """Crée une session Stripe Checkout (carte bancaire, EUR)."""
+    if plan not in ("starter", "pro", "enterprise"):
+        raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    try:
+        session = await create_stripe_session(user_doc, plan)
+    except Exception as e:
+        logger.error(f"Stripe session error for {user.user_id}: {e}")
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
+    return {"checkout_url": session["checkout_url"], "session_id": session["session_id"]}
+
+
+@api_router.post("/webhooks/stripe")
+async def stripe_webhook(request: Request):
+    """Webhook Stripe — déclenché après un paiement réussi."""
+    payload = await request.body()
+    sig_header = request.headers.get("Stripe-Signature", "")
+    try:
+        event = verify_stripe_event(payload, sig_header)
+    except Exception as e:
+        logger.warning(f"Stripe webhook signature error: {e}")
+        raise HTTPException(status_code=400, detail="Signature invalide")
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        metadata = session_obj.get("metadata", {})
+        user_id = metadata.get("user_id")
+        plan = metadata.get("plan", "enterprise")
+        if user_id:
+            now = datetime.now(timezone.utc)
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "plan": plan,
+                    "subscription_status": "active",
+                    "subscription_provider": "stripe",
+                    "subscription_provider_id": session_obj.get("id"),
+                    "subscription_end": now + timedelta(days=30),
+                    "updated_at": now,
+                }}
+            )
+            logger.info(f"Stripe payment confirmed: user={user_id} plan={plan}")
+
+    return {"received": True}
+
+
+@api_router.post("/webhooks/cinetpay")
+async def cinetpay_webhook(request: Request):
+    """Webhook appelé par CinetPay après confirmation de paiement."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = dict(await request.form())
+
+    transaction_id = data.get("cpm_trans_id") or data.get("transaction_id")
+    if not transaction_id:
+        raise HTTPException(status_code=400, detail="transaction_id manquant")
+
+    result = await verify_cinetpay_transaction(transaction_id)
+    status = result.get("data", {}).get("status") or result.get("data", {}).get("cpm_result")
+    if status not in ("ACCEPTED", "00"):
+        logger.warning(f"CinetPay webhook ignored — status={status} txn={transaction_id}")
+        return {"status": "ignored"}
+
+    pending = await db.pending_transactions.find_one({"transaction_id": transaction_id})
+    if not pending:
+        logger.warning(f"CinetPay webhook: pending txn not found {transaction_id}")
+        return {"status": "not_found"}
+
+    plan = pending["plan"]
+    subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+    await db.users.update_one(
+        {"user_id": pending["user_id"]},
+        {"$set": {
+            "plan": plan,
+            "subscription_status": "active",
+            "subscription_provider": "cinetpay",
+            "subscription_end": subscription_end,
+        }}
+    )
+    await db.pending_transactions.delete_one({"transaction_id": transaction_id})
+    logger.info(f"CinetPay payment confirmed: user={pending['user_id']} plan={plan}")
+    return {"status": "ok"}
+
+
 @api_router.post("/payment/mock-webhook")
 async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
     """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
@@ -1234,8 +1353,9 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
     await db.users.update_one(
         {"user_id": user_id},
         {"$set": {
-            "plan": "premium",
+            "plan": "pro",
             "subscription_status": "active",
+            "subscription_provider": "cinetpay",
             "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
         }}
     )
@@ -1244,7 +1364,7 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
 @api_router.post("/admin/set-plan")
 async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_superadmin)):
     """Force le plan d'un user — SUPERADMIN ONLY. Pour tests et migrations."""
-    valid_plans = ("starter", "pro", "enterprise", "premium")
+    valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
         raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
     result = await db.users.update_one(
@@ -1258,7 +1378,7 @@ async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_
 @api_router.post("/admin/set-plan-all")
 async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = Depends(require_superadmin)):
     """Force le plan sur tous les users d'un rôle — SUPERADMIN ONLY. Pour tests."""
-    valid_plans = ("starter", "pro", "enterprise", "premium")
+    valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
         raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
     result = await db.users.update_many(
@@ -1409,7 +1529,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
     
     # Plan limits on staff count
-    STAFF_LIMITS = {"starter": 1, "premium": 5, "pro": 5, "enterprise": 9999}
+    STAFF_LIMITS = {"starter": 1, "pro": 5, "enterprise": 9999}
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id})
     owner_plan = (owner_doc or {}).get("plan", "starter")
@@ -2114,8 +2234,8 @@ class AiChatMessage(BaseModel):
 AI_STARTER_WEEKLY_LIMIT = 14
 
 async def check_ai_limit(user: User):
-    """Starter plan: 14 AI requests/week. Pro/Enterprise/Premium: unlimited."""
-    if user.plan in ("premium", "pro", "enterprise"):
+    """Starter plan: 14 AI requests/week. Pro/Enterprise: unlimited."""
+    if user.plan in ("pro", "enterprise"):
         return
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     count = await db.ai_usage.count_documents({
@@ -2125,7 +2245,7 @@ async def check_ai_limit(user: User):
     if count >= AI_STARTER_WEEKLY_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail=f"Limite atteinte ({AI_STARTER_WEEKLY_LIMIT} requêtes/semaine). Passez à Premium pour un accès illimité."
+            detail=f"Limite atteinte ({AI_STARTER_WEEKLY_LIMIT} requêtes/semaine). Passez à Pro pour un accès illimité."
         )
 
 async def track_ai_usage(user_id: str):
@@ -3634,20 +3754,61 @@ class SupplierLogCreate(BaseModel):
 # ===================== AUTH ROUTES =====================
 
 def get_currency_from_phone(phone: str) -> str:
-    """Detect currency based on phone prefix"""
+    """Detect currency based on phone prefix."""
     if not phone:
         return "XOF"
     phone = phone.strip().replace(" ", "").replace("-", "")
-    # West Africa (XOF)
-    if any(phone.startswith(p) for p in ["+221", "+225", "+226", "+228", "+229", "+223", "+227", "+245"]):
+    # West Africa UEMOA — CinetPay Mobile Money (XOF)
+    if any(phone.startswith(p) for p in [
+        "+221",  # Sénégal
+        "+225",  # Côte d'Ivoire
+        "+226",  # Burkina Faso
+        "+228",  # Togo
+        "+229",  # Bénin
+        "+223",  # Mali
+        "+227",  # Niger
+        "+245",  # Guinée-Bissau
+    ]):
         return "XOF"
-    # France and others (EUR)
-    if any(phone.startswith(p) for p in ["+33", "+34", "+39", "+49", "+32", "+352", "+31"]):
-        return "EUR"
-    # Central Africa (XAF)
-    if any(phone.startswith(p) for p in ["+237", "+241", "+242", "+236", "+235", "+240"]):
+    # Central Africa CEMAC — CinetPay Mobile Money (XAF)
+    if any(phone.startswith(p) for p in [
+        "+237",  # Cameroun
+        "+241",  # Gabon
+        "+242",  # Congo-Brazzaville
+        "+243",  # Congo RDC (CDF, mais CinetPay opère en XAF ici)
+        "+236",  # République Centrafricaine
+        "+235",  # Tchad
+        "+240",  # Guinée Équatoriale
+    ]):
         return "XAF"
-    return "XOF" # Default fallback
+    # Guinée Conakry
+    if phone.startswith("+224"):
+        return "GNF"
+    # Eurozone
+    if any(phone.startswith(p) for p in [
+        "+33",   # France
+        "+34",   # Espagne
+        "+39",   # Italie
+        "+49",   # Allemagne
+        "+32",   # Belgique
+        "+352",  # Luxembourg
+        "+31",   # Pays-Bas
+        "+351",  # Portugal
+        "+43",   # Autriche
+        "+358",  # Finlande
+        "+353",  # Irlande
+        "+30",   # Grèce
+        "+356",  # Malte
+        "+421",  # Slovaquie
+        "+386",  # Slovénie
+        "+372",  # Estonie
+        "+371",  # Lettonie
+        "+370",  # Lituanie
+        "+357",  # Chypre
+    ]):
+        return "EUR"
+    # Autres pays — Stripe (EUR comme devise de facturation)
+    return "EUR"
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 @limiter.limit("5/minute")
@@ -4041,7 +4202,7 @@ async def get_stores(user: User = Depends(require_auth)):
 
 @api_router.post("/stores", response_model=Store)
 async def create_store(store_data: StoreCreate, user: User = Depends(require_auth)):
-    STORE_LIMITS = {"starter": 1, "premium": 1, "pro": 2, "enterprise": 9999}
+    STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
     limit = STORE_LIMITS.get(user.plan, 1)
     current_count = len(user.store_ids)
     if current_count >= limit:
@@ -10232,20 +10393,21 @@ async def get_subscription_info(user: User = Depends(require_auth)):
     """Get current user subscription and trial status"""
     user_doc = await db.users.find_one({"user_id": user.user_id}, {
         "_id": 0, "plan": 1, "trial_ends_at": 1, "subscription_status": 1,
-        "subscription_provider": 1, "subscription_end": 1,
+        "subscription_provider": 1, "subscription_end": 1, "currency": 1,
     })
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
 
     # Calculate remaining days
     remaining_days = 0
-    if user_doc.get("plan") == "premium" and user_doc.get("subscription_end"):
+    if user_doc.get("subscription_end"):
         delta = user_doc["subscription_end"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
     elif user_doc.get("trial_ends_at"):
         delta = user_doc["trial_ends_at"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
 
+    currency = user_doc.get("currency", "XOF")
     return {
         "plan": user_doc.get("plan", "starter"),
         "status": user_doc.get("subscription_status", "active"),
@@ -10254,6 +10416,8 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         "subscription_provider": user_doc.get("subscription_provider", "none"),
         "remaining_days": remaining_days,
         "is_trial": bool(user_doc.get("trial_ends_at") and remaining_days > 0),
+        "currency": currency,
+        "use_mobile_money": currency in ("XOF", "XAF", "GNF", "CDF"),
     }
 
 @api_router.delete("/profile")
@@ -10318,80 +10482,11 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
 from services.payment import (
     create_cinetpay_session,
     verify_cinetpay_transaction,
+    create_stripe_session,
+    verify_stripe_event,
     verify_revenuecat_webhook,
-    PREMIUM_PRICE_XOF,
+    CINETPAY_CURRENCIES,
 )
-
-@api_router.post("/payment/cinetpay/init")
-async def init_cinetpay_payment(user: User = Depends(require_auth)):
-    """Initialize a CinetPay Mobile Money payment."""
-    try:
-        user_dict = user.model_dump()
-        result = await create_cinetpay_session(user_dict)
-        # Store transaction for webhook lookup
-        from services.payment import PRICES
-        user_currency = user.currency if hasattr(user, 'currency') else "XOF"
-        expected_amount = PRICES.get("premium", {}).get(user_currency, PREMIUM_PRICE_XOF)
-        
-        await db.payment_transactions.insert_one({
-            "transaction_id": result["transaction_id"],
-            "user_id": user.user_id,
-            "amount": expected_amount,
-            "currency": user_currency,
-            "provider": "cinetpay",
-            "status": "pending",
-            "created_at": datetime.now(timezone.utc),
-        })
-        return {"payment_url": result["payment_url"]}
-    except Exception as e:
-        logger.error(f"CinetPay Init Error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation du paiement Mobile Money")
-
-@api_router.post("/webhooks/cinetpay")
-async def cinetpay_webhook(request: Request):
-    """Handle CinetPay payment notifications."""
-    body = await request.json()
-    transaction_id = body.get("cpm_trans_id", "")
-    if not transaction_id:
-        raise HTTPException(status_code=400, detail="Missing transaction_id")
-
-    txn_record = await db.payment_transactions.find_one({"transaction_id": transaction_id})
-    if not txn_record:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    if txn_record.get("status") == "completed":
-        return {"status": "already_processed"}
-
-    # Verify with CinetPay API
-    verification = await verify_cinetpay_transaction(transaction_id)
-    cp_data = verification.get("data", {})
-
-    expected_amount = txn_record.get("amount", PREMIUM_PRICE_XOF)
-    if cp_data.get("status") == "ACCEPTED" and int(cp_data.get("amount", 0)) >= expected_amount:
-        user_id = txn_record["user_id"]
-        sub_end = datetime.now(timezone.utc) + timedelta(days=30)
-        await db.users.update_one(
-            {"user_id": user_id},
-            {"$set": {
-                "plan": "premium",
-                "subscription_status": "active",
-                "subscription_provider": "cinetpay",
-                "subscription_provider_id": transaction_id,
-                "subscription_end": sub_end,
-            }}
-        )
-        await db.payment_transactions.update_one(
-            {"transaction_id": transaction_id},
-            {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc)}}
-        )
-        logger.info(f"CinetPay payment OK for user {user_id}, txn {transaction_id}")
-        return {"status": "ok"}
-    else:
-        await db.payment_transactions.update_one(
-            {"transaction_id": transaction_id},
-            {"$set": {"status": "failed", "provider_status": cp_data.get("status")}}
-        )
-        logger.warning(f"CinetPay payment FAILED for txn {transaction_id}: {cp_data.get('status')}")
-        return {"status": "payment_failed"}
 
 @api_router.post("/webhooks/revenuecat")
 async def revenuecat_webhook(request: Request):
@@ -10412,6 +10507,15 @@ async def revenuecat_webhook(request: Request):
     deactivate_events = {"EXPIRATION", "BILLING_ISSUE"}
     cancel_events = {"CANCELLATION"}
 
+    # Déduit le plan depuis le product_id RevenueCat
+    product_id = (event.get("product_id") or "").lower()
+    if "enterprise" in product_id:
+        plan = "enterprise"
+    elif "pro" in product_id:
+        plan = "pro"
+    else:
+        plan = "starter"
+
     if event_type in activate_events:
         expiration_ms = event.get("expiration_at_ms")
         sub_end = (
@@ -10422,19 +10526,19 @@ async def revenuecat_webhook(request: Request):
         await db.users.update_one(
             {"user_id": app_user_id},
             {"$set": {
-                "plan": "premium",
+                "plan": plan,
                 "subscription_status": "active",
                 "subscription_provider": "revenuecat",
                 "subscription_end": sub_end,
             }}
         )
-        logger.info(f"RevenueCat {event_type} for user {app_user_id}")
+        logger.info(f"RevenueCat {event_type} → plan={plan} user={app_user_id}")
     elif event_type in deactivate_events:
         await db.users.update_one(
             {"user_id": app_user_id},
             {"$set": {"plan": "starter", "subscription_status": "expired"}}
         )
-        logger.info(f"RevenueCat {event_type} - deactivated user {app_user_id}")
+        logger.info(f"RevenueCat {event_type} - expired user {app_user_id}")
     elif event_type in cancel_events:
         await db.users.update_one(
             {"user_id": app_user_id},
@@ -10451,8 +10555,9 @@ async def sync_subscription(user: User = Depends(require_auth)):
     if not user_doc:
         raise HTTPException(status_code=404)
     sub_end = user_doc.get("subscription_end")
-    if sub_end and user_doc.get("plan") == "premium":
-        if sub_end.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+    if sub_end and user_doc.get("plan") in ("pro", "enterprise"):
+        sub_end_aware = sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)
+        if sub_end_aware < datetime.now(timezone.utc):
             await db.users.update_one(
                 {"user_id": user.user_id},
                 {"$set": {"plan": "starter", "subscription_status": "expired"}}
@@ -10467,7 +10572,7 @@ async def payment_success():
         <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d0e12; color: white;">
                 <h1 style="color: #34C759;">Paiement Réussi !</h1>
-                <p>Votre abonnement Premium est maintenant actif.</p>
+                <p>Votre abonnement est maintenant actif.</p>
                 <p style="color: #888;">Vous pouvez fermer cette page et retourner dans l'application.</p>
                 <script>setTimeout(function() { window.close(); }, 3000);</script>
             </body>

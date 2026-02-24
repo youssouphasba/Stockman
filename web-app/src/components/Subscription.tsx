@@ -6,10 +6,8 @@ import {
     CreditCard,
     CheckCircle2,
     ShieldCheck,
-    Zap,
     History,
     Download,
-    ExternalLink,
     AlertCircle,
     ArrowRight,
     Star,
@@ -22,7 +20,7 @@ export default function Subscription() {
     const { t } = useTranslation();
     const [subDetails, setSubDetails] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState(false);
+    const [purchasing, setPurchasing] = useState<'cinetpay' | 'stripe' | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -43,16 +41,29 @@ export default function Subscription() {
         }
     };
 
-    const handleCinetPay = async () => {
-        setPurchasing(true);
+    const handleCinetPay = async (plan: string) => {
+        setPurchasing('cinetpay');
         try {
-            const { payment_url } = await subApi.initCinetPay();
+            const { payment_url } = await subApi.checkout(plan);
             window.location.href = payment_url;
         } catch (err) {
             console.error("CinetPay init error", err);
-            alert("Erreur lors de l'initialisation du paiement.");
+            alert("Erreur lors de l'initialisation du paiement Mobile Money.");
         } finally {
-            setPurchasing(false);
+            setPurchasing(null);
+        }
+    };
+
+    const handleStripe = async (plan: string) => {
+        setPurchasing('stripe');
+        try {
+            const { checkout_url } = await subApi.stripeCheckout(plan);
+            window.location.href = checkout_url;
+        } catch (err) {
+            console.error("Stripe init error", err);
+            alert("Erreur lors de l'initialisation du paiement par carte.");
+        } finally {
+            setPurchasing(null);
         }
     };
 
@@ -66,42 +77,31 @@ export default function Subscription() {
 
     const plans = [
         {
-            id: 'starter',
-            name: 'Starter',
-            price: '3 000 F',
-            period: '/ mois',
-            icon: Zap,
-            color: 'text-slate-400',
-            bg: 'bg-slate-400/10',
-            features: [
-                'Jusqu\'à 100 produits',
-                '1 utilisateur (fondateur)',
-                'Gestion de stock basique',
-                'Analyses de ventes quotidiennes',
-                'Support par email'
-            ]
-        },
-        {
-            id: 'premium',
-            name: 'Premium',
-            price: '7 500 F',
+            id: 'enterprise',
+            name: 'Enterprise',
+            price: priceLabel,
             period: '/ mois',
             icon: Star,
             color: 'text-primary',
             bg: 'bg-primary/10',
             popular: true,
             features: [
-                'Produits illimités',
-                'Équipe complète (5 employés)',
-                'Analyses IA & Prévisions',
-                'Centre d\'Alertes Avancé',
-                'Portail Fournisseur',
+                'Produits & stocks illimités',
+                'Équipes illimitées (multi-utilisateurs)',
+                'Multi-boutiques illimitées',
+                'Analyses IA & Prévisions avancées',
+                'CRM clients & Portail Fournisseur',
+                'Grand Livre & Comptabilité complète',
                 'Support prioritaire 24/7'
             ]
         }
     ];
 
     const currentPlan = subDetails?.plan || 'starter';
+    const useMobileMoney: boolean = subDetails?.use_mobile_money ?? true;
+    const currency: string = subDetails?.currency || 'XOF';
+    const isXOF = currency === 'XOF' || currency === 'XAF';
+    const priceLabel = isXOF ? '10 000 FCFA' : '29,99 €';
 
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
@@ -122,7 +122,7 @@ export default function Subscription() {
 
             <header className="mb-10">
                 <h1 className="text-3xl font-bold text-white mb-2">Gestion d'Abonnement</h1>
-                <p className="text-slate-400">Boostez votre boutique avec nos plans Premium.</p>
+                <p className="text-slate-400">Gérez votre entreprise avec le plan Enterprise.</p>
             </header>
 
             {/* Current Status Banner */}
@@ -138,15 +138,22 @@ export default function Subscription() {
                         <p className="text-slate-400 text-sm">
                             {subDetails?.is_active
                                 ? `Votre abonnement est actif jusqu'au ${new Date(subDetails.expiry_date).toLocaleDateString()}.`
-                                : "Votre période d'essai est terminée. Passez au Premium pour continuer."}
+                                : "Votre période d'essai est terminée. Souscrivez au plan Enterprise pour continuer."}
                         </p>
                     </div>
                 </div>
                 {!subDetails?.is_active && (
-                    <button onClick={handleCinetPay} disabled={purchasing} className="btn-primary px-8 py-3 rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2">
-                        {purchasing ? <RefreshCw className="animate-spin" size={20} /> : <CreditCard size={20} />}
-                        Réactiver maintenant
-                    </button>
+                    useMobileMoney ? (
+                        <button onClick={() => handleCinetPay('enterprise')} disabled={!!purchasing} className="btn-primary px-6 py-3 rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2">
+                            {purchasing === 'cinetpay' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
+                            Réactiver via Mobile Money
+                        </button>
+                    ) : (
+                        <button onClick={() => handleStripe('enterprise')} disabled={!!purchasing} className="btn-primary px-6 py-3 rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2">
+                            {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                            Réactiver par carte bancaire
+                        </button>
+                    )
                 )}
             </div>
 
@@ -183,34 +190,65 @@ export default function Subscription() {
                             ))}
                         </div>
 
-                        <button
-                            onClick={handleCinetPay}
-                            disabled={purchasing || (plan.id === currentPlan && subDetails?.is_active)}
-                            className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all shadow-xl ${plan.id === currentPlan && subDetails?.is_active
-                                ? 'bg-white/5 text-slate-500 cursor-not-allowed border border-white/5'
-                                : 'btn-primary shadow-primary/20 hover:scale-105 active:scale-95'
-                                }`}
-                        >
-                            {plan.id === currentPlan && subDetails?.is_active ? 'Plan Actuel' : 'Souscrire via CinetPay'}
-                            <ArrowRight size={18} />
-                        </button>
+                        {plan.id === currentPlan && subDetails?.is_active ? (
+                            <div className="w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold bg-white/5 text-slate-500 border border-white/5">
+                                <CheckCircle2 size={18} />
+                                Plan Actuel
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {useMobileMoney ? (
+                                    <button
+                                        onClick={() => handleCinetPay(plan.id)}
+                                        disabled={!!purchasing}
+                                        className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        {purchasing === 'cinetpay' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
+                                        Payer via Mobile Money ({currency})
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => handleStripe(plan.id)}
+                                        disabled={!!purchasing}
+                                        className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                                        Payer par carte bancaire (EUR) <ArrowRight size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
 
-            {/* Mobile Money Info */}
-            <div className="glass-card p-6 border-white/10 bg-white/5 flex items-center gap-6">
-                <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                    <Smartphone size={24} />
+            {/* Payment Methods Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="glass-card p-6 border-white/10 bg-white/5 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+                        <Smartphone size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-bold mb-1 tracking-tight">Mobile Money</h4>
+                        <p className="text-slate-400 text-sm">Orange Money, Wave ou Moov via CinetPay. Paiement en FCFA.</p>
+                    </div>
+                    <div className="flex gap-1 opacity-50 shrink-0">
+                        <div className="bg-white px-2 py-1 rounded font-black text-[9px] text-orange-500">ORANGE</div>
+                        <div className="bg-white px-2 py-1 rounded font-black text-[9px] text-blue-500">WAVE</div>
+                    </div>
                 </div>
-                <div className="flex-1">
-                    <h4 className="text-white font-bold mb-1 tracking-tight">Paiement Mobile Money Simplifié</h4>
-                    <p className="text-slate-400 text-sm">Payez instantanément avec Orange Money, Wave ou Moov via CinetPay.</p>
-                </div>
-                <div className="flex gap-2 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                    <div className="bg-white px-3 py-1 rounded font-black text-[10px] text-orange-500">ORANGE</div>
-                    <div className="bg-white px-3 py-1 rounded font-black text-[10px] text-blue-500">WAVE</div>
-                    <div className="bg-white px-3 py-1 rounded font-black text-[10px] text-blue-900">MOOV</div>
+                <div className="glass-card p-6 border-white/10 bg-white/5 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-violet-500/10 text-violet-400 shrink-0">
+                        <CreditCard size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-bold mb-1 tracking-tight">Carte bancaire</h4>
+                        <p className="text-slate-400 text-sm">Visa, Mastercard via Stripe. Paiement sécurisé en EUR.</p>
+                    </div>
+                    <div className="flex gap-1 opacity-50 shrink-0">
+                        <div className="bg-white px-2 py-1 rounded font-black text-[9px] text-blue-700">VISA</div>
+                        <div className="bg-white px-2 py-1 rounded font-black text-[9px] text-red-500">MC</div>
+                    </div>
                 </div>
             </div>
 
