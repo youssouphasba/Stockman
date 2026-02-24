@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -34,6 +34,19 @@ function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile>('merchant');
   useScrollReveal();
+
+  // Re-déclenche le reveal pour les éléments apparus dynamiquement lors du switch de profil
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      document.querySelectorAll('.reveal:not(.revealed)').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 200) {
+          el.classList.add('revealed');
+        }
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [profile]);
 
   const pricingData = getPricingByLanguage(i18n.language);
 

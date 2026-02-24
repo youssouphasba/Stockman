@@ -39,38 +39,40 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                         </div>
                     </div>
 
-                    {profile === 'merchant' ? (
-                        <>
-                            <h1>{t('hero.title_start')} <span className="text-gradient">{t('hero.title_end')}</span></h1>
-                            <p>{t('hero.subtitle')}</p>
-                            <div className="hero-btns">
-                                <button className="btn-primary">{t('hero.cta')}</button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <h1>Pilotez la performance de <span className="text-gradient">votre business</span></h1>
-                            <p>Un back-office web complet pour gérer vos boutiques, vos équipes et vos finances depuis n'importe quel ordinateur ou tablette.</p>
-                            <div className="hero-btns">
-                                <a
-                                    href="https://app.stockman.pro/features"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn-primary"
-                                >
-                                    Découvrir l'app web Enterprise →
-                                </a>
-                                <a
-                                    href="https://app.stockman.pro/pricing"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn-secondary"
-                                >
-                                    Voir les tarifs
-                                </a>
-                            </div>
-                        </>
-                    )}
+                    <div key={profile}>
+                        {profile === 'merchant' ? (
+                            <>
+                                <h1>{t('hero.title_start')} <span className="text-gradient">{t('hero.title_end')}</span></h1>
+                                <p>{t('hero.subtitle')}</p>
+                                <div className="hero-btns">
+                                    <button className="btn-primary">{t('hero.cta')}</button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h1>Pilotez la performance de <span className="text-gradient">votre business</span></h1>
+                                <p>Un back-office web complet pour gérer vos boutiques, vos équipes et vos finances depuis n'importe quel ordinateur ou tablette.</p>
+                                <div className="hero-btns">
+                                    <a
+                                        href="https://app.stockman.pro/features"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-primary"
+                                    >
+                                        Découvrir l'app web Enterprise →
+                                    </a>
+                                    <a
+                                        href="https://app.stockman.pro/pricing"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-secondary"
+                                    >
+                                        Voir les tarifs
+                                    </a>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 <div className="hero-image-container">
