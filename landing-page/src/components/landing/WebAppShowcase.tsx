@@ -39,7 +39,7 @@ const WebAppShowcase: React.FC = () => {
                             <span className="dot yellow"></span>
                             <span className="dot green"></span>
                         </div>
-                        <div className="mockup-address-bar">https://app.stockman.pro</div>
+                        <div className="mockup-address-bar">https://app.stockman.pro/features</div>
                     </div>
                     <div className="mockup-screen">
                         <img
@@ -48,7 +48,7 @@ const WebAppShowcase: React.FC = () => {
                             className="mockup-image"
                         />
                         <div className="mockup-overlay">
-                            <a href="https://app.stockman.pro" target="_blank" rel="noopener noreferrer" className="btn-primary btn-large glow">
+                            <a href="https://app.stockman.pro/features" target="_blank" rel="noopener noreferrer" className="btn-primary btn-large glow">
                                 {t('web_app.cta')}
                             </a>
                         </div>
