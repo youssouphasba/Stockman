@@ -20,7 +20,7 @@ export default function Subscription() {
     const { t } = useTranslation();
     const [subDetails, setSubDetails] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState<'cinetpay' | 'stripe' | null>(null);
+    const [purchasing, setPurchasing] = useState<'flutterwave' | 'stripe' | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -41,13 +41,13 @@ export default function Subscription() {
         }
     };
 
-    const handleCinetPay = async (plan: string) => {
-        setPurchasing('cinetpay');
+    const handleFlutterwave = async (plan: string) => {
+        setPurchasing('flutterwave');
         try {
             const { payment_url } = await subApi.checkout(plan);
             window.location.href = payment_url;
         } catch (err) {
-            console.error("CinetPay init error", err);
+            console.error("Flutterwave init error", err);
             alert("Erreur lors de l'initialisation du paiement Mobile Money.");
         } finally {
             setPurchasing(null);
@@ -75,6 +75,12 @@ export default function Subscription() {
         );
     }
 
+    const currentPlan = subDetails?.plan || 'starter';
+    const useMobileMoney: boolean = subDetails?.use_mobile_money ?? true;
+    const currency: string = subDetails?.currency || 'XOF';
+    const isXOF = currency === 'XOF' || currency === 'XAF';
+    const priceLabel = isXOF ? '10 000 FCFA' : '29,99 €';
+
     const plans = [
         {
             id: 'enterprise',
@@ -96,12 +102,6 @@ export default function Subscription() {
             ]
         }
     ];
-
-    const currentPlan = subDetails?.plan || 'starter';
-    const useMobileMoney: boolean = subDetails?.use_mobile_money ?? true;
-    const currency: string = subDetails?.currency || 'XOF';
-    const isXOF = currency === 'XOF' || currency === 'XAF';
-    const priceLabel = isXOF ? '10 000 FCFA' : '29,99 €';
 
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
@@ -144,8 +144,8 @@ export default function Subscription() {
                 </div>
                 {!subDetails?.is_active && (
                     useMobileMoney ? (
-                        <button onClick={() => handleCinetPay('enterprise')} disabled={!!purchasing} className="btn-primary px-6 py-3 rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2">
-                            {purchasing === 'cinetpay' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
+                        <button onClick={() => handleFlutterwave('enterprise')} disabled={!!purchasing} className="btn-primary px-6 py-3 rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2">
+                            {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                             Réactiver via Mobile Money
                         </button>
                     ) : (
@@ -199,11 +199,11 @@ export default function Subscription() {
                             <div className="flex flex-col gap-3">
                                 {useMobileMoney ? (
                                     <button
-                                        onClick={() => handleCinetPay(plan.id)}
+                                        onClick={() => handleFlutterwave(plan.id)}
                                         disabled={!!purchasing}
                                         className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                                     >
-                                        {purchasing === 'cinetpay' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
+                                        {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                                         Payer via Mobile Money ({currency})
                                     </button>
                                 ) : (
@@ -230,7 +230,7 @@ export default function Subscription() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="text-white font-bold mb-1 tracking-tight">Mobile Money</h4>
-                        <p className="text-slate-400 text-sm">Orange Money, Wave ou Moov via CinetPay. Paiement en FCFA.</p>
+                        <p className="text-slate-400 text-sm">Orange Money, Wave ou MTN via Flutterwave. Paiement en FCFA.</p>
                     </div>
                     <div className="flex gap-1 opacity-50 shrink-0">
                         <div className="bg-white px-2 py-1 rounded font-black text-[9px] text-orange-500">ORANGE</div>

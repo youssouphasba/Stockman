@@ -19,6 +19,7 @@ import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
 import { useNotifications } from '../../hooks/useNotifications';
 import ChatModal from '../../components/ChatModal';
+import TrialBanner from '../../components/TrialBanner';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -88,6 +89,7 @@ export default function TabLayout() {
 
   return (
     <>
+      <TrialBanner />
       <Tabs
         screenOptions={{
           headerShown: true,

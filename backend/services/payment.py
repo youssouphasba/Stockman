@@ -10,10 +10,9 @@ import stripe as stripe_lib
 
 logger = logging.getLogger(__name__)
 
-# CinetPay configuration
-CINETPAY_API_KEY = os.environ.get("CINETPAY_API_KEY", "")
-CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID", "")
-CINETPAY_SECRET_KEY = os.environ.get("CINETPAY_SECRET_KEY", "")
+# Flutterwave configuration (remplace CinetPay — pas besoin de société africaine)
+FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
+FLW_HASH = os.environ.get("FLW_HASH", "")  # webhook verification hash
 BASE_URL = os.environ.get("API_URL", "https://stockman-production-149d.up.railway.app")
 
 # Stripe configuration
@@ -23,11 +22,13 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 # RevenueCat webhook secret
 REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 
-# Devises gérées par CinetPay (Mobile Money Afrique)
-CINETPAY_CURRENCIES = {"XOF", "XAF", "GNF", "CDF"}
+# Devises gérées par Flutterwave Mobile Money (Afrique de l'Ouest/Centre)
+FLUTTERWAVE_CURRENCIES = {"XOF", "XAF", "GNF", "CDF"}
+# Alias rétrocompat
+CINETPAY_CURRENCIES = FLUTTERWAVE_CURRENCIES
 
 # Pricing (per month, after 3-month free trial)
-# XOF/XAF = FCFA CinetPay | EUR in cents for Stripe
+# XOF/XAF = FCFA Flutterwave | EUR in cents for Stripe
 PRICES = {
     "starter":    {"XOF": 1000,  "XAF": 1000,  "GNF": 10000, "EUR": 399},
     "pro":        {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},
@@ -42,10 +43,10 @@ PLAN_LABELS = {
 }
 
 
-# ─── CinetPay ────────────────────────────────────────────────────────────────
+# ─── Flutterwave ─────────────────────────────────────────────────────────────
 
-async def create_cinetpay_session(user: dict, plan: str = "pro") -> dict:
-    """Initialize a CinetPay payment session for Mobile Money."""
+async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
+    """Initialize a Flutterwave Standard payment link for Mobile Money."""
     transaction_id = f"stk_{uuid.uuid4().hex[:16]}"
 
     user_currency = user.get("currency", "XOF")
@@ -53,53 +54,61 @@ async def create_cinetpay_session(user: dict, plan: str = "pro") -> dict:
     amount = plan_prices.get(user_currency) or plan_prices["XOF"]
 
     payload = {
-        "apikey": CINETPAY_API_KEY,
-        "site_id": CINETPAY_SITE_ID,
-        "transaction_id": transaction_id,
+        "tx_ref": transaction_id,
         "amount": amount,
         "currency": user_currency,
-        "description": PLAN_LABELS.get(plan, "Stockman - 1 mois"),
-        "notify_url": f"{BASE_URL}/api/webhooks/cinetpay",
-        "return_url": f"{BASE_URL}/api/payment/success",
-        "cancel_url": f"{BASE_URL}/api/payment/cancel",
-        "channels": "MOBILE_MONEY",
-        "metadata": json.dumps({"user_id": user["user_id"]}),
-        "customer_name": user.get("name", ""),
-        "customer_email": user.get("email", ""),
-        "customer_phone_number": user.get("phone", ""),
+        "redirect_url": f"{BASE_URL}/api/payment/success",
+        "payment_options": "mobilemoneyssenegal,mobilemoneyghana,mobilemoneyfranco,card",
+        "meta": {"user_id": user["user_id"], "plan": plan},
+        "customer": {
+            "email": user.get("email", "noreply@stockman.app"),
+            "phonenumber": user.get("phone", ""),
+            "name": user.get("name", ""),
+        },
+        "customizations": {
+            "title": "Stockman",
+            "description": PLAN_LABELS.get(plan, "Stockman - 1 mois"),
+            "logo": "https://stockman.app/logo.png",
+        },
     }
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            "https://api-checkout.cinetpay.com/v2/payment",
+            "https://api.flutterwave.com/v3/payments",
             json=payload,
+            headers={"Authorization": f"Bearer {FLW_SECRET_KEY}"},
             timeout=15.0,
         )
         data = resp.json()
 
-    if data.get("code") == "201":
+    if data.get("status") == "success":
         return {
-            "payment_url": data["data"]["payment_url"],
+            "payment_url": data["data"]["link"],
             "transaction_id": transaction_id,
         }
     else:
-        logger.error(f"CinetPay init error: {data}")
-        raise Exception(f"CinetPay error: {data.get('message', 'Unknown error')}")
+        logger.error(f"Flutterwave init error: {data}")
+        raise Exception(f"Flutterwave error: {data.get('message', 'Unknown error')}")
 
 
-async def verify_cinetpay_transaction(transaction_id: str) -> dict:
-    """Check transaction status with CinetPay API."""
+async def verify_flutterwave_transaction(transaction_id: str) -> dict:
+    """Verify a Flutterwave transaction by tx_ref."""
     async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api-checkout.cinetpay.com/v2/payment/check",
-            json={
-                "apikey": CINETPAY_API_KEY,
-                "site_id": CINETPAY_SITE_ID,
-                "transaction_id": transaction_id,
-            },
+        resp = await client.get(
+            f"https://api.flutterwave.com/v3/transactions",
+            params={"tx_ref": transaction_id},
+            headers={"Authorization": f"Bearer {FLW_SECRET_KEY}"},
             timeout=10.0,
         )
         return resp.json()
+
+
+# Alias rétrocompat (pour ne pas casser d'autres imports éventuels)
+async def create_cinetpay_session(user: dict, plan: str = "pro") -> dict:
+    return await create_flutterwave_session(user, plan)
+
+async def verify_cinetpay_transaction(transaction_id: str) -> dict:
+    return await verify_flutterwave_transaction(transaction_id)
 
 
 # ─── Stripe ──────────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ import MultiStoreDashboard from "../components/MultiStoreDashboard";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import { auth, chat as chatApi, ApiError } from "../services/api";
+import TrialBanner from "../components/TrialBanner";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -108,7 +109,7 @@ export default function Home() {
   if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
 
   // Guard Enterprise : Starter/Pro n'ont pas accès au web
-  if (isLogged && user?.role !== 'admin' && !['enterprise', 'premium'].includes(user?.plan)) {
+  if (isLogged && user?.role !== 'admin' && user?.plan !== 'enterprise') {
     const currentPlan = user?.plan === 'pro' ? 'Pro' : 'Starter';
 
     const WEB_MODULES = [
@@ -426,6 +427,7 @@ export default function Home() {
         />
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
+          <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
           {/* Mobile top bar */}
           <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
             <button

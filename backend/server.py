@@ -400,22 +400,98 @@ async def create_indexes_and_init():
 
         asyncio.create_task(init_rag_and_migrations())
 
-        # Daily subscription expiry checker
+        # ── Email helper (Resend) ──────────────────────────────────────────
+        RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+
+        async def send_trial_reminder_email(to_email: str, name: str, days_left: int):
+            """Send a trial expiry reminder via Resend (no extra package needed)."""
+            if not RESEND_API_KEY:
+                logger.warning("RESEND_API_KEY not set — skipping trial reminder email")
+                return
+            if days_left == 1:
+                subject = "⚠️ Dernier jour de votre essai Stockman gratuit"
+                body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
+C'est votre <strong>dernier jour d'essai gratuit</strong> sur Stockman.<br>
+Pour continuer à accéder à toutes vos données et fonctionnalités, activez votre plan dès maintenant.<br><br>
+<a href="https://stockman.app" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
+À bientôt,<br>L'équipe Stockman"""
+            else:
+                subject = f"🕐 Plus que {days_left} jours d'essai gratuit Stockman"
+                body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
+Il vous reste <strong>{days_left} jours</strong> sur votre essai gratuit Stockman.<br>
+Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br><br>
+<a href="https://stockman.app" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Voir les plans</a><br><br>
+À bientôt,<br>L'équipe Stockman"""
+
+            import httpx as _httpx
+            try:
+                async with _httpx.AsyncClient() as client:
+                    await client.post(
+                        "https://api.resend.com/emails",
+                        headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                        json={
+                            "from": "Stockman <noreply@stockman.app>",
+                            "to": [to_email],
+                            "subject": subject,
+                            "html": body,
+                        },
+                        timeout=10.0,
+                    )
+                logger.info(f"Trial reminder sent to {to_email} ({days_left}j restants)")
+            except Exception as e:
+                logger.error(f"Failed to send trial reminder to {to_email}: {e}")
+
+        # Daily subscription expiry checker + trial reminders
         async def check_expired_subscriptions():
             while True:
                 await asyncio.sleep(86400)  # Run every 24h
                 now = datetime.now(timezone.utc)
+
+                # 1. Expire paid subscriptions (Flutterwave / Stripe)
                 result = await db.users.update_many(
                     {
                         "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
-                        "subscription_provider": "cinetpay",
+                        "subscription_provider": {"$in": ["flutterwave", "cinetpay", "stripe"]},
                         "subscription_end": {"$lt": now},
                         "subscription_status": "active",
                     },
                     {"$set": {"subscription_status": "expired"}}
                 )
                 if result.modified_count:
-                    logger.info(f"Expired {result.modified_count} CinetPay subscriptions")
+                    logger.info(f"Expired {result.modified_count} paid subscriptions")
+
+                # 2. Expire free trials (provider = none, trial_ends_at dépassé)
+                # Les fournisseurs (role=supplier) ont un compte gratuit permanent
+                trial_result = await db.users.update_many(
+                    {
+                        "subscription_provider": "none",
+                        "trial_ends_at": {"$lt": now},
+                        "subscription_status": "active",
+                        "role": {"$ne": "supplier"},
+                    },
+                    {"$set": {"subscription_status": "expired"}}
+                )
+                if trial_result.modified_count:
+                    logger.info(f"Expired {trial_result.modified_count} free trials")
+
+                # 2. Rappels trial J-7 et J-1
+                for days_left in (7, 1):
+                    target_date_start = now + timedelta(days=days_left)
+                    target_date_end   = now + timedelta(days=days_left, hours=24)
+                    users_to_remind = await db.users.find({
+                        "trial_ends_at": {"$gte": target_date_start, "$lt": target_date_end},
+                        "subscription_status": "active",
+                        "email": {"$exists": True, "$ne": ""},
+                        f"trial_reminder_{days_left}d_sent": {"$ne": True},
+                    }, {"user_id": 1, "email": 1, "name": 1}).to_list(length=500)
+
+                    for u in users_to_remind:
+                        await send_trial_reminder_email(u["email"], u.get("name", ""), days_left)
+                        await db.users.update_one(
+                            {"user_id": u["user_id"]},
+                            {"$set": {f"trial_reminder_{days_left}d_sent": True}}
+                        )
+
         asyncio.create_task(check_expired_subscriptions())
 
     except Exception as e:
@@ -565,6 +641,7 @@ class UserCreate(BaseModel):
     business_type: Optional[str] = None  # e.g., "Boutique", "Quincaillerie", "Grossiste"
     how_did_you_hear: Optional[str] = None # Referral source
     country_code: Optional[str] = None
+    plan: Optional[str] = None  # "starter", "pro", "enterprise" — choisi sur la landing page
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -585,7 +662,7 @@ class User(UserBase):
     store_ids: List[str] = [] # List of stores this user has access to
     plan: str = "starter" # "starter", "pro", "enterprise" (legacy: "premium")
     subscription_status: str = "active" # "active", "expired", "cancelled"
-    subscription_provider: str = "none" # "none", "revenuecat", "cinetpay"
+    subscription_provider: str = "none" # "none", "revenuecat", "flutterwave", "stripe"
     subscription_provider_id: Optional[str] = None
     subscription_end: Optional[datetime] = None
     trial_ends_at: Optional[datetime] = None
@@ -1231,19 +1308,19 @@ async def get_leads(admin: User = Depends(require_superadmin)):
 
 @api_router.post("/billing/checkout")
 async def create_billing_checkout(plan: str, user: User = Depends(require_auth)):
-    """Crée une session de paiement CinetPay (Mobile Money, Afrique)."""
+    """Crée une session de paiement Flutterwave (Mobile Money, Afrique)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     user_currency = user_doc.get("currency", "XOF")
-    if user_currency not in CINETPAY_CURRENCIES:
-        raise HTTPException(status_code=400, detail=f"CinetPay ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
+    if user_currency not in FLUTTERWAVE_CURRENCIES:
+        raise HTTPException(status_code=400, detail=f"Flutterwave Mobile Money ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
     try:
-        session = await create_cinetpay_session(user_doc, plan)
+        session = await create_flutterwave_session(user_doc, plan)
     except Exception as e:
-        logger.error(f"CinetPay session error for {user.user_id}: {e}")
+        logger.error(f"Flutterwave session error for {user.user_id}: {e}")
         raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
     await db.pending_transactions.insert_one({
         "transaction_id": session["transaction_id"],
@@ -1304,27 +1381,47 @@ async def stripe_webhook(request: Request):
     return {"received": True}
 
 
-@api_router.post("/webhooks/cinetpay")
-async def cinetpay_webhook(request: Request):
-    """Webhook appelé par CinetPay après confirmation de paiement."""
+@api_router.post("/webhooks/flutterwave")
+async def flutterwave_webhook(request: Request):
+    """Webhook appelé par Flutterwave après confirmation de paiement."""
+    # Vérification de la signature via le header verif-hash
+    verif_hash = request.headers.get("verif-hash", "")
+    if FLW_HASH and verif_hash != FLW_HASH:
+        logger.warning(f"Flutterwave webhook: invalid verif-hash")
+        raise HTTPException(status_code=400, detail="Signature invalide")
+
     try:
         data = await request.json()
     except Exception:
-        data = dict(await request.form())
+        raise HTTPException(status_code=400, detail="Corps de requête invalide")
 
-    transaction_id = data.get("cpm_trans_id") or data.get("transaction_id")
+    # Flutterwave envoie un objet avec event + data
+    event = data.get("event", "")
+    tx_data = data.get("data", {})
+
+    if event != "charge.completed":
+        return {"status": "ignored"}
+
+    if tx_data.get("status") != "successful":
+        logger.warning(f"Flutterwave webhook: non-successful status={tx_data.get('status')}")
+        return {"status": "ignored"}
+
+    transaction_id = tx_data.get("tx_ref", "")
     if not transaction_id:
-        raise HTTPException(status_code=400, detail="transaction_id manquant")
+        raise HTTPException(status_code=400, detail="tx_ref manquant")
 
-    result = await verify_cinetpay_transaction(transaction_id)
-    status = result.get("data", {}).get("status") or result.get("data", {}).get("cpm_result")
-    if status not in ("ACCEPTED", "00"):
-        logger.warning(f"CinetPay webhook ignored — status={status} txn={transaction_id}")
+    # Double vérification auprès de l'API Flutterwave
+    result = await verify_flutterwave_transaction(transaction_id)
+    verified_data = (result.get("data") or [{}])
+    if isinstance(verified_data, list):
+        verified_data = verified_data[0] if verified_data else {}
+    if verified_data.get("status") != "successful":
+        logger.warning(f"Flutterwave verify failed: txn={transaction_id} result={result}")
         return {"status": "ignored"}
 
     pending = await db.pending_transactions.find_one({"transaction_id": transaction_id})
     if not pending:
-        logger.warning(f"CinetPay webhook: pending txn not found {transaction_id}")
+        logger.warning(f"Flutterwave webhook: pending txn not found {transaction_id}")
         return {"status": "not_found"}
 
     plan = pending["plan"]
@@ -1334,13 +1431,20 @@ async def cinetpay_webhook(request: Request):
         {"$set": {
             "plan": plan,
             "subscription_status": "active",
-            "subscription_provider": "cinetpay",
+            "subscription_provider": "flutterwave",
+            "subscription_provider_id": str(tx_data.get("id", "")),
             "subscription_end": subscription_end,
         }}
     )
     await db.pending_transactions.delete_one({"transaction_id": transaction_id})
-    logger.info(f"CinetPay payment confirmed: user={pending['user_id']} plan={plan}")
+    logger.info(f"Flutterwave payment confirmed: user={pending['user_id']} plan={plan}")
     return {"status": "ok"}
+
+
+# Alias rétrocompat — au cas où un ancien webhook CinetPay arriverait encore
+@api_router.post("/webhooks/cinetpay")
+async def cinetpay_webhook_alias(request: Request):
+    return await flutterwave_webhook(request)
 
 
 @api_router.post("/payment/mock-webhook")
@@ -1355,7 +1459,7 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
         {"$set": {
             "plan": "pro",
             "subscription_status": "active",
-            "subscription_provider": "cinetpay",
+            "subscription_provider": "flutterwave",
             "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
         }}
     )
@@ -2231,22 +2335,9 @@ class AiChatMessage(BaseModel):
     content: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-AI_STARTER_WEEKLY_LIMIT = 14
-
 async def check_ai_limit(user: User):
-    """Starter plan: 14 AI requests/week. Pro/Enterprise: unlimited."""
-    if user.plan in ("pro", "enterprise"):
-        return
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    count = await db.ai_usage.count_documents({
-        "user_id": user.user_id,
-        "created_at": {"$gte": week_ago}
-    })
-    if count >= AI_STARTER_WEEKLY_LIMIT:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Limite atteinte ({AI_STARTER_WEEKLY_LIMIT} requêtes/semaine). Passez à Pro pour un accès illimité."
-        )
+    """All plans have unlimited AI access. No limits enforced."""
+    return
 
 async def track_ai_usage(user_id: str):
     """Track an AI request for rate limiting."""
@@ -3837,6 +3928,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         await db.stores.insert_one(store.model_dump())
         
         role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
+        initial_plan = user_data.plan if user_data.plan in ("starter", "pro", "enterprise") else "starter"
         trial_ends_at = datetime.now(timezone.utc) + timedelta(days=90)  # 3 months free trial
         user_doc = {
             "user_id": user_id,
@@ -3849,7 +3941,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "role": role,
             "active_store_id": store_id,
             "store_ids": [store_id],
-            "plan": "starter",
+            "plan": initial_plan,
             "subscription_status": "active",
             "trial_ends_at": trial_ends_at,
             "currency": user_data.currency or get_currency_from_phone(user_data.phone or ""),
@@ -10480,12 +10572,14 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
 
 # ===================== PAYMENT ROUTES =====================
 from services.payment import (
-    create_cinetpay_session,
-    verify_cinetpay_transaction,
+    create_flutterwave_session,
+    verify_flutterwave_transaction,
     create_stripe_session,
     verify_stripe_event,
     verify_revenuecat_webhook,
-    CINETPAY_CURRENCIES,
+    FLUTTERWAVE_CURRENCIES,
+    CINETPAY_CURRENCIES,  # alias rétrocompat
+    FLW_HASH,
 )
 
 @api_router.post("/webhooks/revenuecat")

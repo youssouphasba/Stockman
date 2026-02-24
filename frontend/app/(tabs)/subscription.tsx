@@ -121,7 +121,7 @@ export default function SubscriptionScreen() {
         }
     };
 
-    const handleCinetPayPurchase = async (plan: PlanKey = selectedPlan) => {
+    const handleFlutterwavePurchase = async (plan: PlanKey = selectedPlan) => {
         try {
             setPayLoading(true);
             const res = await subscription.checkout(plan);
@@ -131,10 +131,14 @@ export default function SubscriptionScreen() {
                 fetchSubscription();
             }
         } catch (error) {
-            Alert.alert(t('common.error'), t('subscription.cinetpay_init_error'));
+            Alert.alert(t('common.error'), t('subscription.payment_init_error') || 'Erreur lors de l\'initialisation du paiement.');
         } finally {
             setPayLoading(false);
         }
+    };
+
+    const handleEnterpriseContact = async () => {
+        await WebBrowser.openBrowserAsync('https://app.stockman.pro/features');
     };
 
     const handleRestorePurchases = async () => {
@@ -267,7 +271,7 @@ export default function SubscriptionScreen() {
                             <>
                                 <TouchableOpacity
                                     style={[styles.payButton, styles.mobileMoneyButton]}
-                                    onPress={() => handleCinetPayPurchase(selectedPlan)}
+                                    onPress={() => handleFlutterwavePurchase(selectedPlan)}
                                     disabled={payLoading}
                                 >
                                     {payLoading ? <ActivityIndicator size="small" color="white" /> : (
@@ -318,15 +322,10 @@ export default function SubscriptionScreen() {
                         </Text>
                         <TouchableOpacity
                             style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
-                            onPress={() => handleCinetPayPurchase()}
-                            disabled={payLoading}
+                            onPress={handleEnterpriseContact}
                         >
-                            {payLoading ? <ActivityIndicator size="small" color="white" /> : (
-                                <>
-                                    <Ionicons name="mail-outline" size={22} color="white" />
-                                    <Text style={styles.payButtonText}>{t('subscription.contact_sales') || 'Contacter le commercial'}</Text>
-                                </>
-                            )}
+                            <Ionicons name="open-outline" size={22} color="white" />
+                            <Text style={styles.payButtonText}>{'Accéder au plan Enterprise'}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -351,7 +350,7 @@ export default function SubscriptionScreen() {
                         {data?.subscription_end && (
                             <Text style={styles.renewalText}>
                                 {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString('fr-FR') })}
-                                {data.subscription_provider === 'cinetpay' ? t('subscription.mobile_money_label') : ''}
+                                {data.subscription_provider === 'flutterwave' ? t('subscription.mobile_money_label') : ''}
                             </Text>
                         )}
                     </View>

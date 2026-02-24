@@ -496,7 +496,7 @@ export default function AccountingScreen() {
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
-    const isLocked = !isSuperAdmin && !['starter', 'pro', 'enterprise'].includes(user?.plan || '');
+    const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
 
     if (accessDenied) {
         return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(selectedPeriod, appliedStart, appliedEnd); }} />;

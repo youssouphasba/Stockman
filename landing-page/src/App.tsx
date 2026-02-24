@@ -27,7 +27,8 @@ import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css'
 
-import { detectRegion, getPricingByRegion, formatPrice } from './utils/pricing';
+import { detectRegion, getPricingByRegion, formatPrice, type Region } from './utils/pricing';
+import SignupModal from './components/SignupModal';
 
 function Landing() {
   const { t } = useTranslation();
@@ -49,8 +50,11 @@ function Landing() {
   }, [profile]);
 
   // Détection de région par timezone + switcher manuel
-  const [region, setRegion] = useState<import('./utils/pricing').Region>(() => detectRegion());
+  const [region, setRegion] = useState<Region>(() => detectRegion());
   const pricingData = getPricingByRegion(region);
+
+  // Signup modal
+  const [signupPlan, setSignupPlan] = useState<'starter' | 'pro' | null>(null);
 
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
@@ -240,7 +244,7 @@ function Landing() {
                 <li><span className="check-icon">✓</span> {t('pricing.starter.f3')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.starter.f4')}</li>
               </ul>
-              <a href="#download" className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center' }}>{t('pricing.starter.cta')}</a>
+              <button onClick={() => setSignupPlan('starter')} className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>{t('pricing.starter.cta')}</button>
             </div>
 
             <div className="pricing-card glass-card popular">
@@ -254,7 +258,7 @@ function Landing() {
                 <li><span className="check-icon">✓</span> {t('pricing.business.f4')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.business.f5')}</li>
               </ul>
-              <a href="#download" className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>{t('pricing.business.cta')}</a>
+              <button onClick={() => setSignupPlan('pro')} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>{t('pricing.business.cta')}</button>
             </div>
 
             <div className="pricing-card-enterprise-teaser glass-card">
@@ -393,6 +397,7 @@ function App() {
           <Analytics />
           <CookieBanner />
           <WhatsAppButton />
+          {signupPlan && <SignupModal plan={signupPlan} onClose={() => setSignupPlan(null)} />}
 
           <Routes>
             <Route path="/" element={<Landing />} />
