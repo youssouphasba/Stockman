@@ -1,0 +1,429 @@
+﻿node.exe : (node:22188) 
+[DEP0040] DeprecationWarning: 
+The `punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+Au caractère C:\Users\Utilisateur
+\node-v22\node-v22.13.1-win-x64\n
+px.ps1:29 : 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : No 
+   tSpecified: ((node:22188) [D  
+  ...native instead.:String) [   
+ ], RemoteException
+    + FullyQualifiedErrorId : Na 
+   tiveCommandError
+ 
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+[expo-cli] env: load .env
+[expo-cli] env: export EXPO_PUBLIC_API_URL EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
+[expo-cli] Starting Metro Bundler
+[expo-cli] Android Bundled 40981ms node_modules\expo-router\entry.js (2560 modules)
+[expo-cli] iOS Bundled 60816ms node_modules\expo-router\entry.js (2573 modules)
+[expo-cli] Creating asset map
+[expo-cli] 
+[expo-cli] ÔÇ║ Assets (49):
+[expo-cli] 
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\AntDesign.ttf (70.3 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Entypo.ttf (66.2 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\EvilIcons.ttf (13.5 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Feather.ttf (56.2 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome.ttf (166 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Brands.ttf (134 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Regular.ttf (33.7 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Solid.ttf (203 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Brands.ttf (209 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Regular.ttf (68 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Solid.ttf (424 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Fontisto.ttf (314 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Foundation.ttf (57 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Ionicons.ttf (443 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialCommunityIcons.ttf (1.15 MB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialIcons.ttf (357 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Octicons.ttf (49.4 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\SimpleLineIcons.ttf (54.1 kB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Zocial.ttf (25.8 kB)
+[expo-cli] node_modules\@react-navigation\elements\lib\module\assets\back-icon-mask.png (653 B)
+[expo-cli] node_modules\@react-navigation\elements\lib\module\assets\back-icon.png (8 variations | 359 B)
+[expo-cli] node_modules\@react-navigation\elements\lib\module\assets\clear-icon.png (4 variations | 425 B)
+[expo-cli] node_modules\@react-navigation\elements\lib\module\assets\close-icon.png (4 variations | 235 B)
+[expo-cli] node_modules\@react-navigation\elements\lib\module\assets\search-icon.png (7 variations | 592 B)
+[expo-cli] node_modules\expo-router\assets\error.png (469 B)
+[expo-cli] node_modules\expo-router\assets\file.png (138 B)
+[expo-cli] node_modules\expo-router\assets\forward.png (188 B)
+[expo-cli] node_modules\expo-router\assets\pkg.png (364 B)
+[expo-cli] node_modules\expo-router\assets\sitemap.png (465 B)
+[expo-cli] node_modules\expo-router\assets\unmatched.png (4.75 kB)
+[expo-cli] ÔÇ║ android bundles (2):
+[expo-cli] _expo/static/js/android/entry-d142e174a2681a6f641cf7d08cdb1e80.hbc (5.65 MB)
+[expo-cli] _expo/static/js/android/entry-d142e174a2681a6f641cf7d08cdb1e80.hbc.map (14.6 MB)
+[expo-cli] ÔÇ║ ios bundles (2):
+[expo-cli] _expo/static/js/ios/entry-75f54324a5b7526c5a5a1ea8803b0ce9.hbc (5.65 MB)
+[expo-cli] _expo/static/js/ios/entry-75f54324a5b7526c5a5a1ea8803b0ce9.hbc.map (14.6 MB)
+[expo-cli] ÔÇ║ Files (2):
+[expo-cli] assetmap.json (22.4 kB)
+[expo-cli] metadata.json (5.87 kB)
+[expo-cli] 
+[expo-cli] Exported: dist
+- Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...- 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting.../ 
+Exporting...- Exporting...\ 
+Exporting...| Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...| 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...- Exporting...- 
+Exporting...\ Exporting...| 
+Exporting...- Exporting...- 
+Exporting...\ Exporting...| 
+Exporting.../ Exporting...- 
+Exporting...\ Exporting...Ô£ö 
+Exported bundle(s)
+- Uploading...\ Uploading...| 
+Uploading...- Uploading 
+assetmap.json (0 / 21.9 KB)/ 
+Uploading...\ Uploading 
+assetmap.json (21.9 KB / 21.9 
+KB)- Uploading...| Uploading 
+assetmap.json (21.9 KB / 21.9 
+KB)Ô£ö Uploaded assetmap.json 
+ÔêÜ Uploaded 2 app bundles
+ÔêÜ Uploading assets skipped - no new assets found
+i 45 iOS assets, 45 Android assets (maximum: 2000 total per update). Learn more about asset limits: https://expo.fyi/eas-update-asset-limits
+CommandError: You're currently using the bare workflow, where runtime version policies are not supported. You must set your runtime version manually. For example, define your runtime version as "1.0.0", not {"policy": "appVersion"} in your app config. https://docs.expo.dev/eas-update/runtime-versions
+
+\ Uploading...| Uploading.../ 
+Uploading (0/51)- Uploading 
+(0/51)\ Uploading (0/51)| 
+Uploading (0/51)/ Uploading 
+(49/51)- Uploading (49/51)\ 
+Uploading (49/51)| Uploading 
+(49/51)/ Uploading (49/51)- 
+Uploading (49/51)\ Uploading 
+(49/51)| Uploading (49/51)/ 
+Uploading (49/51)- Uploading 
+(49/51)\ Uploading (49/51)| 
+Uploading (49/51)/ Uploading 
+(49/51)- Uploading (49/51)\ 
+Uploading (49/51)| Uploading 
+(49/51)/ Uploading (49/51)- 
+Uploading (49/51)\ Uploading 
+(49/51)| Uploading (49/51)/ 
+Uploading (49/51)- Uploading 
+(49/51)\ Uploading (49/51)| 
+Uploading (49/51)/ Uploading 
+(49/51)- Uploading (49/51)\ 
+Uploading (49/51)| Uploading 
+(49/51)/ Uploading (49/51)- 
+Uploading (49/51)\ Uploading 
+(49/51)| Uploading (49/51)/ 
+Uploading (49/51)- Uploading 
+(49/51)\ Uploading (49/51)| 
+Uploading (49/51)/ Uploading 
+(49/51)- Uploading (50/51)\ 
+Uploading (50/51)| Uploading 
+(50/51)/ Uploading (50/51)- 
+Uploading (50/51)\ Uploading 
+(50/51)| Uploading (50/51)/ 
+Uploading (50/51)- Uploading 
+(50/51)\ Uploading (50/51)| 
+Uploading (50/51)/ Uploading 
+(50/51)- Uploading (50/51)\ 
+Uploading (50/51)| Uploading 
+(50/51)/ Uploading (50/51)- 
+Uploading (50/51)\ Uploading 
+(50/51)| Uploading (50/51)/ 
+Uploading (50/51)- Uploading 
+(50/51)\ Uploading (51/51)| 
+Uploading (51/51)/ Uploading 
+(51/51)- Uploading (51/51)\ 
+Uploading (51/51)| Uploading 
+(51/51)    Error: update command 
+failed.

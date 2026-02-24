@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import { authApi, ApiError } from '../../services/api';
+import { auth as authApi, ApiError } from '../../services/api';
 
 import { useTranslation } from 'react-i18next';
 

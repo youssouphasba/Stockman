@@ -15,9 +15,9 @@ function getVariant(days: number): BannerVariant {
 }
 
 const VARIANT_STYLES: Record<BannerVariant, { bg: string; text: string; icon: string }> = {
-    info:    { bg: '#1a3a5c', text: '#7ec8f7', icon: 'time-outline' },
+    info: { bg: '#1a3a5c', text: '#7ec8f7', icon: 'time-outline' },
     warning: { bg: '#3a2e00', text: '#ffd700', icon: 'alert-circle-outline' },
-    danger:  { bg: '#3a0a0a', text: '#ff6b6b', icon: 'warning-outline' },
+    danger: { bg: '#3a0a0a', text: '#ff6b6b', icon: 'warning-outline' },
 };
 
 export default function TrialBanner() {
@@ -34,10 +34,12 @@ export default function TrialBanner() {
         if (isSupplier) return;
         subscriptionApi.getDetails()
             .then(data => {
-                setIsTrial(data.is_trial);
-                setRemainingDays(data.remaining_days);
+                if (data) {
+                    setIsTrial(!!data.is_trial);
+                    setRemainingDays(data.remaining_days ?? null);
+                }
             })
-            .catch(() => {});
+            .catch(() => { });
     }, [isSupplier]);
 
     if (isSupplier || !isTrial || remainingDays === null || remainingDays <= 0) return null;

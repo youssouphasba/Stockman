@@ -90,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function login(email: string, password: string) {
     const response = await authApi.login(email, password);
+    console.log('[DEBUG] Login successful, user data:', JSON.stringify(response.user, null, 2));
     await setToken(response.access_token);
     setUser(response.user);
     if (Platform.OS !== 'web') {

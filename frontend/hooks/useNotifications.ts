@@ -25,7 +25,7 @@ export function useNotifications(userId?: string) {
             registerForPushNotificationsAsync().then(token => {
                 if (token) {
                     setExpoPushToken(token);
-                    notificationsApi.registerToken(token);
+                    notificationsApi.registerToken(token).catch(console.warn);
                 }
             });
         }

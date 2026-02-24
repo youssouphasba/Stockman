@@ -1,0 +1,300 @@
+﻿02-25 00:44:32.450  8535  9448 W Notification4Watch7_NB: NotificationBridgeCallback.onNotificationPosted-never connected before
+02-25 00:44:32.450  8535  9448 I NotificationPipeline: Discarding notification: 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.450  3819  3819 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.450  3819  3819 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+02-25 00:44:32.450 24565 24565 W GameLauncher: NotificationListener Ignore non game notification: com.snapchat.android
+02-25 00:44:32.451  3819  3819 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.469  3819  3819 D SubscreenNotificationListCoordinator: onAfterRenderList() isSubScreen = false, pluginLockMode = 0, doNotShowOnCover = false
+02-25 00:44:32.471  3819  3819 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+02-25 00:44:32.471  3819  3819 I AODNotificationManager: updateNotification() 
+02-25 00:44:32.475  2552  3637 D BackgroundInstallControlService: Package event received: 0
+02-25 00:44:32.477  1756  2151 I VSyncReactor: Current= 120, Period= 120, Distance= 2
+02-25 00:44:32.480  3819  4363 W Paint   : The elegant text height cannot be turned off.
+02-25 00:44:32.485  1756  2151 I VSyncReactor: Current= 120, Period= 120, Distance= 120
+02-25 00:44:32.488  3819  4363 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+02-25 00:44:32.491 28045 28172 I NotificationManager: com.snapchat.android: notify(-829308117, null, Notification(channel=sc_0a1_gr5_[ch3]~B2LV[3]S[generic_push]Bc shortcut=false|Fatima­ƒªä Fmf­ƒ½º­ƒç©­ƒç│|5805d8d2-56f2-429e-8745-0cdd1acb8795 contentView=null vibrate=null sound=null tick defaults=0 flags=SHOW_LIGHTS|AUTO_CANCEL color=0xfff23c57 category=msg groupKey=SNAP-3b927d07-d110-51a9-b488-bb5838ac0749 actions=1 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+02-25 00:44:32.505  3819  3819 I AppIconSolution: return adaptive icon for com.snapchat.android, isNight = true
+02-25 00:44:32.507  3819  4363 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+02-25 00:44:32.511  3819  4363 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+02-25 00:44:32.519  3819  3819 I AppIconSolution: return adaptive icon for com.snapchat.android, isNight = true
+02-25 00:44:32.527  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.527  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.527  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.527  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.528  3819  3819 D S.S.N.  : entryViewBound parent :0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.529  3819  3819 I AppIconSolution: return adaptive icon for com.snapchat.android, isNight = true
+02-25 00:44:32.536  3819  3819 D PluginActionManager: startListening
+02-25 00:44:32.537  3819  3973 D PluginActionManager: queryAll com.android.systemui.action.PLUGIN_NOTIFICATION_MENU_ROW
+02-25 00:44:32.537  3819  3973 D PluginActionManager: Found 0 plugins
+02-25 00:44:32.537  3819  3819 I View    : setRequestedFrameRate frameRate=-2.0, this=StatusBarIconView(slot='com.snapchat.android/0x55504c00' alpha=1.0 icon=StatusBarIcon(icon=Icon(typ=RESOURCE pkg=com.snapchat.android id=0x01080088) visible user=0 ) visibleState=ICON iconColor=#0 staticDrawableColor=#0 decorColor=#ff1b6cf7 animationStartColor=#0 currentSetColor=#0 notification=StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))), caller=com.android.systemui.statusbar.StatusBarIconView.onAttachedToWindow:6 android.view.View.dispatchAttachedToWindow:24320 android.view.ViewGroup.addViewInner:5582 android.view.ViewGroup.addView:5358 com.android.systemui.statusbar.phone.LegacyNotificationIconAreaControllerImpl.updateIconsForLayout:468 
+02-25 00:44:32.538  3819  3819 I View    : setRequestedFrameRate frameRate=-2.0, this=StatusBarIconView(slot='com.snapchat.android/0x55504c00' alpha=1.0 icon=StatusBarIcon(icon=Icon(typ=RESOURCE pkg=com.snapchat.android id=0x01080088) visible user=0 ) visibleState=ICON iconColor=#ff1b6cf7 staticDrawableColor=#ff1b6cf7 decorColor=#ff1b6cf7 animationStartColor=#0 currentSetColor=#ff1b6cf7 notification=StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))), caller=com.android.systemui.statusbar.StatusBarIconView.onAttachedToWindow:6 android.view.View.dispatchAttachedToWindow:24320 android.view.ViewGroup.addViewInner:5582 android.view.ViewGroup.addView:5358 com.android.systemui.statusbar.phone.LegacyNotificationIconAreaControllerImpl.updateIconsForLayout:468 
+02-25 00:44:32.538  3819  3819 D SubscreenNotificationListCoordinator: onAfterRenderList() isSubScreen = false, pluginLockMode = 0, doNotShowOnCover = false
+02-25 00:44:32.540  3819  3819 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+02-25 00:44:32.540  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.540  3819  3819 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 270 mTempSmallHeight:0 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.541  3819  3819 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+02-25 00:44:32.542  3819  3819 I AODNotificationManager: updateNotification() 
+02-25 00:44:32.574  2552  3636 I SemExecuteManagerService: onShortcutChanged: com.snapchat.android0
+02-25 00:44:32.582  2552  2882 W UserManagerService: onShortcutChanged for another profile 0 from 150
+02-25 00:44:32.583  4195  4195 I HoneySpace.PackageOperationTracker: onShortcutsChanged com.snapchat.android - 17 UserHandle{0}
+02-25 00:44:32.583  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=2, timestamp=1771976672473, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=1, timestamp=1771976672473, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=7, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=9, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x5a4 [ImManIc-rStrRets], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=2131961961[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories=null, persons=null, icon=null, rank=1, timestamp=1771962258881, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x5a4 [ImManIc-rStrRets], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=2131961966[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories=null, persons=null, icon=null, rank=2, timestamp=1771962258881, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=5, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=3, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x5a4 [ImManIc-rStrRets], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=2131961959[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories=null, persons=null, icon=null, rank=0, timestamp=1771962258881, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=8, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x5a4 [ImManIc-rStrRets], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=2131961967[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories=null, persons=null, icon=null, rank=3, timestamp=1771962258881, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=6, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=0, timestamp=1771976672432, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x2689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=10, timestamp=1771971698710, intents=null, extras=null}
+02-25 00:44:32.584  4195  7504 I HoneySpace.ShortcutDataSourceImpl: shortcut updated. ShortcutInfo {id=***, flags=0x6689 [DynIc-fIc-aStrRetsLiv], packageName=com.snapchat.android, activity=ComponentInfo{com.snapchat.android/com.snapchat.android.LandingPageActivity}, shortLabel=***, resId=0[null], longLabel=***, resId=0[null], disabledMessage=***, resId=0[null], disabledReason=[Not disabled], categories={actions.intent.RECEIVE_MESSAGE, com.snap.mushroom.category.VIDEO_SHARE_TARGET, com.snap.mushroom.category.TEXT_SHARE_TARGET, com.snap.mushroom.category.IMAGE_SHARE_TARGET}, persons=null, icon=null, rank=4, timestamp=1771974380923, intents=null, extras=null}
+02-25 00:44:32.584  4195  4195 I HoneySpace.HoneySpaceManagerContainer: packageUpdateEvent - com.honeyspace.sdk.source.entity.PackageOperation$ShortcutChanged@38341f3
+02-25 00:44:32.584  4195 25412 I HoneySpace.HistoryViewModel@159462614@OneUI: handlePackageEvent
+02-25 00:44:32.584  4195 25412 I HoneySpace.HistoryViewModel@159462614@OneUI: skip for alone
+02-25 00:44:32.584  4195  4195 I HoneySpace.EventListenerRegistry: pendingPackageOperation : pending = false, com.honeyspace.sdk.source.entity.PackageOperation$ShortcutChanged@38341f3
+02-25 00:44:32.591 28045 28139 I NotificationManager: com.snapchat.android: notify(1431325696, null, Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+02-25 00:44:32.603  2552  2552 D EdgeLightingManager: hideForNotification : packageName = com.snapchat.android
+02-25 00:44:32.603  2552  2552 D EdgeLightingPolicyManager:NotificationGroup: remove : sbn : StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))
+02-25 00:44:32.603  2552  2552 D EdgeLightingPolicyManager.NotificationGroup: group notification count : 168
+02-25 00:44:32.603  2552  2552 D EdgeLightingManager: hideForNotification : isOngoing is false
+02-25 00:44:32.603  2552  2552 D NotificationService: updateCancelEvent key = 0|com.snapchat.android|1431325696|null|10473, 8
+02-25 00:44:32.603  2552  2552 D NotiHistoryDatabase: updateCancelEvent key = 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.632  2552  3717 D NetdEventListenerService: DNS Requested by 1883, 10473(com.snapchat.android), SUCCESS, 14ms
+02-25 00:44:32.649  3819  3819 D S.S.N.  : onEntryRemoved parent : 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.649  3819  3819 D InsignificantCoordinator: onEntryRemoved :0|com.snapchat.android|1431325696|null|10473 flags: 0 entrySize:0
+02-25 00:44:32.650  2552  2552 D NotificationReminder: removeFromNotificationList record com.snapchat.android
+02-25 00:44:32.650  4195  4195 I HoneySpace.NotificationListener: onNotificationRemoved sbn : StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)), reason : 8
+02-25 00:44:32.651  4073  4073 I mdec/NotiSyncUtility: device ready for noti sync : true
+02-25 00:44:32.651  4195  8770 I HoneySpace.NotificationListener: onNotificationRemoved com.snapchat.android: 0|com.snapchat.android|1431325696|null|10473: 0
+02-25 00:44:32.651  4195  8770 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.snapchat.android', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 4, badge provider: -1
+02-25 00:44:32.651  8535  9448 I NotificationPipeline: Processing notification dismissal on phone: 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.652  8535  9448 E Notification4Watch7_NB: WatchFactory.getWatch-lastConnectedNodeId is null
+02-25 00:44:32.652  4195 11853 I HoneySpace.PackageEventOperator: [WorkspaceViewModel] badge count is updated. com.snapchat.android/.LandingPageActivity#UserHandle{0}|16793 : 4
+02-25 00:44:32.652  4195 20655 I HoneySpace.PackageEventOperator: [ApplistViewModel] badge count is updated. com.snapchat.android/.LandingPageActivity#UserHandle{0}|16760 : 4
+02-25 00:44:32.652  4195 20655 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.youtube', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 236
+02-25 00:44:32.652  4195 20655 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.apps.photos', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 0
+02-25 00:44:32.653  4195 11853 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.apps.photos', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 0
+02-25 00:44:32.653  8535  9448 I NotifDismissalHandler: Notification 0|com.snapchat.android|1431325696|null|10473 dismissed on phone, deleting data item /bridger/stream_item:2bb3e80b:com.snapchat.android:1431325696:null_tag:0~7Ccom.snapchat.android~7C1431325696~7Cnull~7C10473
+02-25 00:44:32.653  3819  3819 D PluginActionManager: stopListening
+02-25 00:44:32.653  3819  3819 D StackScroller: generateRemoveAnimation 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.654  3819  3819 D StackScroller: generateRemoveAnimation 0|com.snapchat.android|1431325696|null|10473 mIsExpanded false mAnimationsEnabled true
+02-25 00:44:32.654  3819  3819 D StackScroller: onViewRemovedInternal remove child without animation 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.655  3819  3819 I View    : setRequestedFrameRate frameRate=-2.0, this=StatusBarIconView(slot='com.snapchat.android/0x55504c00' alpha=1.0 icon=StatusBarIcon(icon=Icon(typ=RESOURCE pkg=com.snapchat.android id=0x01080088) visible user=0 ) visibleState=ICON iconColor=#99000000 staticDrawableColor=#99000000 decorColor=#99000000 animationStartColor=#0 currentSetColor=#99000000 notification=StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))), caller=com.android.systemui.statusbar.StatusBarIconView.onAttachedToWindow:6 android.view.View.dispatchAttachedToWindow:24320 android.view.ViewGroup.addTransientView:5172 com.android.systemui.statusbar.phone.NotificationIconContainer.onViewRemoved:108 android.view.ViewGroup.dispatchViewRemoved:5433 
+02-25 00:44:32.656  3819  3819 I View    : setRequestedFrameRate frameRate=-2.0, this=StatusBarIconView(slot='com.snapchat.android/0x55504c00' alpha=1.0 icon=StatusBarIcon(icon=Icon(typ=RESOURCE pkg=com.snapchat.android id=0x01080088) visible user=0 ) visibleState=ICON iconColor=#fffafaff staticDrawableColor=#ffb0c6ff decorColor=#ff1b6cf7 animationStartColor=#0 currentSetColor=#fffafaff notification=StatusBarNotification(pkg=com.snapchat.android user=UserHandle{0} id=1431325696 tag=null key=0|com.snapchat.android|1431325696|null|10473: Notification(channel=general_group_silent shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=0 color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))), caller=com.android.systemui.statusbar.StatusBarIconView.onAttachedToWindow:6 android.view.View.dispatchAttachedToWindow:24320 android.view.ViewGroup.addTransientView:5172 com.android.systemui.statusbar.phone.NotificationIconContainer.onViewRemoved:108 android.view.ViewGroup.dispatchViewRemoved:5433 
+02-25 00:44:32.656  3819  3819 D SubscreenNotificationListCoordinator: onAfterRenderList() isSubScreen = false, pluginLockMode = 0, doNotShowOnCover = false
+02-25 00:44:32.657  3819  3819 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+02-25 00:44:32.659  8535  9448 I NotificationImportance: Falling back to notification fields
+02-25 00:44:32.659  3819  3819 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+02-25 00:44:32.660  3819  3819 I AODNotificationManager: updateNotification() 
+02-25 00:44:32.668  8535  9448 W NotifFrequencyLogger: Missing frequency data when notification is being removed
+02-25 00:44:32.698  2552  2552 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+02-25 00:44:32.699  2552  2552 D NotificationService: isNeedDeletePrevHistory  newMs.getDataUri() = android.resource://com.snapchat.android/2131233807, oldMs.getDataUri() = android.resource://com.snapchat.android/2131233807, newMs.getTimestamp() = 1771976672313, oldMs.getTimestamp() = 1771971698499
+02-25 00:44:32.701  2552  2552 D EdgeLightingManager: showForNotification : isInteractive=true, isHeadUp=true, color=0, canBypassDnd=false, packageName = com.snapchat.android
+02-25 00:44:32.701  2552  2552 D EdgeLightingPolicyManager: putNotification tickerText:true,titleText:true,text:true,sub:falsecn= + null
+02-25 00:44:32.701  2552  2552 D EdgeLightingPolicyManager.NotificationGroup: Remove previous child data. 0|com.snapchat.android|-829308117|null|10473
+02-25 00:44:32.701  2552  2552 D EdgeLightingPolicyManager.NotificationGroup: group notification count : 168
+02-25 00:44:32.702  2552  2552 D NotificationService: Changed notification by edgelighting.
+02-25 00:44:32.703  2552  2552 D VibratorManagerService: Canceling vibration
+02-25 00:44:32.704  2552  2552 D FlashNotifController: requestStartFlashNotification
+02-25 00:44:32.704  2552  2552 I FlashNotifController: startFlashNotification: type=1, tag=android
+02-25 00:44:32.704  2552  2552 D FlashNotifController: Flash notification is disabled
+02-25 00:44:32.708  2552  3637 D BackgroundInstallControlService: Package event received: 0
+02-25 00:44:32.717  2552  2552 D EdgeLightingClientManager: startService packagename=com.snapchat.android,reason=1
+02-25 00:44:32.719  2552  3637 D BackgroundInstallControlService: Package event received: 0
+02-25 00:44:32.722  4195  8770 I HoneySpace.NotificationListener: onNotificationPosted com.snapchat.android: 0|com.snapchat.android|-829308117|null|10473: 1
+02-25 00:44:32.722  4195  8770 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.snapchat.android', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 4, badge provider: -1
+02-25 00:44:32.723  4195 11851 I HoneySpace.PackageEventOperator: [WorkspaceViewModel] badge count is updated. com.snapchat.android/.LandingPageActivity#UserHandle{0}|16793 : 4
+02-25 00:44:32.723  4195 11851 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.apps.photos', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 0
+02-25 00:44:32.723  4195 11851 I HoneySpace.PackageEventOperator: [ApplistViewModel] badge count is updated. com.snapchat.android/.LandingPageActivity#UserHandle{0}|16760 : 4
+02-25 00:44:32.723  4195 11851 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.youtube', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 236
+02-25 00:44:32.723  4195 11851 I HoneySpace.BadgeDataSourceImpl: Get notification count. PK(p='com.google.android.apps.photos', u=UserHandle{0}) - forceBadgeCount: false, notification listener: 1, badge provider: 0
+02-25 00:44:32.724  8535  8535 I NotificationListener: [Service]v6.1.9-eap01 Received new notification
+02-25 00:44:32.724 27383 27383 D EdgeLightingService: onCreate
+02-25 00:44:32.724 27383 27383 I Utils   : isCurrentUser current = 0, ownerId = 0
+02-25 00:44:32.724 27383 27383 D EdgeLightingService: connectToSystemUI
+02-25 00:44:32.725  8535  9448 I NotificationPipeline: Processing new notification: 0|com.snapchat.android|-829308117|null|10473
+02-25 00:44:32.725  8535  9448 W BridgeModeModel: Not started, default to bridging
+02-25 00:44:32.725  8535  9448 E Notification4Watch7_NB: WatchFactory.getWatch-lastConnectedNodeId is null
+02-25 00:44:32.725  8535  9448 W Notification4Watch7_NB: NotificationBridgeCallback.onNotificationPosted-never connected before
+02-25 00:44:32.725  8535  9448 I NotificationPipeline: Discarding notification: 0|com.snapchat.android|-829308117|null|10473
+02-25 00:44:32.727 27383 27383 I Utils   : isCurrentUser current = 0, ownerId = 0
+02-25 00:44:32.728 27383 27383 D TurnOverEdgeLighting: setEnable: false
+02-25 00:44:32.728 27383 27383 D EdgeLightingScreenStatus: reset
+02-25 00:44:32.728 27383 27383 D DeviceStateManagerGlobal: This device does not support FoldStateListener!
+02-25 00:44:32.728 27383 27383 D ScoverManager: registerListener
+02-25 00:44:32.728  3819  3819 D SubscreenNotificationListCoordinator: onAfterRenderList() isSubScreen = false, pluginLockMode = 0, doNotShowOnCover = false
+02-25 00:44:32.731 27383 27383 D EdgeLightingService: onStartCommand pkg=com.snapchat.android,info=SemEdgeLighitngInfo{type = 2001, colors= [0, 0], repeat= 0, userId = 0},reason=1
+02-25 00:44:32.732  3819  3819 D SysUIConditionListener: onCreate 
+02-25 00:44:32.732  3819  3819 D SysUIConditionListener: onBind : Intent { act=com.android.systemui.edgelighting.interfaces.ISystemUIConditionListener xflg=0x4 cmp=com.android.systemui/.edgelighting.SystemUIConditionListenerService }
+02-25 00:44:32.733 27383 27383 I EdgeLightingSettingUtils:  loadAppCustomColor : com.snapchat.android color : ffe6e300
+02-25 00:44:32.733 27383 27383 D EdgeLightingScheduler: startEdgeLighting: 1 com.snapchat.android onGo=false
+02-25 00:44:32.733  3819  3819 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+02-25 00:44:32.733  3819  3819 I AODNotificationManager: updateNotification() 
+02-25 00:44:32.733 27383 27383 D LightingScheduleInfo: setDuration : duration=4000
+02-25 00:44:32.733 27383 27383 D LightingScheduleInfo: setDuration : duration=4000
+02-25 00:44:32.733 27383 27383 D LightingScheduleInfo: updateTimeToTakeAction time=4000
+02-25 00:44:32.733 27383 27383 D NotificationLightingScheduler: putLighting: com.snapchat.android reason=1 cur=null, isNeedKeepPackage=true, isNeedKeepNoti=true
+02-25 00:44:32.734 27383 27383 D TurnOverEdgeLighting$StateIdle: isNeedTurnOverChecker: not enabled
+02-25 00:44:32.734 27383 27383 D LightingScheduleInfo: getChainText: from titleText
+02-25 00:44:32.735 27383 27383 I EdgeLightingStyleManager: getEdgeLightingStyleType : -1
+02-25 00:44:32.735 27383 27383 I EdgeLightingSettingUtils:  getEdgeLightingStyleWidth : width 8.0 max : 19.0
+02-25 00:44:32.735  3819  3819 D SystemUIService: SYSUI_RAM_OPTIMIZATION onTrimMemory=20
+02-25 00:44:32.735  3819  3819 D CentralSurfaces: SYSUI_RAM_OPTIMIZATION onTrimMemory=20
+02-25 00:44:32.735  4073  4073 I mdec/NotiSyncUtility: device ready for noti sync : true
+02-25 00:44:32.736  3819  3944 D HWUI    : CacheManager::trimMemory(20)
+02-25 00:44:32.736 27383 27383 I AppIconSolution: return adaptive icon for com.snapchat.android, isNight = true
+02-25 00:44:32.737 27383 27383 D LightingScheduleInfo: getChainText: from titleText
+02-25 00:44:32.737 27383 27383 I EdgeLightingStyleManager: getEdgeLightingStyleType : -1
+02-25 00:44:32.737 27383 27383 W Settings: Setting remove_animations has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+02-25 00:44:32.737 27383 27383 E ActivityThread: Failed to find provider info for com.samsung.android.systemui.edgelighting.plus.provider
+02-25 00:44:32.737 27383 27383 I EdgeLightingService: createEdgeLightingDialog make dispatcher false
+02-25 00:44:32.738 27383 27383 I EdgeLightingStyleManager: getEdgeLightingStyleType : -1
+02-25 00:44:32.738 27383 27383 D EdgeLightingDispatcher: updateSetting:forceValue=null,mDefaultLighting=true,mPackageName=null,mClassName=null
+02-25 00:44:32.739 27383 27383 I Dialog  : mIsDeviceDefault = false, mIsSamsungBasicInteraction = false, isMetaDataInActivity = false
+02-25 00:44:32.739 27383 27383 I EdgeLightingDialog: updateBackground : TRANSPARENT
+02-25 00:44:32.740 27383 27383 I DecorView: setWindowBackground: isPopOver=false color=0 d=android.graphics.drawable.ColorDrawable@794e005
+02-25 00:44:32.740 27383 27383 I WindowManager: WindowManagerGlobal#addView, ty=2227, view=com.android.internal.policy.DecorView{bd8fa8b V.E...... R.....I. 0,0-0,0}[EdgeLightingWindow], caller=android.view.WindowManagerImpl.addView:158 android.app.Dialog.show:540 com.android.systemui.edgelighting.effect.container.EdgeLightingDialog.show:49 
+02-25 00:44:32.740 27383 27383 D ViewRootImpl: desktopMode is false
+02-25 00:44:32.740 27383 27383 I ViewRootImpl: dVRR is disabled
+02-25 00:44:32.741 27383 27406 D NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+02-25 00:44:32.742  3819 14953 D NotificationListener: uri= android.resource://com.snapchat.android/2131233807, image= 1116
+02-25 00:44:32.743  2552  3414 D NotificationHistoryImageProvider: Added to cache image
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: Error inserting uri_id=android.resource://com.snapchat.android/2131233807 time=1771976672742 image=[B@f36065a
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: android.database.sqlite.SQLiteConstraintException: UNIQUE constraint failed: NotiHistoryImgProvider.uri_id (code 1555 SQLITE_CONSTRAINT_PRIMARYKEY[1555])
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteConnection.nativeExecuteForLastInsertedRowId(Native Method)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteConnection.executeForLastInsertedRowId(SQLiteConnection.java:1314)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteSession.executeForLastInsertedRowId(SQLiteSession.java:825)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteStatement.executeInsert(SQLiteStatement.java:89)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteDatabase.insertWithOnConflict(SQLiteDatabase.java:2576)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.database.sqlite.SQLiteDatabase.insert(SQLiteDatabase.java:2444)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at com.samsung.android.server.notification.NotificationHistoryImageProvider.addImageToCache(NotificationHistoryImageProvider.java:208)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at com.samsung.android.server.notification.NotificationHistoryImageProvider.insert(NotificationHistoryImageProvider.java:119)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.content.ContentProvider.insert(ContentProvider.java:2001)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.content.ContentProvider$Transport.insert(ContentProvider.java:456)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.content.ContentProviderNative.onTransact(ContentProviderNative.java:180)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.os.Binder.execTransactInternal(Binder.java:1462)
+02-25 00:44:32.743  2552  3414 E SQLiteDatabase: 	at android.os.Binder.execTransact(Binder.java:1401)
+02-25 00:44:32.743  2552  3414 D NotificationHistoryImageProvider: Failed to cache image
+02-25 00:44:32.748  1756  2151 I SurfaceFlinger: id=868977 createSurf, flag=84004, WindowToken{ed2bd81 type=2227 android.os.BinderProxy@9cad568}#868977
+02-25 00:44:32.748  2552  5434 D InputTransport: Input channel constructed: '83e2e26', fd=1549
+02-25 00:44:32.748  2552  5434 D InputTransport: Input channel constructed: '83e2e26', fd=1562
+02-25 00:44:32.749  2552  5434 D InputTransport: Input channel constructed: '83e2e26', fd=1570
+02-25 00:44:32.749  2552  5434 D InputTransport: Input channel destroyed: '83e2e26', fd=1562
+02-25 00:44:32.749  1756  2150 I SurfaceFlinger: id=868978 createSurf, flag=84004, 83e2e26 EdgeLightingWindow#868978
+02-25 00:44:32.749  2552  5434 D RestrictionPolicy: isScreenCaptureEnabled : ret=true userId=0
+02-25 00:44:32.750  1642  1671 I HYPER-HAL: [RequestManager.cpp]acquire(): Acquired ID : -577593355  [1646 / 310809]    HINT :      list : [TID_LOW_LATENCY / 1] [TID / 27404] [TID / 27405] [TID / 27383] [TID / 27406] 
+02-25 00:44:32.750  2552  5434 D InputTransport: Input channel destroyed: '83e2e26', fd=1570
+02-25 00:44:32.751  2552  3414 D HintManagerService: SystemUI make new AppHintSession but force pause
+02-25 00:44:32.751 27383 27383 D InputTransport: Input channel constructed: '83e2e26', fd=136
+02-25 00:44:32.752  1756  1756 I SurfaceFlinger: [WindowToken{ed2bd81 type=2227 android.os.BinderProxy@9cad568}#868977] attach to parent LayerHierarchy{RequestedLayerState{Leaf:26:31#38 parentId=37} 2 children}
+02-25 00:44:32.752  1756  1756 I SurfaceFlinger: [83e2e26 EdgeLightingWindow#868978] attach to parent LayerHierarchy{RequestedLayerState{WindowToken{ed2bd81 type=2227 android.os.BinderProxy@9cad568}#868977 parentId=38} 1 children}
+02-25 00:44:32.752 27383 27383 I InsetsController: onStateChanged: host=EdgeLightingWindow, from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1440, 3120), mDisplayCutout=DisplayCutout{insets=Rect(0, 112 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(686, 0 - 754, 112), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1440 displayHeight=3120 physicalDisplayWidth=1440 physicalDisplayHeight=3120 density={3.75} cutoutSpec={M 0,0 H -9.066666666666667 V 29.86666666666667 H 9.066666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=8, center=Point(8, 8)}, RoundedCorner{position=TopRight, radius=8, center=Point(1432, 8)}, RoundedCorner{position=BottomRight, radius=8, center=Point(1432, 3112)}, RoundedCorner{position=BottomLeft, radius=8, center=Point(8, 3112)}]}  mRoundedCornerFrame=Rect(0, 0 - 0, 0), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(1275, 0 - 1440, 113) rotation=0}, mDisplayShape=DisplayShape{ spec=1406003047 displayWidth=1440 displayHeight=3120 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {9e6b0004 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {9e6b0005 mType=mandatorySystemGestures mFrame=[0,2940][1440,3120] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {9e6b0024 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {faf70005 mType=mandatorySystemGestures mFrame=[0,0][1440,157] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1440,112] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+02-25 00:44:32.752 27383 27383 I VRI[EdgeLightingWindow]@a3b3768: synced displayState. AttachInfo displayState=2
+02-25 00:44:32.752 27383 27383 I VRI[EdgeLightingWindow]@a3b3768: setView = com.android.internal.policy.DecorView@bd8fa8b IsHRR=false mFlingFrameRateChange=0 TM=true
+02-25 00:44:32.752 27383 27383 I EdgeLightingService:  onShowEdgeWindow
+02-25 00:44:32.752 27383 27383 D EdgeLightingScheduler: notifyEdgeLightingPackageList :[com.snapchat.android], empty = false
+02-25 00:44:32.753  1746  1768 E HeatmapThread: ECT Thread time in milliseconds: 1771976672
+02-25 00:44:32.754 27383 27383 I Utils   :  getDeviceRadius : 6.0
+02-25 00:44:32.754 27383 27383 I Utils   :  getDeviceRadius : 6.0
+02-25 00:44:32.754 27383 27383 D Normal/VerificationCodeParser: getVerificationCode
+02-25 00:44:32.757 27383 27383 D ORC/VerificationCodeParserBase: getVerificationCode - not OTP message
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ batteryplugType : 2
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ batteryLevel : 50  batteryTemperature : 221 
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ Heatmap currtime: 29532944
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ Heatmap prevtime: 29532935
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ Heatmap plugstarttime: 29532876
+02-25 00:44:32.757 27383 27383 I NotificationEffect: setEdgeEffectInfo:  dur=4000 hasActionButton=true isGrayScaled= true color=ffe6e300 notificationKey=0|com.snapchat.android|-829308117|null|10473 actionEnable= true
+02-25 00:44:32.757  1746  1768 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29532936
+02-25 00:44:32.758  1746  1768 E HeatmapThread: !@ CAM New BSOH: 100
+02-25 00:44:32.758  1746  1768 E HeatmapThread: !@ CAM is Working
+02-25 00:44:32.758  1642  1671 I HYPER-HAL: [RequestManager.cpp]acquire(): Acquired ID : -577593355  [1646 / 310809]    HINT :      list : [TID_LOW_LATENCY / 0] [TID / 27404] [TID / 27405] [TID / 27383] [TID / 27406] 
+02-25 00:44:32.760  1756  1756 I SurfaceFlinger: RequestedLayer [WindowToken{ed2bd81 type=2227 android.os.BinderProxy@9cad568}#868977] hidden!! flag  from(1) --> to(0)
+02-25 00:44:32.760  1756  1756 I SurfaceFlinger: RequestedLayer [83e2e26 EdgeLightingWindow#868978] hidden!! flag  from(1) --> to(0)
+02-25 00:44:32.763 27383 27383 D View    : semSetBlurInfo, blurInfo : android.view.SemBlurInfo@cb8b80 {BLUR_MODE_WINDOW, mBlurRadius = 300, mBackgroundBlurColor = 536870911, mCornerRadiusTL = 67.0, mCornerRadiusTR = 67.0, mCornerRadiusBL = 67.0, mCornerRadiusBR = 67.0, mClipRectLeft = 0, mClipRectTop = 0, mClipRectRight = 2147483647, mClipRectBottom = 2147483647, mColorCurve = android.view.SemBlurInfo$ColorCurve@2b95b9 {minX = 0.0, minY = 13.5, maxX = 255.0, maxY = 133.4, curveBias = -15.0, saturation = 0.5}}, android.widget.LinearLayout{434dfe V.E...... ......I. 0,0-0,0 #7f0a0e02 app:id/toast_blur_root}
+02-25 00:44:32.763 27383 27383 I EdgeLightNotiEffectView: Basic lighting is not supported.
+02-25 00:44:32.764 27383 27383 I EdgeLightingDialog: send broadcast : com.android.systemui.edgelighting.start
+02-25 00:44:32.764 27383 27383 I EdgeLightingStyleManager: getEdgeLightingStyleType : -1
+02-25 00:44:32.764  2552  2552 D PocketModeEvent: INTENT_EDGE_LIGHTING_SHOW
+02-25 00:44:32.764 27383 27383 D EdgeLightingScheduler: EdgeLightingEventStyleInfo,Effect=preload/noframe,Color=#ffe6e300,Width=8.0,Transparency=1.0,Duration=4000
+02-25 00:44:32.765  2552  5434 D PowerManagerService: [api] acquire WakeLock DRAW_WAKE_LOCK                    'Window:EdgeLightingWindow' (uid=10051 pid=27383 displayId=0 lock=53b1dac)
+02-25 00:44:32.765 27383 27383 D EdgeLightingScheduler: startNotiEffect:  dur=4000 +On
+02-25 00:44:32.765 27383 27383 D EdgeLightingScheduler: startNotification: com.snapchat.android
+02-25 00:44:32.766 27383 27406 D HWUI    : HWUI - treat SMPTE_170M as sRGB
+02-25 00:44:32.766 27383 27383 I EdgeLightingDialog:  onAttached Window clear FLAG NOT TOUCHABLE
+02-25 00:44:32.767  2552  3414 D CoreBackPreview: Window{83e2e26 u0 EdgeLightingWindow}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@c3e3a75, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+02-25 00:44:32.767 27383 27383 I NotificationEffect:  onAttached Window add Touch Insector : mIsShowMorphView=true, screen_on=true, aod_state=0
+02-25 00:44:32.767 27383 27383 D View    : semSetBlurInfo, blurInfo : android.view.SemBlurInfo@cb8b80 {BLUR_MODE_WINDOW, mBlurRadius = 300, mBackgroundBlurColor = 536870911, mCornerRadiusTL = 67.0, mCornerRadiusTR = 67.0, mCornerRadiusBL = 67.0, mCornerRadiusBR = 67.0, mClipRectLeft = 0, mClipRectTop = 0, mClipRectRight = 2147483647, mClipRectBottom = 2147483647, mColorCurve = android.view.SemBlurInfo$ColorCurve@2b95b9 {minX = 0.0, minY = 13.5, maxX = 255.0, maxY = 133.4, curveBias = -15.0, saturation = 0.5}}, android.widget.LinearLayout{434dfe V.E...... ......I. 0,0-0,0 #7f0a0e02 app:id/toast_blur_root}
+02-25 00:44:32.768  2552  3414 I WindowManager: Relayout Window{83e2e26 u0 EdgeLightingWindow}: viewVisibility=0 req=1440x3120 ty=2227 d0
+02-25 00:44:32.769  1756  2150 I SurfaceFlinger: id=868979 createSurf, flag=44004, EdgeLightingWindow$_27383#868979
+02-25 00:44:32.769  2552  3414 D WindowManager: makeSurface duration=1 name=EdgeLightingWindow$_27383
+02-25 00:44:32.769  2552  3414 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.769  2552  3414 W PhoneWindowManager: lockNow pending, ignore updating lockscreen timeout
+02-25 00:44:32.769  2552  3414 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.770  2552  3414 I WindowManager: Relayout hash=83e2e26, pid=27383, syncId=-1: mAttrs={(0,0)(fillxfill) gr=CENTER sim={adjust=pan} layoutInDisplayCutoutMode=always ty=2227 fmt=TRANSLUCENT
+02-25 00:44:32.770  2552  3414 I WindowManager:   fl=1800508
+02-25 00:44:32.770  2552  3414 I WindowManager:   pfl=10008850
+02-25 00:44:32.770  2552  3414 I WindowManager:   vsysui=600
+02-25 00:44:32.770  2552  3414 I WindowManager:   bhv=2
+02-25 00:44:32.770  2552  3414 I WindowManager:   fitSides=0
+02-25 00:44:32.770  2552  3414 I WindowManager:   frameRateBoostOnTouch=true
+02-25 00:44:32.770  2552  3414 I WindowManager:   dvrrWindowFrameRateHint=true naviIconColor=0
+02-25 00:44:32.770  2552  3414 I WindowManager:   sfl=60000}
+02-25 00:44:32.770 27383 27383 I BufferQueueProducer: [](id:6af700000019,api:0,p:1017397744,c:27383) setDequeueTimeout:2077252342
+02-25 00:44:32.771 27383 27383 I BLASTBufferQueue_Java: new BLASTBufferQueue, mName= VRI[EdgeLightingWindow]@a3b3768 mNativeObject= 0xb40000710cb563e0 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3585 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 android.view.Choreographer.doCallbacks:1367 android.view.Choreographer.doFrame:1292 android.view.Choreographer$FrameDisplayEventReceiver.run:1870 
+02-25 00:44:32.771 27383 27383 I BLASTBufferQueue_Java: update, w= 1440 h= 3120 mName = VRI[EdgeLightingWindow]@a3b3768 mNativeObject= 0xb40000710cb563e0 sc.mNativeObject= 0xb40000722ca2f5d0 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3590 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+02-25 00:44:32.771 27383 27383 I VRI[EdgeLightingWindow]@a3b3768: Relayout returned: old=(0,0,1440,3120) new=(0,0,1440,3120) relayoutAsync=false req=(1440,3120)0 dur=2 res=0x3 s={true 0xb40000732ca5a200} ch=true seqId=0
+02-25 00:44:32.771 27383 27383 I VRI[EdgeLightingWindow]@a3b3768: performConfigurationChange setNightDimText nightDimLevel=0
+02-25 00:44:32.772 27383 27383 D VRI[EdgeLightingWindow]@a3b3768: mThreadedRenderer.initialize() mSurface={isValid=true 0xb40000732ca5a200} hwInitialized=true
+02-25 00:44:32.773 27383 27383 D VRI[EdgeLightingWindow]@a3b3768: reportNextDraw android.view.ViewRootImpl.performTraversals:5443 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 
+02-25 00:44:32.773  2552  3414 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.773 27383 27383 D VRI[EdgeLightingWindow]@a3b3768: Setup new sync=wmsSync-VRI[EdgeLightingWindow]@a3b3768#50
+02-25 00:44:32.773 27383 27383 I VRI[EdgeLightingWindow]@a3b3768: Creating new active sync group VRI[EdgeLightingWindow]@a3b3768#51
+02-25 00:44:32.773  2552  3414 W PhoneWindowManager: lockNow pending, ignore updating lockscreen timeout
+02-25 00:44:32.773  2552  3414 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.777  1756  1756 I SurfaceFlinger: [EdgeLightingWindow$_27383#868979] attach to parent LayerHierarchy{RequestedLayerState{83e2e26 EdgeLightingWindow#868978 parentId=868977} 1 children}
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: QUALCOMM build          : c81b28e1a5, I5a61fcf667
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Build Date              : 06/20/25
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Shader Compiler Version : E031.45.02.26
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Local Branch            : 
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Remote Branch           : refs/tags/AU_LINUX_ANDROID_LA.VENDOR.14.3.0.11.00.00.973.948
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Remote Branch           : NONE
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Reconstruct Branch      : NOTHING
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Build Config            : S P 16.1.2 AArch64
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Driver Path             : /vendor/lib64/hw/vulkan.adreno.so
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Driver Version          : 0762.39
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: PFP                     : 0x01520181
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: ME                      : 0x01520023
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Application Name    : android framework
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Application Version : 0x00000000
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Engine Name         : android framework
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Engine Version      : 0x00000000
+02-25 00:44:32.782 27383 27406 I AdrenoVK-0: Api Version         : 0x00401000
+02-25 00:44:32.798 27383 27383 D VRI[EdgeLightingWindow]@a3b3768: registerCallbacksForSync syncBuffer=false
+02-25 00:44:32.802  2552  2552 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+02-25 00:44:32.802  2552  2552 I NotificationService: Cannot find enqueued record for key: 0|com.snapchat.android|1431325696|null|10473
+02-25 00:44:32.804 27383 27404 D SurfaceComposerClient: [SEC_SF_EFFECTS] setBlurRegions EdgeLightingWindow$_27383#868979 ## {radius=300, cornerRadii=[67.000, 67.000, 67.000, 67.000], alpha=1.000, rect=[97, -410, 1342, -275], clipRect=[0, 0, 2147483647, 2147483647], colorCurve=[0.000000, 13.500000, 255.000000, 133.399994], curveBias=-15.000000, saturation=0.500000, vibrance=[0.000000, (0.000000, 1.000000)], pathData size=0, BlurTint=[(0.000000 0.000000 0.000000) 0.000000, DISABLED]
+02-25 00:44:32.804 27383 27404 D VRI[EdgeLightingWindow]@a3b3768: Received frameDrawingCallback syncResult=0 frameNum=1.
+02-25 00:44:32.804 27383 27404 I VRI[EdgeLightingWindow]@a3b3768: mWNT: t=0xb40000720ca96a10 mBlastBufferQueue=0xb40000710cb563e0 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$12.onFrameDraw:15441 android.view.ThreadedRenderer$1.onFrameDraw:718 <bottom of call stack> 
+02-25 00:44:32.804 27383 27404 I VRI[EdgeLightingWindow]@a3b3768: Setting up sync and frameCommitCallback
+02-25 00:44:32.805 27383 27406 W qdgralloc: getInterlacedFlag: getMetaData returned 3, defaulting to interlaced_flag = 0
+02-25 00:44:32.806 27383 27406 I BLASTBufferQueue: [VRI[EdgeLightingWindow]@a3b3768#25](f:0,a:0,s:0) onFrameAvailable the first frame is available
+02-25 00:44:32.807 27383 27406 I SurfaceComposerClient: apply transaction with the first frame. layerId: 868979, bufferData(ID: 117609089466475, frameNumber: 1)
+02-25 00:44:32.807 27383 27406 I VRI[EdgeLightingWindow]@a3b3768: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+02-25 00:44:32.807  1756  1877 I SurfaceFlinger: [EdgeLightingWindow$_27383#868979] setTransactionState with the first frame. bufferData(ID: 117609089466475, frameNumber: 1)
+02-25 00:44:32.808 27383 27406 D HWUI    : CFMS:: SetUp Pid : 27383    Tid : 27406
+02-25 00:44:32.808 27383 27383 D VRI[EdgeLightingWindow]@a3b3768: reportDrawFinished seqId=0
+02-25 00:44:32.808  2552  3414 D WindowManager: finishDrawingWindow: Window{83e2e26 u0 EdgeLightingWindow} mDrawState=DRAW_PENDING seqId=0
+02-25 00:44:32.809  2552  2846 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.810  2552  2846 W PhoneWindowManager: lockNow pending, ignore updating lockscreen timeout
+02-25 00:44:32.810  2552  2846 V WindowManager: performShowLocked: mDrawState=HAS_DRAWN in Window{83e2e26 u0 EdgeLightingWindow}
+02-25 00:44:32.811 27383 27405 D SurfaceComposerClient: [SEC_SF_EFFECTS] setBlurRegions EdgeLightingWindow$_27383#868979 ## {radius=300, cornerRadii=[67.000, 67.000, 67.000, 67.000], alpha=1.000, rect=[97, -410, 1342, -275], clipRect=[0, 0, 2147483647, 2147483647], colorCurve=[0.000000, 13.500000, 255.000000, 133.399994], curveBias=-15.000000, saturation=0.500000, vibrance=[0.000000, (0.000000, 1.000000)], pathData size=0, BlurTint=[(0.000000 0.000000 0.000000) 0.000000, DISABLED]
+02-25 00:44:32.811  2552  2846 D SurfaceComposerClient: setCornerRadius ## f0b7f32 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#782620 cornerRadius=0.000000
+02-25 00:44:32.811  1756  1756 D SurfaceFlinger: GPIS:: requestGpisForBlur
+02-25 00:44:32.811  1756  4685 D NativeSemDvfsManager: acquire:: timeout = 2000 mIsAcquired = 1  mTagName : SurfaceFlinger 
+02-25 00:44:32.812  1756  4685 E NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::acquire()
+02-25 00:44:32.813  1642  1671 I HYPER-HAL: [RequestManager.cpp]acquire(): Acquired ID : 3800146  [1756 / 1000]    HINT : SF_GPU_MINLOCK    list : [TIMEOUT / 2000] 
+02-25 00:44:32.827  1756  1756 I SurfaceFlinger: RequestedLayer [EdgeLightingWindow$_27383#868979] hidden!! flag  from(1) --> to(0)

@@ -23,8 +23,8 @@ export function formatCurrency(amount: number | string | null | undefined, curre
 /**
  * Returns the symbol or display name for a given currency code.
  */
-export function getCurrencySymbol(currency: string = 'XOF'): string {
-    const code = currency.toUpperCase();
+export function getCurrencySymbol(currency: string | null | undefined = 'XOF'): string {
+    const code = (currency || 'XOF').toUpperCase();
     switch (code) {
         case 'EUR':
             return '€';
