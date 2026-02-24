@@ -90,13 +90,13 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebPage",
   name: "Tarifs Stockman",
-  url: "https://app.stockmanapp.com/pricing",
+  url: "https://app.stockman.pro/pricing",
   description: "Plans Starter, Pro et Enterprise pour la gestion de votre commerce.",
   breadcrumb: {
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://app.stockmanapp.com" },
-      { "@type": "ListItem", position: 2, name: "Tarifs", item: "https://app.stockmanapp.com/pricing" },
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://app.stockman.pro" },
+      { "@type": "ListItem", position: 2, name: "Tarifs", item: "https://app.stockman.pro/pricing" },
     ],
   },
   // TODO: Add Offer structured data per plan when prices are confirmed
@@ -110,20 +110,20 @@ export const metadata: Metadata = {
   title: "Tarifs — Plans Starter, Pro & Enterprise",
   description:
     "Choisissez le plan Stockman adapté à votre commerce. Essai gratuit 3 mois sur tous les plans. Application mobile + back-office web Enterprise.",
-  alternates: { canonical: "https://app.stockmanapp.com/pricing" },
+  alternates: { canonical: "https://app.stockman.pro/pricing" },
   openGraph: {
     type: "website",
-    url: "https://app.stockmanapp.com/pricing",
+    url: "https://app.stockman.pro/pricing",
     title: "Tarifs Stockman — Plans Starter, Pro & Enterprise",
     description: "Gestion de stock pour commerçants. Essai gratuit 3 mois. Plans adaptés à chaque taille de commerce.",
-    images: [{ url: "https://app.stockmanapp.com/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630 }],
     locale: "fr_FR",
   },
   twitter: {
     card: "summary_large_image",
     title: "Tarifs Stockman",
     description: "Plans Starter, Pro et Enterprise. Essai gratuit 3 mois. Logiciel de gestion de stock pour commerçants.",
-    images: ["https://app.stockmanapp.com/og-image.png"],
+    images: ["https://app.stockman.pro/og-image.png"],
   },
   keywords: [
     "tarif logiciel gestion stock", "prix Stockman", "abonnement gestion boutique",
@@ -194,11 +194,10 @@ export default function PricingPage() {
               </ul>
               <Link
                 href="/"
-                className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
-                  plan.highlight
+                className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${plan.highlight
                     ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25"
                     : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
-                }`}
+                  }`}
               >
                 {plan.cta} {plan.highlight && <ArrowRight size={14} />}
               </Link>

@@ -10,21 +10,21 @@ export const metadata: Metadata = {
   title: "Fonctionnalités Enterprise — Dashboard, POS, CRM, Comptabilité",
   description:
     "Stockman Enterprise : 12 modules professionnels accessibles depuis le web. Dashboard temps réel, Caisse POS multi-terminaux, Comptabilité P&L, CRM clients, Multi-boutiques et bien plus.",
-  alternates: { canonical: "https://app.stockmanapp.com/features" },
+  alternates: { canonical: "https://app.stockman.pro/features" },
   openGraph: {
     type: "website",
-    url: "https://app.stockmanapp.com/features",
+    url: "https://app.stockman.pro/features",
     title: "Fonctionnalités Stockman Enterprise — Back-Office Web Professionnel",
     description:
       "12 modules pour piloter votre commerce depuis n'importe quel navigateur. Stock, Caisse, CRM, Compta, Multi-boutiques. Essai gratuit 3 mois.",
-    images: [{ url: "https://app.stockmanapp.com/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630 }],
     locale: "fr_FR",
   },
   twitter: {
     card: "summary_large_image",
     title: "Fonctionnalités Stockman Enterprise",
     description: "12 modules pour gérer votre commerce depuis le web. Essai gratuit 3 mois.",
-    images: ["https://app.stockmanapp.com/og-image.png"],
+    images: ["https://app.stockman.pro/og-image.png"],
   },
   keywords: [
     "back-office web commerce", "logiciel gestion boutique", "caisse enregistreuse web",
@@ -100,7 +100,7 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebPage",
   name: "Fonctionnalités Stockman Enterprise",
-  url: "https://app.stockmanapp.com/features",
+  url: "https://app.stockman.pro/features",
   description: "12 modules professionnels pour gérer votre commerce depuis le web.",
   breadcrumb: {
     "@type": "BreadcrumbList",

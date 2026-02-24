@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://app.stockmanapp.com"),
+  metadataBase: new URL("https://app.stockman.pro"),
   title: {
     default: "Stockman — Back-Office Enterprise",
     template: "%s | Stockman",
@@ -37,7 +37,7 @@ const structuredData = {
   name: "Stockman",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web, iOS, Android",
-  url: "https://app.stockmanapp.com",
+  url: "https://app.stockman.pro",
   description:
     "Logiciel de gestion de stock et back-office professionnel pour commerçants. Dashboard, Caisse POS, Comptabilité P&L, CRM, Multi-boutiques.",
   offers: {
@@ -47,7 +47,7 @@ const structuredData = {
     offerCount: "3",
   },
   inLanguage: ["fr", "en", "ar"],
-  author: { "@type": "Organization", name: "Stockman", url: "https://stockmanapp.com" },
+  author: { "@type": "Organization", name: "Stockman", url: "https://stockman.pro" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

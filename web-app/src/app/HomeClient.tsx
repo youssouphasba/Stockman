@@ -332,7 +332,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
-                href="https://stockmanapp.com/pricing"
+                href="https://stockman.pro/pricing"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/25 text-sm"
@@ -433,7 +433,7 @@ export default function Home() {
               Rejoignez les commerces qui utilisent le back-office Enterprise pour prendre de meilleures décisions, gérer leur équipe efficacement et développer leur activité.
             </p>
             <a
-              href="https://stockmanapp.com/pricing"
+              href="https://stockman.pro/pricing"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/30 text-base"
