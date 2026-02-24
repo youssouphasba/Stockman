@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const WebAppShowcase: React.FC = () => {
     const { t } = useTranslation();
+    const sectionRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            sectionRef.current.classList.add('revealed');
+        }
+    }, []);
 
     const advantages = [
         { key: 'f1', icon: '💻' },
@@ -12,7 +19,7 @@ const WebAppShowcase: React.FC = () => {
     ];
 
     return (
-        <section className="web-app-showcase container reveal reveal-bottom">
+        <section ref={sectionRef} className="web-app-showcase container reveal reveal-bottom">
             <div className="section-title">
                 <span className="badge-premium">{t('web_app.secure')}</span>
                 <h2 className="text-gradient" style={{ marginTop: '1rem' }}>{t('web_app.title')}</h2>

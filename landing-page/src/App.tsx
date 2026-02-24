@@ -77,6 +77,7 @@ function Landing() {
             </div>
             {/* Desktop-only links */}
             <a href="#features" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
+            <a href="https://app.stockman.pro/features" target="_blank" rel="noopener noreferrer" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>Fonctionnalités Enterprise</a>
             <Link to="/blog" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.blog')}</Link>
             {/* Mobile-only sections */}
             <div className="mobile-menu-section">

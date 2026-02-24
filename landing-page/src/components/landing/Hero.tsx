@@ -34,7 +34,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                             >
                                 <span className="profile-icon">🏢</span>
                                 <strong>Entreprise</strong>
-                                <span>Je pilote plusieurs sites depuis un bureau</span>
+                                <span>Je suis une entreprise multi équipes et j'ai besoin d'une solution complète</span>
                             </button>
                         </div>
                     </div>
