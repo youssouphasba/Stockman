@@ -105,8 +105,8 @@ const structuredData = {
   breadcrumb: {
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://app.stockmanapp.com" },
-      { "@type": "ListItem", position: 2, name: "Fonctionnalités", item: "https://app.stockmanapp.com/features" },
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://app.stockman.pro" },
+      { "@type": "ListItem", position: 2, name: "Fonctionnalités", item: "https://app.stockman.pro/features" },
     ],
   },
 };
