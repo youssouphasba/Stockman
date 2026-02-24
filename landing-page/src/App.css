@@ -152,6 +152,127 @@
   text-decoration: underline;
 }
 
+/* Country select */
+.signup-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.6rem;
+  color: var(--text);
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.signup-select:focus { border-color: var(--primary); }
+.signup-select option { background: #1a1a2e; color: var(--text); }
+
+/* Phone row with dial code */
+.signup-phone-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.signup-phone-row:focus-within { border-color: var(--primary); }
+.signup-dial-code {
+  padding: 0.7rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-right: 1px solid rgba(255,255,255,0.12);
+  white-space: nowrap;
+  user-select: none;
+}
+.signup-phone-row input {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.7rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.signup-phone-row input:focus { outline: none; }
+
+/* Password row with show/hide */
+.signup-password-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.signup-password-row:focus-within { border-color: var(--primary); }
+.signup-password-row input {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.7rem 1rem;
+  flex: 1;
+}
+.signup-password-row input:focus { outline: none; }
+.signup-eye-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* Legal checkboxes */
+.signup-legal-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.signup-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.signup-check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin-top: 1px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.signup-check-row a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Success store buttons */
+.store-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.store-download-btn:hover { background: rgba(255,255,255,0.15); }
+
 /* Success state */
 .signup-success {
   text-align: center;
