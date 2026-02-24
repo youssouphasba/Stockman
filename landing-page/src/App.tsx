@@ -260,20 +260,6 @@ function Landing() {
               </ul>
               <button onClick={() => setSignupPlan('pro')} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>{t('pricing.business.cta')}</button>
             </div>
-
-            <div className="pricing-card-enterprise-teaser glass-card">
-              <div className="enterprise-teaser-badge">🏢 Entreprise multi-sites ?</div>
-              <p>Gérez plusieurs boutiques avec un back-office web complet, des rapports avancés et une gestion d'équipe dédiée.</p>
-              <a
-                href="https://app.stockman.pro/pricing"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-                style={{ display: 'inline-block', marginTop: '0.5rem' }}
-              >
-                Voir le plan Enterprise →
-              </a>
-            </div>
           </div>
         ) : (
           <div className="pricing-enterprise-redirect">
@@ -290,13 +276,13 @@ function Landing() {
                 <li><span className="check-icon">✓</span> Application mobile incluse pour vos équipes terrain</li>
               </ul>
               <a
-                href="https://app.stockman.pro/pricing"
+                href="https://app.stockman.pro/features"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{ display: 'block', textAlign: 'center', marginTop: '1rem' }}
               >
-                {pricingData.useMobileMoney ? 'Payer via Mobile Money →' : 'Démarrer l\'essai Enterprise →'}
+                Démarrer l'essai Enterprise →
               </a>
             </div>
           </div>
@@ -343,6 +329,8 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {signupPlan && <SignupModal plan={signupPlan} onClose={() => setSignupPlan(null)} />}
 
       <footer id="contact">
         <div className="container">
@@ -397,7 +385,6 @@ function App() {
           <Analytics />
           <CookieBanner />
           <WhatsAppButton />
-          {signupPlan && <SignupModal plan={signupPlan} onClose={() => setSignupPlan(null)} />}
 
           <Routes>
             <Route path="/" element={<Landing />} />

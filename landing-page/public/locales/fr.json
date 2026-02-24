@@ -96,19 +96,19 @@
         "popular": "Populaire",
         "starter": {
             "name": "Starter",
-            "f1": "1 Utilisateur, 1 Boutique",
-            "f2": "Produits illimités",
-            "f3": "14 Requêtes IA / semaine",
-            "f4": "Rapports sur 30 jours",
+            "f1": "1 Utilisateur",
+            "f2": "1 Boutique",
+            "f3": "Accès complet à toutes les fonctionnalités",
+            "f4": "3 mois d'essai gratuit",
             "cta": "3 Mois Gratuits"
         },
         "business": {
-            "name": "Premium",
-            "f1": "Utilisateurs illimités",
-            "f2": "Produits illimités",
-            "f3": "Assistant IA illimité",
-            "f4": "Marketplace & CRM",
-            "f5": "Analyses & Rapports illimités",
+            "name": "Pro",
+            "f1": "Jusqu'à 5 Utilisateurs",
+            "f2": "2 Boutiques",
+            "f3": "Accès complet à toutes les fonctionnalités",
+            "f4": "Marketplace Bouton-à-Bouton",
+            "f5": "3 mois d'essai gratuit",
             "cta": "3 Mois Gratuits"
         }
     },

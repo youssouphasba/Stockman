@@ -1,567 +1,567 @@
 {
-    "nav": {
-        "features": "Geɗe gollirɗe",
-        "resources": "Ressources",
-        "blog": "Blog",
-        "home": "Connexion",
-        "login": "Naatu",
-        "free_trial": "Essai Gratuit"
+  "nav": {
+    "features": "Geɗe gollirɗe",
+    "resources": "Ressources",
+    "blog": "Blog",
+    "home": "Connexion",
+    "login": "Naatu",
+    "free_trial": "Essai Gratuit"
+  },
+  "hero": {
+    "title_start": "Koldinu",
+    "title_end": "no gollanteeɗo nii",
+    "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
+    "cta": "Démarrer maintenant"
+  },
+  "stats": {
+    "shops": "Commerces équipés",
+    "transactions": "Njaayuuji lewru",
+    "satisfaction": "Clients satisfaits",
+    "support": "Ballo 24/7"
+  },
+  "features": {
+    "title": "Vos outils quotidiens",
+    "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
+    "dashboard": {
+      "title": "Accueil",
+      "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
     },
-    "hero": {
-        "title_start": "Koldinu",
-        "title_end": "no gollanteeɗo nii",
-        "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser vos commandes et maximiser vos profits.",
-        "cta": "Démarrer maintenant"
+    "products": {
+      "title": "Produits",
+      "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
     },
-    "stats": {
-        "shops": "Commerces équipés",
-        "transactions": "Njaayuuji lewru",
-        "satisfaction": "Clients satisfaits",
-        "support": "Ballo 24/7"
+    "pos": {
+      "title": "Caisse",
+      "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
     },
-    "features": {
-        "title": "Vos outils quotidiens",
-        "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
-        "dashboard": {
-            "title": "Accueil",
-            "desc": "Vue d'overview de votre activité, alertes de stock critiques et accès rapide à l'assistant IA."
-        },
-        "products": {
-            "title": "Produits",
-            "desc": "Gestion d'inventaire, scan code-barres, organisation par catégories et valorisation du stock."
-        },
-        "pos": {
-            "title": "Caisse",
-            "desc": "Encaissez vos clients rapidement, générez des reçus numériques et mettez à jour le stock en temps réel."
-        },
-        "suppliers": {
-            "title": "Fournisseurs",
-            "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
-        },
-        "orders": {
-            "title": "Commandes",
-            "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
-        },
-        "accounting": {
-            "title": "Comptabilité",
-            "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
-        },
-        "clients": {
-            "title": "Clients",
-            "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
-        },
-        "settings": {
-            "title": "Réglages",
-            "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
-        }
+    "suppliers": {
+      "title": "Fournisseurs",
+      "desc": "Annuaire fournisseurs, historique des commandes et accès à la Marketplace \"Bouton-à-Bouton\"."
     },
-    "showcase": {
-        "title": "L'interface qui change tout",
-        "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
-        "app_interface": "Interface App"
+    "orders": {
+      "title": "Commandes",
+      "desc": "Suivi des commandes d'achat, réception des marchandises et mise à jour automatique des stocks."
     },
-    "how_it_works": {
-        "title": "Démarrage rapide",
-        "subtitle": "Trois étapes simples pour transformer votre commerce.",
-        "step1": {
-            "title": "Créez votre compte",
-            "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
-        },
-        "step2": {
-            "title": "Scannez vos produits",
-            "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
-        },
-        "step3": {
-            "title": "Encaissez & Suivez",
-            "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
-        }
+    "accounting": {
+      "title": "Comptabilité",
+      "desc": "Suivi précis des ventes, des dépenses et calcul automatique de la rentabilité par période."
     },
-    "testimonials": {
-        "title": "Ils nous font confiance",
-        "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
-        "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
-        "t1_author": "Amadou Diallo",
-        "t1_job": "Boutique Électronique",
-        "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
-        "t2_author": "Sarah Kouassi",
-        "t2_job": "Supermarché Express",
-        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
-        "t3_author": "Paul N'Goma",
-        "t3_job": "Pharmacie Centrale"
+    "clients": {
+      "title": "Clients",
+      "desc": "Base de données clients, historique des achats et outils de fidélisation intégrés."
     },
-    "pricing": {
-        "title": "Cogguuji weeɓtuɗi, alaa lën-lën",
-        "subtitle": "Fuɗɗu feyeere, ɓeydu no mbuɗ-ɗaa nii.",
-        "month": "/mois",
-        "popular": "Populaire",
-        "starter": {
-            "name": "Starter",
-            "f1": "1 Utilisateur, 1 Boutique",
-            "f2": "100 produits",
-            "f3": "14 Requêtes IA / semaine",
-            "f4": "Rapports sur 30 jours",
-            "cta": "3 Mois Gratuits"
-        },
-        "business": {
-            "name": "Premium",
-            "f1": "Utilisateurs illimités",
-            "f2": "Produits illimités",
-            "f3": "Assistant IA illimité",
-            "f4": "Marketplace & CRM",
-            "f5": "Analyses & Rapports illimités",
-            "cta": "3 Mois Gratuits"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Sur devis",
-            "f1": "Multi-boutiques",
-            "f2": "Support dédié 24/7",
-            "f3": "API & Intégrations",
-            "f4": "IA personnalisée",
-            "cta": "Contacter"
-        }
-    },
-    "faq": {
-        "title": "Naamne keewɗe",
-        "q1": "Mbele ina golla tawa internet alaa?",
-        "a1": "Eyyo, Stockman ina golla e gollal tawa internet alaa. Humpito maa ena simaye so internet arti.",
-        "q2": "Mbele humpitooji am ena aaraa?",
-        "a2": "Hoolu ɗum. Emin kuutorɗe njuɓɓudi aaraango hiisawal ngam aarude kala humpitooji njaaƴu maa."
-    },
-    "download": {
-        "title": "Mbele a paree ngir ɓeydude mbeesu maa?",
-        "subtitle": "Jokku e ujunnaaje njaaƴooɓe mbeesuugol njuɓɓudi mum en.",
-        "app_store": "App Store",
-        "google_play": "Google Play",
-        "secure": "Feygooji aaraango",
-        "support": "Ballo karallagal",
-        "updates": "Mbeesuuji jokkuɗi"
-    },
-    "footer": {
-        "desc": "Solisyon numéro 1 ngir mbeesu njaayu e Afrik.",
-        "product": "Gollirgal",
-        "support": "Ballo",
-        "legal": "Sariya",
-        "help_center": "Suudu ballo",
-        "contact": "Jokkondir en",
-        "community": "Mboolaari",
-        "privacy": "Dawrugol njaayu",
-        "terms": "Sarɗiiji kuutoragol",
-        "delete_account": "Supprimer mon compte",
-        "legal_notice": "Xibaaru sariya",
-        "copyright": "© 2026 Stockman. Humpito aaraango."
-    },
-    "delete_account": {
-        "title": "Suppression de Compte & Données",
-        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
-        "version": "Dernière mise à jour : 18 Février 2026",
-        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
-        "method_app_title": "1. Via l'application (Recommandé)",
-        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
-        "method_app_steps": [
-            "Ouvrez l'application Stockman.",
-            "Allez dans l'onglet **Réglages**.",
-            "Faites défiler jusqu'à la section **Zone de danger**.",
-            "Appuyez sur **Supprimer mon compte**.",
-            "Confirmez en saisissant votre mot de passe."
-        ],
-        "method_web_title": "2. Via ce formulaire (Sans l'application)",
-        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
-        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
-        "data_erased_title": "Quelles données seront effacées ?",
-        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
-        "data_erased_list": [
-            "Votre profil utilisateur et identifiants.",
-            "Toutes vos boutiques et points de vente.",
-            "L'intégralité de votre inventaire et catalogue produits.",
-            "Toutes vos transactions de vente et historiques comptables.",
-            "Vos listes de clients, fournisseurs et historiques d'achats.",
-            "Vos accès à l'Assistant IA et historiques de chat."
-        ],
-        "retention_title": "Délai de traitement",
-        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
-    },
-    "newsletter": {
-        "title": "Wontu karallo stok",
-        "desc": "Jokku e 5000+ njaaƴooɓe te heɓu ɗerewol ballo men: \"Njuumte 10 bartooje ɓurale maa\".",
-        "success": "A jarama! Ƴeew inbox maa.",
-        "placeholder": "Email maa...",
-        "cta": "Heɓu ɗerewol ngol",
-        "privacy": "Alaa spam. Dakkal e kiliik 1."
-    },
-    "contact": {
-        "title": "Jokkondir en",
-        "subtitle": "Naamnal? Gollondiral? Windu e amen.",
-        "name": "Innde maa",
-        "email": "Email maa",
-        "message": "Ɓataake maa",
-        "submit": "Neldu ɓataake",
-        "success_title": "Ɓataake neldaama!",
-        "success_desc": "Goomu amen jaaboto e nder 24 waktu.",
-        "send_another": "Neldu ɓataake goɗɗo"
-    },
-    "whatsapp": {
-        "message": "Jam, miɗo yidɗi anndude ko ɓuri e Stockman!"
-    },
-    "cookie": {
-        "message": "Emin kuutorɗe ngam moƴƴinde humpito maa. So a jokkii, a jaɓii dawrugol men.",
-        "accept": "Jaɓu"
-    },
-    "comparison": {
-        "title": "Ko waɗi a suɓotoo Stockman?",
-        "feature": "Gollirgal",
-        "notebook": "Kaye / Excel 📝",
-        "stock_mgmt": "Koldinaagu stok",
-        "stock_yes": "✅ Laawol gollirgal e waktu",
-        "stock_no": "❌ Windol njuumte",
-        "alerts": "Tinndinorgol stok",
-        "alerts_yes": "✅ Neldugooji IA",
-        "alerts_no": "❌ Alaa",
-        "pos": "POS (Caisse)",
-        "pos_yes": "✅ Moƴƴi te jaawi",
-        "pos_no": "❌ Salkilatris wonande",
-        "backup": "Aar humpito",
-        "backup_yes": "✅ Sinuwi aaraango",
-        "backup_no": "❌ Baasgol (wujju, jite)",
-        "financial": "Rappoor njaaƴu",
-        "financial_yes": "✅ E nder kiliik 1 (P&L, Ɓurale)",
-        "financial_no": "❌ Limtagol juutngol",
-        "marketplace": "Marketplace",
-        "marketplace_yes": "✅ Jokkondiral e ñootooɓe",
-        "marketplace_no": "❌ Yiilaade e laabi"
-    },
-    "feature_pages": {
-        "back_home": "Wartu e suudu",
-        "why_use": "Ko waɗi a huutortoo {{title}}?",
-        "discover_interface": "Tingunoo peeje ɗee no feewi",
-        "cta_title": "Mbele a paree ngir moƴƴinde koldinaagu maa?",
-        "cta_button": "Fuɗɗu eto mbeesu jooni",
-        "dashboard": {
-            "title": "Koldunorde",
-            "subtitle": "Koldinu njaayu maa e yillannde wootere",
-            "description": "Koldunorde maa ko suudu maa njaayu. Wonaa tonngoode tan — ina rokka ma laawol laaɓngol ngam ngalu maa. E kawtal IA, ina limta njaayu maa e waktu makko ngir tingunorgol ɓurale e baasal (stok jeexirɗo, stok keewɗo). Ko kambe ton a ƴettoyata pellital mawngal.",
-            "f1_title": "Limtooji waktu",
-            "f1_desc": "Topptu ngalu maa, ɓurale maa e tonngoode njaayu maa e nder sigoŋ.",
-            "f2_title": "Tinndinorgol amana",
-            "f2_desc": "Heɓu tinndinorgol njaayu ngam kuuge jeexirɗe wala kuuge ɓadaade dakkde.",
-            "f3_title": "Ballo IA",
-            "f3_desc": "Naamnu ballo maa njaayu naamne a heɓa jaabi jooni-jooni e koldunorde maa.",
-            "gallery": {
-                "kpi": {
-                    "image": "/assets/screenshots/dashboard-kpi.jpg",
-                    "title": "Yillannde & KPIs",
-                    "description": "Topptu limtooji maa e waktu mum so a ubbii gollirgal ngal."
-                },
-                "stats": {
-                    "image": "/assets/screenshots/dashboard-stats.jpg",
-                    "title": "Limtooji kuuɓtodinɗi",
-                    "description": "Yi'u ngalu maa, ɓurale maa e peeje njaayu maa."
-                },
-                "charts": {
-                    "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-                    "title": "Xayeoji gollal",
-                    "description": "Topptu ɓeydagol stok maa te limto waktu njaayu maa."
-                },
-                "analysis": {
-                    "image": "/assets/screenshots/dashboard-analysis.jpg",
-                    "title": "Saytu ABC & Jallagal",
-                    "description": "Anndu gollirɗe ɓurde moƴƴude te heɓu neldugooji ngam njalla."
-                },
-                "history": {
-                    "image": "/assets/screenshots/dashboard-history.jpg",
-                    "title": "Téere gollal",
-                    "description": "Dencal kala gollirgal ngal naataa wala yaltat e stok maa."
-                }
-            }
-        },
-        "products": {
-            "title": "Koldinaagu gollirɗe",
-            "subtitle": "Stok maa, moƴƴinaa no feewi",
-            "description": "Koldinaagu stok gollanteeɗo tawa alaa bone. So a jogii 10 wala 10,000 gollirgal, Stockman ina rokka ma laawol moƴƴinde ɗum no haanirta nii. Saytukaay borkood (barcode) e nder gollirgal ina defa telefon maa wontu gollirgal njaawngal.",
-            "f1_title": "Scanner Barcode",
-            "f1_desc": "Huutoro kamera telefon maa ngam ɓeydude gollirɗe wala jàngude stok maa e njaawre.",
-            "f2_title": "Moƴƴinal weeɓungal",
-            "f2_desc": "Sosu kategóriiji, markaaji e céti ngam moƴƴinde kër njaayu maa.",
-            "f3_title": "Coggu stok bi",
-            "f3_desc": "Anndu coggu timmungo stok maa e kala waktu (coggu jënd e coggu njaayu).",
-            "gallery": {
-                "list": {
-                    "image": "/assets/screenshots/products-list.jpg",
-                    "title": "Dogo gollirɗe",
-                    "description": "Heɓu njaawre e dogo maa timmungo e saytukaay mbeesu."
-                },
-                "create": {
-                    "image": "/assets/screenshots/products-create-1.jpg",
-                    "title": "Sosal weeɓungal",
-                    "description": "Ɓeydu gollirgal e nder sigoŋaaji e kala humpito murata."
-                },
-                "variants": {
-                    "image": "/assets/screenshots/products-create-2.jpg",
-                    "title": "Céti e detay",
-                    "description": "Koldinu mangu, kulëri e cogguuji goɗɗi ngam kala céti."
-                },
-                "thresholds": {
-                    "image": "/assets/screenshots/products-create-3.jpg",
-                    "title": "Stok e tinndinorgol",
-                    "description": "Tëral tinndinorgol so stok ina nawa ngam a reera njaayu maa."
-                }
-            }
-        },
-        "pos": {
-            "title": "POS (Caisse)",
-            "subtitle": "Fey kilyanɓe e weeɓre",
-            "description": "Rokku kilyanɓe maa laawol fey mbeesu te jaawngol. POS men jaawi no feewi: ɓeydu gollirɗe, koldinu rabatuji te fey e laabi keewɗi e nder sigoŋaaji.",
-            "f1_title": "Panniyé njaaawngal",
-            "f1_desc": "Laawol mbeesu ngam ɓeydude gollirɗe e panniyé e waktu mum.",
-            "f2_title": "Resit digital",
-            "f2_desc": "Neldu resitiji e WhatsApp, SMS wala Email kilyanɓe maa.",
-            "f3_title": "Laabi fey keewɗi",
-            "f3_desc": "Jaɓu kaalis, Mobile Money wala kartuji te topptu kala ko naataa e koldunorde maa.",
-            "gallery": {
-                "sale": {
-                    "image": "/assets/screenshots/pos-overview.jpg",
-                    "title": "Laawol njaayu",
-                    "description": "Ɓeydu gollirɗe e panniyé, koldinu limto e rabatuji."
-                },
-                "receipt": {
-                    "image": "/assets/screenshots/pos-receipt-qr.jpg",
-                    "title": "Resit e Code QR",
-                    "description": "Sosu resit jaawngol e code QR ngam kilyanɓe maa scan."
-                }
-            }
-        },
-        "suppliers": {
-            "title": "Ñootooɓe e Marketplace",
-            "subtitle": "Jënd maa weeɓii jooni",
-            "description": "Defal jënd maa mu wontu semmbe maa. Stockman ina kawtina moƴƴinaa kala ñootooɓe maa te ubbana ma Marketplace men murre. Natt Cogguuji e waktu mum te yamir e suudu.",
-            "f1_title": "Dogo ñootooɓe",
-            "f1_desc": "Kawtinu humpitooji ñootooɓe maa e istoriku jënd maa e amen.",
-            "f2_title": "Yamirgooji jaawɗi",
-            "f2_desc": "Sosu mbataaxali jënd e kiliik 1 no stok maa soxalee.",
-            "f3_title": "Natt Coggu",
-            "f3_desc": "Yiilu ñootoowo ɓurɗo yombude ngam kala gollirgal e saytukaay men.",
-            "gallery": {
-                "marketplace": {
-                    "image": "/assets/screenshots/suppliers-marketplace.jpg",
-                    "title": "Marketplace nder",
-                    "description": "Heɓu mboolaari ñootooɓe aaraango te natt cogguuji."
-                },
-                "catalog": {
-                    "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-                    "title": "Humpito ñootoowo",
-                    "description": "Yi'u gollirɗe gollotooɗo amana e sartiiji mum."
-                },
-                "order": {
-                    "image": "/assets/screenshots/suppliers-order-creation.jpg",
-                    "title": "Gollal njaayu",
-                    "description": "Sosu te neldu yamirgooji jalla e sigoŋaaji seeɗa."
-                }
-            }
-        },
-        "orders": {
-            "title": "Topptagol njaayu",
-            "subtitle": "Fuɗɗoode yamirgal haa naata e bitik",
-            "description": "Jogal laawol timmungo e njaayu maa. Fuɗɗoode yamirgal haa feytitgol e bitik, topptu kala ko waɗata. Stok maa ina simaye sigoŋ so gollirɗe naatii.",
-            "f1_title": "Topptagol gollal",
-            "f1_desc": "Yi'u gollal kala yamirgal: ina fey, neldaama, naatii wala dakkii.",
-            "f2_title": "Naatgol weeɓungol",
-            "f2_desc": "Jaɓu gollirɗe maa te ɓeydu stok maa sigoŋ.",
-            "f3_title": "Istoriku timmungo",
-            "f3_desc": "Yiilu kala yamirgooji maa ɓennuɗi ngam weeɓinde liggeey maa.",
-            "gallery": {
-                "tracking": {
-                    "image": "/assets/screenshots/orders-tracking.jpg",
-                    "title": "Topptagol waktu",
-                    "description": "Yi'u gollal yamirgal ñootoowo haa mu jéexa."
-                }
-            }
-        },
-        "accounting": {
-            "title": "Hiisawal weeɓungol",
-            "subtitle": "Kaalis maa e loxo maa",
-            "description": "Hiisawal maa ina liggeeyo boppum. Kala njaayu, kala depans ina naat sigoŋ e téere hiisawal maa. Topptu kaalis maa te sosu bilan maa e 1 kiliik.",
-            "f1_title": "Bilan (Profit & Loss)",
-            "f1_desc": "Yi'u ngalu maa, cogguuji e ɓurale maa e kala waktu.",
-            "f2_title": "Topptagol depans",
-            "f2_desc": "Windu depans maa (fey suudu, kuraan, gollotooɓe) ngam anndude ɓurale maa koye.",
-            "f3_title": "Neldu PDF/Excel",
-            "f3_desc": "Wàccu humpitooji hiisawal maa ngam saytukat maa wala ngam dencugol.",
-            "gallery": {
-                "overview": {
-                    "image": "/assets/screenshots/accounting-overview.jpg",
-                    "title": "Laawol hiisawal kuuɓto",
-                    "description": "Saytu ɓurale maa e limtooji laaɓtuɗi."
-                },
-                "expenses": {
-                    "image": "/assets/screenshots/accounting-expense-create.jpg",
-                    "title": "Koldinaagu depans",
-                    "description": "Ɓeydu cogguuji jalla e mbeesu e weeɓre."
-                },
-                "reports": {
-                    "image": "/assets/screenshots/accounting-details-charts.jpg",
-                    "title": "Rappoor e xayeoji",
-                    "description": "Yi'u kaalis maa no dogiri e sigoŋ."
-                }
-            }
-        },
-        "clients": {
-            "title": "Koldinaagu kilyanɓe (CRM)",
-            "subtitle": "Dencal kilyanɓe maa",
-            "description": "Defal kilyanɓe maa wontu kilyanɓe dëggu. CRM bi ina denc kala istoriku njaayu. Koldinu ñamaande e keredit ngam a reera kaalis maa e \"ñamaande\" kadi.",
-            "f1_title": "Sët kilyanɓe",
-            "f1_desc": "Istoriku njaayu timmungo, nimero telefon e ko neex kilyan bi.",
-            "f2_title": "Ñamaande e keredit",
-            "f2_desc": "Topptu ñamaande kilyanɓe maa te xamël ko dëggu e koye.",
-            "f3_title": "Marketing WhatsApp",
-            "f3_desc": "Neldu mbataaxali njaayu kilyanɓe maa e WhatsApp.",
-            "gallery": {
-                "details": {
-                    "image": "/assets/screenshots/clients-details.jpg",
-                    "title": "Sët kilyan timmungo",
-                    "description": "Kala humpito kilyan, istoriku njaayu e ñamaande/keredit."
-                },
-                "campaigns": {
-                    "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-                    "title": "WhatsApp njaayu",
-                    "description": "Sosu te neldu mbataaxali njaayu mboolaari kilyanɓe maa."
-                }
-            }
-        },
-        "settings": {
-            "title": "Paramétrage",
-            "subtitle": "Defal Stockman no mbuɗ-ɗaa nii",
-            "description": "Tëral Stockman no gollal maa haanirta nii: koldinu gollotooɓe maa, ɓeydu bitikaaji yu bees te heɓu ballo jaawngol.",
-            "f1_title": "Koldinaagu gollotooɓe",
-            "f1_desc": "Ubbi sët ngam gollotooɓe maa te tëral li nu mbaɗi (seller, manager, admin).",
-            "f2_title": "Bari bitikaaji",
-            "f2_desc": "Ɓeydu te koldinu bitikaaji keewɗi e nder sët 1.",
-            "f3_title": "Moƴƴinal",
-            "f3_desc": "Waylu kaalis, làkk e no aplikasyon bi woniri.",
-            "gallery": {
-                "team": {
-                    "image": "/assets/screenshots/settings-employees.jpg",
-                    "title": "Koldinaagu ekip",
-                    "description": "Topptu gollotooɓe maa, roleeji e ko nu mbaɗi."
-                },
-                "notifications": {
-                    "image": "/assets/screenshots/settings-notifications.jpg",
-                    "title": "Suudu tinndinorgol",
-                    "description": "Tëral tinndinorgol stok e fattali amanaaji."
-                },
-                "security": {
-                    "image": "/assets/screenshots/settings-support-security.jpg",
-                    "title": "Ballo e Aar",
-                    "description": "Heɓu ballo e gollirgal te aar sët maa."
-                },
-                "guide": {
-                    "image": "/assets/screenshots/settings-guide.jpg",
-                    "title": "Teere ballo",
-                    "description": "Jàngël kala ko Stockman mbaɗi."
-                }
-            }
-        }
-    },
-    "about": {
-        "seo_title": "Humpito men",
-        "seo_desc": "Anndu ekip Stockman e liggeey men ngam mbeesu njaayu e Afrik.",
-        "home": "Suudu",
-        "mission_start": "Liggeey men:",
-        "mission_highlight": "Mbeesu Afrik",
-        "mission_desc": "Emin njaɓi kala njaaƴoowo, famarɗo wala mawɗo, ina jogii sàrtu gollirɗe ɓurɗe moƴƴude. Stockman wonaa logicel tan — ko gollotooɗo maa ngam ɓeydagol maa.",
-        "team_title": "Ekip bi",
-        "team_subtitle": "Yimɓe amanaaji ngam njaaƴooɓe.",
-        "member1_image": "👨🏿‍💼",
-        "member1_name": "Jean-Marc Koffi",
-        "member1_role": "CEO & Sosal-kat",
-        "member1_bio": "Njaaƴoowo kaddunooɗo, o sosi Stockman ngam koldinaagu jàfe-jàfe makko.",
-        "member2_image": "👩🏾‍💻",
-        "member2_name": "Awa Diop",
-        "member2_role": "CTO & Njiit xarala",
-        "member2_bio": "Injénieur amanaaji e IA te mbeesu Afrik.",
-        "member3_image": "🎧",
-        "member3_name": "David N'Guessan",
-        "member3_role": "Njiit ballo",
-        "member3_bio": "Ina heewi nano-go ngam wallude kuutortooɓe men.",
-        "values_title": "Men gollidi",
-        "value1_title": "🔍 Weeɓre",
-        "value1_desc": "Xarala bi ina wara weeɓde kadi kala nit ina mawan gollude ɗum.",
-        "value2_title": "🤝 Jokkondiral",
-        "value2_desc": "Emin ɗoo — emin anndi dund maa e jàfe-jàfe maa.",
-        "value3_title": "🚀 Xarala mbeesu",
-        "value3_desc": "Emin moƴƴinde Stockman kala waktu kadi sa mbataaxali maa."
-    },
-    "blog": {
-        "seo_title": "Blog e ballo",
-        "seo_desc": "Peeje e ballo ngam koldinaagu njaayu, moƴƴinde stok te ɓeydude njaayu maa.",
-        "page_title": "Suudu humpito",
-        "page_subtitle": "Peeje karallooji ngam njaaƴooɓe mbeesu.",
-        "read_more": "Jàng ko ɓuri →",
-        "not_found": "Mbiddu bi alaa ɗoo 😕",
-        "back_to_blog": "Wartu e Blog bi",
-        "back_to_articles": "← Wartu e mbidduuji",
-        "published_on": "PUBLIÉ LE",
-        "liked_article": "Mbele mbiddu ngol neexii ma?",
-        "try_stockman": "Eto Stockman ngam huutorade peeje ɗee.",
-        "start_trial": "Fuɗɗu eto feyeere",
-        "posts": {
-            "abandonner-cahier-stock": {
-                "title": "Ko waɗi a accata kaye ngam koldinaagu stok?",
-                "excerpt": "Kaye ina jogii sigoŋ. Anndu no mbeesu kadi aara sa liggeey e njuumte e baasgol.",
-                "date": "12 Féw 2026",
-                "content": "<p>Njaaƴooɓe heewɓe ina kuutortoo kaye ngam windude njaayu e stok. Ina yàggi, kono ina jogii riskuuji mawɗi.</p><h3>1. Njuumte hiisawal</h3><p>Njuumte famarɗo e hiisawal ina mawa njaayu maa timmungo. E logicel ni Stockman, hiisawal ngal jaawi te alaa njuumte.</p><h3>2. Baasgol humpito</h3><p>Kaye ina mawa reerde, wujjonoo wala jite tàkka e mum. Humpitooji maa e Stockman ina dencaa e cloud te ina yillee kala ɗo.</p><h3>3. Alaa laawol timmungo</h3><p>Ina jaaɓi anndude mbiddu ɓurdu njaayeede tan e dogo xub yi. Stockman ina rokka ma ɗum e kiliik 1.</p><h3>Bile bëj</h3><p>Naatgol e xarala wonaa coggu — ko njalla njalɗinoo ma waktu e kaalis fuɗɗoode lewru adanndu.</p>"
-            },
-            "eviter-ruptures-fetes": {
-                "title": "No dawri-ɗaa njuumte stok e fët yi?",
-                "excerpt": "Noël e Tabaski ko waktuuji amanaaji. Pareel stok maa e waktu mum e ballo men.",
-                "date": "10 Jan 2026",
-                "content": "<p>Njuumte stok e fët yi ko baasgol kaalis mbeesu. No dawan-ɗaa ɗum.</p><h3>Tingunoo waktu</h3><p>Huutoro ko njaayu-ɗaa hito weesu ngam anndude ko soxal-ɗaa njaayu hito ngol.</p><h3>Jëndu e waktu</h3><p>Ñootooɓe ina jogii liggeey heewɗo. Jëndu gollirɗe maa simenn 2 wala 3 e waktu fët yi.</p><h3>Huutoro tinndinorgol Stockman</h3><p>Tëral tinndinorgol kadi Stockman yegal ma so gollirgal ina nawa.</p>"
-            },
-            "augmenter-marge-2026": {
-                "title": "3 peeje ngam ɓeydude ɓurale maa e 2026",
-                "excerpt": "Njaayu moƴƴi, kono ɓurale ɓuri! Jàngal no moƴƴintaa cogguuji jënd e cogguuji njaayu.",
-                "date": "05 Jan 2026",
-                "content": "<p>Ɓeydude coggu wonaa tan laawol ɓeydude kaalis. Suuda no liggortaa e ɓurale maa.</p><h3>1. Wàccu baasgol</h3><p>Gollirɗe dakkiiɗe wala wujjaaɗe ina jogii coggu mawngol. Topptagol moƴƴo stok ina mawa wàccu baasgol haa 30%.</p><h3>2. Jokkondir e ñootoowo</h3><p>So a jëndii gollirɗe keewɗe e Stockman Marketplace, a mawan heɓude cogguuji ɓurɗi moƴƴude.</p><h3>3. Dencal kilyanɓe</h3><p>Kilyan dëggu moƴƴi ɓuri kilyan mbeesu. Huutoro porogram keredit ngam kilyan bi wartugo bitik maa.</p>"
-            }
-        }
-    },
-    "help": {
-        "hero_start": "No men mbaɗata ballu-ɗen",
-        "hero_highlight": "maa",
-        "search_placeholder": "Yiilu jaabi...",
-        "no_results": "Jaabi alaa ngam \"{{term}}\"",
-        "need_more": "A soxal ballo goɗɗo?",
-        "email_support": "✉️ Ballo Email",
-        "whatsapp_chat": "💬 WhatsApp Chat",
-        "getting_started": {
-            "title": "Fuɗɗoode liggeey",
-            "q1": "No may sose sët?",
-            "a1": "Wàccu gollirgal ngal te topptu xibaaruuji e bët bi. Du ɓura 2 minit.",
-            "q2": "Mbele mi mawan huutorade gollirgal tawa internet alaa?",
-            "a2": "Waaw, Stockman ina liggeeyo e mode offline te ina denc humpitooji maa sigoŋ so internet arti."
-        },
-        "account_billing": {
-            "title": "Sët e fey bi",
-            "q1": "No may wayle kodd bi?",
-            "a1": "Démal e Paramètres > Sécurité > Changer mot de passe.",
-            "q2": "No natt feyeere di dogiri?",
-            "a2": "Dina men rokke 14 bës de feyeere e kala gollirɗe mbeesu so a sosi sët maa."
-        },
-        "technical_support": {
-            "title": "Ballo xarala",
-            "q1": "Gollirgal ngal ubbaki, ko waɗi?",
-            "a1": "Ƴeew internet maa te anndu kadi a jogii xarala mbeesu. So jaaɓi, wàccu ko kadi.",
-            "q2": "No mbay woo-de ballo bi?",
-            "a2": "A mawan neldu-de mbataake e suudu ballo wala e WhatsApp mbeesu."
-        }
-    },
-    "terms": {
-        "title": "Sarɗiiji kuutoragol",
-        "version": "Version \"Ultimate\" 3.0 - 13 Féw 2026",
-        "content": "<p>Jam e <strong>Stockman</strong>.<br/>Sarɗiiji kuutoragol ɗii (nu nwoowé \"Sarɗiiji\") ko sariya liggeey kadi jogii Kuutortooɗo o e Sosal-kat Stockman o.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE I: SARƊIIJI LIGGEEY</h3><h4>Marticle 1: Ko nu tekki</h4><ul><li><strong>Plateforme</strong>: Kala xaralu Stockman.</li><li><strong>Kuutortooɗo</strong>: Kompani wala nit kiy huutoroo gollirgal ngal ngam liggeeyam.</li><li><strong>Sosal-kat</strong>: Stockman Inc., mooy borom Stockman.</li><li><strong>Bitik</strong>: Suudu njaayu liggeey bi dogata.</li></ul><h4>Marticle 2: Li men bëggi</h4><p>Stockman ko solisyon ERP ngir koldinaagu stok, POS e kilyanɓe. Ina doga ni liggeey (SaaS).</p><h4>Marticle 3: Jaɓu sarɗiiji</h4><p>So a yidɗi jokkude e Stockman foti a jaɓu sarɗiiji ɗii timmungo.</p><h4>Marticle 4: Liggeey karallagal</h4><p>Stockman wonaa tan natt humpitooji ludul liggeey. Kuutortooɗo o ina wara liggeeyo timmungo.</p><h4>Marticle 5: Waylu sarɗiiji</h4><p>Sosal-kat o ina jogii hakke waylude sarɗiiji ɗii waktu kala. So a jokkii liggeey o, a jaɓii sarɗiiji ɓeydaaɗi ɗii.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE II: UBBI SËT</h3><h4>Marticle 6: Windu</h4><p>Kuutortooɗo o ina wara windude mbidduuji dëgguuji.</p><h4>Marticle 7: Aar kodd bi</h4><p>Kuutortooɗo o mooy denco koddum ɓaleere.</p><h4>Marticle 8: Topptu sët bi</h4><p>A mawan waylude mbidduji sët maa mbeesu.</p><h4>Marticle 9: Sëtu gollotooɓe</h4><p>Borom sët mawan ubbude sët goɗɗo ngam gollotooɓe mum te mooy njiit e gollal maɓɓe.</p><h4>Marticle 10: Ndigal</h4><p>Am na laawol roleeji (Administrator, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE III: NJAAYU MI</h3><h4>Marticle 11-18</h4><p>Kuutortooɗo o mooy windo gollirɗe, njaayu e jallaaji. Stockman xaye la lay rokka. Sosal-kat o wonaa njiit e njuumte maa.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE IV-IX: MBIDDU, IA, AAR</h3><p>IA mawan am njuumte. Humpitooji maa ena dencaade kadi. Yoonu RGPD ena doga. So naamnal ena ɗoo, yoonu Sénégal wala dëkk Sosal-kat bi mawan dogude.</p>"
-    },
-    "privacy": {
-        "title": "Dawrugol njaayu",
-        "version": "13 Féw 2026",
-        "content": "<p>Jam e Stockman. Aar humpito maa timmungo ko liggeey men mawngol.</p><h3>1. Humpitooji nu denci</h3><p>Men dencat: innde maa, email, telefon, mbidduuji bitik maa, njaayu e humpitooji xarala (IP, device).</p><h3>2. Gollal humpitooji</h3><p>Humpito maa ngam: koldinu stok maa, aar sët maa, moƴƴinde gollal men e yoonu.</p><h3>3. Denc e Aar</h3><p>Humpito maa ena dencaa e MongoDB Atlas kadi ena aaraa (encrypted). HTTPS lo men kuutorɗen.</p><h3>4. Bokk humpitoji</h3><p>Men jëndata wala men luyata humpito maa. Ak partenaire xarala rek la men koy bokkata so yoonu naamni nu.</p><h3>5. Sarɗiiji maa (RGPD)</h3><p>A mawan yi'ude, soppide wala dakkal humpito maa e gollirgal e Paramètres.</p><h3>6. Woo nu</h3><p>So a jogii naamnal, woo nu e gollirgal wala e <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+    "settings": {
+      "title": "Réglages",
+      "desc": "Personnalisation de l'application, gestion des utilisateurs et configuration de votre boutique."
     }
+  },
+  "showcase": {
+    "title": "L'interface qui change tout",
+    "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
+    "app_interface": "Interface App"
+  },
+  "how_it_works": {
+    "title": "Démarrage rapide",
+    "subtitle": "Trois étapes simples pour transformer votre commerce.",
+    "step1": {
+      "title": "Créez votre compte",
+      "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
+    },
+    "step2": {
+      "title": "Scannez vos produits",
+      "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
+    },
+    "step3": {
+      "title": "Encaissez & Suivez",
+      "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
+    }
+  },
+  "testimonials": {
+    "title": "Ils nous font confiance",
+    "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
+    "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+    "t1_author": "Amadou Diallo",
+    "t1_job": "Boutique Électronique",
+    "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
+    "t2_author": "Sarah Kouassi",
+    "t2_job": "Supermarché Express",
+    "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
+    "t3_author": "Paul N'Goma",
+    "t3_job": "Pharmacie Centrale"
+  },
+  "pricing": {
+    "title": "Cogguuji weeɓtuɗi, alaa lën-lën",
+    "subtitle": "Fuɗɗu feyeere, ɓeydu no mbuɗ-ɗaa nii.",
+    "month": "/mois",
+    "popular": "Populaire",
+    "starter": {
+      "name": "Starter",
+      "f1": "1 Janngo",
+      "f2": "1 Dukke",
+      "f3": "Heɓtude fow e ko heddii tigi-tigi",
+      "f4": "Yontaade 3 lewru yaaɓde",
+      "cta": "3 Mois Gratuits"
+    },
+    "business": {
+      "name": "Pro",
+      "f1": "Haa 5 Jannɗe",
+      "f2": "Dukkeeje 2",
+      "f3": "Heɓtude fow e ko heddii tigi-tigi",
+      "f4": "Marketplace Bouton-à-Bouton",
+      "f5": "Yontaade 3 lewru yaaɓde",
+      "cta": "3 Mois Gratuits"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Sur devis",
+      "f1": "Multi-boutiques",
+      "f2": "Support dédié 24/7",
+      "f3": "API & Intégrations",
+      "f4": "IA personnalisée",
+      "cta": "Contacter"
+    }
+  },
+  "faq": {
+    "title": "Naamne keewɗe",
+    "q1": "Mbele ina golla tawa internet alaa?",
+    "a1": "Eyyo, Stockman ina golla e gollal tawa internet alaa. Humpito maa ena simaye so internet arti.",
+    "q2": "Mbele humpitooji am ena aaraa?",
+    "a2": "Hoolu ɗum. Emin kuutorɗe njuɓɓudi aaraango hiisawal ngam aarude kala humpitooji njaaƴu maa."
+  },
+  "download": {
+    "title": "Mbele a paree ngir ɓeydude mbeesu maa?",
+    "subtitle": "Jokku e ujunnaaje njaaƴooɓe mbeesuugol njuɓɓudi mum en.",
+    "app_store": "App Store",
+    "google_play": "Google Play",
+    "secure": "Feygooji aaraango",
+    "support": "Ballo karallagal",
+    "updates": "Mbeesuuji jokkuɗi"
+  },
+  "footer": {
+    "desc": "Solisyon numéro 1 ngir mbeesu njaayu e Afrik.",
+    "product": "Gollirgal",
+    "support": "Ballo",
+    "legal": "Sariya",
+    "help_center": "Suudu ballo",
+    "contact": "Jokkondir en",
+    "community": "Mboolaari",
+    "privacy": "Dawrugol njaayu",
+    "terms": "Sarɗiiji kuutoragol",
+    "delete_account": "Supprimer mon compte",
+    "legal_notice": "Xibaaru sariya",
+    "copyright": "© 2026 Stockman. Humpito aaraango."
+  },
+  "delete_account": {
+    "title": "Suppression de Compte & Données",
+    "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+    "version": "Dernière mise à jour : 18 Février 2026",
+    "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+    "method_app_title": "1. Via l'application (Recommandé)",
+    "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+    "method_app_steps": [
+      "Ouvrez l'application Stockman.",
+      "Allez dans l'onglet **Réglages**.",
+      "Faites défiler jusqu'à la section **Zone de danger**.",
+      "Appuyez sur **Supprimer mon compte**.",
+      "Confirmez en saisissant votre mot de passe."
+    ],
+    "method_web_title": "2. Via ce formulaire (Sans l'application)",
+    "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+    "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+    "data_erased_title": "Quelles données seront effacées ?",
+    "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+    "data_erased_list": [
+      "Votre profil utilisateur et identifiants.",
+      "Toutes vos boutiques et points de vente.",
+      "L'intégralité de votre inventaire et catalogue produits.",
+      "Toutes vos transactions de vente et historiques comptables.",
+      "Vos listes de clients, fournisseurs et historiques d'achats.",
+      "Vos accès à l'Assistant IA et historiques de chat."
+    ],
+    "retention_title": "Délai de traitement",
+    "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
+  },
+  "newsletter": {
+    "title": "Wontu karallo stok",
+    "desc": "Jokku e 5000+ njaaƴooɓe te heɓu ɗerewol ballo men: \"Njuumte 10 bartooje ɓurale maa\".",
+    "success": "A jarama! Ƴeew inbox maa.",
+    "placeholder": "Email maa...",
+    "cta": "Heɓu ɗerewol ngol",
+    "privacy": "Alaa spam. Dakkal e kiliik 1."
+  },
+  "contact": {
+    "title": "Jokkondir en",
+    "subtitle": "Naamnal? Gollondiral? Windu e amen.",
+    "name": "Innde maa",
+    "email": "Email maa",
+    "message": "Ɓataake maa",
+    "submit": "Neldu ɓataake",
+    "success_title": "Ɓataake neldaama!",
+    "success_desc": "Goomu amen jaaboto e nder 24 waktu.",
+    "send_another": "Neldu ɓataake goɗɗo"
+  },
+  "whatsapp": {
+    "message": "Jam, miɗo yidɗi anndude ko ɓuri e Stockman!"
+  },
+  "cookie": {
+    "message": "Emin kuutorɗe ngam moƴƴinde humpito maa. So a jokkii, a jaɓii dawrugol men.",
+    "accept": "Jaɓu"
+  },
+  "comparison": {
+    "title": "Ko waɗi a suɓotoo Stockman?",
+    "feature": "Gollirgal",
+    "notebook": "Kaye / Excel 📝",
+    "stock_mgmt": "Koldinaagu stok",
+    "stock_yes": "✅ Laawol gollirgal e waktu",
+    "stock_no": "❌ Windol njuumte",
+    "alerts": "Tinndinorgol stok",
+    "alerts_yes": "✅ Neldugooji IA",
+    "alerts_no": "❌ Alaa",
+    "pos": "POS (Caisse)",
+    "pos_yes": "✅ Moƴƴi te jaawi",
+    "pos_no": "❌ Salkilatris wonande",
+    "backup": "Aar humpito",
+    "backup_yes": "✅ Sinuwi aaraango",
+    "backup_no": "❌ Baasgol (wujju, jite)",
+    "financial": "Rappoor njaaƴu",
+    "financial_yes": "✅ E nder kiliik 1 (P&L, Ɓurale)",
+    "financial_no": "❌ Limtagol juutngol",
+    "marketplace": "Marketplace",
+    "marketplace_yes": "✅ Jokkondiral e ñootooɓe",
+    "marketplace_no": "❌ Yiilaade e laabi"
+  },
+  "feature_pages": {
+    "back_home": "Wartu e suudu",
+    "why_use": "Ko waɗi a huutortoo {{title}}?",
+    "discover_interface": "Tingunoo peeje ɗee no feewi",
+    "cta_title": "Mbele a paree ngir moƴƴinde koldinaagu maa?",
+    "cta_button": "Fuɗɗu eto mbeesu jooni",
+    "dashboard": {
+      "title": "Koldunorde",
+      "subtitle": "Koldinu njaayu maa e yillannde wootere",
+      "description": "Koldunorde maa ko suudu maa njaayu. Wonaa tonngoode tan — ina rokka ma laawol laaɓngol ngam ngalu maa. E kawtal IA, ina limta njaayu maa e waktu makko ngir tingunorgol ɓurale e baasal (stok jeexirɗo, stok keewɗo). Ko kambe ton a ƴettoyata pellital mawngal.",
+      "f1_title": "Limtooji waktu",
+      "f1_desc": "Topptu ngalu maa, ɓurale maa e tonngoode njaayu maa e nder sigoŋ.",
+      "f2_title": "Tinndinorgol amana",
+      "f2_desc": "Heɓu tinndinorgol njaayu ngam kuuge jeexirɗe wala kuuge ɓadaade dakkde.",
+      "f3_title": "Ballo IA",
+      "f3_desc": "Naamnu ballo maa njaayu naamne a heɓa jaabi jooni-jooni e koldunorde maa.",
+      "gallery": {
+        "kpi": {
+          "image": "/assets/screenshots/dashboard-kpi.jpg",
+          "title": "Yillannde & KPIs",
+          "description": "Topptu limtooji maa e waktu mum so a ubbii gollirgal ngal."
+        },
+        "stats": {
+          "image": "/assets/screenshots/dashboard-stats.jpg",
+          "title": "Limtooji kuuɓtodinɗi",
+          "description": "Yi'u ngalu maa, ɓurale maa e peeje njaayu maa."
+        },
+        "charts": {
+          "image": "/assets/screenshots/dashboard-sales-chart.jpg",
+          "title": "Xayeoji gollal",
+          "description": "Topptu ɓeydagol stok maa te limto waktu njaayu maa."
+        },
+        "analysis": {
+          "image": "/assets/screenshots/dashboard-analysis.jpg",
+          "title": "Saytu ABC & Jallagal",
+          "description": "Anndu gollirɗe ɓurde moƴƴude te heɓu neldugooji ngam njalla."
+        },
+        "history": {
+          "image": "/assets/screenshots/dashboard-history.jpg",
+          "title": "Téere gollal",
+          "description": "Dencal kala gollirgal ngal naataa wala yaltat e stok maa."
+        }
+      }
+    },
+    "products": {
+      "title": "Koldinaagu gollirɗe",
+      "subtitle": "Stok maa, moƴƴinaa no feewi",
+      "description": "Koldinaagu stok gollanteeɗo tawa alaa bone. So a jogii 10 wala 10,000 gollirgal, Stockman ina rokka ma laawol moƴƴinde ɗum no haanirta nii. Saytukaay borkood (barcode) e nder gollirgal ina defa telefon maa wontu gollirgal njaawngal.",
+      "f1_title": "Scanner Barcode",
+      "f1_desc": "Huutoro kamera telefon maa ngam ɓeydude gollirɗe wala jàngude stok maa e njaawre.",
+      "f2_title": "Moƴƴinal weeɓungal",
+      "f2_desc": "Sosu kategóriiji, markaaji e céti ngam moƴƴinde kër njaayu maa.",
+      "f3_title": "Coggu stok bi",
+      "f3_desc": "Anndu coggu timmungo stok maa e kala waktu (coggu jënd e coggu njaayu).",
+      "gallery": {
+        "list": {
+          "image": "/assets/screenshots/products-list.jpg",
+          "title": "Dogo gollirɗe",
+          "description": "Heɓu njaawre e dogo maa timmungo e saytukaay mbeesu."
+        },
+        "create": {
+          "image": "/assets/screenshots/products-create-1.jpg",
+          "title": "Sosal weeɓungal",
+          "description": "Ɓeydu gollirgal e nder sigoŋaaji e kala humpito murata."
+        },
+        "variants": {
+          "image": "/assets/screenshots/products-create-2.jpg",
+          "title": "Céti e detay",
+          "description": "Koldinu mangu, kulëri e cogguuji goɗɗi ngam kala céti."
+        },
+        "thresholds": {
+          "image": "/assets/screenshots/products-create-3.jpg",
+          "title": "Stok e tinndinorgol",
+          "description": "Tëral tinndinorgol so stok ina nawa ngam a reera njaayu maa."
+        }
+      }
+    },
+    "pos": {
+      "title": "POS (Caisse)",
+      "subtitle": "Fey kilyanɓe e weeɓre",
+      "description": "Rokku kilyanɓe maa laawol fey mbeesu te jaawngol. POS men jaawi no feewi: ɓeydu gollirɗe, koldinu rabatuji te fey e laabi keewɗi e nder sigoŋaaji.",
+      "f1_title": "Panniyé njaaawngal",
+      "f1_desc": "Laawol mbeesu ngam ɓeydude gollirɗe e panniyé e waktu mum.",
+      "f2_title": "Resit digital",
+      "f2_desc": "Neldu resitiji e WhatsApp, SMS wala Email kilyanɓe maa.",
+      "f3_title": "Laabi fey keewɗi",
+      "f3_desc": "Jaɓu kaalis, Mobile Money wala kartuji te topptu kala ko naataa e koldunorde maa.",
+      "gallery": {
+        "sale": {
+          "image": "/assets/screenshots/pos-overview.jpg",
+          "title": "Laawol njaayu",
+          "description": "Ɓeydu gollirɗe e panniyé, koldinu limto e rabatuji."
+        },
+        "receipt": {
+          "image": "/assets/screenshots/pos-receipt-qr.jpg",
+          "title": "Resit e Code QR",
+          "description": "Sosu resit jaawngol e code QR ngam kilyanɓe maa scan."
+        }
+      }
+    },
+    "suppliers": {
+      "title": "Ñootooɓe e Marketplace",
+      "subtitle": "Jënd maa weeɓii jooni",
+      "description": "Defal jënd maa mu wontu semmbe maa. Stockman ina kawtina moƴƴinaa kala ñootooɓe maa te ubbana ma Marketplace men murre. Natt Cogguuji e waktu mum te yamir e suudu.",
+      "f1_title": "Dogo ñootooɓe",
+      "f1_desc": "Kawtinu humpitooji ñootooɓe maa e istoriku jënd maa e amen.",
+      "f2_title": "Yamirgooji jaawɗi",
+      "f2_desc": "Sosu mbataaxali jënd e kiliik 1 no stok maa soxalee.",
+      "f3_title": "Natt Coggu",
+      "f3_desc": "Yiilu ñootoowo ɓurɗo yombude ngam kala gollirgal e saytukaay men.",
+      "gallery": {
+        "marketplace": {
+          "image": "/assets/screenshots/suppliers-marketplace.jpg",
+          "title": "Marketplace nder",
+          "description": "Heɓu mboolaari ñootooɓe aaraango te natt cogguuji."
+        },
+        "catalog": {
+          "image": "/assets/screenshots/suppliers-details-catalog.jpg",
+          "title": "Humpito ñootoowo",
+          "description": "Yi'u gollirɗe gollotooɗo amana e sartiiji mum."
+        },
+        "order": {
+          "image": "/assets/screenshots/suppliers-order-creation.jpg",
+          "title": "Gollal njaayu",
+          "description": "Sosu te neldu yamirgooji jalla e sigoŋaaji seeɗa."
+        }
+      }
+    },
+    "orders": {
+      "title": "Topptagol njaayu",
+      "subtitle": "Fuɗɗoode yamirgal haa naata e bitik",
+      "description": "Jogal laawol timmungo e njaayu maa. Fuɗɗoode yamirgal haa feytitgol e bitik, topptu kala ko waɗata. Stok maa ina simaye sigoŋ so gollirɗe naatii.",
+      "f1_title": "Topptagol gollal",
+      "f1_desc": "Yi'u gollal kala yamirgal: ina fey, neldaama, naatii wala dakkii.",
+      "f2_title": "Naatgol weeɓungol",
+      "f2_desc": "Jaɓu gollirɗe maa te ɓeydu stok maa sigoŋ.",
+      "f3_title": "Istoriku timmungo",
+      "f3_desc": "Yiilu kala yamirgooji maa ɓennuɗi ngam weeɓinde liggeey maa.",
+      "gallery": {
+        "tracking": {
+          "image": "/assets/screenshots/orders-tracking.jpg",
+          "title": "Topptagol waktu",
+          "description": "Yi'u gollal yamirgal ñootoowo haa mu jéexa."
+        }
+      }
+    },
+    "accounting": {
+      "title": "Hiisawal weeɓungol",
+      "subtitle": "Kaalis maa e loxo maa",
+      "description": "Hiisawal maa ina liggeeyo boppum. Kala njaayu, kala depans ina naat sigoŋ e téere hiisawal maa. Topptu kaalis maa te sosu bilan maa e 1 kiliik.",
+      "f1_title": "Bilan (Profit & Loss)",
+      "f1_desc": "Yi'u ngalu maa, cogguuji e ɓurale maa e kala waktu.",
+      "f2_title": "Topptagol depans",
+      "f2_desc": "Windu depans maa (fey suudu, kuraan, gollotooɓe) ngam anndude ɓurale maa koye.",
+      "f3_title": "Neldu PDF/Excel",
+      "f3_desc": "Wàccu humpitooji hiisawal maa ngam saytukat maa wala ngam dencugol.",
+      "gallery": {
+        "overview": {
+          "image": "/assets/screenshots/accounting-overview.jpg",
+          "title": "Laawol hiisawal kuuɓto",
+          "description": "Saytu ɓurale maa e limtooji laaɓtuɗi."
+        },
+        "expenses": {
+          "image": "/assets/screenshots/accounting-expense-create.jpg",
+          "title": "Koldinaagu depans",
+          "description": "Ɓeydu cogguuji jalla e mbeesu e weeɓre."
+        },
+        "reports": {
+          "image": "/assets/screenshots/accounting-details-charts.jpg",
+          "title": "Rappoor e xayeoji",
+          "description": "Yi'u kaalis maa no dogiri e sigoŋ."
+        }
+      }
+    },
+    "clients": {
+      "title": "Koldinaagu kilyanɓe (CRM)",
+      "subtitle": "Dencal kilyanɓe maa",
+      "description": "Defal kilyanɓe maa wontu kilyanɓe dëggu. CRM bi ina denc kala istoriku njaayu. Koldinu ñamaande e keredit ngam a reera kaalis maa e \"ñamaande\" kadi.",
+      "f1_title": "Sët kilyanɓe",
+      "f1_desc": "Istoriku njaayu timmungo, nimero telefon e ko neex kilyan bi.",
+      "f2_title": "Ñamaande e keredit",
+      "f2_desc": "Topptu ñamaande kilyanɓe maa te xamël ko dëggu e koye.",
+      "f3_title": "Marketing WhatsApp",
+      "f3_desc": "Neldu mbataaxali njaayu kilyanɓe maa e WhatsApp.",
+      "gallery": {
+        "details": {
+          "image": "/assets/screenshots/clients-details.jpg",
+          "title": "Sët kilyan timmungo",
+          "description": "Kala humpito kilyan, istoriku njaayu e ñamaande/keredit."
+        },
+        "campaigns": {
+          "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
+          "title": "WhatsApp njaayu",
+          "description": "Sosu te neldu mbataaxali njaayu mboolaari kilyanɓe maa."
+        }
+      }
+    },
+    "settings": {
+      "title": "Paramétrage",
+      "subtitle": "Defal Stockman no mbuɗ-ɗaa nii",
+      "description": "Tëral Stockman no gollal maa haanirta nii: koldinu gollotooɓe maa, ɓeydu bitikaaji yu bees te heɓu ballo jaawngol.",
+      "f1_title": "Koldinaagu gollotooɓe",
+      "f1_desc": "Ubbi sët ngam gollotooɓe maa te tëral li nu mbaɗi (seller, manager, admin).",
+      "f2_title": "Bari bitikaaji",
+      "f2_desc": "Ɓeydu te koldinu bitikaaji keewɗi e nder sët 1.",
+      "f3_title": "Moƴƴinal",
+      "f3_desc": "Waylu kaalis, làkk e no aplikasyon bi woniri.",
+      "gallery": {
+        "team": {
+          "image": "/assets/screenshots/settings-employees.jpg",
+          "title": "Koldinaagu ekip",
+          "description": "Topptu gollotooɓe maa, roleeji e ko nu mbaɗi."
+        },
+        "notifications": {
+          "image": "/assets/screenshots/settings-notifications.jpg",
+          "title": "Suudu tinndinorgol",
+          "description": "Tëral tinndinorgol stok e fattali amanaaji."
+        },
+        "security": {
+          "image": "/assets/screenshots/settings-support-security.jpg",
+          "title": "Ballo e Aar",
+          "description": "Heɓu ballo e gollirgal te aar sët maa."
+        },
+        "guide": {
+          "image": "/assets/screenshots/settings-guide.jpg",
+          "title": "Teere ballo",
+          "description": "Jàngël kala ko Stockman mbaɗi."
+        }
+      }
+    }
+  },
+  "about": {
+    "seo_title": "Humpito men",
+    "seo_desc": "Anndu ekip Stockman e liggeey men ngam mbeesu njaayu e Afrik.",
+    "home": "Suudu",
+    "mission_start": "Liggeey men:",
+    "mission_highlight": "Mbeesu Afrik",
+    "mission_desc": "Emin njaɓi kala njaaƴoowo, famarɗo wala mawɗo, ina jogii sàrtu gollirɗe ɓurɗe moƴƴude. Stockman wonaa logicel tan — ko gollotooɗo maa ngam ɓeydagol maa.",
+    "team_title": "Ekip bi",
+    "team_subtitle": "Yimɓe amanaaji ngam njaaƴooɓe.",
+    "member1_image": "👨🏿‍💼",
+    "member1_name": "Jean-Marc Koffi",
+    "member1_role": "CEO & Sosal-kat",
+    "member1_bio": "Njaaƴoowo kaddunooɗo, o sosi Stockman ngam koldinaagu jàfe-jàfe makko.",
+    "member2_image": "👩🏾‍💻",
+    "member2_name": "Awa Diop",
+    "member2_role": "CTO & Njiit xarala",
+    "member2_bio": "Injénieur amanaaji e IA te mbeesu Afrik.",
+    "member3_image": "🎧",
+    "member3_name": "David N'Guessan",
+    "member3_role": "Njiit ballo",
+    "member3_bio": "Ina heewi nano-go ngam wallude kuutortooɓe men.",
+    "values_title": "Men gollidi",
+    "value1_title": "🔍 Weeɓre",
+    "value1_desc": "Xarala bi ina wara weeɓde kadi kala nit ina mawan gollude ɗum.",
+    "value2_title": "🤝 Jokkondiral",
+    "value2_desc": "Emin ɗoo — emin anndi dund maa e jàfe-jàfe maa.",
+    "value3_title": "🚀 Xarala mbeesu",
+    "value3_desc": "Emin moƴƴinde Stockman kala waktu kadi sa mbataaxali maa."
+  },
+  "blog": {
+    "seo_title": "Blog e ballo",
+    "seo_desc": "Peeje e ballo ngam koldinaagu njaayu, moƴƴinde stok te ɓeydude njaayu maa.",
+    "page_title": "Suudu humpito",
+    "page_subtitle": "Peeje karallooji ngam njaaƴooɓe mbeesu.",
+    "read_more": "Jàng ko ɓuri →",
+    "not_found": "Mbiddu bi alaa ɗoo 😕",
+    "back_to_blog": "Wartu e Blog bi",
+    "back_to_articles": "← Wartu e mbidduuji",
+    "published_on": "PUBLIÉ LE",
+    "liked_article": "Mbele mbiddu ngol neexii ma?",
+    "try_stockman": "Eto Stockman ngam huutorade peeje ɗee.",
+    "start_trial": "Fuɗɗu eto feyeere",
+    "posts": {
+      "abandonner-cahier-stock": {
+        "title": "Ko waɗi a accata kaye ngam koldinaagu stok?",
+        "excerpt": "Kaye ina jogii sigoŋ. Anndu no mbeesu kadi aara sa liggeey e njuumte e baasgol.",
+        "date": "12 Féw 2026",
+        "content": "<p>Njaaƴooɓe heewɓe ina kuutortoo kaye ngam windude njaayu e stok. Ina yàggi, kono ina jogii riskuuji mawɗi.</p><h3>1. Njuumte hiisawal</h3><p>Njuumte famarɗo e hiisawal ina mawa njaayu maa timmungo. E logicel ni Stockman, hiisawal ngal jaawi te alaa njuumte.</p><h3>2. Baasgol humpito</h3><p>Kaye ina mawa reerde, wujjonoo wala jite tàkka e mum. Humpitooji maa e Stockman ina dencaa e cloud te ina yillee kala ɗo.</p><h3>3. Alaa laawol timmungo</h3><p>Ina jaaɓi anndude mbiddu ɓurdu njaayeede tan e dogo xub yi. Stockman ina rokka ma ɗum e kiliik 1.</p><h3>Bile bëj</h3><p>Naatgol e xarala wonaa coggu — ko njalla njalɗinoo ma waktu e kaalis fuɗɗoode lewru adanndu.</p>"
+      },
+      "eviter-ruptures-fetes": {
+        "title": "No dawri-ɗaa njuumte stok e fët yi?",
+        "excerpt": "Noël e Tabaski ko waktuuji amanaaji. Pareel stok maa e waktu mum e ballo men.",
+        "date": "10 Jan 2026",
+        "content": "<p>Njuumte stok e fët yi ko baasgol kaalis mbeesu. No dawan-ɗaa ɗum.</p><h3>Tingunoo waktu</h3><p>Huutoro ko njaayu-ɗaa hito weesu ngam anndude ko soxal-ɗaa njaayu hito ngol.</p><h3>Jëndu e waktu</h3><p>Ñootooɓe ina jogii liggeey heewɗo. Jëndu gollirɗe maa simenn 2 wala 3 e waktu fët yi.</p><h3>Huutoro tinndinorgol Stockman</h3><p>Tëral tinndinorgol kadi Stockman yegal ma so gollirgal ina nawa.</p>"
+      },
+      "augmenter-marge-2026": {
+        "title": "3 peeje ngam ɓeydude ɓurale maa e 2026",
+        "excerpt": "Njaayu moƴƴi, kono ɓurale ɓuri! Jàngal no moƴƴintaa cogguuji jënd e cogguuji njaayu.",
+        "date": "05 Jan 2026",
+        "content": "<p>Ɓeydude coggu wonaa tan laawol ɓeydude kaalis. Suuda no liggortaa e ɓurale maa.</p><h3>1. Wàccu baasgol</h3><p>Gollirɗe dakkiiɗe wala wujjaaɗe ina jogii coggu mawngol. Topptagol moƴƴo stok ina mawa wàccu baasgol haa 30%.</p><h3>2. Jokkondir e ñootoowo</h3><p>So a jëndii gollirɗe keewɗe e Stockman Marketplace, a mawan heɓude cogguuji ɓurɗi moƴƴude.</p><h3>3. Dencal kilyanɓe</h3><p>Kilyan dëggu moƴƴi ɓuri kilyan mbeesu. Huutoro porogram keredit ngam kilyan bi wartugo bitik maa.</p>"
+      }
+    }
+  },
+  "help": {
+    "hero_start": "No men mbaɗata ballu-ɗen",
+    "hero_highlight": "maa",
+    "search_placeholder": "Yiilu jaabi...",
+    "no_results": "Jaabi alaa ngam \"{{term}}\"",
+    "need_more": "A soxal ballo goɗɗo?",
+    "email_support": "✉️ Ballo Email",
+    "whatsapp_chat": "💬 WhatsApp Chat",
+    "getting_started": {
+      "title": "Fuɗɗoode liggeey",
+      "q1": "No may sose sët?",
+      "a1": "Wàccu gollirgal ngal te topptu xibaaruuji e bët bi. Du ɓura 2 minit.",
+      "q2": "Mbele mi mawan huutorade gollirgal tawa internet alaa?",
+      "a2": "Waaw, Stockman ina liggeeyo e mode offline te ina denc humpitooji maa sigoŋ so internet arti."
+    },
+    "account_billing": {
+      "title": "Sët e fey bi",
+      "q1": "No may wayle kodd bi?",
+      "a1": "Démal e Paramètres > Sécurité > Changer mot de passe.",
+      "q2": "No natt feyeere di dogiri?",
+      "a2": "Dina men rokke 14 bës de feyeere e kala gollirɗe mbeesu so a sosi sët maa."
+    },
+    "technical_support": {
+      "title": "Ballo xarala",
+      "q1": "Gollirgal ngal ubbaki, ko waɗi?",
+      "a1": "Ƴeew internet maa te anndu kadi a jogii xarala mbeesu. So jaaɓi, wàccu ko kadi.",
+      "q2": "No mbay woo-de ballo bi?",
+      "a2": "A mawan neldu-de mbataake e suudu ballo wala e WhatsApp mbeesu."
+    }
+  },
+  "terms": {
+    "title": "Sarɗiiji kuutoragol",
+    "version": "Version \"Ultimate\" 3.0 - 13 Féw 2026",
+    "content": "<p>Jam e <strong>Stockman</strong>.<br/>Sarɗiiji kuutoragol ɗii (nu nwoowé \"Sarɗiiji\") ko sariya liggeey kadi jogii Kuutortooɗo o e Sosal-kat Stockman o.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE I: SARƊIIJI LIGGEEY</h3><h4>Marticle 1: Ko nu tekki</h4><ul><li><strong>Plateforme</strong>: Kala xaralu Stockman.</li><li><strong>Kuutortooɗo</strong>: Kompani wala nit kiy huutoroo gollirgal ngal ngam liggeeyam.</li><li><strong>Sosal-kat</strong>: Stockman Inc., mooy borom Stockman.</li><li><strong>Bitik</strong>: Suudu njaayu liggeey bi dogata.</li></ul><h4>Marticle 2: Li men bëggi</h4><p>Stockman ko solisyon ERP ngir koldinaagu stok, POS e kilyanɓe. Ina doga ni liggeey (SaaS).</p><h4>Marticle 3: Jaɓu sarɗiiji</h4><p>So a yidɗi jokkude e Stockman foti a jaɓu sarɗiiji ɗii timmungo.</p><h4>Marticle 4: Liggeey karallagal</h4><p>Stockman wonaa tan natt humpitooji ludul liggeey. Kuutortooɗo o ina wara liggeeyo timmungo.</p><h4>Marticle 5: Waylu sarɗiiji</h4><p>Sosal-kat o ina jogii hakke waylude sarɗiiji ɗii waktu kala. So a jokkii liggeey o, a jaɓii sarɗiiji ɓeydaaɗi ɗii.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE II: UBBI SËT</h3><h4>Marticle 6: Windu</h4><p>Kuutortooɗo o ina wara windude mbidduuji dëgguuji.</p><h4>Marticle 7: Aar kodd bi</h4><p>Kuutortooɗo o mooy denco koddum ɓaleere.</p><h4>Marticle 8: Topptu sët bi</h4><p>A mawan waylude mbidduji sët maa mbeesu.</p><h4>Marticle 9: Sëtu gollotooɓe</h4><p>Borom sët mawan ubbude sët goɗɗo ngam gollotooɓe mum te mooy njiit e gollal maɓɓe.</p><h4>Marticle 10: Ndigal</h4><p>Am na laawol roleeji (Administrator, Seller, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE III: NJAAYU MI</h3><h4>Marticle 11-18</h4><p>Kuutortooɗo o mooy windo gollirɗe, njaayu e jallaaji. Stockman xaye la lay rokka. Sosal-kat o wonaa njiit e njuumte maa.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE IV-IX: MBIDDU, IA, AAR</h3><p>IA mawan am njuumte. Humpitooji maa ena dencaade kadi. Yoonu RGPD ena doga. So naamnal ena ɗoo, yoonu Sénégal wala dëkk Sosal-kat bi mawan dogude.</p>"
+  },
+  "privacy": {
+    "title": "Dawrugol njaayu",
+    "version": "13 Féw 2026",
+    "content": "<p>Jam e Stockman. Aar humpito maa timmungo ko liggeey men mawngol.</p><h3>1. Humpitooji nu denci</h3><p>Men dencat: innde maa, email, telefon, mbidduuji bitik maa, njaayu e humpitooji xarala (IP, device).</p><h3>2. Gollal humpitooji</h3><p>Humpito maa ngam: koldinu stok maa, aar sët maa, moƴƴinde gollal men e yoonu.</p><h3>3. Denc e Aar</h3><p>Humpito maa ena dencaa e MongoDB Atlas kadi ena aaraa (encrypted). HTTPS lo men kuutorɗen.</p><h3>4. Bokk humpitoji</h3><p>Men jëndata wala men luyata humpito maa. Ak partenaire xarala rek la men koy bokkata so yoonu naamni nu.</p><h3>5. Sarɗiiji maa (RGPD)</h3><p>A mawan yi'ude, soppide wala dakkal humpito maa e gollirgal e Paramètres.</p><h3>6. Woo nu</h3><p>So a jogii naamnal, woo nu e gollirgal wala e <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+  }
 }

@@ -96,19 +96,19 @@
         "popular": "Popular",
         "starter": {
             "name": "Starter",
-            "f1": "1 User, 1 Store",
-            "f2": "unlimited",
-            "f3": "14 AI Requests / week",
-            "f4": "30-day reports",
+            "f1": "1 User",
+            "f2": "1 Store",
+            "f3": "Full access to all features",
+            "f4": "3-month free trial",
             "cta": "3 Months Free"
         },
         "business": {
-            "name": "Premium",
-            "f1": "Unlimited users",
-            "f2": "Unlimited products",
-            "f3": "Unlimited AI Assistant",
-            "f4": "Marketplace & CRM",
-            "f5": "Unlimited Analytics",
+            "name": "Pro",
+            "f1": "Up to 5 Users",
+            "f2": "2 Stores",
+            "f3": "Full access to all features",
+            "f4": "Button-to-Button Marketplace",
+            "f5": "3-month free trial",
             "cta": "3 Months Free"
         },
         "enterprise": {
