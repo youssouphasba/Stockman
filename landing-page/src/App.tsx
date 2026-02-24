@@ -141,9 +141,9 @@ function Landing() {
         </div>
       </section>
 
-      <Features />
-
       {profile === 'enterprise' && <WebAppShowcase />}
+
+      <Features />
 
       <section className="how-it-works container reveal reveal-right">
         <div className="section-title">

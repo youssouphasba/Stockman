@@ -51,7 +51,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                         ) : (
                             <>
                                 <h1>Pilotez la performance de <span className="text-gradient">votre business</span></h1>
-                                <p>Un back-office web complet pour gérer vos boutiques, vos équipes et vos finances depuis n'importe quel ordinateur ou tablette.</p>
+                                <p>Un back-office web complet pour piloter votre entreprise, gérer vos équipes et vos finances et suivre vos clients.</p>
                                 <div className="hero-btns">
                                     <a
                                         href="https://app.stockman.pro/features"
