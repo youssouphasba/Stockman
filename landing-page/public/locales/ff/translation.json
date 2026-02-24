@@ -1,155 +1,155 @@
 {
-    "nav": {
-        "features": "Baɗe",
-        "resources": "Ballal",
-        "blog": "Blog",
-        "home": "Fuɗɗoode",
-        "free_trial": "Eto Njoddi"
+  "nav": {
+    "features": "Baɗe",
+    "resources": "Ballal",
+    "blog": "Blog",
+    "home": "Fuɗɗoode",
+    "free_trial": "Eto Njoddi"
+  },
+  "hero": {
+    "title_start": "Yollit mbaawka",
+    "title_end": "njulaagu maa",
+    "subtitle": "Pehil njuɓɓudi stock jaajndi, walliindi AI ngam heblude njannguuji maa e ɓeydude ngalu maa.",
+    "cta": "Fuɗɗo Jooni"
+  },
+  "stats": {
+    "shops": "Bitikuuji Heblaaɗi",
+    "transactions": "Njannguuji / Lewru",
+    "satisfaction": "Kliyanuuji Weltiiɗi",
+    "support": "Ballal woodi"
+  },
+  "features": {
+    "title": "Gollirɗe maa ñalnde kala",
+    "subtitle": "Denndaangal fannuuji ngam njuɓɓudi njulaagu maa.",
+    "dashboard": {
+      "title": "Alluwal Njuɓɓudi",
+      "desc": "Yiyngo kuuɓtodinngo e golle maa, jeertinaango stock, e ballal AI."
     },
-    "hero": {
-        "title_start": "Yollit mbaawka",
-        "title_end": "njulaagu maa",
-        "subtitle": "Pehil njuɓɓudi stock jaajndi, walliindi AI ngam heblude njannguuji maa e ɓeydude ngalu maa.",
-        "cta": "Fuɗɗo Jooni"
+    "products": {
+      "title": "Geɗe",
+      "desc": "Njuɓɓudi stock, scan code-barres, yuɓɓo e taƴe, e limto ngalu stock."
     },
-    "stats": {
-        "shops": "Bitikuuji Heblaaɗi",
-        "transactions": "Njannguuji / Lewru",
-        "satisfaction": "Kliyanuuji Weltiiɗi",
-        "support": "Ballal woodi"
+    "pos": {
+      "title": "Kees",
+      "desc": "Heɓbu ceede, neldu ɗerewol njanngu, teeŋtin stock e sahaa gooto."
     },
-    "features": {
-        "title": "Gollirɗe maa ñalnde kala",
-        "subtitle": "Denndaangal fannuuji ngam njuɓɓudi njulaagu maa.",
-        "dashboard": {
-            "title": "Alluwal Njuɓɓudi",
-            "desc": "Yiyngo kuuɓtodinngo e golle maa, jeertinaango stock, e ballal AI."
-        },
-        "products": {
-            "title": "Geɗe",
-            "desc": "Njuɓɓudi stock, scan code-barres, yuɓɓo e taƴe, e limto ngalu stock."
-        },
-        "pos": {
-            "title": "Kees",
-            "desc": "Heɓbu ceede, neldu ɗerewol njanngu, teeŋtin stock e sahaa gooto."
-        },
-        "suppliers": {
-            "title": "Yeeyooɓe",
-            "desc": "Doggol yeeyooɓe, daartol njannguuji, e luumo 'Button-to-Button'."
-        },
-        "orders": {
-            "title": "Njannguuji",
-            "desc": "Topito njannguuji soodogol, heɓ geɗe, kadi teeŋtin stock tawa a sonnaani."
-        },
-        "accounting": {
-            "title": "Limto",
-            "desc": "Topito yeeyirde, njannguuji, e limto ngalu sahaa e sahaa."
-        },
-        "clients": {
-            "title": "Kliyanuuji",
-            "desc": "Doggol kliyanuuji, daartol soodogol, e pehe ngam tiiɗnude jokkondiral."
-        },
-        "settings": {
-            "title": "Teelte",
-            "desc": "Teelgol application, njuɓɓudi gollooɓe, e teelgol bitik maa."
-        }
+    "suppliers": {
+      "title": "Yeeyooɓe",
+      "desc": "Doggol yeeyooɓe, daartol njannguuji, e luumo 'Button-to-Button'."
     },
-    "showcase": {
-        "title": "Yiyngo Wayloowo Fof",
-        "subtitle": "Diisneteeɗo laaɓɗo, moƴƴinaaɗo ngam dañde sahaa.",
-        "app_interface": "Yiyngo App"
+    "orders": {
+      "title": "Njannguuji",
+      "desc": "Topito njannguuji soodogol, heɓ geɗe, kadi teeŋtin stock tawa a sonnaani."
     },
-    "how_it_works": {
-        "title": "Fuɗɗo Law",
-        "subtitle": "Daaɗe tati newiiɗe ngam waylude njulaagu maa.",
-        "step1": {
-            "title": "Tagu Konte",
-            "desc": "Aawto application, teel bitik maa e nder mintaaji ɗiɗi."
-        },
-        "step2": {
-            "title": "Scan Geɗe",
-            "desc": "Huutoro kamera telefon maa ngam ɓeydude stock maa law."
-        },
-        "step3": {
-            "title": "Yeey & Topito",
-            "desc": "Waɗ yeeyirde maa arandeere, ndaara limtooji maa ina ɓeydoo."
-        }
+    "accounting": {
+      "title": "Limto",
+      "desc": "Topito yeeyirde, njannguuji, e limto ngalu sahaa e sahaa."
     },
-    "testimonials": {
-        "title": "Ɓe Kooliimen",
-        "subtitle": "Yiy no Stockman wallirta njulaagankooɓe ñalnde kala.",
-        "t1": "Gila mi fuɗɗii huutoraade Stockman, mi majjintaako ceede sabu ŋakkere stock. AI ina jeertina kam sahaa fof!",
-        "t2": "Application o ina newii. Gollooɓe am njanngii ɗum e nder mintaaji 10. Njuɓɓudi kees ina heewi.",
-        "t3": "Miɗo yiɗi luumo ngoo! Miɗo waawi nannditde cogguuji e yeeyooɓe am, mi sooda ɗoon e ɗoon. Dañde sahaa mawɗo."
+    "clients": {
+      "title": "Kliyanuuji",
+      "desc": "Doggol kliyanuuji, daartol soodogol, e pehe ngam tiiɗnude jokkondiral."
     },
-    "pricing": {
-        "title": "Suɓo Pehe Maa",
-        "subtitle": "Cogguuji laaɓɗi, potɗi e mawneeki njulaagu maa.",
-        "month": "/lewru",
-        "popular": "Lolluɗo",
-        "starter": {
-            "name": "Fuɗɗoode",
-            "cta": "Fuɗɗo",
-            "f1": "Huutoroowo 1",
-            "f2": "Ha 100 geɗe",
-            "f3": "Njuɓɓudi stock newiindi",
-            "f4": "Kees Limtoowo (POS)"
-        },
-        "business": {
-            "name": "Njulaagu",
-            "cta": "Eto Njoddi 14j",
-            "f1": "Huutotooɓe 3",
-            "f2": "Geɗe ɗe keeraani",
-            "f3": "Ballal Stockman AI",
-            "f4": "Luumo & Njannguuji",
-            "f5": "Limtooji Ɓeydiiɗi"
-        },
-        "enterprise": {
-            "name": "Kompani",
-            "cta": "Jokkondir",
-            "f1": "Huutotooɓe ɓe keeraani",
-            "f2": "Bitikuuji keewɗi",
-            "f3": "API & Jokkondire",
-            "f4": "Ballal 24/7",
-            "f5": "AI Keertiiɗo"
-        }
-    },
-    "faq": {
-        "title": "Lamɗe Duumiiɗe",
-        "q1": "Mbele ina gollira tawa internet alaa?",
-        "a1": "Eey, Stockman ina gollira e nder offline. Keɓe maa ina njokkondira so internet arti.",
-        "q2": "Mbele keɓe am ina kisii?",
-        "a2": "Kyen. Min kuutortoo ko kisal toowngal ngam reende kabaruuji njulaagu maa fof."
-    },
-    "download": {
-        "title": "A hebliima ngam ƴellitde?",
-        "subtitle": "Jokku e ujunnaaje njulaagankooɓe wayluɓe njuɓɓudi mumen.",
-        "secure": "Njoɓdi Kisndi",
-        "support": "Ballal Pro",
-        "updates": "Keses Ɓeydiiɗo"
-    },
-    "footer": {
-        "desc": "Feere wootere ngam njulaagankooɓe hannde e Afrik.",
-        "product": "Geɗal",
-        "support": "Ballal",
-        "legal": "Laawol",
-        "help_center": "Nokku Ballal",
-        "contact": "Jokkondir",
-        "community": "Renndo",
-        "privacy": "Suturo",
-        "terms": "Sariyaaji",
-        "legal_notice": "Tintinoore Sariya",
-        "copyright": "© 2026 Stockman. Hakkeeji fof ko min njeyi."
-    },
-    "newsletter": {
-        "title": "Wontu Gineejo Stock",
-        "desc": "Jokku e 5000+ njulaagankooɓe, keɓaa deftere men : \"Juumre 10 bonnoore ngalu maa\".",
-        "placeholder": "Email maa...",
-        "cta": "Heɓ Deftere",
-        "success": "Jaraama! Ƴeew boowal email maa.",
-        "privacy": "Alaa spam. Ittu innde sahaa fof."
-    },
-    "whatsapp": {
-        "message": "A jaaraama, miɗo yiɗi anndude ko ɓuri ɗum e Stockman!"
+    "settings": {
+      "title": "Teelte",
+      "desc": "Teelgol application, njuɓɓudi gollooɓe, e teelgol bitik maa."
     }
+  },
+  "showcase": {
+    "title": "Yiyngo Wayloowo Fof",
+    "subtitle": "Diisneteeɗo laaɓɗo, moƴƴinaaɗo ngam dañde sahaa.",
+    "app_interface": "Yiyngo App"
+  },
+  "how_it_works": {
+    "title": "Fuɗɗo Law",
+    "subtitle": "Daaɗe tati newiiɗe ngam waylude njulaagu maa.",
+    "step1": {
+      "title": "Tagu Konte",
+      "desc": "Aawto application, teel bitik maa e nder mintaaji ɗiɗi."
+    },
+    "step2": {
+      "title": "Scan Geɗe",
+      "desc": "Huutoro kamera telefon maa ngam ɓeydude stock maa law."
+    },
+    "step3": {
+      "title": "Yeey & Topito",
+      "desc": "Waɗ yeeyirde maa arandeere, ndaara limtooji maa ina ɓeydoo."
+    }
+  },
+  "testimonials": {
+    "title": "Ɓe Kooliimen",
+    "subtitle": "Yiy no Stockman wallirta njulaagankooɓe ñalnde kala.",
+    "t1": "Gila mi fuɗɗii huutoraade Stockman, mi majjintaako ceede sabu ŋakkere stock. AI ina jeertina kam sahaa fof!",
+    "t2": "Application o ina newii. Gollooɓe am njanngii ɗum e nder mintaaji 10. Njuɓɓudi kees ina heewi.",
+    "t3": "Miɗo yiɗi luumo ngoo! Miɗo waawi nannditde cogguuji e yeeyooɓe am, mi sooda ɗoon e ɗoon. Dañde sahaa mawɗo."
+  },
+  "pricing": {
+    "title": "Suɓo Pehe Maa",
+    "subtitle": "Cogguuji laaɓɗi, potɗi e mawneeki njulaagu maa.",
+    "month": "/lewru",
+    "popular": "Lolluɗo",
+    "starter": {
+      "name": "Fuɗɗoode",
+      "cta": "Fuɗɗo",
+      "f1": "Huutoroowo 1",
+      "f2": "Ha 100 geɗe",
+      "f3": "Njuɓɓudi stock newiindi",
+      "f4": "Kees Limtoowo (POS)"
+    },
+    "business": {
+      "name": "Pro",
+      "cta": "Eto Njoddi 3 lewru",
+      "f1": "Huutotooɓe 5",
+      "f2": "Geɗe ɗe keeraani",
+      "f3": "Ballal Stockman AI",
+      "f4": "Luumo & Njannguuji",
+      "f5": "Limtooji Ɓeydiiɗi"
+    },
+    "enterprise": {
+      "name": "Kompani",
+      "cta": "Jokkondir",
+      "f1": "Huutotooɓe ɓe keeraani",
+      "f2": "Bitikuuji keewɗi",
+      "f3": "API & Jokkondire",
+      "f4": "Ballal 24/7",
+      "f5": "AI Keertiiɗo"
+    }
+  },
+  "faq": {
+    "title": "Lamɗe Duumiiɗe",
+    "q1": "Mbele ina gollira tawa internet alaa?",
+    "a1": "Eey, Stockman ina gollira e nder offline. Keɓe maa ina njokkondira so internet arti.",
+    "q2": "Mbele keɓe am ina kisii?",
+    "a2": "Kyen. Min kuutortoo ko kisal toowngal ngam reende kabaruuji njulaagu maa fof."
+  },
+  "download": {
+    "title": "A hebliima ngam ƴellitde?",
+    "subtitle": "Jokku e ujunnaaje njulaagankooɓe wayluɓe njuɓɓudi mumen.",
+    "secure": "Njoɓdi Kisndi",
+    "support": "Ballal Pro",
+    "updates": "Keses Ɓeydiiɗo"
+  },
+  "footer": {
+    "desc": "Feere wootere ngam njulaagankooɓe hannde e Afrik.",
+    "product": "Geɗal",
+    "support": "Ballal",
+    "legal": "Laawol",
+    "help_center": "Nokku Ballal",
+    "contact": "Jokkondir",
+    "community": "Renndo",
+    "privacy": "Suturo",
+    "terms": "Sariyaaji",
+    "legal_notice": "Tintinoore Sariya",
+    "copyright": "© 2026 Stockman. Hakkeeji fof ko min njeyi."
+  },
+  "newsletter": {
+    "title": "Wontu Gineejo Stock",
+    "desc": "Jokku e 5000+ njulaagankooɓe, keɓaa deftere men : \"Juumre 10 bonnoore ngalu maa\".",
+    "placeholder": "Email maa...",
+    "cta": "Heɓ Deftere",
+    "success": "Jaraama! Ƴeew boowal email maa.",
+    "privacy": "Alaa spam. Ittu innde sahaa fof."
+  },
+  "whatsapp": {
+    "message": "A jaaraama, miɗo yiɗi anndude ko ɓuri ɗum e Stockman!"
+  }
 }

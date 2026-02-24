@@ -1,156 +1,156 @@
 {
-    "nav": {
-        "features": "Funzionalità",
-        "resources": "Risorse",
-        "blog": "Blog",
-        "home": "Home",
-        "free_trial": "Prova Gratuita"
+  "nav": {
+    "features": "Funzionalità",
+    "resources": "Risorse",
+    "blog": "Blog",
+    "home": "Home",
+    "free_trial": "Prova Gratuita"
+  },
+  "hero": {
+    "title_start": "Sblocca il potenziale della tua",
+    "title_end": "attività",
+    "subtitle": "La soluzione di gestione intelligente delle scorte basata su IA per automatizzare gli ordini e massimizzare i profitti.",
+    "cta": "Inizia Ora"
+  },
+  "stats": {
+    "shops": "Negozi Attrezzati",
+    "transactions": "Transazioni / Mese",
+    "satisfaction": "Clienti Soddisfatti",
+    "support": "Supporto Disponibile"
+  },
+  "features": {
+    "title": "I tuoi strumenti quotidiani",
+    "subtitle": "Una suite completa di schede per gestire ogni aspetto del tuo business.",
+    "dashboard": {
+      "title": "Dashboard",
+      "desc": "Panoramica della tua attività, avvisi critici sulle scorte e accesso rapido all'assistente IA."
     },
-    "hero": {
-        "title_start": "Sblocca il potenziale della tua",
-        "title_end": "attività",
-        "subtitle": "La soluzione di gestione intelligente delle scorte basata su IA per automatizzare gli ordini e massimizzare i profitti.",
-        "cta": "Inizia Ora"
+    "products": {
+      "title": "Prodotti",
+      "desc": "Gestione inventario, scansione codici a barre, organizzazione per categorie e valutazione scorte."
     },
-    "stats": {
-        "shops": "Negozi Attrezzati",
-        "transactions": "Transazioni / Mese",
-        "satisfaction": "Clienti Soddisfatti",
-        "support": "Supporto Disponibile"
+    "pos": {
+      "title": "Cassa",
+      "desc": "Incassa rapidamente i clienti, genera ricevute digitali e aggiorna le scorte in tempo reale."
     },
-    "features": {
-        "title": "I tuoi strumenti quotidiani",
-        "subtitle": "Una suite completa di schede per gestire ogni aspetto del tuo business.",
-        "dashboard": {
-            "title": "Dashboard",
-            "desc": "Panoramica della tua attività, avvisi critici sulle scorte e accesso rapido all'assistente IA."
-        },
-        "products": {
-            "title": "Prodotti",
-            "desc": "Gestione inventario, scansione codici a barre, organizzazione per categorie e valutazione scorte."
-        },
-        "pos": {
-            "title": "Cassa",
-            "desc": "Incassa rapidamente i clienti, genera ricevute digitali e aggiorna le scorte in tempo reale."
-        },
-        "suppliers": {
-            "title": "Fornitori",
-            "desc": "Elenco fornitori, cronologia ordini e accesso al Marketplace 'Button-to-Button'."
-        },
-        "orders": {
-            "title": "Ordini",
-            "desc": "Traccia gli ordini di acquisto, ricevi merci e aggiorna automaticamente le scorte."
-        },
-        "accounting": {
-            "title": "Contabilità",
-            "desc": "Tracciamento preciso di vendite, spese e calcolo automatico della redditività per periodo."
-        },
-        "clients": {
-            "title": "Clienti",
-            "desc": "Database clienti, cronologia acquisti e strumenti di fidelizzazione integrati."
-        },
-        "settings": {
-            "title": "Impostazioni",
-            "desc": "Personalizzazione app, gestione utenti e configurazione negozio."
-        }
+    "suppliers": {
+      "title": "Fornitori",
+      "desc": "Elenco fornitori, cronologia ordini e accesso al Marketplace 'Button-to-Button'."
     },
-    "showcase": {
-        "title": "L'interfaccia che cambia tutto",
-        "subtitle": "Un design pulito, pensato per farti risparmiare tempo.",
-        "app_interface": "Interfaccia App"
+    "orders": {
+      "title": "Ordini",
+      "desc": "Traccia gli ordini di acquisto, ricevi merci e aggiorna automaticamente le scorte."
     },
-    "how_it_works": {
-        "title": "Avvio Rapido",
-        "subtitle": "Tre semplici passaggi per trasformare la tua attività.",
-        "step1": {
-            "title": "Crea Account",
-            "desc": "Scarica l'app e configura il tuo negozio in meno di 2 minuti."
-        },
-        "step2": {
-            "title": "Scansiona Prodotti",
-            "desc": "Usa la fotocamera del telefono per aggiungere rapidamente le tue scorte."
-        },
-        "step3": {
-            "title": "Vendi e Traccia",
-            "desc": "Fai le tue prime vendite e guarda le tue statistiche salire in tempo reale."
-        }
+    "accounting": {
+      "title": "Contabilità",
+      "desc": "Tracciamento preciso di vendite, spese e calcolo automatico della redditività per periodo."
     },
-    "testimonials": {
-        "title": "Si fidano di noi",
-        "subtitle": "Scopri come Stockman aiuta i commercianti ogni giorno.",
-        "t1": "Da quando uso Stockman, non perdo più soldi a causa di esaurimento scorte. L'IA mi avvisa sempre al momento giusto!",
-        "t2": "L'app è così semplice. I miei dipendenti l'hanno imparata in 10 minuti. La gestione della cassa è perfetta.",
-        "t3": "Adoro il marketplace! Posso confrontare i prezzi dei miei fornitori e ordinare direttamente. Un enorme risparmio di tempo."
+    "clients": {
+      "title": "Clienti",
+      "desc": "Database clienti, cronologia acquisti e strumenti di fidelizzazione integrati."
     },
-    "pricing": {
-        "title": "Scegli il tuo piano",
-        "subtitle": "Prezzi trasparenti adattati alla dimensione della tua attività.",
-        "month": "/mese",
-        "popular": "Popolare",
-        "starter": {
-            "name": "Starter",
-            "cta": "Inizia",
-            "f1": "1 Utente",
-            "f2": "Fino a 100 prodotti",
-            "f3": "Gestione scorte base",
-            "f4": "Registratore di cassa (POS)"
-        },
-        "business": {
-            "name": "Business",
-            "cta": "Prova Gratuita 14gg",
-            "f1": "3 Utenti",
-            "f2": "Prodotti illimitati",
-            "f3": "Assistente IA Stockman",
-            "f4": "Marketplace & Ordini",
-            "f5": "Analisi avanzate"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Preventivo",
-            "cta": "Contattaci",
-            "f1": "Utenti illimitati",
-            "f2": "Multi-negozi",
-            "f3": "API & Integrazioni",
-            "f4": "Supporto dedicato 24/7",
-            "f5": "IA personalizzata"
-        }
-    },
-    "faq": {
-        "title": "Domande Frequenti",
-        "q1": "Funziona senza internet?",
-        "a1": "Sì, Stockman funziona in modalità offline. I tuoi dati si sincronizzano non appena trovi una connessione.",
-        "q2": "I miei dati sono sicuri?",
-        "a2": "Assolutamente. Usiamo crittografia di livello bancario per proteggere tutte le tue informazioni commerciali."
-    },
-    "download": {
-        "title": "Pronto per il livello successivo?",
-        "subtitle": "Unisciti a migliaia di commercianti che hanno modernizzato la loro gestione.",
-        "secure": "Pagamenti Sicuri",
-        "support": "Supporto Pro",
-        "updates": "Aggiornamenti Continui"
-    },
-    "footer": {
-        "desc": "La soluzione all-in-one per i commercianti moderni in Africa.",
-        "product": "Prodotto",
-        "support": "Supporto",
-        "legal": "Legale",
-        "help_center": "Centro Assistenza",
-        "contact": "Contatto",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Termini di Servizio",
-        "legal_notice": "Note Legali",
-        "copyright": "© 2026 Stockman. Tutti i diritti riservati."
-    },
-    "newsletter": {
-        "title": "Diventa un Esperto di Stock",
-        "desc": "Unisciti a 5000+ commercianti e ricevi la nostra guida gratuita: \"10 errori che uccidono la tua redditività\".",
-        "placeholder": "La tua email aziendale...",
-        "cta": "Ricevi la Guida",
-        "success": "Grazie! Controlla la tua casella di posta.",
-        "privacy": "Niente spam. Disiscrizione in 1 click."
-    },
-    "whatsapp": {
-        "message": "Ciao, vorrei saperne di più su Stockman!"
+    "settings": {
+      "title": "Impostazioni",
+      "desc": "Personalizzazione app, gestione utenti e configurazione negozio."
     }
+  },
+  "showcase": {
+    "title": "L'interfaccia che cambia tutto",
+    "subtitle": "Un design pulito, pensato per farti risparmiare tempo.",
+    "app_interface": "Interfaccia App"
+  },
+  "how_it_works": {
+    "title": "Avvio Rapido",
+    "subtitle": "Tre semplici passaggi per trasformare la tua attività.",
+    "step1": {
+      "title": "Crea Account",
+      "desc": "Scarica l'app e configura il tuo negozio in meno di 2 minuti."
+    },
+    "step2": {
+      "title": "Scansiona Prodotti",
+      "desc": "Usa la fotocamera del telefono per aggiungere rapidamente le tue scorte."
+    },
+    "step3": {
+      "title": "Vendi e Traccia",
+      "desc": "Fai le tue prime vendite e guarda le tue statistiche salire in tempo reale."
+    }
+  },
+  "testimonials": {
+    "title": "Si fidano di noi",
+    "subtitle": "Scopri come Stockman aiuta i commercianti ogni giorno.",
+    "t1": "Da quando uso Stockman, non perdo più soldi a causa di esaurimento scorte. L'IA mi avvisa sempre al momento giusto!",
+    "t2": "L'app è così semplice. I miei dipendenti l'hanno imparata in 10 minuti. La gestione della cassa è perfetta.",
+    "t3": "Adoro il marketplace! Posso confrontare i prezzi dei miei fornitori e ordinare direttamente. Un enorme risparmio di tempo."
+  },
+  "pricing": {
+    "title": "Scegli il tuo piano",
+    "subtitle": "Prezzi trasparenti adattati alla dimensione della tua attività.",
+    "month": "/mese",
+    "popular": "Popolare",
+    "starter": {
+      "name": "Starter",
+      "cta": "Inizia",
+      "f1": "1 Utente",
+      "f2": "Fino a 100 prodotti",
+      "f3": "Gestione scorte base",
+      "f4": "Registratore di cassa (POS)"
+    },
+    "business": {
+      "name": "Pro",
+      "cta": "Prova gratuita 3 mesi",
+      "f1": "5 Utenti",
+      "f2": "Prodotti illimitati",
+      "f3": "Assistente IA Stockman",
+      "f4": "Marketplace & Ordini",
+      "f5": "Analisi avanzate"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Preventivo",
+      "cta": "Contattaci",
+      "f1": "Utenti illimitati",
+      "f2": "Multi-negozi",
+      "f3": "API & Integrazioni",
+      "f4": "Supporto dedicato 24/7",
+      "f5": "IA personalizzata"
+    }
+  },
+  "faq": {
+    "title": "Domande Frequenti",
+    "q1": "Funziona senza internet?",
+    "a1": "Sì, Stockman funziona in modalità offline. I tuoi dati si sincronizzano non appena trovi una connessione.",
+    "q2": "I miei dati sono sicuri?",
+    "a2": "Assolutamente. Usiamo crittografia di livello bancario per proteggere tutte le tue informazioni commerciali."
+  },
+  "download": {
+    "title": "Pronto per il livello successivo?",
+    "subtitle": "Unisciti a migliaia di commercianti che hanno modernizzato la loro gestione.",
+    "secure": "Pagamenti Sicuri",
+    "support": "Supporto Pro",
+    "updates": "Aggiornamenti Continui"
+  },
+  "footer": {
+    "desc": "La soluzione all-in-one per i commercianti moderni in Africa.",
+    "product": "Prodotto",
+    "support": "Supporto",
+    "legal": "Legale",
+    "help_center": "Centro Assistenza",
+    "contact": "Contatto",
+    "community": "Community",
+    "privacy": "Privacy Policy",
+    "terms": "Termini di Servizio",
+    "legal_notice": "Note Legali",
+    "copyright": "© 2026 Stockman. Tutti i diritti riservati."
+  },
+  "newsletter": {
+    "title": "Diventa un Esperto di Stock",
+    "desc": "Unisciti a 5000+ commercianti e ricevi la nostra guida gratuita: \"10 errori che uccidono la tua redditività\".",
+    "placeholder": "La tua email aziendale...",
+    "cta": "Ricevi la Guida",
+    "success": "Grazie! Controlla la tua casella di posta.",
+    "privacy": "Niente spam. Disiscrizione in 1 click."
+  },
+  "whatsapp": {
+    "message": "Ciao, vorrei saperne di più su Stockman!"
+  }
 }

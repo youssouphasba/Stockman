@@ -30,7 +30,7 @@ import './App.css'
 import { detectRegion, getPricingByRegion, formatPrice } from './utils/pricing';
 
 function Landing() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile>('merchant');
   useScrollReveal();
@@ -240,7 +240,7 @@ function Landing() {
                 <li><span className="check-icon">✓</span> {t('pricing.starter.f3')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.starter.f4')}</li>
               </ul>
-              <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)' }}>{t('pricing.starter.cta')}</button>
+              <a href="#download" className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center' }}>{t('pricing.starter.cta')}</a>
             </div>
 
             <div className="pricing-card glass-card popular">
@@ -254,7 +254,7 @@ function Landing() {
                 <li><span className="check-icon">✓</span> {t('pricing.business.f4')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.business.f5')}</li>
               </ul>
-              <button className="btn-primary">{t('pricing.business.cta')}</button>
+              <a href="#download" className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>{t('pricing.business.cta')}</a>
             </div>
 
             <div className="pricing-card-enterprise-teaser glass-card">

@@ -1,156 +1,156 @@
 {
-    "nav": {
-        "features": "Features",
-        "resources": "Resources",
-        "blog": "Blog",
-        "home": "Home",
-        "free_trial": "Free Trial"
+  "nav": {
+    "features": "Features",
+    "resources": "Resources",
+    "blog": "Blog",
+    "home": "Home",
+    "free_trial": "Free Trial"
+  },
+  "hero": {
+    "title_start": "Unlock the potential of your",
+    "title_end": "business",
+    "subtitle": "The AI-powered intelligent stock management solution to automate orders and maximize profits.",
+    "cta": "Start Now"
+  },
+  "stats": {
+    "shops": "Shops Equipped",
+    "transactions": "Transactions / Month",
+    "satisfaction": "Satisfied Clients",
+    "support": "Support Available"
+  },
+  "features": {
+    "title": "Your Daily Tools",
+    "subtitle": "A complete suite of tabs to manage every aspect of your business.",
+    "dashboard": {
+      "title": "Dashboard",
+      "desc": "Overview view of your activity, critical stock alerts, and quick access to the AI assistant."
     },
-    "hero": {
-        "title_start": "Unlock the potential of your",
-        "title_end": "business",
-        "subtitle": "The AI-powered intelligent stock management solution to automate orders and maximize profits.",
-        "cta": "Start Now"
+    "products": {
+      "title": "Products",
+      "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
     },
-    "stats": {
-        "shops": "Shops Equipped",
-        "transactions": "Transactions / Month",
-        "satisfaction": "Satisfied Clients",
-        "support": "Support Available"
+    "pos": {
+      "title": "POS",
+      "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
     },
-    "features": {
-        "title": "Your Daily Tools",
-        "subtitle": "A complete suite of tabs to manage every aspect of your business.",
-        "dashboard": {
-            "title": "Dashboard",
-            "desc": "Overview view of your activity, critical stock alerts, and quick access to the AI assistant."
-        },
-        "products": {
-            "title": "Products",
-            "desc": "Inventory management, barcode scanning, category organization, and stock valuation."
-        },
-        "pos": {
-            "title": "POS",
-            "desc": "Checkout customers quickly, generate digital receipts, and update stock in real-time."
-        },
-        "suppliers": {
-            "title": "Suppliers",
-            "desc": "Supplier directory, order history, and access to the 'Button-to-Button' Marketplace."
-        },
-        "orders": {
-            "title": "Orders",
-            "desc": "Track purchase orders, receive goods, and automatically update stocks."
-        },
-        "accounting": {
-            "title": "Accounting",
-            "desc": "Accurate tracking of sales, expenses, and automatic profitability calculation by period."
-        },
-        "clients": {
-            "title": "Clients",
-            "desc": "Client database, purchase history, and integrated loyalty tools."
-        },
-        "settings": {
-            "title": "Settings",
-            "desc": "App customization, user management, and shop configuration."
-        }
+    "suppliers": {
+      "title": "Suppliers",
+      "desc": "Supplier directory, order history, and access to the 'Button-to-Button' Marketplace."
     },
-    "showcase": {
-        "title": "The Interface That Changes Everything",
-        "subtitle": "A clean design, built to save you time.",
-        "app_interface": "App Interface"
+    "orders": {
+      "title": "Orders",
+      "desc": "Track purchase orders, receive goods, and automatically update stocks."
     },
-    "how_it_works": {
-        "title": "Quick Start",
-        "subtitle": "Three simple steps to transform your business.",
-        "step1": {
-            "title": "Create Account",
-            "desc": "Download the app and configure your shop in less than 2 minutes."
-        },
-        "step2": {
-            "title": "Scan Products",
-            "desc": "Use your phone's camera to quickly add your stock."
-        },
-        "step3": {
-            "title": "Sell & Track",
-            "desc": "Make your first sales and watch your stats climb in real-time."
-        }
+    "accounting": {
+      "title": "Accounting",
+      "desc": "Accurate tracking of sales, expenses, and automatic profitability calculation by period."
     },
-    "testimonials": {
-        "title": "They Trust Us",
-        "subtitle": "Discover how Stockman helps merchants every day.",
-        "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
-        "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
-        "t3": "I love the marketplace! I can compare prices from my suppliers and order directly. Huge time saver."
+    "clients": {
+      "title": "Clients",
+      "desc": "Client database, purchase history, and integrated loyalty tools."
     },
-    "pricing": {
-        "title": "Choose Your Plan",
-        "subtitle": "Transparent pricing adapted to your business size.",
-        "month": "/month",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "cta": "Start",
-            "f1": "1 User",
-            "f2": "Up to 100 products",
-            "f3": "Basic stock management",
-            "f4": "Cash Register (POS)"
-        },
-        "business": {
-            "name": "Business",
-            "cta": "14-Day Free Trial",
-            "f1": "3 Users",
-            "f2": "Unlimited products",
-            "f3": "Stockman AI Assistant",
-            "f4": "Marketplace & Orders",
-            "f5": "Advanced Analytics"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Custom Quote",
-            "cta": "Contact Us",
-            "f1": "Unlimited Users",
-            "f2": "Multi-shops",
-            "f3": "API & Integrations",
-            "f4": "Dedicated 24/7 Support",
-            "f5": "Custom AI"
-        }
-    },
-    "faq": {
-        "title": "Frequently Asked Questions",
-        "q1": "Does it work offline?",
-        "a1": "Yes, Stockman works in offline mode. Your data syncs as soon as you find a connection.",
-        "q2": "Is my data secure?",
-        "a2": "Absolutely. We use bank-level encryption to protect all your business information."
-    },
-    "download": {
-        "title": "Ready to Level Up?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
-        "secure": "Secure Payments",
-        "support": "Pro Support",
-        "updates": "Continuous Updates"
-    },
-    "footer": {
-        "desc": "The all-in-one solution for modern merchants in Africa.",
-        "product": "Product",
-        "support": "Support",
-        "legal": "Legal",
-        "help_center": "Help Center",
-        "contact": "Contact",
-        "community": "Community",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "legal_notice": "Legal Notice",
-        "copyright": "© 2026 Stockman. All rights reserved."
-    },
-    "newsletter": {
-        "title": "Become a Stock Expert",
-        "desc": "Join 5000+ merchants and receive our free guide: \"10 Mistakes Killing Your Profitability\".",
-        "placeholder": "Your business email...",
-        "cta": "Get the Guide",
-        "success": "Thanks! check your inbox.",
-        "privacy": "No spam. Unsubscribe in 1 click."
-    },
-    "whatsapp": {
-        "message": "Hello, I would like to know more about Stockman!"
+    "settings": {
+      "title": "Settings",
+      "desc": "App customization, user management, and shop configuration."
     }
+  },
+  "showcase": {
+    "title": "The Interface That Changes Everything",
+    "subtitle": "A clean design, built to save you time.",
+    "app_interface": "App Interface"
+  },
+  "how_it_works": {
+    "title": "Quick Start",
+    "subtitle": "Three simple steps to transform your business.",
+    "step1": {
+      "title": "Create Account",
+      "desc": "Download the app and configure your shop in less than 2 minutes."
+    },
+    "step2": {
+      "title": "Scan Products",
+      "desc": "Use your phone's camera to quickly add your stock."
+    },
+    "step3": {
+      "title": "Sell & Track",
+      "desc": "Make your first sales and watch your stats climb in real-time."
+    }
+  },
+  "testimonials": {
+    "title": "They Trust Us",
+    "subtitle": "Discover how Stockman helps merchants every day.",
+    "t1": "Since using Stockman, I no longer lose money due to stockouts. The AI always warns me at the right time!",
+    "t2": "The app is so simple. My employees learned it in 10 minutes. POS management is perfect.",
+    "t3": "I love the marketplace! I can compare prices from my suppliers and order directly. Huge time saver."
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Transparent pricing adapted to your business size.",
+    "month": "/month",
+    "popular": "Popular",
+    "starter": {
+      "name": "Starter",
+      "cta": "Start",
+      "f1": "1 User",
+      "f2": "Up to 100 products",
+      "f3": "Basic stock management",
+      "f4": "Cash Register (POS)"
+    },
+    "business": {
+      "name": "Pro",
+      "cta": "3-Month Free Trial",
+      "f1": "5 Users",
+      "f2": "Unlimited products",
+      "f3": "Stockman AI Assistant",
+      "f4": "Marketplace & Orders",
+      "f5": "Advanced Analytics"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Custom Quote",
+      "cta": "Contact Us",
+      "f1": "Unlimited Users",
+      "f2": "Multi-shops",
+      "f3": "API & Integrations",
+      "f4": "Dedicated 24/7 Support",
+      "f5": "Custom AI"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "q1": "Does it work offline?",
+    "a1": "Yes, Stockman works in offline mode. Your data syncs as soon as you find a connection.",
+    "q2": "Is my data secure?",
+    "a2": "Absolutely. We use bank-level encryption to protect all your business information."
+  },
+  "download": {
+    "title": "Ready to Level Up?",
+    "subtitle": "Join thousands of merchants who have modernized their management.",
+    "secure": "Secure Payments",
+    "support": "Pro Support",
+    "updates": "Continuous Updates"
+  },
+  "footer": {
+    "desc": "The all-in-one solution for modern merchants in Africa.",
+    "product": "Product",
+    "support": "Support",
+    "legal": "Legal",
+    "help_center": "Help Center",
+    "contact": "Contact",
+    "community": "Community",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "legal_notice": "Legal Notice",
+    "copyright": "© 2026 Stockman. All rights reserved."
+  },
+  "newsletter": {
+    "title": "Become a Stock Expert",
+    "desc": "Join 5000+ merchants and receive our free guide: \"10 Mistakes Killing Your Profitability\".",
+    "placeholder": "Your business email...",
+    "cta": "Get the Guide",
+    "success": "Thanks! check your inbox.",
+    "privacy": "No spam. Unsubscribe in 1 click."
+  },
+  "whatsapp": {
+    "message": "Hello, I would like to know more about Stockman!"
+  }
 }

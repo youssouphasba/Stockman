@@ -1,156 +1,156 @@
 {
-    "nav": {
-        "features": "Funcționalități",
-        "resources": "Resurse",
-        "blog": "Blog",
-        "home": "Acasă",
-        "free_trial": "Probă Gratuită"
+  "nav": {
+    "features": "Funcționalități",
+    "resources": "Resurse",
+    "blog": "Blog",
+    "home": "Acasă",
+    "free_trial": "Probă Gratuită"
+  },
+  "hero": {
+    "title_start": "Deblochează potențialul",
+    "title_end": "afacerii tale",
+    "subtitle": "Soluția inteligentă de gestionare a stocului bazată pe AI pentru a automatiza comenzile și a maximiza profiturile.",
+    "cta": "Începe Acum"
+  },
+  "stats": {
+    "shops": "Magazine Echipate",
+    "transactions": "Tranzacții / Lună",
+    "satisfaction": "Clienți Mulțumiți",
+    "support": "Suport Disponibil"
+  },
+  "features": {
+    "title": "Instrumentele tale zilnice",
+    "subtitle": "O suită completă de file pentru a gestiona fiecare aspect al afacerii tale.",
+    "dashboard": {
+      "title": "Tablou de Bord",
+      "desc": "Privire de ansamblu asupra activității, alerte critice de stoc și acces rapid la asistentul AI."
     },
-    "hero": {
-        "title_start": "Deblochează potențialul",
-        "title_end": "afacerii tale",
-        "subtitle": "Soluția inteligentă de gestionare a stocului bazată pe AI pentru a automatiza comenzile și a maximiza profiturile.",
-        "cta": "Începe Acum"
+    "products": {
+      "title": "Produse",
+      "desc": "Gestionarea inventarului, scanarea codurilor de bare, organizarea pe categorii și evaluarea stocului."
     },
-    "stats": {
-        "shops": "Magazine Echipate",
-        "transactions": "Tranzacții / Lună",
-        "satisfaction": "Clienți Mulțumiți",
-        "support": "Suport Disponibil"
+    "pos": {
+      "title": "Casă (POS)",
+      "desc": "Încasează clienții rapid, generează chitanțe digitale și actualizează stocul în timp real."
     },
-    "features": {
-        "title": "Instrumentele tale zilnice",
-        "subtitle": "O suită completă de file pentru a gestiona fiecare aspect al afacerii tale.",
-        "dashboard": {
-            "title": "Tablou de Bord",
-            "desc": "Privire de ansamblu asupra activității, alerte critice de stoc și acces rapid la asistentul AI."
-        },
-        "products": {
-            "title": "Produse",
-            "desc": "Gestionarea inventarului, scanarea codurilor de bare, organizarea pe categorii și evaluarea stocului."
-        },
-        "pos": {
-            "title": "Casă (POS)",
-            "desc": "Încasează clienții rapid, generează chitanțe digitale și actualizează stocul în timp real."
-        },
-        "suppliers": {
-            "title": "Furnizori",
-            "desc": "Director furnizori, istoric comenzi și acces la Marketplace 'Button-to-Button'."
-        },
-        "orders": {
-            "title": "Comenzi",
-            "desc": "Urmărește comenzile de achiziție, primește mărfuri și actualizează automat stocurile."
-        },
-        "accounting": {
-            "title": "Contabilitate",
-            "desc": "Urmărire precisă a vânzărilor, cheltuielilor și calcul automat al profitabilității pe perioadă."
-        },
-        "clients": {
-            "title": "Clienți",
-            "desc": "Baza de date clienți, istoric achiziții și instrumente de loialitate integrate."
-        },
-        "settings": {
-            "title": "Setări",
-            "desc": "Personalizare aplicație, gestionare utilizatori și configurare magazin."
-        }
+    "suppliers": {
+      "title": "Furnizori",
+      "desc": "Director furnizori, istoric comenzi și acces la Marketplace 'Button-to-Button'."
     },
-    "showcase": {
-        "title": "Interfața care schimbă totul",
-        "subtitle": "Un design curat, gândit pentru a-ți economisi timpul.",
-        "app_interface": "Interfață Aplicație"
+    "orders": {
+      "title": "Comenzi",
+      "desc": "Urmărește comenzile de achiziție, primește mărfuri și actualizează automat stocurile."
     },
-    "how_it_works": {
-        "title": "Start Rapid",
-        "subtitle": "Trei pași simpli pentru a transforma afacerea ta.",
-        "step1": {
-            "title": "Creează Cont",
-            "desc": "Descarcă aplicația și configurează magazinul în mai puțin de 2 minute."
-        },
-        "step2": {
-            "title": "Scanează Produse",
-            "desc": "Folosește camera telefonului pentru a adăuga rapid stocul."
-        },
-        "step3": {
-            "title": "Vinde și Urmărește",
-            "desc": "Fă primele vânzări și urmărește statisticile crescând în timp real."
-        }
+    "accounting": {
+      "title": "Contabilitate",
+      "desc": "Urmărire precisă a vânzărilor, cheltuielilor și calcul automat al profitabilității pe perioadă."
     },
-    "testimonials": {
-        "title": "Ei au încredere în noi",
-        "subtitle": "Descoperă cum Stockman ajută comercianții zilnic.",
-        "t1": "De când folosesc Stockman, nu mai pierd bani din cauza lipsei de stoc. AI-ul mă avertizează mereu la momentul potrivit!",
-        "t2": "Aplicația este atât de simplă. Angajații mei au învățat-o în 10 minute. Gestionarea casei este perfectă.",
-        "t3": "Ador piața! Pot compara prețurile de la furnizorii mei și comanda direct. Economie uriașă de timp."
+    "clients": {
+      "title": "Clienți",
+      "desc": "Baza de date clienți, istoric achiziții și instrumente de loialitate integrate."
     },
-    "pricing": {
-        "title": "Alege planul tău",
-        "subtitle": "Prețuri transparente adaptate la dimensiunea afacerii tale.",
-        "month": "/lună",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "cta": "Începe",
-            "f1": "1 Utilizator",
-            "f2": "Până la 100 produse",
-            "f3": "Gestionare stoc de bază",
-            "f4": "Casă de marcat (POS)"
-        },
-        "business": {
-            "name": "Business",
-            "cta": "Probă Gratuită 14z",
-            "f1": "3 Utilizatori",
-            "f2": "Produse nelimitate",
-            "f3": "Asistent Stockman AI",
-            "f4": "Marketplace și Comenzi",
-            "f5": "Analize avansate"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Ofertă personalizată",
-            "cta": "Contactează",
-            "f1": "Utilizatori nelimitați",
-            "f2": "Multi-magazine",
-            "f3": "API și Integrări",
-            "f4": "Suport dedicat 24/7",
-            "f5": "AI personalizat"
-        }
-    },
-    "faq": {
-        "title": "Întrebări Frecvente",
-        "q1": "Funcționează fără internet?",
-        "a1": "Da, Stockman funcționează în modul offline. Datele tale se sincronizează imediat ce găsești o conexiune.",
-        "q2": "Sunt datele mele sigure?",
-        "a2": "Absolut. Folosim criptare de nivel bancar pentru a proteja toate informațiile tale comerciale."
-    },
-    "download": {
-        "title": "Gata pentru nivelul următor?",
-        "subtitle": "Alătură-te miilor de comercianți care și-au modernizat gestionarea.",
-        "secure": "Plăți Securizate",
-        "support": "Suport Pro",
-        "updates": "Actualizare Continuă"
-    },
-    "footer": {
-        "desc": "Soluția all-in-one pentru comercianții moderni din Africa.",
-        "product": "Produs",
-        "support": "Suport",
-        "legal": "Legal",
-        "help_center": "Centru de Ajutor",
-        "contact": "Contact",
-        "community": "Comunitate",
-        "privacy": "Politică de Confidențialitate",
-        "terms": "Termeni și Condiții",
-        "legal_notice": "Notă Legală",
-        "copyright": "© 2026 Stockman. Toate drepturile rezervate."
-    },
-    "newsletter": {
-        "title": "Devino un Expert în Stocuri",
-        "desc": "Alătură-te celor 5000+ comercianți și primește ghidul nostru gratuit: \"10 greșeli care îți ucid profitabilitatea\".",
-        "placeholder": "Email-ul tău profesional...",
-        "cta": "Primește Ghidul",
-        "success": "Mulțumesc! Verifică inbox-ul.",
-        "privacy": "Fără spam. Dezabonare cu 1 click."
-    },
-    "whatsapp": {
-        "message": "Bună, aș dori să aflu mai multe despre Stockman!"
+    "settings": {
+      "title": "Setări",
+      "desc": "Personalizare aplicație, gestionare utilizatori și configurare magazin."
     }
+  },
+  "showcase": {
+    "title": "Interfața care schimbă totul",
+    "subtitle": "Un design curat, gândit pentru a-ți economisi timpul.",
+    "app_interface": "Interfață Aplicație"
+  },
+  "how_it_works": {
+    "title": "Start Rapid",
+    "subtitle": "Trei pași simpli pentru a transforma afacerea ta.",
+    "step1": {
+      "title": "Creează Cont",
+      "desc": "Descarcă aplicația și configurează magazinul în mai puțin de 2 minute."
+    },
+    "step2": {
+      "title": "Scanează Produse",
+      "desc": "Folosește camera telefonului pentru a adăuga rapid stocul."
+    },
+    "step3": {
+      "title": "Vinde și Urmărește",
+      "desc": "Fă primele vânzări și urmărește statisticile crescând în timp real."
+    }
+  },
+  "testimonials": {
+    "title": "Ei au încredere în noi",
+    "subtitle": "Descoperă cum Stockman ajută comercianții zilnic.",
+    "t1": "De când folosesc Stockman, nu mai pierd bani din cauza lipsei de stoc. AI-ul mă avertizează mereu la momentul potrivit!",
+    "t2": "Aplicația este atât de simplă. Angajații mei au învățat-o în 10 minute. Gestionarea casei este perfectă.",
+    "t3": "Ador piața! Pot compara prețurile de la furnizorii mei și comanda direct. Economie uriașă de timp."
+  },
+  "pricing": {
+    "title": "Alege planul tău",
+    "subtitle": "Prețuri transparente adaptate la dimensiunea afacerii tale.",
+    "month": "/lună",
+    "popular": "Popular",
+    "starter": {
+      "name": "Starter",
+      "cta": "Începe",
+      "f1": "1 Utilizator",
+      "f2": "Până la 100 produse",
+      "f3": "Gestionare stoc de bază",
+      "f4": "Casă de marcat (POS)"
+    },
+    "business": {
+      "name": "Pro",
+      "cta": "Probă gratuită 3 luni",
+      "f1": "5 Utilizatori",
+      "f2": "Produse nelimitate",
+      "f3": "Asistent Stockman AI",
+      "f4": "Marketplace și Comenzi",
+      "f5": "Analize avansate"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Ofertă personalizată",
+      "cta": "Contactează",
+      "f1": "Utilizatori nelimitați",
+      "f2": "Multi-magazine",
+      "f3": "API și Integrări",
+      "f4": "Suport dedicat 24/7",
+      "f5": "AI personalizat"
+    }
+  },
+  "faq": {
+    "title": "Întrebări Frecvente",
+    "q1": "Funcționează fără internet?",
+    "a1": "Da, Stockman funcționează în modul offline. Datele tale se sincronizează imediat ce găsești o conexiune.",
+    "q2": "Sunt datele mele sigure?",
+    "a2": "Absolut. Folosim criptare de nivel bancar pentru a proteja toate informațiile tale comerciale."
+  },
+  "download": {
+    "title": "Gata pentru nivelul următor?",
+    "subtitle": "Alătură-te miilor de comercianți care și-au modernizat gestionarea.",
+    "secure": "Plăți Securizate",
+    "support": "Suport Pro",
+    "updates": "Actualizare Continuă"
+  },
+  "footer": {
+    "desc": "Soluția all-in-one pentru comercianții moderni din Africa.",
+    "product": "Produs",
+    "support": "Suport",
+    "legal": "Legal",
+    "help_center": "Centru de Ajutor",
+    "contact": "Contact",
+    "community": "Comunitate",
+    "privacy": "Politică de Confidențialitate",
+    "terms": "Termeni și Condiții",
+    "legal_notice": "Notă Legală",
+    "copyright": "© 2026 Stockman. Toate drepturile rezervate."
+  },
+  "newsletter": {
+    "title": "Devino un Expert în Stocuri",
+    "desc": "Alătură-te celor 5000+ comercianți și primește ghidul nostru gratuit: \"10 greșeli care îți ucid profitabilitatea\".",
+    "placeholder": "Email-ul tău profesional...",
+    "cta": "Primește Ghidul",
+    "success": "Mulțumesc! Verifică inbox-ul.",
+    "privacy": "Fără spam. Dezabonare cu 1 click."
+  },
+  "whatsapp": {
+    "message": "Bună, aș dori să aflu mai multe despre Stockman!"
+  }
 }

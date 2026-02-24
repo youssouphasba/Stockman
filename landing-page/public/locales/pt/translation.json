@@ -1,156 +1,156 @@
 {
-    "nav": {
-        "features": "Funcionalidades",
-        "resources": "Recursos",
-        "blog": "Blog",
-        "home": "Início",
-        "free_trial": "Teste Gratuito"
+  "nav": {
+    "features": "Funcionalidades",
+    "resources": "Recursos",
+    "blog": "Blog",
+    "home": "Início",
+    "free_trial": "Teste Gratuito"
+  },
+  "hero": {
+    "title_start": "Liberte o potencial do seu",
+    "title_end": "negócio",
+    "subtitle": "A solução de gestão de stock inteligente impulsionada por IA para automatizar as suas encomendas e maximizar os seus lucros.",
+    "cta": "Começar Agora"
+  },
+  "stats": {
+    "shops": "Lojas Equipadas",
+    "transactions": "Transações / Mês",
+    "satisfaction": "Clientes Satisfeitos",
+    "support": "Suporte Disponível"
+  },
+  "features": {
+    "title": "As suas ferramentas diárias",
+    "subtitle": "Um conjunto completo de abas para gerir cada aspeto do seu negócio.",
+    "dashboard": {
+      "title": "Painel",
+      "desc": "Visão geral da sua atividade, alertas de stock críticas e acesso rápido ao assistente de IA."
     },
-    "hero": {
-        "title_start": "Liberte o potencial do seu",
-        "title_end": "negócio",
-        "subtitle": "A solução de gestão de stock inteligente impulsionada por IA para automatizar as suas encomendas e maximizar os seus lucros.",
-        "cta": "Começar Agora"
+    "products": {
+      "title": "Produtos",
+      "desc": "Gestão de inventário, digitalização de códigos de barras, organização por categorias e avaliação de stock."
     },
-    "stats": {
-        "shops": "Lojas Equipadas",
-        "transactions": "Transações / Mês",
-        "satisfaction": "Clientes Satisfeitos",
-        "support": "Suporte Disponível"
+    "pos": {
+      "title": "Caixa (POS)",
+      "desc": "Atenda os seus clientes rapidamente, gere recibos digitais e atualize o stock em tempo real."
     },
-    "features": {
-        "title": "As suas ferramentas diárias",
-        "subtitle": "Um conjunto completo de abas para gerir cada aspeto do seu negócio.",
-        "dashboard": {
-            "title": "Painel",
-            "desc": "Visão geral da sua atividade, alertas de stock críticas e acesso rápido ao assistente de IA."
-        },
-        "products": {
-            "title": "Produtos",
-            "desc": "Gestão de inventário, digitalização de códigos de barras, organização por categorias e avaliação de stock."
-        },
-        "pos": {
-            "title": "Caixa (POS)",
-            "desc": "Atenda os seus clientes rapidamente, gere recibos digitais e atualize o stock em tempo real."
-        },
-        "suppliers": {
-            "title": "Fornecedores",
-            "desc": "Diretório de fornecedores, histórico de encomendas e acesso ao Marketplace 'Button-to-Button'."
-        },
-        "orders": {
-            "title": "Encomendas",
-            "desc": "Acompanhe pedidos de compra, receba mercadorias e atualize automaticamente os stocks."
-        },
-        "accounting": {
-            "title": "Contabilidade",
-            "desc": "Rastreio preciso de vendas, despesas e cálculo automático de rentabilidade por período."
-        },
-        "clients": {
-            "title": "Clientes",
-            "desc": "Base de dados de clientes, histórico de compras e ferramentas de fidelização integradas."
-        },
-        "settings": {
-            "title": "Configurações",
-            "desc": "Personalização da aplicação, gestão de utilizadores e configuração da loja."
-        }
+    "suppliers": {
+      "title": "Fornecedores",
+      "desc": "Diretório de fornecedores, histórico de encomendas e acesso ao Marketplace 'Button-to-Button'."
     },
-    "showcase": {
-        "title": "A interface que muda tudo",
-        "subtitle": "Um design limpo, pensado para lhe poupar tempo.",
-        "app_interface": "Interface da App"
+    "orders": {
+      "title": "Encomendas",
+      "desc": "Acompanhe pedidos de compra, receba mercadorias e atualize automaticamente os stocks."
     },
-    "how_it_works": {
-        "title": "Início Rápido",
-        "subtitle": "Três passos simples para transformar o seu negócio.",
-        "step1": {
-            "title": "Crie a sua Conta",
-            "desc": "Descarregue a aplicação e configure a sua loja em menos de 2 minutos."
-        },
-        "step2": {
-            "title": "Digitalize Produtos",
-            "desc": "Utilize a câmara do seu telemóvel para adicionar rapidamente o seu stock."
-        },
-        "step3": {
-            "title": "Venda e Acompanhe",
-            "desc": "Faça as suas primeiras vendas e veja as suas estatísticas subirem em tempo real."
-        }
+    "accounting": {
+      "title": "Contabilidade",
+      "desc": "Rastreio preciso de vendas, despesas e cálculo automático de rentabilidade por período."
     },
-    "testimonials": {
-        "title": "Eles confiam em nós",
-        "subtitle": "Descubra como o Stockman ajuda os comerciantes diariamente.",
-        "t1": "Desde que uso o Stockman, já não perco dinheiro devido a falta de stock. A IA avisa-me sempre no momento certo!",
-        "t2": "A aplicação é tão simples. Os meus funcionários aprenderam em 10 minutos. A gestão de caixa é perfeita.",
-        "t3": "Adoro o marketplace! Posso comparar preços dos meus fornecedores e encomendar diretamente. Uma enorme poupança de tempo."
+    "clients": {
+      "title": "Clientes",
+      "desc": "Base de dados de clientes, histórico de compras e ferramentas de fidelização integradas."
     },
-    "pricing": {
-        "title": "Escolha o seu plano",
-        "subtitle": "Preços transparentes adaptados ao tamanho do seu negócio.",
-        "month": "/mês",
-        "popular": "Popular",
-        "starter": {
-            "name": "Starter",
-            "cta": "Começar",
-            "f1": "1 Utilizador",
-            "f2": "Até 100 produtos",
-            "f3": "Gestão de stock básica",
-            "f4": "Caixa registadora (POS)"
-        },
-        "business": {
-            "name": "Business",
-            "cta": "Teste Gratuito 14d",
-            "f1": "3 Utilizadores",
-            "f2": "Produtos ilimitados",
-            "f3": "Assistente IA Stockman",
-            "f4": "Marketplace e Encomendas",
-            "f5": "Análises avançadas"
-        },
-        "enterprise": {
-            "name": "Enterprise",
-            "price": "Sob Orçamento",
-            "cta": "Contactar",
-            "f1": "Utilizadores ilimitados",
-            "f2": "Multi-lojas",
-            "f3": "API e Integrações",
-            "f4": "Suporte dedicado 24/7",
-            "f5": "IA personalizada"
-        }
-    },
-    "faq": {
-        "title": "Perguntas Frequentes",
-        "q1": "Funciona sem internet?",
-        "a1": "Sim, o Stockman funciona em modo offline. Os seus dados sincronizam assim que encontrar uma ligação.",
-        "q2": "Os meus dados estão seguros?",
-        "a2": "Absolutamente. Utilizamos encriptação de nível bancário para proteger todas as suas informações comerciais."
-    },
-    "download": {
-        "title": "Pronto para o próximo nível?",
-        "subtitle": "Junte-se a milhares de comerciantes que modernizaram a sua gestão.",
-        "secure": "Pagamentos Seguros",
-        "support": "Suporte Pro",
-        "updates": "Atualização Contínua"
-    },
-    "footer": {
-        "desc": "A solução tudo-em-um para comerciantes modernos em África.",
-        "product": "Produto",
-        "support": "Suporte",
-        "legal": "Legal",
-        "help_center": "Centro de Ajuda",
-        "contact": "Contacto",
-        "community": "Comunidade",
-        "privacy": "Política de Privacidade",
-        "terms": "Termos de Serviço",
-        "legal_notice": "Aviso Legal",
-        "copyright": "© 2026 Stockman. Todos os direitos reservados."
-    },
-    "newsletter": {
-        "title": "Torne-se um Especialista em Stock",
-        "desc": "Junte-se a 5000+ comerciantes e receba o nosso guia gratuito: \"10 erros que matam a sua rentabilidade\".",
-        "placeholder": "O seu email profissional...",
-        "cta": "Receber o Guia",
-        "success": "Obrigado! Verifique a sua caixa de entrada.",
-        "privacy": "Sem spam. Cancelar subscrição num clique."
-    },
-    "whatsapp": {
-        "message": "Olá, gostaria de saber mais sobre o Stockman!"
+    "settings": {
+      "title": "Configurações",
+      "desc": "Personalização da aplicação, gestão de utilizadores e configuração da loja."
     }
+  },
+  "showcase": {
+    "title": "A interface que muda tudo",
+    "subtitle": "Um design limpo, pensado para lhe poupar tempo.",
+    "app_interface": "Interface da App"
+  },
+  "how_it_works": {
+    "title": "Início Rápido",
+    "subtitle": "Três passos simples para transformar o seu negócio.",
+    "step1": {
+      "title": "Crie a sua Conta",
+      "desc": "Descarregue a aplicação e configure a sua loja em menos de 2 minutos."
+    },
+    "step2": {
+      "title": "Digitalize Produtos",
+      "desc": "Utilize a câmara do seu telemóvel para adicionar rapidamente o seu stock."
+    },
+    "step3": {
+      "title": "Venda e Acompanhe",
+      "desc": "Faça as suas primeiras vendas e veja as suas estatísticas subirem em tempo real."
+    }
+  },
+  "testimonials": {
+    "title": "Eles confiam em nós",
+    "subtitle": "Descubra como o Stockman ajuda os comerciantes diariamente.",
+    "t1": "Desde que uso o Stockman, já não perco dinheiro devido a falta de stock. A IA avisa-me sempre no momento certo!",
+    "t2": "A aplicação é tão simples. Os meus funcionários aprenderam em 10 minutos. A gestão de caixa é perfeita.",
+    "t3": "Adoro o marketplace! Posso comparar preços dos meus fornecedores e encomendar diretamente. Uma enorme poupança de tempo."
+  },
+  "pricing": {
+    "title": "Escolha o seu plano",
+    "subtitle": "Preços transparentes adaptados ao tamanho do seu negócio.",
+    "month": "/mês",
+    "popular": "Popular",
+    "starter": {
+      "name": "Starter",
+      "cta": "Começar",
+      "f1": "1 Utilizador",
+      "f2": "Até 100 produtos",
+      "f3": "Gestão de stock básica",
+      "f4": "Caixa registadora (POS)"
+    },
+    "business": {
+      "name": "Pro",
+      "cta": "Teste gratuito 3 meses",
+      "f1": "5 Utilizadores",
+      "f2": "Produtos ilimitados",
+      "f3": "Assistente IA Stockman",
+      "f4": "Marketplace e Encomendas",
+      "f5": "Análises avançadas"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Sob Orçamento",
+      "cta": "Contactar",
+      "f1": "Utilizadores ilimitados",
+      "f2": "Multi-lojas",
+      "f3": "API e Integrações",
+      "f4": "Suporte dedicado 24/7",
+      "f5": "IA personalizada"
+    }
+  },
+  "faq": {
+    "title": "Perguntas Frequentes",
+    "q1": "Funciona sem internet?",
+    "a1": "Sim, o Stockman funciona em modo offline. Os seus dados sincronizam assim que encontrar uma ligação.",
+    "q2": "Os meus dados estão seguros?",
+    "a2": "Absolutamente. Utilizamos encriptação de nível bancário para proteger todas as suas informações comerciais."
+  },
+  "download": {
+    "title": "Pronto para o próximo nível?",
+    "subtitle": "Junte-se a milhares de comerciantes que modernizaram a sua gestão.",
+    "secure": "Pagamentos Seguros",
+    "support": "Suporte Pro",
+    "updates": "Atualização Contínua"
+  },
+  "footer": {
+    "desc": "A solução tudo-em-um para comerciantes modernos em África.",
+    "product": "Produto",
+    "support": "Suporte",
+    "legal": "Legal",
+    "help_center": "Centro de Ajuda",
+    "contact": "Contacto",
+    "community": "Comunidade",
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Serviço",
+    "legal_notice": "Aviso Legal",
+    "copyright": "© 2026 Stockman. Todos os direitos reservados."
+  },
+  "newsletter": {
+    "title": "Torne-se um Especialista em Stock",
+    "desc": "Junte-se a 5000+ comerciantes e receba o nosso guia gratuito: \"10 erros que matam a sua rentabilidade\".",
+    "placeholder": "O seu email profissional...",
+    "cta": "Receber o Guia",
+    "success": "Obrigado! Verifique a sua caixa de entrada.",
+    "privacy": "Sem spam. Cancelar subscrição num clique."
+  },
+  "whatsapp": {
+    "message": "Olá, gostaria de saber mais sobre o Stockman!"
+  }
 }
