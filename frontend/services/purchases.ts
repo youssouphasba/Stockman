@@ -27,6 +27,13 @@ export async function initPurchases(userId: string): Promise<void> {
         return;
     }
 
+    // RevenueCat SDK crashes in production build if a test key is used.
+    // We skip initialization if we detect a test key unless we are in development.
+    if (apiKey.startsWith('test_') && !__DEV__) {
+        console.warn('RevenueCat: Test API key detected in production build. Skipping init to prevent crash.');
+        return;
+    }
+
     try {
         PurchasesSDK = (await import('react-native-purchases')).default;
         PurchasesSDK.configure({ apiKey, appUserID: userId });
