@@ -71,7 +71,7 @@ type KpiCardProps = {
   isCurrency?: boolean;
 };
 
-function KpiCard({ icon, label, value, color, isCurrency = false }: KpiCardProps & { user: any, colors: any, styles: any }) {
+function KpiCard({ icon, label, value, color, isCurrency = false, user, colors, styles }: KpiCardProps & { user: any, colors: any, styles: any }) {
   const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
   const isNumber = !isNaN(numericValue);
 
