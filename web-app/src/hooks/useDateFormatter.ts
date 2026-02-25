@@ -22,12 +22,19 @@ export function useDateFormatter() {
         }
     };
 
-    const formatCurrency = (amount: number) => {
-        if (!isMounted) return '... F';
+    const formatCurrency = (amount: number, currencyOverride?: string) => {
+        if (!isMounted) return '...';
+        const currency = currencyOverride
+            || (typeof window !== 'undefined' ? localStorage.getItem('user_currency') : null)
+            || 'XOF';
         try {
-            return amount.toLocaleString() + ' F';
+            return new Intl.NumberFormat(undefined, {
+                style: 'currency',
+                currency,
+                maximumFractionDigits: 0,
+            }).format(amount);
         } catch (e) {
-            return amount + ' F';
+            return amount.toLocaleString() + ' ' + currency;
         }
     };
 
