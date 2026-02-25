@@ -36,6 +36,7 @@ import {
 } from 'recharts';
 import StatCard from './StatCard';
 import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi } from '../services/api';
+import { useDateFormatter } from '../hooks/useDateFormatter';
 import AiSummaryModal from './AiSummaryModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -47,6 +48,7 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
     const { t, i18n } = useTranslation();
+    const { formatCurrency } = useDateFormatter();
     const [data, setData] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [forecast, setForecast] = useState<any>(null);
@@ -247,30 +249,27 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     <StatCard
                         label={t('dashboard.today_revenue')}
-                        value={`${data?.today_revenue || 0} F`}
+                        value={formatCurrency(data?.today_revenue || 0)}
                         icon={TrendingUp}
                         color="bg-emerald-500"
-                        trend={{ value: '12%', isUp: true }}
                     />
                     <StatCard
                         label={t('dashboard.today_sales')}
                         value={data?.today_sales_count || 0}
                         icon={ShoppingCart}
                         color="bg-blue-500"
-                        trend={{ value: '3%', isUp: true }}
                     />
                     <StatCard
                         label={t('dashboard.stock_value')}
-                        value={`${data?.total_stock_value || 0} F`}
+                        value={formatCurrency(data?.total_stock_value || 0)}
                         icon={Package}
                         color="bg-amber-500"
                     />
                     <StatCard
                         label={t('dashboard.month_revenue')}
-                        value={`${data?.month_revenue || 0} F`}
+                        value={formatCurrency(data?.month_revenue || 0)}
                         icon={TrendingUp}
                         color="bg-purple-500"
-                        trend={{ value: '8%', isUp: false }}
                     />
                 </div>
             )}
@@ -431,7 +430,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             <tr key={sale.sale_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                                 <td className="py-4 font-mono text-slate-400">#{sale.sale_id.slice(-4).toUpperCase()}</td>
                                                 <td className="py-4 text-white font-bold tracking-tight">{sale.items?.length || 0} art.</td>
-                                                <td className="py-4 font-black text-primary">{sale.total_amount} F</td>
+                                                <td className="py-4 font-black text-primary">{formatCurrency(sale.total_amount)}</td>
                                                 <td className="py-4 text-slate-400 flex items-center gap-2">
                                                     <Clock size={12} />
                                                     {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

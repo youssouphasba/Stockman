@@ -43,8 +43,6 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
 
     const label = remainingDays === 1
         ? "Dernier jour d'essai gratuit — Activez votre plan pour continuer"
-        : remainingDays > 60
-        ? `3 mois d'essai gratuit — encore ${remainingDays} jours`
         : `${remainingDays} jours d'essai gratuit restants`;
 
     return (
