@@ -59,6 +59,14 @@ export default function Home() {
       const userData = await auth.me();
       setUser(userData);
       setIsLogged(true);
+      // Cache currency immediately from user object (fast path)
+      if (userData?.currency) localStorage.setItem('user_currency', userData.currency);
+      // Also refresh from settings in case it was updated separately
+      import('../services/api').then(({ settings: settingsApi }) => {
+        settingsApi.get().then((s: any) => {
+          if (s?.currency) localStorage.setItem('user_currency', s.currency);
+        }).catch(() => {});
+      });
     } catch (err) {
       localStorage.removeItem('auth_token');
       setIsLogged(false);
@@ -99,6 +107,7 @@ export default function Home() {
 
   const handleLogout = () => {
     auth.logout();
+    localStorage.removeItem('user_currency');
     setUser(null);
     setIsLogged(false);
   };

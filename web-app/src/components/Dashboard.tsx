@@ -75,23 +75,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         async function fetchDashboard() {
             setLoading(true);
             try {
-                const [res, statsRes, aiRes, forecastRes, anomaliesRes] = await Promise.all([
+                // Données essentielles en priorité
+                const [res, statsRes] = await Promise.all([
                     dashboardApi.get(),
                     statsApi.get(period),
-                    aiApi.dailySummary(i18n.language),
-                    salesApi.forecast(),
-                    aiApi.detectAnomalies(i18n.language)
                 ]);
                 setData(res);
                 setStats(statsRes);
-                setAiSummary(aiRes.summary);
-                setForecast(forecastRes);
-                setAnomalies(anomaliesRes.anomalies || []);
             } catch (err) {
                 console.error('Error fetching dashboard', err);
+                return;
             } finally {
                 setLoading(false);
             }
+
+            // Données IA en arrière-plan (non bloquantes)
+            // Ne pas appeler detectAnomalies si aucun produit (évite les faux positifs)
+            const hasProducts = (res?.total_products || 0) > 0;
+            Promise.allSettled([
+                aiApi.dailySummary(i18n.language),
+                salesApi.forecast(),
+                hasProducts ? aiApi.detectAnomalies(i18n.language) : Promise.resolve({ anomalies: [] }),
+            ]).then(([aiRes, forecastRes, anomaliesRes]) => {
+                if (aiRes.status === 'fulfilled') setAiSummary(aiRes.value.summary);
+                if (forecastRes.status === 'fulfilled') setForecast(forecastRes.value);
+                if (anomaliesRes.status === 'fulfilled') setAnomalies(anomaliesRes.value.anomalies || []);
+            });
         }
         fetchDashboard();
     }, [period, i18n.language]);
