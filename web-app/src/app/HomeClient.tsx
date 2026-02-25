@@ -601,7 +601,7 @@ export default function Home() {
             <div className="text-center">
               <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
                 <a
-                  href="https://stockman.pro"
+                  href="https://stockman.pro?signup=pro"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary font-bold hover:underline"

@@ -56,6 +56,15 @@ function Landing() {
   // Signup modal
   const [signupPlan, setSignupPlan] = useState<'starter' | 'pro' | null>(null);
 
+  // Auto-open signup modal if ?signup=starter or ?signup=pro is in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const plan = params.get('signup');
+    if (plan === 'starter' || plan === 'pro') {
+      setSignupPlan(plan);
+    }
+  }, []);
+
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
     { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
