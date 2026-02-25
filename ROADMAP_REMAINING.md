@@ -188,6 +188,11 @@
 - [x] Backend : 3 nouveaux endpoints `/ai/pl-analysis`, `/ai/churn-prediction`, `/ai/monthly-report`
 - [x] `api.ts` web : 4 méthodes AI ajoutées (plAnalysis, churnPrediction, monthlyReport, replenishmentAdvice)
 
+## 📚 Post-Développement — Documentation & Formation
+- [ ] **Formation complète utilisateur** : générer un guide multi-chapitres couvrant toutes les fonctionnalités (Dashboard, Inventaire, POS, Alertes, Fournisseurs, Comptabilité, CRM, IA, Multi-boutiques, Mobile vs Web, Abonnements). Format : Markdown/PDF + version Help Center. À générer quand le développement est considéré terminé (ou en version intermédiaire si besoin).
+
+---
+
 ## 🐛 Bugs Connus
 - [x] **Accounting.tsx** : `stats?.daily_stats` → `stats?.daily_revenue` corrigé (Phase 4)
 - [x] `get_batches` : `user.user_id` → `get_owner_id(user)` corrigé (staff voit maintenant les lots du propriétaire)
