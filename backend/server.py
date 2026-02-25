@@ -2685,6 +2685,9 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
             query["store_id"] = store_id
         
         products = await db.products.find(query, {"_id": 0}).to_list(1000)
+        # Skip anomaly detection for empty accounts — avoids AI false positives
+        if not products:
+            return []
         seven_days_ago = now - timedelta(days=7)
         thirty_days_ago = now - timedelta(days=30)
         sales_30 = await db.sales.find({**query, "created_at": {"$gte": thirty_days_ago}}).to_list(10000)
@@ -6000,7 +6003,14 @@ async def get_dashboard(user: User = Depends(require_auth)):
 
     # Filter active products in memory (handles missing is_active field)
     products = [p for p in products if p.get("is_active", True)]
-    
+
+    # Auto-dismiss AI anomaly alerts for accounts with no products (false positives)
+    if not products:
+        await db.alerts.update_many(
+            {"user_id": user.user_id, "type": {"$regex": "^ai_"}, "is_dismissed": False},
+            {"$set": {"is_dismissed": True}}
+        )
+
     # Calculate stats
     total_products = len(products)
     total_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
