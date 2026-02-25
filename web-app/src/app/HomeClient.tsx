@@ -27,6 +27,7 @@ import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import { auth, chat as chatApi, ApiError } from "../services/api";
 import TrialBanner from "../components/TrialBanner";
+import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -37,6 +38,8 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [showSignup, setShowSignup] = useState(false);
 
   // Sidebar & Chat state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -600,17 +603,26 @@ export default function Home() {
             </button>
             <div className="text-center">
               <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
-                <a
-                  href="https://stockman.pro?signup=pro"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary font-bold hover:underline"
-                >S'inscrire sur stockman.pro</a>
+                <button
+                  onClick={() => setShowSignup(true)}
+                  className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
+                >Créer un compte gratuit</button>
               </span>
             </div>
           </div>
         </div>
       </div>
     </main>
+
+    {showSignup && (
+      <EnterpriseSignupModal
+        onClose={() => setShowSignup(false)}
+        onSuccess={(registeredEmail) => {
+          setShowSignup(false);
+          setEmail(registeredEmail);
+          setPassword('');
+        }}
+      />
+    )}
   );
 }

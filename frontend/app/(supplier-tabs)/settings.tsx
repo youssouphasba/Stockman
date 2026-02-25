@@ -19,6 +19,7 @@ import { supplierProfile, SupplierProfileData, SupplierProfileCreate } from '../
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { formatNumber } from '../../utils/format';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 
 export default function SupplierSettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -29,6 +30,7 @@ export default function SupplierSettingsScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Form state
   const [companyName, setCompanyName] = useState('');
@@ -262,6 +264,21 @@ export default function SupplierSettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* GDPR - Danger Zone */}
+        <View style={[styles.card, { borderColor: Colors.danger + '30', borderWidth: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: Colors.danger }]}>{t('settings.danger_zone')}</Text>
+          <Text style={[infoStyles.label, { marginBottom: Spacing.md }]}>
+            {t('settings.delete_account_desc')}
+          </Text>
+
+          <TouchableOpacity style={[infoStyles.row, { borderBottomWidth: 0 }]} onPress={() => setShowDeleteModal(true)}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={[infoStyles.label, { color: Colors.danger, fontSize: FontSize.md, marginBottom: 0 }]}>{t('settings.delete_account')}</Text>
+              <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
@@ -271,6 +288,11 @@ export default function SupplierSettingsScreen() {
         <LanguagePickerModal
           visible={showLanguageModal}
           onClose={() => setShowLanguageModal(false)}
+        />
+
+        <DeleteAccountModal
+          visible={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
         />
 
         <View style={{ height: Spacing.xxl }} />

@@ -34,7 +34,8 @@
       "Bash(tail:*)",
       "Bash(adb devices:*)",
       "Bash(powershell.exe:*)",
-      "Bash(echo Logcat effacé, prêt à capturer:*)"
+      "Bash(echo Logcat effacé, prêt à capturer:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
