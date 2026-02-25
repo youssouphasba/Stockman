@@ -2048,10 +2048,27 @@ async def admin_detailed_stats():
     country_data = await db.users.aggregate(country_pipeline).to_list(100)
     users_by_country = {r["_id"] or "Unknown": r["count"] for r in country_data}
 
+    # Users by plan
+    plan_pipeline = [{"$group": {"_id": "$plan", "count": {"$sum": 1}}}]
+    plan_data = await db.users.aggregate(plan_pipeline).to_list(10)
+    users_by_plan = {r["_id"] or "starter": r["count"] for r in plan_data}
+
+    # Trials expiring in next 7 days
+    in_7_days = now + timedelta(days=7)
+    trials_expiring_soon = await db.users.count_documents({
+        "trial_ends_at": {"$gte": now, "$lte": in_7_days}
+    })
+
+    # New signups today
+    signups_today = await db.users.count_documents({"created_at": {"$gte": today_start}})
+
     return {
         "users_by_role": users_by_role,
+        "users_by_plan": users_by_plan,
         "users_by_country": users_by_country,
         "recent_signups": recent_signups,
+        "signups_today": signups_today,
+        "trials_expiring_soon": trials_expiring_soon,
         "top_stores": top_stores,
         "revenue_today": revenue_today_agg[0]["total"] if revenue_today_agg else 0,
         "revenue_week": revenue_week_agg[0]["total"] if revenue_week_agg else 0,
