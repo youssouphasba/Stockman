@@ -492,137 +492,139 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-[#0F172A]">
-      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+    <>
+      <main className="min-h-screen flex items-center justify-center p-6 bg-[#0F172A]">
+        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-        {/* Left Side: Brand & Welcome */}
-        <div className="flex flex-col gap-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Package className="text-white" size={28} />
+          {/* Left Side: Brand & Welcome */}
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <Package className="text-white" size={28} />
+              </div>
+              <h1 className="text-5xl text-gradient tracking-tight">Stockman</h1>
             </div>
-            <h1 className="text-5xl text-gradient tracking-tight">Stockman</h1>
+
+            <div className="flex flex-col gap-4">
+              <h2 className="text-4xl font-extrabold text-white leading-tight">
+                Votre commerce, <br />
+                <span className="text-secondary">maîtrisé et optimisé.</span>
+              </h2>
+              <p className="text-xl text-muted leading-relaxed max-w-lg">
+                La puissance de la gestion de stock intelligente, maintenant disponible sur grand écran pour une expertise totale.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+              <div className="flex items-center gap-4 group">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
+                  <LayoutDashboard size={24} className="text-primary" />
+                </div>
+                <span className="text-lg font-medium text-slate-200">Tableau de Bord Profond</span>
+              </div>
+              <div className="flex items-center gap-4 group">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
+                  <LineChart size={24} className="text-primary" />
+                </div>
+                <span className="text-lg font-medium text-slate-200">Analyses IA & Prévisions</span>
+              </div>
+              <div className="flex items-center gap-4 group">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
+                  <ShoppingCart size={24} className="text-primary" />
+                </div>
+                <span className="text-lg font-medium text-slate-200">Ventes & CRM Intégrés</span>
+              </div>
+              <div className="flex items-center gap-4 group">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
+                  <ShieldCheck size={24} className="text-primary" />
+                </div>
+                <span className="text-lg font-medium text-slate-200">Sécurisé & Synchronisé</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <h2 className="text-4xl font-extrabold text-white leading-tight">
-              Votre commerce, <br />
-              <span className="text-secondary">maîtrisé et optimisé.</span>
-            </h2>
-            <p className="text-xl text-muted leading-relaxed max-w-lg">
-              La puissance de la gestion de stock intelligente, maintenant disponible sur grand écran pour une expertise totale.
-            </p>
-          </div>
+          {/* Right Side: Auth Card */}
+          <div className="glass-card flex flex-col gap-6 shadow-2xl relative overflow-hidden group p-8">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-            <div className="flex items-center gap-4 group">
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
-                <LayoutDashboard size={24} className="text-primary" />
-              </div>
-              <span className="text-lg font-medium text-slate-200">Tableau de Bord Profond</span>
+            <div className="flex flex-col gap-1 relative z-10">
+              <h3 className="text-2xl font-bold text-white">Connexion</h3>
+              <p className="text-slate-400">Accédez à votre espace professionnel Enterprise</p>
             </div>
-            <div className="flex items-center gap-4 group">
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
-                <LineChart size={24} className="text-primary" />
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 text-sm relative z-10">
+                <AlertIcon size={18} />
+                <span>{error}</span>
               </div>
-              <span className="text-lg font-medium text-slate-200">Analyses IA & Prévisions</span>
+            )}
+
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-300">Email professionnel</label>
+                <input
+                  type="email"
+                  placeholder="nom@boutique.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
+                  <a href="#" className="text-xs text-primary hover:underline">Oublié ?</a>
+                </div>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-4 group">
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
-                <ShoppingCart size={24} className="text-primary" />
+
+            <div className="flex flex-col gap-4 relative z-10">
+              <button
+                onClick={handleLogin}
+                disabled={loading}
+                className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading ? 'opacity-70 cursor-wait' : ''}`}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Connexion...
+                  </>
+                ) : (
+                  <><LogIn size={20} /> Se connecter</>
+                )}
+              </button>
+              <div className="text-center">
+                <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
+                  <button
+                    onClick={() => setShowSignup(true)}
+                    className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
+                  >Créer un compte gratuit</button>
+                </span>
               </div>
-              <span className="text-lg font-medium text-slate-200">Ventes & CRM Intégrés</span>
-            </div>
-            <div className="flex items-center gap-4 group">
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
-                <ShieldCheck size={24} className="text-primary" />
-              </div>
-              <span className="text-lg font-medium text-slate-200">Sécurisé & Synchronisé</span>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Right Side: Auth Card */}
-        <div className="glass-card flex flex-col gap-6 shadow-2xl relative overflow-hidden group p-8">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
-
-          <div className="flex flex-col gap-1 relative z-10">
-            <h3 className="text-2xl font-bold text-white">Connexion</h3>
-            <p className="text-slate-400">Accédez à votre espace professionnel Enterprise</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 text-sm relative z-10">
-              <AlertIcon size={18} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-4 relative z-10">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-300">Email professionnel</label>
-              <input
-                type="email"
-                placeholder="nom@boutique.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
-                <a href="#" className="text-xs text-primary hover:underline">Oublié ?</a>
-              </div>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 relative z-10">
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading ? 'opacity-70 cursor-wait' : ''}`}
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Connexion...
-                </>
-              ) : (
-                <><LogIn size={20} /> Se connecter</>
-              )}
-            </button>
-            <div className="text-center">
-              <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
-                <button
-                  onClick={() => setShowSignup(true)}
-                  className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
-                >Créer un compte gratuit</button>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    {showSignup && (
-      <EnterpriseSignupModal
-        onClose={() => setShowSignup(false)}
-        onSuccess={(registeredEmail) => {
-          setShowSignup(false);
-          setEmail(registeredEmail);
-          setPassword('');
-        }}
-      />
-    )}
+      {showSignup && (
+        <EnterpriseSignupModal
+          onClose={() => setShowSignup(false)}
+          onSuccess={(registeredEmail) => {
+            setShowSignup(false);
+            setEmail(registeredEmail);
+            setPassword('');
+          }}
+        />
+      )}
+    </>
   );
 }
