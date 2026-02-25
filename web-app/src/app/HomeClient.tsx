@@ -121,7 +121,7 @@ export default function Home() {
   if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
 
   // Guard Enterprise : Starter/Pro n'ont pas accès au web
-  if (isLogged && user?.role !== 'admin' && user?.plan !== 'enterprise') {
+  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.plan !== 'enterprise') {
     const currentPlan = user?.plan === 'pro' ? 'Pro' : 'Starter';
 
     const WEB_MODULES = [
