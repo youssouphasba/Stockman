@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Walaa ngalu heɓaa e ndee sahaa.",
     "not_enough_data": "Kabaruuji njeeygu mbeebaa ngam taskagol ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "yontere {{count}} jawnii",
     "years_ago": "duubi {{count}} jawnii",
     "yes": "Eey",
-    "yesterday": "Hanki"
+    "yesterday": "Hanki",
+    "last_7_days": "Duppere 7 lewru",
+    "last_30_days": "Duppere 30 lewru",
+    "last_90_days": "Duppere 90 lewru"
   },
   "crm": {
     "active_30d": "Moƴƴi (balɗe 30)",

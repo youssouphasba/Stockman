@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "description_a": "Clase A: Artículos de alta prioridad (80% del valor del stock).",
     "description_b": "Clase B: Artículos de prioridad media (15% del valor del stock).",
@@ -566,7 +566,10 @@
     "weeks_ago": "hace {{count}} semanas",
     "years_ago": "hace {{count}} años",
     "yes": "Sí",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "last_7_days": "Últimos 7 días",
+    "last_30_days": "Últimos 30 días",
+    "last_90_days": "Últimos 90 días"
   },
   "crm": {
     "active_30d": "Activos (30 días)",

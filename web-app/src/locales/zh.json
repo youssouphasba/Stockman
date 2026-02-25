@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} 周前",
     "years_ago": "{{count}} 年前",
     "yes": "是",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "last_7_days": "最近7天",
+    "last_30_days": "最近30天",
+    "last_90_days": "最近90天"
   },
   "crm": {
     "active_30d": "活跃 (30天)",

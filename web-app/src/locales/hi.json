@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} सप्ताह पहले",
     "years_ago": "{{count}} साल पहले",
     "yes": "हाँ",
-    "yesterday": "कल"
+    "yesterday": "कल",
+    "last_7_days": "पिछले 7 दिन",
+    "last_30_days": "पिछले 30 दिन",
+    "last_90_days": "पिछले 90 दिन"
   },
   "crm": {
     "active_30d": "सक्रिय (30दि)",

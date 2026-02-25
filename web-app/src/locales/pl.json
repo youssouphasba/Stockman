@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Brak przychodów w tym okresie.",
     "not_enough_data": "Niewystarczająca ilość danych do analizy ABC."
@@ -534,7 +534,7 @@
     "stock": "Stock",
     "success": "Sukces",
     "tip_of_the_day": "TIP OF THE DAY",
-    "today": "Today",
+    "today": "Dziś",
     "total": "Total",
     "unit": "Unit",
     "unknown_product": "Unknown product",
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} weeks ago",
     "years_ago": "{{count}} years ago",
     "yes": "Yes",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "last_7_days": "Ostatnie 7 dni",
+    "last_30_days": "Ostatnie 30 dni",
+    "last_90_days": "Ostatnie 90 dni"
   },
   "crm": {
     "active_30d": "Active (30d)",

@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Nessun ricavo generato in questo periodo.",
     "not_enough_data": "Dati di vendita insufficienti per l'analisi ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "fa {{count}} settimane",
     "years_ago": "fa {{count}} anni",
     "yes": "Sì",
-    "yesterday": "Ieri"
+    "yesterday": "Ieri",
+    "last_7_days": "Ultimi 7 giorni",
+    "last_30_days": "Ultimi 30 giorni",
+    "last_90_days": "Ultimi 90 giorni"
   },
   "crm": {
     "active_30d": "Attivi (30g)",

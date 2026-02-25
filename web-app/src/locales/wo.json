@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -534,7 +534,7 @@
     "stock": "Stock",
     "success": "Baax na",
     "tip_of_the_day": "NDIGAL TAY",
-    "today": "Tay",
+    "today": "Tey",
     "total": "Lépp",
     "unit": "Bokk",
     "unknown_product": "Liggéey bu ñu xamul",
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} ay-simen ci gannaaw",
     "years_ago": "{{count}} at ci gannaaw",
     "yes": "Waaw",
-    "yesterday": "Demb"
+    "yesterday": "Demb",
+    "last_7_days": "7 fan bi lépp",
+    "last_30_days": "30 fan bi lépp",
+    "last_90_days": "90 fan bi lépp"
   },
   "crm": {
     "active_30d": "Yu dox (30b)",

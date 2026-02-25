@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} нед. назад",
     "years_ago": "{{count}} г. назад",
     "yes": "Да",
-    "yesterday": "Вчера"
+    "yesterday": "Вчера",
+    "last_7_days": "Последние 7 дней",
+    "last_30_days": "Последние 30 дней",
+    "last_90_days": "Последние 90 дней"
   },
   "crm": {
     "active_30d": "Активны (30д)",

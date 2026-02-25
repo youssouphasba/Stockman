@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -542,7 +542,10 @@
     "weeks_ago": "{{count}} hafta önce",
     "years_ago": "{{count}} yıl önce",
     "yes": "Evet",
-    "yesterday": "Dün"
+    "yesterday": "Dün",
+    "last_7_days": "Son 7 gün",
+    "last_30_days": "Son 30 gün",
+    "last_90_days": "Son 90 gün"
   },
   "crm": {
     "active_30d": "Aktif (30g)",

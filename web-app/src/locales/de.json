@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "In diesem Zeitraum wurde kein Umsatz erzielt.",
     "not_enough_data": "Nicht genügend Verkaufsdaten für die ABC-Analyse vorhanden."
@@ -542,7 +542,10 @@
     "weeks_ago": "vor {{count}} Wochen",
     "years_ago": "vor {{count}} Jahren",
     "yes": "Ja",
-    "yesterday": "Gestern"
+    "yesterday": "Gestern",
+    "last_7_days": "Letzte 7 Tage",
+    "last_30_days": "Letzte 30 Tage",
+    "last_90_days": "Letzte 90 Tage"
   },
   "crm": {
     "active_30d": "Aktiv (30T)",
