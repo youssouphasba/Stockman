@@ -115,7 +115,7 @@ export default function Sidebar({
                 { id: 'activity', icon: Clock, label: 'Historique Système', roles: ['shopkeeper', 'admin'] },
             ],
         },
-        { id: 'admin', icon: Globe, label: 'Admin', roles: ['admin'] },
+        { id: 'admin', icon: ShieldCheck, label: 'Admin', roles: ['admin', 'superadmin'] },
         {
             id: 'account_group',
             icon: Settings,
@@ -130,6 +130,8 @@ export default function Sidebar({
     const canSeeItem = (roles?: string[], permission?: string) => {
         if (!roles) return true;
         if (!user) return true;
+        // Superadmin voit tout
+        if (user.role === 'superadmin') return true;
         if (roles.includes(user.role)) {
             // For staff with a permission requirement, check it
             if (user.role === 'staff' && permission) {
