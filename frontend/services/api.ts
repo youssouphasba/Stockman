@@ -666,7 +666,10 @@ export type GlobalStats = {
 export type DetailedStats = {
   users_by_role: Record<string, number>;
   users_by_country?: Record<string, number>;
+  users_by_plan?: Record<string, number>;
   recent_signups: number;
+  signups_today?: number;
+  trials_expiring_soon?: number;
   top_stores: { store_id: string; name: string; revenue: number; sales_count: number }[];
   revenue_today: number;
   revenue_week: number;

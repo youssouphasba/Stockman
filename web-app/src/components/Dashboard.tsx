@@ -140,23 +140,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
     const dashboardSteps: GuideStep[] = [
         {
-            title: "Bienvenue sur votre Dashboard",
-            content: "C'est ici que vous pouvez suivre la santé de votre commerce en un coup d'œil.",
+            title: t('dashboard.guide_welcome_title', 'Welcome to your Dashboard'),
+            content: t('dashboard.guide_welcome_content', 'Monitor your business health at a glance.'),
             position: "center"
         },
         {
-            title: "Indicateurs Clés (KPI)",
-            content: "Suivez votre chiffre d'affaires, le nombre de ventes et la valeur de votre stock en temps réel.",
+            title: t('dashboard.guide_kpi_title', 'Key Indicators (KPI)'),
+            content: t('dashboard.guide_kpi_content', 'Track your revenue, sales count and stock value in real time.'),
             targetId: "kpi-stats"
         },
         {
-            title: "Prévisions IA",
-            content: "Notre intelligence artificielle analyse vos données pour prédire vos ventes futures et vous aider à anticiper.",
+            title: t('dashboard.guide_forecast_title', 'AI Forecast'),
+            content: t('dashboard.guide_forecast_content', 'Our AI analyses your data to predict future sales.'),
             targetId: "sales-forecast"
         },
         {
-            title: "Smart Reminders",
-            content: "L'IA vous donne des conseils personnalisés et vous rappelle les actions urgentes à effectuer.",
+            title: t('dashboard.smart_reminders'),
+            content: t('dashboard.guide_reminders_content', 'Get personalised AI advice and urgent action reminders.'),
             targetId: "smart-reminders"
         }
     ];
@@ -173,7 +173,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     {anomalies.length > 0 && (
                         <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 animate-pulse">
                             <AlertTriangle size={18} />
-                            <span className="text-xs font-black uppercase tracking-widest">{anomalies.length} Anomalies détectées</span>
+                            <span className="text-xs font-black uppercase tracking-widest">{t('dashboard.anomalies_detected', { count: anomalies.length })}</span>
                         </div>
                     )}
 
@@ -188,7 +188,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         {isSettingsOpen && (
                             <div className="absolute top-full right-0 mt-2 w-56 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
                                 <div className="flex justify-between items-center mb-3">
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Sections visibles</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">{t('dashboard.visible_sections')}</span>
                                     <button onClick={() => setIsSettingsOpen(false)} className="text-slate-500 hover:text-white">
                                         <X size={14} />
                                     </button>
@@ -283,15 +283,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tighter">
                                     <Sparkles size={20} className="text-primary" />
-                                    Prévisions de Ventes (IA)
+                                    {t('dashboard.ai_forecast_title')}
                                 </h3>
-                                <div className="text-[10px] text-primary font-black uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">Confidence: 94%</div>
+                                <div className="text-[10px] text-primary font-black uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">{t('dashboard.forecast_confidence')}</div>
                             </div>
                             <div className="flex-1 w-full min-h-[250px]">
                                 {(!forecast?.daily_forecast || forecast.daily_forecast.length === 0) ? (
                                     <div className="h-full flex items-center justify-center text-slate-500 text-sm flex-col gap-2">
                                         <Package size={32} className="text-slate-700" />
-                                        <p>Pas assez de données de ventes pour générer une prévision</p>
+                                        <p>{t('dashboard.no_forecast_data')}</p>
                                     </div>
                                 ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -328,7 +328,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
                                             formatter={(value: any, _: any, props: any) => {
                                                 const isPred = props?.payload?.is_predicted;
-                                                return [`${Number(value).toLocaleString('fr-FR')}`, isPred ? 'Prévu' : 'Réel'];
+                                                return [`${Number(value).toLocaleString('fr-FR')}`, isPred ? t('dashboard.forecast_predicted') : t('dashboard.forecast_actual')];
                                             }}
                                         />
                                         <Area
@@ -353,15 +353,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tighter">
                                     <Package size={20} className="text-primary" />
-                                    Évolution de la Valeur du Stock
+                                    {t('dashboard.stock_value_evolution')}
                                 </h3>
-                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Historique {period}J</div>
+                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-1 rounded">{t('dashboard.period_history', { count: period })}</div>
                             </div>
                             <div className="flex-1 w-full min-h-[300px]">
                                 {(!stats?.stock_value_history || stats.stock_value_history.length === 0 || stats.stock_value_history.every((d: any) => d.value === 0)) ? (
                                     <div className="h-full flex items-center justify-center text-slate-500 text-sm flex-col gap-2">
                                         <Package size={32} className="text-slate-700" />
-                                        <p>Aucune donnée de stock disponible pour cette période</p>
+                                        <p>{t('dashboard.no_stock_data')}</p>
                                     </div>
                                 ) : (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -392,7 +392,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
                                             labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
-                                            formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')}`, 'Valeur stock']}
+                                            formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')}`, t('dashboard.stock_value')]}
                                         />
                                         <Area type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorStock)" dot={false} />
                                     </AreaChart>
@@ -418,18 +418,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                            <th className="pb-4">Réf.</th>
-                                            <th className="pb-4">Articles</th>
-                                            <th className="pb-4">Montant</th>
-                                            <th className="pb-4">Heure</th>
-                                            <th className="pb-4 text-right">Action</th>
+                                            <th className="pb-4">{t('dashboard.col_ref')}</th>
+                                            <th className="pb-4">{t('dashboard.col_items')}</th>
+                                            <th className="pb-4">{t('dashboard.col_amount')}</th>
+                                            <th className="pb-4">{t('dashboard.col_time')}</th>
+                                            <th className="pb-4 text-right">{t('dashboard.col_action')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="text-sm">
                                         {(Array.isArray(data?.recent_sales) ? data.recent_sales : []).map((sale: any) => (
                                             <tr key={sale.sale_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                                 <td className="py-4 font-mono text-slate-400">#{sale.sale_id.slice(-4).toUpperCase()}</td>
-                                                <td className="py-4 text-white font-bold tracking-tight">{sale.items?.length || 0} art.</td>
+                                                <td className="py-4 text-white font-bold tracking-tight">{sale.items?.length || 0} {t('dashboard.items_abbrev')}</td>
                                                 <td className="py-4 font-black text-primary">{formatCurrency(sale.total_amount)}</td>
                                                 <td className="py-4 text-slate-400 flex items-center gap-2">
                                                     <Clock size={12} />
@@ -439,7 +439,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                                     <button
                                                         onClick={() => { setSelectedSale(sale); setIsReceiptModalOpen(true); }}
                                                         className="p-2 rounded-lg hover:bg-primary/10 text-slate-400 hover:text-primary transition-all"
-                                                        title="Voir le reçu"
+                                                        title={t('dashboard.view_receipt')}
                                                     >
                                                         <ArrowUpRight size={18} />
                                                     </button>
@@ -462,32 +462,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
                         if ((data?.out_of_stock_count || 0) > 0) reminders.push({
                             icon: <AlertTriangle size={15} />,
-                            label: 'Rupture de stock',
-                            value: `${data.out_of_stock_count} produit${data.out_of_stock_count > 1 ? 's' : ''}`,
+                            label: t('dashboard.out_of_stock'),
+                            value: t('dashboard.reminder_products', { count: data.out_of_stock_count }),
                             color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20'
                         });
                         if ((data?.low_stock_count || 0) > 0) reminders.push({
                             icon: <AlertCircle size={15} />,
-                            label: 'Stock faible',
-                            value: `${data.low_stock_count} produit${data.low_stock_count > 1 ? 's' : ''} sous le seuil`,
+                            label: t('dashboard.low_stock'),
+                            value: t('dashboard.reminder_products_low', { count: data.low_stock_count }),
                             color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20'
                         });
                         if ((data?.unread_alerts || 0) > 0) reminders.push({
                             icon: <Bell size={15} />,
-                            label: 'Alertes non lues',
-                            value: `${data.unread_alerts} alerte${data.unread_alerts > 1 ? 's' : ''}`,
+                            label: t('dashboard.unread_alerts_label'),
+                            value: t('dashboard.reminder_alerts', { count: data.unread_alerts }),
                             color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20'
                         });
                         if ((data?.overstock_count || 0) > 0) reminders.push({
                             icon: <Package size={15} />,
-                            label: 'Surstock détecté',
-                            value: `${data.overstock_count} produit${data.overstock_count > 1 ? 's' : ''} en excès`,
+                            label: t('dashboard.overstock'),
+                            value: t('dashboard.reminder_products_overstock', { count: data.overstock_count }),
                             color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20'
                         });
                         if ((data?.today_sales_count || 0) > 0) reminders.push({
                             icon: <ShoppingCart size={15} />,
-                            label: "Ventes aujourd'hui",
-                            value: `${data.today_sales_count} vente${data.today_sales_count > 1 ? 's' : ''}`,
+                            label: t('dashboard.today_sales'),
+                            value: t('dashboard.reminder_sales', { count: data.today_sales_count }),
                             color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20'
                         });
 
@@ -496,14 +496,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl -mr-12 -mt-12"></div>
                                 <div className="flex items-center gap-3 mb-5 relative z-10">
                                     <Sparkles className="text-primary animate-pulse" size={22} />
-                                    <h3 className="text-lg font-black text-white uppercase tracking-tighter">Smart Reminders</h3>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tighter">{t('dashboard.smart_reminders')}</h3>
                                 </div>
 
                                 <div className="space-y-2 relative z-10">
                                     {reminders.length === 0 ? (
                                         <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                                             <CheckCircle size={16} className="text-emerald-400 shrink-0" />
-                                            <p className="text-sm text-emerald-300 font-semibold">Tout est à jour — aucun problème détecté</p>
+                                            <p className="text-sm text-emerald-300 font-semibold">{t('dashboard.all_good')}</p>
                                         </div>
                                     ) : reminders.map((r, idx) => (
                                         <div key={idx} className={`flex items-center justify-between gap-3 p-3 rounded-lg ${r.bg} border ${r.border}`}>
@@ -524,7 +524,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                             onClick={() => setIsAiModalOpen(true)}
                                             className="mt-3 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all outline-none"
                                         >
-                                            Voir le rapport complet <ChevronRight size={14} />
+                                            {t('dashboard.see_full_report')} <ChevronRight size={14} />
                                         </button>
                                     </div>
                                 )}
@@ -537,7 +537,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         <div className="glass-card p-6">
                             <h3 className="text-lg font-black text-white mb-6 flex items-center gap-2 uppercase tracking-tighter">
                                 <PieChartIcon size={18} className="text-primary" />
-                                Répartition des Stocks
+                                {t('dashboard.stock_distribution')}
                             </h3>
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -618,7 +618,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                                 {(data?.overstock_products || []).length > 0 && (
                                     <>
                                         <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 mt-1">
-                                            <span className="text-blue-400 text-xs font-black uppercase tracking-widest">Surstock</span>
+                                            <span className="text-blue-400 text-xs font-black uppercase tracking-widest">{t('dashboard.overstock')}</span>
                                             <span className="text-xl font-black text-white">{data?.overstock_count || 0}</span>
                                         </div>
                                         {(data?.overstock_products || []).map((p: any) => (

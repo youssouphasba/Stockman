@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "description_a": "Clase A: Artículos de alta prioridad (80% del valor del stock).",
     "description_b": "Clase B: Artículos de prioridad media (15% del valor del stock).",
@@ -146,7 +146,14 @@
     },
     "distribution": {
       "country": "Distribución por país",
-      "role": "Usuarios por función"
+      "plan": "Distribution par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Trial",
+      "role": "Usuarios por función",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Trials expirant (7j)"
     },
     "health": {
       "title": "Salud del sistema",
@@ -527,6 +534,9 @@
     "info": "Info",
     "items_count": "{{count}} artículo(s)",
     "language_choice": "Elegir idioma",
+    "last_30_days": "Last 30 days",
+    "last_7_days": "Last 7 days",
+    "last_90_days": "Last 90 days",
     "loading": "Cargando...",
     "merchant": "Comerciante",
     "months_ago": "hace {{count}} meses",

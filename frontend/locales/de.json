@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "In diesem Zeitraum wurde kein Umsatz erzielt.",
     "not_enough_data": "Nicht genügend Verkaufsdaten für die ABC-Analyse vorhanden."
@@ -141,7 +141,14 @@
     },
     "distribution": {
       "country": "Verteilung nach Land",
-      "role": "Benutzer nach Rolle"
+      "plan": "Distribution par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Trial",
+      "role": "Benutzer nach Rolle",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Trials expirant (7j)"
     },
     "health": {
       "title": "Systemstatus",
@@ -503,6 +510,9 @@
     "info": "Info",
     "items_count": "{{count}} Artikel",
     "language_choice": "Sprache wählen",
+    "last_30_days": "Last 30 days",
+    "last_7_days": "Last 7 days",
+    "last_90_days": "Last 90 days",
     "loading": "Laden...",
     "merchant": "Händler",
     "months_ago": "vor {{count}} Monaten",

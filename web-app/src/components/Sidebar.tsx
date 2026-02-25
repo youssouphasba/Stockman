@@ -76,52 +76,52 @@ export default function Sidebar({
 
     const menuEntries: SidebarEntry[] = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
-        { id: 'multi_stores', icon: Store, label: 'Multi-Boutiques', roles: ['shopkeeper', 'admin'] },
-        { id: 'pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'orders', icon: ClipboardList, label: 'Commandes', roles: ['shopkeeper', 'admin'] },
-        { id: 'accounting', icon: TrendingUp, label: 'Finance', roles: ['shopkeeper', 'admin'] },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
+        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'admin'] },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
         {
             id: 'stock_group',
             icon: Package,
-            label: 'Stock & Inventaire',
+            label: t('sidebar.stock_inventory'),
             roles: ['shopkeeper', 'staff', 'admin'],
             children: [
                 { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
                 { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-                { id: 'stock_history', icon: HistoryIcon, label: 'Historique Stock', roles: ['shopkeeper', 'admin'] },
-                { id: 'inventory_counting', icon: RefreshCcw, label: 'Inventaire Tournant', roles: ['shopkeeper', 'admin'] },
-                { id: 'expiry_alerts', icon: AlertCircle, label: 'Péremption', roles: ['shopkeeper', 'admin'] },
-                { id: 'stats', icon: BarChart3, label: 'Analyses ABC', roles: ['shopkeeper', 'admin'] },
+                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'admin'] },
+                { id: 'inventory_counting', icon: RefreshCcw, label: t('dashboard.rotating_inventory'), roles: ['shopkeeper', 'admin'] },
+                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'admin'] },
+                { id: 'stats', icon: BarChart3, label: t('sidebar.abc_analysis'), roles: ['shopkeeper', 'admin'] },
             ],
         },
         { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'staff', icon: UserCheck, label: 'Personnel', roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
+        { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
             id: 'suppliers_group',
             icon: Truck,
-            label: 'Fournisseurs',
+            label: t('tabs.suppliers'),
             roles: ['shopkeeper', 'supplier', 'admin'],
             children: [
-                { id: 'suppliers', icon: Users, label: 'Mes Fournisseurs', roles: ['shopkeeper', 'admin'] },
-                { id: 'supplier_portal', icon: Truck, label: 'Portail Fournisseur', roles: ['supplier', 'admin'] },
+                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'admin'] },
+                { id: 'supplier_portal', icon: Truck, label: t('sidebar.supplier_portal'), roles: ['supplier', 'admin'] },
             ],
         },
         {
             id: 'system_group',
             icon: Clock,
-            label: 'Système',
+            label: t('sidebar.system'),
             roles: ['shopkeeper', 'staff', 'admin'],
             children: [
-                { id: 'activity', icon: Clock, label: 'Historique Système', roles: ['shopkeeper', 'admin'] },
+                { id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] },
             ],
         },
-        { id: 'admin', icon: ShieldCheck, label: 'Admin', roles: ['admin', 'superadmin'] },
+        { id: 'admin', icon: ShieldCheck, label: t('tabs.admin'), roles: ['admin', 'superadmin'] },
         {
             id: 'account_group',
             icon: Settings,
-            label: 'Compte',
+            label: t('settings.account'),
             children: [
-                { id: 'subscription', icon: CreditCard, label: 'Abonnement', roles: ['shopkeeper', 'admin'] },
+                { id: 'subscription', icon: CreditCard, label: t('tabs.subscription'), roles: ['shopkeeper', 'admin'] },
                 { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
             ],
         },
@@ -305,7 +305,7 @@ export default function Sidebar({
                                 </span>
                             )}
                         </div>
-                        <span className="font-medium text-sm flex-1 text-left">Messages</span>
+                        <span className="font-medium text-sm flex-1 text-left">{t('sidebar.messages')}</span>
                         {unreadMessages > 0 && (
                             <span className="bg-rose-500/20 text-rose-400 text-[9px] font-black px-2 py-0.5 rounded-full">
                                 {unreadMessages}
@@ -320,7 +320,7 @@ export default function Sidebar({
                     className="flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all mt-1"
                 >
                     <LogOut size={16} />
-                    <span className="font-medium text-sm">Déconnexion</span>
+                    <span className="font-medium text-sm">{t('settings.logout')}</span>
                 </button>
             </aside>
         </>

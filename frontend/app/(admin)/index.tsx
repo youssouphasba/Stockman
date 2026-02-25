@@ -274,6 +274,9 @@ export default function AdminDashboard() {
                         <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} />
                         <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} />
                         <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} />
+                        {detailed.signups_today !== undefined && (
+                            <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} />
+                        )}
                     </View>
 
                     {detailed.top_stores.length > 0 && (
@@ -295,6 +298,25 @@ export default function AdminDashboard() {
                                     </Text>
                                 </Card>
                             ))}
+                        </>
+                    )}
+
+                    {/* Plan Distribution */}
+                    {detailed.users_by_plan && (
+                        <>
+                            <SectionHeader title={t('admin.distribution.plan')} colors={colors} />
+                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                                <StatCard label={t('admin.distribution.plan_enterprise')} value={detailed.users_by_plan?.enterprise || 0} icon="trophy" color="#8B5CF6" colors={colors} />
+                                <StatCard label={t('admin.distribution.plan_pro')} value={detailed.users_by_plan?.pro || 0} icon="flash" color="#3B82F6" colors={colors} />
+                                <StatCard label={t('admin.distribution.plan_starter')} value={detailed.users_by_plan?.starter || 0} icon="leaf" color="#10B981" colors={colors} />
+                                <StatCard
+                                    label={t('admin.distribution.trials_expiring')}
+                                    value={detailed.trials_expiring_soon || 0}
+                                    icon="timer"
+                                    color={(detailed.trials_expiring_soon || 0) > 0 ? '#EF4444' : '#6B7280'}
+                                    colors={colors}
+                                />
+                            </View>
                         </>
                     )}
 

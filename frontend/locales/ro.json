@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -141,7 +141,14 @@
     },
     "distribution": {
       "country": "Country distribution",
-      "role": "Role distribution"
+      "plan": "Distribution par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Trial",
+      "role": "Role distribution",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Trials expirant (7j)"
     },
     "health": {
       "title": "System Health",
@@ -503,6 +510,9 @@
     "info": "Info",
     "items_count": "{{count}} element(e)",
     "language_choice": "Alege limba",
+    "last_30_days": "Last 30 days",
+    "last_7_days": "Last 7 days",
+    "last_90_days": "Last 90 days",
     "loading": "Se încarcă...",
     "merchant": "Merchant",
     "months_ago": "{{count}} months ago",

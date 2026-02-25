@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "Nenhuma receita gerada neste período.",
     "not_enough_data": "Dados de vendas insuficientes para a análise ABC."
@@ -141,7 +141,14 @@
     },
     "distribution": {
       "country": "Distribuição por país",
-      "role": "Utilizadores por cargo"
+      "plan": "Distribution par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Trial",
+      "role": "Utilizadores por cargo",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Trials expirant (7j)"
     },
     "health": {
       "title": "Saúde do Sistema",
@@ -503,6 +510,9 @@
     "info": "Info",
     "items_count": "{{count}} artigo(s)",
     "language_choice": "Escolher idioma",
+    "last_30_days": "Last 30 days",
+    "last_7_days": "Last 7 days",
+    "last_90_days": "Last 90 days",
     "loading": "A carregar...",
     "merchant": "Comerciante",
     "months_ago": "há {{count}} meses",

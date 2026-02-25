@@ -45,10 +45,10 @@ export default function Alerts() {
     const [rulesLoading, setRulesLoading] = useState(false);
 
     const RULE_TYPE_CONFIG: Record<string, { label: string; desc: string; hasThreshold: boolean }> = {
-        low_stock: { label: 'Stock Faible', desc: 'Alerte quand un produit passe sous un seuil défini.', hasThreshold: true },
-        out_of_stock: { label: 'Rupture de Stock', desc: 'Alerte immédiate quand la quantité atteint zéro.', hasThreshold: false },
-        overstock: { label: 'Surstockage', desc: 'Alerte quand le stock dépasse la capacité conseillée.', hasThreshold: true },
-        slow_moving: { label: 'Produits Dormants', desc: 'Détecte les produits non vendus depuis 30 jours.', hasThreshold: false },
+        low_stock: { label: t('alerts.rule_low_stock'), desc: t('alerts.rule_desc_low_stock'), hasThreshold: true },
+        out_of_stock: { label: t('alerts.rule_out_of_stock'), desc: t('alerts.rule_desc_out_of_stock'), hasThreshold: false },
+        overstock: { label: t('alerts.rule_overstock'), desc: t('alerts.rule_desc_overstock'), hasThreshold: true },
+        slow_moving: { label: t('alerts.rule_dormant'), desc: t('alerts.rule_desc_dormant'), hasThreshold: false },
     };
 
     useEffect(() => {

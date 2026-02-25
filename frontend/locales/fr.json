@@ -141,7 +141,14 @@
     },
     "distribution": {
       "country": "Répartition par pays",
-      "role": "Utilisateurs par rôle"
+      "plan": "Répartition par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Essai",
+      "role": "Utilisateurs par rôle",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Essais expirant (7j)"
     },
     "health": {
       "title": "Santé Système",
@@ -503,6 +510,9 @@
     "info": "Info",
     "items_count": "{{count}} article(s)",
     "language_choice": "Choisir la langue",
+    "last_30_days": "30 derniers jours",
+    "last_7_days": "7 derniers jours",
+    "last_90_days": "90 derniers jours",
     "loading": "Chargement...",
     "merchant": "Commerçant",
     "months_ago": "Il y a {{count}} mois",

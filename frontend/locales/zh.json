@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -141,7 +141,14 @@
     },
     "distribution": {
       "country": "按国家分布",
-      "role": "按角色分布"
+      "plan": "Distribution par plan",
+      "plan_enterprise": "Enterprise",
+      "plan_pro": "Pro",
+      "plan_starter": "Starter",
+      "plan_trial": "Trial",
+      "role": "按角色分布",
+      "signups_today": "Inscriptions aujourd'hui",
+      "trials_expiring": "Trials expirant (7j)"
     },
     "health": {
       "title": "系统健康",
@@ -503,6 +510,9 @@
     "info": "信息",
     "items_count": "{{count}} 个项目",
     "language_choice": "选择语言",
+    "last_30_days": "Last 30 days",
+    "last_7_days": "Last 7 days",
+    "last_90_days": "Last 90 days",
     "loading": "加载中...",
     "merchant": "商家",
     "months_ago": "{{count}} 个月前",
