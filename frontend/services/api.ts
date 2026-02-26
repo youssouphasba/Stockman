@@ -247,7 +247,8 @@ export const auth = {
     currency?: string,
     business_type?: string,
     how_did_you_hear?: string,
-    country_code?: string
+    country_code?: string,
+    plan?: string
   ) =>
     request<{ access_token: string; user: User }>('/auth/register', {
       method: 'POST',
@@ -260,7 +261,8 @@ export const auth = {
         currency,
         business_type,
         how_did_you_hear,
-        country_code
+        country_code,
+        plan,
       },
     }),
   verifyPhone: (otp: string) =>

@@ -396,7 +396,13 @@
       "errorPasswordLength": "A palavra-passe deve conter pelo menos 6 caracteres",
       "errorPasswordsMismatch": "As palavras-passe não coincidem",
       "errorTerms": "Por favor aceite os Termos e Condições e a Política de Privacidade",
-      "errorRegister": "Erro durante o registo"
+      "errorRegister": "Erro durante o registo",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "Verificação",
@@ -1892,6 +1898,7 @@
     "iap_not_available": "As compras in-app não estão disponíveis. Use Mobile Money.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "Nenhuma compra encontrada.",
     "pay_app_store": "Pagar via App Store",
     "pay_google_play": "Pagar via Google Play",
@@ -1899,6 +1906,7 @@
     "payment_failed": "O pagamento falhou. Por favor, tente novamente.",
     "per_month": "/month",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "Popular",
     "premium_active_text": "A sua subscrição Premium está ativa. Obrigado pela sua confiança!",

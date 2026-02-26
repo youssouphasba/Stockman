@@ -26,8 +26,9 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const { register } = useAuth();
   const router = useRouter();
-  const [step, setStep] = useState<'role' | 'form'>('role');
+  const [step, setStep] = useState<'role' | 'plan' | 'form'>('role');
   const [selectedRole, setSelectedRole] = useState<'shopkeeper' | 'supplier'>('shopkeeper');
+  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro'>('starter');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -76,7 +77,8 @@ export default function RegisterScreen() {
         selectedCountry.currency,
         businessType,
         howDidYouHear,
-        selectedCountry.code
+        selectedCountry.code,
+        selectedRole === 'shopkeeper' ? selectedPlan : undefined
       );
       // Redirect to verification instead of index
       router.replace('/(auth)/verify-phone');
@@ -98,9 +100,15 @@ export default function RegisterScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="person-add" size={36} color={Colors.primary} />
             </View>
-            <Text style={styles.title}>{t('auth.register.title')}</Text>
+            <Text style={styles.title}>
+              {step === 'plan' ? t('auth.register.choosePlan') : t('auth.register.title')}
+            </Text>
             <Text style={styles.subtitle}>
-              {step === 'role' ? t('auth.register.chooseProfile') : selectedRole === 'shopkeeper' ? t('auth.register.shopkeeperAccount') : t('auth.register.supplierAccount')}
+              {step === 'role'
+                ? t('auth.register.chooseProfile')
+                : step === 'plan'
+                  ? t('auth.register.choosePlanSubtitle')
+                  : selectedRole === 'shopkeeper' ? t('auth.register.shopkeeperAccount') : t('auth.register.supplierAccount')}
             </Text>
           </View>
 
@@ -108,7 +116,7 @@ export default function RegisterScreen() {
             <View style={styles.card}>
               <TouchableOpacity
                 style={[styles.roleCard, selectedRole === 'shopkeeper' && styles.roleCardActive]}
-                onPress={() => { setSelectedRole('shopkeeper'); setStep('form'); }}
+                onPress={() => { setSelectedRole('shopkeeper'); setStep('plan'); }}
               >
                 <View style={[styles.roleIcon, { backgroundColor: Colors.primary + '20' }]}>
                   <Ionicons name="storefront-outline" size={32} color={Colors.primary} />
@@ -143,9 +151,87 @@ export default function RegisterScreen() {
                 </Link>
               </View>
             </View>
-          ) : (
+          ) : step === 'plan' ? (
             <View style={styles.card}>
               <TouchableOpacity style={styles.backRow} onPress={() => setStep('role')}>
+                <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
+                <Text style={styles.backText}>{t('auth.register.backToRole')}</Text>
+              </TouchableOpacity>
+
+              {/* Starter */}
+              <TouchableOpacity
+                style={[styles.planCard, selectedPlan === 'starter' && styles.planCardActive]}
+                onPress={() => setSelectedPlan('starter')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.planCardHeader}>
+                  <View style={[styles.planIcon, { backgroundColor: '#3B82F620' }]}>
+                    <Ionicons name="storefront-outline" size={26} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.planName}>{t('subscription.plan_starter')}</Text>
+                    <Text style={styles.planPrice}>1 000 XOF / 3,99 € {t('subscription.per_month')}</Text>
+                  </View>
+                  {selectedPlan === 'starter' && <Ionicons name="checkmark-circle" size={24} color="#10B981" />}
+                </View>
+                <View style={styles.planFeatures}>
+                  <Text style={styles.planFeature}>🏪 1 {t('subscription.features.stores')}</Text>
+                  <Text style={styles.planFeature}>👤 1 {t('subscription.features.users')}</Text>
+                  <Text style={styles.planFeature}>📱 {t('subscription.mobile_only', 'Application mobile')}</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Pro */}
+              <TouchableOpacity
+                style={[styles.planCard, selectedPlan === 'pro' && styles.planCardActive]}
+                onPress={() => setSelectedPlan('pro')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularText}>{t('subscription.popular')}</Text>
+                </View>
+                <View style={styles.planCardHeader}>
+                  <View style={[styles.planIcon, { backgroundColor: '#F59E0B20' }]}>
+                    <Ionicons name="rocket-outline" size={26} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.planName}>{t('subscription.plan_pro')}</Text>
+                    <Text style={styles.planPrice}>2 500 XOF / 7,99 € {t('subscription.per_month')}</Text>
+                  </View>
+                  {selectedPlan === 'pro' && <Ionicons name="checkmark-circle" size={24} color="#10B981" />}
+                </View>
+                <View style={styles.planFeatures}>
+                  <Text style={styles.planFeature}>🏪 2 {t('subscription.features.stores')}</Text>
+                  <Text style={styles.planFeature}>👥 5 {t('subscription.features.users')}</Text>
+                  <Text style={styles.planFeature}>📱 {t('subscription.mobile_only', 'Application mobile')}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.trialNote}>
+                <Ionicons name="gift-outline" size={16} color={Colors.primaryLight} />
+                <Text style={styles.trialNoteText}>{t('auth.register.trialNote')}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => setStep('form')}
+              >
+                <Text style={styles.buttonText}>{t('auth.register.continueToPlan')}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
+                <Link href="/(auth)/login" asChild>
+                  <TouchableOpacity>
+                    <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.backRow} onPress={() => setStep(selectedRole === 'shopkeeper' ? 'plan' : 'role')}>
                 <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
                 <Text style={styles.backText}>{t('auth.register.changeProfile')}</Text>
               </TouchableOpacity>
@@ -705,5 +791,77 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginLeft: Spacing.sm,
     fontSize: FontSize.md,
+  },
+  // Plan selection
+  planCard: {
+    borderWidth: 2,
+    borderColor: Colors.divider,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.inputBg,
+    position: 'relative',
+  },
+  planCardActive: {
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16,185,129,0.07)',
+  },
+  planCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  planIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planName: {
+    color: Colors.text,
+    fontWeight: '700',
+    fontSize: FontSize.lg,
+  },
+  planPrice: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    marginTop: 2,
+  },
+  planFeatures: {
+    gap: 4,
+    paddingLeft: 4,
+  },
+  planFeature: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 12,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 10,
+    zIndex: 1,
+  },
+  popularText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  trialNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    justifyContent: 'center',
+    marginVertical: Spacing.md,
+  },
+  trialNoteText: {
+    color: Colors.primaryLight,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
   },
 });

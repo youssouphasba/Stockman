@@ -396,7 +396,13 @@
       "errorPasswordLength": "Şifre en az 6 karakter olmalıdır",
       "errorPasswordsMismatch": "Şifreler eşleşmiyor",
       "errorTerms": "Lütfen Kullanım Koşullarını ve Gizlilik Politikasını kabul edin",
-      "errorRegister": "Kayıt sırasında hata oluştu"
+      "errorRegister": "Kayıt sırasında hata oluştu",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "Doğrulama",
@@ -1924,6 +1930,7 @@
     "iap_not_available": "Uygulama içi satın alımlar mevcut değil. Mobile Money kullanın.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "Satın alma bulunamadı.",
     "pay_app_store": "App Store ile öde",
     "pay_google_play": "Google Play ile öde",
@@ -1931,6 +1938,7 @@
     "payment_failed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
     "per_month": "/ay",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "Popüler",
     "premium_active_text": "Premium aboneliğiniz aktif. Güveniniz için teşekkürler!",

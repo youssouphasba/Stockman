@@ -396,7 +396,13 @@
       "errorPasswordLength": "Пароль должен содержать минимум 6 символов",
       "errorPasswordsMismatch": "Пароли не совпадают",
       "errorTerms": "Пожалуйста, примите условия и политику конфиденциальности",
-      "errorRegister": "Ошибка при регистрации"
+      "errorRegister": "Ошибка при регистрации",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "Верификация",
@@ -1888,6 +1894,7 @@
     "iap_not_available": "Покупки в приложении недоступны. Используйте Mobile Money.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "Покупка не найдена.",
     "pay_app_store": "Оплатить через App Store",
     "pay_google_play": "Оплатить через Google Play",
@@ -1895,6 +1902,7 @@
     "payment_failed": "Платёж не прошёл. Пожалуйста, повторите попытку.",
     "per_month": "/месяц",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "Популярный",
     "premium_active_text": "Ваша подписка Premium активна. Спасибо за доверие!",

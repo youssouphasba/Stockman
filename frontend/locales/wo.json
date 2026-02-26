@@ -396,7 +396,13 @@
       "errorPasswordLength": "Password must be at least 6 characters long",
       "errorPasswordsMismatch": "Passwords do not match",
       "errorTerms": "Baal ma nangu CGU ak politique sutura",
-      "errorRegister": "Njuumte ci bindéef bi"
+      "errorRegister": "Njuumte ci bindéef bi",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "Saytu",
@@ -1887,6 +1893,7 @@
     "iap_not_available": "In-app purchases are not available. Use Mobile Money.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "No purchase found.",
     "pay_app_store": "Fey ci App Store",
     "pay_google_play": "Fey ci Google Play",
@@ -1894,6 +1901,7 @@
     "payment_failed": "Fey bi jaarul yoon. Jéemaat.",
     "per_month": "/weer",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "Siw na",
     "premium_active_text": "Your Premium subscription is active. Thank you for your trust!",

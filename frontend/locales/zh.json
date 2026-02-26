@@ -396,7 +396,13 @@
       "errorPasswordLength": "密码长度至少为 6 个字符",
       "errorPasswordsMismatch": "密码不匹配",
       "errorTerms": "请接受服务条款和隐私政策",
-      "errorRegister": "注册时出错"
+      "errorRegister": "注册时出错",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "验证",
@@ -1887,6 +1893,7 @@
     "iap_not_available": "应用内购买不可用。请使用Mobile Money。",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "未找到购买记录。",
     "pay_app_store": "通过App Store支付",
     "pay_google_play": "通过Google Play支付",
@@ -1894,6 +1901,7 @@
     "payment_failed": "支付失败。请重试。",
     "per_month": "/月",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "最受欢迎",
     "premium_active_text": "您的Premium订阅已激活。感谢您的信任！",

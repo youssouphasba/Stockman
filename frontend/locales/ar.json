@@ -396,7 +396,13 @@
       "errorPasswordLength": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل",
       "errorPasswordsMismatch": "كلمات المرور غير متطابقة",
       "errorTerms": "يرجى قبول شروط الاستخدام وسياسة الخصوصية",
-      "errorRegister": "خطأ أثناء التسجيل"
+      "errorRegister": "خطأ أثناء التسجيل",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "التحقق",
@@ -1888,6 +1894,7 @@
     "iap_not_available": "المشتريات داخل التطبيق غير متاحة. استخدم Mobile Money.",
     "mm_providers": "Orange Money، Wave، MTN Money، Moov Money",
     "mobile_money_label": " (موبايل موني)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "لم يتم العثور على عملية شراء.",
     "pay_app_store": "الدفع عبر App Store",
     "pay_google_play": "الدفع عبر Google Play",
@@ -1895,6 +1902,7 @@
     "payment_failed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
     "per_month": "/شهرياً",
     "plan_premium": "بريميوم",
+    "plan_pro": "Pro",
     "plan_starter": "ستارتر",
     "popular": "الأكثر شيوعاً",
     "premium_active_text": "اشتراك Premium الخاص بك نشط. شكراً لثقتك!",

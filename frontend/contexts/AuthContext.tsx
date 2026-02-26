@@ -18,7 +18,7 @@ type AuthState = {
   isBiometricsEnabled: boolean;
   hasPermission: (module: string, level?: 'read' | 'write') => boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string) => Promise<void>;
+  register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string) => Promise<void>;
   verifyPhone: (otp: string) => Promise<void>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
@@ -107,9 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currency?: string,
     businessType?: string,
     referralSource?: string,
-    countryCode?: string
+    countryCode?: string,
+    plan?: string
   ) {
-    const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode);
+    const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan);
     await setToken(response.access_token);
     setUser(response.user);
   }

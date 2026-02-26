@@ -396,7 +396,13 @@
       "errorPasswordLength": "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए",
       "errorPasswordsMismatch": "पासवर्ड मेल नहीं खाते",
       "errorTerms": "कृपया नियम और शर्तें और गोपनीयता नीति स्वीकार करें",
-      "errorRegister": "पंजीकरण के दौरान त्रुटि"
+      "errorRegister": "पंजीकरण के दौरान त्रुटि",
+      "choosePlan": "Choose your plan",
+      "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
+      "trialNote": "90 days free • No credit card required",
+      "planSelected": "Selected",
+      "backToRole": "Back",
+      "continueToPlan": "Continue"
     },
     "verifyPhone": {
       "title": "सत्यापन",
@@ -1943,6 +1949,7 @@
     "iap_not_available": "इन-ऐप खरीदारी उपलब्ध नहीं है। Mobile Money का उपयोग करें।",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
+    "mobile_only": "Mobile app",
     "no_purchase_found": "कोई खरीदारी नहीं मिली।",
     "pay_app_store": "App Store के माध्यम से भुगतान करें",
     "pay_google_play": "Google Play के माध्यम से भुगतान करें",
@@ -1950,6 +1957,7 @@
     "payment_failed": "भुगतान विफल रहा। कृपया पुनः प्रयास करें।",
     "per_month": "/महीना",
     "plan_premium": "Premium",
+    "plan_pro": "Pro",
     "plan_starter": "Starter",
     "popular": "लोकप्रिय",
     "premium_active_text": "आपकी Premium सदस्यता सक्रिय है। आपके विश्वास के लिए धन्यवाद!",
