@@ -561,9 +561,9 @@ export function exportAccounting(
 
     const totalRevenue = stats?.revenue || 0;
     const grossProfit = stats?.gross_profit || 0;
-    const netProfit = stats?.net_profit || 0;
     const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     const cogs = totalRevenue - grossProfit;
+    const netProfit = grossProfit - totalExpenses;
     const netMarginPct = totalRevenue > 0 ? `${((netProfit / totalRevenue) * 100).toFixed(1)}%` : '0%';
 
     const summaryData = [

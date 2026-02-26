@@ -117,7 +117,7 @@
 - [x] `check_ai_limit` : pro + enterprise = illimité (comme premium)
 - [ ] Webhook RevenueCat : mapper product IDs → `starter` / `pro` / `enterprise` (nécessite les IDs RevenueCat)
 - [ ] Webhook CinetPay : idem
-- [ ] Migration users existants : `plan: 'premium'` → `'starter'` ou `'pro'` selon usage (script à faire)
+- [x] Migration users existants : `plan: 'premium'` → `'starter'` ou `'pro'` selon usage (`migrate_premium_plans.py`)
 
 ### Implémentation Frontend Web
 - [x] Guard au login : si `plan` ∉ `['enterprise', 'premium']` → page "Accès Enterprise requis" avec liste features + lien pricing
@@ -197,7 +197,7 @@
 - [x] **Accounting.tsx** : `stats?.daily_stats` → `stats?.daily_revenue` corrigé (Phase 4)
 - [x] `get_batches` : `user.user_id` → `get_owner_id(user)` corrigé (staff voit maintenant les lots du propriétaire)
 - [x] Import produits : `confirm_import` utilisait `user_id` au lieu de `get_owner_id()` + `store_id` était None
-- [ ] Export CSV accounting n'inclut pas les dépenses dans le total
+- [x] Export CSV accounting n'inclut pas les dépenses dans le total
 
 ---
 
