@@ -75,7 +75,31 @@ Stockman utilise un modèle **Freemium** avec un essai gratuit de 3 mois pour ma
 
 ---
 
-## 7. Vision 2026 : Au-delà de la Gestion
-La mission de Stockman est de devenir le **score de confiance** du commerçant. En créant un passif transactionnel digital, Stockman ouvre les portes du micro-crédit et des financements institutionnels à des millions d'entrepreneurs jusque-là invisibles.
+## 7. Vision & Ambitions (2026-2028)
+### 🚀 Vision à 2 ans
+D'ici 2028, **Stockman** ambitionne de devenir l'écosystème numérique leader pour le commerce de détail en Afrique francophone. Nous visons à dépasser les **10 000 utilisateurs actifs** et à intégrer des services de **micro-finance prédictive**, où l'IA de Stockman servira de garant numérique pour l'octroi de crédits aux commerçants jusque-là exclus du système bancaire.
 
-> **Stockman n'est pas qu'un logiciel, c'est un moteur de croissance.**
+### 📈 Objectif de croissance (6 prochains mois)
+Notre objectif prioritaire est d'atteindre **500 utilisateurs payants** au Sénégal et en France, tout en stabilisant la **Marketplace Fournisseurs** pour générer les premiers flux transactionnels directs entre grossistes et détaillants.
+
+---
+
+## 8. Impact & Valeur Ajoutée
+### 🌍 Impact Social & Économique
+- **Formalisation de l'économie** : Transition douce du secteur informel vers une gestion structurée.
+- **Inclusion Financière** : Création d'un historique comptable fiable permettant l'accès au crédit.
+- **Réduction du gaspillage** : Optimisation des stocks (notamment périssables) grâce aux prédictions IA.
+
+### 👷 Création d'Emplois
+Stockman prévoit de créer directement et indirectement plus de **50 emplois d'ici 2 ans** :
+- **Directs** : Développeurs, data scientists, support client et marketing (Dakar & France).
+- **Indirects** : Réseau de **30+ agents ambassadeurs** sur le terrain au Sénégal, rémunérés à la performance pour accompagner la digitalisation des boutiques.
+
+### 🇸🇳 Valeur Ajoutée pour le Sénégal
+1. **Souveraineté Numérique** : Une solution développée pour et par des acteurs connaissant les réalités locales (Wolof, Peul, Mobile Money).
+2. **Modernisation du Commerce de Proximité** : Renforcer la compétitivité des boutiques de quartier face à la grande distribution internationale.
+3. **Innovation Technologique** : Positionner le Sénégal comme un hub d'expertise en IA appliquée au secteur du Retail.
+
+---
+
+> **Stockman n'est pas qu'un logiciel, c'est un moteur de croissance et un levier de dignité pour l'entrepreneur africain.**
