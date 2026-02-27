@@ -1314,9 +1314,21 @@ async def get_current_user(request: Request) -> Optional[User]:
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if user_doc:
-            # Ensure role field exists for legacy users
-            if "role" not in user_doc:
+            # Sanitize legacy null values that Pydantic V2 rejects
+            if not user_doc.get("role"):
                 user_doc["role"] = "shopkeeper"
+            if user_doc.get("store_ids") is None:
+                user_doc["store_ids"] = []
+            if user_doc.get("permissions") is None:
+                user_doc["permissions"] = {}
+            if user_doc.get("plan") is None:
+                user_doc["plan"] = "starter"
+            if user_doc.get("subscription_status") is None:
+                user_doc["subscription_status"] = "active"
+            if user_doc.get("subscription_provider") is None:
+                user_doc["subscription_provider"] = "none"
+            if not user_doc.get("created_at"):
+                user_doc["created_at"] = datetime.now(timezone.utc)
 
             # Update last_active (I10)
             asyncio.create_task(db.user_sessions.update_one(
