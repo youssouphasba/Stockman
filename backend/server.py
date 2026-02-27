@@ -1291,6 +1291,33 @@ def create_refresh_token(user_id: str) -> str:
     to_encode = {"sub": user_id, "type": "refresh", "jti": token_id, "exp": expire}
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+def sanitize_user_doc(user_doc: dict) -> dict:
+    """Sanitize MongoDB user document for Pydantic V2 strict validation.
+    Replaces null/missing values with model defaults to prevent ValidationError."""
+    if not user_doc.get("role"):
+        user_doc["role"] = "shopkeeper"
+    if user_doc.get("store_ids") is None:
+        user_doc["store_ids"] = []
+    if user_doc.get("permissions") is None:
+        user_doc["permissions"] = {}
+    if user_doc.get("plan") is None:
+        user_doc["plan"] = "starter"
+    if user_doc.get("subscription_status") is None:
+        user_doc["subscription_status"] = "active"
+    if user_doc.get("subscription_provider") is None:
+        user_doc["subscription_provider"] = "none"
+    if not user_doc.get("created_at"):
+        user_doc["created_at"] = datetime.now(timezone.utc)
+    if user_doc.get("currency") is None:
+        user_doc["currency"] = "XOF"
+    if user_doc.get("language") is None:
+        user_doc["language"] = "fr"
+    if user_doc.get("is_phone_verified") is None:
+        user_doc["is_phone_verified"] = False
+    if user_doc.get("auth_type") is None:
+        user_doc["auth_type"] = "email"
+    return user_doc
+
 # Security scheme for Swagger UI
 api_security = HTTPBearer(auto_error=False)
 
@@ -1314,21 +1341,7 @@ async def get_current_user(request: Request) -> Optional[User]:
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if user_doc:
-            # Sanitize legacy null values that Pydantic V2 rejects
-            if not user_doc.get("role"):
-                user_doc["role"] = "shopkeeper"
-            if user_doc.get("store_ids") is None:
-                user_doc["store_ids"] = []
-            if user_doc.get("permissions") is None:
-                user_doc["permissions"] = {}
-            if user_doc.get("plan") is None:
-                user_doc["plan"] = "starter"
-            if user_doc.get("subscription_status") is None:
-                user_doc["subscription_status"] = "active"
-            if user_doc.get("subscription_provider") is None:
-                user_doc["subscription_provider"] = "none"
-            if not user_doc.get("created_at"):
-                user_doc["created_at"] = datetime.now(timezone.utc)
+            sanitize_user_doc(user_doc)
 
             # Update last_active (I10)
             asyncio.create_task(db.user_sessions.update_one(
@@ -1837,6 +1850,7 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
 
     updated = await db.users.find_one({"user_id": sub_user_id}, {"_id": 0})
     await log_activity(user, "staff_updated", "staff", f"Employé '{updated.get('name', sub_user_id)}' modifié", {"sub_user_id": sub_user_id})
+    sanitize_user_doc(updated)
     return User(**updated)
 
 @api_router.delete("/sub-users/{sub_user_id}")
@@ -4389,6 +4403,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
         updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+        sanitize_user_doc(updated_user)
         return {"message": "Téléphone vérifié avec succès", "user": User(**updated_user)}
     else:
         # Increment failed attempts
@@ -4598,6 +4613,8 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
+
+    sanitize_user_doc(user_doc)
 
     # Reconstruct user object
     user = User(**user_doc)
