@@ -189,7 +189,7 @@
 - [x] `api.ts` web : 4 méthodes AI ajoutées (plAnalysis, churnPrediction, monthlyReport, replenishmentAdvice)
 
 ## 📚 Post-Développement — Documentation & Formation
-- [ ] **Formation complète utilisateur** : générer un guide multi-chapitres couvrant toutes les fonctionnalités (Dashboard, Inventaire, POS, Alertes, Fournisseurs, Comptabilité, CRM, IA, Multi-boutiques, Mobile vs Web, Abonnements). Format : Markdown/PDF + version Help Center. À générer quand le développement est considéré terminé (ou en version intermédiaire si besoin).
+- [x] **Formation complète utilisateur** : générer un guide multi-chapitres couvrant toutes les fonctionnalités (Dashboard, Inventaire, POS, Alertes, Fournisseurs, Comptabilité, CRM, IA, Multi-boutiques, Mobile vs Web, Abonnements). Format : Markdown/PDF + version Help Center. À générer quand le développement est considéré terminé (ou en version intermédiaire si besoin).
 
 ---
 

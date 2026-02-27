@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import google.generativeai as genai
-from pathlib import Path
+from pathlib import Path as PathLib
 from pydantic import BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional
 import uuid
@@ -63,7 +63,7 @@ if google_key:
 # RAG Service (initialized later if API key exists)
 rag_service = None
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR = PathLib(__file__).parent
 UPLOADS_DIR = ROOT_DIR / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
 # MongoDB connection
@@ -408,7 +408,7 @@ async def create_indexes_and_init():
                 # Init CGU if missing
                 exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
                 if not exists_cgu:
-                    cgu_path = Path("docs/CGU_STOCKMAN.md")
+                    cgu_path = PathLib("docs/CGU_STOCKMAN.md")
                     content = "# CGU Stockman\n\nContenu en cours de chargement..."
                     if cgu_path.exists():
                         content = cgu_path.read_text(encoding="utf-8")
@@ -422,7 +422,7 @@ async def create_indexes_and_init():
                 # Init Privacy Policy if missing
                 exists_privacy = await db.system_configs.find_one({"config_id": "privacy"})
                 if not exists_privacy:
-                    privacy_path = Path("docs/PRIVACY_POLICY.md")
+                    privacy_path = PathLib("docs/PRIVACY_POLICY.md")
                     content = "# Politique de Confidentialité\n\nContenu en cours de chargement..."
                     if privacy_path.exists():
                         content = privacy_path.read_text(encoding="utf-8")
@@ -2528,7 +2528,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             context_docs = await rag_service.get_relevant_context(prompt.message)
         else:
             # Fallback if RAG not init
-            guides_path = Path(ROOT_DIR).parent / "frontend" / "constants" / "guides.ts"
+            guides_path = PathLib(ROOT_DIR).parent / "frontend" / "constants" / "guides.ts"
             if guides_path.exists():
                 with open(guides_path, "r", encoding="utf-8") as f:
                     context_docs = f.read()[:2000]
