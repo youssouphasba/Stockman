@@ -4688,7 +4688,7 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
     return user
 
 @api_router.put("/stores/{store_id}", response_model=Store)
-async def update_store(store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), data: StoreUpdate, user: User = Depends(require_auth)):
+async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), user: User = Depends(require_auth)):
     owner_id = get_owner_id(user)
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
