@@ -1332,18 +1332,15 @@ async def get_current_user(request: Request) -> Optional[User]:
             token = auth_header.split(" ")[1]
 
     if not token:
-        request.state.auth_debug = "no_token"
         return None
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
-            request.state.auth_debug = "no_sub_in_jwt"
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if not user_doc:
-            request.state.auth_debug = f"user_not_found:{user_id}"
             return None
 
         sanitize_user_doc(user_doc)
@@ -1359,10 +1356,9 @@ async def get_current_user(request: Request) -> Optional[User]:
             pass
 
         return user
-    except JWTError as jwt_err:
-        request.state.auth_debug = f"jwt_error:{jwt_err}"
+    except JWTError:
+        pass
     except Exception as e:
-        request.state.auth_debug = f"exception:{type(e).__name__}:{e}"
         logger.error(f"get_current_user UNEXPECTED: {type(e).__name__}: {e}", exc_info=True)
 
     return None
@@ -1371,8 +1367,7 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
 
     user = await get_current_user(request)
     if not user:
-        debug_reason = getattr(request.state, 'auth_debug', 'unknown')
-        raise HTTPException(status_code=401, detail=f"Non authentifié [{debug_reason}]")
+        raise HTTPException(status_code=401, detail="Non authentifié")
     return user
 
 def require_permission(module: str, level: str = "read"):
@@ -4576,80 +4571,6 @@ async def login(request: Request, user_data: UserLogin, response: Response):
 async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
     return user
-
-@api_router.get("/debug/auth-test")
-async def debug_auth_test(request: Request):
-    """Temporary debug endpoint — remove after fix"""
-    # Test 1: manual token extraction (same as get_current_user)
-    cookie_token = request.cookies.get("session_token")
-    auth_header = request.headers.get("Authorization", "")
-    header_token = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else None
-    token = cookie_token or header_token
-
-    if not token:
-        return {"error": "no token", "cookie": cookie_token, "header": auth_header[:30] if auth_header else None}
-
-    # Test 2: JWT decode
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except Exception as e:
-        return {"error": f"JWT decode failed: {e}", "token_source": "cookie" if cookie_token else "header"}
-
-    user_id = payload.get("sub")
-    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    if not user_doc:
-        return {"error": "user not found", "user_id": user_id}
-
-    sanitize_user_doc(user_doc)
-
-    # Test 3: User build
-    try:
-        user = User(**user_doc)
-    except Exception as e:
-        return {"error": f"User build failed: {e}", "keys": list(user_doc.keys())}
-
-    # Test 4: replicate get_current_user step by step
-    step = "start"
-    try:
-        step = "cookie_check"
-        t = request.cookies.get("session_token")
-        step = f"header_check (cookie={'found' if t else 'none'})"
-        if not t:
-            ah = request.headers.get("Authorization")
-            if ah and ah.startswith("Bearer "):
-                t = ah.split(" ")[1]
-        step = f"token_resolved={bool(t)}"
-        if not t:
-            func_result = f"NO_TOKEN at {step}"
-        else:
-            step = "jwt_decode"
-            p = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
-            uid = p.get("sub")
-            step = f"sub={uid}"
-            if not uid:
-                func_result = f"NO_SUB at {step}"
-            else:
-                step = "db_find"
-                doc = await db.users.find_one({"user_id": uid}, {"_id": 0})
-                step = f"doc_found={doc is not None}"
-                if not doc:
-                    func_result = f"NO_DOC at {step}"
-                else:
-                    step = "sanitize"
-                    sanitize_user_doc(doc)
-                    step = "build_user"
-                    u = User(**doc)
-                    func_result = f"SUCCESS: {u.user_id}"
-    except Exception as e:
-        func_result = f"EXCEPTION at [{step}]: {type(e).__name__}: {e}"
-
-    return {
-        "manual_success": True,
-        "replicated_result": func_result,
-        "user_id": user_id,
-        "token_source": "cookie" if cookie_token else "header",
-        "keys": list(user_doc.keys())
-    }
 
 class RefreshRequest(BaseModel):
     refresh_token: Optional[str] = None
