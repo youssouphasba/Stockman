@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body, Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from dotenv import load_dotenv
@@ -20,6 +20,8 @@ import json
 import csv
 import io
 import asyncio
+import base64
+from PIL import Image
 from starlette.responses import StreamingResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -106,9 +108,32 @@ def safe_regex(user_input: str) -> str:
     return _re.escape(user_input.strip())
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures
+REFRESH_TOKEN_EXPIRE_DAYS = 30 # 30 jours
 
 # Rate limiting
 limiter = Limiter(key_func=get_remote_address)
+
+# Background tasks monitoring (I8)
+background_tasks_status = {}
+
+async def supervised_loop(name: str, func, interval: int = 300):
+    """Wrapper to supervise background tasks and report status (I8)"""
+    while True:
+        try:
+            background_tasks_status[name] = {
+                "status": "running",
+                "last_run": datetime.now(timezone.utc).isoformat(),
+            }
+            await func()
+            background_tasks_status[name]["status"] = "completed"
+        except Exception as e:
+            logger.error(f"Background task {name} failed: {e}")
+            background_tasks_status[name] = {
+                "status": "error",
+                "last_run": datetime.now(timezone.utc).isoformat(),
+                "error": str(e)
+            }
+        await asyncio.sleep(interval)
 app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -318,8 +343,10 @@ async def run_startup_migrations():
                 {"$set": {"store_id": sid}}
             )
         logger.info("Background Migration: store_id + is_active backfill completed")
-        asyncio.create_task(check_alerts_loop())
-        asyncio.create_task(check_ai_anomalies_loop())
+        # Supervised tasks
+        asyncio.create_task(supervised_loop("alerts", check_alerts_loop, 300))
+        asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 1800))
+        asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400)) # Daily logs cleanup (I11)
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
@@ -370,6 +397,13 @@ async def create_indexes_and_init():
                 await db.customers.create_index([("user_id", 1), ("created_at", -1)])
                 await db.customers.create_index([("name", "text"), ("phone", "text")]) # Text search index
                 await db.activity_logs.create_index([("owner_id", 1), ("created_at", -1)])
+                
+                # I12 - Session and Security indexes
+                await db.user_sessions.create_index("session_token")
+                await db.user_sessions.create_index("user_id")
+                await db.idempotency_keys.create_index("key", unique=True)
+                await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
+                await db.security_events.create_index("created_at")
 
                 # Init CGU if missing
                 exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
@@ -450,9 +484,8 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
 
         # Daily subscription expiry checker + trial reminders
         async def check_expired_subscriptions():
-            while True:
-                await asyncio.sleep(86400)  # Run every 24h
-                now = datetime.now(timezone.utc)
+            # Loop removed, logic is now called by supervised_loop
+            now = datetime.now(timezone.utc)
 
                 # 1. Expire paid subscriptions (Flutterwave / Stripe)
                 result = await db.users.update_many(
@@ -499,7 +532,7 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                             {"$set": {f"trial_reminder_{days_left}d_sent": True}}
                         )
 
-        asyncio.create_task(check_expired_subscriptions())
+        asyncio.create_task(supervised_loop("subscriptions", check_expired_subscriptions, 86400))
 
     except Exception as e:
         logger.error(f"Error in startup: {e}")
@@ -1240,6 +1273,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def create_refresh_token(user_id: str) -> str:
+    """Crée un refresh token longue durée (30 jours)."""
+    token_id = f"rt_{uuid.uuid4().hex[:16]}"
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode = {"sub": user_id, "type": "refresh", "jti": token_id, "exp": expire}
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 # Security scheme for Swagger UI
 api_security = HTTPBearer(auto_error=False)
 
@@ -1266,6 +1306,12 @@ async def get_current_user(request: Request) -> Optional[User]:
             # Ensure role field exists for legacy users
             if "role" not in user_doc:
                 user_doc["role"] = "shopkeeper"
+            
+            # Update last_active (I10)
+            asyncio.create_task(db.user_sessions.update_one(
+                {"session_token": token},
+                {"$set": {"last_active": datetime.now(timezone.utc)}}
+            ))
             return User(**user_doc)
     except JWTError:
         pass
@@ -1290,9 +1336,15 @@ def require_permission(module: str, level: str = "read"):
         perm = user_perms.get(module, "none")
         
         if level == "write" and perm != "write":
-            raise HTTPException(status_code=403, detail=f"Accès en écriture refusé pour le module: {module}")
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Action interdite : vous n'avez pas les droits d'écriture sur le module '{module}'."
+            )
         if level == "read" and perm == "none":
-            raise HTTPException(status_code=403, detail=f"Accès refusé pour le module: {module}")
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Accès refusé : vous n'avez pas les droits de lecture sur le module '{module}'."
+            )
             
         return user
     return permission_checker
@@ -1443,6 +1495,18 @@ async def flutterwave_webhook(request: Request):
             "subscription_end": subscription_end,
         }}
     )
+
+    # Notify user to refresh app data (I5)
+    try:
+        from services.notification_service import notification_service
+        await notification_service.notify_user(
+            db, pending["user_id"],
+            "🎉 Plan mis à jour !",
+            f"Votre plan {plan.capitalize()} est maintenant actif. Votre application va se synchroniser.",
+            caller_owner_id=pending["user_id"]
+        )
+    except Exception as e:
+        logger.warning(f"Could not send plan upgrade notification: {e}")
     # Audit confirming the payment
     await db.security_events.insert_one({
         "event_id": f"sec_{uuid.uuid4().hex[:12]}",
@@ -1600,6 +1664,38 @@ async def confirm_import(
     except Exception as e:
         logger.error(f"Error confirming import: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de l'importation: {str(e)}")
+
+# Helper: Image compression (I16)
+def compress_image_base64(base64_str: str, max_size=(800, 800), quality=75) -> str:
+    """Decodes base64, resizes if needed, and compresses to JPEG to save space."""
+    if not base64_str or not base64_str.startswith("data:image"):
+         return base64_str
+    
+    try:
+        # Standard base64 format check
+        if ',' not in base64_str:
+            return base64_str
+            
+        header, data = base64_str.split(',', 1)
+        image_data = base64.b64decode(data)
+        img = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if needed (JPEG doesn't support transparency/alpha)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+            
+        # Resize maintaining aspect ratio
+        img.thumbnail(max_size)
+        
+        # Save to buffer with compression
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality, optimize=True)
+        compressed_data = base64.b64encode(buffer.getvalue()).decode()
+        
+        return f"data:image/jpeg;base64,{compressed_data}"
+    except Exception as e:
+        logger.error(f"Image compression failed: {e}")
+        return base64_str
 
 def get_owner_id(user: User) -> str:
     """Returns the user_id of the shopkeeper (owner)."""
@@ -2384,7 +2480,7 @@ async def track_ai_usage(user_id: str):
     await db.ai_usage.insert_one({"user_id": user_id, "created_at": datetime.now(timezone.utc)})
 
 @api_router.get("/ai/history")
-async def get_ai_history(user: User = Depends(require_auth)):
+async def get_ai_history(user: User = Depends(require_permission("ai", "read"))):
     """Retrieve AI chat history for the user"""
     history = await db.ai_conversations.find_one({"user_id": user.user_id})
     if not history:
@@ -2392,7 +2488,7 @@ async def get_ai_history(user: User = Depends(require_auth)):
     return {"messages": history.get("messages", [])}
 
 @api_router.delete("/ai/history")
-async def clear_ai_history(user: User = Depends(require_auth)):
+async def clear_ai_history(user: User = Depends(require_permission("ai", "write"))):
     """Clear AI chat history"""
     await db.ai_conversations.delete_many({"user_id": user.user_id})
     return {"message": "Historique effacé"}
@@ -2412,7 +2508,7 @@ async def _save_ai_message(user_id: str, role: str, content: str):
 
 @api_router.post("/ai/support")
 @limiter.limit("20/minute")
-async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(require_auth)):
+async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(require_permission("ai", "write"))):
     await check_ai_limit(user)
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2584,7 +2680,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
 
 @api_router.post("/ai/suggest-category")
 @limiter.limit("20/minute")
-async def ai_suggest_category(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
+async def ai_suggest_category(request: Request, data: dict = Body(...), user: User = Depends(require_permission("ai", "write"))):
     """Use Gemini to suggest a category and subcategory for a product name"""
     product_name = data.get("product_name", "").strip()
     lang = data.get("language", "fr")
@@ -2649,7 +2745,7 @@ Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
 
 @api_router.post("/ai/generate-description")
 @limiter.limit("20/minute")
-async def ai_generate_description(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
+async def ai_generate_description(request: Request, data: dict = Body(...), user: User = Depends(require_permission("ai", "write"))):
     """Use Gemini to generate a marketing description for a product"""
     product_name = data.get("product_name", "").strip()
     category = data.get("category", "").strip()
@@ -2690,7 +2786,7 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
 
 @api_router.get("/ai/daily-summary")
 @limiter.limit("10/minute")
-async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depends(require_permission("ai", "read"))):
     """Generate a daily AI-powered business summary"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2821,7 +2917,7 @@ Maximum 5 anomalies.
 
 @api_router.get("/ai/detect-anomalies")
 @limiter.limit("10/minute")
-async def ai_detect_anomalies(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+async def ai_detect_anomalies(request: Request, lang: str = "fr", user: User = Depends(require_permission("ai", "read"))):
     """Use Gemini to detect anomalies in sales, stock and margins"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -2829,7 +2925,7 @@ async def ai_detect_anomalies(request: Request, lang: str = "fr", user: User = D
     return {"anomalies": anomalies}
 
 @api_router.post("/ai/basket-suggestions")
-async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(require_auth)):
+async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(require_permission("ai", "read"))):
     """Analyze past sales to find products frequently bought together"""
     product_ids = data.get("product_ids", [])
     if not product_ids:
@@ -2890,7 +2986,7 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
 
 @api_router.get("/ai/replenishment-advice")
 @limiter.limit("10/minute")
-async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User = Depends(require_permission("ai", "read"))):
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -2944,7 +3040,7 @@ Sois concis et actionnable. Pas de liste, juste du texte fluide.
 
 @api_router.post("/ai/suggest-price")
 @limiter.limit("20/minute")
-async def ai_suggest_price(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
+async def ai_suggest_price(request: Request, data: dict = Body(...), user: User = Depends(require_permission("ai", "write"))):
     """Use Gemini to suggest an optimal selling price for a product"""
     product_id = data.get("product_id", "").strip()
     lang = data.get("language", "fr")
@@ -3062,7 +3158,7 @@ Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché)
 
 @api_router.post("/ai/scan-invoice")
 @limiter.limit("10/minute")
-async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
+async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User = Depends(require_permission("ai", "write"))):
     """Use Gemini Vision to extract items from a supplier invoice photo"""
     image_base64 = data.get("image", "")
     lang = data.get("language", "fr")
@@ -3123,7 +3219,7 @@ Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres.
 
 @api_router.get("/ai/pl-analysis")
 @limiter.limit("10/minute")
-async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, user: User = Depends(require_auth)):
+async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, user: User = Depends(require_permission("accounting", "read"))):
     """AI narrative analysis of P&L for the Accounting screen"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -3187,7 +3283,7 @@ Rédige une analyse narrative concise en 3 phrases max. Identifie le point fort,
 
 @api_router.get("/ai/churn-prediction")
 @limiter.limit("10/minute")
-async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_permission("crm", "read"))):
     """AI churn prediction — identifies at-risk customers"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -3207,22 +3303,33 @@ async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = D
         at_risk = []
         for c in customers:
             lpd = c.get("last_purchase_date")
-            if lpd:
-                try:
-                    d = lpd if isinstance(lpd, datetime) else datetime.fromisoformat(str(lpd))
-                    if d.tzinfo is None:
-                        d = d.replace(tzinfo=timezone.utc)
-                    days_inactive = (now - d).days
-                    if days_inactive >= 30:
-                        at_risk.append({
-                            "customer_id": c.get("customer_id"),
-                            "name": c.get("name", ""),
-                            "days_inactive": days_inactive,
-                            "total_spent": c.get("total_spent", 0),
-                            "tier": c.get("loyalty_tier", "bronze"),
-                        })
-                except Exception:
-                    pass
+            if not lpd:
+                continue
+            
+            try:
+                # Handle both datetime and string formats
+                d = lpd if isinstance(lpd, datetime) else datetime.fromisoformat(str(lpd).replace("Z", "+00:00"))
+                if d.tzinfo is None:
+                    d = d.replace(tzinfo=timezone.utc)
+                
+                days_inactive = (now - d).days
+                if days_inactive >= 30:
+                    # Anonymize name (I13)
+                    raw_name = c.get("name", "N/A")
+                    initials = "".join([n[0] for n in str(raw_name).split() if n]) if raw_name else "XX"
+                    anon_name = f"Client {initials}***"
+                    
+                    at_risk.append({
+                        "customer_id": c.get("customer_id"),
+                        "name": anon_name,
+                        "days_inactive": days_inactive,
+                        "total_spent": c.get("total_spent", 0),
+                        "tier": c.get("loyalty_tier", "bronze"),
+                        "visits": c.get("visits", 0)
+                    })
+            except Exception as e:
+                logger.warning(f"Error processing customer {c.get('customer_id')} for churn: {e}")
+                continue
 
         at_risk.sort(key=lambda x: (-x["total_spent"], x["days_inactive"]))
         top_at_risk = at_risk[:10]
@@ -3247,7 +3354,7 @@ Rédige 2 phrases : constat + 1 action de rétention ciblée. Sois direct."""
 
 @api_router.get("/ai/monthly-report")
 @limiter.limit("5/minute")
-async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Depends(require_auth)):
+async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Depends(require_permission("accounting", "read"))):
     """Generate a full AI monthly report (narrative, exportable)"""
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -3496,52 +3603,45 @@ api_router.include_router(admin_router)
 # Removed register_push_token and send_push_notification shadows
 
 async def check_ai_anomalies_loop():
-    """Background loop to periodically run AI anomaly detection (every 6h)"""
-    while True:
-        try:
-            logger.info("Starting global AI anomaly detection check...")
-            # Run for all shopkeepers with active stores
-            users = await db.users.find({"role": "shopkeeper", "active_store_id": {"$ne": None}}).to_list(None)
-            for u in users:
-                user_id = u["user_id"]
-                store_id = u["active_store_id"]
-                anomalies = await detect_anomalies_internal(user_id, store_id)
-                
-                for anomaly in anomalies:
-                    # Check if similar active alert already exists
-                    existing = await db.alerts.find_one({
-                        "user_id": user_id,
-                        "type": f"ai_{anomaly['type']}",
-                        "title": anomaly["title"],
-                        "is_dismissed": False
-                    })
-                    
-                    if not existing:
-                        alert = Alert(
-                            user_id=user_id,
-                            store_id=store_id,
-                            type=f"ai_{anomaly['type']}",
-                            title=anomaly["title"],
-                            message=anomaly["description"],
-                            severity=anomaly["severity"]
-                        )
-                        await db.alerts.insert_one(alert.model_dump())
-                        # Push notification for critical/warning anomalies
-                        if anomaly["severity"] in ["critical", "warning"]:
-                            await notification_service.notify_user(db, user_id, f"🚨 AI: {alert.title}", alert.message, caller_owner_id=user_id)
-            
-            logger.info("Global AI anomaly detection check completed")
-        except Exception as e:
-            logger.error(f"AI anomalies loop error: {e}")
+    """Logic for AI anomaly detection check (called by supervised_loop) (I8)"""
+    logger.info("Starting global AI anomaly detection check...")
+    # Run for all shopkeepers with active stores
+    users = await db.users.find({"role": "shopkeeper", "active_store_id": {"$ne": None}}).to_list(None)
+    for u in users:
+        user_id = u["user_id"]
+        store_id = u["active_store_id"]
+        anomalies = await detect_anomalies_internal(user_id, store_id)
         
-        await asyncio.sleep(1800)  # Check every 30 minutes
+        for anomaly in anomalies:
+            # Check if similar active alert already exists
+            existing = await db.alerts.find_one({
+                "user_id": user_id,
+                "type": f"ai_{anomaly['type']}",
+                "title": anomaly["title"],
+                "is_dismissed": False
+            })
+            
+            if not existing:
+                alert = Alert(
+                    user_id=user_id,
+                    store_id=store_id,
+                    type=f"ai_{anomaly['type']}",
+                    title=anomaly["title"],
+                    message=anomaly["description"],
+                    severity=anomaly["severity"]
+                )
+                await db.alerts.insert_one(alert.model_dump())
+                # Push notification for critical/warning anomalies
+                if anomaly["severity"] in ["critical", "warning"]:
+                    await notification_service.notify_user(db, user_id, f"🚨 AI: {alert.title}", alert.message, caller_owner_id=user_id)
+    
+    logger.info("Global AI anomaly detection check completed")
 
 async def check_alerts_loop():
-    while True:
-        try:
-            logger.info("Checking for stock and expiry alerts...")
-            now = datetime.now(timezone.utc)
-            since_24h = now - timedelta(hours=24)
+    """Logic for stock and expiry alerts (called by supervised_loop)"""
+    logger.info("Checking for stock and expiry alerts...")
+    now = datetime.now(timezone.utc)
+    since_24h = now - timedelta(hours=24)
 
             # 1. Low stock alerts — Pro + Enterprise only, with 24h dedup
             async for product in db.products.find({
@@ -3597,15 +3697,21 @@ async def check_alerts_loop():
             # 2. Expiry alerts (within 7 days)
             seven_days_later = now + timedelta(days=7)
             async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
+                owner_id = batch.get("user_id")
+                if not owner_id:
+                    continue
+                
+                # Plan check (I6)
+                owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1})
+                if not owner or owner.get("plan") not in ("pro", "enterprise"):
+                    continue
+
                 await notification_service.notify_user(
                     db,
-                    batch["user_id"],
+                    owner_id,
                     "Expiration Proche",
                     f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}."
                 )
-
-        except Exception as e:
-            logger.error(f"Alerts loop error: {e}")
 
         await asyncio.sleep(300)  # Check every 5 minutes
 
@@ -3622,13 +3728,40 @@ async def require_supplier(request: Request) -> User:
         raise HTTPException(status_code=403, detail="Accès réservé aux fournisseurs")
     return user
 
+@api_router.get("/admin/background-tasks")
+async def get_background_tasks_health(user: User = Depends(require_superadmin)):
+    """Healthcheck endpoint for monitoring background loop status (I8)"""
+    return background_tasks_status
+
+async def cleanup_logs_loop():
+    """Removes security logs older than 90 days (I11)"""
+    retention_days = 90
+    threshold = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    
+    # 1. Cleanup security events
+    result = await db.security_events.delete_many({"created_at": {"$lt": threshold}})
+    if result.deleted_count:
+        logger.info(f"Cleanup: Removed {result.deleted_count} security logs older than {retention_days} days")
+    
+    # 2. Cleanup activity logs
+    result_act = await db.activity_logs.delete_many({"created_at": {"$lt": threshold}})
+    if result_act.deleted_count:
+        logger.info(f"Cleanup: Removed {result_act.deleted_count} activity logs older than {retention_days} days")
+
+    # 3. Cleanup inactive sessions (I10)
+    # Session is considered stale if last_active > 24 hours
+    session_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
+    result_sessions = await db.user_sessions.delete_many({"last_active": {"$lt": session_threshold}})
+    if result_sessions.deleted_count:
+        logger.info(f"Cleanup: Expired {result_sessions.deleted_count} inactive sessions (24h rule)")
+
 # ===================== POS ENDPOINTS =====================
 
 @api_router.post("/customers/{customer_id}/payments", response_model=CustomerPayment)
 async def create_customer_payment(
     customer_id: str, 
     payment_data: CustomerPaymentCreate, 
-    user: User = Depends(require_auth)
+    user: User = Depends(require_permission("crm", "write"))
 ):
     # Verify customer exists
     owner_id = get_owner_id(user)
@@ -3657,7 +3790,7 @@ async def create_customer_payment(
 @api_router.get("/customers/{customer_id}/debt-history")
 async def get_customer_debt_history(
     customer_id: str,
-    user: User = Depends(require_auth)
+    user: User = Depends(require_permission("crm", "read"))
 ):
     """
     Returns a unified history of debts (credit sales) and payments.
@@ -3713,7 +3846,7 @@ async def get_customer_debt_history(
 @api_router.get("/customers/{customer_id}/payments", response_model=List[CustomerPayment])
 async def get_customer_payments(
     customer_id: str, 
-    user: User = Depends(require_auth)
+    user: User = Depends(require_permission("crm", "read"))
 ):
     owner_id = get_owner_id(user)
     payments = await db.customer_payments.find(
@@ -4058,6 +4191,20 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         await db.users.insert_one(user_doc)
 
+        # Track initial session (I10)
+        access_token = create_access_token(data={"sub": user_id})
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": access_token,
+            "created_at": datetime.now(timezone.utc),
+            "last_active": datetime.now(timezone.utc),
+            "user_agent": request.headers.get("user-agent"),
+            "ip": request.client.host if request.client else None
+        })
+        
+        # We need the token for the response
+        # It's already generated above
+
         # Log registration activity
         log_user = User(
             user_id=user_id,
@@ -4144,6 +4291,18 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             secure=True,
             samesite="lax",
             max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+            path="/"
+        )
+        
+        # Set refresh token cookie
+        refresh_token = create_refresh_token(user_id)
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
             path="/"
         )
         
@@ -4243,6 +4402,8 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
         }}
     )
     
+    # Refresh token rotation (optional here, but let's fulfill the plan requirements if called from elsewhere)
+    
     # Send via WhatsApp
     sent = False
     try:
@@ -4281,6 +4442,18 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     
     access_token = create_access_token(data={"sub": user_doc["user_id"]})
     
+    # Set refresh token cookie
+    refresh_token = create_refresh_token(user_doc["user_id"])
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/"
+    )
+
     response.set_cookie(
         key="session_token",
         value=access_token,
@@ -4290,6 +4463,16 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
+    
+    # Track session (I10)
+    await db.user_sessions.insert_one({
+        "user_id": user_doc["user_id"],
+        "session_token": access_token,
+        "created_at": datetime.now(timezone.utc),
+        "last_active": datetime.now(timezone.utc),
+        "user_agent": request.headers.get("user-agent"),
+        "ip": request.client.host if request.client else None
+    })
     
     # Ensure store info is returned (compatibility with older users)
     active_store_id = user_doc.get("active_store_id")
@@ -4343,6 +4526,56 @@ async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
     return user
 
+@api_router.post("/auth/refresh", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def refresh_token(request: Request, response: Response):
+    """Renews the access token using the refresh token from cookies."""
+    refresh = request.cookies.get("refresh_token")
+    if not refresh:
+        raise HTTPException(status_code=401, detail="Refresh token manquant")
+
+    try:
+        payload = jwt.decode(refresh, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token invalide")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token expiré ou invalide")
+
+    user_id = payload.get("sub")
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+
+    # Access token
+    new_access = create_access_token(data={"sub": user_id})
+    
+    # Refresh token rotation
+    new_refresh = create_refresh_token(user_id)
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/"
+    )
+    
+    # Also update session token cookie to match new access token
+    response.set_cookie(
+        key="session_token",
+        value=new_access,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/"
+    )
+
+    # Reconstruct user object
+    user = User(**user_doc)
+    return TokenResponse(access_token=new_access, user=user)
+
 @api_router.put("/auth/profile")
 async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)):
     """Update user profile fields (name, currency)"""
@@ -4368,6 +4601,7 @@ async def logout(request: Request, response: Response):
         await db.user_sessions.delete_one({"session_token": token})
     
     response.delete_cookie(key="session_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/")
     return {"message": "Déconnexion réussie"}
 
 @api_router.post("/auth/change-password")
@@ -4432,6 +4666,20 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
     if not store_id or store_id not in user.store_ids:
         raise HTTPException(status_code=400, detail="Magasin invalide")
         
+    # Check that store is within current plan limits
+    STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
+    limit = STORE_LIMITS.get(user.plan, 1)
+    
+    try:
+        store_index = user.store_ids.index(store_id)
+        if store_index >= limit:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Votre plan '{user.plan}' est limité à {limit} boutique(s). Passez à un plan supérieur pour accéder à cette boutique."
+            )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Magasin non trouvé")
+        
     await db.users.update_one(
         {"user_id": user.user_id},
         {"$set": {"active_store_id": store_id}}
@@ -4441,7 +4689,7 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
     return user
 
 @api_router.put("/stores/{store_id}", response_model=Store)
-async def update_store(store_id: str, data: StoreUpdate, user: User = Depends(require_auth)):
+async def update_store(store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), data: StoreUpdate, user: User = Depends(require_auth)):
     owner_id = get_owner_id(user)
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
@@ -4646,6 +4894,11 @@ async def get_product(product_id: str, user: User = Depends(require_permission("
 @api_router.post("/products", response_model=Product)
 async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    
+    # Compress product image (I16)
+    if prod_data.image:
+        prod_data.image = compress_image_base64(prod_data.image)
+        
     product = Product(
         **prod_data.model_dump(),
         user_id=owner_id,
@@ -4671,6 +4924,11 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
 @api_router.put("/products/{product_id}", response_model=Product)
 async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    
+    # Compress product image (I16)
+    if prod_data.image:
+        prod_data.image = compress_image_base64(prod_data.image)
+        
     update_dict = {k: v for k, v in prod_data.model_dump().items() if v is not None}
     update_dict["updated_at"] = datetime.now(timezone.utc)
 
@@ -5184,7 +5442,7 @@ class CampaignCreate(BaseModel):
     channel: str = "whatsapp"  # whatsapp / sms
 
 @api_router.get("/customers/birthdays")
-async def get_customer_birthdays(user: User = Depends(require_auth), days: int = Query(7, ge=1, le=90)):
+async def get_customer_birthdays(user: User = Depends(require_permission("crm", "read")), days: int = Query(7, ge=1, le=90)):
     """Get customers with birthdays in the next N days"""
     customers_raw = await db.customers.find(
         {"user_id": user.user_id, "birthday": {"$ne": None}}
@@ -5210,7 +5468,7 @@ async def get_customer_birthdays(user: User = Depends(require_auth), days: int =
     return upcoming
 
 @api_router.post("/customers/campaign")
-async def create_campaign(data: CampaignCreate, user: User = Depends(require_auth)):
+async def create_campaign(data: CampaignCreate, user: User = Depends(require_permission("crm", "write"))):
     """Log a marketing campaign"""
     owner_id = get_owner_id(user)
     campaign = {
@@ -5235,7 +5493,7 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_aut
     return {"message": f"Campagne enregistrée ({len(data.customer_ids)} destinataires)"}
 
 @api_router.get("/customers/{customer_id}/sales")
-async def get_customer_sales(customer_id: str, user: User = Depends(require_auth)):
+async def get_customer_sales(customer_id: str, user: User = Depends(require_permission("crm", "read"))):
     # Verify customer belongs to user
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": user.user_id})
     if not cust:
@@ -5320,7 +5578,7 @@ async def delete_customer(customer_id: str, user: User = Depends(require_permiss
     return {"message": "Client supprimé"}
 
 @api_router.get("/promotions", response_model=List[Promotion])
-async def get_promotions(user: User = Depends(require_auth)):
+async def get_promotions(user: User = Depends(require_permission("crm", "read"))):
     promotions = await db.promotions.find({"user_id": user.user_id, "is_active": True}).to_list(100)
     return [Promotion(**p) for p in promotions]
 
@@ -5332,13 +5590,13 @@ class PromotionCreate(BaseModel):
     is_active: bool = True
 
 @api_router.post("/promotions", response_model=Promotion)
-async def create_promotion(data: PromotionCreate, user: User = Depends(require_auth)):
+async def create_promotion(data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
     promotion = Promotion(**data.model_dump(), user_id=user.user_id)
     await db.promotions.insert_one(promotion.model_dump())
     return promotion
 
 @api_router.put("/promotions/{promotion_id}", response_model=Promotion)
-async def update_promotion(promotion_id: str, data: PromotionCreate, user: User = Depends(require_auth)):
+async def update_promotion(promotion_id: str, data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
     update_dict = data.model_dump()
     result = await db.promotions.find_one_and_update(
         {"promotion_id": promotion_id, "user_id": user.user_id},
@@ -5351,7 +5609,7 @@ async def update_promotion(promotion_id: str, data: PromotionCreate, user: User 
     return Promotion(**result)
 
 @api_router.delete("/promotions/{promotion_id}")
-async def delete_promotion(promotion_id: str, user: User = Depends(require_auth)):
+async def delete_promotion(promotion_id: str, user: User = Depends(require_permission("crm", "write"))):
     result = await db.promotions.delete_one({"promotion_id": promotion_id, "user_id": user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Promotion non trouvée")
@@ -5588,7 +5846,7 @@ async def get_accounting_stats(
                      end_date_str += "T23:59:59"
                 end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
                 if end_date.tzinfo is None:
-                    end_date = end_date.replace(tzinfo=timezone.utc)
+                    end_date = end_date.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
             else:
                 end_date = now
         except Exception:
@@ -5970,7 +6228,7 @@ async def check_slow_moving(user_id: str):
 
 @api_router.get("/alerts")
 async def get_alerts(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("stock", "read")),
     include_dismissed: bool = False,
     limit: int = 50,
     skip: int = 0,
@@ -5990,7 +6248,7 @@ async def get_alerts(
     return {"items": [Alert(**a) for a in alerts], "total": total}
 
 @api_router.put("/alerts/{alert_id}/read")
-async def mark_alert_read(alert_id: str, user: User = Depends(require_auth)):
+async def mark_alert_read(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.update_one(
         {"alert_id": alert_id, "user_id": user.user_id},
         {"$set": {"is_read": True}}
@@ -6000,7 +6258,7 @@ async def mark_alert_read(alert_id: str, user: User = Depends(require_auth)):
     return {"message": "Alerte marquée comme lue"}
 
 @api_router.put("/alerts/{alert_id}/dismiss")
-async def dismiss_alert(alert_id: str, user: User = Depends(require_auth)):
+async def dismiss_alert(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.update_one(
         {"alert_id": alert_id, "user_id": user.user_id},
         {"$set": {"is_dismissed": True}}
@@ -6010,25 +6268,25 @@ async def dismiss_alert(alert_id: str, user: User = Depends(require_auth)):
     return {"message": "Alerte ignorée"}
 
 @api_router.delete("/alerts/dismissed")
-async def clear_dismissed_alerts(user: User = Depends(require_auth)):
+async def clear_dismissed_alerts(user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.delete_many({"user_id": user.user_id, "is_dismissed": True})
     return {"message": f"{result.deleted_count} alertes supprimées"}
 
 # ===================== ALERT RULES ROUTES =====================
 
 @api_router.get("/alert-rules", response_model=List[AlertRule])
-async def get_alert_rules(user: User = Depends(require_auth)):
+async def get_alert_rules(user: User = Depends(require_permission("stock", "read"))):
     rules = await db.alert_rules.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
     return [AlertRule(**rule) for rule in rules]
 
 @api_router.post("/alert-rules", response_model=AlertRule)
-async def create_alert_rule(rule_data: AlertRuleCreate, user: User = Depends(require_auth)):
+async def create_alert_rule(rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
     rule = AlertRule(**rule_data.model_dump(), user_id=user.user_id)
     await db.alert_rules.insert_one(rule.model_dump())
     return rule
 
 @api_router.put("/alert-rules/{rule_id}", response_model=AlertRule)
-async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User = Depends(require_auth)):
+async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alert_rules.find_one_and_update(
         {"rule_id": rule_id, "user_id": user.user_id},
         {"$set": rule_data.model_dump()},
@@ -6040,7 +6298,7 @@ async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User
     return AlertRule(**result)
 
 @api_router.delete("/alert-rules/{rule_id}")
-async def delete_alert_rule(rule_id: str, user: User = Depends(require_auth)):
+async def delete_alert_rule(rule_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alert_rules.delete_one({"rule_id": rule_id, "user_id": user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Règle non trouvée")
@@ -6808,7 +7066,19 @@ class CreditNote(BaseModel):
 
 
 @api_router.put("/orders/{order_id}/receive-partial")
-async def receive_partial_delivery(order_id: str, data: PartialDeliveryRequest, user: User = Depends(require_auth)):
+async def receive_partial_delivery(
+    order_id: str, 
+    data: PartialDeliveryRequest, 
+    request: Request,
+    user: User = Depends(require_permission("stock", "write"))
+):
+    # Idempotency check
+    idempotency_key = request.headers.get("X-Idempotency-Key")
+    if idempotency_key:
+        existing = await db.idempotency_keys.find_one({"key": idempotency_key, "user_id": user.user_id})
+        if existing:
+            return existing["response"]
+
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
     if not order:
@@ -6889,11 +7159,21 @@ async def receive_partial_delivery(order_id: str, data: PartialDeliveryRequest, 
 
     await log_activity(user, "partial_delivery", "orders", f"Réception {'complète' if all_fully_received else 'partielle'} - Commande {order_id}")
 
-    return {
+    response_data = {
         "message": f"Réception {'complète' if all_fully_received else 'partielle'} enregistrée",
         "status": new_status,
         "received_items": received_so_far
     }
+
+    if idempotency_key:
+        await db.idempotency_keys.insert_one({
+            "key": idempotency_key,
+            "user_id": user.user_id,
+            "response": response_data,
+            "created_at": datetime.now(timezone.utc)
+        })
+
+    return response_data
 
 @api_router.put("/supplier/orders/{order_id}/status")
 async def update_supplier_order_status(order_id: str, status_data: OrderStatusUpdate, user: User = Depends(require_supplier)):
@@ -6937,7 +7217,7 @@ async def delete_order(order_id: str, user: User = Depends(require_auth)):
 # ===================== DASHBOARD ROUTE =====================
 
 @api_router.get("/dashboard", response_model=DashboardData)
-async def get_dashboard(user: User = Depends(require_auth)):
+async def get_dashboard(user: User = Depends(require_permission("stock", "read"))):
     user_id = user.user_id
     store_id = user.active_store_id
 
@@ -8013,6 +8293,16 @@ async def register_from_invitation(user_data: UserCreate, token: str):
 
     access_token = create_access_token(data={"sub": user_id})
 
+    # Track session (I10)
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": access_token,
+        "created_at": datetime.now(timezone.utc),
+        "last_active": datetime.now(timezone.utc),
+        "user_agent": "invitation_flow",
+        "ip": None
+    })
+
     user_obj = User(
         user_id=user_id,
         email=user_data.email,
@@ -8999,12 +9289,12 @@ class DeliveryMappingItem(BaseModel):
 class ConfirmDeliveryRequest(BaseModel):
     mappings: List[DeliveryMappingItem]
 
-class ManualMapRequest(BaseModel):
+class CatalogProductMappingCreate(BaseModel): # Renamed from ManualMapRequest
     catalog_id: str
     product_id: str
 
 @api_router.post("/orders/{order_id}/suggest-matches")
-async def suggest_matches(order_id: str, user: User = Depends(require_auth)):
+async def get_catalog_suggestions(order_id: str, user: User = Depends(require_permission("stock", "read"))):
     """Use Gemini AI to suggest matches between catalog products and shopkeeper inventory."""
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
@@ -9196,7 +9486,7 @@ Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour), 
 
 
 @api_router.post("/orders/{order_id}/confirm-delivery")
-async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: User = Depends(require_auth)):
+async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: User = Depends(require_permission("stock", "write"))):
     """Confirm marketplace delivery with product mappings and stock updates."""
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
@@ -9321,12 +9611,12 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
 
 
 @api_router.post("/orders/map-product")
-async def map_product(data: ManualMapRequest, user: User = Depends(require_auth)):
+async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User = Depends(require_permission("stock", "write"))):
     """Manually associate a catalog product with a shopkeeper inventory product."""
     owner_id = get_owner_id(user)
 
     # Verify the product exists
-    product = await db.products.find_one({"product_id": data.product_id, "user_id": owner_id})
+    product = await db.products.find_one({"product_id": mapping.product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé dans votre inventaire")
 
@@ -10674,11 +10964,12 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
     }
     await db.deleted_users_archive.insert_one(archive_data)
 
-    # If user is a staff member, just delete the user entry
+    # If user is a staff member, just delete the user entry and sessions
     if user.role not in ["shopkeeper", "superadmin", "admin"]:
+         await db.user_sessions.delete_many({"user_id": user.user_id})
          await db.users.delete_one({"user_id": user.user_id})
          await db.credentials.delete_one({"user_id": user.user_id})
-         return {"message": "Compte employé supprimé."}
+         return {"message": "Compte employé et sessions supprimés."}
 
     # If user is owner, CASCADE DELETE EVERYTHING
     # Collections to clean based on user_id or owner_id
@@ -10690,7 +10981,8 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
         "rules", "user_settings", "push_tokens", "stores",
         "customers", "suppliers", "catalog_product_mappings", 
         "expenses", "orders", "promotions", "activity_logs",
-        "support_tickets"
+        "support_tickets", "user_sessions", "idempotency_keys",
+        "security_events", "pending_transactions", "notifications"
     ]
     
     for col in collections_to_wipe:

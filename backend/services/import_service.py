@@ -65,7 +65,10 @@ class ImportService:
         """Validate raw data and prepare it for MongoDB insertion"""
         prepared = []
         errors = []
-        
+        # Preload categories to avoid N+1 queries (I7)
+        cats = await self.db.categories.find({"user_id": user_id}, {"category_id": 1}).to_list(None)
+        valid_category_ids = {c["category_id"] for c in cats}
+
         for index, row in enumerate(data):
             try:
                 # Basic normalization
@@ -74,15 +77,10 @@ class ImportService:
                     errors.append({"row": index, "error": "Nom du produit manquant"})
                     continue
 
-                # Validation category_id (M9)
+                # Validation category_id (I7 optimized)
                 current_category_id = row.get("category_id")
-                if current_category_id:
-                    cat = await self.db.categories.find_one({
-                        "category_id": current_category_id,
-                        "user_id": user_id
-                    })
-                    if not cat:
-                        current_category_id = None # Skip invalid category
+                if current_category_id and current_category_id not in valid_category_ids:
+                    current_category_id = None # Skip invalid category
 
                 # Clean numeric values with bounds check (M14)
                 purchase_price = clean_float(row.get("purchase_price") or row.get("prix_achat") or 0.0)

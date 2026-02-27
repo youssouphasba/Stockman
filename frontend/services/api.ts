@@ -42,6 +42,10 @@ console.log('API URL configured:', API_URL);
 
 const TOKEN_KEY = 'auth_token';
 
+// Simple idempotency key generator for re-submitting critical mutations
+const generateIdempotencyKey = () =>
+  Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
 async function isOnline() {
   const state = await NetInfo.fetch();
   return !!state.isConnected && !!state.isInternetReachable;
@@ -171,7 +175,37 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
     clearTimeout(timeoutId);
 
     if (response.status === 401) {
-      if (endpoint !== '/auth/login') {
+      if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+        // Tenter un refresh avant de déconnecter
+        try {
+          // Utiliser raw fetch pour éviter les boucles infinies
+          const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            const newToken = refreshData.access_token;
+            await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+
+            // Rejouer la requête originale
+            const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
+            const retryRes = await fetch(`${API_URL}/api${endpoint}`, {
+              ...config,
+              headers: retryHeaders,
+              signal: controller.signal,
+            } as any);
+
+            if (retryRes.ok) {
+              clearTimeout(timeoutId);
+              return retryRes.json();
+            }
+          }
+        } catch (refreshErr) {
+          console.warn('Auto-refresh failed:', refreshErr);
+        }
+
         await removeToken();
         throw new AuthError('Session expirée');
       }
@@ -517,7 +551,12 @@ export const orders = {
     request<{ message: string }>(`/orders/${id}`, { method: 'DELETE' }),
   receivePartial: (orderId: string, items: { item_id: string; received_quantity: number }[], notes?: string) =>
     request<{ message: string; status: string; received_items: Record<string, number> }>(
-      `/orders/${orderId}/receive-partial`, { method: 'PUT', body: { items, notes } }
+      `/orders/${orderId}/receive-partial`,
+      {
+        method: 'PUT',
+        body: { items, notes },
+        headers: { 'X-Idempotency-Key': generateIdempotencyKey() }
+      }
     ),
   getFilterSuppliers: () => request<any[]>('/orders/filter-suppliers'),
   suggestMatches: (orderId: string) =>

@@ -5,6 +5,10 @@ if (!API_URL && typeof window !== 'undefined') {
 }
 const TOKEN_KEY = 'auth_token';
 
+// Simple idempotency key generator for re-submitting critical mutations
+const generateIdempotencyKey = () =>
+    Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
 // For web, we use standard localStorage
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
 const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
@@ -51,7 +55,34 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const response = await fetch(`${API_URL}/api${endpoint}`, config);
 
     if (response.status === 401) {
-        if (endpoint !== '/auth/login') {
+        if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+            // Tenter un refresh avant de déconnecter
+            try {
+                const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+
+                if (refreshRes.ok) {
+                    const refreshData = await refreshRes.json();
+                    const newToken = refreshData.access_token;
+                    setToken(newToken);
+
+                    // Rejouer la requête
+                    const retryConfig = {
+                        ...config,
+                        headers: {
+                            ...config.headers,
+                            Authorization: `Bearer ${newToken}`,
+                        },
+                    };
+                    const retryRes = await fetch(`${API_URL}/api${endpoint}`, retryConfig);
+                    if (retryRes.ok) return retryRes.json();
+                }
+            } catch (refreshErr) {
+                console.warn('Auto-refresh failed:', refreshErr);
+            }
+
             removeToken();
             if (typeof window !== 'undefined') {
                 window.location.href = '/';
@@ -258,6 +289,7 @@ export const supplier_orders = {
         request<any>(`/orders/${id}/receive-partial`, {
             method: 'PUT',
             body: { items, notes },
+            headers: { 'X-Idempotency-Key': generateIdempotencyKey() }
         }),
 };
 
