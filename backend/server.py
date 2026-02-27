@@ -484,53 +484,53 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
 
         # Daily subscription expiry checker + trial reminders
         async def check_expired_subscriptions():
-            # Loop removed, logic is now called by supervised_loop
+            """Check and expire subscriptions + send trial reminders (called by supervised_loop)"""
             now = datetime.now(timezone.utc)
 
-                # 1. Expire paid subscriptions (Flutterwave / Stripe)
-                result = await db.users.update_many(
-                    {
-                        "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
-                        "subscription_provider": {"$in": ["flutterwave", "cinetpay", "stripe"]},
-                        "subscription_end": {"$lt": now},
-                        "subscription_status": "active",
-                    },
-                    {"$set": {"subscription_status": "expired"}}
-                )
-                if result.modified_count:
-                    logger.info(f"Expired {result.modified_count} paid subscriptions")
+            # 1. Expire paid subscriptions (Flutterwave / Stripe)
+            result = await db.users.update_many(
+                {
+                    "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
+                    "subscription_provider": {"$in": ["flutterwave", "cinetpay", "stripe"]},
+                    "subscription_end": {"$lt": now},
+                    "subscription_status": "active",
+                },
+                {"$set": {"subscription_status": "expired"}}
+            )
+            if result.modified_count:
+                logger.info(f"Expired {result.modified_count} paid subscriptions")
 
-                # 2. Expire free trials (provider = none, trial_ends_at dépassé)
-                # Les fournisseurs (role=supplier) ont un compte gratuit permanent
-                trial_result = await db.users.update_many(
-                    {
-                        "subscription_provider": "none",
-                        "trial_ends_at": {"$lt": now},
-                        "subscription_status": "active",
-                        "role": {"$ne": "supplier"},
-                    },
-                    {"$set": {"subscription_status": "expired"}}
-                )
-                if trial_result.modified_count:
-                    logger.info(f"Expired {trial_result.modified_count} free trials")
+            # 2. Expire free trials (provider = none, trial_ends_at dépassé)
+            # Les fournisseurs (role=supplier) ont un compte gratuit permanent
+            trial_result = await db.users.update_many(
+                {
+                    "subscription_provider": "none",
+                    "trial_ends_at": {"$lt": now},
+                    "subscription_status": "active",
+                    "role": {"$ne": "supplier"},
+                },
+                {"$set": {"subscription_status": "expired"}}
+            )
+            if trial_result.modified_count:
+                logger.info(f"Expired {trial_result.modified_count} free trials")
 
-                # 2. Rappels trial J-7 et J-1
-                for days_left in (7, 1):
-                    target_date_start = now + timedelta(days=days_left)
-                    target_date_end   = now + timedelta(days=days_left, hours=24)
-                    users_to_remind = await db.users.find({
-                        "trial_ends_at": {"$gte": target_date_start, "$lt": target_date_end},
-                        "subscription_status": "active",
-                        "email": {"$exists": True, "$ne": ""},
-                        f"trial_reminder_{days_left}d_sent": {"$ne": True},
-                    }, {"user_id": 1, "email": 1, "name": 1}).to_list(length=500)
+            # 3. Rappels trial J-7 et J-1
+            for days_left in (7, 1):
+                target_date_start = now + timedelta(days=days_left)
+                target_date_end   = now + timedelta(days=days_left, hours=24)
+                users_to_remind = await db.users.find({
+                    "trial_ends_at": {"$gte": target_date_start, "$lt": target_date_end},
+                    "subscription_status": "active",
+                    "email": {"$exists": True, "$ne": ""},
+                    f"trial_reminder_{days_left}d_sent": {"$ne": True},
+                }, {"user_id": 1, "email": 1, "name": 1}).to_list(length=500)
 
-                    for u in users_to_remind:
-                        await send_trial_reminder_email(u["email"], u.get("name", ""), days_left)
-                        await db.users.update_one(
-                            {"user_id": u["user_id"]},
-                            {"$set": {f"trial_reminder_{days_left}d_sent": True}}
-                        )
+                for u in users_to_remind:
+                    await send_trial_reminder_email(u["email"], u.get("name", ""), days_left)
+                    await db.users.update_one(
+                        {"user_id": u["user_id"]},
+                        {"$set": {f"trial_reminder_{days_left}d_sent": True}}
+                    )
 
         asyncio.create_task(supervised_loop("subscriptions", check_expired_subscriptions, 86400))
 
@@ -3643,77 +3643,76 @@ async def check_alerts_loop():
     now = datetime.now(timezone.utc)
     since_24h = now - timedelta(hours=24)
 
-            # 1. Low stock alerts — Pro + Enterprise only, with 24h dedup
-            async for product in db.products.find({
-                "min_stock": {"$gt": 0},
-                "$expr": {"$lte": ["$quantity", "$min_stock"]}
-            }):
-                owner_id = product.get("user_id")
-                if not owner_id:
-                    continue
+    # 1. Low stock alerts — Pro + Enterprise only, with 24h dedup
+    async for product in db.products.find({
+        "min_stock": {"$gt": 0},
+        "$expr": {"$lte": ["$quantity", "$min_stock"]}
+    }):
+        owner_id = product.get("user_id")
+        if not owner_id:
+            continue
 
-                # Plan check: only pro/enterprise users get push notifications
-                owner = await db.users.find_one(
-                    {"user_id": owner_id},
-                    {"plan": 1, "push_notifications": 1}
-                )
-                if not owner or owner.get("plan") not in ("pro", "enterprise"):
-                    continue
+        # Plan check: only pro/enterprise users get push notifications
+        owner = await db.users.find_one(
+            {"user_id": owner_id},
+            {"plan": 1, "push_notifications": 1}
+        )
+        if not owner or owner.get("plan") not in ("pro", "enterprise"):
+            continue
 
-                product_id = product.get("product_id")
+        product_id = product.get("product_id")
 
-                # Dedup: skip if already alerted for this product in the last 24h
-                existing = await db.alerts.find_one({
-                    "user_id": owner_id,
-                    "product_id": product_id,
-                    "type": "low_stock",
-                    "created_at": {"$gte": since_24h}
-                })
-                if existing:
-                    continue
+        # Dedup: skip if already alerted for this product in the last 24h
+        existing = await db.alerts.find_one({
+            "user_id": owner_id,
+            "product_id": product_id,
+            "type": "low_stock",
+            "created_at": {"$gte": since_24h}
+        })
+        if existing:
+            continue
 
-                # Create alert record
-                alert = Alert(
-                    user_id=owner_id,
-                    store_id=product.get("store_id"),
-                    product_id=product_id,
-                    type="low_stock",
-                    title="Stock Bas",
-                    message=f"Le produit {product['name']} est presque épuisé ({product['quantity']} restant(s)).",
-                    severity="warning" if product["quantity"] > 0 else "critical",
-                )
-                await db.alerts.insert_one(alert.model_dump())
+        # Create alert record
+        alert = Alert(
+            user_id=owner_id,
+            store_id=product.get("store_id"),
+            product_id=product_id,
+            type="low_stock",
+            title="Stock Bas",
+            message=f"Le produit {product['name']} est presque épuisé ({product['quantity']} restant(s)).",
+            severity="warning" if product["quantity"] > 0 else "critical",
+        )
+        await db.alerts.insert_one(alert.model_dump())
 
-                # Push notification with navigation data
-                await notification_service.notify_user(
-                    db,
-                    owner_id,
-                    "📦 Stock Bas",
-                    f"{product['name']} : {product['quantity']} restant(s)",
-                    data={"screen": "products", "filter": "low_stock"},
-                    caller_owner_id=owner_id
-                )
+        # Push notification with navigation data
+        await notification_service.notify_user(
+            db,
+            owner_id,
+            "📦 Stock Bas",
+            f"{product['name']} : {product['quantity']} restant(s)",
+            data={"screen": "products", "filter": "low_stock"},
+            caller_owner_id=owner_id
+        )
 
-            # 2. Expiry alerts (within 7 days)
-            seven_days_later = now + timedelta(days=7)
-            async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
-                owner_id = batch.get("user_id")
-                if not owner_id:
-                    continue
-                
-                # Plan check (I6)
-                owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1})
-                if not owner or owner.get("plan") not in ("pro", "enterprise"):
-                    continue
+    # 2. Expiry alerts (within 7 days)
+    seven_days_later = now + timedelta(days=7)
+    async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
+        owner_id = batch.get("user_id")
+        if not owner_id:
+            continue
+        
+        # Plan check (I6)
+        owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1})
+        if not owner or owner.get("plan") not in ("pro", "enterprise"):
+            continue
 
-                await notification_service.notify_user(
-                    db,
-                    owner_id,
-                    "Expiration Proche",
-                    f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}."
-                )
+        await notification_service.notify_user(
+            db,
+            owner_id,
+            "Expiration Proche",
+            f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}."
+        )
 
-        await asyncio.sleep(300)  # Check every 5 minutes
 
 
 async def require_shopkeeper(request: Request) -> User:
