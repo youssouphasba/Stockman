@@ -107,7 +107,7 @@ def safe_regex(user_input: str) -> str:
     """Échappe les caractères spéciaux regex pour éviter ReDoS et injection."""
     return _re.escape(user_input.strip())
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7 jours — stopgap jusqu'à eas update (refresh SecureStore)
+ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures (refresh auto via SecureStore dans l'APK)
 REFRESH_TOKEN_EXPIRE_DAYS = 30 # 30 jours
 
 # Rate limiting
