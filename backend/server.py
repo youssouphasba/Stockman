@@ -1343,16 +1343,16 @@ async def get_current_user(request: Request) -> Optional[User]:
         if user_doc:
             sanitize_user_doc(user_doc)
 
-            # Update last_active (I10)
-            asyncio.create_task(db.user_sessions.update_one(
-                {"session_token": token},
-                {"$set": {"last_active": datetime.now(timezone.utc)}}
-            ))
+            # Update last_active (fire-and-forget, must not break auth)
             try:
-                return User(**user_doc)
-            except Exception as build_err:
-                logger.error(f"get_current_user User build FAILED: {build_err} — keys: {list(user_doc.keys())}")
-                raise
+                asyncio.create_task(db.user_sessions.update_one(
+                    {"session_token": token},
+                    {"$set": {"last_active": datetime.now(timezone.utc)}}
+                ))
+            except Exception:
+                pass  # Never let session tracking break authentication
+
+            return User(**user_doc)
     except JWTError as jwt_err:
         logger.warning(f"get_current_user JWT error: {jwt_err}")
     except Exception as e:
