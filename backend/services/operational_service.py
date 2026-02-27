@@ -79,7 +79,7 @@ class OperationalService:
             from pymongo import UpdateOne
             bulk_ops = [
                 UpdateOne(
-                    {"product_id": u["product_id"]},
+                    {"product_id": u["product_id"], "user_id": user_id},
                     {"$set": {"abc_class": u["abc_class"], "abc_revenue_30d": u["abc_revenue_30d"]}}
                 )
                 for u in updates

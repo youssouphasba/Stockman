@@ -282,7 +282,7 @@ function Landing() {
                 <li><span className="check-icon">✓</span> {t('pricing.enterprise.f3')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.enterprise.f4')}</li>
                 <li><span className="check-icon">✓</span> {t('pricing.enterprise.f5')}</li>
-                <li><span className="check-icon">✓</span> Application mobile incluse pour vos équipes terrain</li>
+                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f6')}</li>
               </ul>
               <a
                 href="https://app.stockman.pro/features"
@@ -291,7 +291,7 @@ function Landing() {
                 className="btn-primary"
                 style={{ display: 'block', textAlign: 'center', marginTop: '1rem' }}
               >
-                Démarrer l'essai Enterprise →
+                {t('pricing.enterprise.cta_start')}
               </a>
             </div>
           </div>

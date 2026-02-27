@@ -251,6 +251,13 @@
       "active": "Active",
       "banned": "Banned",
       "countryLabel": "Country: {{country}}"
+    },
+    "data_explorer": {
+      "documents": "documents",
+      "search_placeholder": "Search (ID, name, email...)...",
+      "select_collection": "Choose a collection",
+      "select_hint": "Select a collection",
+      "title": "Data Explorer"
     }
   },
   "ai": {
@@ -414,6 +421,7 @@
       "notReceived": "I didn't receive the code",
       "errorCode": "Please enter the 6-digit code",
       "errorIncorrect": "Incorrect or expired code",
+      "resendError": "Error sending the code",
       "resendTip": "Resend feature coming soon"
     }
   },
@@ -433,6 +441,14 @@
     "rfid_associate_desc": "Associer ces codes à des tags RFID",
     "rfid_bulk_info": "L'association RFID par lot permet d'associer rapidement vos tags.",
     "select_action": "Sélectionner une action",
+    "aim_hint": "Aim at a barcode or RFID tag to add it",
+    "allow_camera": "Allow Camera",
+    "clear_all": "Clear all",
+    "done_count": "Done ({{count}})",
+    "no_camera": "No camera access",
+    "requesting_permission": "Requesting camera permission...",
+    "scanned_flash": "Scanned!",
+    "scanned_items": "Scanned items ({{count}})",
     "title": "Scan Rapide (Lot)",
     "unknown_codes": "{{count}} codes sont inconnus…"
   },
@@ -1303,7 +1319,14 @@
     "error": "An error occurred",
     "loading": "Loading...",
     "order_creation": "Order Creation",
+    "ai_assistant_title": "AI Assistant",
+    "chat_empty": "Start the conversation!",
     "receipt": "Digital Receipt",
+    "receipt_done": "Done",
+    "receipt_qr_subtitle": "Scan to retrieve your online receipt",
+    "receipt_share_pdf": "Share PDF Invoice",
+    "receipt_whatsapp_link": "WhatsApp link only",
+    "receipt_whatsapp_text": "Here is your Stockman receipt: {{url}}",
     "save": "Save",
     "success": "Operation successful"
   },
@@ -1518,7 +1541,11 @@
     "total": "Total",
     "unknown": "Unknown",
     "unknown_product_msg": "No product found with SKU: {{sku}}",
-    "unknown_product_title": "Unknown product"
+    "unknown_product_title": "Unknown product",
+    "terminal_modal_title": "Select Terminal",
+    "terminal_modal_subtitle": "Choose the terminal for this checkout session.",
+    "terminal_active": "Terminal: {{name}}",
+    "terminal_select": "Change terminal"
   },
   "premium": {
     "features": {
@@ -1597,6 +1624,7 @@
     "categories_exist": "All categories already exist.",
     "categories_imported": "categories imported",
     "categories_offline": "Category management is unavailable offline.",
+    "category_label": "Category",
     "category_name_placeholder": "Category name",
     "category_save_error": "Could not save category",
     "choose_source": "Choose a source",
@@ -1819,6 +1847,12 @@
     "users_permissions_desc": "Manage your employees' access",
     "version": "Version"
   },
+  "scanner": {
+    "aim": "Place the barcode in the frame",
+    "allow_camera": "Allow Camera",
+    "permission_text": "Camera access is needed to scan barcodes.",
+    "title": "Scan a Product"
+  },
   "stock": {
     "reasons": {
       "pos_sale": "POS Sale",
@@ -1935,7 +1969,18 @@
     "revenue_month": "Revenue this month",
     "reviews": "Customer Reviews",
     "search_orders": "Search orders...",
+    "filter_all": "All",
+    "filter_cancelled": "Cancelled",
+    "filter_confirmed": "Confirmed",
+    "filter_delivered": "Delivered",
+    "filter_pending": "Pending",
+    "filter_shipped": "Shipped",
     "ship": "Ship",
+    "status_cancelled": "Cancelled",
+    "status_confirmed": "Confirmed",
+    "status_delivered": "Delivered",
+    "status_pending": "Pending",
+    "status_shipped": "Shipped",
     "top_products": "Top Products",
     "unavailable": "Unavailable"
   },

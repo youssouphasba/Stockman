@@ -34,7 +34,7 @@ type AiSupportModalProps = {
 
 export default function AiSupportModal({ visible, onClose }: AiSupportModalProps) {
     const { colors, glassStyle } = useTheme();
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const styles = getStyles(colors, glassStyle);
     const markdownStyles = getMarkdownStyles(colors);
     const [messages, setMessages] = useState<Message[]>([
@@ -238,7 +238,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                             <View style={styles.aiAvatarSmall}>
                                 <Ionicons name="sparkles" size={12} color="#fff" />
                             </View>
-                            <Text style={styles.modalTitle}>Assistant IA</Text>
+                            <Text style={styles.modalTitle}>{t('modals.ai_assistant_title')}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                             <TouchableOpacity onPress={handleClearHistory} style={styles.closeBtn}>

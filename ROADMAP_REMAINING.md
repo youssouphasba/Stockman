@@ -146,7 +146,7 @@
 - [x] Badge `📍 Nom` sur la card produit si `location_id` défini
 - [x] Gated : `plan === 'enterprise'`
 
-### Tâche 3 — Terminal sélectionnable au démarrage POS ⭐⭐ Moyenne
+### ✅ Tâche 3 — Terminal sélectionnable au démarrage POS ⭐⭐ Moyenne
 **Fichiers** : `frontend/app/(tabs)/pos.tsx`
 - Au chargement POS : lire `settings.terminals` (API existante)
 - Si `terminals.length > 1` ET `plan === 'enterprise'` → modal de sélection terminal avant accès caisse
@@ -164,7 +164,7 @@
 - [x] Visible aussi pour staff avec `accounting:read`
 - [x] i18n : 14 langues (fr, en, ar, de, es, ff, hi, it, pl, pt, ro, ru, tr, wo, zh)
 
-### Tâche 5 — Push notifications alertes stock bas ⭐⭐⭐ Haute
+### ✅ Tâche 5 — Push notifications alertes stock bas ⭐⭐⭐ Haute
 **Fichiers** : `backend/server.py`, `frontend/hooks/useNotifications.ts`
 - Backend : dans `check_and_create_alerts()`, après création alerte stock bas → appel Expo Push API avec tokens du propriétaire
 - Mobile : dans `useNotifications`, gérer tap sur notif → naviguer vers tab `products` avec filtre "stock bas" activé
@@ -198,6 +198,7 @@
 - [x] `get_batches` : `user.user_id` → `get_owner_id(user)` corrigé (staff voit maintenant les lots du propriétaire)
 - [x] Import produits : `confirm_import` utilisait `user_id` au lieu de `get_owner_id()` + `store_id` était None
 - [x] Export CSV accounting n'inclut pas les dépenses dans le total
+- [x] **Tenant ID bug** : endpoints categories, produits (CRUD individuel) et paiements clients utilisaient `user.user_id` au lieu de `get_owner_id(user)` — les membres du staff ne pouvaient pas créer/modifier/supprimer (server.py)
 
 ---
 

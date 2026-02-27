@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { admin, CollectionInfo, CollectionData } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DataExplorer() {
+    const { t } = useTranslation();
     const { colors } = useTheme();
 
     const [collections, setCollections] = useState<CollectionInfo[]>([]);
@@ -83,9 +85,9 @@ export default function DataExplorer() {
                             <Ionicons name="arrow-back" size={18} color="#fff" />
                         </TouchableOpacity>
                         <View>
-                            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800' }}>📊 Explorateur de Données</Text>
+                            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800' }}>📊 {t('admin.data_explorer.title')}</Text>
                             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
-                                {collections.length} collections • {selectedCollection || 'Sélectionnez une collection'}
+                                {collections.length} collections • {selectedCollection || t('admin.data_explorer.select_hint')}
                             </Text>
                         </View>
                     </View>
@@ -97,7 +99,7 @@ export default function DataExplorer() {
                 {!selectedCollection && (
                     <>
                         <Text style={{ color: '#A5B4FC', fontSize: 14, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-                            Choisissez une collection
+                            {t('admin.data_explorer.select_collection')}
                         </Text>
                         {loading ? (
                             <ActivityIndicator size="large" color="#8B5CF6" style={{ marginTop: 40 }} />
@@ -118,7 +120,7 @@ export default function DataExplorer() {
                                         <Ionicons name={(collectionIcons[col.name] || 'folder') as any} size={22} color="#8B5CF6" />
                                         <Text style={{ color: '#E0E7FF', fontWeight: '600', fontSize: 14 }} numberOfLines={1}>{col.name}</Text>
                                         <Text style={{ color: '#6366F1', fontWeight: '800', fontSize: 18 }}>{col.count}</Text>
-                                        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>documents</Text>
+                                        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{t('admin.data_explorer.documents')}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -133,7 +135,7 @@ export default function DataExplorer() {
                             <TouchableOpacity onPress={() => { setSelectedCollection(null); setCollectionData([]); setSearchQuery(''); }}
                                 style={{ backgroundColor: '#8B5CF622', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                 <Ionicons name="arrow-back" size={14} color="#A5B4FC" />
-                                <Text style={{ color: '#A5B4FC', fontSize: 12, fontWeight: '600' }}>Retour</Text>
+                                <Text style={{ color: '#A5B4FC', fontSize: 12, fontWeight: '600' }}>{t('common.back')}</Text>
                             </TouchableOpacity>
                             <Ionicons name={(collectionIcons[selectedCollection] || 'folder') as any} size={20} color="#8B5CF6" />
                             <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: '700' }}>{selectedCollection}</Text>
@@ -147,7 +149,7 @@ export default function DataExplorer() {
                                 <TextInput
                                     value={searchQuery}
                                     onChangeText={setSearchQuery}
-                                    placeholder="Rechercher (ID, nom, email...)..."
+                                    placeholder={t('admin.data_explorer.search_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                     style={{ flex: 1, padding: 10, color: colors.text }}
                                 />

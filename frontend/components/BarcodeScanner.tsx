@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, BorderRadius, FontSize } from '../constants/theme';
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
+    const { t } = useTranslation();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
 
@@ -55,12 +57,12 @@ export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
                 {!permission.granted ? (
                     <View style={styles.permissionContainer}>
                         <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
-                        <Text style={styles.permissionText}>L'accès à la caméra est nécessaire pour scanner les codes-barres.</Text>
+                        <Text style={styles.permissionText}>{t('scanner.permission_text')}</Text>
                         <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-                            <Text style={styles.permissionButtonText}>Autoriser la caméra</Text>
+                            <Text style={styles.permissionButtonText}>{t('scanner.allow_camera')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.closeButtonText}>Annuler</Text>
+                            <Text style={styles.closeButtonText}>{t('common.cancel')}</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -76,7 +78,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
                                 <TouchableOpacity onPress={onClose} style={styles.backButton}>
                                     <Ionicons name="close-circle" size={40} color="#fff" />
                                 </TouchableOpacity>
-                                <Text style={styles.headerText}>Scanner un Produit</Text>
+                                <Text style={styles.headerText}>{t('scanner.title')}</Text>
                             </View>
 
                             <View style={styles.scanTarget}>
@@ -87,7 +89,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
                             </View>
 
                             <View style={styles.footer}>
-                                <Text style={styles.footerText}>Placez le code-barres dans le cadre</Text>
+                                <Text style={styles.footerText}>{t('scanner.aim')}</Text>
                             </View>
                         </View>
                     </CameraView>

@@ -98,6 +98,11 @@ export default function POSScreen() {
     const [lastSale, setLastSale] = useState<Sale | null>(null);
     const [currentStore, setCurrentStore] = useState<Store | null>(null);
 
+    // Terminal selection (enterprise)
+    const [selectedTerminal, setSelectedTerminal] = useState<string | null>(null);
+    const [showTerminalModal, setShowTerminalModal] = useState(false);
+    const terminalSelectedRef = useRef(false);
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
@@ -115,7 +120,12 @@ export default function POSScreen() {
 
             if (user?.active_store_id) {
                 const active = stores.find((s: any) => s.store_id === user.active_store_id);
-                if (active) setCurrentStore(active);
+                if (active) {
+                    setCurrentStore(active);
+                    if (user?.plan === 'enterprise' && (active.terminals || []).length > 1 && !terminalSelectedRef.current) {
+                        setShowTerminalModal(true);
+                    }
+                }
             }
         } catch (error) {
             console.error(error);
@@ -193,7 +203,8 @@ export default function POSScreen() {
             const result = await salesApi.create({
                 items,
                 payment_method: method,
-                customer_id: selectedCustomer?.customer_id
+                customer_id: selectedCustomer?.customer_id,
+                terminal_id: selectedTerminal || undefined,
             });
 
             if (method === 'credit') {
@@ -447,7 +458,18 @@ export default function POSScreen() {
                 {/* Right Side: Cart (checkout pinned at bottom on mobile) */}
                 <View style={styles.rightPanel}>
                     <View style={styles.cartHeader}>
-                        <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
+                            {selectedTerminal && user?.plan === 'enterprise' && (
+                                <TouchableOpacity
+                                    onPress={() => setShowTerminalModal(true)}
+                                    style={styles.terminalBadge}
+                                >
+                                    <Ionicons name="tablet-portrait-outline" size={11} color={colors.primary} />
+                                    <Text style={styles.terminalBadgeText}>{selectedTerminal}</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                         <TouchableOpacity onPress={() => setCart([])}>
                             <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
                         </TouchableOpacity>
@@ -584,6 +606,35 @@ export default function POSScreen() {
                                 <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>
                             )}
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Terminal Selection Modal (enterprise) */}
+            <Modal visible={showTerminalModal} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{t('pos.terminal_modal_title')}</Text>
+                        </View>
+                        <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, marginBottom: Spacing.md }}>
+                            {t('pos.terminal_modal_subtitle')}
+                        </Text>
+                        {(currentStore?.terminals || []).map((terminal: string) => (
+                            <TouchableOpacity
+                                key={terminal}
+                                style={[styles.terminalOption, selectedTerminal === terminal && styles.terminalOptionActive]}
+                                onPress={() => {
+                                    terminalSelectedRef.current = true;
+                                    setSelectedTerminal(terminal);
+                                    setShowTerminalModal(false);
+                                }}
+                            >
+                                <Ionicons name="tablet-portrait-outline" size={20} color={selectedTerminal === terminal ? colors.primary : colors.textMuted} />
+                                <Text style={[styles.terminalOptionText, selectedTerminal === terminal && { color: colors.primary }]}>{terminal}</Text>
+                                {selectedTerminal === terminal && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
             </Modal>
@@ -903,6 +954,42 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     createBtnText: {
         color: '#fff',
         fontWeight: '700',
+    },
+    terminalBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: BorderRadius.full,
+        backgroundColor: colors.primary + '15',
+        borderWidth: 1,
+        borderColor: colors.primary + '40',
+    },
+    terminalBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: colors.primary,
+    },
+    terminalOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: colors.divider,
+        marginBottom: Spacing.sm,
+    },
+    terminalOptionActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '15',
+    },
+    terminalOptionText: {
+        flex: 1,
+        color: colors.text,
+        fontWeight: '600',
+        fontSize: FontSize.md,
     },
     suggestionsRow: {
         paddingHorizontal: Spacing.sm,

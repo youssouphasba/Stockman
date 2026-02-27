@@ -26,13 +26,6 @@ interface RatingRecord {
   created_at: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'En attente',
-  confirmed: 'Confirmées',
-  shipped: 'Expédiées',
-  delivered: 'Livrées',
-  cancelled: 'Annulées',
-};
 
 export default function SupplierDashboard() {
   const { colors } = useTheme();
@@ -186,7 +179,7 @@ export default function SupplierDashboard() {
                   <Text style={styles.orderAmount}>{formatNumber(order.total_amount)} {t('common.currency_short')}</Text>
                   <View style={[styles.orderStatus, { backgroundColor: getStatusColor(order.status) + '20' }]}>
                     <Text style={[styles.orderStatusText, { color: getStatusColor(order.status) }]}>
-                      {STATUS_LABELS[order.status] ?? order.status}
+                      {t(`supplier.status_${order.status}`, { defaultValue: order.status })}
                     </Text>
                   </View>
                 </View>

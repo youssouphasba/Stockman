@@ -21,7 +21,7 @@ import Skeleton from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import BarcodeScanner from '../../components/BarcodeScanner';
@@ -76,6 +76,7 @@ export default function ProductsScreen() {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
   const router = useRouter();
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
   const { user, hasPermission } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -93,6 +94,13 @@ export default function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock'>('all');
+
+  // Apply filter from notification deep-link
+  useEffect(() => {
+    if (filterParam === 'low_stock' || filterParam === 'out_of_stock' || filterParam === 'overstock') {
+      setFilterType(filterParam);
+    }
+  }, [filterParam]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);

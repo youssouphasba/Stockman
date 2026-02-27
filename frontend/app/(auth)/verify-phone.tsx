@@ -76,7 +76,7 @@ export default function VerifyPhoneScreen() {
             }
             setCooldown(RESEND_COOLDOWN);
         } catch (e) {
-            setError(e instanceof ApiError ? e.message : "Erreur lors du renvoi du code");
+            setError(e instanceof ApiError ? e.message : t('auth.verifyPhone.resendError'));
         } finally {
             setResending(false);
         }

@@ -11,7 +11,8 @@
         "title_start": "Unleash the potential of your",
         "title_end": "business",
         "subtitle": "The AI-powered smart inventory management solution to automate your operation and maximize your profits.",
-        "cta": "Get Started Now"
+        "cta": "Get Started Now",
+        "see_pricing": "See plans & pricing"
     },
     "stats": {
         "shops": "Shops equipped",
@@ -114,11 +115,14 @@
         "enterprise": {
             "name": "Enterprise",
             "price": "Custom quote",
-            "f1": "Multi-store",
-            "f2": "Dedicated 24/7 support",
-            "f3": "API & Intégrations",
-            "f4": "Custom AI",
-            "cta": "Contact Us"
+            "f1": "Unlimited stores & users",
+            "f2": "Full web back-office included",
+            "f3": "Dedicated 24/7 support",
+            "f4": "Custom AI & API integrations",
+            "f5": "Multi-team management",
+            "f6": "Mobile app included for your teams",
+            "cta": "Contact Us",
+            "cta_start": "Start Enterprise Trial →"
         }
     },
     "faq": {

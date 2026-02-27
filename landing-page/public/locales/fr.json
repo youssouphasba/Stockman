@@ -11,7 +11,8 @@
         "title_start": "Libérez le potentiel de votre",
         "title_end": "commerce",
         "subtitle": "La solution de gestion de stock intelligente dopée à l'IA pour automatiser votre commerce et maximiser vos profits.",
-        "cta": "Démarrer maintenant"
+        "cta": "Démarrer maintenant",
+        "see_pricing": "Voir les plans et tarifs"
     },
     "stats": {
         "shops": "Commerces équipés",
@@ -110,6 +111,18 @@
             "f4": "Marketplace Bouton-à-Bouton",
             "f5": "3 mois d'essai gratuit",
             "cta": "3 Mois Gratuits"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Sur devis",
+            "f1": "Boutiques & utilisateurs illimités",
+            "f2": "Back-office web complet inclus",
+            "f3": "Support dédié 24/7",
+            "f4": "IA personnalisée & intégrations API",
+            "f5": "Gestion multi-équipes",
+            "f6": "Application mobile incluse pour vos équipes terrain",
+            "cta": "Nous contacter",
+            "cta_start": "Démarrer l'essai Enterprise →"
         }
     },
     "faq": {

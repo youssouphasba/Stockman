@@ -22,41 +22,9 @@ import { formatNumber } from '../../utils/format';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import ChatModal from '../../components/ChatModal';
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'En attente',
-  confirmed: 'Confirmée',
-  shipped: 'Expédiée',
-  delivered: 'Livrée',
-  cancelled: 'Annulée',
-};
-
 const FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
-const FILTER_LABELS: Record<string, string> = {
-  all: 'Tous',
-  pending: 'En attente',
-  confirmed: 'Confirmées',
-  shipped: 'Expédiées',
-  delivered: 'Livrées',
-  cancelled: 'Annulées',
-};
 
 type StatusAction = { label: string; status: string; color: string; icon: string };
-
-function getActions(currentStatus: string): StatusAction[] {
-  switch (currentStatus) {
-    case 'pending':
-      return [
-        { label: 'Accepter', status: 'confirmed', color: Colors.success, icon: 'checkmark-circle-outline' },
-        { label: 'Refuser', status: 'cancelled', color: Colors.danger, icon: 'close-circle-outline' },
-      ];
-    case 'confirmed':
-      return [{ label: 'Expédier', status: 'shipped', color: Colors.secondary, icon: 'airplane-outline' }];
-    case 'shipped':
-      return []; // Le commerçant valide la réception
-    default:
-      return [];
-  }
-}
 
 export default function SupplierOrdersScreen() {
   const { t } = useTranslation();
@@ -78,6 +46,22 @@ export default function SupplierOrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<SupplierOrderData | null>(null);
   const [updating, setUpdating] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  const getStatusLabel = (status: string) => t(`supplier.status_${status}`, { defaultValue: status });
+  const getFilterLabel = (f: string) => f === 'all' ? t('supplier.filter_all') : t(`supplier.filter_${f}`, { defaultValue: f });
+  const getActions = (currentStatus: string): StatusAction[] => {
+    switch (currentStatus) {
+      case 'pending':
+        return [
+          { label: t('supplier.accept'), status: 'confirmed', color: Colors.success, icon: 'checkmark-circle-outline' },
+          { label: t('supplier.refuse'), status: 'cancelled', color: Colors.danger, icon: 'close-circle-outline' },
+        ];
+      case 'confirmed':
+        return [{ label: t('supplier.ship'), status: 'shipped', color: Colors.secondary, icon: 'airplane-outline' }];
+      default:
+        return [];
+    }
+  };
 
   const loadOrders = useCallback(async () => {
     try {
@@ -144,7 +128,7 @@ export default function SupplierOrdersScreen() {
   }
 
   async function handleStatusChange(orderId: string, newStatus: string) {
-    const confirmText = newStatus === 'cancelled' ? t('orders.confirm_cancel') : `${t('orders.change_status_to')} "${STATUS_LABELS[newStatus]}" ? `;
+    const confirmText = newStatus === 'cancelled' ? t('orders.confirm_cancel') : `${t('orders.change_status_to')} "${getStatusLabel(newStatus)}" ? `;
 
     const executeChange = async () => {
       setUpdating(true);
@@ -224,7 +208,7 @@ export default function SupplierOrdersScreen() {
               onPress={() => setFilter(f)}
             >
               <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-                {FILTER_LABELS[f]}
+                {getFilterLabel(f)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -273,7 +257,7 @@ export default function SupplierOrdersScreen() {
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
                   <Text style={[styles.statusText, { color }]}>
-                    {STATUS_LABELS[order.status] ?? order.status}
+                    {getStatusLabel(order.status)}
                   </Text>
                 </View>
               </View>
@@ -304,7 +288,7 @@ export default function SupplierOrdersScreen() {
         {ordersList.length === 0 && (
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>{t('orders.no_orders')} {filter !== 'all' ? FILTER_LABELS[filter].toLowerCase() : ''}</Text>
+            <Text style={styles.emptyText}>{t('orders.no_orders')} {filter !== 'all' ? getFilterLabel(filter).toLowerCase() : ''}</Text>
           </View>
         )}
 
@@ -342,7 +326,7 @@ export default function SupplierOrdersScreen() {
                   <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) + '20', alignSelf: 'flex-start' }]}>
                     <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status) }]}>
-                      {STATUS_LABELS[selectedOrder.status] ?? selectedOrder.status}
+                      {getStatusLabel(selectedOrder.status)}
                     </Text>
                   </View>
                 </View>

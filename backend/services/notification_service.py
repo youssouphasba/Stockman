@@ -60,12 +60,24 @@ class NotificationService:
             logger.error(f"Error sending push notification: {e}")
             return None
 
-    async def notify_user(self, db, user_id: str, title: str, body: str, data: Optional[Dict[str, Any]] = None):
+    async def notify_user(self, db, user_id: str, title: str, body: str, 
+                          data: Optional[Dict[str, Any]] = None, caller_owner_id: Optional[str] = None):
         """
-        Helper to notify a user by their user_id by fetching their registered tokens.
+        Helper to notify a user by their user_id. 
+        If caller_owner_id is provided, verify the target user belongs to the same tenant.
         """
-        user_doc = await db.users.find_one({"user_id": user_id}, {"push_tokens": 1})
-        if user_doc and "push_tokens" in user_doc:
+        user_doc = await db.users.find_one({"user_id": user_id}, {"push_tokens": 1, "parent_user_id": 1})
+        if not user_doc:
+            return
+
+        # Verification tenant : le user cible doit appartenir au même propriétaire
+        if caller_owner_id:
+            target_owner = user_doc.get("parent_user_id") or user_id
+            if target_owner != caller_owner_id and user_id != caller_owner_id:
+                logger.warning(f"Cross-tenant notification blocked: caller={caller_owner_id} target={user_id}")
+                return
+
+        if "push_tokens" in user_doc:
             tokens = user_doc["push_tokens"]
             if tokens:
                 await self.send_push_notification(tokens, title, body, data)

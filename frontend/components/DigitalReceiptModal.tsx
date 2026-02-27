@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import Constants from 'expo-constants';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sale, Store } from '../services/api';
 import { generateSalePdf } from '../utils/pdfReports';
@@ -17,6 +18,7 @@ interface DigitalReceiptModalProps {
 }
 
 export default function DigitalReceiptModal({ visible, onClose, sale, store }: DigitalReceiptModalProps) {
+    const { t } = useTranslation();
     const { colors } = useTheme();
     const { user } = useAuth();
     const [sharing, setSharing] = useState(false);
@@ -38,7 +40,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
     };
 
     const shareToWhatsAppLegacy = () => {
-        const text = `Voici votre reçu Stockman : ${receiptUrl}`;
+        const text = t('modals.receipt_whatsapp_text', { url: receiptUrl });
         const url = `whatsapp://send?text=${encodeURIComponent(text)}`;
         Linking.canOpenURL(url).then(supported => {
             if (supported) {
@@ -54,14 +56,14 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.bgMid, borderColor: colors.glassBorder }]}>
                     <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>Reçu Numérique</Text>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.receipt')}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
 
                     <Text style={[styles.receiptSubtitle, { color: colors.textSecondary }]}>
-                        Scannez pour récupérer votre reçu en ligne
+                        {t('modals.receipt_qr_subtitle')}
                     </Text>
 
                     <View style={styles.qrContainer}>
@@ -83,7 +85,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                         ) : (
                             <>
                                 <Ionicons name="share-outline" size={20} color="#fff" />
-                                <Text style={styles.shareBtnText}>Partager la Facture PDF</Text>
+                                <Text style={styles.shareBtnText}>{t('modals.receipt_share_pdf')}</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -93,11 +95,11 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                         onPress={shareToWhatsAppLegacy}
                     >
                         <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                        <Text style={[styles.secondaryShareBtnText, { color: colors.textSecondary }]}>Lien WhatsApp uniquement</Text>
+                        <Text style={[styles.secondaryShareBtnText, { color: colors.textSecondary }]}>{t('modals.receipt_whatsapp_link')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                        <Text style={[styles.closeBtnText, { color: colors.primary }]}>Terminer</Text>
+                        <Text style={[styles.closeBtnText, { color: colors.primary }]}>{t('modals.receipt_done')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

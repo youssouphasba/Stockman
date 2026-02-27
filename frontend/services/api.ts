@@ -944,6 +944,7 @@ export type Store = {
   name: string;
   address?: string;
   created_at: string;
+  terminals?: string[];
 };
 
 export type StoreCreate = {
@@ -1331,6 +1332,7 @@ export type SaleCreate = {
   items: { product_id: string; quantity: number }[];
   payment_method: string;
   customer_id?: string;
+  terminal_id?: string;
 };
 
 

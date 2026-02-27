@@ -46,6 +46,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                                 <p>{t('hero.subtitle')}</p>
                                 <div className="hero-btns">
                                     <button className="btn-primary">{t('hero.cta')}</button>
+                                    <a href="#pricing" className="btn-secondary">{t('hero.see_pricing')}</a>
                                 </div>
                             </>
                         ) : (

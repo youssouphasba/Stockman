@@ -1,28 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { FontSize, Spacing } from '../constants/theme';
 
-const STEPS = [
-  { key: 'pending', label: 'En attente' },
-  { key: 'confirmed', label: 'Confirmée' },
-  { key: 'shipped', label: 'Expédiée' },
-  { key: 'delivered', label: 'Livrée' },
-];
+const STEP_KEYS = ['pending', 'confirmed', 'shipped', 'delivered'] as const;
 
 type Props = { status: string };
 
 export default function OrderStatusProgressBar({ status }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const isCancelled = status === 'cancelled';
+  const STEPS = STEP_KEYS.map((key) => ({ key, label: t(`supplier.status_${key}`) }));
   const currentIndex = STEPS.findIndex((s) => s.key === status);
 
   if (isCancelled) {
     return (
       <View style={styles.cancelledRow}>
         <Ionicons name="close-circle" size={16} color={colors.danger} />
-        <Text style={[styles.cancelledText, { color: colors.danger }]}>Annulée</Text>
+        <Text style={[styles.cancelledText, { color: colors.danger }]}>{t('supplier.status_cancelled')}</Text>
       </View>
     );
   }

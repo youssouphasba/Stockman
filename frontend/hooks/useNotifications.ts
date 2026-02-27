@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { router } from 'expo-router';
 import { notifications as notificationsApi } from '../services/api';
 
 Notifications.setNotificationHandler({
@@ -35,7 +36,15 @@ export function useNotifications(userId?: string) {
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log('Notification Tapped:', response);
+            const data = response.notification.request.content.data as any;
+            if (data?.screen === 'products') {
+                const filter = data?.filter;
+                if (filter) {
+                    router.push(`/(tabs)/products?filter=${filter}` as any);
+                } else {
+                    router.push('/(tabs)/products' as any);
+                }
+            }
         });
 
         return () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { SHARED_CATEGORIES } from '../constants/defaultCategories';
@@ -18,6 +19,7 @@ export default function CategorySubcategoryPicker({
   selectedSubcategory,
   onSelect,
 }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
 
   const subcategories = selectedCategory
@@ -26,7 +28,7 @@ export default function CategorySubcategoryPicker({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.textMuted }]}>Catégorie</Text>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{t('products.category_label')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.row}>
         {categoryKeys.map((cat) => {
           const info = SHARED_CATEGORIES[cat];

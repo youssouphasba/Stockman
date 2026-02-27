@@ -2,6 +2,7 @@ import os
 import logging
 from twilio.rest import Client
 from typing import Optional
+import re as _re
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,11 @@ class TwilioService:
         """
         if not phone:
             logger.warning("No phone number provided, skipping WhatsApp OTP")
+            return False
+
+        # Validation format E.164
+        if not _re.match(r'^\+[1-9]\d{6,14}$', phone.replace("whatsapp:", "")):
+            logger.warning(f"Invalid phone format: {phone}")
             return False
 
         # Ensure phone has the whatsapp: prefix for Twilio
@@ -68,5 +74,8 @@ class TwilioService:
                     logger.error("  -> Cause: Template WhatsApp non approuve pour la production.")
                 return False
         else:
+            if os.environ.get("APP_ENV") == "production" or os.environ.get("ENV") == "production":
+                logger.error("CRITICAL: Twilio credentials missing in production! OTP NOT sent.")
+                return False  # NE PAS simuler en production
             logger.info(f"[SIMULATION] WhatsApp OTP to {phone} | Code: {otp}")
             return True  # Pretend it worked for dev/testing if no keys

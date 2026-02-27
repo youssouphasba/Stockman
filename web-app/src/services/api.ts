@@ -1,5 +1,8 @@
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://stockman-production-149d.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_URL && typeof window !== 'undefined') {
+    console.error('NEXT_PUBLIC_API_URL environment variable is required');
+}
 const TOKEN_KEY = 'auth_token';
 
 // For web, we use standard localStorage
@@ -33,6 +36,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     const config: RequestInit = {
         method,
+        credentials: 'include', // Support HttpOnly cookies
         headers: {
             ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),

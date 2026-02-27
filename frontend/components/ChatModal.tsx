@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { chat, ChatMessage, Conversation } from '../services/api';
@@ -25,6 +26,7 @@ type Props = {
 };
 
 export default function ChatModal({ visible, onClose, partnerId, partnerName }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -298,7 +300,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
                 ListEmptyComponent={
                   <View style={{ alignItems: 'center', padding: Spacing.xxl }}>
                     <Ionicons name="chatbubble-outline" size={48} color={colors.textMuted} />
-                    <Text style={{ color: colors.textMuted, marginTop: Spacing.sm }}>Commencez la conversation !</Text>
+                    <Text style={{ color: colors.textMuted, marginTop: Spacing.sm }}>{t('modals.chat_empty')}</Text>
                   </View>
                 }
               />

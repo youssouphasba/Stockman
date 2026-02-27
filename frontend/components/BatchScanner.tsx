@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 
@@ -20,6 +21,7 @@ interface BatchScannerProps {
 }
 
 export default function BatchScanner({ onComplete, onCancel, title = "Scan par lot" }: BatchScannerProps) {
+    const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
     const [permission, requestPermission] = useCameraPermissions();
     const [scannedItems, setScannedItems] = useState<string[]>([]);
@@ -50,17 +52,17 @@ export default function BatchScanner({ onComplete, onCancel, title = "Scan par l
     };
 
     if (!permission) {
-        return <View style={styles.centered}><Text>Demande d'autorisation de caméra...</Text></View>;
+        return <View style={styles.centered}><Text>{t('batch_scan.requesting_permission')}</Text></View>;
     }
     if (!permission.granted) {
         return (
             <View style={styles.centered}>
-                <Text style={{ color: colors.text, marginBottom: 20 }}>Pas d'accès à la caméra</Text>
+                <Text style={{ color: colors.text, marginBottom: 20 }}>{t('batch_scan.no_camera')}</Text>
                 <TouchableOpacity
                     onPress={requestPermission}
                     style={{ backgroundColor: colors.primary, padding: 12, borderRadius: 8 }}
                 >
-                    <Text style={{ color: '#fff' }}>Autoriser la caméra</Text>
+                    <Text style={{ color: '#fff' }}>{t('batch_scan.allow_camera')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -77,7 +79,7 @@ export default function BatchScanner({ onComplete, onCancel, title = "Scan par l
                     onPress={() => onComplete(scannedItems)}
                     style={[styles.doneBtn, { backgroundColor: colors.primary }]}
                 >
-                    <Text style={styles.doneText}>Terminer ({scannedItems.length})</Text>
+                    <Text style={styles.doneText}>{t('batch_scan.done_count', { count: scannedItems.length })}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -93,7 +95,7 @@ export default function BatchScanner({ onComplete, onCancel, title = "Scan par l
                     <View style={[styles.reticle, { borderColor: isScanning ? colors.primary : colors.textMuted }]} />
                     {!isScanning && (
                         <View style={styles.pausedMsg}>
-                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Scanné !</Text>
+                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('batch_scan.scanned_flash')}</Text>
                         </View>
                     )}
                 </View>
@@ -101,9 +103,9 @@ export default function BatchScanner({ onComplete, onCancel, title = "Scan par l
 
             <View style={[styles.listContainer, { backgroundColor: colors.glass }]}>
                 <View style={styles.listHeader}>
-                    <Text style={[styles.listTitle, { color: colors.text }]}>Articles scannés ({scannedItems.length})</Text>
+                    <Text style={[styles.listTitle, { color: colors.text }]}>{t('batch_scan.scanned_items', { count: scannedItems.length })}</Text>
                     <TouchableOpacity onPress={() => setScannedItems([])}>
-                        <Text style={{ color: colors.danger, fontSize: 13 }}>Tout effacer</Text>
+                        <Text style={{ color: colors.danger, fontSize: 13 }}>{t('batch_scan.clear_all')}</Text>
                     </TouchableOpacity>
                 </View>
                 <FlatList
@@ -120,7 +122,7 @@ export default function BatchScanner({ onComplete, onCancel, title = "Scan par l
                     )}
                     ListEmptyComponent={
                         <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                            Visez un code-barres ou un tag RFID pour l'ajouter
+                            {t('batch_scan.aim_hint')}
                         </Text>
                     }
                 />
