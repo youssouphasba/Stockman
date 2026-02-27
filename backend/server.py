@@ -6037,7 +6037,8 @@ async def get_stock_movements(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ):
-    query = {"user_id": user.user_id}
+    owner_id = get_owner_id(user)
+    query = {"user_id": owner_id}
 
     target_store = store_id or user.active_store_id
     if target_store:
