@@ -138,6 +138,16 @@ app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"UNHANDLED EXCEPTION [{request.method} {request.url.path}]: {type(exc).__name__}: {exc}",
+        exc_info=True
+    )
+    return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {str(exc)}"})
+
 # App routers
 api_router = APIRouter(prefix="/api")
 admin_router = APIRouter(prefix="/admin")
@@ -1306,7 +1316,7 @@ async def get_current_user(request: Request) -> Optional[User]:
             # Ensure role field exists for legacy users
             if "role" not in user_doc:
                 user_doc["role"] = "shopkeeper"
-            
+
             # Update last_active (I10)
             asyncio.create_task(db.user_sessions.update_one(
                 {"session_token": token},
@@ -1315,6 +1325,8 @@ async def get_current_user(request: Request) -> Optional[User]:
             return User(**user_doc)
     except JWTError:
         pass
+    except Exception as e:
+        logger.error(f"get_current_user unexpected error: {e}", exc_info=True)
 
     return None
 
