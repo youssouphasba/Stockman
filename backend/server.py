@@ -4600,16 +4600,44 @@ async def debug_auth_test(request: Request):
     except Exception as e:
         return {"error": f"User build failed: {e}", "keys": list(user_doc.keys())}
 
-    # Test 4: call get_current_user directly
+    # Test 4: replicate get_current_user step by step
+    step = "start"
     try:
-        user_from_func = await get_current_user(request)
-        func_result = user_from_func.user_id if user_from_func else "RETURNED_NONE"
+        step = "cookie_check"
+        t = request.cookies.get("session_token")
+        step = f"header_check (cookie={'found' if t else 'none'})"
+        if not t:
+            ah = request.headers.get("Authorization")
+            if ah and ah.startswith("Bearer "):
+                t = ah.split(" ")[1]
+        step = f"token_resolved={bool(t)}"
+        if not t:
+            func_result = f"NO_TOKEN at {step}"
+        else:
+            step = "jwt_decode"
+            p = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
+            uid = p.get("sub")
+            step = f"sub={uid}"
+            if not uid:
+                func_result = f"NO_SUB at {step}"
+            else:
+                step = "db_find"
+                doc = await db.users.find_one({"user_id": uid}, {"_id": 0})
+                step = f"doc_found={doc is not None}"
+                if not doc:
+                    func_result = f"NO_DOC at {step}"
+                else:
+                    step = "sanitize"
+                    sanitize_user_doc(doc)
+                    step = "build_user"
+                    u = User(**doc)
+                    func_result = f"SUCCESS: {u.user_id}"
     except Exception as e:
-        func_result = f"EXCEPTION: {e}"
+        func_result = f"EXCEPTION at [{step}]: {type(e).__name__}: {e}"
 
     return {
         "manual_success": True,
-        "get_current_user_result": func_result,
+        "replicated_result": func_result,
         "user_id": user_id,
         "token_source": "cookie" if cookie_token else "header",
         "keys": list(user_doc.keys())
