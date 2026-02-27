@@ -4572,24 +4572,48 @@ async def get_me(user: User = Depends(require_auth)):
 @api_router.get("/debug/auth-test")
 async def debug_auth_test(request: Request):
     """Temporary debug endpoint — remove after fix"""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    # Test 1: manual token extraction (same as get_current_user)
+    cookie_token = request.cookies.get("session_token")
+    auth_header = request.headers.get("Authorization", "")
+    header_token = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else None
+    token = cookie_token or header_token
+
     if not token:
-        return {"error": "no token"}
+        return {"error": "no token", "cookie": cookie_token, "header": auth_header[:30] if auth_header else None}
+
+    # Test 2: JWT decode
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-        if not user_doc:
-            return {"error": "user not found", "user_id": user_id}
-        sanitize_user_doc(user_doc)
-        doc_keys = list(user_doc.keys())
-        try:
-            user = User(**user_doc)
-            return {"success": True, "user_id": user_id, "keys": doc_keys}
-        except Exception as e:
-            return {"error": f"User build failed: {e}", "keys": doc_keys}
     except Exception as e:
-        return {"error": f"JWT decode failed: {e}"}
+        return {"error": f"JWT decode failed: {e}", "token_source": "cookie" if cookie_token else "header"}
+
+    user_id = payload.get("sub")
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        return {"error": "user not found", "user_id": user_id}
+
+    sanitize_user_doc(user_doc)
+
+    # Test 3: User build
+    try:
+        user = User(**user_doc)
+    except Exception as e:
+        return {"error": f"User build failed: {e}", "keys": list(user_doc.keys())}
+
+    # Test 4: call get_current_user directly
+    try:
+        user_from_func = await get_current_user(request)
+        func_result = user_from_func.user_id if user_from_func else "RETURNED_NONE"
+    except Exception as e:
+        func_result = f"EXCEPTION: {e}"
+
+    return {
+        "manual_success": True,
+        "get_current_user_result": func_result,
+        "user_id": user_id,
+        "token_source": "cookie" if cookie_token else "header",
+        "keys": list(user_doc.keys())
+    }
 
 class RefreshRequest(BaseModel):
     refresh_token: Optional[str] = None
