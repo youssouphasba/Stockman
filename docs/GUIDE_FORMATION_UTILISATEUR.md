@@ -58,15 +58,7 @@ Après l'inscription, vous arrivez sur le **Tableau de Bord**. En bas de l'écra
 | 🔔 | **Alertes** | Les notifications importantes |
 | ⚙️ | **Plus** | Comptabilité, CRM, Fournisseurs, Paramètres |
 
-### 1.3 Mode Simple (pour les débutants)
-
-Si l'interface vous paraît complexe au début :
-
-1. **Plus** → **Paramètres** → **Mode Simple**.
-2. Activez-le pour afficher uniquement les fonctionnalités essentielles.
-3. Vous pourrez le désactiver quand vous serez à l'aise.
-
-### 1.4 Sécuriser l'accès (PIN & Biométrie)
+### 1.3 Sécuriser l'accès (PIN & Biométrie)
 
 1. **Plus** → **Paramètres** → **Sécurité** → **Code PIN**.
 2. Créez un code à 4 chiffres pour verrouiller l'application.
