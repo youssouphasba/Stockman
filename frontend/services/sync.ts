@@ -1,4 +1,5 @@
 import { cache, KEYS } from './cache';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SyncAction {
     id: string;
@@ -9,11 +10,27 @@ export interface SyncAction {
     payload: any;
     timestamp: number;
     retries?: number;
+    lastError?: string;
 }
 
-const MAX_RETRIES = 3;
+export interface FailedSyncAction extends SyncAction {
+    failedAt: number;
+    reason: string;
+}
+
+const MAX_RETRIES = 5; // Increased from 3 — more persistent
+const DEAD_LETTER_KEY = 'sync_dead_letter';
+
+// Callback called when actions are permanently failed (UI can subscribe to this)
+type FailureCallback = (failed: FailedSyncAction[]) => void;
+let onFailureCallback: FailureCallback | null = null;
 
 export const syncService = {
+    // Subscribe to failure events (call from your UI to show warnings)
+    onPermanentFailure(cb: FailureCallback) {
+        onFailureCallback = cb;
+    },
+
     async addToQueue(action: Omit<SyncAction, 'id' | 'timestamp' | 'retries'>) {
         const queue = (await cache.get<SyncAction[]>(KEYS.SYNC_QUEUE)) || [];
         const newAction: SyncAction = {
@@ -40,11 +57,57 @@ export const syncService = {
         await cache.remove(KEYS.SYNC_QUEUE);
     },
 
-    async processQueue(): Promise<{ processed: number; failed: number }> {
+    /** Get all permanently failed actions (dead letter queue) */
+    async getFailedActions(): Promise<FailedSyncAction[]> {
+        return (await cache.get<FailedSyncAction[]>(DEAD_LETTER_KEY)) || [];
+    },
+
+    /** Get count of permanently failed actions */
+    async getFailedCount(): Promise<number> {
+        const failed = await this.getFailedActions();
+        return failed.length;
+    },
+
+    /** Retry a specific failed action by id (moves it back to the main queue) */
+    async retryFailed(actionId: string) {
+        const failed = await this.getFailedActions();
+        const action = failed.find(a => a.id === actionId);
+        if (!action) return;
+
+        // Move back to active queue with reset retries
+        const retryAction: SyncAction = {
+            ...action,
+            retries: 0,
+            lastError: undefined,
+        };
+        await this.addToQueue(retryAction);
+
+        // Remove from dead letter
+        const remaining = failed.filter(a => a.id !== actionId);
+        await cache.set(DEAD_LETTER_KEY, remaining);
+    },
+
+    /** Retry ALL failed actions */
+    async retryAllFailed() {
+        const failed = await this.getFailedActions();
+        for (const action of failed) {
+            await this.retryFailed(action.id);
+        }
+    },
+
+    /** Dismiss a specific failed action (acknowledge and remove) */
+    async dismissFailed(actionId: string) {
+        const failed = await this.getFailedActions();
+        const remaining = failed.filter(a => a.id !== actionId);
+        await cache.set(DEAD_LETTER_KEY, remaining);
+    },
+
+    async processQueue(): Promise<{ processed: number; failed: number; dead: number }> {
         const queue = await this.getQueue();
-        if (queue.length === 0) return { processed: 0, failed: 0 };
+        if (queue.length === 0) return { processed: 0, failed: 0, dead: 0 };
 
         const remainingQueue: SyncAction[] = [];
+        const newlyDead: FailedSyncAction[] = [];
         let processed = 0;
         let failed = 0;
 
@@ -52,14 +115,24 @@ export const syncService = {
             try {
                 await this.processAction(action);
                 processed++;
-            } catch (error) {
-                console.error('Sync failed for action', action.id, error);
+            } catch (error: any) {
                 const retries = (action.retries || 0) + 1;
+                const errorMessage = error?.message || String(error);
+
                 if (retries < MAX_RETRIES) {
-                    remainingQueue.push({ ...action, retries });
+                    // Still retryable — keep in queue with backoff info
+                    remainingQueue.push({ ...action, retries, lastError: errorMessage });
                     failed++;
                 } else {
-                    console.warn('Dropping sync action after max retries', action.id);
+                    // Max retries exceeded — move to dead letter queue (NEVER silently drop)
+                    console.warn('[SyncService] Moving action to dead letter queue after max retries:', action.id, action.entity, action.type);
+                    newlyDead.push({
+                        ...action,
+                        retries,
+                        lastError: errorMessage,
+                        failedAt: Date.now(),
+                        reason: `Max retries (${MAX_RETRIES}) exceeded. Last error: ${errorMessage}`,
+                    });
                     failed++;
                 }
             }
@@ -67,11 +140,23 @@ export const syncService = {
 
         await cache.set(KEYS.SYNC_QUEUE, remainingQueue);
 
+        // Persist newly dead actions
+        if (newlyDead.length > 0) {
+            const existingDead = await this.getFailedActions();
+            await cache.set(DEAD_LETTER_KEY, [...existingDead, ...newlyDead]);
+
+            // Notify UI subscriber
+            if (onFailureCallback) {
+                const allDead = await this.getFailedActions();
+                onFailureCallback(allDead);
+            }
+        }
+
         if (processed > 0) {
             await cache.setLastSyncTime();
         }
 
-        return { processed, failed };
+        return { processed, failed, dead: newlyDead.length };
     },
 
     async processAction(action: SyncAction) {

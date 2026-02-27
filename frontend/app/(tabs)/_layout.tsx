@@ -20,6 +20,7 @@ import HelpCenter from '../../components/HelpCenter';
 import { useNotifications } from '../../hooks/useNotifications';
 import ChatModal from '../../components/ChatModal';
 import TrialBanner from '../../components/TrialBanner';
+import SyncWarningBanner from '../../components/SyncWarningBanner';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -90,6 +91,7 @@ export default function TabLayout() {
   return (
     <>
       <TrialBanner />
+      <SyncWarningBanner />
       <Tabs
         screenOptions={{
           headerShown: true,
@@ -259,14 +261,16 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {activeGuide && (
-        <ScreenGuide
-          visible={showGuide}
-          onClose={() => { setShowGuide(false); markSeen(); setGuideOverride(null); }}
-          title={activeGuide.title}
-          steps={activeGuide.steps}
-        />
-      )}
+      {
+        activeGuide && (
+          <ScreenGuide
+            visible={showGuide}
+            onClose={() => { setShowGuide(false); markSeen(); setGuideOverride(null); }}
+            title={activeGuide.title}
+            steps={activeGuide.steps}
+          />
+        )
+      }
 
       {showAiModal && <AiSupportModal visible={showAiModal} onClose={() => setShowAiModal(false)} />}
 
