@@ -107,7 +107,7 @@ def safe_regex(user_input: str) -> str:
     """Échappe les caractères spéciaux regex pour éviter ReDoS et injection."""
     return _re.escape(user_input.strip())
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures
+ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7 jours (refresh token = 30 jours)
 REFRESH_TOKEN_EXPIRE_DAYS = 30 # 30 jours
 
 # Rate limiting
