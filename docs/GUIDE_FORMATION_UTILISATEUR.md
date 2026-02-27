@@ -269,17 +269,19 @@ Le POS est votre caisse enregistreuse numérique.
 4. **Modifiez la quantité** si besoin (boutons + et −).
 5. Appuyez sur **« Valider la vente »**.
 
-### 4.2 Choisir le mode de paiement
+### 4.2 Choisir le type de transaction
 
-Stockman supporte plusieurs modes de paiement :
+Lors d'une vente, vous indiquez **comment le client a payé** afin d'avoir un suivi comptable précis. Stockman ne traite pas les paiements directement — il enregistre simplement le type pour vos rapports.
 
-| Mode | Icône | Cas d'usage |
-|------|-------|-------------|
-| **Espèces** | 💵 | Paiement cash classique |
-| **Mobile Money** | 📱 | Orange Money, Wave, Free Money |
+| Type | Icône | Quand l'utiliser |
+|------|-------|-----------------|
+| **Espèces** | 💵 | Le client paie en cash |
+| **Mobile Money** | 📱 | Orange Money, Wave, Free Money… |
 | **Carte** | 💳 | Paiement par carte bancaire |
 | **Virement** | 🏦 | Virement bancaire |
-| **Crédit** | 📝 | Le client paie plus tard (dette) |
+| **Crédit** | 📝 | Le client n'a pas encore payé (dette) |
+
+> 💡 **À quoi ça sert ?** Ces types servent à **ventiler votre chiffre d'affaires** par mode d'encaissement dans vos rapports comptables. Vous pouvez ainsi savoir quelle part de vos ventes est en cash vs Mobile Money vs crédit.
 
 ### 4.3 Associer un client à la vente
 
