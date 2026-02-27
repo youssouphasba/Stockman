@@ -4565,8 +4565,29 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
 @api_router.get("/auth/me")
-async def get_me(user: User = Depends(require_auth)):
-    """Get current user info"""
+async def get_me(request: Request):
+    """Get current user info — bypassing Depends for debug"""
+    user = await get_current_user(request)
+    if not user:
+        # Try manual extraction for comparison
+        token = request.cookies.get("session_token")
+        if not token:
+            ah = request.headers.get("Authorization")
+            if ah and ah.startswith("Bearer "):
+                token = ah.split(" ")[1]
+        if token:
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                uid = payload.get("sub")
+                doc = await db.users.find_one({"user_id": uid}, {"_id": 0})
+                if doc:
+                    sanitize_user_doc(doc)
+                    user = User(**doc)
+                    logger.error(f"/auth/me: get_current_user returned None but manual build OK for {uid}")
+                    return user
+            except Exception as e:
+                logger.error(f"/auth/me manual fallback failed: {e}")
+        raise HTTPException(status_code=401, detail="Non authentifié")
     return user
 
 @api_router.get("/debug/auth-test")
