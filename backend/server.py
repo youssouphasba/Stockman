@@ -1330,33 +1330,40 @@ async def get_current_user(request: Request) -> Optional[User]:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
-    
+
     if not token:
+        request.state.auth_debug = "no_token"
         return None
-    
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
+            request.state.auth_debug = "no_sub_in_jwt"
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-        if user_doc:
-            sanitize_user_doc(user_doc)
+        if not user_doc:
+            request.state.auth_debug = f"user_not_found:{user_id}"
+            return None
 
-            # Update last_active (fire-and-forget, must not break auth)
-            try:
-                asyncio.create_task(db.user_sessions.update_one(
-                    {"session_token": token},
-                    {"$set": {"last_active": datetime.now(timezone.utc)}}
-                ))
-            except Exception:
-                pass  # Never let session tracking break authentication
+        sanitize_user_doc(user_doc)
+        user = User(**user_doc)
 
-            return User(**user_doc)
+        # Update last_active (fire-and-forget, must not break auth)
+        try:
+            asyncio.create_task(db.user_sessions.update_one(
+                {"session_token": token},
+                {"$set": {"last_active": datetime.now(timezone.utc)}}
+            ))
+        except Exception:
+            pass
+
+        return user
     except JWTError as jwt_err:
-        logger.warning(f"get_current_user JWT error: {jwt_err}")
+        request.state.auth_debug = f"jwt_error:{jwt_err}"
     except Exception as e:
-        logger.error(f"get_current_user unexpected error: {e}", exc_info=True)
+        request.state.auth_debug = f"exception:{type(e).__name__}:{e}"
+        logger.error(f"get_current_user UNEXPECTED: {type(e).__name__}: {e}", exc_info=True)
 
     return None
 
@@ -1364,7 +1371,8 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
 
     user = await get_current_user(request)
     if not user:
-        raise HTTPException(status_code=401, detail="Non authentifié")
+        debug_reason = getattr(request.state, 'auth_debug', 'unknown')
+        raise HTTPException(status_code=401, detail=f"Non authentifié [{debug_reason}]")
     return user
 
 def require_permission(module: str, level: str = "read"):
@@ -4565,29 +4573,8 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
 @api_router.get("/auth/me")
-async def get_me(request: Request):
-    """Get current user info — bypassing Depends for debug"""
-    user = await get_current_user(request)
-    if not user:
-        # Try manual extraction for comparison
-        token = request.cookies.get("session_token")
-        if not token:
-            ah = request.headers.get("Authorization")
-            if ah and ah.startswith("Bearer "):
-                token = ah.split(" ")[1]
-        if token:
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                uid = payload.get("sub")
-                doc = await db.users.find_one({"user_id": uid}, {"_id": 0})
-                if doc:
-                    sanitize_user_doc(doc)
-                    user = User(**doc)
-                    logger.error(f"/auth/me: get_current_user returned None but manual build OK for {uid}")
-                    return user
-            except Exception as e:
-                logger.error(f"/auth/me manual fallback failed: {e}")
-        raise HTTPException(status_code=401, detail="Non authentifié")
+async def get_me(user: User = Depends(require_auth)):
+    """Get current user info"""
     return user
 
 @api_router.get("/debug/auth-test")
