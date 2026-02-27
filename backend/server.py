@@ -1348,9 +1348,13 @@ async def get_current_user(request: Request) -> Optional[User]:
                 {"session_token": token},
                 {"$set": {"last_active": datetime.now(timezone.utc)}}
             ))
-            return User(**user_doc)
-    except JWTError:
-        pass
+            try:
+                return User(**user_doc)
+            except Exception as build_err:
+                logger.error(f"get_current_user User build FAILED: {build_err} — keys: {list(user_doc.keys())}")
+                raise
+    except JWTError as jwt_err:
+        logger.warning(f"get_current_user JWT error: {jwt_err}")
     except Exception as e:
         logger.error(f"get_current_user unexpected error: {e}", exc_info=True)
 
@@ -4564,6 +4568,28 @@ async def login(request: Request, user_data: UserLogin, response: Response):
 async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
     return user
+
+@api_router.get("/debug/auth-test")
+async def debug_auth_test(request: Request):
+    """Temporary debug endpoint — remove after fix"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        return {"error": "no token"}
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        if not user_doc:
+            return {"error": "user not found", "user_id": user_id}
+        sanitize_user_doc(user_doc)
+        doc_keys = list(user_doc.keys())
+        try:
+            user = User(**user_doc)
+            return {"success": True, "user_id": user_id, "keys": doc_keys}
+        except Exception as e:
+            return {"error": f"User build failed: {e}", "keys": doc_keys}
+    except Exception as e:
+        return {"error": f"JWT decode failed: {e}"}
 
 class RefreshRequest(BaseModel):
     refresh_token: Optional[str] = None
