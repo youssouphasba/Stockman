@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { auth as authApi, stores as storesApi, getToken, setToken, removeToken, User } from '../services/api';
+import { auth as authApi, stores as storesApi, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { initPurchases } from '../services/purchases';
@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.login(email, password);
     console.log('[DEBUG] Login successful, user data:', JSON.stringify(response.user, null, 2));
     await setToken(response.access_token);
+    if (response.refresh_token) await setRefreshToken(response.refresh_token);
     setUser(response.user);
     if (Platform.OS !== 'web') {
       initPurchases(response.user.user_id).catch(console.warn);
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) {
     const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan);
     await setToken(response.access_token);
+    if (response.refresh_token) await setRefreshToken(response.refresh_token);
     setUser(response.user);
   }
 

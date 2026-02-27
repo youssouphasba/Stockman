@@ -107,7 +107,7 @@ def safe_regex(user_input: str) -> str:
     """Échappe les caractères spéciaux regex pour éviter ReDoS et injection."""
     return _re.escape(user_input.strip())
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7 jours (refresh token = 30 jours)
+ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures
 REFRESH_TOKEN_EXPIRE_DAYS = 30 # 30 jours
 
 # Rate limiting
@@ -736,6 +736,7 @@ class ProfileUpdate(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None  # inclus dans le body pour mobile (SecureStore)
     token_type: str = "bearer"
     user: User
 
@@ -4530,18 +4531,21 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     except Exception as e:
         logger.error(f"Login User build failed: {e} - doc keys: {list(user_doc.keys())}")
         raise HTTPException(status_code=500, detail="Erreur interne de construction du profil")
-    return TokenResponse(access_token=access_token, user=user)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
     return user
 
+class RefreshRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
 @api_router.post("/auth/refresh", response_model=TokenResponse)
 @limiter.limit("5/minute")
-async def refresh_token(request: Request, response: Response):
-    """Renews the access token using the refresh token from cookies."""
-    refresh = request.cookies.get("refresh_token")
+async def refresh_token(request: Request, response: Response, body: RefreshRequest = Body(RefreshRequest())):
+    """Renews the access token using the refresh token (cookie ou body pour mobile)."""
+    refresh = body.refresh_token or request.cookies.get("refresh_token")
     if not refresh:
         raise HTTPException(status_code=401, detail="Refresh token manquant")
 
@@ -4585,7 +4589,7 @@ async def refresh_token(request: Request, response: Response):
 
     # Reconstruct user object
     user = User(**user_doc)
-    return TokenResponse(access_token=new_access, user=user)
+    return TokenResponse(access_token=new_access, refresh_token=new_refresh, user=user)
 
 @api_router.put("/auth/profile")
 async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)):

@@ -41,6 +41,7 @@ export const API_URL = getApiUrl();
 console.log('API URL configured:', API_URL);
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 // Simple idempotency key generator for re-submitting critical mutations
 const generateIdempotencyKey = () =>
@@ -70,8 +71,23 @@ async function setToken(token: string): Promise<void> {
 async function removeToken(): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY).catch(() => {});
+  }
+}
+
+async function getRefreshToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+}
+
+async function setRefreshToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  } else {
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
   }
 }
 
@@ -178,16 +194,19 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
       if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
         // Tenter un refresh avant de déconnecter
         try {
-          // Utiliser raw fetch pour éviter les boucles infinies
+          const storedRefresh = await getRefreshToken();
           const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: storedRefresh }),
             credentials: 'include',
           });
 
           if (refreshRes.ok) {
             const refreshData = await refreshRes.json();
             const newToken = refreshData.access_token;
-            await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+            await setToken(newToken);
+            if (refreshData.refresh_token) await setRefreshToken(refreshData.refresh_token);
 
             // Rejouer la requête originale
             const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
@@ -966,7 +985,7 @@ export const exportApi = {
   movementsUrl: () => `${API_URL}/api/export/movements/csv`,
 };
 
-export { getToken, setToken, removeToken };
+export { getToken, setToken, removeToken, setRefreshToken };
 
 // =================== Pagination ===================
 
