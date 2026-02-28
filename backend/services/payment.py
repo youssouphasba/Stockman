@@ -19,6 +19,13 @@ BASE_URL = os.environ.get("API_URL", "https://stockman-production-149d.up.railwa
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
+# Stripe Price IDs (recurring monthly subscriptions)
+STRIPE_PRICES = {
+    "starter":    os.environ.get("STRIPE_PRICE_STARTER",    "price_1T5o3cGpkYa46RHL4xR75B0Z"),
+    "pro":        os.environ.get("STRIPE_PRICE_PRO",        "price_1T5o4YGpkYa46RHLP4AFu7sv"),
+    "enterprise": os.environ.get("STRIPE_PRICE_ENTERPRISE", "price_1T5o7MGpkYa46RHLOFg7dpzs"),
+}
+
 # RevenueCat webhook secret
 REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 
@@ -114,27 +121,20 @@ async def verify_cinetpay_transaction(transaction_id: str) -> dict:
 # ─── Stripe ──────────────────────────────────────────────────────────────────
 
 async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
-    """Create a Stripe Checkout session (card payment, EUR)."""
+    """Create a Stripe Checkout session for a recurring monthly subscription."""
     stripe_lib.api_key = STRIPE_SECRET_KEY
-    amount_eur = PRICES.get(plan, PRICES["enterprise"])["EUR"]
-    label = PLAN_LABELS.get(plan, "Stockman - 1 mois")
+    price_id = STRIPE_PRICES.get(plan, STRIPE_PRICES["enterprise"])
 
     def _create():
         return stripe_lib.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {"name": label},
-                    "unit_amount": amount_eur,
-                },
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url=f"{BASE_URL}/api/payment/success",
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            success_url=f"{BASE_URL}/api/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/api/payment/cancel",
             customer_email=user.get("email") or None,
             metadata={"user_id": user["user_id"], "plan": plan},
+            subscription_data={"metadata": {"user_id": user["user_id"], "plan": plan}},
         )
 
     session = await asyncio.to_thread(_create)

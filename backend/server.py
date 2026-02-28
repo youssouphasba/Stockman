@@ -1462,25 +1462,84 @@ async def stripe_webhook(request: Request):
         logger.warning(f"Stripe webhook signature error: {e}")
         raise HTTPException(status_code=400, detail="Signature invalide")
 
-    if event["type"] == "checkout.session.completed":
-        session_obj = event["data"]["object"]
-        metadata = session_obj.get("metadata", {})
+    event_type = event["type"]
+    obj = event["data"]["object"]
+
+    if event_type == "checkout.session.completed":
+        # Subscription created — store stripe IDs, plan activated on invoice.paid
+        metadata = obj.get("metadata", {})
         user_id = metadata.get("user_id")
-        plan = metadata.get("plan", "enterprise")
         if user_id:
-            now = datetime.now(timezone.utc)
             await db.users.update_one(
                 {"user_id": user_id},
+                {"$set": {
+                    "stripe_customer_id": obj.get("customer"),
+                    "stripe_subscription_id": obj.get("subscription"),
+                }}
+            )
+            logger.info(f"Stripe checkout completed: user={user_id} sub={obj.get('subscription')}")
+
+    elif event_type == "invoice.paid":
+        # Recurring payment succeeded — activate/renew subscription
+        sub_id = obj.get("subscription")
+        customer_id = obj.get("customer")
+        # Find user by stripe_subscription_id or stripe_customer_id
+        user_doc = await db.users.find_one(
+            {"$or": [{"stripe_subscription_id": sub_id}, {"stripe_customer_id": customer_id}]},
+            {"user_id": 1, "plan": 1}
+        )
+        if user_doc:
+            # Get plan from subscription metadata
+            metadata = obj.get("subscription_details", {}).get("metadata", {})
+            plan = metadata.get("plan") or user_doc.get("plan", "starter")
+            period_end = obj.get("lines", {}).get("data", [{}])[0].get("period", {}).get("end")
+            sub_end = (
+                datetime.fromtimestamp(period_end, tz=timezone.utc)
+                if period_end
+                else datetime.now(timezone.utc) + timedelta(days=31)
+            )
+            await db.users.update_one(
+                {"user_id": user_doc["user_id"]},
                 {"$set": {
                     "plan": plan,
                     "subscription_status": "active",
                     "subscription_provider": "stripe",
-                    "subscription_provider_id": session_obj.get("id"),
-                    "subscription_end": now + timedelta(days=30),
-                    "updated_at": now,
+                    "subscription_provider_id": sub_id,
+                    "subscription_end": sub_end,
                 }}
             )
-            logger.info(f"Stripe payment confirmed: user={user_id} plan={plan}")
+            logger.info(f"Stripe invoice.paid: user={user_doc['user_id']} plan={plan} end={sub_end}")
+
+    elif event_type == "customer.subscription.deleted":
+        # Subscription cancelled or expired
+        sub_id = obj.get("id")
+        customer_id = obj.get("customer")
+        user_doc = await db.users.find_one(
+            {"$or": [{"stripe_subscription_id": sub_id}, {"stripe_customer_id": customer_id}]},
+            {"user_id": 1}
+        )
+        if user_doc:
+            await db.users.update_one(
+                {"user_id": user_doc["user_id"]},
+                {"$set": {"subscription_status": "expired", "plan": "starter"}}
+            )
+            logger.info(f"Stripe subscription deleted: user={user_doc['user_id']}")
+
+    elif event_type == "customer.subscription.updated":
+        # Plan change or status update
+        sub_id = obj.get("id")
+        customer_id = obj.get("customer")
+        status = obj.get("status")  # active, past_due, canceled, etc.
+        user_doc = await db.users.find_one(
+            {"$or": [{"stripe_subscription_id": sub_id}, {"stripe_customer_id": customer_id}]},
+            {"user_id": 1}
+        )
+        if user_doc and status in ("past_due", "unpaid"):
+            await db.users.update_one(
+                {"user_id": user_doc["user_id"]},
+                {"$set": {"subscription_status": "expired"}}
+            )
+            logger.info(f"Stripe subscription {status}: user={user_doc['user_id']}")
 
     return {"received": True}
 
