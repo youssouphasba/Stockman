@@ -37,10 +37,10 @@ CINETPAY_CURRENCIES = FLUTTERWAVE_CURRENCIES
 # Pricing (per month, after 3-month free trial)
 # XOF/XAF = FCFA Flutterwave | EUR in cents for Stripe
 PRICES = {
-    "starter":    {"XOF": 1000,  "XAF": 1000,  "GNF": 10000, "EUR": 399},
-    "pro":        {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},
-    "enterprise": {"XOF": 9400,  "XAF": 9400,  "GNF": 94000,  "EUR": 1499},
-    "premium":    {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},  # rétrocompat
+    "starter":    {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 699},
+    "pro":        {"XOF": 4900,  "XAF": 4900,  "GNF": 49000, "EUR": 999},
+    "enterprise": {"XOF": 9900,  "XAF": 9900,  "GNF": 99000, "EUR": 1499},
+    "premium":    {"XOF": 4900,  "XAF": 4900,  "GNF": 49000, "EUR": 999},  # rétrocompat
 }
 PLAN_LABELS = {
     "starter":    "Stockman Starter - 1 mois",

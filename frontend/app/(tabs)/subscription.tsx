@@ -42,8 +42,8 @@ const PLANS: PlanConfig[] = [
         stores: '1',
         users: '1',
         web: false,
-        priceEUR: '3,99 €',
-        priceXOF: '1 000',
+        priceEUR: '6,99 €',
+        priceXOF: '2 500',
     },
     {
         key: 'pro',
@@ -53,8 +53,8 @@ const PLANS: PlanConfig[] = [
         stores: '2',
         users: '5',
         web: false,
-        priceEUR: '7,99 €',
-        priceXOF: '2 500',
+        priceEUR: '9,99 €',
+        priceXOF: '4 900',
     },
     {
         key: 'enterprise',
@@ -64,8 +64,8 @@ const PLANS: PlanConfig[] = [
         stores: '∞',
         users: '∞',
         web: true,
-        priceEUR: '19,99 €',
-        priceXOF: '6 500',
+        priceEUR: '14,99 €',
+        priceXOF: '9 900',
     },
 ];
 

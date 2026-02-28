@@ -79,7 +79,7 @@ export default function Subscription() {
     const useMobileMoney: boolean = subDetails?.use_mobile_money ?? true;
     const currency: string = subDetails?.currency || 'XOF';
     const isXOF = currency === 'XOF' || currency === 'XAF';
-    const priceLabel = isXOF ? '9 400 FCFA' : '14,99 €';
+    const priceLabel = isXOF ? '9 900 FCFA' : '14,99 €';
 
     const plans = [
         {
