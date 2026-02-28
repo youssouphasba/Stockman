@@ -4525,20 +4525,25 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     store_ids = user_doc.get("store_ids", [])
     
     # Migration for old users without stores: create one if needed
-    if not store_ids and user_doc.get("role") == "shopkeeper":
-        store_id = f"store_{uuid.uuid4().hex[:12]}"
-        store = Store(
-            store_id=store_id,
-            user_id=user_doc["user_id"],
-            name=f"Magasin de {user_doc['name']}"
-        )
-        await db.stores.insert_one(store.model_dump())
-        await db.users.update_one(
-            {"user_id": user_doc["user_id"]},
-            {"$set": {"active_store_id": store_id, "store_ids": [store_id]}}
-        )
-        active_store_id = store_id
-        store_ids = [store_id]
+    try:
+        if not store_ids and user_doc.get("role") == "shopkeeper":
+            store_id = f"store_{uuid.uuid4().hex[:12]}"
+            store = Store(
+                store_id=store_id,
+                user_id=user_doc["user_id"],
+                name=f"Magasin de {user_doc.get('name', 'Utilisateur')}"
+            )
+            await db.stores.insert_one(store.model_dump())
+            await db.users.update_one(
+                {"user_id": user_doc["user_id"]},
+                {"$set": {"active_store_id": store_id, "store_ids": [store_id]}}
+            )
+            active_store_id = store_id
+            store_ids = [store_id]
+    except Exception as e:
+        logger.error(f"Migration error for user {user_doc.get('user_id')}: {e}")
+        # On continue quand même le login si possible
+
         
     try:
         user = User(
