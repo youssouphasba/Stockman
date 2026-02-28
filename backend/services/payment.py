@@ -32,7 +32,7 @@ CINETPAY_CURRENCIES = FLUTTERWAVE_CURRENCIES
 PRICES = {
     "starter":    {"XOF": 1000,  "XAF": 1000,  "GNF": 10000, "EUR": 399},
     "pro":        {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},
-    "enterprise": {"XOF": 10000, "XAF": 10000, "GNF": 100000, "EUR": 2999},
+    "enterprise": {"XOF": 9400,  "XAF": 9400,  "GNF": 94000,  "EUR": 1499},
     "premium":    {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 799},  # rétrocompat
 }
 PLAN_LABELS = {
