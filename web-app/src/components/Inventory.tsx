@@ -309,13 +309,13 @@ export default function Inventory() {
     }
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto">
-            <header className="flex justify-between items-center mb-10">
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 md:mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
                     <p className="text-slate-400">{t('catalog.product_count', { count: filteredProducts.length })}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-2">
                     {/* Export Dropdown */}
                     <div className="relative">
                         <button
@@ -406,7 +406,7 @@ export default function Inventory() {
             )}
 
             {/* Filters & Search */}
-            <div className="flex gap-4 mb-8">
+            <div className="flex gap-3 mb-8">
                 <div className="flex-1 relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
@@ -445,8 +445,8 @@ export default function Inventory() {
             )}
 
             {/* Products Table */}
-            <div className="glass-card overflow-hidden">
-                <table className="w-full text-left border-collapse">
+            <div className="glass-card overflow-x-auto">
+                <table className="w-full min-w-[600px] text-left border-collapse">
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
