@@ -5,6 +5,7 @@ import {
     Filter,
     Download,
     Plus,
+    Minus,
     MoreVertical,
     Edit,
     Trash2,
@@ -22,10 +23,12 @@ import {
     ArrowLeftRight,
     FileSpreadsheet,
     FileText,
-    X
+    X,
+    TrendingUp,
+    TrendingDown
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
-import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi } from '../services/api';
+import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi, stock as stockApi } from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
@@ -85,6 +88,40 @@ export default function Inventory() {
     const [replenishAdvice, setReplenishAdvice] = useState<{ advice: string; priority_count: number } | null>(null);
     const [replenishLoading, setReplenishLoading] = useState(false);
     const [showReplenish, setShowReplenish] = useState(false);
+
+    // Stock movement modal
+    const [stockModalOpen, setStockModalOpen] = useState(false);
+    const [stockModalProduct, setStockModalProduct] = useState<any>(null);
+    const [stockMovType, setStockMovType] = useState<'in' | 'out'>('in');
+    const [stockMovQty, setStockMovQty] = useState('');
+    const [stockMovReason, setStockMovReason] = useState('');
+    const [stockMovLoading, setStockMovLoading] = useState(false);
+
+    const handleStockMovement = async () => {
+        const qty = parseInt(stockMovQty);
+        if (isNaN(qty) || qty <= 0) return;
+        setStockMovLoading(true);
+        try {
+            await stockApi.addMovement({
+                product_id: stockModalProduct.product_id,
+                type: stockMovType,
+                quantity: qty,
+                reason: stockMovReason || (stockMovType === 'in' ? 'Entrée stock' : 'Sortie stock'),
+            });
+            setProducts(prev => prev.map(p =>
+                p.product_id === stockModalProduct.product_id
+                    ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
+                    : p
+            ));
+            setStockModalOpen(false);
+            setStockMovQty('');
+            setStockMovReason('');
+        } catch (err: any) {
+            alert(err.message || 'Erreur lors du mouvement de stock');
+        } finally {
+            setStockMovLoading(false);
+        }
+    };
 
     const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
@@ -508,32 +545,50 @@ export default function Inventory() {
                                         </div>
                                     </td>
                                     <td className="py-4 px-6 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex justify-end items-center gap-2">
+                                            {/* Stock +/- toujours visibles */}
                                             <button
-                                                onClick={() => handleOpenHistory(p)}
-                                                className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-primary transition-colors"
-                                                title="Historique"
+                                                onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
+                                                className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
+                                                title="Entrée stock"
                                             >
-                                                <History size={18} />
+                                                <Plus size={16} />
                                             </button>
-                                            {storeList.length > 1 && (
+                                            <button
+                                                onClick={() => { setStockModalProduct(p); setStockMovType('out'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
+                                                className="p-1.5 bg-orange-500/15 hover:bg-orange-500/30 rounded-lg text-orange-400 transition-colors"
+                                                title="Sortie stock"
+                                            >
+                                                <Minus size={16} />
+                                            </button>
+                                            {/* Autres actions au hover */}
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
-                                                    onClick={() => handleOpenTransfer(p)}
-                                                    className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
-                                                    title="Transférer vers une autre boutique"
+                                                    onClick={() => handleOpenHistory(p)}
+                                                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                                                    title="Historique"
                                                 >
-                                                    <ArrowLeftRight size={18} />
+                                                    <History size={18} />
                                                 </button>
-                                            )}
-                                            <button
-                                                onClick={() => handleOpenEditModal(p)}
-                                                className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                            >
-                                                <Edit size={18} />
-                                            </button>
-                                            <button className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
-                                                <Trash2 size={18} />
-                                            </button>
+                                                {storeList.length > 1 && (
+                                                    <button
+                                                        onClick={() => handleOpenTransfer(p)}
+                                                        className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
+                                                        title="Transférer vers une autre boutique"
+                                                    >
+                                                        <ArrowLeftRight size={18} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleOpenEditModal(p)}
+                                                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -542,6 +597,77 @@ export default function Inventory() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Stock Movement Modal */}
+            <Modal
+                isOpen={stockModalOpen}
+                onClose={() => setStockModalOpen(false)}
+                title={stockMovType === 'in' ? '📦 Entrée de stock' : '📤 Sortie de stock'}
+                maxWidth="sm"
+            >
+                {stockModalProduct && (
+                    <div className="space-y-5">
+                        {/* Product info */}
+                        <div className={`p-4 rounded-xl flex items-center gap-3 ${stockMovType === 'in' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
+                            <div className={`p-2 rounded-lg ${stockMovType === 'in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                                {stockMovType === 'in' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                            </div>
+                            <div>
+                                <p className="font-bold text-white text-sm">{stockModalProduct.name}</p>
+                                <p className="text-xs text-slate-400">Stock actuel : <span className="font-bold text-white">{stockModalProduct.quantity}</span> {stockModalProduct.unit || 'unité(s)'}</p>
+                            </div>
+                        </div>
+
+                        {/* Quantity */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Quantité *</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={stockMovQty}
+                                onChange={e => setStockMovQty(e.target.value)}
+                                placeholder="Ex: 10"
+                                autoFocus
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                            />
+                            {stockMovQty && !isNaN(parseInt(stockMovQty)) && (
+                                <p className="text-xs mt-1.5 text-slate-400">
+                                    Nouveau stock :{' '}
+                                    <span className={`font-bold ${stockMovType === 'in' ? 'text-emerald-400' : 'text-orange-400'}`}>
+                                        {stockMovType === 'in'
+                                            ? stockModalProduct.quantity + parseInt(stockMovQty)
+                                            : Math.max(0, stockModalProduct.quantity - parseInt(stockMovQty))}
+                                    </span> {stockModalProduct.unit || 'unité(s)'}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Reason */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Motif (optionnel)</label>
+                            <input
+                                type="text"
+                                value={stockMovReason}
+                                onChange={e => setStockMovReason(e.target.value)}
+                                placeholder={stockMovType === 'in' ? 'Ex: Réapprovisionnement' : 'Ex: Casse, vol, correction'}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                            />
+                        </div>
+
+                        {/* Submit */}
+                        <button
+                            onClick={handleStockMovement}
+                            disabled={stockMovLoading || !stockMovQty || parseInt(stockMovQty) <= 0}
+                            className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+                        >
+                            {stockMovLoading
+                                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entrée</> : <><Minus size={18} /> Valider la sortie</>
+                            }
+                        </button>
+                    </div>
+                )}
+            </Modal>
 
             {/* Product Add/Edit Modal */}
             <Modal

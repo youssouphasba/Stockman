@@ -181,7 +181,9 @@ export const stock = {
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<any>(`/stock/movements?${qs.toString()}`);
-    }
+    },
+    addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string }) =>
+        request<any>('/stock/movement', { method: 'POST', body: data }),
 };
 
 export const statistics = {
