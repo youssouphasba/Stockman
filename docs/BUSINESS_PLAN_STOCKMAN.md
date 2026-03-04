@@ -3,12 +3,12 @@
 > **Application de gestion de stock intelligente pour commerçants, vendeurs indépendants et TPE/PME**
 
 - **L'Application Mobile** : Outil quotidien de gestion.
-- **La Landing Page (`stockman.pro`)** : Vitrine technologique et support de conversion.
+- **La Landing Page Web (www.stockman.pro`)** : Vitrine technologique et support de conversion.
 
 ### 14.1 Identité Visuelle & Logo
 Le branding de Stockman s'appuie sur une figure héroïque, **Stockman**, le super-héros de la gestion.
 - **Logo** : Un mélange de typographie moderne "Stockman" avec un dégradé dynamique.
-- **Mascotte** : Une figure de héros symbolisant la force de l'intelligence artificielle et la rapidité d'exécution.
+- **Mascotte** : Une figure de héros de carton symbolisant la force de l'intelligence artificielle et la rapidité d'exécution sur la gestion des stocks.
 - **Assets** : Icônes épurées, interface en mode sombre (Dark Mode) premium avec effets de verre (Glassmorphism).
 
 ---
@@ -42,7 +42,7 @@ Le branding de Stockman s'appuie sur une figure héroïque, **Stockman**, le sup
 En Afrique de l'Ouest, en France et dans la diaspora, **plus de 80% des petits commerçants** gèrent leur stock et leurs ventes sur papier ou de mémoire. Cela entraîne des pertes financières considérables, des ruptures de stock fréquentes, une absence de visibilité sur la rentabilité réelle et une impossibilité d'obtenir du crédit bancaire faute de preuves de revenus.
 
 ### La solution
-Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, un **assistant IA intelligent** (Gemini), un **système de paiement réel** (RevenueCat + CinetPay Mobile Money), et un support technique réactif. L'application est disponible en **14 langues** dont le Wolof et le Peul.
+Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, un **assistant IA intelligent** (Gemini), un **système d'abonnement** (RevenueCat + CinetPay Mobile Money), et un support technique réactif. L'application est disponible en **14 langues** dont le Wolof et le Peul.
 
 ### Le marché
 - **Sénégal** : +300 000 commerces et boutiques enregistrés (source : ANSD)
@@ -75,7 +75,7 @@ Stockman digitalise entièrement la gestion commerciale avec une interface simpl
 | **Siège social** | France |
 | **Activité** | Édition de logiciel SaaS de gestion commerciale |
 | **Date de création** | 2026 |
-| **Fondateur** | Youssoupha Saer BA — Développeur Full-Stack & Entrepreneur |
+| **Fondateur** | [Youssoupha Saer BA] — Responsable Logistique & Entrepreneur |
 | **Secteur** | Tech / FinTech / RetailTech |
 | **Marchés** | Sénégal (prioritaire), France, puis Afrique de l'Ouest |
 
@@ -149,7 +149,7 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Vente rapide | Interface tactile optimisée, recherche produit, scan code-barres |
 | Reçus digitaux | Envoi par WhatsApp, SMS ou email |
 | Gestion des retours | Retours et échanges avec mise à jour automatique du stock |
-| Modes de paiement | Espèces, mobile money (Wave, Orange Money), carte |
+| Modes de paiement | Espèces, mobile money (Wave, Orange Money), carte | et prêt
 | Panier & remises | Remises en % ou montant fixe, codes promo |
 
 #### 👥 CRM & Fidélisation
@@ -157,7 +157,7 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 |----------------|-------------|
 | Fiches clients | Coordonnées, historique d'achats complet, notes |
 | Programme de fidélité | Points de fidélité, récompenses automatiques |
-| Rappels personnalisés | Anniversaires, relances clients inactifs |
+| Rappels personnalisés | Anniversaires, relances clients inactifs | suivi des dettes
 | Segmentation | Clients VIP, occasionnels, nouveaux |
 
 #### 🛍️ Marketplace Fournisseurs & Suivi de Commandes
@@ -176,7 +176,7 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Notifications | Alerte à chaque nouveau message |
 | Historique | Toutes les conversations archivées et consultables |
 
-#### 🤖 Intelligence Artificielle Intégrée (Google Gemini 2.0 Flash)
+#### 🤖 Intelligence Artificielle Intégrée (Google Gemini 2.5 Flash)
 | Fonctionnalité | Description |
 |----------------|-------------|
 | Assistant IA conversationnel | Chatbot intelligent alimenté par Gemini, avec accès aux données réelles du commerçant (RAG) |
@@ -194,12 +194,12 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Traduction Wolof & Peul | Interface et guides traduits dans les langues locales ouest-africaines |
 | Audio explicatifs Wolof | Guides audio en Wolof pour chaque fonctionnalité, accessibles depuis l'app |
 | Accessibilité | Pensé pour les utilisateurs peu familiers avec le digital |
-| Landing page multilingue | Site vitrine stockman.pro traduit dans les 14 langues |
+| Landing page multilingue | Site vitrine www.stockman.pro traduit dans les 14 langues |
 
 #### 📚 Guides & Formation Intégrés
 | Fonctionnalité | Description |
 |----------------|-------------|
-| Guides interactifs | Tutoriels pas-à-pas intégrés pour chaque module |
+| Guides interactifs | Tutoriels pas-à-pas intégrés pour chaque module | IA pour répondre à n'importe quelle question sur ta boutique
 | Vidéos tutorielles | Démonstrations visuelles des fonctionnalités clés |
 | FAQ dynamique | Réponses aux questions fréquentes contextuelles |
 | Onboarding assisté | Parcours d'accueil pour les nouveaux utilisateurs |
@@ -214,7 +214,7 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | **📱 Mode Hors-ligne** | Fonctionnement complet sans internet, sync automatique à la reconnexion |
 | **🔔 Notifications Push** | Alertes stock, ventes, messages, commandes — en temps réel |
 | **🎫 Support Client** | Tickets intégrés, réponse <24h, suivi du statut |
-| **📈 Comptabilité Simplifiée** | Suivi dépenses, calcul bénéfices, rapports mensuels exportables |
+| **📈 Comptabilité Simplifiée** | Suivi dépenses, suivi des charges, calcul bénéfices, rapports mensuels exportables |
 | **🔒 Sécurité** | Données chiffrées AES-256, authentification JWT, double vérification |
 
 ### 4.2 Avantages technologiques
@@ -227,8 +227,8 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 - **Localisation 14 langues** : Traductions complètes en 14 langues (FR, EN, ES, DE, PT, IT, RU, ZH, HI, PL, RO, TR, WO, FF, AR) — unique sur le marché
 - **Paiements réels** : Double infrastructure RevenueCat (Google Play / App Store) + CinetPay (Mobile Money : Orange Money, Wave, MTN MoMo)
 - **Feature Gating (PremiumGate)** : Système de verrouillage intelligent des modules Premium avec écran d'upgrade intégré
-- **Console Admin** : Dashboard d'administration complet avec 12 modules (monitoring, litiges, sécurité, communication)
-- **Landing Page responsive** : Site vitrine `stockman.pro` avec SEO, blog, comparatif, newsletter, cookie RGPD — optimisé mobile
+- **Console Admin** : Dashboard d'administration complet avec 12 modules (monitoring, litiges, sécurité, communication...)
+- **Landing Page responsive** : Site vitrine `www.stockman.pro` avec SEO, blog, comparatif, newsletter, cookie RGPD — optimisé mobile
 
 ### 4.3 Implémentations réalisées (Q1 2026)
 
@@ -246,11 +246,11 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Élément | Détail |
 |---------|--------|
 | **PremiumGate** | Composant React Native qui verrouille les modules Premium (Comptabilité, CRM, Fournisseurs, Commandes) pour les utilisateurs Starter |
-| **Écran d'upgrade** | Interface élégante avec icône, description et bouton "Passer à Premium" intégré dans chaque module verrouillé |
+| **Écran d'upgrade** | Interface avec icône, description et bouton "Passer à Premium" intégré dans chaque module verrouillé |
 | **Rate Limiting IA** | 14 requêtes/semaine pour Starter, illimité pour Premium — géré côté backend |
 | **Essai gratuit 3 mois** | Accès Premium complet pendant 3 mois, puis basculement automatique sur Starter |
 
-#### Intelligence Artificielle (Gemini 2.0 Flash)
+#### Intelligence Artificielle (Gemini 2.5 Flash)
 | Fonctionnalité | Détail |
 |----------------|--------|
 | **Assistant conversationnel** | Chat IA contextuel qui répond aux questions sur le stock, les ventes, la comptabilité |
@@ -353,7 +353,7 @@ Cible réaliste avec les moyens actuels :
 | **Sello** | 100K+ | E-commerce multi-canal | Orienté e-commerce, pas adapté commerce physique | 29-199€/mois |
 | **SaleStock** | 50K+ | Ciblé Afrique de l'Ouest | Fonctionnalités limitées, pas d'IA, UX moyenne | Gratuit (limité) |
 
-> ⚠️ **Constat Play Store** : Aucune des apps populaires ne combine gestion de stock + POS + CRM + marketplace fournisseurs + IA + support Wolof. La plupart sont en anglais et n'offrent que de l'inventaire basique.
+> ⚠️ **Constat Play Store** : Aucune des apps populaires ne combine gestion de stock + POS + CRM + marketplace fournisseurs + IA + Multilingue. La plupart sont en anglais et n'offrent que de l'inventaire basique.
 
 ### 6.4 Concurrents indirects
 
@@ -582,7 +582,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 |-----------|-------------|-------------|
 | **Hébergement backend** | Railway (Production, Docker) | 5-20 € |
 | **Base de données** | MongoDB Atlas (M10) | 57 € |
-| **IA / Assistant** | Google Gemini API (gemini-2.0-flash) | ~10 € |
+| **IA / Assistant** | Google Gemini API (gemini-2.5-flash) | ~10 € |
 | **Paiements stores** | RevenueCat (gratuit < 2,5K$ MRR) | 0 € |
 | **Paiements Mobile Money** | CinetPay (commission par transaction) | Variable |
 | **SMS / OTP** | Twilio (vérification téléphone) | ~5 € |
@@ -598,7 +598,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 #### An 1 (Solo + freelances)
 - **Fondateur** : Développement, stratégie, marketing digital
 - **1 freelance design** : UI/UX, vidéos marketing (ponctuel)
-- **5 agents terrain** (Sénégal) : Commission de **1 000 FCFA par vendeur amené** et activé
+- **5 agents terrain** (Sénégal) : Commission de **1 000 FCFA par vendeur amené**
 
 #### An 2 (embauches)
 - +1 développeur junior (remote, Sénégal)
@@ -611,9 +611,9 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 ### Fondateur & CEO
 
-- **Profil** : Développeur Full-Stack avec expérience en React Native, Python/FastAPI, MongoDB
+- **Profil** : Responsable Logistique, titulaire de deux master en Management des Organisations et Processus Logistiques et Management des Achats et Supply Chain. Notions assez avancée Full-Stack avec expérience en React Native, Python/FastAPI, MongoDB, firebase
 - **Rôle** : Conception produit, développement technique, stratégie business, levée de fonds
-- **Vision** : Créer un outil qui change concrètement la vie des commerçants africains
+- **Vision** : Créer un outil qui change concrètement la vie des commerçants africains et faciliter l'accès aux produits. Objectif final participer au développement de la logistique et à l'économie globale du Sénégal et du continent Africain.
 
 ### Compétences clés
 
@@ -624,7 +624,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | **Base de données** | MongoDB, agrégations, indexation |
 | **Infrastructure** | Déploiement cloud, CI/CD, monitoring |
 | **UX/UI** | Design d'interfaces adaptées au marché africain |
-| **Business** | Connaissance du marché sénégalais et de la diaspora |
+| **Business** | Gestion de la Logistiques, Commercial, Connaissance du marché sénégalais et de la diaspora |
 
 ### Recrutements prévus
 
@@ -663,7 +663,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 #### Hypothèses
 - Taux de conversion essai → payant : **45%**
 - Churn mensuel : **4%** (An 1), **3%** (An 2), **2,5%** (An 3)
-- ARPU blended : **3,40 €/mois** (pondéré SN + FR)
+- ARPU mélangé : **3,40 €/mois** (pondéré SN + FR)
 - Croissance utilisateurs : organique + marketing
 
 #### Année 1 — Détail mensuel
@@ -719,7 +719,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | | Positif | Négatif |
 |---|---------|---------|
 | **Interne** | **Forces (Strengths)**<br>• **Produit All-in-One opérationnel** : Stock + POS + CRM + Marketplace + IA + Comptabilité — tout est développé et en production<br>• **Paiements réels** : RevenueCat (stores) + CinetPay (Mobile Money) — infrastructure de monétisation prête<br>• **14 langues** : Couverture linguistique massive incluant Wolof et Peul<br>• **Prix disruptif** : Dès 1 000 FCFA/mois vs 30€+ concurrence<br>• **Tech agile** : Stack moderne (React Native/FastAPI/Railway), IA Gemini intégrée<br>• **Feature Gating** : Modèle freemium intelligent avec PremiumGate | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : Équipe réduite au lancement<br>• **Marque inconnue** : Nécessite un effort marketing initial important<br>• **Dépendance technique** : Risque si le fondateur est indisponible<br>• **Cashburn initial** : Besoin de financement pour l'acquisition |
-| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** : CinetPay intégré, paiement en 2 clics<br>• **Soutien étatique** : Programmes de digitalisation (SN2025)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes<br>• **IA accessible** : Différenciation forte grâce à l'assistant Gemini | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Square ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer |
+| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** : CinetPay intégré, paiement en 2 clics<br>• **Soutien étatique** : Programmes de digitalisation (SN2025), Financement (DER)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes<br>• **IA accessible** : Différenciation forte grâce à l'assistant Gemini | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Odoo ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer | Taux d'alphabétisation faible
 
 ### 13.3 Analyse PESTEL (Politique, Économique, Sociologique, Technologique, Écologique, Légal)
 
@@ -738,8 +738,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 |------------------|--------|-----------------------|
 | **Risque Technologique**<br>Panne serveur, perte de données | Moyen | • Architecture Cloud résiliente (MongoDB Atlas)<br>• Backups quotidiens automatisés<br>• Mode hors-ligne robuste (les données restent sur le téléphone) |
 | **Risque Commercial**<br>Coût d'acquisition (CAC) trop élevé | Élevé | • Focus sur le viral (parrainage)<br>• Agents payés à la commission (variable uniquement)<br>• Partenariats avec grossistes (apport d'affaires) |
-| **Risque Financier**<br>Mésentente sur le pricing ou défaut de paiement | Moyen | • Modèle prépayé (pas de crédit client)<br>• Paiement mobile simple (Wave, OM)<br>• Version gratuite limitée toujours disponible |
-| **Risque Humain**<br>Départ de l'équipe clé | Moyen | • Documentation technique rigoureuse<br>• Parts de fondateur (vesting) pour fidéliser<br>• Recrutement rapide dès la levée de fonds |
+| **Risque Financier**<br>Mésentente sur le pricing ou défaut de paiement | Moyen | • Modèle prépayé (pas de crédit client)<br>• Paiement mobile simple (Wave, OM)<br>• Offre de lancement pour tester disponible |
+| **Risque Humain**<br>Départ de l'équipe clé | Moyen | • Documentation technique rigoureuse<br>• abandon du fondateur <br>• Recrutement rapide dès la levée de fonds |
 
 ---
 
@@ -747,7 +747,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 ### 14.1 Persona Clients
 
-**Persona A : Modou, le Boutiquier (Dakar)**
+**Persona A : Alioune, le Boutiquier (Dakar)**
 *   **Profil** : 35 ans, gère une boutique de quartier à HLM Grand Yoff.
 *   **Problème** : Perd de l'argent car ne note pas tout, oublie les dettes clients, stocke au hasard.
 *   **Besoin** : Une appli simple, en Wolof, qui marche sans internet, pour savoir "combien j'ai gagné aujourd'hui".
@@ -756,21 +756,21 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 **Persona B : Sophie, la Créatrice (Paris/Instagram)**
 *   **Profil** : 28 ans, vend des bijoux faits main sur Instagram et les marchés l'été.
 *   **Problème** : Gère son stock sur un cahier, perd du temps à faire des factures manuelles.
-*   **Besoin** : Un outil "pro" pour faire des factures propres, gérer son stock de perles, et avoir l'air crédible.
+*   **Besoin** : Un outil "pro" pour faire des factures propres, gérer son stock de perles, et avoir une traçabilité claire.
 *   **Canal** : Instagram, TikTok, groupes Facebook entrepreneurs.
 
 ### 14.2 Mix Marketing (4P)
 
-*   **Produit** : Appli mobile Freemium. Design "Consumer" (aussi beau qu'Instagram) mais fonctionnalités "Business".
+*   **Produit** : Appli mobile Freemium. Design "Consumer"  mais fonctionnalités "Business".
 *   **Prix** : Stratégie de pénétration massive. **3 mois gratuits** pour tous, puis **1 000 FCFA** (Starter) ou **2 500 FCFA** (Premium).
 *   **Place (Distribution)** :
     *   Directe : Play Store / App Store.
     *   Terrain : Réseau d'agents ambassadeurs (porte-à-porte).
-    *   B2B : Partenariats avec grossistes qui recommandent l'app à leurs clients.
+    *   B2B : Partenariats avec grossistes qui recommandent l'app à leurs clients et vice versa
 *   **Promotion** :
     *   Contenu viral TikTok : "Comment j'ai sauvé ma boutique avec mon téléphone".
     *   Preuve sociale : Témoignages vidéo de commerçants locaux respectés.
-    *   Offre de lancement : "2 mois gratuits pour tout le quartier".
+    *   Offre de lancement : "Parrainage mois gratuits".
 
 ---
 

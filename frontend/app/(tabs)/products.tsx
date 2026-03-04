@@ -2154,7 +2154,7 @@ export default function ProductsScreen() {
                             />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.historyReason}>{mov.reason || (mov.type === 'in' ? t('products.mov_in') : t('products.mov_out'))}</Text>
+                            <Text style={styles.historyReason}>{t(mov.reason) || (mov.type === 'in' ? t('products.mov_in') : t('products.mov_out'))}</Text>
                             <Text style={styles.historyDate}>{mov.created_at ? new Date(mov.created_at).toLocaleString() : ''}</Text>
                           </View>
                           <Text style={[styles.historyQty, { color: mov.type === 'in' ? colors.success : colors.warning }]}>
@@ -2213,7 +2213,7 @@ export default function ProductsScreen() {
                             </View>
                             <View style={{ alignItems: 'flex-end' }}>
                               <Text style={[styles.historyQty, { color: colors.text }]}>{item?.quantity} x {formatNumber(item?.selling_price)}</Text>
-                              <Text style={{ fontSize: 10, color: colors.textMuted }}>Total: {formatNumber(item?.total)} {t('common.currency_default')}</Text>
+                              <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('common.total')}: {formatNumber(item?.total)} {t('common.currency_default')}</Text>
                             </View>
                           </View>
                         );

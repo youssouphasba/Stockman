@@ -1,0 +1,99 @@
+{
+  "ar": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "audit_result": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "de": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "en": {
+    "fixmes": [],
+    "suspicious_texts": [
+      "common.orders: Commandes",
+      "marketplace.order_sent_description: Commande fournisseur {order_id} envoyée ({count} articles)",
+      "marketplace.order_sent_message: Commande envoyée au fournisseur",
+      "stock.reasons.supplier_reception: Réception fournisseur",
+      "supplier.order_id: Code commande"
+    ]
+  },
+  "es": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "ff": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "fr": {
+    "fixmes": [],
+    "suspicious_texts": [
+      "alerts.all_good: Everything is in order",
+      "marketplace.empty_suppliers: No suppliers found",
+      "marketplace.suppliers: Marketplace Suppliers",
+      "orders.all_suppliers: All suppliers",
+      "orders.approved: Approved",
+      "orders.details: Order Details",
+      "orders.suppliers: Suppliers"
+    ]
+  },
+  "global_audit": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "hi": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "it": {
+    "fixmes": [
+      "help.supplierCatalog.f1.t",
+      "help.supplierCatalog.f1.d",
+      "help.supplierCatalog.f3.d",
+      "help.supplierCatalog.f4.d",
+      "help.supplierOrders.f1.d",
+      "help.supplierOrders.f2.d",
+      "help.supplierOrders.f3.d",
+      "help.supplierOrders.f4.d"
+    ],
+    "suspicious_texts": []
+  },
+  "pl": {
+    "fixmes": [
+      "users.stock_label"
+    ],
+    "suspicious_texts": []
+  },
+  "pt": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "ro": {
+    "fixmes": [
+      "users.stock_label"
+    ],
+    "suspicious_texts": []
+  },
+  "ru": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "tr": {
+    "fixmes": [],
+    "suspicious_texts": []
+  },
+  "wo": {
+    "fixmes": [
+      "users.stock_label"
+    ],
+    "suspicious_texts": []
+  },
+  "zh": {
+    "fixmes": [],
+    "suspicious_texts": []
+  }
+}

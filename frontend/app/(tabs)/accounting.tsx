@@ -516,7 +516,15 @@ export default function AccountingScreen() {
         ? (stats.gross_profit / stats.revenue) * 100
         : 0;
 
-    const paymentColors = [colors.success, colors.primary, colors.warning, colors.info, colors.danger];
+    const paymentColors = [
+        '#10B981', // Green
+        '#6366F1', // Indigo
+        '#F59E0B', // Amber
+        '#06B6D4', // Cyan
+        '#EF4444', // Red
+        '#8B5CF6', // Violet
+        '#EC4899', // Pink
+    ];
 
     return (
         <PremiumGate

@@ -35,7 +35,14 @@
       "Bash(adb devices:*)",
       "Bash(powershell.exe:*)",
       "Bash(echo Logcat effacé, prêt à capturer:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(railway logs:*)",
+      "Bash(pip show:*)",
+      "Bash(export:*)",
+      "Bash(node.exe:*)",
+      "Bash(GIT_ASKPASS= git push:*)",
+      "Bash(git log:*)",
+      "Bash(cmd.exe:*)"
     ]
   }
 }

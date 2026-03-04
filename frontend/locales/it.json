@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Nessun ricavo generato in questo periodo.",
     "not_enough_data": "Dati di vendita insufficienti per l'analisi ABC."
@@ -20,6 +20,7 @@
     "col_sold": "Venduto",
     "confirm_expense": "Confermare la spesa di {{amount}}?",
     "cost_cogs": "Costo d'acquisto",
+    "cost_purchase": "Costo d'Acquisto",
     "default_address": "Indirizzo non specificato",
     "default_store_name": "Il mio Negozio Stock",
     "delete_error": "Errore durante l'eliminazione",
@@ -131,6 +132,13 @@
       "broadcastSuccess": "📢 Diffusione : Inviato a {{count}} dispositivi"
     },
     "dashboard": "Pannello di Controllo Admin",
+    "data_explorer": {
+      "documents": "documents",
+      "search_placeholder": "Rechercher (ID, nom, email...)...",
+      "select_collection": "Choisissez une collection",
+      "select_hint": "Sélectionnez une collection",
+      "title": "Explorateur de Données"
+    },
     "disputes": {
       "title": "Contenziosi",
       "investigate": "Investigare",
@@ -170,7 +178,8 @@
       "targetUserId": "ID Utente (es: user_...)",
       "replyPlaceholder": "La tua risposta...",
       "resolutionPlaceholder": "Risoluzione (opzionale)...",
-      "adminNotesPlaceholder": "Note amministrative..."
+      "adminNotesPlaceholder": "Note amministrative...",
+      "markdown": "Markdown supported..."
     },
     "retention": {
       "title": "Ritenzione",
@@ -181,7 +190,8 @@
       "title": "Entrate",
       "today": "Oggi",
       "week": "7 giorni",
-      "month": "30 giorni"
+      "month": "30 giorni",
+      "total_label": "Total revenue"
     },
     "security": {
       "failed24h": "Falliti 24h",
@@ -203,7 +213,8 @@
       "logs": "Registro Attività",
       "settings": "Impostazioni",
       "cgu": "TOS",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "sales": "Sales"
     },
     "settings": {
       "config": "Configurazione",
@@ -217,7 +228,8 @@
       "units": "{{count}} unità",
       "seller": "Venditore",
       "deleteConfirmTitle": "⚠️ Eliminazione Definitiva",
-      "deleteConfirmDesc": "Vuoi davvero eliminare il prodotto \"{{name}}\"? Questa azione è irreversibile."
+      "deleteConfirmDesc": "Vuoi davvero eliminare il prodotto \"{{name}}\"? Questa azione è irreversibile.",
+      "empty": "No products"
     },
     "stores": {
       "title": "Negozi",
@@ -232,7 +244,8 @@
       "filterPending": "In attesa",
       "filterClosed": "Chiusi",
       "reply": "Rispondi",
-      "close": "Chiudi"
+      "close": "Chiudi",
+      "empty": "No tickets"
     },
     "topStores": {
       "title": "Top Negozi"
@@ -250,17 +263,18 @@
       "reactivateBtn": "Riattiva",
       "active": "Attivo",
       "banned": "Bloccato",
-      "countryLabel": "Paese: {{country}}"
+      "countryLabel": "Paese: {{country}}",
+      "empty": "No users"
     }
   },
   "ai": {
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
-    "persona_name": "Assistente Stockman",
+    "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Your goal is to help the user navigate the app AND analyze their metrics.",
+    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
-    "summary_role_merchant": "You are a smart assistant for the Stockman app for merchants.",
+    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
     "summary_tone": "Adopt a professional, helpful, and clear tone.",
     "tools": {
       "inventory_alerts": {
@@ -414,24 +428,33 @@
       "notReceived": "Non ho ricevuto il codice",
       "errorCode": "Si prega di inserire il codice a 6 cifre",
       "errorIncorrect": "Codice errato o scaduto",
-      "resendTip": "Funzionalità di reinvio presto disponibile"
+      "resendTip": "Funzionalità di reinvio presto disponibile",
+      "resendError": "Erreur lors du renvoi du code"
     }
   },
   "batch_scan": {
     "action_required": "Action required",
+    "aim_hint": "Visez un code-barres ou un tag RFID pour l'ajouter",
+    "allow_camera": "Autoriser la caméra",
     "apply_action": "Apply action",
     "auto_replenish": "Auto-replenish",
     "auto_replenish_desc": "Generate purchase orders for missing items",
     "choose_action": "Please choose an action...",
+    "clear_all": "Tout effacer",
+    "done_count": "Terminer ({{count}})",
     "items_identified": "Items identified",
+    "no_camera": "Pas d'accès à la caméra",
     "orders_generated": "{{count}} purchase orders generated.",
     "partial_result": "Résultat partiel",
     "processing_title": "Batch processing",
     "quick_inventory": "Quick inventory",
     "quick_inventory_desc": "Mark items as present in stock",
+    "requesting_permission": "Demande d'autorisation de caméra...",
     "rfid_associate": "Association RFID",
     "rfid_associate_desc": "Associer ces codes à des tags RFID",
     "rfid_bulk_info": "L'association RFID par lot permet d'associer rapidement vos tags.",
+    "scanned_flash": "Scanné !",
+    "scanned_items": "Articles scannés ({{count}})",
     "select_action": "Sélectionner une action",
     "title": "Scan Rapide (Lot)",
     "unknown_codes": "{{count}} codes sont inconnus…"
@@ -499,7 +522,9 @@
     "add": "Aggiungi",
     "all": "Tutti",
     "back": "Indietro",
+    "call": "Chiama",
     "cancel": "Annulla",
+    "categories": "Categorie",
     "confirm": "Conferma",
     "count_warning": "Attenzione all'inserimento",
     "currency_default": "FCFA",
@@ -521,6 +546,7 @@
     "last_90_days": "Last 90 days",
     "loading": "Caricamento...",
     "merchant": "Commerciante",
+    "min": "Min",
     "months_ago": "{{count}} months ago",
     "my_shop": "Il mio Negozio",
     "name": "Last Namee",
@@ -542,9 +568,11 @@
     },
     "preferences_error": "Impossibile aggiornare le preferenze.",
     "price": "Prezzo",
+    "reviews": "Recensioni",
     "save": "Salva",
     "search": "Cerca",
     "see_feature": "Scopri questa funzionalità",
+    "see_less": "Meno",
     "send": "Invia",
     "step": "Passaggio {{step}}/{{total}}",
     "stock": "Scorta",
@@ -552,6 +580,7 @@
     "tip_of_the_day": "CONSIGLIO DEL GIORNO",
     "today": "Oggi",
     "total": "Totale",
+    "total_value": "Valeur totale",
     "unit": "Unità",
     "unknown_product": "Prodotto sconosciuto",
     "validate": "Convalida",
@@ -722,6 +751,7 @@
     "count_stock": "Conta le scorte",
     "count_stock_prompt": "Inserisci la quantità reale per",
     "critical_products": "Prodotti critici",
+    "daily_report": "Rapporto giornaliero",
     "default_user": "Commerciante",
     "delivered_orders": "Consegnati",
     "enter_actual_qty": "Enter actual quantity for {{name}}",
@@ -744,6 +774,7 @@
     "normal": "Normale",
     "order_btn": "Ordina",
     "orders_section": "Ordini",
+    "other_products_count": "+ {{count}} autres produits",
     "out_of_stock": "Esaurito",
     "overstock": "Eccedenza",
     "pending_orders": "In attesa",
@@ -782,6 +813,7 @@
     "title": "Dashboard",
     "today_revenue": "Fatturato giornaliero",
     "today_sales": "Vendite giornaliere",
+    "top_products_today": "Prodotti più venduti oggi",
     "top_products_value": "Top prodotti (valore)",
     "total_value": "Valore totale",
     "units": "unità",
@@ -797,9 +829,7 @@
     "widget_reorder": "Réapprovisionnement",
     "widget_smart_reminders": "Rappels intelligents",
     "widget_stock_chart": "Évolution valeur stock",
-    "widget_stock_status": "Statut des stocks",
-    "daily_report": "Rapporto giornaliero",
-    "top_products_today": "Prodotti più venduti oggi"
+    "widget_stock_status": "Statut des stocks"
   },
   "delivery": {
     "ai_analysis": "AI Analysis of products...",
@@ -1146,8 +1176,6 @@
         }
       },
       "supplierDashboard": {
-        "t": "Clients Actifs",
-        "d": "Voyez combien de shopkeepers différents ont commandé chez vous. Suivez l'évolution de votre base clients.",
         "title": "Supplier Dashboard",
         "f1": {
           "t": "Supplier KPIs",
@@ -1209,44 +1237,6 @@
     "no_results": "No results for \"{{query}}\"",
     "results": "RESULTS",
     "search_placeholder": "Search a feature...",
-    "supplierCatalog": {
-      "title": "Catalogue Fournisseur",
-      "f1": {
-        "t": "FIXME",
-        "d": "FIXME"
-      },
-      "f2": {
-        "t": "Tarification",
-        "d": "Définissez vos prix. Mettez-les à jour à tout moment depuis la fiche produit."
-      },
-      "f3": {
-        "t": "Disponibilité",
-        "d": "FIXME"
-      },
-      "f4": {
-        "t": "Catégories",
-        "d": "FIXME"
-      }
-    },
-    "supplierOrders": {
-      "title": "Commandes receiptes",
-      "f1": {
-        "t": "Commandes Entrantes",
-        "d": "FIXME"
-      },
-      "f2": {
-        "t": "Accepter ou Refuser",
-        "d": "FIXME"
-      },
-      "f3": {
-        "t": "Marquer Expédiée",
-        "d": "FIXME"
-      },
-      "f4": {
-        "t": "Filtres & Historique",
-        "d": "FIXME"
-      }
-    },
     "title": "Help Center"
   },
   "invoice": {
@@ -1286,9 +1276,8 @@
     "order_sent_description": "Order sent to supplier",
     "order_sent_message": "Order sent ({{count}} items) to {{supplier}}",
     "price_range": "Fascia di prezzo",
-    "products": "Prodotti",
+    "products": "prodotti",
     "reset": "Reimposta",
-    "search_placeholder": "Search for products or suppliers...",
     "search_product": "Cerca un prodotto...",
     "search_supplier": "Cerca un fornitore...",
     "send_invitation": "Invia invito",
@@ -1298,6 +1287,14 @@
     "verified_only": "Solo verificati"
   },
   "modals": {
+    "ai_assistant_title": "Assistente IA",
+    "ai_error_prefix": "Errore: ",
+    "ai_error_unknown": "Errore sconosciuto",
+    "ai_history_cleared": "Cronologia cancellata. Come posso aiutarti?",
+    "ai_loading": "L'IA sta elaborando...",
+    "ai_placeholder": "Fai la tua domanda...",
+    "ai_recording": "🎙️ Registrazione...",
+    "ai_welcome": "Ciao! Sono il tuo assistente Stockman. Come posso aiutarti oggi?",
     "cancel": "Annulla",
     "changePassword": {
       "title": "Cambia password",
@@ -1314,6 +1311,7 @@
       "successMessage": "La tua password è stata modificata. Per favor, effettua nuovamente l'accesso."
     },
     "chat": "Messaggi",
+    "chat_empty": "Commencez la conversation !",
     "close": "Chiudi",
     "confirm": "Conferma",
     "contactSupport": {
@@ -1344,6 +1342,11 @@
     "loading": "Caricamento...",
     "order_creation": "Creazione ordine",
     "receipt": "Ricevuta digitale",
+    "receipt_done": "Terminer",
+    "receipt_qr_subtitle": "Scannez pour récupérer votre reçu en ligne",
+    "receipt_share_pdf": "Partager la Facture PDF",
+    "receipt_whatsapp_link": "Lien WhatsApp uniquement",
+    "receipt_whatsapp_text": "Voici votre reçu Stockman : {{url}}",
     "save": "Salva",
     "success": "Operazione riuscita"
   },
@@ -1411,7 +1414,14 @@
     "kpi_pending": "In corso",
     "kpi_total_amount": "Importo totale",
     "kpi_total_orders": "Totale ordini",
-    "marketplace": "Marketplace",
+    "marketplace": {
+      "catalog": "Catalogue",
+      "delivery": "livraison",
+      "filters": "Filtres",
+      "no_products_in_catalog": "Aucun produit dans le catalogue",
+      "products": "produits",
+      "see_more_products": "Voir {{count}} autres produits"
+    },
     "my_suppliers": "I miei Fornitori",
     "new_order": "Nuovo ordine",
     "new_return": "Nuovo reso",
@@ -1474,6 +1484,8 @@
     "shipped": "Spedito",
     "shipping": "In corso",
     "status": "Stato",
+    "status_completed": "Terminée",
+    "status_pending": "En attente",
     "store_config_missing": "Configurazione negozio mancante",
     "summary": "Riepilogo",
     "summary_desc": "Panoramica degli ordini effettuati",
@@ -1554,6 +1566,10 @@
     "stock_depleted": "Scorte esaurite",
     "success": "Vendita registrata",
     "suggestions_title": "Spesso acquistati insieme",
+    "terminal_active": "Terminal : {{name}}",
+    "terminal_modal_subtitle": "Sélectionnez le terminal pour cette session de caisse.",
+    "terminal_modal_title": "Choisir un Terminal",
+    "terminal_select": "Changer de terminal",
     "title": "Cassa (POS)",
     "total": "Totale",
     "unknown": "Sconosciuto",
@@ -1637,6 +1653,7 @@
     "categories_exist": "Tutte le categorie esistono già.",
     "categories_imported": "categorie importate",
     "categories_offline": "La gestione delle categorie non è disponibile offline.",
+    "category_label": "Catégorie",
     "category_name_placeholder": "Last Namee della categoria",
     "category_save_error": "Impossibile salvare la categoria",
     "choose_source": "Scegli una fonte",
@@ -1666,7 +1683,7 @@
     "field_sku": "SKU / Code",
     "forecast_7d_unit": "{{count}} prédits (7j)",
     "gallery": "Galleria",
-    "history": "Stor.",
+    "history": "Storico",
     "history_tab_price": "Prezzo",
     "history_tab_sales": "Vendite",
     "history_tab_stock": "Stock",
@@ -1760,7 +1777,6 @@
     "birthdays_label": "Birthdays",
     "client_reactivation_desc": "Alert if a VIP customer has not returned",
     "client_reactivation_label": "Client Reactivation",
-    "debt_recovery": "Debt Recovery",
     "debt_recovery_desc": "Dettes clients dépassant le seuil",
     "debt_recovery_label": "Debt Recovery",
     "dormant_products_desc": "Alert if a product has not been sold for a long time",
@@ -1771,16 +1787,19 @@
     "inventory_check_label": "Inventory Check",
     "late_deliveries_desc": "Alert if a supplier delivery is overdue",
     "late_deliveries_label": "Late Delivery",
-    "low_stock_label": "Low Stock",
     "monthly_report_desc": "Availability of the monthly accounting summary",
     "monthly_report_label": "Monthly Report",
     "pending_invitations_desc": "Reminder for unaccepted team invitations",
     "pending_invitations_label": "Pending Invitations",
     "replenishment_desc": "Purchase suggestions based on out-of-stock items",
     "replenishment_label": "Replenishment",
-    "stock_alerts": "Critical alerts for low stock or expired products.",
-    "title": "Reminder Rules",
     "unit_days": "days"
+  },
+  "scanner": {
+    "aim": "Placez le code-barres dans le cadre",
+    "allow_camera": "Autoriser la caméra",
+    "permission_text": "L'accès à la caméra est nécessaire pour scanner les codes-barres.",
+    "title": "Scanner un Produit"
   },
   "settings": {
     "about": "Informazioni",
@@ -1863,10 +1882,10 @@
   },
   "stock": {
     "reasons": {
-      "pos_sale": "POS Sale",
-      "inventory_adjustment": "Inventory Adjustment",
-      "supplier_reception": "Supplier Reception",
-      "loss_damage": "Loss or Damage"
+      "pos_sale": "Vendita POS",
+      "inventory_adjustment": "Rettifica inventario",
+      "supplier_reception": "Ricezione fornitore",
+      "loss_damage": "Perdita o danno"
     }
   },
   "store_selector": {
@@ -1961,23 +1980,25 @@
     "categories": "Categorie",
     "dashboard": "Dashboard Fornitore",
     "delivery_zones": "Zone di consegna",
+    "filter_all": "Tous",
+    "filter_cancelled": "Annulées",
+    "filter_confirmed": "Confirmées",
+    "filter_delivered": "Livrées",
+    "filter_pending": "En attente",
+    "filter_shipped": "Expédiées",
     "min_order": "Ordine min.",
-    "no_orders": "No orders found",
-    "order_date": "Order Date",
-    "order_details": "Order Details",
     "order_id": "Codice ordine",
-    "order_items": "Items",
-    "order_status": "Status",
-    "order_summary": "Summary",
-    "order_total": "Total",
     "orders": "Ordini ricevuti",
-    "orders_history": "Order History",
     "pending_orders": "Ordini in attesa",
     "refuse": "Rifiuta",
     "revenue_month": "Fatturato del mese",
     "reviews": "Recensioni clienti",
-    "search_orders": "Search orders...",
     "ship": "Spedisci",
+    "status_cancelled": "Annulée",
+    "status_confirmed": "Confirmée",
+    "status_delivered": "Livrée",
+    "status_pending": "En attente",
+    "status_shipped": "Expédiée",
     "top_products": "Top Prodotti",
     "unavailable": "Non disponibile"
   },
@@ -2005,8 +2026,6 @@
     "commercial_profile": "Profil commercial",
     "company_name_label": "Company Name *",
     "company_name_ph": "Company Name",
-    "contact_email": "Contact Email",
-    "contact_phone": "Contact Phone",
     "create_profile": "Create Profile",
     "days": "days",
     "description_label": "Description",
@@ -2182,9 +2201,7 @@
     "activity": "Attività",
     "admin": "Admin",
     "alerts": "Avvisi",
-    "clients": "Clienti",
     "crm": "CRM",
-    "help": "Aiuto",
     "home": "Home",
     "orders": "Ordini",
     "pos": "Cassa",
@@ -2195,10 +2212,38 @@
     "users": "Utenti"
   },
   "tips": {
+    "accounting_01_desc": "Générez des rapports comptables mensuels pour suivre votre rentabilité.",
+    "accounting_01_title": "Rapports Mensuels",
+    "accounting_02_desc": "Créez des factures professionnelles en PDF et envoyez-les directement.",
+    "accounting_02_title": "Facturation PDF",
     "accounting_03_desc": "Export your data in CSV format for your accountant or external accounting software.",
     "accounting_03_title": "CSV Export",
+    "accounting_04_desc": "Suivez vos entrées et sorties de caisse pour une gestion saine du cash.",
+    "accounting_04_title": "Flux de Trésorerie",
+    "accounting_05_desc": "Visualisez vos revenus futurs basés sur les tendances actuelles.",
+    "accounting_05_title": "Prévisions",
+    "activity_01_desc": "Consultez l'historique complet des actions effectuées par votre équipe.",
+    "activity_01_title": "Journal d'Audit",
+    "activity_02_desc": "Utilisez les filtres par module ou par utilisateur pour retrouver une action.",
+    "activity_02_title": "Filtres Avancés",
+    "activity_03_desc": "Chaque action est signée avec l'ID de l'utilisateur pour une sécurité totale.",
+    "activity_03_title": "Sécurité & Traçabilité",
+    "alerts_01_desc": "Configurez des règles d'alerte personnalisées pour ne rien manquer.",
+    "alerts_01_title": "Règles d'Alerte",
+    "alerts_02_desc": "Activez les notifications push pour être prévenu en temps réel.",
+    "alerts_02_title": "Notifications Push",
     "alerts_03_desc": "Detect products without any sales for 30 days to optimize your inventory.",
     "alerts_03_title": "Dormant Products",
+    "crm_01_desc": "Identifiez vos meilleurs clients et offrez-leur un traitement spécial.",
+    "crm_01_title": "Clients VIP",
+    "crm_02_desc": "Suivez les dettes et les paiements de chaque client avec précision.",
+    "crm_02_title": "Gestion des Dettes",
+    "crm_03_desc": "Envoyez des messages groupés à vos clients pour annoncer des offres.",
+    "crm_03_title": "Campagnes Marketing",
+    "crm_04_desc": "Récompensez la fidélité de vos clients avec des points à chaque achat.",
+    "crm_04_title": "Récompenses",
+    "crm_05_desc": "Créez des promotions temporaires sur des catégories spécifiques.",
+    "crm_05_title": "Promotions",
     "dashboard_01_desc": "Usa il selettore in alto a destra per passare rapidamente da un negozio all'altro.",
     "dashboard_01_title": "Cambia negozio",
     "dashboard_02_desc": "Class A represents 80% of your turnover. Focus your efforts on these priority products.",
@@ -2209,32 +2254,95 @@
     "dashboard_04_title": "Alertes péremption",
     "dashboard_05_desc": "Press the Statistics button to access full charts and history of your activity.",
     "dashboard_05_title": "Graphiques détaillés",
+    "general_01_desc": "Posez vos questions à l'Assistant IA pour analyser votre stock ou vos tendances.",
+    "general_01_title": "Assistant IA",
+    "general_02_desc": "L'app fonctionne sans internet ; vos actions se synchroniseront au retour du réseau.",
+    "general_02_title": "Mode Hors-ligne",
+    "general_03_desc": "Accédez aux guides et aux questions fréquentes pour maîtriser l'application.",
+    "general_03_title": "Centre d'Aide",
     "lots_peremption_desc": "Manage batches with their expiry dates, ideal for food and perishable products.",
     "lots_peremption_title": "Batches & Expiry",
+    "orders_01_desc": "Suivez le statut de toutes vos commandes fournisseurs en un seul endroit.",
+    "orders_01_title": "Suivi Global",
+    "orders_02_desc": "Les statuts (En attente, Confirmée, Livrée) vous aident à piloter vos stocks.",
+    "orders_02_title": "Statuts de Commande",
+    "orders_03_desc": "Validez les livraisons pour mettre à jour votre stock automatiquement.",
+    "orders_03_title": "Livraisons",
+    "orders_04_desc": "Consultez l'historique complet de vos achats pour mieux négocier.",
+    "orders_04_title": "Historique d'Achats",
     "pos_01_desc": "Scan items quickly: the basket fills up automatically as you go.",
     "pos_01_title": "Quick Scanner",
+    "pos_02_desc": "Appliquez les points de fidélité de vos clients directement lors de l'encaissement.",
+    "pos_02_title": "Fidélité à la Caisse",
+    "pos_03_desc": "Acceptez différents modes de paiement (Espèces, Orange Money, Wave...).",
+    "pos_03_title": "Modes de Paiement",
     "pos_04_desc": "Send the receipt via WhatsApp directly to the customer after each sale.",
-    "pos_04_title": "WhatsApp Receipt"
+    "pos_04_title": "WhatsApp Receipt",
+    "pos_05_desc": "Mode vente rapide pour les produits sans code-barres.",
+    "pos_05_title": "Vente Rapide",
+    "products_01_desc": "Générez et imprimez des codes QR pour vos produits sans code-barres.",
+    "products_01_title": "Codes QR",
+    "products_02_desc": "Utilisez la caméra pour un inventaire express ou une recherche rapide.",
+    "products_02_title": "Scan Code-barres",
+    "products_03_desc": "Faites des entrées ou sorties de stock en un clic sans passer par une commande.",
+    "products_03_title": "Mouvements Rapides",
+    "products_05_desc": "Organisez vos produits par catégories pour une meilleure visibilité.",
+    "products_05_title": "Catégories",
+    "products_06_desc": "Suivez l'évolution de vos marges et de vos prix d'achat.",
+    "products_06_title": "Analyse des Prix",
+    "settings_01_desc": "Mettez à jour vos informations commerciales pour vos reçus et factures.",
+    "settings_01_title": "Profil Entreprise",
+    "settings_02_desc": "Gérez vos données personnelles et votre compte en toute sécurité.",
+    "settings_02_title": "Sécurité du Compte",
+    "settings_03_desc": "Passez au mode sombre pour une utilisation plus confortable le soir.",
+    "settings_03_title": "Mode Sombre",
+    "supplier_01_desc": "Gérez vos produits, photos et prix disponibles pour vos clients.",
+    "supplier_01_title": "Gestion Catalogue",
+    "supplier_02_desc": "Recevez des notifications dès qu'un commerçant passe commande chez vous.",
+    "supplier_02_title": "Commandes Reçues",
+    "supplier_03_desc": "Suivez vos ventes et vos produits les plus populaires sur votre dashboard.",
+    "supplier_03_title": "Dashboard Fournisseur",
+    "supplier_04_desc": "Analysez vos performances de vente mois par mois.",
+    "supplier_04_title": "Analytics Vente",
+    "supplier_05_desc": "Définissez les villes et quartiers où vous pouvez livrer vos produits.",
+    "supplier_05_title": "Zones de Livraison",
+    "suppliers_01_desc": "Gardez une liste organisée de tous vos fournisseurs habituels.",
+    "suppliers_01_title": "Annuaire Fournisseurs",
+    "suppliers_02_desc": "Appelez ou discutez par WhatsApp avec vos fournisseurs en un clic.",
+    "suppliers_02_title": "Contact Direct",
+    "suppliers_03_desc": "Liez vos produits à des fournisseurs pour suivre l'évolution des prix.",
+    "suppliers_03_title": "Lien Produits",
+    "suppliers_04_desc": "Notez les échanges importants pour garder une trace de vos négociations.",
+    "suppliers_04_title": "Journal d'Échange",
+    "suppliers_05_desc": "Évaluez les délais et la qualité de vos fournisseurs.",
+    "suppliers_05_title": "Performance Fournisseurs",
+    "users_01_desc": "Assignez des rôles précis pour limiter l'accès aux données sensibles.",
+    "users_01_title": "Rôles & Permissions",
+    "users_02_desc": "Partagez les identifiants d'accès par WhatsApp en un seul bouton.",
+    "users_02_title": "Partage d'Accès",
+    "users_03_desc": "Ajoutez des vendeurs ou des gestionnaires de stock à votre boutique.",
+    "users_03_title": "Gestion d'Équipe"
   },
   "users": {
     "access_denied": "Accesso negato.",
     "account_created_title": "Account creato",
     "accounting_label": "Contabilità",
     "cancel_btn": "Annulla",
-    "create_account_btn": "Crea l'account",
+    "create_account_btn": "Crea Account",
     "crm_label": "Clienti (CRM)",
     "delete_btn": "Elimina",
     "delete_user_btn": "Delete User",
     "delete_user_confirm": "Sei sicuro di voler eliminare questo utente?",
     "delete_user_title": "Elimina utente",
-    "edit_access_title": "Modifica Accesso",
+    "edit_access_title": "Modifica Accessi",
     "edit_user_title": "Edit User",
     "email_label": "Email",
-    "empty_state_desc": "Aggiungi i tuoi collaboratori per dare loro un accesso limitato.",
-    "empty_state_title": "Nessun dipendente configurato",
-    "form_error_fields": "Si prega di compilare tutti i campi obbligatori.",
-    "full_name_label": "Last Namee completo",
-    "full_name_placeholder": "Es: Mario Rossi",
+    "empty_state_desc": "Aggiungi dipendenti.",
+    "empty_state_title": "Nessun Dipendente",
+    "error_whatsapp_not_installed": "WhatsApp non installata.",
+    "form_error_fields": "Completa nome ed email.",
+    "full_name_label": "Nome Completo",
+    "full_name_placeholder": "Nome e Cognome",
     "loading": "Loading...",
     "modules_label": "Module Access",
     "name_label": "Full Name",
@@ -2244,10 +2352,10 @@
     "orders_label": "Orders",
     "password_label": "Password",
     "password_placeholder": "Min. 8 caratteri",
-    "perm_management": "Modifica",
-    "perm_no_access": "Nessun accesso",
+    "perm_management": "Gestione (Scrittura)",
+    "perm_no_access": "Nessun Accesso",
     "perm_read_only": "Sola Lettura",
-    "permissions_section_title": "Permessi (Tocca per cambiare)",
+    "permissions_section_title": "Permessi e Accessi",
     "phone_label": "Phone",
     "pos_label": "Cassa (POS)",
     "products_label": "Stock & Products",
@@ -2259,7 +2367,6 @@
     "share_whatsapp_btn": "Share via WhatsApp",
     "share_whatsapp_msg": "Hello {{name}}, here are your accesses for the Stockman app:\nEmail: {{email}}\nPassword: {{password}}\nLink: https://stockman-app.com",
     "status_label": "Status",
-    "stock_label": "Scorte e Prodotti",
     "suppliers_label": "Fornitori",
     "title": "Gestione Squadra",
     "user_details_title": "User Details",

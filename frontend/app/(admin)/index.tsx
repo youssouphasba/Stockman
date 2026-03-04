@@ -500,7 +500,7 @@ export default function AdminDashboard() {
                     </View>
                 </Card>
             ))}
-            {products.length === 0 && <EmptyState icon="cube-outline" message={t('admin.stock.empty') || 'Aucun produit'} colors={colors} />}
+            {products.length === 0 && <EmptyState icon="cube-outline" message={t('admin.stock.empty')} colors={colors} />}
         </View>
     );
 
@@ -509,12 +509,12 @@ export default function AdminDashboard() {
             <SectionHeader title={t('admin.segments.finance')} colors={colors} />
             {stats && (
                 <LinearGradient colors={['#7C3AED', '#4F46E5']} style={{ borderRadius: 16, padding: 20, marginBottom: 12 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('admin.revenue.total_label') || "Chiffre d'affaires total"}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('admin.revenue.total_label')}</Text>
                     <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4 }}>{fmtMoney(stats.total_revenue, user?.currency)}</Text>
                     <View style={{ flexDirection: 'row', gap: 20, marginTop: 12 }}>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.sales') || 'Ventes'}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.sales}</Text></View>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.stock') || 'Produits'}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.products}</Text></View>
-                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.stores') || 'Magasins'}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.stores}</Text></View>
+                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.sales')}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.sales}</Text></View>
+                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.stock')}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.products}</Text></View>
+                        <View><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{t('admin.segments.stores')}</Text><Text style={{ color: '#fff', fontWeight: '700' }}>{stats.stores}</Text></View>
                     </View>
                 </LinearGradient>
             )}
@@ -548,7 +548,7 @@ export default function AdminDashboard() {
                     </View>
                 </Card>
             ))}
-            {customers.length === 0 && <EmptyState icon="people-outline" message={t('admin.crm.empty') || 'Aucun client'} colors={colors} />}
+            {customers.length === 0 && <EmptyState icon="people-outline" message={t('admin.users.empty')} colors={colors} />}
         </View>
     );
 

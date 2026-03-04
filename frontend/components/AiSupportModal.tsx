@@ -41,7 +41,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
         {
             id: 'welcome',
             role: 'assistant',
-            content: "Bonjour ! Je suis votre assistant Stockman. Comment puis-je vous aider aujourd'hui ?",
+            content: t('modals.ai_welcome'),
             timestamp: new Date(),
         },
     ]);
@@ -142,7 +142,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
             setMessages([{
                 id: 'welcome',
                 role: 'assistant',
-                content: "Historique effacé. Comment puis-je vous aider ?",
+                content: t('modals.ai_history_cleared'),
                 timestamp: new Date(),
             }]);
         } catch (error) {
@@ -189,11 +189,11 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
 
             setMessages((prev) => [...prev, assistantMessage]);
         } catch (error: any) {
-            const detail = error?.message || error?.toString() || 'Erreur inconnue';
+            const detail = error?.message || error?.toString() || t('modals.ai_error_unknown');
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: `Erreur : ${detail}`,
+                content: `${t('modals.ai_error_prefix')}${detail}`,
                 timestamp: new Date(),
             };
             setMessages((prev) => [...prev, errorMessage]);
@@ -262,7 +262,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                     {isLoading && (
                         <View style={styles.loadingBubble}>
                             <ActivityIndicator size="small" color={colors.primary} />
-                            <Text style={styles.loadingText}>L'IA réfléchit...</Text>
+                            <Text style={styles.loadingText}>{t('modals.ai_loading')}</Text>
                         </View>
                     )}
 
@@ -273,7 +273,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                         <View style={styles.inputArea}>
                             <TextInput
                                 style={styles.input}
-                                placeholder={isRecording ? '🎙️ Enregistrement...' : 'Posez votre question...'}
+                                placeholder={isRecording ? t('modals.ai_recording') : t('modals.ai_placeholder')}
                                 placeholderTextColor={isRecording ? colors.danger : colors.textMuted}
                                 value={inputText}
                                 onChangeText={setInputText}
