@@ -19,13 +19,12 @@ class RAGService:
         self.index = []
         
         genai.configure(api_key=api_key)
-        self.model = "models/text-embedding-004"
+        self.model = "models/embedding-001"
 
     async def _generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text chunk (async)."""
         try:
             # genai.embed_content is sync, so we run it in a thread
-            import asyncio
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -118,14 +117,17 @@ class RAGService:
         logger.info(f"Indexing {len(all_chunks)} chunks...")
         
         self.index = []
-        for chunk in all_chunks:
+        for i, chunk in enumerate(all_chunks):
             embedding = await self._generate_embedding(chunk["content"])
             if embedding:
                 chunk["embedding"] = embedding
                 self.index.append(chunk)
+            
+            # Rate limit mitigation for free tier / shared quotas (C6)
+            if i % 2 == 0:
+                await asyncio.sleep(0.5)
 
         # Save to cache
-        import asyncio
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None,
@@ -182,6 +184,6 @@ class RAGService:
         
         # Format results
         top_chunks = similarities[:limit]
-        context = "\n\n".join([f"--- [Source: {c['source']}] ---\n{c['content']}" for score, c in top_chunks if score > 0.4])
+        context = "\n\n".join([f"--- [Source: {c['source']}] ---\n{c['content']}" for score, c in top_chunks if score > 0.3])
         
         return context

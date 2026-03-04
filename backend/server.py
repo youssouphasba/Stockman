@@ -2674,8 +2674,14 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         {role_context}
         {summary_goal}
         
+        CONNAISSANCES RÉCENTES :
+        - Comptabilité : Analyse des marges, bénéfices nets et répartition des paiements.
+        - Personnel : Gestion des employés avec permissions RBAC (Starter: 1, Pro: 5, Entreprise: ∞).
+        - Marketplace : Commandes directes fournisseurs et réapprovisionnement automatique.
+        
         TU DISPOSES D'OUTILS POUR ACCÉDER AUX DONNÉES PRÉCISES (Ventes, Stocks, Produits, Alertes Système).
-        UTILISE-LES SI LA QUESTION PORTE SUR DES CHIFFRES OU SI TU DÉCOUVRES UN PROBLÈME.
+        UTILISE-LES TOUJOURS SI LA QUESTION PORTE SUR DES CHIFFRES OU SI TU DÉCOUVRES UN PROBLÈME.
+        Consulte les documents fournis dans le contexte pour expliquer le fonctionnement des nouveaux modules.
         
         {special_instr}
         

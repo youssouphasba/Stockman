@@ -76,8 +76,13 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "wallet-outline",
-                title: "Trésorerie",
-                description: "Le bilan compare vos ventes et vos dépenses pour vous donner la santé financière exacte de votre commerce."
+                title: "Trésorerie & Marges",
+                description: "Le bilan compare ventes et dépenses. Suivez vos bénéfices réels nets après déduction des charges."
+            },
+            {
+                icon: "pie-chart-outline",
+                title: "Analyses de Paiement",
+                description: "Visualisez la répartition de vos revenus par mode de paiement (Espèces, Mobile Money, Crédit, etc.) dans les nouveaux graphiques."
             }
         ]
     },
@@ -126,8 +131,13 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "globe-outline",
-                title: "Marketplace",
-                description: "Accédez à un réseau de fournisseurs vérifiés pour découvrir de nouveaux produits aux meilleurs prix."
+                title: "Marketplace Pro",
+                description: "Accédez à un réseau de fournisseurs vérifiés. Commandez des produits du catalogue fournisseur pour une intégration directe en stock."
+            },
+            {
+                icon: "repeat-outline",
+                title: "Commandes Groupées",
+                description: "Optimisez vos achats en regroupant vos besoins. Suivez l'état de validation par le fournisseur en temps réel."
             }
         ]
     },
@@ -206,7 +216,21 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "person-add-outline", title: "Ajouter un Employé", description: "Créez un compte pour chaque employé avec son email et un mot de passe temporaire." },
             { icon: "shield-checkmark-outline", title: "Permissions Granulaires", description: "Définissez les droits par module : aucun accès, lecture seule, ou lecture + écriture." },
             { icon: "key-outline", title: "Niveaux d'Accès", description: "Un caissier peut n'avoir accès qu'à la caisse, un gérant à tout sauf la comptabilité, etc." },
-            { icon: "share-social-outline", title: "Partage des Identifiants", description: "Envoyez les identifiants de connexion par WhatsApp en un clic." }
+            {
+                icon: "share-social-outline",
+                title: "Partage des Identifiants",
+                description: "Envoyez les identifiants de connexion par WhatsApp. L'employé accède uniquement aux boutiques autorisées."
+            },
+            {
+                icon: "briefcase-outline",
+                title: "Rôles Manager vs Staff",
+                description: "Déléguez la gestion d'équipe à un manager (Staff avec droit d'écriture sur Personnel) pour créer d'autres comptes."
+            },
+            {
+                icon: "list-circle-outline",
+                title: "Limites des Plans",
+                description: "Starter: 1 employé, Pro: 5 employés, Entreprise: illimité. Vérifiez votre plan actuel dans les paramètres."
+            }
         ]
     },
     settings: {
