@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Ko a Stockman AI. Ko ɗee golle hannde : {activity}. Waɗat kabaruuji mbeebaaɗi (3-4 zdania) ngam jeeyowo o.",
     "persona_name": "Walluwo Stockman",
     "replenishment_advice_prompt": "Ko a ganndo njuɓɓudi. Ko ɗee kuuje masiibaaji : {products}. Hokku wasiyaaji ngam heɓugol kuuje goɗɗe.",
-    "summary_goal": "Hiraande maa ko wallude gollotooɗo o e njuɓɓudi masin o e wiɗtude golle makko.",
+    "summary_goal": "Suɓ kabaruuji ngalluure ɗii. Haa waasa jaabde ɗaɗɗe tan — jokku insights, hes anomalies, e yiɗ golle ɗe njeewnata e lamba.",
     "summary_instruction_admin": "SO HUUTORO O KO ADMIN, FUƊƊO JAABOL MAA E KABARU CELLAL SYSTEM SO JEERTINAALI EENA NGAWII.",
     "summary_role_admin": "Ko a balloowo ADMIN Stockman. A ena jogii accès e kabaruuji fof.",
-    "summary_role_merchant": "Aan woni walluwo hakkilleejo baawɗo e masin Stockman ngam jeeyoɓe.",
-    "summary_tone": "Haaldu e haala mojjere, ganndal e teddungal. Jaabol maa ena foti mbeebaade.",
+    "summary_role_merchant": "Aan woni walluwo AI ngam liggotooɗo e Stockman. Aan nanndi e kuɓɓitoowo, joɓiiɗo kala batte e luuɗiiɗo ngalluure. Aɗa suɓi kabaruuji, mbii fewndo mawndi e toɓɓe keewɗe.",
+    "summary_tone": "Wonu ɓurnitooɗo e suɓanooɗo. Jëfandikoo lamba ɗi ceerta. Yiɗ njuɓɓudi luuɗiiɗi e ɗe mbaawi waɗde. Windu ko'e walluɗo liggotooɓe.",
     "tools": {
       "inventory_alerts": {
         "empty": "Walaa jeertinaali njulaaku masiibaaji.",

@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No gain during this period.",
     "not_enough_data": "Not enough sales data for ABC analysis."
@@ -264,11 +264,11 @@
     "daily_summary_prompt": "You are Stockman AI. Here are the activities of the day : {activity}. Write a very short (3-4 sentences) and motivating summary for the retailer.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "You are a logistics expert. Here are the critical products: {products}. Provide replenishment advice based on recent sales.",
-    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
+    "summary_goal": "Analyze the merchant's real data. Don't just answer questions — proactively surface insights, detect anomalies, benchmark performance, and suggest concrete quantified actions. If you spot a problem, name it clearly. If you see an opportunity, quantify it.",
     "summary_instruction_admin": "IF THE USER IS AN ADMINISTRATOR, START YOUR FIRST RESPONSE WITH A BRIEF SUMMARY OF THE SYSTEM'S HEALTH IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the personal assistant to Stockman's ADMINISTRATOR. You have access to global metrics.",
-    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
-    "summary_tone": "Adopt an educational, professional, and friendly tone. Your answers should be comprehensive and explanatory.",
+    "summary_role_merchant": "You are Stockman's AI business assistant — combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
+    "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' — say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
     "tools": {
       "inventory_alerts": {
         "empty": "No critical stock alerts.",

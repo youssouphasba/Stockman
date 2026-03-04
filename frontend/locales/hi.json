@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
+    "summary_goal": "व्यापारी के वास्तविक डेटा का विश्लेषण करें। केवल सवालों के जवाब न दें — सक्रिय रूप से insights प्रदान करें, anomalies का पता लगाएं, और ठोस संख्यात्मक सुझाव दें।",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
-    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
-    "summary_tone": "Adopt a professional, helpful, and clear tone.",
+    "summary_role_merchant": "आप Stockman के AI बिज़नेस असिस्टेंट हैं — एक अकाउंटेंट, इन्वेंटरी मैनेजर और बिज़नेस एनालिस्ट की विशेषज्ञता को मिलाते हुए। आप डेटा का सक्रिय रूप से विश्लेषण करते हैं।",
+    "summary_tone": "सीधे और विश्लेषणात्मक रहें। ठोस संख्याओं का उपयोग करें। क्रमांकित, कार्ययोग्य सिफारिशें दें।",
     "tools": {
       "inventory_alerts": {
         "empty": "No critical stock alerts.",

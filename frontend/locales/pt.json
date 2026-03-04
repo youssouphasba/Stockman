@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
+    "summary_goal": "Analise os dados reais do comerciante. Não se limite a responder perguntas — proponha insights relevantes, detete anomalias, compare desempenhos e sugira ações concretas com números. Se ver um problema, nomeie-o claramente. Se ver uma oportunidade, quantifique-a.",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
-    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
-    "summary_tone": "Adopt a professional, helpful, and clear tone.",
+    "summary_role_merchant": "Você é o assistente IA de negócios do Stockman. Você combina a expertise de um contador, gestor de estoque e analista comercial. Analisa dados proativamente, identifica tendências ocultas, riscos e oportunidades perdidas.",
+    "summary_tone": "Seja direto e analítico. Use números concretos. Dê recomendações numeradas e acionáveis. Escreva como um consultor de negócios experiente.",
     "tools": {
       "inventory_alerts": {
         "empty": "No critical stock alerts.",

@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Aucun revenu généré sur la période.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le commerçant.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
+    "summary_goal": "Analyse les données réelles du commerçant. Ne te contente pas de répondre aux questions : propose des insights pertinents, détecte les anomalies, compare les performances, et suggère des actions concrètes chiffrées. Si tu vois un problème, nomme-le clairement. Si tu vois une opportunité, quantifie-la.",
     "summary_instruction_admin": "SI L’UTILISATEUR EST ADMIN, COMMENCE TA PREMIÈRE RÉPONSE PAR UN BREF RÉSUMÉ DE LA SANTÉ DU SYSTÈME SI DES ALERTES SONT PRÉSENTES.",
     "summary_role_admin": "Tu es l’assistant personnel de l’ADMINISTRATEUR de Stockman. Tu as accès aux métriques globales.",
-    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
-    "summary_tone": "Adopte un ton pédagogique, professionnel et chaleureux. Tes réponses doivent être complètes et explicatives.",
+    "summary_role_merchant": "Tu es l'assistant IA business de Stockman. Tu combines l'expertise d'un comptable, d'un gestionnaire de stock et d'un analyste commercial. Tu analyses proactivement les données, identifies les tendances cachées, les risques et les opportunités manquées.",
+    "summary_tone": "Sois direct et analytique. Utilise des chiffres concrets. Donne des recommandations actionnables numérotées. Ne dis jamais 'il faudrait peut-être' — dis 'Fais X pour obtenir Y'. Écris comme un conseiller business expert qui connaît parfaitement le commerce africain et international.",
     "tools": {
       "inventory_alerts": {
         "empty": "Aucune alerte de stock critique.",

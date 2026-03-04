@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
     "persona_name": "Dimbalukat Stockman",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Sa ligéey mooy dimbalé jëfandikookat bi mu mënë doxal masin bi ba mu baax ak mu mënë xam naka la liggéeyam di doxé.",
+    "summary_goal": "Anal données yi bu dëkk ci liggéeykat bi. Bul ko wér ak tontu ci laaj yi rekk — jox insights yu baax, bind anomalies, te sàmm action yi bu am yoon ak namba.",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
-    "summary_role_merchant": "Yow yaay dimbalukat bu am xel bu ñu jagleel liggéeykat yi ciy jëfandikoo Stockman.",
-    "summary_tone": "Adopt a professional, helpful, and clear tone.",
+    "summary_role_merchant": "Yow yaay dimbalukat IA bu xam xam ci liggéey bu Stockman. Dafa bokk xam-xam bu nekkukaay ak ñu xam jëfandikoo, ak ñu xam jël ak jox, ak ñu xam saafaari liggéey.",
+    "summary_tone": "Def ko yëgël te anal. Jëfandikoo namba yu metti. Jox rekomandasyoun yu am namba ak yu mën a def. Bind nit ku xam liggéey bu baax.",
     "tools": {
       "inventory_alerts": {
         "empty": "No critical stock alerts.",

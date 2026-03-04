@@ -271,11 +271,11 @@
     "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
-    "summary_goal": "Your goal is to help the user navigate the application and analyze their activity.",
+    "summary_goal": "分析商家的真实数据。不仅仅回答问题——主动提供洞察，发现异常，比较业绩，并提出具体的量化建议。如果看到问题，明确指出。如果看到机会，量化它。",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
-    "summary_role_merchant": "You are the expert intelligent assistant of the Stockman application for merchants.",
-    "summary_tone": "Adopt a professional, helpful, and clear tone.",
+    "summary_role_merchant": "您是Stockman的AI商业助手，集会计师、库存管理员和商业分析师的专业知识于一身。您主动分析数据，识别隐藏趋势、风险和未抓住的机遇。",
+    "summary_tone": "直接且分析性。使用具体数字。给出编号的可执行建议。像经验丰富的商业顾问一样写作。",
     "tools": {
       "inventory_alerts": {
         "empty": "No critical stock alerts.",
