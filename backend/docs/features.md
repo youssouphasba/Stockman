@@ -32,5 +32,25 @@ L'application connecte maintenant les commerçants aux fournisseurs.
 - **Réception Automatisée** : Une fois que le commerçant confirme la réception d'une commande Marketplace, les produits sont automatiquement créés (si nouveaux) ou mis à jour (quantité) dans son inventaire local.
 - **Calcul de Marge** : Le système suggère des prix de vente basés sur le coût d'achat fournisseur et un coefficient de marge configurable.
 
-## 4. Assistant IA & RAG
-L'assistant IA utilise ce document (`features.md`) et les guides utilisateur pour répondre aux questions. Il a accès à des outils internes pour extraire des statistiques en temps réel sur les ventes et les stocks de l'utilisateur.
+## 4. Importation & Exportation de Données
+L'application permet de manipuler les données en masse pour faciliter la migration.
+- **Importation de Produits (CSV/Excel)** :
+    - **Procédure** : L'utilisateur télécharge un fichier. L'IA analyse les colonnes pour suggérer un mapping (ex: 'Prix Achat' -> 'purchase_price').
+    - **Validation** : Les prix négatifs, les quantités incohérentes et les doublons de SKU sont bloqués.
+    - **Multi-encodage** : Supporte UTF-8, Latin-1 et CP1252 pour éviter les erreurs de caractères spéciaux.
+- **Exportation** :
+    - **Inventaire** : Export au format PDF (étiquettes QR Code) ou Excel.
+    - **Ventes & Comptabilité** : Rapports périodiques exportables pour les comptables.
+
+## 5. CRM & Fidélité Client
+- **Dettes & Crédits** : Suivi manuel des dettes clients. Possibilité de marquer un remboursement total ou partiel.
+- **Système de Fidélité** : Calcul automatique des points basé sur le montant des ventes. Paliers de récompense configurables.
+- **Marketing** : Relances par WhatsApp/SMS intégrées directement depuis la fiche client.
+
+## 6. Multi-Boutiques
+- **Gestion Multi-Boutiques** : Un compte peut gérer plusieurs boutiques physiques avec des stocks indépendants. La bascule se fait via le sélecteur en haut du Dashboard.
+
+## 7. Assistant IA & RAG
+L'assistant IA utilise ce document (`features.md`) et les guides utilisateur pour répondre aux questions. 
+- **Outils de Données** : Il peut appeler des fonctions pour récupérer le CA du jour, le top des ventes, ou les alertes de stock bas.
+- **Support Fonctionnel** : Si un utilisateur demande "Comment importer ?", l'IA doit expliquer l'utilisation du bouton 'Import' dans l'onglet Produits et le processus de mapping.
