@@ -39,12 +39,23 @@ import { formatCurrency, formatUserCurrency, getCurrencySymbol, formatNumber } f
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
 
-type CartItem = {
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
+import LineDiscountModal from '../../components/LineDiscountModal';
+
+export type CartItem = {
     product: Product;
     quantity: number;
+    discountType?: 'percentage' | 'fixed';
+    discountValue?: number;
 };
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+export type POSSession = {
+    id: string;
+    cart: CartItem[];
+    selectedCustomer: Customer | null;
+    name: string;
+};
 
 export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
@@ -56,11 +67,28 @@ export default function POSScreen() {
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [cart, setCart] = useState<CartItem[]>([]);
+
+    // Multi-sessions (Tabs)
+    const [sessions, setSessions] = useState<POSSession[]>([
+        { id: '1', cart: [], selectedCustomer: null, name: 'Client 1' }
+    ]);
+    const [activeSessionId, setActiveSessionId] = useState('1');
+
+    // Deriving current session data
+    const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+    const cart = activeSession.cart;
+    const selectedCustomer = activeSession.selectedCustomer;
+
     const [customerList, setCustomerList] = useState<Customer[]>([]);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [isScannerVisible, setIsScannerVisible] = useState(false);
+    const [continuousScan, setContinuousScan] = useState(false);
+    const [showProductList, setShowProductList] = useState(!isMobile); // Hidden by default on mobile
+
+    // Modals
+    const [showCalculator, setShowCalculator] = useState(false);
+    const [showDiscountModal, setShowDiscountModal] = useState(false);
+    const [selectedCartItem, setSelectedCartItem] = useState<CartItem | null>(null);
 
     // Quick Customer Creation
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -147,58 +175,125 @@ export default function POSScreen() {
         );
     }, [productList, search]);
 
+    const updateActiveSession = (updater: (s: POSSession) => POSSession) => {
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? updater(s) : s));
+    };
+
     const addToCart = (product: Product) => {
-        setCart(current => {
-            const existing = current.find(item => item.product.product_id === product.product_id);
-            const currentQtyInCart = existing ? existing.quantity : 0;
-            if (currentQtyInCart + 1 > product.quantity) {
-                Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
-                return current;
+        const existing = cart.find(item => item.product.product_id === product.product_id);
+        const currentQtyInCart = existing ? existing.quantity : 0;
+
+        if (currentQtyInCart + 1 > product.quantity) {
+            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
+            return;
+        }
+
+        updateActiveSession(s => {
+            const existingInSession = s.cart.find(item => item.product.product_id === product.product_id);
+            if (existingInSession) {
+                return {
+                    ...s,
+                    cart: s.cart.map(item =>
+                        item.product.product_id === product.product_id
+                            ? { ...item, quantity: item.quantity + 1 }
+                            : item
+                    )
+                };
             }
-            if (existing) {
-                return current.map(item =>
-                    item.product.product_id === product.product_id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
-            }
-            return [...current, { product, quantity: 1 }];
+            return {
+                ...s,
+                cart: [...s.cart, { product, quantity: 1 }]
+            };
         });
     };
 
     const removeFromCart = (productId: string) => {
-        setCart(current => current.filter(item => item.product.product_id !== productId));
-    };
-
-    const updateQuantity = (productId: string, delta: number) => {
-        setCart(current => current.map(item => {
-            if (item.product.product_id === productId) {
-                const newQty = Math.max(1, item.quantity + delta);
-                if (newQty > item.product.quantity) {
-                    if (Platform.OS === 'web') {
-                        window.alert(t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
-                    } else {
-                        Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
-                    }
-                    return item;
-                }
-                return { ...item, quantity: newQty };
-            }
-            return item;
+        updateActiveSession(s => ({
+            ...s,
+            cart: s.cart.filter(item => item.product.product_id !== productId)
         }));
     };
 
+    const updateQuantity = (productId: string, delta: number) => {
+        const item = cart.find(i => i.product.product_id === productId);
+        if (!item) return;
+
+        const newQty = Math.max(1, item.quantity + delta);
+        if (newQty > item.product.quantity) {
+            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
+            return;
+        }
+
+        updateActiveSession(s => ({
+            ...s,
+            cart: s.cart.map(i => i.product.product_id === productId ? { ...i, quantity: newQty } : i)
+        }));
+    };
+
+    const applyDiscount = (productId: string, type: 'percentage' | 'fixed', value: number) => {
+        updateActiveSession(s => ({
+            ...s,
+            cart: s.cart.map(i => i.product.product_id === productId ? { ...i, discountType: type, discountValue: value } : i)
+        }));
+    };
+
+    const addSession = () => {
+        if (sessions.length >= 5) {
+            Alert.alert(t('pos.max_sessions_reached'));
+            return;
+        }
+        const newId = Date.now().toString();
+        const newSession: POSSession = {
+            id: newId,
+            cart: [],
+            selectedCustomer: null,
+            name: `${t('pos.client')} ${sessions.length + 1}`
+        };
+        setSessions(prev => [...prev, newSession]);
+        setActiveSessionId(newId);
+    };
+
+    const removeSession = (id: string) => {
+        if (sessions.length === 1) return;
+        setSessions(prev => {
+            const filtered = prev.filter(s => s.id !== id);
+            if (id === activeSessionId) {
+                setActiveSessionId(filtered[0].id);
+            }
+            return filtered;
+        });
+    };
+
     const total = useMemo(() => {
-        return cart.reduce((acc, item) => acc + (item.product.selling_price * item.quantity), 0);
+        return cart.reduce((acc, item) => {
+            let itemPrice = item.product.selling_price;
+            if (item.discountType === 'percentage' && item.discountValue) {
+                itemPrice = itemPrice * (1 - item.discountValue / 100);
+            } else if (item.discountType === 'fixed' && item.discountValue) {
+                itemPrice = Math.max(0, itemPrice - item.discountValue);
+            }
+            return acc + (itemPrice * item.quantity);
+        }, 0);
     }, [cart]);
 
     const processCheckout = async (method: string) => {
         try {
             setCheckoutLoading(true);
-            const items = cart.map(item => ({
-                product_id: item.product.product_id,
-                quantity: item.quantity
-            }));
+            const items = cart.map(item => {
+                let unitPrice = item.product.selling_price;
+                if (item.discountType === 'percentage' && item.discountValue) {
+                    unitPrice = unitPrice * (1 - item.discountValue / 100);
+                } else if (item.discountType === 'fixed' && item.discountValue) {
+                    unitPrice = Math.max(0, unitPrice - item.discountValue);
+                }
+                const discount_amount = (item.product.selling_price - unitPrice) * item.quantity;
+
+                return {
+                    product_id: item.product.product_id,
+                    quantity: item.quantity,
+                    discount_amount: Math.round(discount_amount * 100) / 100
+                };
+            });
 
             const result = await salesApi.create({
                 items,
@@ -221,8 +316,11 @@ export default function POSScreen() {
             });
             setShowReceiptModal(true);
 
-            setCart([]);
-            setSelectedCustomer(null);
+            updateActiveSession(s => ({
+                ...s,
+                cart: [],
+                selectedCustomer: null
+            }));
             await loadData();
         } catch (error: any) {
             if (Platform.OS === 'web') {
@@ -315,7 +413,7 @@ export default function POSScreen() {
                 phone: newCustomerPhone,
             });
             setCustomerList(prev => [...prev, newCustomer]);
-            setSelectedCustomer(newCustomer);
+            updateActiveSession(s => ({ ...s, selectedCustomer: newCustomer }));
             setShowCustomerModal(false);
             setNewCustomerName('');
             setNewCustomerPhone('');
@@ -411,236 +509,213 @@ export default function POSScreen() {
     return (
         <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
             <View style={[styles.content, { paddingTop: insets.top }]}>
-                {/* Left Side: Product Selection */}
-                <View style={styles.leftPanel}>
-                    <View style={styles.searchContainer}>
-                        <View style={styles.searchBar}>
-                            <Ionicons name="search" size={20} color={colors.textMuted} />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder={t('pos.search_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                                value={search}
-                                onChangeText={setSearch}
-                            />
-                        </View>
-                        <TouchableOpacity
-                            style={styles.scanButton}
-                            onPress={() => setIsScannerVisible(true)}
-                        >
-                            <Ionicons name="barcode-outline" size={24} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <BarcodeScanner
-                        visible={isScannerVisible}
-                        onClose={() => setIsScannerVisible(false)}
-                        onScanned={handleBarcodeScanned}
-                    />
-
-                    <ScrollView contentContainerStyle={styles.productGrid}>
-                        {filteredProducts.map(product => (
+                {/* 1. Session Tabs */}
+                <View style={styles.tabsContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionScroll}>
+                        {sessions.map(s => (
                             <TouchableOpacity
-                                key={product.product_id}
-                                style={styles.productCard}
-                                onPress={() => addToCart(product)}
-                                disabled={product.quantity === 0}
+                                key={s.id}
+                                style={[styles.sessionTab, activeSessionId === s.id && styles.activeSessionTab]}
+                                onPress={() => {
+                                    setActiveSessionId(s.id);
+                                    if (isMobile) setShowProductList(false);
+                                }}
                             >
-                                <View style={[styles.stockBadge, { backgroundColor: product.quantity === 0 ? colors.danger : colors.success }]}>
-                                    <Text style={styles.stockText}>{product.quantity}</Text>
-                                </View>
-                                <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                                <Text style={styles.productPrice}>{formatUserCurrency(product.selling_price, user)}</Text>
+                                <Text style={[styles.sessionTabText, activeSessionId === s.id && styles.activeSessionTabText]}>
+                                    {s.name} {s.cart.length > 0 ? `(${s.cart.length})` : ''}
+                                </Text>
+                                {sessions.length > 1 && (
+                                    <TouchableOpacity onPress={() => removeSession(s.id)} style={{ paddingLeft: 8 }}>
+                                        <Ionicons name="close-circle" size={16} color={activeSessionId === s.id ? '#fff' : colors.textMuted} />
+                                    </TouchableOpacity>
+                                )}
                             </TouchableOpacity>
                         ))}
+                        <TouchableOpacity style={styles.addSessionBtn} onPress={addSession}>
+                            <Ionicons name="add" size={20} color={colors.primary} />
+                        </TouchableOpacity>
                     </ScrollView>
                 </View>
 
-                {/* Right Side: Cart (checkout pinned at bottom on mobile) */}
-                <View style={styles.rightPanel}>
-                    <View style={styles.cartHeader}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
-                            {selectedTerminal && user?.plan === 'enterprise' && (
-                                <TouchableOpacity
-                                    onPress={() => setShowTerminalModal(true)}
-                                    style={styles.terminalBadge}
-                                >
-                                    <Ionicons name="tablet-portrait-outline" size={11} color={colors.primary} />
-                                    <Text style={styles.terminalBadgeText}>{selectedTerminal}</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                        <TouchableOpacity onPress={() => setCart([])}>
-                            <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Customer Selection */}
-                    <View style={styles.customerSelector}>
-                        <Ionicons name="person-outline" size={18} color={colors.textMuted} />
-                        {canWrite && (
-                            <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
-                                <Ionicons name="add" size={16} color={colors.primary} />
-                            </TouchableOpacity>
-                        )}
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll}>
-                            <TouchableOpacity
-                                style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
-                                onPress={() => setSelectedCustomer(null)}
-                            >
-                                <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
-                            </TouchableOpacity>
-                            {customerList.map(c => (
-                                <TouchableOpacity
-                                    key={c.customer_id}
-                                    style={[
-                                        styles.customerBadge,
-                                        selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeActive,
-                                        c.current_debt > 0 && { borderColor: colors.danger, borderWidth: 1 }
-                                    ]}
-                                    onPress={() => setSelectedCustomer(c)}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeTextActive]}>{c.name}</Text>
-                                        {c.current_debt > 0 && (
-                                            <View style={{
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                                                paddingHorizontal: 4,
-                                                borderRadius: 4,
-                                                gap: 2
-                                            }}>
-                                                <Ionicons name="alert-circle" size={10} color={colors.danger} />
-                                                <Text style={{ fontSize: 10, color: colors.danger, fontWeight: '700' }}>
-                                                    {formatNumber(c.current_debt)}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-
-                    <ScrollView style={styles.cartItems}>
-                        {cart.length === 0 ? (
-                            <View style={styles.emptyCart}>
-                                <Ionicons name="cart-outline" size={48} color={colors.textMuted} />
-                                <Text style={styles.emptyText}>{t('pos.empty_cart')}</Text>
-                            </View>
-                        ) : (
-                            cart.map(item => (
-                                <View key={item.product.product_id} style={styles.cartItem}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
-                                        <Text style={styles.cartItemPrice}>{formatUserCurrency(item.product.selling_price * item.quantity, user)}</Text>
-                                    </View>
-                                    <View style={styles.qtyContainer}>
-                                        <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, -1)}>
-                                            <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
-                                        </TouchableOpacity>
-                                        <Text style={styles.qtyText}>{item.quantity}</Text>
-                                        <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, 1)}>
-                                            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                    <TouchableOpacity onPress={() => removeFromCart(item.product.product_id)} style={{ marginLeft: 8 }}>
-                                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                                    </TouchableOpacity>
+                <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row' }}>
+                    {/* Left Side: Product Selection (Modal or Panel) */}
+                    {(showProductList || !isMobile) && (
+                        <View style={[styles.leftPanel, isMobile && styles.mobileProductPanel]}>
+                            <View style={styles.searchContainer}>
+                                <View style={styles.searchBar}>
+                                    <Ionicons name="search" size={20} color={colors.textMuted} />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder={t('pos.search_placeholder')}
+                                        placeholderTextColor={colors.textMuted}
+                                        value={search}
+                                        onChangeText={setSearch}
+                                    />
                                 </View>
-                            ))
-                        )}
-                    </ScrollView>
+                                <TouchableOpacity
+                                    style={styles.scanButton}
+                                    onPress={() => setIsScannerVisible(true)}
+                                >
+                                    <Ionicons name="barcode-outline" size={24} color="#fff" />
+                                </TouchableOpacity>
+                                {isMobile && (
+                                    <TouchableOpacity style={styles.closePanelBtn} onPress={() => setShowProductList(false)}>
+                                        <Ionicons name="close" size={28} color={colors.text} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
 
-                    {/* Checkout inline (tablet only) */}
-                    {!isMobile && checkoutBar}
+                            <ScrollView contentContainerStyle={styles.productGrid}>
+                                {filteredProducts.map(product => (
+                                    <TouchableOpacity
+                                        key={product.product_id}
+                                        style={styles.productCard}
+                                        onPress={() => addToCart(product)}
+                                        disabled={product.quantity === 0}
+                                    >
+                                        <View style={[styles.stockBadge, { backgroundColor: product.quantity === 0 ? colors.danger : colors.success }]}>
+                                            <Text style={styles.stockText}>{product.quantity}</Text>
+                                        </View>
+                                        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                                        <Text style={styles.productPrice}>{formatUserCurrency(product.selling_price, user)}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {/* Right Side: Cart */}
+                    {(!showProductList || !isMobile) && (
+                        <View style={styles.rightPanel}>
+                            <View style={styles.cartHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
+                                    {isMobile && (
+                                        <TouchableOpacity
+                                            style={styles.mobileAddBtn}
+                                            onPress={() => setShowProductList(true)}
+                                        >
+                                            <Ionicons name="add-circle" size={20} color={colors.primary} />
+                                            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{t('pos.add_product')}</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                                <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: [] }))}>
+                                    <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.customerSelector}>
+                                <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+                                {canWrite && (
+                                    <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                        <Ionicons name="add" size={16} color={colors.primary} />
+                                    </TouchableOpacity>
+                                )}
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll}>
+                                    <TouchableOpacity
+                                        style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
+                                        onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: null }))}
+                                    >
+                                        <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
+                                    </TouchableOpacity>
+                                    {customerList.map(c => (
+                                        <TouchableOpacity
+                                            key={c.customer_id}
+                                            style={[
+                                                styles.customerBadge,
+                                                selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeActive,
+                                                c.current_debt > 0 && { borderColor: colors.danger, borderWidth: 1 }
+                                            ]}
+                                            onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: c }))}
+                                        >
+                                            <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeTextActive]}>{c.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <ScrollView style={styles.cartItems}>
+                                {cart.length === 0 ? (
+                                    <View style={styles.emptyCart}>
+                                        <Ionicons name="cart-outline" size={48} color={colors.textMuted} />
+                                        <Text style={styles.emptyText}>{t('pos.empty_cart')}</Text>
+                                    </View>
+                                ) : (
+                                    cart.map(item => (
+                                        <View key={item.product.product_id} style={styles.cartItem}>
+                                            <TouchableOpacity
+                                                style={{ flex: 1 }}
+                                                onPress={() => {
+                                                    setSelectedCartItem(item);
+                                                    setShowDiscountModal(true);
+                                                }}
+                                            >
+                                                <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                    <Text style={[styles.cartItemPrice, (item.discountValue || 0) > 0 && { textDecorationLine: 'line-through' }]}>
+                                                        {formatUserCurrency(item.product.selling_price * item.quantity, user)}
+                                                    </Text>
+                                                    {(item.discountValue || 0) > 0 && (
+                                                        <Text style={[styles.cartItemPrice, { color: colors.success, fontWeight: '700' }]}>
+                                                            {formatUserCurrency(
+                                                                (item.discountType === 'percentage'
+                                                                    ? item.product.selling_price * (1 - item.discountValue! / 100)
+                                                                    : Math.max(0, item.product.selling_price - item.discountValue!)
+                                                                ) * item.quantity,
+                                                                user
+                                                            )}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                            </TouchableOpacity>
+                                            <View style={styles.qtyContainer}>
+                                                <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, -1)}>
+                                                    <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
+                                                </TouchableOpacity>
+                                                <Text style={styles.qtyText}>{item.quantity}</Text>
+                                                <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, 1)}>
+                                                    <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <TouchableOpacity onPress={() => removeFromCart(item.product.product_id)} style={{ marginLeft: 8 }}>
+                                                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))
+                                )}
+                            </ScrollView>
+                            {!isMobile && checkoutBar}
+                        </View>
+                    )}
                 </View>
             </View>
 
-            {/* Checkout bar pinned at bottom (mobile only) */}
-            {isMobile && checkoutBar}
+            {isMobile && !showProductList && checkoutBar}
 
-            {/* Customer Creation Modal */}
-            <Modal visible={showCustomerModal} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{t('pos.new_customer_title')}</Text>
-                            <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
-                                <Ionicons name="close" size={24} color={colors.text} />
-                            </TouchableOpacity>
-                        </View>
+            <ChangeCalculatorModal
+                visible={showCalculator}
+                onClose={() => setShowCalculator(false)}
+                totalAmount={total}
+                onConfirm={() => {
+                    setShowCalculator(false);
+                    processCheckout('cash');
+                }}
+            />
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>{t('pos.customer_name_label')}</Text>
-                            <TextInput
-                                style={styles.formInput}
-                                value={newCustomerName}
-                                onChangeText={setNewCustomerName}
-                                placeholder={t('pos.customer_name_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                            />
-                        </View>
+            {selectedCartItem && (
+                <LineDiscountModal
+                    visible={showDiscountModal}
+                    onClose={() => {
+                        setShowDiscountModal(false);
+                        setSelectedCartItem(null);
+                    }}
+                    productName={selectedCartItem.product.name}
+                    currentPrice={selectedCartItem.product.selling_price}
+                    onApply={(type, val) => applyDiscount(selectedCartItem.product.product_id, type, val)}
+                />
+            )}
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>{t('pos.customer_phone_label')}</Text>
-                            <TextInput
-                                style={styles.formInput}
-                                value={newCustomerPhone}
-                                onChangeText={setNewCustomerPhone}
-                                placeholder={t('pos.customer_phone_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                                keyboardType="phone-pad"
-                            />
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.createBtn}
-                            onPress={handleCreateCustomer}
-                            disabled={createCustomerLoading}
-                        >
-                            {createCustomerLoading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Terminal Selection Modal (enterprise) */}
-            <Modal visible={showTerminalModal} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{t('pos.terminal_modal_title')}</Text>
-                        </View>
-                        <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, marginBottom: Spacing.md }}>
-                            {t('pos.terminal_modal_subtitle')}
-                        </Text>
-                        {(currentStore?.terminals || []).map((terminal: string) => (
-                            <TouchableOpacity
-                                key={terminal}
-                                style={[styles.terminalOption, selectedTerminal === terminal && styles.terminalOptionActive]}
-                                onPress={() => {
-                                    terminalSelectedRef.current = true;
-                                    setSelectedTerminal(terminal);
-                                    setShowTerminalModal(false);
-                                }}
-                            >
-                                <Ionicons name="tablet-portrait-outline" size={20} color={selectedTerminal === terminal ? colors.primary : colors.textMuted} />
-                                <Text style={[styles.terminalOptionText, selectedTerminal === terminal && { color: colors.primary }]}>{terminal}</Text>
-                                {selectedTerminal === terminal && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Digital Receipt Modal */}
             <DigitalReceiptModal
                 visible={showReceiptModal}
                 onClose={() => {
@@ -654,6 +729,8 @@ export default function POSScreen() {
             <BarcodeScanner
                 visible={isScannerVisible}
                 onClose={() => setIsScannerVisible(false)}
+                continuous={continuousScan}
+                onToggleContinuous={() => setContinuousScan(!continuousScan)}
                 onScanned={(sku: string) => {
                     const product = productList.find(p => p.sku === sku);
                     if (product) {
@@ -661,10 +738,45 @@ export default function POSScreen() {
                     } else {
                         Alert.alert(t('pos.unknown_product_title'), t('pos.product_not_found'));
                     }
-                    setIsScannerVisible(false);
+                    if (!continuousScan) setIsScannerVisible(false);
                 }}
             />
-        </LinearGradient >
+
+            <Modal visible={showCustomerModal} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{t('pos.new_customer_title')}</Text>
+                            <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.formGroup}>
+                            <Text style={styles.formLabel}>{t('pos.customer_name_label')}</Text>
+                            <TextInput
+                                style={styles.formInput}
+                                value={newCustomerName}
+                                onChangeText={setNewCustomerName}
+                                placeholder={t('pos.customer_name_placeholder')}
+                            />
+                        </View>
+                        <View style={styles.formGroup}>
+                            <Text style={styles.formLabel}>{t('pos.customer_phone_label')}</Text>
+                            <TextInput
+                                style={styles.formInput}
+                                value={newCustomerPhone}
+                                onChangeText={setNewCustomerPhone}
+                                placeholder={t('pos.customer_phone_placeholder')}
+                                keyboardType="phone-pad"
+                            />
+                        </View>
+                        <TouchableOpacity style={styles.createBtn} onPress={handleCreateCustomer} disabled={createCustomerLoading}>
+                            {createCustomerLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        </LinearGradient>
     );
 }
 
@@ -674,17 +786,79 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     content: {
         flex: 1,
         flexDirection: isMobile ? 'column' : 'row',
-        padding: Spacing.md,
-        paddingBottom: isMobile ? 0 : Spacing.md,
+        padding: Spacing.sm,
+    },
+
+    // Session Tabs Styles
+    tabsContainer: {
+        height: 50,
+        marginBottom: Spacing.sm,
+    },
+    sessionScroll: {
+        flexGrow: 0,
+    },
+    sessionTab: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 8,
+        borderRadius: BorderRadius.full,
+        backgroundColor: colors.bgLight,
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: colors.divider,
+    },
+    activeSessionTab: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    sessionTabText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textMuted,
+    },
+    activeSessionTabText: {
+        color: '#fff',
+    },
+    addSessionBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.bgLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.divider,
     },
 
     leftPanel: {
-        // Mobile: fixed height = 35% of screen, products scroll inside
-        // Tablet: flex 2 (takes 2/3 of row)
         flex: isMobile ? undefined : 2,
-        height: isMobile ? Math.round(screenHeight * 0.35) : undefined,
+        height: isMobile ? '100%' : undefined,
         marginRight: isMobile ? 0 : Spacing.md,
-        marginBottom: isMobile ? Spacing.sm : 0,
+        borderRadius: BorderRadius.lg,
+        overflow: 'hidden',
+    },
+    mobileProductPanel: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 100,
+        backgroundColor: colors.bgDark,
+        padding: Spacing.md,
+    },
+    closePanelBtn: {
+        padding: 4,
+    },
+    mobileAddBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: colors.primary + '15',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: BorderRadius.sm,
     },
     rightPanel: {
         flex: 1,

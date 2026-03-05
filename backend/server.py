@@ -44,7 +44,8 @@ from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
 from services.catalog_service import CatalogService
-from constants.sectors import BUSINESS_SECTORS, normalize_sector
+from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, is_production_sector
+from services import production_service
 try:
     from services.rag_service import RAGService
 except Exception:
@@ -811,6 +812,8 @@ class Product(BaseModel):
     abc_class: Optional[str] = None # "A", "B", "C"
     abc_revenue_30d: Optional[float] = None
     source_catalog_id: Optional[str] = None  # catalog_id if created from marketplace delivery
+    product_type: str = "standard"  # "standard", "raw_material", "semi_finished", "finished"
+    is_producible: bool = False  # True if linked to a recipe as output
     user_id: str
     store_id: Optional[str] = None
     is_active: bool = True
@@ -838,6 +841,7 @@ class ProductCreate(BaseModel):
     location_id: Optional[str] = None
     variants: List[ProductVariant] = []
     has_variants: bool = False
+    product_type: str = "standard"
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -859,6 +863,7 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     variants: Optional[List[ProductVariant]] = None
     has_variants: Optional[bool] = None
+    product_type: Optional[str] = None
 
 class PriceHistory(BaseModel):
     history_id: str = Field(default_factory=lambda: f"prc_{uuid.uuid4().hex[:12]}")
@@ -867,6 +872,54 @@ class PriceHistory(BaseModel):
     purchase_price: float
     selling_price: float
     recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ===================== PRODUCTION MODULE MODELS =====================
+
+class RecipeIngredient(BaseModel):
+    product_id: str
+    name: Optional[str] = None  # Denormalized
+    quantity: float
+    unit: str = "g"
+
+class RecipeCreate(BaseModel):
+    name: str
+    category: Optional[str] = None
+    output_product_id: Optional[str] = None
+    output_quantity: float = 1
+    output_unit: str = "pièce"
+    ingredients: List[RecipeIngredient] = []
+    prep_time_min: int = 0
+    instructions: Optional[str] = None
+    waste_percent: float = 0.0
+    labor_cost: float = 0.0
+    energy_cost: float = 0.0
+    image_url: Optional[str] = None
+
+class RecipeUpdate(BaseModel):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    output_product_id: Optional[str] = None
+    output_quantity: Optional[float] = None
+    output_unit: Optional[str] = None
+    ingredients: Optional[List[RecipeIngredient]] = None
+    prep_time_min: Optional[int] = None
+    instructions: Optional[str] = None
+    waste_percent: Optional[float] = None
+    labor_cost: Optional[float] = None
+    energy_cost: Optional[float] = None
+    image_url: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class ProductionOrderCreate(BaseModel):
+    recipe_id: str
+    batch_multiplier: float = 1.0
+    planned_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class ProductionCompleteRequest(BaseModel):
+    actual_output: float
+    waste_quantity: float = 0
 
 class Batch(BaseModel):
     batch_id: str = Field(default_factory=lambda: f"batch_{uuid.uuid4().hex[:12]}")
@@ -1035,6 +1088,7 @@ class SaleItem(BaseModel):
     quantity: int
     purchase_price: float = 0.0 # Price at the moment of sale for COGS calculation
     selling_price: float
+    discount_amount: float = 0.0
     total: float
 
 class Sale(BaseModel):
@@ -3978,6 +4032,166 @@ async def download_csv_template(
     )
 
 
+# ===================== PRODUCTION MODULE =====================
+
+@api_router.get("/user/features")
+async def get_user_features(user: User = Depends(require_auth)):
+    """Retourne les features activées pour l'utilisateur (ex: has_production)."""
+    sector = normalize_sector(user.business_type or "")
+    return {
+        "has_production": sector in PRODUCTION_SECTORS,
+        "sector": sector,
+        "sector_label": BUSINESS_SECTORS.get(sector, {}).get("label", ""),
+    }
+
+
+# ─── Recipes ───
+
+@api_router.get("/recipes")
+async def list_recipes(user: User = Depends(require_auth)):
+    """Lister toutes les recettes du magasin actif."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    recipes = await production_service.list_recipes(db, user.active_store_id)
+    return recipes
+
+
+@api_router.post("/recipes")
+async def create_recipe(data: RecipeCreate, user: User = Depends(require_write("products"))):
+    """Créer une nouvelle recette."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    recipe_data = data.model_dump()
+    recipe_data["store_id"] = user.active_store_id
+    recipe_data["created_by"] = user.user_id
+    recipe_data["ingredients"] = [ing.model_dump() for ing in data.ingredients]
+    recipe = await production_service.create_recipe(db, recipe_data)
+    if data.output_product_id:
+        await db.products.update_one(
+            {"product_id": data.output_product_id, "store_id": user.active_store_id},
+            {"$set": {"is_producible": True, "product_type": "finished"}}
+        )
+    return recipe
+
+
+@api_router.get("/recipes/{recipe_id}")
+async def get_recipe(recipe_id: str, user: User = Depends(require_auth)):
+    """Récupérer une recette par ID."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    recipe = await production_service.get_recipe(db, recipe_id, user.active_store_id)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return recipe
+
+
+@api_router.put("/recipes/{recipe_id}")
+async def update_recipe(recipe_id: str, data: RecipeUpdate, user: User = Depends(require_write("products"))):
+    """Mettre à jour une recette."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    update_data = data.model_dump(exclude_none=True)
+    if "ingredients" in update_data:
+        update_data["ingredients"] = [
+            ing.model_dump() if hasattr(ing, "model_dump") else ing
+            for ing in update_data["ingredients"]
+        ]
+    recipe = await production_service.update_recipe(db, recipe_id, user.active_store_id, update_data)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return recipe
+
+
+@api_router.delete("/recipes/{recipe_id}")
+async def delete_recipe(recipe_id: str, user: User = Depends(require_write("products"))):
+    """Supprimer une recette."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    deleted = await production_service.delete_recipe(db, recipe_id, user.active_store_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return {"message": "Recipe deleted"}
+
+
+@api_router.get("/recipes/{recipe_id}/feasibility")
+async def check_recipe_feasibility(recipe_id: str, user: User = Depends(require_auth)):
+    """Vérifier combien de batches sont possibles avec le stock actuel."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    return await production_service.check_feasibility(db, recipe_id, user.active_store_id)
+
+
+# ─── Production Orders ───
+
+@api_router.get("/production/orders")
+async def list_production_orders(
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: User = Depends(require_auth),
+):
+    """Lister les ordres de production."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    return await production_service.list_production_orders(db, user.active_store_id, status, limit)
+
+
+@api_router.post("/production/orders")
+async def create_production_order(data: ProductionOrderCreate, user: User = Depends(require_write("products"))):
+    """Créer un ordre de production (statut: planned)."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    order_data = data.model_dump()
+    order_data["store_id"] = user.active_store_id
+    order_data["created_by"] = user.user_id
+    try:
+        return await production_service.create_production_order(db, order_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.put("/production/orders/{order_id}/start")
+async def start_production_order(order_id: str, user: User = Depends(require_write("products"))):
+    """Démarrer un ordre : déduire les matières premières du stock."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await production_service.start_production(db, order_id, user.active_store_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.put("/production/orders/{order_id}/complete")
+async def complete_production_order(order_id: str, data: ProductionCompleteRequest, user: User = Depends(require_write("products"))):
+    """Terminer la production : ajouter les produits finis au stock."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await production_service.complete_production(
+            db, order_id, user.active_store_id, data.actual_output, data.waste_quantity
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.put("/production/orders/{order_id}/cancel")
+async def cancel_production_order(order_id: str, user: User = Depends(require_write("products"))):
+    """Annuler un ordre : remettre les matières premières si déjà déduites."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await production_service.cancel_production(db, order_id, user.active_store_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.get("/production/dashboard")
+async def production_dashboard(user: User = Depends(require_auth)):
+    """KPIs de production pour le dashboard."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    return await production_service.get_production_dashboard(db, user.active_store_id)
+
+
 # ===================== ADMIN CATALOGUE GLOBAL =====================
 
 @admin_router.get("/catalog/stats")
@@ -6084,7 +6298,9 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         if product["quantity"] < qty:
             raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product['name']}")
             
-        line_total = product["selling_price"] * qty
+        # Calculate line discount
+        item_discount = item.get("discount_amount", 0.0)
+        line_total = (product["selling_price"] * qty) - item_discount
         total_amount += line_total
         
         sale_items.append(SaleItem(
@@ -6093,6 +6309,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             quantity=qty,
             purchase_price=product.get("purchase_price", 0.0),
             selling_price=product["selling_price"],
+            discount_amount=item_discount,
             total=line_total
         ))
         

@@ -62,6 +62,15 @@ class AsyncCollection:
     async def delete_many(self, filter, *args, **kwargs):
         return self._col.delete_many(filter, *args, **kwargs)
 
+    async def create_index(self, *args, **kwargs):
+        # Stub for index creation in mock
+        return "mock_index"
+
+    def aggregate(self, pipeline, *args, **kwargs):
+        # basic implementation of aggregate in mongomock
+        cursor = self._col.aggregate(pipeline, *args, **kwargs)
+        return AsyncCursor(cursor)
+
 class AsyncDatabase:
     def __init__(self, db):
         self._db = db

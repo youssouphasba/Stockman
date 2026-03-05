@@ -25,7 +25,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 export default function TabLayout() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { user, hasPermission, isSuperAdmin } = useAuth();
+  const { user, hasPermission, isSuperAdmin, hasProduction } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -157,10 +157,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="products"
           options={{
-            title: t('tabs.products'),
+            title: hasProduction ? t('tabs.production', 'Production') : t('tabs.products'),
             href: hideStock ? null : '/products',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="cube-outline" size={size} color={color} />
+              <Ionicons name={hasProduction ? "flask-outline" : "cube-outline"} size={size} color={color} />
             ),
           }}
         />

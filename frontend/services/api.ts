@@ -74,7 +74,7 @@ async function removeToken(): Promise<void> {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY).catch(() => {});
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY).catch(() => { });
   }
 }
 
@@ -441,6 +441,173 @@ export const products = {
       method: 'POST',
       body: data,
     }),
+  importText: (text: string, autoCreate: boolean = false) =>
+    request<{ products: any[]; count?: number; created?: number; auto_created: boolean }>('/products/import/text', {
+      method: 'POST',
+      body: { text, auto_create: autoCreate },
+    }),
+};
+
+// Global Catalog
+export const catalog = {
+  getSectors: () => request<{ key: string; label: string; product_count: number }[]>('/catalog/sectors'),
+  browse: (sector: string, country?: string, search?: string, skip = 0, limit = 100) => {
+    const qs = new URLSearchParams();
+    qs.set('sector', sector);
+    if (country) qs.set('country', country);
+    if (search) qs.set('search', search);
+    qs.set('skip', skip.toString());
+    qs.set('limit', limit.toString());
+    return request<{ products: any[]; total: number }>(`/catalog/browse?${qs.toString()}`);
+  },
+  import: (catalogIds: string[]) =>
+    request<{ message: string; imported: number }>('/catalog/import', {
+      method: 'POST',
+      body: { catalog_ids: catalogIds },
+    }),
+  importAll: (sector: string, countryCode?: string) =>
+    request<{ message: string; imported: number }>('/catalog/import-all', {
+      method: 'POST',
+      body: { sector, country_code: countryCode },
+    }),
+  lookupBarcode: (barcode: string) =>
+    request<any>(`/catalog/barcode/${barcode}`),
+  downloadTemplate: (sector?: string, country?: string) => {
+    const qs = new URLSearchParams();
+    if (sector) qs.set('sector', sector);
+    if (country) qs.set('country', country);
+    return `${API_URL}/api/products/template/csv?${qs.toString()}`;
+  }
+};
+
+// User Features (production mode detection)
+export const userFeatures = {
+  get: () => request<{ has_production: boolean; sector: string; sector_label: string }>('/user/features'),
+};
+
+// Recipes (Production Module)
+export type RecipeIngredient = {
+  product_id: string;
+  name?: string;
+  quantity: number;
+  unit: string;
+};
+
+export type Recipe = {
+  recipe_id: string;
+  store_id: string;
+  name: string;
+  category?: string;
+  output_product_id?: string;
+  output_quantity: number;
+  output_unit: string;
+  ingredients: RecipeIngredient[];
+  prep_time_min: number;
+  instructions?: string;
+  waste_percent: number;
+  labor_cost: number;
+  energy_cost: number;
+  computed_cost: number;
+  total_cost: number;
+  margin_percent: number;
+  image_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecipeCreate = {
+  name: string;
+  category?: string;
+  output_product_id?: string;
+  output_quantity?: number;
+  output_unit?: string;
+  ingredients: RecipeIngredient[];
+  prep_time_min?: number;
+  instructions?: string;
+  waste_percent?: number;
+  labor_cost?: number;
+  energy_cost?: number;
+  image_url?: string;
+};
+
+export type FeasibilityResult = {
+  max_batches: number;
+  limiting_ingredient: string | null;
+  details: { product_id: string; name: string; available: number; needed_per_batch: number; unit: string; max_batches: number }[];
+};
+
+export const recipes = {
+  list: () => request<Recipe[]>('/recipes'),
+  get: (id: string) => request<Recipe>(`/recipes/${id}`),
+  create: (data: RecipeCreate) => request<Recipe>('/recipes', { method: 'POST', body: data }),
+  update: (id: string, data: Partial<RecipeCreate>) => request<Recipe>(`/recipes/${id}`, { method: 'PUT', body: data }),
+  delete: (id: string) => request<{ message: string }>(`/recipes/${id}`, { method: 'DELETE' }),
+  feasibility: (id: string) => request<FeasibilityResult>(`/recipes/${id}/feasibility`),
+};
+
+// Production Orders
+export type ProductionOrder = {
+  order_id: string;
+  store_id: string;
+  recipe_id: string;
+  recipe_name: string;
+  batch_multiplier: number;
+  planned_output: number;
+  actual_output?: number;
+  output_product_id?: string;
+  output_unit: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  planned_date: string;
+  started_at?: string;
+  completed_at?: string;
+  ingredients_consumed: {
+    product_id: string;
+    name: string;
+    planned_qty: number;
+    actual_qty?: number;
+    unit: string;
+    unit_cost: number;
+  }[];
+  total_material_cost: number;
+  waste_quantity: number;
+  notes?: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type ProductionDashboard = {
+  today_productions: number;
+  month_productions: number;
+  month_cost: number;
+  month_produced: number;
+  waste_percent: number;
+  active_recipes: number;
+  in_progress: number;
+};
+
+export const production = {
+  listOrders: (status?: string, limit = 50) => {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    qs.set('limit', limit.toString());
+    return request<ProductionOrder[]>(`/production/orders?${qs.toString()}`);
+  },
+  createOrder: (recipeId: string, batchMultiplier = 1, notes?: string) =>
+    request<ProductionOrder>('/production/orders', {
+      method: 'POST',
+      body: { recipe_id: recipeId, batch_multiplier: batchMultiplier, notes },
+    }),
+  startOrder: (orderId: string) =>
+    request<ProductionOrder>(`/production/orders/${orderId}/start`, { method: 'PUT' }),
+  completeOrder: (orderId: string, actualOutput: number, wasteQuantity = 0) =>
+    request<ProductionOrder>(`/production/orders/${orderId}/complete`, {
+      method: 'PUT',
+      body: { actual_output: actualOutput, waste_quantity: wasteQuantity },
+    }),
+  cancelOrder: (orderId: string) =>
+    request<ProductionOrder>(`/production/orders/${orderId}/cancel`, { method: 'PUT' }),
+  dashboard: () => request<ProductionDashboard>('/production/dashboard'),
 };
 
 // Stores
@@ -1371,6 +1538,7 @@ export type SaleItem = {
   product_name?: string;
   quantity: number;
   selling_price: number;
+  discount_amount?: number;
   total: number;
 };
 
@@ -1387,9 +1555,11 @@ export type Sale = {
 };
 
 export type SaleCreate = {
-  items: { product_id: string; quantity: number }[];
+  items: { product_id: string; quantity: number; discount_amount?: number }[];
   payment_method: string;
   customer_id?: string;
+  discount_amount?: number; // Global discount
+  payments?: { method: string; amount: number }[];
   terminal_id?: string;
 };
 

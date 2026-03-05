@@ -129,14 +129,25 @@ export async function printAndShare(html: string, title: string) {
 }
 
 export async function generateSalePdf(sale: Sale, store: Store, currency?: string): Promise<void> {
-  const itemsHtml = sale.items.map(item => `
+  const itemsHtml = sale.items.map(item => {
+    const hasDiscount = item.discount_amount && item.discount_amount > 0;
+    const subtotal = item.selling_price * item.quantity;
+
+    return `
     <tr>
-      <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${item.product_name}</td>
+      <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">
+        <div>${item.product_name}</div>
+        ${hasDiscount ? `<div style="font-size: 10px; color: #666;">${i18n.t('pos.discount')} : -${formatCurrency(item.discount_amount!, currency)}</div>` : ''}
+      </td>
       <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${item.quantity}</td>
-      <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(item.selling_price, currency)}</td>
+      <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">
+        ${hasDiscount ? `<div style="text-decoration: line-through; font-size: 10px; color: #999;">${formatCurrency(item.selling_price, currency)}</div>` : ''}
+        <div>${formatCurrency(hasDiscount ? (subtotal - item.discount_amount!) / item.quantity : item.selling_price, currency)}</div>
+      </td>
       <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(item.total, currency)}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const date = new Date(sale.created_at).toLocaleDateString(i18n.language);
   const ref = `REC-${sale.sale_id.slice(-6).toUpperCase()}`;

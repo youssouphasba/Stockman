@@ -36,6 +36,8 @@ import {
   sales as salesApi,
   batches,
   ai as aiApi,
+  catalog as catalogApi,
+  stores as storesApi,
   locations as locationsApi,
   Product,
   ProductVariant,
@@ -63,6 +65,8 @@ import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { generateAndSharePdf, generateProductLabelPdf } from '../../utils/pdfReports';
 import BulkImportModal from '../../components/BulkImportModal';
+import TextImportModal from '../../components/TextImportModal';
+import ProductionView from '../../components/ProductionView';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,7 +81,12 @@ export default function ProductsScreen() {
   }
   const router = useRouter();
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasProduction } = useAuth();
+
+  // If production mode → show the ProductionView instead
+  if (hasProduction) {
+    return <ProductionView currency={user?.currency || 'FCFA'} />;
+  }
   const insets = useSafeAreaInsets();
 
   const canWrite = hasPermission('stock', 'write');
@@ -165,6 +174,30 @@ export default function ProductsScreen() {
   const [scannerMode, setScannerMode] = useState<'search' | 'form'>('search');
   const [showGuide, setShowGuide] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('products');
+
+  // Global Catalog states
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [showTextImportModal, setShowTextImportModal] = useState(false);
+  const [currentStore, setCurrentStore] = useState<any>(null);
+
+  useEffect(() => {
+    if (formSku.length >= 8 && !editingProduct && isConnected) {
+      handleBarcodeLookup(formSku);
+    }
+  }, [formSku]);
+
+  useEffect(() => {
+    async function loadStore() {
+      if (user?.active_store_id) {
+        try {
+          const storesList = await storesApi.list();
+          const active = storesList.find((s: any) => s.store_id === user.active_store_id);
+          if (active) setCurrentStore(active);
+        } catch (e) { /* ignore */ }
+      }
+    }
+    loadStore();
+  }, [user?.active_store_id]);
 
   useEffect(() => {
     if (isFirstVisit) setShowGuide(true);
@@ -492,6 +525,30 @@ export default function ProductsScreen() {
       setAiDescLoading(false);
     }
   }
+
+  async function handleBarcodeLookup(barcode: string) {
+    if (!barcode || barcode.length < 8 || !isConnected || editingProduct) return;
+    setCatalogLoading(true);
+    try {
+      const result = await catalogApi.lookupBarcode(barcode);
+      if (result && result.name) {
+        if (!formName) setFormName(result.name);
+        if (!formDescription && result.description) setFormDescription(result.description);
+        if (!formPurchasePrice || formPurchasePrice === '0') setFormPurchasePrice(String(result.purchase_price || 0));
+        if (!formSellingPrice || formSellingPrice === '0') setFormSellingPrice(String(result.selling_price || 0));
+        if (!formCategory && result.category) {
+          const existing = categoryList.find(c => c.name === result.category);
+          if (existing) setFormCategory(existing.category_id);
+        }
+      }
+    } catch (e) {
+      console.log("Barcode lookup failed:", e);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }
+
+  // handleImportText is handled by TextImportModal component
 
   function resetForm() {
     setFormName('');
@@ -1334,6 +1391,12 @@ export default function ProductsScreen() {
                   onPress={() => setShowBulkImportModal(true)}
                 >
                   <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.iconBtn, { backgroundColor: colors.primary + '20' }]}
+                  onPress={() => setShowTextImportModal(true)}
+                >
+                  <Ionicons name="text-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.addBtn} onPress={() => {
                   setEditingProduct(null);
@@ -2431,6 +2494,12 @@ export default function ProductsScreen() {
       <BulkImportModal
         visible={showBulkImportModal}
         onClose={() => setShowBulkImportModal(false)}
+        onSuccess={() => loadData()}
+      />
+
+      <TextImportModal
+        visible={showTextImportModal}
+        onClose={() => setShowTextImportModal(false)}
         onSuccess={() => loadData()}
       />
 

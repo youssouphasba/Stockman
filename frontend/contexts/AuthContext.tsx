@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { auth as authApi, stores as storesApi, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
+import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { initPurchases } from '../services/purchases';
@@ -27,6 +27,7 @@ type AuthState = {
   unlockWithBiometrics: () => Promise<boolean>;
   toggleBiometrics: (enabled: boolean) => Promise<void>;
   togglePin: (enabled: boolean) => Promise<void>;
+  hasProduction: boolean;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [isPinSet, setIsPinSet] = useState(false);
   const [isBiometricsEnabled, setIsBiometricsEnabled] = useState(false);
+  const [hasProduction, setHasProduction] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -77,6 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         const userData = await authApi.me();
         setUser(userData);
+        // Detect production mode
+        userFeatures.get().then(f => setHasProduction(f.has_production)).catch(() => { });
         if (Platform.OS !== 'web') {
           initPurchases(userData.user_id).catch(console.warn);
         }
@@ -221,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unlockWithBiometrics,
         toggleBiometrics,
         togglePin,
+        hasProduction,
       }}
     >
       {children}

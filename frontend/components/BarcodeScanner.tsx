@@ -16,9 +16,11 @@ type Props = {
     visible: boolean;
     onClose: () => void;
     onScanned: (data: string) => void;
+    continuous?: boolean;
+    onToggleContinuous?: () => void;
 };
 
-export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
+export default function BarcodeScanner({ visible, onClose, onScanned, continuous, onToggleContinuous }: Props) {
     const { t } = useTranslation();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
@@ -36,10 +38,18 @@ export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
     }, [visible]);
 
     const handleBarcodeScanned = ({ data }: { data: string }) => {
-        if (scanned) return;
-        setScanned(true);
+        if (scanned && !continuous) return;
+
         onScanned(data);
-        onClose();
+
+        if (!continuous) {
+            setScanned(true);
+            onClose();
+        } else {
+            // Re-enable scanning after a short delay for continuous mode
+            setScanned(true);
+            setTimeout(() => setScanned(false), 1500);
+        }
     };
 
     if (!permission) {
@@ -89,7 +99,14 @@ export default function BarcodeScanner({ visible, onClose, onScanned }: Props) {
                             </View>
 
                             <View style={styles.footer}>
-                                <Text style={styles.footerText}>{t('scanner.aim')}</Text>
+                                <TouchableOpacity
+                                    style={[styles.continuousToggle, continuous && { backgroundColor: Colors.primary }]}
+                                    onPress={onToggleContinuous}
+                                >
+                                    <Ionicons name={continuous ? "infinite" : "stop-circle-outline"} size={20} color="#fff" />
+                                    <Text style={styles.footerText}>{continuous ? t('scanner.continuous_on') : t('scanner.continuous_off')}</Text>
+                                </TouchableOpacity>
+                                <Text style={[styles.footerText, { marginTop: 8, opacity: 0.8 }]}>{t('scanner.aim')}</Text>
                             </View>
                         </View>
                     </CameraView>
@@ -196,11 +213,22 @@ const styles = StyleSheet.create({
         borderLeftWidth: 0,
         borderTopWidth: 0,
     },
+    continuousToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        marginBottom: Spacing.sm,
+    },
     footer: {
         backgroundColor: 'rgba(0,0,0,0.6)',
         paddingHorizontal: Spacing.lg,
         paddingVertical: Spacing.sm,
         borderRadius: BorderRadius.full,
+        alignItems: 'center',
     },
     footerText: {
         color: '#fff',
