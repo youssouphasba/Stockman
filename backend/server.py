@@ -8905,13 +8905,35 @@ async def export_products_csv(token: str = Query(...)):
     )
 
 @api_router.get("/export/movements/csv")
-async def export_movements_csv(token: str = Query(...)):
+@api_router.get("/export/stock/csv")
+async def export_movements_csv(
+    token: str = Query(...),
+    product_id: Optional[str] = Query(None),
+    days: Optional[int] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None)
+):
     try:
         user_id = get_user_from_token_query(token)
     except Exception:
         raise HTTPException(status_code=401, detail="Non autorisé")
 
-    movements = await db.stock_movements.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    query = {"user_id": user_id}
+    if product_id:
+        query["product_id"] = product_id
+    
+    if days:
+        dt = datetime.now(timezone.utc) - timedelta(days=days)
+        query["created_at"] = {"$gte": dt}
+    elif start_date and end_date:
+        try:
+            s_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+            e_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+            query["created_at"] = {"$gte": s_dt, "$lte": e_dt}
+        except ValueError:
+            pass
+
+    movements = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
     products = await db.products.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
     prod_map = {p["product_id"]: p["name"] for p in products}
 
@@ -8930,10 +8952,11 @@ async def export_movements_csv(token: str = Query(...)):
         ])
 
     output.seek(0)
+    filename = f"mouvements_{product_id[:8] if product_id else 'complet'}.csv"
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=mouvements.csv"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 @api_router.get("/export/accounting/csv")

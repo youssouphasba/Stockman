@@ -272,7 +272,7 @@ export default function ProductsScreen() {
       }
 
       params.set('token', token);
-      const url = `${API_URL}/export/stock/csv?${params.toString()}`;
+      const url = `${API_URL}/api/export/stock/csv?${params.toString()}`;
       Linking.openURL(url);
     } catch (error) {
       console.error(error);
@@ -412,7 +412,7 @@ export default function ProductsScreen() {
       const params = new URLSearchParams();
       if (selectedCategory) params.set('category_id', selectedCategory);
       params.set('token', token);
-      const url = `${API_URL}/export/products/csv?${params.toString()}`;
+      const url = `${API_URL}/api/export/products/csv?${params.toString()}`;
       Linking.openURL(url);
     } catch (error) {
       console.error(error);

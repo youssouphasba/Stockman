@@ -253,7 +253,7 @@ export default function AccountingScreen() {
             params.set('days', selectedPeriod.toString());
         }
         params.set('token', token);
-        Linking.openURL(`${API_URL}/export/accounting/csv?${params.toString()}`);
+        Linking.openURL(`${API_URL}/api/export/accounting/csv?${params.toString()}`);
     };
 
     // Custom invoice
