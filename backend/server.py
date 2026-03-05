@@ -11496,7 +11496,7 @@ from services.payment import (
     create_stripe_session,
     verify_stripe_event,
     verify_revenuecat_webhook,
-    FLUTTERWAVE_CURRENCIES_CURRENCIES,  # alias rétrocompat
+    FLUTTERWAVE_CURRENCIES,  # alias rétrocompat
     FLW_HASH,
 )
 
