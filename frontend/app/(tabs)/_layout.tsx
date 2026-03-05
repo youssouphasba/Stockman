@@ -25,7 +25,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 export default function TabLayout() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { user, hasPermission, isSuperAdmin, hasProduction } = useAuth();
+  const { user, hasPermission, isSuperAdmin, hasProduction, hasProjects } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -52,6 +52,18 @@ export default function TabLayout() {
   const hideOrders = simpleMode || !hasPermission('stock', 'read'); // Orders linked to stock
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = !hasPermission('crm', 'read');
+
+  // Determine products tab title & icon based on business type
+  const productsTabTitle = hasProjects
+    ? t('tabs.projects', 'Chantiers')
+    : hasProduction
+      ? t('tabs.production', 'Production')
+      : t('tabs.products');
+  const productsTabIcon = hasProjects
+    ? 'construct-outline'
+    : hasProduction
+      ? 'flask-outline'
+      : 'cube-outline';
 
   const segments = useSegments();
   const [showGuide, setShowGuide] = useState(false);
@@ -157,10 +169,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="products"
           options={{
-            title: hasProduction ? t('tabs.production', 'Production') : t('tabs.products'),
+            title: productsTabTitle,
             href: hideStock ? null : '/products',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name={hasProduction ? "flask-outline" : "cube-outline"} size={size} color={color} />
+              <Ionicons name={productsTabIcon as any} size={size} color={color} />
             ),
           }}
         />

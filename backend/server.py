@@ -44,8 +44,9 @@ from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
 from services.catalog_service import CatalogService
-from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, is_production_sector
+from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, is_production_sector, PROJECT_SECTORS, is_project_sector
 from services import production_service
+from services import project_service
 try:
     from services.rag_service import RAGService
 except Exception:
@@ -1454,6 +1455,12 @@ def require_permission(module: str, level: str = "read"):
             
         return user
     return permission_checker
+
+def require_read(module: str):
+    return require_permission(module, "read")
+
+def require_write(module: str):
+    return require_permission(module, "write")
 
 async def require_superadmin(user: User = Depends(require_auth)) -> User:
 
@@ -4040,6 +4047,7 @@ async def get_user_features(user: User = Depends(require_auth)):
     sector = normalize_sector(user.business_type or "")
     return {
         "has_production": sector in PRODUCTION_SECTORS,
+        "has_projects": sector in PROJECT_SECTORS,
         "sector": sector,
         "sector_label": BUSINESS_SECTORS.get(sector, {}).get("label", ""),
     }
@@ -4190,6 +4198,169 @@ async def production_dashboard(user: User = Depends(require_auth)):
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     return await production_service.get_production_dashboard(db, user.active_store_id)
+
+
+# ═══════════════════════════════ BTP / CHANTIERS ═══════════════════════════════
+
+class ProjectCreate(BaseModel):
+    name: str
+    client_name: str = ""
+    client_phone: str = ""
+    address: str = ""
+    description: str = ""
+    budget_estimate: float = 0.0
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    client_name: Optional[str] = None
+    client_phone: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    budget_estimate: Optional[float] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+class MaterialAllocation(BaseModel):
+    product_id: str
+    quantity: float
+    corps_metier: str = "autre"
+
+class MaterialReturn(BaseModel):
+    allocation_id: str
+    return_qty: float
+
+class LaborEntry(BaseModel):
+    name: str
+    role: str = ""
+    days: float = 1.0
+    daily_rate: float = 0.0
+    corps_metier: str = "autre"
+
+class SituationCreate(BaseModel):
+    label: str
+    percent: float = 0.0
+    amount: float = 0.0
+    notes: str = ""
+
+
+@api_router.get("/projects")
+async def list_projects(status: Optional[str] = None, user: User = Depends(require_auth)):
+    """Lister les chantiers du magasin actif."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    return await project_service.list_projects(db, user.active_store_id, status)
+
+
+@api_router.post("/projects")
+async def create_project(data: ProjectCreate, user: User = Depends(require_write("products"))):
+    """Créer un nouveau chantier."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    project_data = data.model_dump()
+    project_data["store_id"] = user.active_store_id
+    project_data["created_by"] = user.user_id
+    return await project_service.create_project(db, project_data)
+
+
+@api_router.get("/projects/dashboard")
+async def project_dashboard(user: User = Depends(require_auth)):
+    """KPIs des chantiers."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    return await project_service.get_project_dashboard(db, user.active_store_id)
+
+
+@api_router.get("/projects/{project_id}")
+async def get_project(project_id: str, user: User = Depends(require_auth)):
+    """Récupérer un chantier par ID."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    project = await project_service.get_project(db, project_id, user.active_store_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@api_router.put("/projects/{project_id}")
+async def update_project(project_id: str, data: ProjectUpdate, user: User = Depends(require_write("products"))):
+    """Modifier un chantier."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    project = await project_service.update_project(db, project_id, user.active_store_id, update_data)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@api_router.post("/projects/{project_id}/materials")
+async def allocate_material(project_id: str, data: MaterialAllocation, user: User = Depends(require_write("products"))):
+    """Affecter du matériau du stock vers un chantier."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await project_service.allocate_material(
+            db, project_id, user.active_store_id,
+            data.product_id, data.quantity, data.corps_metier, user.user_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/projects/{project_id}/materials/return")
+async def return_material(project_id: str, data: MaterialReturn, user: User = Depends(require_write("products"))):
+    """Retourner du matériau non utilisé vers le stock."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await project_service.return_material(
+            db, project_id, user.active_store_id,
+            data.allocation_id, data.return_qty, user.user_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/projects/{project_id}/labor")
+async def add_labor(project_id: str, data: LaborEntry, user: User = Depends(require_write("products"))):
+    """Ajouter une entrée de main d'œuvre."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await project_service.add_labor(
+            db, project_id, user.active_store_id,
+            data.name, data.role, data.days, data.daily_rate, data.corps_metier
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/projects/{project_id}/situations")
+async def add_situation(project_id: str, data: SituationCreate, user: User = Depends(require_write("products"))):
+    """Ajouter une situation de travaux (facturation progressive)."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await project_service.add_situation(
+            db, project_id, user.active_store_id,
+            data.label, data.percent, data.amount, data.notes
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.put("/projects/{project_id}/complete")
+async def complete_project(project_id: str, user: User = Depends(require_write("products"))):
+    """Clôturer un chantier."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    try:
+        return await project_service.complete_project(db, project_id, user.active_store_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ===================== ADMIN CATALOGUE GLOBAL =====================

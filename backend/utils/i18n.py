@@ -8,7 +8,23 @@ logger = logging.getLogger(__name__)
 class TranslationHelper:
     _instance = None
     _translations: Dict[str, Dict[str, Any]] = {}
-    _locales_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "locales")
+    
+    @property
+    def _locales_path(self):
+        # Try multiple potential locations for locales
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        candidates = [
+            os.path.join(base_dir, "frontend", "locales"),
+            os.path.join(os.path.dirname(base_dir), "frontend", "locales"), # If backend is nested
+            os.path.join(base_dir, "locales"), # If copied into backend
+            "/frontend/locales", # Docker absolute path (mapped volume)
+            "./locales" # Relative to CWD
+        ]
+        
+        for path in candidates:
+            if os.path.exists(path) and os.path.isdir(path):
+                return path
+        return candidates[0] # Default to original if none found (will trigger error log)
 
     def __new__(cls):
         if cls._instance is None:
@@ -18,8 +34,9 @@ class TranslationHelper:
 
     def _load_translations(self):
         """Load all JSON translation files from the frontend locales directory."""
-        if not os.path.exists(self._locales_path):
-            logger.error(f"Locales path not found: {self._locales_path}")
+        path = self._locales_path
+        if not os.path.exists(path):
+            logger.warning(f"Locales path not found: {path} (using empty translations)")
             return
 
         for filename in os.listdir(self._locales_path):

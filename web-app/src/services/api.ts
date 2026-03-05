@@ -115,6 +115,125 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return response.json();
 }
 
+// ─── Shared Types ───
+
+export type UserFeatures = {
+    has_production: boolean;
+    has_projects: boolean;
+    sector: string;
+    sector_label: string;
+};
+
+// ─── Production Types ───
+
+export type RecipeMaterial = {
+    product_id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    loss_percent: number;
+    cost_at_creation: number;
+};
+
+export type Recipe = {
+    recipe_id: string;
+    name: string;
+    description: string;
+    output_product_id: string;
+    output_name: string;
+    output_quantity: number;
+    unit: string;
+    materials: RecipeMaterial[];
+    labor_cost: number;
+    overhead_cost: number;
+    total_cost: number;
+    suggested_price: number;
+    created_at: string;
+};
+
+export type ProductionOrder = {
+    order_id: string;
+    recipe_id: string;
+    recipe_name: string;
+    quantity: number;
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    started_at?: string;
+    completed_at?: string;
+    actual_output?: number;
+    notes?: string;
+    created_at: string;
+};
+
+export type ProductionDashboard = {
+    pending_orders: number;
+    completed_today: number;
+    total_value_month: number;
+    top_recipes: { name: string; count: number }[];
+};
+
+// ─── BTP / Projects Types ───
+
+export type ProjectMaterial = {
+    allocation_id: string;
+    product_id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    unit_cost: number;
+    total_cost: number;
+    corps_metier: string;
+    allocated_at: string;
+};
+
+export type ProjectLabor = {
+    labor_id: string;
+    name: string;
+    role: string;
+    days: number;
+    daily_rate: number;
+    total: number;
+    corps_metier: string;
+    added_at: string;
+};
+
+export type ProjectSituation = {
+    situation_id: string;
+    label: string;
+    percent: number;
+    amount: number;
+    notes: string;
+    paid: boolean;
+    date: string;
+};
+
+export type Project = {
+    project_id: string;
+    name: string;
+    client_name: string;
+    client_phone: string;
+    address: string;
+    description: string;
+    status: 'devis' | 'en_cours' | 'termine' | 'facture';
+    budget_estimate: number;
+    actual_cost: number;
+    start_date?: string;
+    end_date?: string;
+    materials_allocated: ProjectMaterial[];
+    labor_entries: ProjectLabor[];
+    situations: ProjectSituation[];
+    notes: string;
+    created_at: string;
+};
+
+export type ProjectDashboard = {
+    active_projects: number;
+    completed_month: number;
+    total_budget: number;
+    total_actual: number;
+    total_invoiced: number;
+    margin_percent: number;
+};
+
 // Ported services (Subset for the MVP)
 export const auth = {
     login: (email: string, password: string) =>
@@ -165,6 +284,40 @@ export const locations = {
     create: (data: { name: string; type: string }) => request<any>('/locations', { method: 'POST', body: data }),
     update: (id: string, data: { name: string; type: string }) => request<any>(`/locations/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/locations/${id}`, { method: 'DELETE' }),
+};
+
+export const userFeatures = {
+    get: () => request<UserFeatures>('/user_features'),
+};
+
+export const production = {
+    recipes: {
+        list: () => request<Recipe[]>('/production/recipes'),
+        get: (id: string) => request<Recipe>(`/production/recipes/${id}`),
+        create: (data: any) => request<Recipe>('/production/recipes', { method: 'POST', body: data }),
+    },
+    orders: {
+        list: (status?: string) => request<ProductionOrder[]>(`/production/orders${status ? `?status=${status}` : ''}`),
+        create: (data: { recipe_id: string; quantity: number; notes?: string }) =>
+            request<ProductionOrder>('/production/orders', { method: 'POST', body: data }),
+        updateStatus: (id: string, status: string, actualOutput?: number) =>
+            request<ProductionOrder>(`/production/orders/${id}/status`, { method: 'PUT', body: { status, actual_output: actualOutput } }),
+    },
+    dashboard: () => request<ProductionDashboard>('/production/dashboard'),
+};
+
+export const projects = {
+    list: (status?: string) => request<Project[]>(`/projects${status ? `?status=${status}` : ''}`),
+    get: (id: string) => request<Project>(`/projects/${id}`),
+    create: (data: any) => request<Project>('/projects', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<Project>(`/projects/${id}`, { method: 'PUT', body: data }),
+    allocateMaterial: (projectId: string, data: { product_id: string; quantity: number; corps_metier?: string }) =>
+        request<Project>(`/projects/${projectId}/materials`, { method: 'POST', body: data }),
+    addLabor: (projectId: string, data: { name: string; role: string; days: number; daily_rate: number; corps_metier?: string }) =>
+        request<Project>(`/projects/${projectId}/labor`, { method: 'POST', body: data }),
+    addSituation: (projectId: string, data: { label: string; percent: number; amount: number; notes?: string }) =>
+        request<Project>(`/projects/${projectId}/situations`, { method: 'POST', body: data }),
+    dashboard: () => request<ProjectDashboard>('/projects/dashboard'),
 };
 
 export const dashboard = {

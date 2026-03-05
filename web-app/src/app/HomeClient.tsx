@@ -23,9 +23,11 @@ import AbcAnalysis from "../components/AbcAnalysis";
 import InventoryCounting from "../components/InventoryCounting";
 import ExpiryAlerts from "../components/ExpiryAlerts";
 import MultiStoreDashboard from "../components/MultiStoreDashboard";
+import ProjectView from "../components/ProjectView";
+import ProductionView from "../components/ProductionView";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
-import { auth, chat as chatApi, ApiError } from "../services/api";
+import { auth, userFeatures, chat as chatApi, ApiError } from "../services/api";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 
@@ -36,6 +38,7 @@ export default function Home() {
   const [email, setEmail] = useState('demo@stockman.pro');
   const [password, setPassword] = useState('password123');
   const [user, setUser] = useState<any>(null);
+  const [features, setFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -65,8 +68,10 @@ export default function Home() {
       import('../services/api').then(({ settings: settingsApi }) => {
         settingsApi.get().then((s: any) => {
           if (s?.currency) localStorage.setItem('user_currency', s.currency);
-        }).catch(() => {});
+        }).catch(() => { });
       });
+      // Load features
+      userFeatures.get().then(setFeatures).catch(() => { });
     } catch (err) {
       localStorage.removeItem('auth_token');
       setIsLogged(false);
@@ -98,6 +103,8 @@ export default function Home() {
       localStorage.setItem('auth_token', response.access_token);
       setUser(response.user);
       setIsLogged(true);
+      // Load features after successful login
+      userFeatures.get().then(setFeatures).catch(() => { });
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : "Erreur d'authentification");
     } finally {
@@ -432,6 +439,7 @@ export default function Home() {
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
           user={user}
+          features={features || undefined}
           isMobileOpen={isSidebarOpen}
           onMobileClose={() => setIsSidebarOpen(false)}
           onOpenChat={() => setIsChatOpen(true)}
@@ -474,6 +482,8 @@ export default function Home() {
             {activeTab === 'inventory_counting' && <InventoryCounting />}
             {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
             {activeTab === 'subscription' && <Subscription />}
+            {activeTab === 'production' && <ProductionView />}
+            {activeTab === 'projects' && <ProjectView />}
             {activeTab === 'admin' && <AdminDashboard />}
             {activeTab === 'supplier_portal' && <SupplierPortal />}
             {activeTab === 'settings' && <Settings />}

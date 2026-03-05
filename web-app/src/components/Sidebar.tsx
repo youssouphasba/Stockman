@@ -25,6 +25,8 @@ import {
     UserCheck,
     RefreshCcw,
     Store,
+    Factory,
+    Hammer,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,6 +39,10 @@ interface SidebarProps {
     onMobileClose: () => void;
     onOpenChat: () => void;
     unreadMessages?: number;
+    features?: {
+        has_production: boolean;
+        has_projects: boolean;
+    };
 }
 
 type SidebarItem = {
@@ -71,6 +77,7 @@ export default function Sidebar({
     onMobileClose,
     onOpenChat,
     unreadMessages = 0,
+    features,
 }: SidebarProps) {
     const { t } = useTranslation();
 
@@ -78,6 +85,13 @@ export default function Sidebar({
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
+        // Dynamic modules based on features
+        ...(features?.has_projects ? [
+            { id: 'projects', icon: Hammer, label: t('tabs.projects'), roles: ['shopkeeper', 'staff', 'admin'] }
+        ] : []),
+        ...(features?.has_production ? [
+            { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'] }
+        ] : []),
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
         {
@@ -226,8 +240,8 @@ export default function Sidebar({
                 <button
                     onClick={() => toggleGroup(group.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${hasActiveChild
-                            ? 'text-primary'
-                            : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                        ? 'text-primary'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
                         }`}
                 >
                     <GroupIcon

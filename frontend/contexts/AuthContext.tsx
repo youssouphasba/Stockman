@@ -28,6 +28,7 @@ type AuthState = {
   toggleBiometrics: (enabled: boolean) => Promise<void>;
   togglePin: (enabled: boolean) => Promise<void>;
   hasProduction: boolean;
+  hasProjects: boolean;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isPinSet, setIsPinSet] = useState(false);
   const [isBiometricsEnabled, setIsBiometricsEnabled] = useState(false);
   const [hasProduction, setHasProduction] = useState(false);
+  const [hasProjects, setHasProjects] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -80,7 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await authApi.me();
         setUser(userData);
         // Detect production mode
-        userFeatures.get().then(f => setHasProduction(f.has_production)).catch(() => { });
+        userFeatures.get().then(f => {
+          setHasProduction(f.has_production);
+          setHasProjects(f.has_projects);
+        }).catch(() => { });
         if (Platform.OS !== 'web') {
           initPurchases(userData.user_id).catch(console.warn);
         }
@@ -226,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toggleBiometrics,
         togglePin,
         hasProduction,
+        hasProjects,
       }}
     >
       {children}
