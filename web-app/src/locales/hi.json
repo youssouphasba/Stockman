@@ -1943,7 +1943,7 @@
     "activated_success": "आपकी सदस्यता सफलतापूर्वक सक्रिय हो गई है!",
     "active": "सक्रिय",
     "choose_plan": "{{plan}} चुनें",
-    "cinetpay_init_error": "Mobile Money भुगतान आरंभ करने में असमर्थ। पुनः प्रयास करें।",
+    "_init_error": "Mobile Money भुगतान आरंभ करने में असमर्थ। पुनः प्रयास करें।",
     "compare_plans": "योजनाओं की तुलना करें",
     "features": {
       "products": "उत्पाद और आइटम",

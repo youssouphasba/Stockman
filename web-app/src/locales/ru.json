@@ -1888,7 +1888,7 @@
     "activated_success": "Ваша подписка успешно активирована!",
     "active": "Активна",
     "choose_plan": "Выбрать {{plan}}",
-    "cinetpay_init_error": "Не удалось инициировать платёж Mobile Money. Повторите попытку.",
+    "_init_error": "Не удалось инициировать платёж Mobile Money. Повторите попытку.",
     "compare_plans": "Сравнение тарифов",
     "features": {
       "products": "Товары и артикулы",

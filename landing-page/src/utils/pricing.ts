@@ -9,7 +9,6 @@ export interface RegionPricing {
     starter: string;    // montant formaté
     pro: string;
     enterprise: string;
-    useMobileMoney: boolean;  // true → CinetPay, false → Stripe
 }
 
 // ─── Prix par région ─────────────────────────────────────────────────────────
@@ -22,7 +21,6 @@ export const REGION_PRICING: Record<Region, RegionPricing> = {
         starter: '2 500',
         pro: '4 900',
         enterprise: '9 900',
-        useMobileMoney: true,
     },
     africa_xaf: {
         region: 'africa_xaf',
@@ -31,7 +29,6 @@ export const REGION_PRICING: Record<Region, RegionPricing> = {
         starter: '2 500',
         pro: '4 900',
         enterprise: '9 900',
-        useMobileMoney: true,
     },
     europe: {
         region: 'europe',
@@ -40,7 +37,6 @@ export const REGION_PRICING: Record<Region, RegionPricing> = {
         starter: '6,99',
         pro: '9,99',
         enterprise: '14,99',
-        useMobileMoney: false,
     },
     global: {
         region: 'global',
@@ -49,7 +45,6 @@ export const REGION_PRICING: Record<Region, RegionPricing> = {
         starter: '6.99',
         pro: '9.99',
         enterprise: '14.99',
-        useMobileMoney: false,
     },
 };
 
@@ -76,7 +71,7 @@ const XAF_TIMEZONES = new Set([
     'Africa/Bangui',       // Centrafrique
     'Africa/Ndjamena',     // Tchad
     'Africa/Malabo',       // Guinée Équatoriale
-    'Africa/Conakry',      // Guinée (GNF, mais CinetPay opère ici)
+    'Africa/Conakry',      // Guinée (GNF)
     'Africa/Freetown',     // Sierra Leone
     'Africa/Monrovia',     // Liberia
 ]);

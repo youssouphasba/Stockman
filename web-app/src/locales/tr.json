@@ -1924,7 +1924,7 @@
     "activated_success": "Aboneliğiniz başarıyla etkinleştirildi!",
     "active": "Aktif",
     "choose_plan": "{{plan}} seç",
-    "cinetpay_init_error": "Mobile Money ödemesi başlatılamadı. Tekrar deneyin.",
+    "_init_error": "Mobile Money ödemesi başlatılamadı. Tekrar deneyin.",
     "compare_plans": "Planları karşılaştır",
     "features": {
       "products": "Ürünler ve makaleler",

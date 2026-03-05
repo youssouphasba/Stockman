@@ -116,7 +116,6 @@
 - [x] Middleware users : `POST /sub-users` limité — starter: 1, pro: 5, enterprise: illimité
 - [x] `check_ai_limit` : pro + enterprise = illimité (comme premium)
 - [ ] Webhook RevenueCat : mapper product IDs → `starter` / `pro` / `enterprise` (nécessite les IDs RevenueCat)
-- [ ] Webhook CinetPay : idem
 - [x] Migration users existants : `plan: 'premium'` → `'starter'` ou `'pro'` selon usage (`migrate_premium_plans.py`)
 
 ### Implémentation Frontend Web

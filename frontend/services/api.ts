@@ -1898,7 +1898,7 @@ export type SubscriptionData = {
   status: 'active' | 'expired' | 'cancelled';
   trial_ends_at: string;
   subscription_end?: string;
-  subscription_provider: 'none' | 'revenuecat' | 'cinetpay';
+  subscription_provider: 'none' | 'revenuecat' | '';
   remaining_days: number;
   is_trial: boolean;
 };

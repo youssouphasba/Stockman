@@ -10,7 +10,7 @@ import stripe as stripe_lib
 
 logger = logging.getLogger(__name__)
 
-# Flutterwave configuration (remplace CinetPay — pas besoin de société africaine)
+# Flutterwave configuration (pas besoin de société africaine)
 FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
 FLW_HASH = os.environ.get("FLW_HASH", "")  # webhook verification hash
 BASE_URL = os.environ.get("API_URL", "https://stockman-production-149d.up.railway.app")
@@ -31,8 +31,6 @@ REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 
 # Devises gérées par Flutterwave Mobile Money (Afrique de l'Ouest/Centre)
 FLUTTERWAVE_CURRENCIES = {"XOF", "XAF", "GNF", "CDF"}
-# Alias rétrocompat
-CINETPAY_CURRENCIES = FLUTTERWAVE_CURRENCIES
 
 # Pricing (per month, after 3-month free trial)
 # XOF/XAF = FCFA Flutterwave | EUR in cents for Stripe
@@ -110,12 +108,7 @@ async def verify_flutterwave_transaction(transaction_id: str) -> dict:
         return resp.json()
 
 
-# Alias rétrocompat (pour ne pas casser d'autres imports éventuels)
-async def create_cinetpay_session(user: dict, plan: str = "pro") -> dict:
-    return await create_flutterwave_session(user, plan)
 
-async def verify_cinetpay_transaction(transaction_id: str) -> dict:
-    return await verify_flutterwave_transaction(transaction_id)
 
 
 # ─── Stripe ──────────────────────────────────────────────────────────────────

@@ -1,567 +1,567 @@
 {
-  "nav": {
-    "features": "功能",
-    "resources": "资源",
-    "blog": "博客",
-    "home": "首页",
-    "login": "登录",
-    "free_trial": "免费试用"
-  },
-  "hero": {
-    "title_start": "释放您的",
-    "title_end": "商业潜力",
-    "subtitle": "基于人工智能的智能库存管理解决方案，通过自动订货实现利润最大化。",
-    "cta": "立即开始"
-  },
-  "stats": {
-    "shops": "已赋能店铺",
-    "transactions": "每月交易量",
-    "satisfaction": "满意客户",
-    "support": "全天候支持"
-  },
-  "features": {
-    "title": "您的日常工具",
-    "subtitle": "管理业务方方面面的全套工具包。",
-    "dashboard": {
-      "title": "控制面板",
-      "desc": "业务概览、关键库存警报以及快速访问人工智能助手。"
+    "nav": {
+        "features": "功能",
+        "resources": "资源",
+        "blog": "博客",
+        "home": "首页",
+        "login": "登录",
+        "free_trial": "免费试用"
     },
-    "products": {
-      "title": "产品",
-      "desc": "库存管理、条形码扫描、分类整理和库存估值。"
+    "hero": {
+        "title_start": "释放您的",
+        "title_end": "商业潜力",
+        "subtitle": "基于人工智能的智能库存管理解决方案，通过自动订货实现利润最大化。",
+        "cta": "立即开始"
     },
-    "pos": {
-      "title": "收银系统",
-      "desc": "快速结账、生成电子收据并实时更新库存。"
+    "stats": {
+        "shops": "已赋能店铺",
+        "transactions": "每月交易量",
+        "satisfaction": "满意客户",
+        "support": "全天候支持"
     },
-    "suppliers": {
-      "title": "供应商",
-      "desc": "供应商名录、订货历史以及访问采购市场。"
+    "features": {
+        "title": "您的日常工具",
+        "subtitle": "管理业务方方面面的全套工具包。",
+        "dashboard": {
+            "title": "控制面板",
+            "desc": "业务概览、关键库存警报以及快速访问人工智能助手。"
+        },
+        "products": {
+            "title": "产品",
+            "desc": "库存管理、条形码扫描、分类整理和库存估值。"
+        },
+        "pos": {
+            "title": "收银系统",
+            "desc": "快速结账、生成电子收据并实时更新库存。"
+        },
+        "suppliers": {
+            "title": "供应商",
+            "desc": "供应商名录、订货历史以及访问采购市场。"
+        },
+        "orders": {
+            "title": "订单",
+            "desc": "跟踪采购订单、接收入库并自动更新库存。"
+        },
+        "accounting": {
+            "title": "会计",
+            "desc": "精准跟踪销售、支出，并自动计算利润。"
+        },
+        "clients": {
+            "title": "客户",
+            "desc": "客户数据库、购买历史和集成会员工具。"
+        },
+        "settings": {
+            "title": "设置",
+            "desc": "应用自定义、用户管理和店铺配置。"
+        }
     },
-    "orders": {
-      "title": "订单",
-      "desc": "跟踪采购订单、接收入库并自动更新库存。"
+    "showcase": {
+        "title": "改变一切的界面",
+        "subtitle": "简洁的设计，旨在为您节省时间。",
+        "app_interface": "应用界面"
     },
-    "accounting": {
-      "title": "会计",
-      "desc": "精准跟踪销售、支出，并自动计算利润。"
+    "how_it_works": {
+        "title": "快速开始",
+        "subtitle": "三个简单步骤，让您的店铺焕然一新。",
+        "step1": {
+            "title": "创建账户",
+            "desc": "下载应用并在2分钟内完成店铺配置。"
+        },
+        "step2": {
+            "title": "扫描商品",
+            "desc": "使用手机摄像头快速添加库存商品。"
+        },
+        "step3": {
+            "title": "销售与跟踪",
+            "desc": "完成首张订单，实时观察您的业务增长。"
+        }
     },
-    "clients": {
-      "title": "客户",
-      "desc": "客户数据库、购买历史和集成会员工具。"
+    "testimonials": {
+        "title": "客户信任",
+        "subtitle": "了解 Stockman 如何每天帮助商户。",
+        "t1": "自从使用 Stockman 以来，我再也没有因为缺货而损失金钱。人工智能总是在正确的时间提醒我！",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2": "这款应用非常简单。我的员工在 10 分钟内就学会了。收银管理非常完美。",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3": "我非常喜欢采购市场！我可以比较供应商的价格并直接下单。节省了大量时间。",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
-    "settings": {
-      "title": "设置",
-      "desc": "应用自定义、用户管理和店铺配置。"
+    "pricing": {
+        "title": "选择您的方案",
+        "subtitle": "透明的价格，适配您的业务规模。",
+        "month": "/月",
+        "popular": "最受欢迎",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 用户",
+            "f2": "1 店铺",
+            "f3": "完整功能访问",
+            "f4": "3个月免费试用",
+            "cta": "立即开始"
+        },
+        "business": {
+            "name": "Pro",
+            "f1": "最多5个用户",
+            "f2": "2个店铺",
+            "f3": "完整功能访问",
+            "f4": "Marketplace Bouton-à-Bouton",
+            "f5": "3个月免费试用",
+            "cta": "14天免费试用"
+        },
+        "enterprise": {
+            "name": "企业版",
+            "price": "定制报价",
+            "f1": "无限制用户",
+            "f2": "多店管理系统",
+            "f3": "API 与系统集成",
+            "f4": "24/7 专属支持",
+            "cta": "联系我们"
+        }
+    },
+    "faq": {
+        "title": "常见问题",
+        "q1": "离线状态下可以使用吗？",
+        "a1": "是的，Stockman 支持离线作业。当网络恢复时，数据会自动同步。",
+        "q2": "我的数据安全吗？",
+        "a2": "当然。我们使用银行级加密技术保护您的所有商业信息。"
+    },
+    "download": {
+        "title": "准备好升级了吗？",
+        "subtitle": "加入数千名优化管理的现代商户行列。",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "安全支付",
+        "support": "专业支持",
+        "updates": "持续更新"
+    },
+    "footer": {
+        "desc": "为非洲现代商户提供的一站式解决方案。",
+        "product": "产品",
+        "support": "客服",
+        "legal": "法律",
+        "help_center": "帮助中心",
+        "contact": "联系我们",
+        "community": "社区",
+        "privacy": "隐私政策",
+        "terms": "服务条款",
+        "delete_account": "Supprimer mon compte",
+        "legal_notice": "法律声明",
+        "copyright": "© 2026 Stockman. 保留所有权利。"
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
+    },
+    "newsletter": {
+        "title": "成为库存管理专家",
+        "desc": "加入 5000+ 商户，获取免费指南：《扼杀利润的 10 个错误》。",
+        "success": "谢谢！请检查您的收件箱。",
+        "placeholder": "您的邮箱...",
+        "cta": "获取指南",
+        "privacy": "拒绝骚扰。可随时一键退订。"
+    },
+    "contact": {
+        "title": "联系我们",
+        "subtitle": "有问题？寻求合作？写信给我们。",
+        "name": "您的姓名",
+        "email": "您的邮箱",
+        "message": "您的留言",
+        "submit": "提交",
+        "success_title": "消息已发送！",
+        "success_desc": "我们的团队将在 24 小时内回复。",
+        "send_another": "发送另一条"
+    },
+    "whatsapp": {
+        "message": "您好，我想了解更多关于 Stockman 的信息！"
+    },
+    "cookie": {
+        "message": "我们使用 Cookie 来改善您的体验。继续浏览即表示您接受我们的隐私政策。",
+        "accept": "接受"
+    },
+    "comparison": {
+        "title": "为什么选择 Stockman？",
+        "feature": "功能点",
+        "notebook": "账本 / Excel 📝",
+        "stock_mgmt": "库存管理",
+        "stock_yes": "✅ 自动 & 实时",
+        "stock_no": "❌ 手动 & 易错",
+        "alerts": "缺货警报",
+        "alerts_yes": "✅ 智能通知",
+        "alerts_no": "❌ 无",
+        "pos": "收银点 (POS)",
+        "pos_yes": "✅ 内置 & 高速",
+        "pos_no": "❌ 独立计算器",
+        "backup": "数据备份",
+        "backup_yes": "✅ 安全云端",
+        "backup_no": "❌ 丢失风险（失窃、火灾）",
+        "financial": "财务报告",
+        "financial_yes": "✅ 一键生成（损益、毛利）",
+        "financial_no": "❌ 冗长乏味的计算",
+        "marketplace": "采购市场",
+        "marketplace_yes": "✅ 直连供应商",
+        "marketplace_no": "❌ 线下寻找"
+    },
+    "feature_pages": {
+        "back_home": "返回首页",
+        "why_use": "为什么要使用 {{title}}？",
+        "discover_interface": "详细了解界面",
+        "cta_title": "准备好优化您的管理了吗？",
+        "cta_button": "开始免费试用",
+        "dashboard": {
+            "title": "控制面板",
+            "subtitle": "业务细节，一目了然",
+            "description": "控制面板是您的指挥塔。它不仅显示数字，还为您提供商业健康状况的清晰视图。通过人工智能集成，它实时分析销售情况，识别增长机会和风险（缺货、超额积压）。这是您做出重要决策的地方。",
+            "f1_title": "实时统计",
+            "f1_desc": "秒级跟踪您的收入、利润和销售次数。",
+            "f2_title": "智能警报",
+            "f2_desc": "立即获得关于缺货商品或即将到期商品的通知。",
+            "f3_title": "人工智能助手",
+            "f3_desc": "直接在首页向您的业务助手提问，获取即时分析。",
+            "gallery": {
+                "kpi": {
+                    "image": "/assets/screenshots/dashboard-kpi.jpg",
+                    "title": "概览与关键指标",
+                    "description": "打开应用即可实时监控您的关键绩效指标。"
+                },
+                "stats": {
+                    "image": "/assets/screenshots/dashboard-stats.jpg",
+                    "title": "全局统计",
+                    "description": "一目了然地查看您的收入、利润和销售趋势。"
+                },
+                "charts": {
+                    "image": "/assets/screenshots/dashboard-sales-chart.jpg",
+                    "title": "性能图表",
+                    "description": "跟踪库存价值的演变并分析销售高峰。"
+                },
+                "analysis": {
+                    "image": "/assets/screenshots/dashboard-analysis.jpg",
+                    "title": "ABC 分析与补货",
+                    "description": "识别利润最高的产品并接收订货建议。"
+                },
+                "history": {
+                    "image": "/assets/screenshots/dashboard-history.jpg",
+                    "title": "变动历史",
+                    "description": "记录每一次库存的出入库，实现完整可追溯。"
+                }
+            }
+        },
+        "products": {
+            "title": "产品管理",
+            "subtitle": "库存管理，井井有条",
+            "description": "专业但不复杂的库存管理。无论您有 10 件还是 10,000 件商品，Stockman 都能帮您精准管理。内置条码扫描器可将您的手机变成超快速的盘点终端。",
+            "f1_title": "条码扫描",
+            "f1_desc": "使用手机摄像头快速添加商品或进行盘点。",
+            "f2_title": "灵活分类",
+            "f2_desc": "创建类别、品牌和属性，构建清晰的商品目录。",
+            "f3_title": "库存估值",
+            "f3_desc": "随时掌握库存总成本和销售总价值。",
+            "gallery": {
+                "list": {
+                    "image": "/assets/screenshots/products-list.jpg",
+                    "title": "产品列表",
+                    "description": "通过搜索和高级筛选快速访问您的完整目录。"
+                },
+                "create": {
+                    "image": "/assets/screenshots/products-create-1.jpg",
+                    "title": "简单创建",
+                    "description": "数秒内即可添加包含核心信息的商品。"
+                },
+                "variants": {
+                    "image": "/assets/screenshots/products-create-2.jpg",
+                    "title": "细节与多属性",
+                    "description": "管理每个变体的尺寸、颜色和特定价格。"
+                },
+                "thresholds": {
+                    "image": "/assets/screenshots/products-create-3.jpg",
+                    "title": "库存门槛",
+                    "description": "设置低库存通知，确保业务从不中断。"
+                }
+            }
+        },
+        "pos": {
+            "title": "收银系统",
+            "subtitle": "轻松处理客户结账",
+            "description": "提供流畅、现代的结账体验。我们的触屏 POS 为速度而生：数秒内即可添加商品、管理折扣并处理多种支付方式。",
+            "f1_title": "快速购物车",
+            "f1_desc": "触屏优化的界面，闪电般添加商品到购物车。",
+            "f2_title": "电子收据",
+            "f2_desc": "通过 WhatsApp、短信或邮件直接发送收据给客户。",
+            "f3_title": "多样化支付",
+            "f3_desc": "接受现金、移动支付或刷卡，并在系统中清晰记录。",
+            "gallery": {
+                "sale": {
+                    "image": "/assets/screenshots/pos-overview.jpg",
+                    "title": "销售界面",
+                    "description": "无缝管理商品、数量和折扣。"
+                },
+                "receipt": {
+                    "image": "/assets/screenshots/pos-receipt-qr.jpg",
+                    "title": "收据与二维码",
+                    "description": "为您的客户生成即时收据二维码，方便扫描。"
+                }
+            }
+        },
+        "suppliers": {
+            "title": "供应商与市场",
+            "subtitle": "采购流程，从此简化",
+            "description": "将采购转化为竞争优势。Stockman 集中管理供应商，并为您开启专属采购市场的大门。实时比价，直接下单。",
+            "f1_title": "供应商名录",
+            "f1_desc": "集中管理所有供应商的联系方式及交易历史。",
+            "f2_title": "自动订货",
+            "f2_desc": "根据库存需求，一键生成采购订单。",
+            "f3_title": "价格对比",
+            "f3_desc": "通过内置比价工具，为每件商品寻找最便宜的供应商。",
+            "gallery": {
+                "marketplace": {
+                    "image": "/assets/screenshots/suppliers-marketplace.jpg",
+                    "title": "内置采购市场",
+                    "description": "访问广阔的认证供应商网络，获取最优价格。"
+                },
+                "catalog": {
+                    "image": "/assets/screenshots/suppliers-details-catalog.jpg",
+                    "title": "供应商目录",
+                    "description": "浏览各个供应商的可用商品及其贸易条款。"
+                },
+                "order": {
+                    "image": "/assets/screenshots/suppliers-order-creation.jpg",
+                    "title": "下达订单",
+                    "description": "点击几次即可创建并发送补货订单。"
+                }
+            }
+        },
+        "orders": {
+            "title": "订单跟踪",
+            "subtitle": "从订货到入库",
+            "description": "全面掌控供应。从下达采购订单到入店接收，全程跟踪。入库时库存自动更新。",
+            "f1_title": "状态跟踪",
+            "f1_desc": "实时查看每个订单的状态：待处理、已发货、已接收或已取消。",
+            "f2_title": "轻松接收",
+            "f2_desc": "确认货物到达，系统自动增加对应库存。",
+            "f3_title": "完整历史",
+            "f3_desc": "快速找回历史订单，简化复购流程。",
+            "gallery": {
+                "tracking": {
+                    "image": "/assets/screenshots/orders-tracking.jpg",
+                    "title": "实时动态",
+                    "description": "跟踪每个供应商订单的进库进度。"
+                }
+            }
+        },
+        "accounting": {
+            "title": "精细会计",
+            "subtitle": "财务状况，尽在掌握",
+            "description": "会计系统自动化运行。每笔销售、每项支出都会自动记录。跟踪现金流，一键生成损益表。",
+            "f1_title": "损益报表",
+            "f1_desc": "自主选择时间段，查看收入、成本和净利润。",
+            "f2_title": "支出管理",
+            "f2_desc": "记录您的租金、水电、工资等各项开支，实现精准盈利计算。",
+            "f3_title": "数据导出",
+            "f3_desc": "下载会计数据用于税务申报或个人存档。",
+            "gallery": {
+                "overview": {
+                    "image": "/assets/screenshots/accounting-overview.jpg",
+                    "title": "全局财务视图",
+                    "description": "通过精准的指标分析您的盈利能力。"
+                },
+                "expenses": {
+                    "image": "/assets/screenshots/accounting-expense-create.jpg",
+                    "title": "费用管理",
+                    "description": "轻松添加固定成本和变动成本。"
+                },
+                "reports": {
+                    "image": "/assets/screenshots/accounting-details-charts.jpg",
+                    "title": "报表与图表",
+                    "description": "可视化您的财务随时间的变化趋势。"
+                }
+            }
+        },
+        "clients": {
+            "title": "客户管理 (CRM)",
+            "subtitle": "培养忠诚客户",
+            "description": "将散客转化为老客户。内置 CRM 记录每一次互动和购买历史。管理赊账，从此不再丢失任何一笔款项。",
+            "f1_title": "客户档案",
+            "f1_desc": "每个客户的完整历史记录、联系方式和偏好。",
+            "f2_title": "赊账管理",
+            "f2_desc": "跟踪客户欠款，清晰知道谁欠你多少钱。",
+            "f3_title": "营销推广",
+            "f3_desc": "直接通过 WhatsApp 发送定向促销信息。",
+            "gallery": {
+                "details": {
+                    "image": "/assets/screenshots/clients-details.jpg",
+                    "title": "详细客户资料",
+                    "description": "所有客户信息、购买记录及信用余额。"
+                },
+                "campaigns": {
+                    "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
+                    "title": "消息营销",
+                    "description": "为特定客户群创建并发送促销活动。"
+                }
+            }
+        },
+        "settings": {
+            "title": "系统设置",
+            "subtitle": "随心定制您的 Stockman",
+            "description": "配置 Stockman 以适应您的组织：管理员工权限、添加新店并获取快速支持。",
+            "f1_title": "团队管理",
+            "f1_desc": "为员工创建账户并定义其操作权限（销售、经理、管理员）。",
+            "f2_title": "多店模式",
+            "f2_desc": "从单一管理员账户添加并管理多个分店。",
+            "f3_title": "个性化",
+            "f3_desc": "更改应用的货币、语言和显示偏好。",
+            "gallery": {
+                "team": {
+                    "image": "/assets/screenshots/settings-employees.jpg",
+                    "title": "人员管理",
+                    "description": "管理您的员工及其角色和权限。"
+                },
+                "notifications": {
+                    "image": "/assets/screenshots/settings-notifications.jpg",
+                    "title": "通知中心",
+                    "description": "配置库存警报和重要提醒。"
+                },
+                "security": {
+                    "image": "/assets/screenshots/settings-support-security.jpg",
+                    "title": "支持与安全",
+                    "description": "访问在线帮助并保护您的账户安全。"
+                },
+                "guide": {
+                    "image": "/assets/screenshots/settings-guide.jpg",
+                    "title": "完整指南",
+                    "description": "学习掌握 Stockman 的所有功能。"
+                }
+            }
+        }
+    },
+    "about": {
+        "seo_title": "关于我们",
+        "seo_desc": "了解 Stockman 背后的团队及其数字化非洲商业的使命。",
+        "home": "首页",
+        "mission_start": "我们的使命：",
+        "mission_highlight": "数字化非洲",
+        "mission_desc": "我们相信无论规模大小，每一位商户都值得拥有最好的成功工具。Stockman 不仅仅是一款软件——它是您的增长伙伴。",
+        "team_title": "团队成员",
+        "team_subtitle": "致力于服务创业者的热忱之心。",
+        "member1_image": "👨🏿‍💼",
+        "member1_name": "Jean-Marc Koffi",
+        "member1_role": "CEO & 联合创始人",
+        "member1_bio": "曾担任商户，他创建 Stockman 是为了解决自己遇到的管理难题。",
+        "member2_image": "👩🏾‍💻",
+        "member2_name": "Awa Diop",
+        "member2_role": "CTO & 技术负责人",
+        "member2_bio": "一位对非洲人工智能和数字无障碍充满激情的工程师。",
+        "member3_image": "🎧",
+        "member3_name": "David N'Guessan",
+        "member3_role": "支持经理",
+        "member3_bio": "始终倾听客户需求，助力用户达成商业目标。",
+        "values_title": "核心价值",
+        "value1_title": "🔍 设计至简",
+        "value1_desc": "技术应当惠及每一个人，无需复杂的培训。",
+        "value2_title": "🤝 深度联结",
+        "value2_desc": "我们立足本土——深知您所面临的现实挑战。",
+        "value3_title": "🚀 持续创新",
+        "value3_desc": "感谢您的反馈，让我们每天都在不断进化。"
+    },
+    "blog": {
+        "seo_title": "博客与资源",
+        "seo_desc": "管理业务、优化库存和增加销售的秘诀。",
+        "page_title": "资源中心",
+        "page_subtitle": "致现代商户的专家建议。",
+        "read_more": "阅读全文 →",
+        "not_found": "找不到文章 😕",
+        "back_to_blog": "返回博客",
+        "back_to_articles": "← 返回文章列表",
+        "published_on": "发布日期",
+        "liked_article": "喜欢这篇文章吗？",
+        "try_stockman": "尝试使用 Stockman 将这些秘诀付诸实践。",
+        "start_trial": "开始免费试用",
+        "posts": {
+            "abandonner-cahier-stock": {
+                "title": "为什么库存管理应当抛弃传统账本？",
+                "excerpt": "账本有其局限性。了解数字化如何让您的业务避免计算错误和损失。",
+                "date": "2026年2月12日",
+                "content": "<p>许多商户仍在使用账本记录销售和库存。这虽然传统，但存在极大风险。</p><h3>1. 计算错误</h3><p>一个简单的加法错误就可能让您的整个会计账目出错。使用 Stockman，所有计算都是自动且精准的。</p><h3>2. 数据丢失</h3><p>账本可能会丢失、被盗或毁于火灾。Stockman 的数据存储在云端，随时随地皆可访问。</p><h3>3. 缺乏全局视野</h3><p>翻阅账页很难发现哪种商品卖得最好。Stockman 让您通过点击即可掌握这些信息。</p>"
+            },
+            "eviter-ruptures-fetes": {
+                "title": "节日期间如何避免缺货？",
+                "excerpt": "圣诞节和古尔邦节是关键节点。通过我们的专家建议提前备好库存。",
+                "date": "2026年1月10日",
+                "content": "<p>节日缺货意味着利润的直接流失。以下是避免缺货的方法。</p><h3>预测需求</h3><p>参考去年的销售历史，预测您需要订购的数量。</p><h3>提前订货</h3><p>供应商通常在高峰期供不应求。请比平时提前 2 到 3 周下单。</p><h3>使用 Stockman 警报</h3><p>设置警报门槛，在商品库存不足时第一时间收到通知。</p>"
+            },
+            "augmenter-marge-2026": {
+                "title": "2026年提升利润空间的3个秘诀",
+                "excerpt": "收入虽然重要，但利润率才是王道！学习如何优化您的成本和定价。",
+                "date": "2026年1月5日",
+                "content": "<p>涨价并不是赚更多钱的唯一途径。以下是提升利润率的方法。</p><h3>1. 减少损耗</h3><p>过期或丢失的产品成本高昂。严谨的库存跟踪可以将这些损失减少 30%。</p><h3>2. 与供应商谈判</h3><p>通过 Stockman 采购市场集中订单，您可以获得更优惠的利率。</p><h3>3. 建立客户忠诚度</h3><p>挽留老客户的成本低于获取新客户。利用会员计划提高复购率。</p>"
+            }
+        }
+    },
+    "help": {
+        "hero_start": "我们能为您",
+        "hero_highlight": "提供什么帮助",
+        "search_placeholder": "搜索答案...",
+        "no_results": "未找到 “{{term}}” 的结果",
+        "need_more": "需要更多帮助？",
+        "email_support": "✉️ 邮件支持",
+        "whatsapp_chat": "💬 WhatsApp 在线沟通",
+        "getting_started": {
+            "title": "新手入门",
+            "q1": "如何创建账户？",
+            "a1": "下载应用并遵循屏幕上的说明操作。整个过程不到 2 分钟。",
+            "q2": "离线时也能使用吗？",
+            "a2": "是的，Stockman 支持离线操作，并会在网络恢复时立即同步数据。"
+        },
+        "account_billing": {
+            "title": "账户与计费",
+            "q1": "如何更改密码？",
+            "a1": "进入 设置 > 安全 > 更改密码。",
+            "q2": "试用期是如何运作的？",
+            "a2": "注册后您将自动获得 14 天的免费试用，期间解锁所有功能。"
+        },
+        "technical_support": {
+            "title": "技术支持",
+            "q1": "应用无法打开，我该怎么办？",
+            "a1": "请检查网络并确保安装了最新版本。如果问题依然存在，请尝试重新安装。",
+            "q2": "如何联系客服？",
+            "a2": "您可以通过下方的表单写信给我们，或直接通过 WhatsApp 联系。"
+        }
+    },
+    "terms": {
+        "title": "服务条款与条件",
+        "version": "“Ultimate” 3.0版 - 最近更新：2026年2月13日",
+        "content": "<p>欢迎来到 <strong>Stockman</strong>。<br/>本服务条款（以下简称“条款”）构成了用户与 Stockman 解决方案发布者之间的具有法律约束力的协议。</p><h3 style='margin-top:30px;color:var(--primary)'>第一部分：总则</h3><h4>第一条：定义</h4><ul><li><strong>平台</strong>：指完整的 Stockman 软件基础设施。</li><li><strong>用户</strong>：指为专业目的使用服务的实体或个人。</li><li><strong>发布者</strong>：Stockman Inc.，平台的拥有者和运营商。</li></ul><h4>第二条：服务宗旨</h4><p>Stockman 是一个专注于库存管理、收银和客户关系的 ERP 解决方案。其以 SaaS（软件即服务）模式提供。</p><h4>第三条：条款接受</h4><p>访问平台的前提是用户完全接受本条款。</p>"
+    },
+    "privacy": {
+        "title": "隐私政策",
+        "version": "最近更新：2026年2月13日",
+        "content": "<p>保护您的个人数据是我们的首要任务。</p><h3>1. 数据收集</h3><p>我们收集：身份信息（姓名、邮箱、电话）、职业数据（店铺、库存、交易）及技术数据。</p><h3>2. 数据用途</h3><p>您的数据仅用于：管理库存和销售、保障账户安全、改进服务及履行法律义务。</p><h3>3. 安全保障</h3><p>数据存储在安全的服务器上（MongoDB Atlas）并经过加密处理。</p><h3>4. 您的权利</h3><p>您拥有访问、更正、删除和迁移数据的权利。您可以在应用的设置标签中行使这些权利。</p>"
     }
-  },
-  "showcase": {
-    "title": "改变一切的界面",
-    "subtitle": "简洁的设计，旨在为您节省时间。",
-    "app_interface": "应用界面"
-  },
-  "how_it_works": {
-    "title": "快速开始",
-    "subtitle": "三个简单步骤，让您的店铺焕然一新。",
-    "step1": {
-      "title": "创建账户",
-      "desc": "下载应用并在2分钟内完成店铺配置。"
-    },
-    "step2": {
-      "title": "扫描商品",
-      "desc": "使用手机摄像头快速添加库存商品。"
-    },
-    "step3": {
-      "title": "销售与跟踪",
-      "desc": "完成首张订单，实时观察您的业务增长。"
-    }
-  },
-  "testimonials": {
-    "title": "客户信任",
-    "subtitle": "了解 Stockman 如何每天帮助商户。",
-    "t1": "自从使用 Stockman 以来，我再也没有因为缺货而损失金钱。人工智能总是在正确的时间提醒我！",
-    "t1_author": "Amadou Diallo",
-    "t1_job": "Electronics Shop",
-    "t2": "这款应用非常简单。我的员工在 10 分钟内就学会了。收银管理非常完美。",
-    "t2_author": "Sarah Kouassi",
-    "t2_job": "Express Supermarket",
-    "t3": "我非常喜欢采购市场！我可以比较供应商的价格并直接下单。节省了大量时间。",
-    "t3_author": "Paul N'Goma",
-    "t3_job": "Central Pharmacy"
-  },
-  "pricing": {
-    "title": "选择您的方案",
-    "subtitle": "透明的价格，适配您的业务规模。",
-    "month": "/月",
-    "popular": "最受欢迎",
-    "starter": {
-      "name": "Starter",
-      "f1": "1 用户",
-      "f2": "1 店铺",
-      "f3": "完整功能访问",
-      "f4": "3个月免费试用",
-      "cta": "立即开始"
-    },
-    "business": {
-      "name": "Pro",
-      "f1": "最多5个用户",
-      "f2": "2个店铺",
-      "f3": "完整功能访问",
-      "f4": "Marketplace Bouton-à-Bouton",
-      "f5": "3个月免费试用",
-      "cta": "14天免费试用"
-    },
-    "enterprise": {
-      "name": "企业版",
-      "price": "定制报价",
-      "f1": "无限制用户",
-      "f2": "多店管理系统",
-      "f3": "API 与系统集成",
-      "f4": "24/7 专属支持",
-      "cta": "联系我们"
-    }
-  },
-  "faq": {
-    "title": "常见问题",
-    "q1": "离线状态下可以使用吗？",
-    "a1": "是的，Stockman 支持离线作业。当网络恢复时，数据会自动同步。",
-    "q2": "我的数据安全吗？",
-    "a2": "当然。我们使用银行级加密技术保护您的所有商业信息。"
-  },
-  "download": {
-    "title": "准备好升级了吗？",
-    "subtitle": "加入数千名优化管理的现代商户行列。",
-    "app_store": "App Store",
-    "google_play": "Google Play",
-    "secure": "安全支付",
-    "support": "专业支持",
-    "updates": "持续更新"
-  },
-  "footer": {
-    "desc": "为非洲现代商户提供的一站式解决方案。",
-    "product": "产品",
-    "support": "客服",
-    "legal": "法律",
-    "help_center": "帮助中心",
-    "contact": "联系我们",
-    "community": "社区",
-    "privacy": "隐私政策",
-    "terms": "服务条款",
-    "delete_account": "Supprimer mon compte",
-    "legal_notice": "法律声明",
-    "copyright": "© 2026 Stockman. 保留所有权利。"
-  },
-  "delete_account": {
-    "title": "Suppression de Compte & Données",
-    "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
-    "version": "Dernière mise à jour : 18 Février 2026",
-    "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
-    "method_app_title": "1. Via l'application (Recommandé)",
-    "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
-    "method_app_steps": [
-      "Ouvrez l'application Stockman.",
-      "Allez dans l'onglet **Réglages**.",
-      "Faites défiler jusqu'à la section **Zone de danger**.",
-      "Appuyez sur **Supprimer mon compte**.",
-      "Confirmez en saisissant votre mot de passe."
-    ],
-    "method_web_title": "2. Via ce formulaire (Sans l'application)",
-    "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
-    "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
-    "data_erased_title": "Quelles données seront effacées ?",
-    "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
-    "data_erased_list": [
-      "Votre profil utilisateur et identifiants.",
-      "Toutes vos boutiques et points de vente.",
-      "L'intégralité de votre inventaire et catalogue produits.",
-      "Toutes vos transactions de vente et historiques comptables.",
-      "Vos listes de clients, fournisseurs et historiques d'achats.",
-      "Vos accès à l'Assistant IA et historiques de chat."
-    ],
-    "retention_title": "Délai de traitement",
-    "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
-  },
-  "newsletter": {
-    "title": "成为库存管理专家",
-    "desc": "加入 5000+ 商户，获取免费指南：《扼杀利润的 10 个错误》。",
-    "success": "谢谢！请检查您的收件箱。",
-    "placeholder": "您的邮箱...",
-    "cta": "获取指南",
-    "privacy": "拒绝骚扰。可随时一键退订。"
-  },
-  "contact": {
-    "title": "联系我们",
-    "subtitle": "有问题？寻求合作？写信给我们。",
-    "name": "您的姓名",
-    "email": "您的邮箱",
-    "message": "您的留言",
-    "submit": "提交",
-    "success_title": "消息已发送！",
-    "success_desc": "我们的团队将在 24 小时内回复。",
-    "send_another": "发送另一条"
-  },
-  "whatsapp": {
-    "message": "您好，我想了解更多关于 Stockman 的信息！"
-  },
-  "cookie": {
-    "message": "我们使用 Cookie 来改善您的体验。继续浏览即表示您接受我们的隐私政策。",
-    "accept": "接受"
-  },
-  "comparison": {
-    "title": "为什么选择 Stockman？",
-    "feature": "功能点",
-    "notebook": "账本 / Excel 📝",
-    "stock_mgmt": "库存管理",
-    "stock_yes": "✅ 自动 & 实时",
-    "stock_no": "❌ 手动 & 易错",
-    "alerts": "缺货警报",
-    "alerts_yes": "✅ 智能通知",
-    "alerts_no": "❌ 无",
-    "pos": "收银点 (POS)",
-    "pos_yes": "✅ 内置 & 高速",
-    "pos_no": "❌ 独立计算器",
-    "backup": "数据备份",
-    "backup_yes": "✅ 安全云端",
-    "backup_no": "❌ 丢失风险（失窃、火灾）",
-    "financial": "财务报告",
-    "financial_yes": "✅ 一键生成（损益、毛利）",
-    "financial_no": "❌ 冗长乏味的计算",
-    "marketplace": "采购市场",
-    "marketplace_yes": "✅ 直连供应商",
-    "marketplace_no": "❌ 线下寻找"
-  },
-  "feature_pages": {
-    "back_home": "返回首页",
-    "why_use": "为什么要使用 {{title}}？",
-    "discover_interface": "详细了解界面",
-    "cta_title": "准备好优化您的管理了吗？",
-    "cta_button": "开始免费试用",
-    "dashboard": {
-      "title": "控制面板",
-      "subtitle": "业务细节，一目了然",
-      "description": "控制面板是您的指挥塔。它不仅显示数字，还为您提供商业健康状况的清晰视图。通过人工智能集成，它实时分析销售情况，识别增长机会和风险（缺货、超额积压）。这是您做出重要决策的地方。",
-      "f1_title": "实时统计",
-      "f1_desc": "秒级跟踪您的收入、利润和销售次数。",
-      "f2_title": "智能警报",
-      "f2_desc": "立即获得关于缺货商品或即将到期商品的通知。",
-      "f3_title": "人工智能助手",
-      "f3_desc": "直接在首页向您的业务助手提问，获取即时分析。",
-      "gallery": {
-        "kpi": {
-          "image": "/assets/screenshots/dashboard-kpi.jpg",
-          "title": "概览与关键指标",
-          "description": "打开应用即可实时监控您的关键绩效指标。"
-        },
-        "stats": {
-          "image": "/assets/screenshots/dashboard-stats.jpg",
-          "title": "全局统计",
-          "description": "一目了然地查看您的收入、利润和销售趋势。"
-        },
-        "charts": {
-          "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-          "title": "性能图表",
-          "description": "跟踪库存价值的演变并分析销售高峰。"
-        },
-        "analysis": {
-          "image": "/assets/screenshots/dashboard-analysis.jpg",
-          "title": "ABC 分析与补货",
-          "description": "识别利润最高的产品并接收订货建议。"
-        },
-        "history": {
-          "image": "/assets/screenshots/dashboard-history.jpg",
-          "title": "变动历史",
-          "description": "记录每一次库存的出入库，实现完整可追溯。"
-        }
-      }
-    },
-    "products": {
-      "title": "产品管理",
-      "subtitle": "库存管理，井井有条",
-      "description": "专业但不复杂的库存管理。无论您有 10 件还是 10,000 件商品，Stockman 都能帮您精准管理。内置条码扫描器可将您的手机变成超快速的盘点终端。",
-      "f1_title": "条码扫描",
-      "f1_desc": "使用手机摄像头快速添加商品或进行盘点。",
-      "f2_title": "灵活分类",
-      "f2_desc": "创建类别、品牌和属性，构建清晰的商品目录。",
-      "f3_title": "库存估值",
-      "f3_desc": "随时掌握库存总成本和销售总价值。",
-      "gallery": {
-        "list": {
-          "image": "/assets/screenshots/products-list.jpg",
-          "title": "产品列表",
-          "description": "通过搜索和高级筛选快速访问您的完整目录。"
-        },
-        "create": {
-          "image": "/assets/screenshots/products-create-1.jpg",
-          "title": "简单创建",
-          "description": "数秒内即可添加包含核心信息的商品。"
-        },
-        "variants": {
-          "image": "/assets/screenshots/products-create-2.jpg",
-          "title": "细节与多属性",
-          "description": "管理每个变体的尺寸、颜色和特定价格。"
-        },
-        "thresholds": {
-          "image": "/assets/screenshots/products-create-3.jpg",
-          "title": "库存门槛",
-          "description": "设置低库存通知，确保业务从不中断。"
-        }
-      }
-    },
-    "pos": {
-      "title": "收银系统",
-      "subtitle": "轻松处理客户结账",
-      "description": "提供流畅、现代的结账体验。我们的触屏 POS 为速度而生：数秒内即可添加商品、管理折扣并处理多种支付方式。",
-      "f1_title": "快速购物车",
-      "f1_desc": "触屏优化的界面，闪电般添加商品到购物车。",
-      "f2_title": "电子收据",
-      "f2_desc": "通过 WhatsApp、短信或邮件直接发送收据给客户。",
-      "f3_title": "多样化支付",
-      "f3_desc": "接受现金、移动支付或刷卡，并在系统中清晰记录。",
-      "gallery": {
-        "sale": {
-          "image": "/assets/screenshots/pos-overview.jpg",
-          "title": "销售界面",
-          "description": "无缝管理商品、数量和折扣。"
-        },
-        "receipt": {
-          "image": "/assets/screenshots/pos-receipt-qr.jpg",
-          "title": "收据与二维码",
-          "description": "为您的客户生成即时收据二维码，方便扫描。"
-        }
-      }
-    },
-    "suppliers": {
-      "title": "供应商与市场",
-      "subtitle": "采购流程，从此简化",
-      "description": "将采购转化为竞争优势。Stockman 集中管理供应商，并为您开启专属采购市场的大门。实时比价，直接下单。",
-      "f1_title": "供应商名录",
-      "f1_desc": "集中管理所有供应商的联系方式及交易历史。",
-      "f2_title": "自动订货",
-      "f2_desc": "根据库存需求，一键生成采购订单。",
-      "f3_title": "价格对比",
-      "f3_desc": "通过内置比价工具，为每件商品寻找最便宜的供应商。",
-      "gallery": {
-        "marketplace": {
-          "image": "/assets/screenshots/suppliers-marketplace.jpg",
-          "title": "内置采购市场",
-          "description": "访问广阔的认证供应商网络，获取最优价格。"
-        },
-        "catalog": {
-          "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-          "title": "供应商目录",
-          "description": "浏览各个供应商的可用商品及其贸易条款。"
-        },
-        "order": {
-          "image": "/assets/screenshots/suppliers-order-creation.jpg",
-          "title": "下达订单",
-          "description": "点击几次即可创建并发送补货订单。"
-        }
-      }
-    },
-    "orders": {
-      "title": "订单跟踪",
-      "subtitle": "从订货到入库",
-      "description": "全面掌控供应。从下达采购订单到入店接收，全程跟踪。入库时库存自动更新。",
-      "f1_title": "状态跟踪",
-      "f1_desc": "实时查看每个订单的状态：待处理、已发货、已接收或已取消。",
-      "f2_title": "轻松接收",
-      "f2_desc": "确认货物到达，系统自动增加对应库存。",
-      "f3_title": "完整历史",
-      "f3_desc": "快速找回历史订单，简化复购流程。",
-      "gallery": {
-        "tracking": {
-          "image": "/assets/screenshots/orders-tracking.jpg",
-          "title": "实时动态",
-          "description": "跟踪每个供应商订单的进库进度。"
-        }
-      }
-    },
-    "accounting": {
-      "title": "精细会计",
-      "subtitle": "财务状况，尽在掌握",
-      "description": "会计系统自动化运行。每笔销售、每项支出都会自动记录。跟踪现金流，一键生成损益表。",
-      "f1_title": "损益报表",
-      "f1_desc": "自主选择时间段，查看收入、成本和净利润。",
-      "f2_title": "支出管理",
-      "f2_desc": "记录您的租金、水电、工资等各项开支，实现精准盈利计算。",
-      "f3_title": "数据导出",
-      "f3_desc": "下载会计数据用于税务申报或个人存档。",
-      "gallery": {
-        "overview": {
-          "image": "/assets/screenshots/accounting-overview.jpg",
-          "title": "全局财务视图",
-          "description": "通过精准的指标分析您的盈利能力。"
-        },
-        "expenses": {
-          "image": "/assets/screenshots/accounting-expense-create.jpg",
-          "title": "费用管理",
-          "description": "轻松添加固定成本和变动成本。"
-        },
-        "reports": {
-          "image": "/assets/screenshots/accounting-details-charts.jpg",
-          "title": "报表与图表",
-          "description": "可视化您的财务随时间的变化趋势。"
-        }
-      }
-    },
-    "clients": {
-      "title": "客户管理 (CRM)",
-      "subtitle": "培养忠诚客户",
-      "description": "将散客转化为老客户。内置 CRM 记录每一次互动和购买历史。管理赊账，从此不再丢失任何一笔款项。",
-      "f1_title": "客户档案",
-      "f1_desc": "每个客户的完整历史记录、联系方式和偏好。",
-      "f2_title": "赊账管理",
-      "f2_desc": "跟踪客户欠款，清晰知道谁欠你多少钱。",
-      "f3_title": "营销推广",
-      "f3_desc": "直接通过 WhatsApp 发送定向促销信息。",
-      "gallery": {
-        "details": {
-          "image": "/assets/screenshots/clients-details.jpg",
-          "title": "详细客户资料",
-          "description": "所有客户信息、购买记录及信用余额。"
-        },
-        "campaigns": {
-          "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-          "title": "消息营销",
-          "description": "为特定客户群创建并发送促销活动。"
-        }
-      }
-    },
-    "settings": {
-      "title": "系统设置",
-      "subtitle": "随心定制您的 Stockman",
-      "description": "配置 Stockman 以适应您的组织：管理员工权限、添加新店并获取快速支持。",
-      "f1_title": "团队管理",
-      "f1_desc": "为员工创建账户并定义其操作权限（销售、经理、管理员）。",
-      "f2_title": "多店模式",
-      "f2_desc": "从单一管理员账户添加并管理多个分店。",
-      "f3_title": "个性化",
-      "f3_desc": "更改应用的货币、语言和显示偏好。",
-      "gallery": {
-        "team": {
-          "image": "/assets/screenshots/settings-employees.jpg",
-          "title": "人员管理",
-          "description": "管理您的员工及其角色和权限。"
-        },
-        "notifications": {
-          "image": "/assets/screenshots/settings-notifications.jpg",
-          "title": "通知中心",
-          "description": "配置库存警报和重要提醒。"
-        },
-        "security": {
-          "image": "/assets/screenshots/settings-support-security.jpg",
-          "title": "支持与安全",
-          "description": "访问在线帮助并保护您的账户安全。"
-        },
-        "guide": {
-          "image": "/assets/screenshots/settings-guide.jpg",
-          "title": "完整指南",
-          "description": "学习掌握 Stockman 的所有功能。"
-        }
-      }
-    }
-  },
-  "about": {
-    "seo_title": "关于我们",
-    "seo_desc": "了解 Stockman 背后的团队及其数字化非洲商业的使命。",
-    "home": "首页",
-    "mission_start": "我们的使命：",
-    "mission_highlight": "数字化非洲",
-    "mission_desc": "我们相信无论规模大小，每一位商户都值得拥有最好的成功工具。Stockman 不仅仅是一款软件——它是您的增长伙伴。",
-    "team_title": "团队成员",
-    "team_subtitle": "致力于服务创业者的热忱之心。",
-    "member1_image": "👨🏿‍💼",
-    "member1_name": "Jean-Marc Koffi",
-    "member1_role": "CEO & 联合创始人",
-    "member1_bio": "曾担任商户，他创建 Stockman 是为了解决自己遇到的管理难题。",
-    "member2_image": "👩🏾‍💻",
-    "member2_name": "Awa Diop",
-    "member2_role": "CTO & 技术负责人",
-    "member2_bio": "一位对非洲人工智能和数字无障碍充满激情的工程师。",
-    "member3_image": "🎧",
-    "member3_name": "David N'Guessan",
-    "member3_role": "支持经理",
-    "member3_bio": "始终倾听客户需求，助力用户达成商业目标。",
-    "values_title": "核心价值",
-    "value1_title": "🔍 设计至简",
-    "value1_desc": "技术应当惠及每一个人，无需复杂的培训。",
-    "value2_title": "🤝 深度联结",
-    "value2_desc": "我们立足本土——深知您所面临的现实挑战。",
-    "value3_title": "🚀 持续创新",
-    "value3_desc": "感谢您的反馈，让我们每天都在不断进化。"
-  },
-  "blog": {
-    "seo_title": "博客与资源",
-    "seo_desc": "管理业务、优化库存和增加销售的秘诀。",
-    "page_title": "资源中心",
-    "page_subtitle": "致现代商户的专家建议。",
-    "read_more": "阅读全文 →",
-    "not_found": "找不到文章 😕",
-    "back_to_blog": "返回博客",
-    "back_to_articles": "← 返回文章列表",
-    "published_on": "发布日期",
-    "liked_article": "喜欢这篇文章吗？",
-    "try_stockman": "尝试使用 Stockman 将这些秘诀付诸实践。",
-    "start_trial": "开始免费试用",
-    "posts": {
-      "abandonner-cahier-stock": {
-        "title": "为什么库存管理应当抛弃传统账本？",
-        "excerpt": "账本有其局限性。了解数字化如何让您的业务避免计算错误和损失。",
-        "date": "2026年2月12日",
-        "content": "<p>许多商户仍在使用账本记录销售和库存。这虽然传统，但存在极大风险。</p><h3>1. 计算错误</h3><p>一个简单的加法错误就可能让您的整个会计账目出错。使用 Stockman，所有计算都是自动且精准的。</p><h3>2. 数据丢失</h3><p>账本可能会丢失、被盗或毁于火灾。Stockman 的数据存储在云端，随时随地皆可访问。</p><h3>3. 缺乏全局视野</h3><p>翻阅账页很难发现哪种商品卖得最好。Stockman 让您通过点击即可掌握这些信息。</p>"
-      },
-      "eviter-ruptures-fetes": {
-        "title": "节日期间如何避免缺货？",
-        "excerpt": "圣诞节和古尔邦节是关键节点。通过我们的专家建议提前备好库存。",
-        "date": "2026年1月10日",
-        "content": "<p>节日缺货意味着利润的直接流失。以下是避免缺货的方法。</p><h3>预测需求</h3><p>参考去年的销售历史，预测您需要订购的数量。</p><h3>提前订货</h3><p>供应商通常在高峰期供不应求。请比平时提前 2 到 3 周下单。</p><h3>使用 Stockman 警报</h3><p>设置警报门槛，在商品库存不足时第一时间收到通知。</p>"
-      },
-      "augmenter-marge-2026": {
-        "title": "2026年提升利润空间的3个秘诀",
-        "excerpt": "收入虽然重要，但利润率才是王道！学习如何优化您的成本和定价。",
-        "date": "2026年1月5日",
-        "content": "<p>涨价并不是赚更多钱的唯一途径。以下是提升利润率的方法。</p><h3>1. 减少损耗</h3><p>过期或丢失的产品成本高昂。严谨的库存跟踪可以将这些损失减少 30%。</p><h3>2. 与供应商谈判</h3><p>通过 Stockman 采购市场集中订单，您可以获得更优惠的利率。</p><h3>3. 建立客户忠诚度</h3><p>挽留老客户的成本低于获取新客户。利用会员计划提高复购率。</p>"
-      }
-    }
-  },
-  "help": {
-    "hero_start": "我们能为您",
-    "hero_highlight": "提供什么帮助",
-    "search_placeholder": "搜索答案...",
-    "no_results": "未找到 “{{term}}” 的结果",
-    "need_more": "需要更多帮助？",
-    "email_support": "✉️ 邮件支持",
-    "whatsapp_chat": "💬 WhatsApp 在线沟通",
-    "getting_started": {
-      "title": "新手入门",
-      "q1": "如何创建账户？",
-      "a1": "下载应用并遵循屏幕上的说明操作。整个过程不到 2 分钟。",
-      "q2": "离线时也能使用吗？",
-      "a2": "是的，Stockman 支持离线操作，并会在网络恢复时立即同步数据。"
-    },
-    "account_billing": {
-      "title": "账户与计费",
-      "q1": "如何更改密码？",
-      "a1": "进入 设置 > 安全 > 更改密码。",
-      "q2": "试用期是如何运作的？",
-      "a2": "注册后您将自动获得 14 天的免费试用，期间解锁所有功能。"
-    },
-    "technical_support": {
-      "title": "技术支持",
-      "q1": "应用无法打开，我该怎么办？",
-      "a1": "请检查网络并确保安装了最新版本。如果问题依然存在，请尝试重新安装。",
-      "q2": "如何联系客服？",
-      "a2": "您可以通过下方的表单写信给我们，或直接通过 WhatsApp 联系。"
-    }
-  },
-  "terms": {
-    "title": "服务条款与条件",
-    "version": "“Ultimate” 3.0版 - 最近更新：2026年2月13日",
-    "content": "<p>欢迎来到 <strong>Stockman</strong>。<br/>本服务条款（以下简称“条款”）构成了用户与 Stockman 解决方案发布者之间的具有法律约束力的协议。</p><h3 style='margin-top:30px;color:var(--primary)'>第一部分：总则</h3><h4>第一条：定义</h4><ul><li><strong>平台</strong>：指完整的 Stockman 软件基础设施。</li><li><strong>用户</strong>：指为专业目的使用服务的实体或个人。</li><li><strong>发布者</strong>：Stockman Inc.，平台的拥有者和运营商。</li></ul><h4>第二条：服务宗旨</h4><p>Stockman 是一个专注于库存管理、收银和客户关系的 ERP 解决方案。其以 SaaS（软件即服务）模式提供。</p><h4>第三条：条款接受</h4><p>访问平台的前提是用户完全接受本条款。</p>"
-  },
-  "privacy": {
-    "title": "隐私政策",
-    "version": "最近更新：2026年2月13日",
-    "content": "<p>保护您的个人数据是我们的首要任务。</p><h3>1. 数据收集</h3><p>我们收集：身份信息（姓名、邮箱、电话）、职业数据（店铺、库存、交易）及技术数据。</p><h3>2. 数据用途</h3><p>您的数据仅用于：管理库存和销售、保障账户安全、改进服务及履行法律义务。</p><h3>3. 安全保障</h3><p>数据存储在安全的服务器上（MongoDB Atlas）并经过加密处理。</p><h3>4. 您的权利</h3><p>您拥有访问、更正、删除和迁移数据的权利。您可以在应用的设置标签中行使这些权利。</p>"
-  }
 }

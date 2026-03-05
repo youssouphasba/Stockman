@@ -17,7 +17,7 @@ Les modules suivants sont présents et fonctionnels sur les deux plateformes (av
 *   **⚙️ Paramètres (Settings)** : Configuration de la boutique, profil utilisateur. (`settings.tsx` / `Settings.tsx`)
 *   **🚨 Alertes (Alerts)** : Notifications système et IA. (`alerts.tsx` / `Alerts.tsx`)
 *   **👥 Utilisateurs/Staff** : Gestion des employés et sous-comptes. (`users.tsx` / `Staff.tsx`)
-*   **🧾 Abonnements** : Gestion du plan Premium (CinetPay). (`subscription.tsx` / `Subscription.tsx`)
+*   **🧾 Abonnements** : Gestion du plan Premium (). (`subscription.tsx` / `Subscription.tsx`)
 
 ---
 

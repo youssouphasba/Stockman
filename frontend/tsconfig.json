@@ -1,21 +1,21 @@
 {
-  "extends": "expo/tsconfig.base.json",
-  "compilerOptions": {
-    "strict": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+    "extends": "expo/tsconfig.base.json",
+    "compilerOptions": {
+        "strict": true,
+        "lib": [
+            "ESNext",
+            "DOM"
+        ],
+        "paths": {
+            "@/*": [
+                "./*"
+            ]
+        }
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        ".expo/types/**/*.ts",
+        "expo-env.d.ts"
+    ]
 }

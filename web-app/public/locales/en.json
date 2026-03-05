@@ -1883,7 +1883,7 @@
     "activated_success": "Your subscription has been activated successfully!",
     "active": "Active",
     "choose_plan": "Choose {{plan}}",
-    "cinetpay_init_error": "Could not initiate Mobile Money payment. Please try again.",
+    "_init_error": "Could not initiate Mobile Money payment. Please try again.",
     "compare_plans": "Plan Comparison",
     "features": {
       "products": "Products & items",

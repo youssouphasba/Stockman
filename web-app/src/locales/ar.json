@@ -1888,7 +1888,7 @@
     "activated_success": "تم تفعيل اشتراكك بنجاح!",
     "active": "نشط",
     "choose_plan": "اختر {{plan}}",
-    "cinetpay_init_error": "تعذر بدء دفع Mobile Money. أعد المحاولة.",
+    "_init_error": "تعذر بدء دفع Mobile Money. أعد المحاولة.",
     "compare_plans": "مقارنة العروض",
     "features": {
       "products": "المنتجات والعناصر",

@@ -1887,7 +1887,7 @@
     "activated_success": "Sa abonnement doxku na bu baax!",
     "active": "Dox na",
     "choose_plan": "Tànnal {{plan}}",
-    "cinetpay_init_error": "Could not initiate Mobile Money payment. Please try again.",
+    "_init_error": "Could not initiate Mobile Money payment. Please try again.",
     "compare_plans": "Méngale jaay-jaay yi",
     "features": {
       "products": "Liggéey & Yeneen",

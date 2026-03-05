@@ -838,7 +838,7 @@ Conformément au RGPD et aux lois de protection des données :
 2. Vous voyez votre plan actuel, la date de fin d'essai et les options de renouvellement.
 
 **Modes de paiement disponibles :**
-- **Mobile Money** (Orange Money, Wave, Free Money, MTN Money, Moov Money — via CinetPay).
+- **Mobile Money** (Orange Money, Wave, Free Money, MTN Money, Moov Money — via ).
 - **Carte bancaire** (via App Store / Google Play).
 
 ### 13.3 Après l'essai gratuit de 90 jours

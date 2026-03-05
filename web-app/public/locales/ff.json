@@ -1887,7 +1887,7 @@
     "activated_success": "Yaajgol maa doxaa e moƴƴi!",
     "active": "Ko doxii",
     "choose_plan": "Suɓo {{plan}}",
-    "cinetpay_init_error": "Horiima fuɗɗaade yiytugol Mobile Money. Eeltu kadi.",
+    "_init_error": "Horiima fuɗɗaade yiytugol Mobile Money. Eeltu kadi.",
     "compare_plans": "Jokkondiral jaɓɓule",
     "features": {
       "products": "Gollé e kuule",

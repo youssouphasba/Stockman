@@ -1945,7 +1945,7 @@
     "activated_success": "¡Tu suscripción ha sido activada con éxito!",
     "active": "Activo",
     "choose_plan": "Elegir {{plan}}",
-    "cinetpay_init_error": "Imposible iniciar el pago Mobile Money. Inténtalo de nuevo.",
+    "_init_error": "Imposible iniciar el pago Mobile Money. Inténtalo de nuevo.",
     "compare_plans": "Comparar planes",
     "features": {
       "products": "Productos & artículos",

@@ -42,7 +42,7 @@ Le branding de Stockman s'appuie sur une figure héroïque, **Stockman**, le sup
 En Afrique de l'Ouest, en France et dans la diaspora, **plus de 80% des petits commerçants** gèrent leur stock et leurs ventes sur papier ou de mémoire. Cela entraîne des pertes financières considérables, des ruptures de stock fréquentes, une absence de visibilité sur la rentabilité réelle et une impossibilité d'obtenir du crédit bancaire faute de preuves de revenus.
 
 ### La solution
-Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, un **assistant IA intelligent** (Gemini), un **système d'abonnement** (RevenueCat + CinetPay Mobile Money), et un support technique réactif. L'application est disponible en **14 langues** dont le Wolof et le Peul.
+Stockman digitalise entièrement la gestion commerciale avec une interface simple et intuitive : **rapide, fonctionne hors-ligne**, avec synchronisation automatique. L'application offre un dashboard d'analyse visuel, des alertes de stock bas, un système de fidélité client intégré, une **marketplace fournisseurs** pour commander directement auprès des grossistes, un **assistant IA intelligent** (Gemini), un **système d'abonnement** (RevenueCat +  Mobile Money), et un support technique réactif. L'application est disponible en **14 langues** dont le Wolof et le Peul.
 
 ### Le marché
 - **Sénégal** : +300 000 commerces et boutiques enregistrés (source : ANSD)
@@ -53,7 +53,7 @@ Stockman digitalise entièrement la gestion commerciale avec une interface simpl
 - **Essai gratuit de 3 mois** pour chaque nouvel inscrit (accès Premium complet)
 - **Plan Starter** : 1 000 FCFA (~1,52 €) au Sénégal | 3,99 € en Europe — POS, Stock, Dashboard
 - **Plan Premium** : 2 500 FCFA (~3,80 €) au Sénégal | 7,99 € en Europe — Tout illimité (CRM, Comptabilité, Fournisseurs, IA illimitée)
-- **Paiements intégrés** : RevenueCat (Google Play / App Store) + CinetPay (Mobile Money : Orange Money, Wave, MTN)
+- **Paiements intégrés** : RevenueCat (Google Play / App Store) +  (Mobile Money : Orange Money, Wave, MTN)
 - Revenus récurrents (MRR) avec forte prévisibilité
 
 ### Besoin de financement
@@ -225,7 +225,7 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 - **MongoDB Atlas** : Base de données cloud, scalable, sécurisée, avec agrégations avancées
 - **Sync Hors-ligne** : Architecture "offline-first" pour les zones à faible connectivité, cache intelligent avec AsyncStorage
 - **Localisation 14 langues** : Traductions complètes en 14 langues (FR, EN, ES, DE, PT, IT, RU, ZH, HI, PL, RO, TR, WO, FF, AR) — unique sur le marché
-- **Paiements réels** : Double infrastructure RevenueCat (Google Play / App Store) + CinetPay (Mobile Money : Orange Money, Wave, MTN MoMo)
+- **Paiements réels** : Double infrastructure RevenueCat (Google Play / App Store) +  (Mobile Money : Orange Money, Wave, MTN MoMo)
 - **Feature Gating (PremiumGate)** : Système de verrouillage intelligent des modules Premium avec écran d'upgrade intégré
 - **Console Admin** : Dashboard d'administration complet avec 12 modules (monitoring, litiges, sécurité, communication...)
 - **Landing Page responsive** : Site vitrine `www.stockman.pro` avec SEO, blog, comparatif, newsletter, cookie RGPD — optimisé mobile
@@ -238,9 +238,9 @@ La gestion de stock est le **talon d'Achille** des petits commerces :
 | Composant | Détail |
 |-----------|--------|
 | **RevenueCat** | SDK intégré pour Google Play / App Store billing, webhooks backend pour INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION |
-| **CinetPay** | Paiement Mobile Money (Orange Money, Wave, MTN MoMo) via API checkout, webhooks de notification, vérification automatique |
+| **** | Paiement Mobile Money (Orange Money, Wave, MTN MoMo) via API checkout, webhooks de notification, vérification automatique |
 | **Gestion d'abonnement** | Collection MongoDB `payment_transactions`, expiry cron quotidien, endpoint `/subscription/me` |
-| **Double canal** | Les utilisateurs choisissent : paiement via store (RevenueCat) ou Mobile Money (CinetPay) |
+| **Double canal** | Les utilisateurs choisissent : paiement via store (RevenueCat) ou Mobile Money () |
 
 #### Système de plans et Feature Gating
 | Élément | Détail |
@@ -426,7 +426,7 @@ Cible réaliste avec les moyens actuels :
 | 8 | **🛒 POS + Stock + CRM** — Tout-en-un dans une seule app | ⚠️ Odoo uniquement (24€+/mois) |
 | 9 | **💰 Dès 1 000 FCFA/mois** — Le prix le plus bas du marché pour ce niveau de fonctionnalités | ❌ Concurrents : 29-89$/mois |
 | 10 | **🇸🇳🇫🇷 Double marché** — Adapté Sénégal ET France dans la même app | ❌ Aucun concurrent |
-| 11 | **💳 Paiements réels intégrés** — RevenueCat (stores) + CinetPay (Mobile Money) | ⚠️ Limité chez les concurrents |
+| 11 | **💳 Paiements réels intégrés** — RevenueCat (stores) +  (Mobile Money) | ⚠️ Limité chez les concurrents |
 | 12 | **🔒 Feature Gating intelligent** — Modules Premium verrouillés avec upgrade intégré | ❌ Aucun concurrent à ce prix |
 
 ### Notre avantage concurrentiel durable
@@ -584,7 +584,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | **Base de données** | MongoDB Atlas (M10) | 57 € |
 | **IA / Assistant** | Google Gemini API (gemini-2.5-flash) | ~10 € |
 | **Paiements stores** | RevenueCat (gratuit < 2,5K$ MRR) | 0 € |
-| **Paiements Mobile Money** | CinetPay (commission par transaction) | Variable |
+| **Paiements Mobile Money** |  (commission par transaction) | Variable |
 | **SMS / OTP** | Twilio (vérification téléphone) | ~5 € |
 | **CDN / Assets** | Cloudflare | 0 € |
 | **Notifications push** | Expo Push (gratuit jusqu'à 10K) | 0 € |
@@ -718,8 +718,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | | Positif | Négatif |
 |---|---------|---------|
-| **Interne** | **Forces (Strengths)**<br>• **Produit All-in-One opérationnel** : Stock + POS + CRM + Marketplace + IA + Comptabilité — tout est développé et en production<br>• **Paiements réels** : RevenueCat (stores) + CinetPay (Mobile Money) — infrastructure de monétisation prête<br>• **14 langues** : Couverture linguistique massive incluant Wolof et Peul<br>• **Prix disruptif** : Dès 1 000 FCFA/mois vs 30€+ concurrence<br>• **Tech agile** : Stack moderne (React Native/FastAPI/Railway), IA Gemini intégrée<br>• **Feature Gating** : Modèle freemium intelligent avec PremiumGate | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : Équipe réduite au lancement<br>• **Marque inconnue** : Nécessite un effort marketing initial important<br>• **Dépendance technique** : Risque si le fondateur est indisponible<br>• **Cashburn initial** : Besoin de financement pour l'acquisition |
-| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** : CinetPay intégré, paiement en 2 clics<br>• **Soutien étatique** : Programmes de digitalisation (SN2025), Financement (DER)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes<br>• **IA accessible** : Différenciation forte grâce à l'assistant Gemini | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Odoo ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer | Taux d'alphabétisation faible
+| **Interne** | **Forces (Strengths)**<br>• **Produit All-in-One opérationnel** : Stock + POS + CRM + Marketplace + IA + Comptabilité — tout est développé et en production<br>• **Paiements réels** : RevenueCat (stores) +  (Mobile Money) — infrastructure de monétisation prête<br>• **14 langues** : Couverture linguistique massive incluant Wolof et Peul<br>• **Prix disruptif** : Dès 1 000 FCFA/mois vs 30€+ concurrence<br>• **Tech agile** : Stack moderne (React Native/FastAPI/Railway), IA Gemini intégrée<br>• **Feature Gating** : Modèle freemium intelligent avec PremiumGate | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : Équipe réduite au lancement<br>• **Marque inconnue** : Nécessite un effort marketing initial important<br>• **Dépendance technique** : Risque si le fondateur est indisponible<br>• **Cashburn initial** : Besoin de financement pour l'acquisition |
+| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : 10M+ commerçants en Afrique de l'Ouest<br>• **Adoption Mobile Money** :  intégré, paiement en 2 clics<br>• **Soutien étatique** : Programmes de digitalisation (SN2025), Financement (DER)<br>• **Partenariats** : Banques, opérateurs télécoms, grossistes<br>• **IA accessible** : Différenciation forte grâce à l'assistant Gemini | **Menaces (Threats)**<br>• **Géants de la Tech** : Arrivée potentielle de Odoo ou Shopify en Afrique<br>• **Instabilité** : Coupures internet ou troubles politiques<br>• **Concurrence locale** : Copies low-cost ou solutions opérateurs (Orange)<br>• **Résistance au changement** : Habitudes papier difficiles à changer | Taux d'alphabétisation faible
 
 ### 13.3 Analyse PESTEL (Politique, Économique, Sociologique, Technologique, Écologique, Légal)
 
@@ -803,7 +803,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 |-----------|-----------|--------|
 | **Q1** | ✅ MVP complet (POS, Stock, CRM, Dashboard, Alertes, Comptabilité) | **Fait** |
 | **Q1** | ✅ Assistant IA (Gemini) avec prédictions et suggestions | **Fait** |
-| **Q1** | ✅ Système de paiement réel : RevenueCat + CinetPay Mobile Money | **Fait** |
+| **Q1** | ✅ Système de paiement réel : RevenueCat +  Mobile Money | **Fait** |
 | **Q1** | ✅ Plans Starter/Premium avec Feature Gating (PremiumGate) | **Fait** |
 | **Q1** | ✅ Localisation complète : 14 langues (app + landing page) | **Fait** |
 | **Q1** | ✅ Landing page responsive stockman.pro (SEO, blog, comparatif, newsletter) | **Fait** |
@@ -854,7 +854,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | Comptabilité | ❌ | ✅ | ❌ | ❌ | ❌ |
 | Marketplace fournisseurs | ❌ | ✅ | ❌ | ❌ | ❌ |
 | Multi-magasin | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Paiement Mobile Money | ✅ CinetPay | ✅ CinetPay | ❌ | ❌ | ❌ |
+| Paiement Mobile Money | ✅  | ✅  | ❌ | ❌ | ❌ |
 | 14 langues | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Support français | ✅ | ✅ | ❌ | ❌ | ❌ |
 

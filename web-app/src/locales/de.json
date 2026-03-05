@@ -1887,7 +1887,7 @@
     "activated_success": "Ihr Abonnement wurde erfolgreich aktiviert!",
     "active": "Aktiv",
     "choose_plan": "{{plan}} wählen",
-    "cinetpay_init_error": "Mobile Money-Zahlung konnte nicht initiiert werden. Versuchen Sie es erneut.",
+    "_init_error": "Mobile Money-Zahlung konnte nicht initiiert werden. Versuchen Sie es erneut.",
     "compare_plans": "Pläne vergleichen",
     "features": {
       "products": "Produkte & Artikel",

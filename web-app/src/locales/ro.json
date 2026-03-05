@@ -1887,7 +1887,7 @@
     "activated_success": "Abonamentul dvs. a fost activat cu succes!",
     "active": "Activ",
     "choose_plan": "Alege {{plan}}",
-    "cinetpay_init_error": "Imposibil de inițiat plata Mobile Money. Încercați din nou.",
+    "_init_error": "Imposibil de inițiat plata Mobile Money. Încercați din nou.",
     "compare_plans": "Comparare planuri",
     "features": {
       "products": "Produse și articole",

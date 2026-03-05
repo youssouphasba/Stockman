@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
+from services.catalog_service import CatalogService
+from constants.sectors import BUSINESS_SECTORS, normalize_sector
 try:
     from services.rag_service import RAGService
 except Exception:
@@ -83,6 +85,7 @@ else:
 db = client[os.environ.get('DB_NAME', 'stock_management')]
 
 import_service = ImportService(db)
+catalog_service = CatalogService(db)
 twilio_service = TwilioService()
 notification_service = NotificationService()
 
@@ -355,8 +358,9 @@ async def run_startup_migrations():
         logger.info("Background Migration: store_id + is_active backfill completed")
         # Supervised tasks
         asyncio.create_task(supervised_loop("alerts", check_alerts_loop, 300))
-        asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 1800))
-        asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400)) # Daily logs cleanup (I11)
+        # Détection d'anomalies IA : passé de 30 min (1800s) à 12 heures (43200s) pour économiser des tokens
+        asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
+        asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
@@ -414,6 +418,9 @@ async def create_indexes_and_init():
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.security_events.create_index("created_at")
+
+                # Global Catalog indexes
+                await catalog_service.create_indexes()
 
                 # Init CGU if missing
                 exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
@@ -501,7 +508,7 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             result = await db.users.update_many(
                 {
                     "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
-                    "subscription_provider": {"$in": ["flutterwave", "cinetpay", "stripe"]},
+                    "subscription_provider": {"$in": ["flutterwave", "stripe"]},
                     "subscription_end": {"$lt": now},
                     "subscription_status": "active",
                 },
@@ -1626,10 +1633,7 @@ async def flutterwave_webhook(request: Request):
     return {"status": "ok"}
 
 
-# Alias rétrocompat — au cas où un ancien webhook CinetPay arriverait encore
-@api_router.post("/webhooks/cinetpay")
-async def cinetpay_webhook_alias(request: Request):
-    return await flutterwave_webhook(request)
+
 
 
 @api_router.post("/payment/mock-webhook")
@@ -3788,7 +3792,243 @@ async def admin_active_sessions():
 api_router.include_router(admin_router)
 
 
-# Removed register_push_token and send_push_notification shadows
+# ===================== GLOBAL CATALOG API =====================
+
+@api_router.get("/catalog/sectors")
+async def list_catalog_sectors():
+    """Liste des secteurs d'activité avec le nombre de produits dans chacun."""
+    return await catalog_service.get_sectors_with_counts()
+
+
+@api_router.get("/catalog/browse")
+async def browse_catalog(
+    sector: str,
+    country: Optional[str] = None,
+    search: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    user: User = Depends(require_auth),
+):
+    """Parcourir le catalogue global par secteur et pays."""
+    return await catalog_service.browse(sector, country, search, skip, limit)
+
+
+class CatalogImportRequest(BaseModel):
+    catalog_ids: List[str]
+
+@api_router.post("/catalog/import")
+async def import_from_catalog(
+    data: CatalogImportRequest,
+    user: User = Depends(require_auth),
+):
+    """Importer des produits sélectionnés du catalogue global dans le compte du commerçant."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="Aucun magasin actif. Créez d'abord un magasin.")
+    result = await catalog_service.import_to_user(
+        data.catalog_ids, user.user_id, user.active_store_id
+    )
+    return result
+
+
+class CatalogImportAllRequest(BaseModel):
+    sector: str
+    country_code: Optional[str] = None
+
+@api_router.post("/catalog/import-all")
+async def import_all_from_catalog(
+    data: CatalogImportAllRequest,
+    user: User = Depends(require_auth),
+):
+    """Importer TOUS les produits d'un secteur depuis le catalogue global."""
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="Aucun magasin actif.")
+    result = await catalog_service.import_all_sector(
+        data.sector, data.country_code, user.user_id, user.active_store_id
+    )
+    return result
+
+
+@api_router.get("/catalog/barcode/{barcode}")
+async def lookup_catalog_barcode(
+    barcode: str,
+    user: User = Depends(require_auth),
+):
+    """Chercher un produit dans le catalogue global par code-barres."""
+    product = await catalog_service.lookup_barcode(barcode)
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé dans le catalogue global")
+    return product
+
+
+# ===================== IMPORT PAR TEXTE LIBRE (IA) =====================
+
+class TextImportRequest(BaseModel):
+    text: str  # Texte brut collé par l'utilisateur (WhatsApp, notes, etc.)
+    auto_create: bool = False  # Si True, crée les produits directement
+
+@api_router.post("/products/import/text")
+@limiter.limit("10/minute")
+async def import_products_from_text(
+    request: Request,
+    data: TextImportRequest,
+    user: User = Depends(require_auth),
+):
+    """
+    Importer des produits depuis un texte libre (WhatsApp, notes, etc.).
+    L'IA parse le texte et retourne une liste structurée de produits.
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Service IA non configuré")
+
+    if not data.text or len(data.text.strip()) < 5:
+        raise HTTPException(status_code=400, detail="Texte trop court")
+
+    if len(data.text) > 10000:
+        raise HTTPException(status_code=400, detail="Texte trop long (max 10000 caractères)")
+
+    prompt = f"""Tu es un assistant spécialisé en gestion de stock.
+L'utilisateur a collé une liste de produits sous forme de texte brut (peut venir de WhatsApp, SMS, notes, facture...).
+Extrais chaque produit et retourne UNIQUEMENT un JSON valide (sans markdown) avec ce format :
+[
+  {{"name": "Nom du produit", "barcode": null, "category": "Catégorie si devinable", "purchase_price": 0, "selling_price": 0, "quantity": 0}},
+]
+
+Règles :
+- Si un prix est mentionné, mets-le dans selling_price.
+- Si "prix achat" ou "PA" est mentionné, mets dans purchase_price.
+- Si une quantité est mentionnée, mets-la dans quantity.
+- Si aucun prix/quantité, mets 0.
+- Devine la catégorie si possible (Boissons, Alimentaire, Hygiène, etc.)
+- Ignore les lignes qui ne sont pas des produits (salutations, dates, etc.)
+
+TEXTE À PARSER :
+{data.text}"""
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        text_result = response.text.strip()
+        if text_result.startswith("```"):
+            text_result = text_result.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        products = json.loads(text_result)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="L'IA n'a pas pu structurer ce texte. Reformulez ou ajoutez plus de détails.")
+    except Exception as e:
+        logger.error(f"Text import AI error: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de l'analyse IA")
+
+    if not isinstance(products, list):
+        raise HTTPException(status_code=422, detail="Format de réponse IA inattendu")
+
+    # Si auto_create=True, créer les produits directement
+    if data.auto_create and user.active_store_id:
+        created = 0
+        for p in products:
+            name = p.get("name", "").strip()
+            if not name:
+                continue
+            product_doc = {
+                "product_id": str(uuid.uuid4()),
+                "user_id": user.user_id,
+                "store_id": user.active_store_id,
+                "name": name,
+                "barcode": p.get("barcode"),
+                "sku": p.get("barcode"),
+                "category": p.get("category", ""),
+                "category_id": None,
+                "purchase_price": float(p.get("purchase_price", 0)),
+                "selling_price": float(p.get("selling_price", 0)),
+                "quantity": int(p.get("quantity", 0)),
+                "min_stock": 0,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            await db.products.insert_one(product_doc)
+            created += 1
+
+        # Contribute to global catalog
+        sector = user.business_type or "autre"
+        country = user.country_code or "SN"
+        asyncio.create_task(catalog_service.contribute_products_batch(products, sector, country))
+
+        return {"products": products, "created": created, "auto_created": True}
+
+    return {"products": products, "count": len(products), "auto_created": False}
+
+
+# ===================== TEMPLATE CSV =====================
+
+@api_router.get("/products/template/csv")
+async def download_csv_template(
+    sector: Optional[str] = None,
+    country: Optional[str] = None,
+    lang: str = "fr",
+    user: User = Depends(require_auth),
+):
+    """Télécharger un template CSV pré-rempli avec les produits populaires du secteur."""
+    csv_content = await catalog_service.generate_csv_template(sector, country, lang)
+    filename = f"stockman_template_{sector or 'general'}.csv"
+    return StreamingResponse(
+        io.StringIO(csv_content),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+# ===================== ADMIN CATALOGUE GLOBAL =====================
+
+@admin_router.get("/catalog/stats")
+async def admin_catalog_stats():
+    """Stats globales du catalogue communautaire."""
+    return await catalog_service.admin_stats()
+
+
+@admin_router.get("/catalog/products")
+async def admin_catalog_list(
+    sector: Optional[str] = None,
+    verified: Optional[bool] = None,
+    search: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+):
+    """Liste paginée des produits du catalogue global (admin)."""
+    return await catalog_service.admin_list(sector, verified, search, skip, limit)
+
+
+@admin_router.put("/catalog/{catalog_id}/verify")
+async def admin_catalog_verify(catalog_id: str):
+    """Marquer un produit du catalogue comme vérifié."""
+    success = await catalog_service.admin_verify(catalog_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return {"status": "verified", "catalog_id": catalog_id}
+
+
+class CatalogMergeRequest(BaseModel):
+    keep_id: str
+    merge_ids: List[str]
+
+@admin_router.post("/catalog/merge")
+async def admin_catalog_merge(data: CatalogMergeRequest):
+    """Fusionner des doublons du catalogue."""
+    result = await catalog_service.admin_merge(data.keep_id, data.merge_ids)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@admin_router.delete("/catalog/{catalog_id}")
+async def admin_catalog_delete(catalog_id: str):
+    """Supprimer un produit du catalogue global."""
+    success = await catalog_service.admin_delete(catalog_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return {"status": "deleted", "catalog_id": catalog_id}
+
+
 
 async def check_ai_anomalies_loop():
     """Logic for AI anomaly detection check (called by supervised_loop) (I8)"""
@@ -4270,7 +4510,7 @@ def get_currency_from_phone(phone: str) -> str:
     if not phone:
         return "XOF"
     phone = phone.strip().replace(" ", "").replace("-", "")
-    # West Africa UEMOA — CinetPay Mobile Money (XOF)
+    # West Africa UEMOA — Mobile Money (XOF)
     if any(phone.startswith(p) for p in [
         "+221",  # Sénégal
         "+225",  # Côte d'Ivoire
@@ -4282,12 +4522,12 @@ def get_currency_from_phone(phone: str) -> str:
         "+245",  # Guinée-Bissau
     ]):
         return "XOF"
-    # Central Africa CEMAC — CinetPay Mobile Money (XAF)
+    # Central Africa CEMAC — Mobile Money (XAF)
     if any(phone.startswith(p) for p in [
         "+237",  # Cameroun
         "+241",  # Gabon
         "+242",  # Congo-Brazzaville
-        "+243",  # Congo RDC (CDF, mais CinetPay opère en XAF ici)
+        "+243",  # Congo RDC (CDF, mais opère en XAF ici)
         "+236",  # République Centrafricaine
         "+235",  # Tchad
         "+240",  # Guinée Équatoriale
@@ -5116,6 +5356,15 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
 
     # Check and create alerts if needed
     await check_and_create_alerts(product, owner_id, store_id=user.active_store_id)
+
+    # Contribute to global catalog (fire-and-forget, no user data shared)
+    asyncio.create_task(catalog_service.contribute_product(
+        name=product.name,
+        barcode=getattr(product, 'sku', None),
+        category=None,
+        sector=user.business_type or "autre",
+        country_code=user.country_code or "SN",
+    ))
 
     return product
 
@@ -11224,8 +11473,7 @@ from services.payment import (
     create_stripe_session,
     verify_stripe_event,
     verify_revenuecat_webhook,
-    FLUTTERWAVE_CURRENCIES,
-    CINETPAY_CURRENCIES,  # alias rétrocompat
+    FLUTTERWAVE_CURRENCIES_CURRENCIES,  # alias rétrocompat
     FLW_HASH,
 )
 

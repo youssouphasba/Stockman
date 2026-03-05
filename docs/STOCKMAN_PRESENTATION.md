@@ -7,7 +7,7 @@
 | Statut | Étape Actuelle |
 | :--- | :--- |
 | **Technologie** | Stack moderne (React Native / Next.js / FastAPI / MongoDB) |
-| **Monétisation** | Opérationnelle via RevenueCat & CinetPay (Mobile Money) |
+| **Monétisation** | Opérationnelle via RevenueCat &  (Mobile Money) |
 | **Innovation** | Assistant IA Gemini 2.0 Flash intégré (Analyse & Prédiction) |
 | **Impact** | Accessibilité en 15 langues dont le Wolof & Peul (avec audio) |
 

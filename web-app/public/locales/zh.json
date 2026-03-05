@@ -1887,7 +1887,7 @@
     "activated_success": "您的订阅已成功激活！",
     "active": "已激活",
     "choose_plan": "选择{{plan}}",
-    "cinetpay_init_error": "无法启动Mobile Money支付。请重试。",
+    "_init_error": "无法启动Mobile Money支付。请重试。",
     "compare_plans": "方案对比",
     "features": {
       "products": "产品与商品",

@@ -1882,7 +1882,7 @@
     "activated_success": "Votre abonnement a été activé avec succès !",
     "active": "Actif",
     "choose_plan": "Choisir {{plan}}",
-    "cinetpay_init_error": "Impossible d'initier le paiement Mobile Money. Réessayez.",
+    "_init_error": "Impossible d'initier le paiement Mobile Money. Réessayez.",
     "compare_plans": "Comparaison des offres",
     "features": {
       "products": "Produits & articles",

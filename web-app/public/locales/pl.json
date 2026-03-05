@@ -1887,7 +1887,7 @@
     "activated_success": "Twój abonament został pomyślnie aktywowany!",
     "active": "Aktywny",
     "choose_plan": "Wybierz {{plan}}",
-    "cinetpay_init_error": "Nie można zainicjować płatności Mobile Money. Spróbuj ponownie.",
+    "_init_error": "Nie można zainicjować płatności Mobile Money. Spróbuj ponownie.",
     "compare_plans": "Porównanie planów",
     "features": {
       "products": "Produkty i artykuły",

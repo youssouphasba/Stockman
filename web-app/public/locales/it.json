@@ -1927,7 +1927,7 @@
     "activated_success": "Il tuo abbonamento è stato attivato con successo!",
     "active": "Attivo",
     "choose_plan": "Scegli {{plan}}",
-    "cinetpay_init_error": "Impossibile avviare il pagamento Mobile Money. Riprova.",
+    "_init_error": "Impossibile avviare il pagamento Mobile Money. Riprova.",
     "compare_plans": "Confronta i piani",
     "features": {
       "products": "Prodotti & articoli",

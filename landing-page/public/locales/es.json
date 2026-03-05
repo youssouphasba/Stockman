@@ -1,567 +1,567 @@
 {
-  "nav": {
-    "features": "Funcionalidades",
-    "resources": "Recursos",
-    "blog": "Blog",
-    "home": "Iniciar sesión",
-    "login": "Conectarse",
-    "free_trial": "Prueba gratuita"
-  },
-  "hero": {
-    "title_start": "Libera el potencial de tu",
-    "title_end": "negocio",
-    "subtitle": "La solución inteligente de gestión de inventario impulsada por IA para automatizar tus pedidos y maximizar tus beneficios.",
-    "cta": "Empezar ahora"
-  },
-  "stats": {
-    "shops": "Comercios equipados",
-    "transactions": "Transacciones / mes",
-    "satisfaction": "Clientes satisfechos",
-    "support": "Soporte disponible"
-  },
-  "features": {
-    "title": "Tus herramientas diarias",
-    "subtitle": "Una suite completa de pestañas para gestionar cada aspecto de tu negocio.",
-    "dashboard": {
-      "title": "Inicio",
-      "desc": "Vista general de tu actividad, alertas de stock críticas y acceso rápido al asistente IA."
+    "nav": {
+        "features": "Funcionalidades",
+        "resources": "Recursos",
+        "blog": "Blog",
+        "home": "Iniciar sesión",
+        "login": "Conectarse",
+        "free_trial": "Prueba gratuita"
     },
-    "products": {
-      "title": "Productos",
-      "desc": "Gestión de inventario, escaneo de códigos de barras, organización por categorías y valoración del stock."
+    "hero": {
+        "title_start": "Libera el potencial de tu",
+        "title_end": "negocio",
+        "subtitle": "La solución inteligente de gestión de inventario impulsada por IA para automatizar tus pedidos y maximizar tus beneficios.",
+        "cta": "Empezar ahora"
     },
-    "pos": {
-      "title": "TPV",
-      "desc": "Cobra a tus clientes rápidamente, genera recibos digitales y actualiza el stock en tiempo real."
+    "stats": {
+        "shops": "Comercios equipados",
+        "transactions": "Transacciones / mes",
+        "satisfaction": "Clientes satisfechos",
+        "support": "Soporte disponible"
     },
-    "suppliers": {
-      "title": "Proveedores",
-      "desc": "Directorio de proveedores, historial de pedidos y acceso al Marketplace \"Bouton-à-Bouton\"."
+    "features": {
+        "title": "Tus herramientas diarias",
+        "subtitle": "Una suite completa de pestañas para gestionar cada aspecto de tu negocio.",
+        "dashboard": {
+            "title": "Inicio",
+            "desc": "Vista general de tu actividad, alertas de stock críticas y acceso rápido al asistente IA."
+        },
+        "products": {
+            "title": "Productos",
+            "desc": "Gestión de inventario, escaneo de códigos de barras, organización por categorías y valoración del stock."
+        },
+        "pos": {
+            "title": "TPV",
+            "desc": "Cobra a tus clientes rápidamente, genera recibos digitales y actualiza el stock en tiempo real."
+        },
+        "suppliers": {
+            "title": "Proveedores",
+            "desc": "Directorio de proveedores, historial de pedidos y acceso al Marketplace \"Bouton-à-Bouton\"."
+        },
+        "orders": {
+            "title": "Pedidos",
+            "desc": "Seguimiento de órdenes de compra, recepción de mercancías y actualización automática de stocks."
+        },
+        "accounting": {
+            "title": "Contabilidad",
+            "desc": "Seguimiento preciso de ventas, gastos y cálculo automático de la rentabilidad por período."
+        },
+        "clients": {
+            "title": "Clientes",
+            "desc": "Base de datos de clientes, historial de compras y herramientas de fidelización integradas."
+        },
+        "settings": {
+            "title": "Ajustes",
+            "desc": "Personalización de la aplicación, gestión de usuarios y configuración de tu tienda."
+        }
     },
-    "orders": {
-      "title": "Pedidos",
-      "desc": "Seguimiento de órdenes de compra, recepción de mercancías y actualización automática de stocks."
+    "showcase": {
+        "title": "La interfaz que lo cambia todo",
+        "subtitle": "Un diseño limpio, pensado para ahorrarte tiempo.",
+        "app_interface": "Interfaz de la App"
     },
-    "accounting": {
-      "title": "Contabilidad",
-      "desc": "Seguimiento preciso de ventas, gastos y cálculo automático de la rentabilidad por período."
+    "how_it_works": {
+        "title": "Inicio rápido",
+        "subtitle": "Tres pasos sencillos para transformar tu negocio.",
+        "step1": {
+            "title": "Crea tu cuenta",
+            "desc": "Descarga la app y configura tu tienda en menos de 2 minutos."
+        },
+        "step2": {
+            "title": "Escanea tus productos",
+            "desc": "Usa la cámara de tu teléfono para añadir tu inventario rápidamente."
+        },
+        "step3": {
+            "title": "Vende y haz seguimiento",
+            "desc": "Realiza tus primeras ventas y observa cómo crecen tus estadísticas en tiempo real."
+        }
     },
-    "clients": {
-      "title": "Clientes",
-      "desc": "Base de datos de clientes, historial de compras y herramientas de fidelización integradas."
+    "testimonials": {
+        "title": "Confían en nosotros",
+        "subtitle": "Descubre cómo Stockman ayuda a los comerciantes cada día.",
+        "t1": "Desde que uso Stockman, ya no pierdo dinero por roturas de stock. ¡La IA siempre me avisa en el momento justo!",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Electronics Shop",
+        "t2": "La app es muy sencilla. Mis empleados la dominaron en 10 minutos. La gestión de caja es perfecta.",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Express Supermarket",
+        "t3": "¡Me encanta el marketplace! Puedo comparar precios de mis proveedores y pedir directamente. Un gran ahorro de tiempo.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Central Pharmacy"
     },
-    "settings": {
-      "title": "Ajustes",
-      "desc": "Personalización de la aplicación, gestión de usuarios y configuración de tu tienda."
+    "pricing": {
+        "title": "Elige tu plan",
+        "subtitle": "Precios transparentes adaptados al tamaño de tu negocio.",
+        "month": "/mes",
+        "popular": "Popular",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 Usuario",
+            "f2": "1 Tienda",
+            "f3": "Acceso completo a todas las funciones",
+            "f4": "3 meses de prueba gratuita",
+            "cta": "Empezar"
+        },
+        "business": {
+            "name": "Pro",
+            "f1": "Hasta 5 Usuarios",
+            "f2": "2 Tiendas",
+            "f3": "Acceso completo a todas las funciones",
+            "f4": "Marketplace Bouton-à-Bouton",
+            "f5": "3 meses de prueba gratuita",
+            "cta": "Prueba gratuita 14 días"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Presupuesto personalizado",
+            "f1": "Usuarios ilimitados",
+            "f2": "Multi-tienda",
+            "f3": "API e Integraciones",
+            "f4": "Soporte dedicado 24/7",
+            "cta": "Contáctenos"
+        }
+    },
+    "faq": {
+        "title": "Preguntas frecuentes",
+        "q1": "¿Funciona sin internet?",
+        "a1": "Sí, Stockman funciona en modo offline. Tus datos se sincronizan en cuanto recuperas la conexión.",
+        "q2": "¿Mis datos están seguros?",
+        "a2": "Absolutamente. Utilizamos cifrado de nivel bancario para proteger toda tu información comercial."
+    },
+    "download": {
+        "title": "¿Listo para dar el siguiente paso?",
+        "subtitle": "Únete a miles de comerciantes que han modernizado su gestión.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "Pagos seguros",
+        "support": "Soporte profesional",
+        "updates": "Actualizaciones continuas"
+    },
+    "footer": {
+        "desc": "La solución todo en uno para comerciantes modernos en África.",
+        "product": "Producto",
+        "support": "Soporte",
+        "legal": "Legal",
+        "help_center": "Centro de ayuda",
+        "contact": "Contacto",
+        "community": "Comunidad",
+        "privacy": "Privacidad",
+        "terms": "Condiciones de uso",
+        "delete_account": "Supprimer mon compte",
+        "legal_notice": "Aviso legal",
+        "copyright": "© 2026 Stockman. Todos los derechos reservados."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
+    },
+    "newsletter": {
+        "title": "Conviértete en un experto en stock",
+        "desc": "Únete a más de 5000 comerciantes y recibe gratis nuestra guía: \"Los 10 errores que matan tu rentabilidad\".",
+        "success": "¡Gracias! Revisa tu bandeja de entrada.",
+        "placeholder": "Tu email...",
+        "cta": "Recibir la guía",
+        "privacy": "Sin spam. Cancelar suscripción en 1 clic."
+    },
+    "contact": {
+        "title": "Contáctenos",
+        "subtitle": "¿Una pregunta? ¿Una colaboración? Escríbenos.",
+        "name": "Tu nombre",
+        "email": "Tu email",
+        "message": "Tu mensaje",
+        "submit": "Enviar mensaje",
+        "success_title": "¡Mensaje enviado!",
+        "success_desc": "Nuestro equipo te responderá en un plazo de 24 horas.",
+        "send_another": "Enviar otro mensaje"
+    },
+    "whatsapp": {
+        "message": "Hola, me gustaría saber más sobre Stockman."
+    },
+    "cookie": {
+        "message": "Utilizamos cookies para mejorar tu experiencia. Al continuar, aceptas nuestra política de privacidad.",
+        "accept": "Aceptar"
+    },
+    "comparison": {
+        "title": "¿Por qué elegir Stockman?",
+        "feature": "Funcionalidad",
+        "notebook": "Cuaderno / Excel 📝",
+        "stock_mgmt": "Gestión de stock",
+        "stock_yes": "✅ Automática y en tiempo real",
+        "stock_no": "❌ Manual y propensa a errores",
+        "alerts": "Alertas de rotura",
+        "alerts_yes": "✅ Notificaciones IA",
+        "alerts_no": "❌ Ninguna",
+        "pos": "TPV (Caja)",
+        "pos_yes": "✅ Integrada y rápida",
+        "pos_no": "❌ Calculadora separada",
+        "backup": "Copia de seguridad",
+        "backup_yes": "✅ Nube segura",
+        "backup_no": "❌ Riesgo de pérdida (robo, incendio)",
+        "financial": "Informe financiero",
+        "financial_yes": "✅ En 1 clic (P&L, Margen)",
+        "financial_no": "❌ Cálculos largos y tediosos",
+        "marketplace": "Marketplace",
+        "marketplace_yes": "✅ Acceso directo a proveedores",
+        "marketplace_no": "❌ Búsqueda física"
+    },
+    "feature_pages": {
+        "back_home": "Volver al inicio",
+        "why_use": "¿Por qué usar {{title}}?",
+        "discover_interface": "Descubre la interfaz en detalle",
+        "cta_title": "¿Listo para optimizar tu gestión?",
+        "cta_button": "Comenzar la prueba gratuita",
+        "dashboard": {
+            "title": "Panel de control",
+            "subtitle": "Gestiona tu actividad de un vistazo",
+            "description": "El panel de control es tu torre de control. No se limita a mostrar cifras: te ofrece una visión clara y accionable de la salud de tu negocio. Gracias a la integración de IA, analiza tus ventas en tiempo real para identificar oportunidades de crecimiento y riesgos (roturas, sobrestock). Aquí es donde tomas las decisiones que importan.",
+            "f1_title": "Estadísticas en tiempo real",
+            "f1_desc": "Sigue tu facturación, beneficios y número de ventas al segundo.",
+            "f2_title": "Alertas inteligentes",
+            "f2_desc": "Recibe notificaciones inmediatas sobre productos agotados o próximos a caducar.",
+            "f3_title": "Asistente IA",
+            "f3_desc": "Haz preguntas a tu asistente de negocio directamente desde la pantalla principal para obtener análisis instantáneos.",
+            "gallery": {
+                "kpi": {
+                    "image": "/assets/screenshots/dashboard-kpi.jpg",
+                    "title": "Vista general y KPIs",
+                    "description": "Sigue tus indicadores clave de rendimiento en tiempo real al abrir la app."
+                },
+                "stats": {
+                    "image": "/assets/screenshots/dashboard-stats.jpg",
+                    "title": "Estadísticas globales",
+                    "description": "Visualiza de un vistazo tu facturación, beneficios y tendencias de ventas."
+                },
+                "charts": {
+                    "image": "/assets/screenshots/dashboard-sales-chart.jpg",
+                    "title": "Gráficos de rendimiento",
+                    "description": "Sigue la evolución del valor de tu stock y analiza tus picos de ventas."
+                },
+                "analysis": {
+                    "image": "/assets/screenshots/dashboard-analysis.jpg",
+                    "title": "Análisis ABC y reaprovisionamiento",
+                    "description": "Identifica tus productos más rentables y recibe sugerencias de pedido."
+                },
+                "history": {
+                    "image": "/assets/screenshots/dashboard-history.jpg",
+                    "title": "Historial de movimientos",
+                    "description": "Mantén un registro de cada entrada y salida de stock con trazabilidad total."
+                }
+            }
+        },
+        "products": {
+            "title": "Gestión de productos",
+            "subtitle": "Tu inventario, perfectamente organizado",
+            "description": "Gestión de inventario profesional sin complejidad. Ya tengas 10 o 10 000 referencias, Stockman te permite organizarlas con precisión. El escáner de códigos de barras integrado convierte tu teléfono en un terminal de inventario ultrarrápido.",
+            "f1_title": "Escaneo de códigos de barras",
+            "f1_desc": "Usa la cámara de tu teléfono para añadir productos o hacer un inventario rápido.",
+            "f2_title": "Organización flexible",
+            "f2_desc": "Crea categorías, marcas y variantes para estructurar tu catálogo.",
+            "f3_title": "Valoración del stock",
+            "f3_desc": "Conoce en todo momento el valor total de tu inventario (precio de compra y precio de venta).",
+            "gallery": {
+                "list": {
+                    "image": "/assets/screenshots/products-list.jpg",
+                    "title": "Lista de productos",
+                    "description": "Accede rápidamente a todo tu catálogo con búsqueda y filtros avanzados."
+                },
+                "create": {
+                    "image": "/assets/screenshots/products-create-1.jpg",
+                    "title": "Creación sencilla",
+                    "description": "Añade un producto en segundos con toda su información esencial."
+                },
+                "variants": {
+                    "image": "/assets/screenshots/products-create-2.jpg",
+                    "title": "Detalles y variantes",
+                    "description": "Gestiona tallas, colores y precios específicos para cada variante."
+                },
+                "thresholds": {
+                    "image": "/assets/screenshots/products-create-3.jpg",
+                    "title": "Stock y umbrales",
+                    "description": "Define alertas de stock bajo para no quedarte sin mercancía."
+                }
+            }
+        },
+        "pos": {
+            "title": "Caja registradora",
+            "subtitle": "Cobra a tus clientes con facilidad",
+            "description": "Ofrece una experiencia de cobro fluida y moderna. Nuestro TPV táctil está diseñado para la rapidez: añade artículos, gestiona descuentos y maneja múltiples métodos de pago en segundos.",
+            "f1_title": "Carrito rápido",
+            "f1_desc": "Interfaz táctil optimizada para añadir productos al carrito en un instante.",
+            "f2_title": "Recibos digitales",
+            "f2_desc": "Envía recibos por WhatsApp, SMS o Email directamente a tus clientes.",
+            "f3_title": "Multi-pago",
+            "f3_desc": "Acepta efectivo, Mobile Money o tarjeta y controla todo en tu caja.",
+            "gallery": {
+                "sale": {
+                    "image": "/assets/screenshots/pos-overview.jpg",
+                    "title": "Interfaz de ventas",
+                    "description": "Añade productos al carrito, gestiona cantidades y descuentos con fluidez."
+                },
+                "receipt": {
+                    "image": "/assets/screenshots/pos-receipt-qr.jpg",
+                    "title": "Recibo y código QR",
+                    "description": "Genera un recibo instantáneo con un código QR que tus clientes pueden escanear."
+                }
+            }
+        },
+        "suppliers": {
+            "title": "Proveedores y Marketplace",
+            "subtitle": "Tu aprovisionamiento simplificado",
+            "description": "Convierte tu aprovisionamiento en una ventaja competitiva. Stockman centraliza tus proveedores y te abre las puertas de su Marketplace exclusivo. Compara precios en tiempo real y haz pedidos directamente.",
+            "f1_title": "Directorio de proveedores",
+            "f1_desc": "Centraliza los contactos de todos tus proveedores y el historial de tus intercambios.",
+            "f2_title": "Pedidos automatizados",
+            "f2_desc": "Genera órdenes de compra en un clic basándote en tus necesidades de stock.",
+            "f3_title": "Comparador de precios",
+            "f3_desc": "Encuentra el proveedor más barato para cada producto con nuestro comparador integrado.",
+            "gallery": {
+                "marketplace": {
+                    "image": "/assets/screenshots/suppliers-marketplace.jpg",
+                    "title": "Marketplace integrado",
+                    "description": "Accede a una amplia red de proveedores verificados y compara precios."
+                },
+                "catalog": {
+                    "image": "/assets/screenshots/suppliers-details-catalog.jpg",
+                    "title": "Catálogo de proveedores",
+                    "description": "Consulta los productos disponibles de cada proveedor y sus condiciones."
+                },
+                "order": {
+                    "image": "/assets/screenshots/suppliers-order-creation.jpg",
+                    "title": "Realización de pedidos",
+                    "description": "Crea y envía tus pedidos de reaprovisionamiento en unos pocos clics."
+                }
+            }
+        },
+        "orders": {
+            "title": "Seguimiento de pedidos",
+            "subtitle": "Del pedido a la entrega",
+            "description": "Mantén el control total sobre tu cadena de suministro. Desde la orden de compra hasta la recepción en tienda, sigue cada paso. El stock se actualiza automáticamente al recibir la mercancía.",
+            "f1_title": "Seguimiento de estado",
+            "f1_desc": "Visualiza el estado de cada pedido: Pendiente, Enviado, Recibido o Cancelado.",
+            "f2_title": "Recepción fácil",
+            "f2_desc": "Confirma la recepción de mercancías y actualiza automáticamente las cantidades en stock.",
+            "f3_title": "Historial completo",
+            "f3_desc": "Encuentra todos tus pedidos anteriores para facilitar el reaprovisionamiento.",
+            "gallery": {
+                "tracking": {
+                    "image": "/assets/screenshots/orders-tracking.jpg",
+                    "title": "Seguimiento en tiempo real",
+                    "description": "Visualiza el estado de avance de cada pedido a proveedores."
+                }
+            }
+        },
+        "accounting": {
+            "title": "Contabilidad simplificada",
+            "subtitle": "Tus finanzas bajo control",
+            "description": "Tu contabilidad se hace sola. Cada venta, cada gasto alimenta automáticamente tus libros contables. Sigue tu flujo de caja y genera tu cuenta de resultados en un clic.",
+            "f1_title": "Cuenta de resultados",
+            "f1_desc": "Visualiza tus ingresos, costes y beneficio neto en el período que elijas.",
+            "f2_title": "Seguimiento de gastos",
+            "f2_desc": "Registra tus gastos (alquiler, electricidad, salarios) para un cálculo preciso de la rentabilidad.",
+            "f3_title": "Exportación PDF/Excel",
+            "f3_desc": "Descarga tus datos contables para tu contable o tus archivos personales.",
+            "gallery": {
+                "overview": {
+                    "image": "/assets/screenshots/accounting-overview.jpg",
+                    "title": "Vista contable global",
+                    "description": "Analiza tu rentabilidad con indicadores claros y precisos."
+                },
+                "expenses": {
+                    "image": "/assets/screenshots/accounting-expense-create.jpg",
+                    "title": "Gestión de gastos",
+                    "description": "Añade fácilmente tus costes fijos y variables."
+                },
+                "reports": {
+                    "image": "/assets/screenshots/accounting-details-charts.jpg",
+                    "title": "Informes y gráficos",
+                    "description": "Visualiza la evolución de tus finanzas a lo largo del tiempo."
+                }
+            }
+        },
+        "clients": {
+            "title": "Gestión de clientes (CRM)",
+            "subtitle": "Fideliza a tu clientela",
+            "description": "Convierte a tus clientes ocasionales en habituales fieles. El CRM integrado registra cada interacción e historial de compras. Gestiona deudas y créditos para no perder nunca más dinero en cuentas pendientes.",
+            "f1_title": "Fichas de clientes",
+            "f1_desc": "Historial completo de compras, datos de contacto y preferencias de cada cliente.",
+            "f2_title": "Deudas y créditos",
+            "f2_desc": "Sigue las cuentas pendientes de los clientes y sabe exactamente quién te debe dinero.",
+            "f3_title": "Marketing WhatsApp",
+            "f3_desc": "Envía mensajes promocionales dirigidos directamente por WhatsApp.",
+            "gallery": {
+                "details": {
+                    "image": "/assets/screenshots/clients-details.jpg",
+                    "title": "Ficha detallada del cliente",
+                    "description": "Toda la información del cliente, historial de compras y saldos de crédito/deuda."
+                },
+                "campaigns": {
+                    "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
+                    "title": "Campañas WhatsApp",
+                    "description": "Crea y envía campañas promocionales dirigidas a tus grupos de clientes."
+                }
+            }
+        },
+        "settings": {
+            "title": "Ajustes y configuración",
+            "subtitle": "Adapta Stockman a tus necesidades",
+            "description": "Configura Stockman para que se adapte a tu estructura: gestiona los derechos de acceso de tus empleados, añade nuevos puntos de venta y accede a un soporte reactivo.",
+            "f1_title": "Gestión de usuarios",
+            "f1_desc": "Crea cuentas para tus empleados y define sus permisos (vendedor, gerente, admin).",
+            "f2_title": "Multi-tienda",
+            "f2_desc": "Añade y gestiona varios puntos de venta desde una sola cuenta de administrador.",
+            "f3_title": "Personalización",
+            "f3_desc": "Cambia la moneda, el idioma y las preferencias de visualización de la app.",
+            "gallery": {
+                "team": {
+                    "image": "/assets/screenshots/settings-employees.jpg",
+                    "title": "Gestión de equipo",
+                    "description": "Gestiona a tus empleados, sus roles y sus accesos."
+                },
+                "notifications": {
+                    "image": "/assets/screenshots/settings-notifications.jpg",
+                    "title": "Centro de notificaciones",
+                    "description": "Configura tus alertas de stock y recordatorios importantes."
+                },
+                "security": {
+                    "image": "/assets/screenshots/settings-support-security.jpg",
+                    "title": "Soporte y seguridad",
+                    "description": "Accede a la ayuda en línea y protege tu cuenta."
+                },
+                "guide": {
+                    "image": "/assets/screenshots/settings-guide.jpg",
+                    "title": "Guía completa",
+                    "description": "Aprende a dominar todas las funcionalidades de Stockman."
+                }
+            }
+        }
+    },
+    "about": {
+        "seo_title": "Sobre nosotros",
+        "seo_desc": "Descubre el equipo detrás de Stockman y nuestra misión para digitalizar el comercio en África.",
+        "home": "Inicio",
+        "mission_start": "Nuestra misión:",
+        "mission_highlight": "Digitalizar África",
+        "mission_desc": "Creemos que cada comerciante, pequeño o grande, merece las mejores herramientas para tener éxito. Stockman no es solo un software, es tu socio de crecimiento.",
+        "team_title": "El equipo",
+        "team_subtitle": "Apasionados al servicio de los emprendedores.",
+        "member1_image": "👨🏿‍💼",
+        "member1_name": "Jean-Marc Koffi",
+        "member1_role": "CEO y cofundador",
+        "member1_bio": "Antiguo comerciante, creó Stockman para resolver sus propios problemas de gestión.",
+        "member2_image": "👩🏾‍💻",
+        "member2_name": "Awa Diop",
+        "member2_role": "CTO y Tech Lead",
+        "member2_bio": "Ingeniera apasionada por la IA y la accesibilidad digital en África.",
+        "member3_image": "🎧",
+        "member3_name": "David N'Guessan",
+        "member3_role": "Responsable de soporte",
+        "member3_bio": "Siempre a la escucha para acompañar a nuestros usuarios hacia el éxito.",
+        "values_title": "Nuestros valores",
+        "value1_title": "🔍 Simplicidad",
+        "value1_desc": "La tecnología debe ser accesible para todos, sin formación compleja.",
+        "value2_title": "🤝 Proximidad",
+        "value2_desc": "Estamos aquí, entendemos vuestras realidades y vuestros desafíos.",
+        "value3_title": "🚀 Innovación",
+        "value3_desc": "Mejoramos Stockman cada día gracias a vuestros comentarios."
+    },
+    "blog": {
+        "seo_title": "Blog y recursos",
+        "seo_desc": "Consejos y trucos para gestionar tu negocio, optimizar tu stock y aumentar tus ventas.",
+        "page_title": "Centro de recursos",
+        "page_subtitle": "Consejos de expertos para comerciantes modernos.",
+        "read_more": "Leer más →",
+        "not_found": "Artículo no encontrado 😕",
+        "back_to_blog": "Volver al blog",
+        "back_to_articles": "← Volver a los artículos",
+        "published_on": "PUBLICADO EL",
+        "liked_article": "¿Te ha gustado este artículo?",
+        "try_stockman": "Prueba Stockman para poner en práctica estos consejos.",
+        "start_trial": "Comenzar la prueba gratuita",
+        "posts": {
+            "abandonner-cahier-stock": {
+                "title": "¿Por qué abandonar el cuaderno para la gestión de stock?",
+                "excerpt": "El cuaderno tiene sus límites. Descubre cómo la digitalización puede salvar tu negocio de errores de cálculo y pérdidas.",
+                "date": "12 Feb 2026",
+                "content": "<p>Muchos comerciantes siguen usando un cuaderno para registrar sus ventas y su stock. Es un método tradicional, pero conlleva serios riesgos.</p><h3>1. Errores de cálculo</h3><p>Un simple error de suma puede falsear toda tu contabilidad. Con un software como Stockman, los cálculos son automáticos y sin errores.</p><h3>2. Pérdida de datos</h3><p>Un cuaderno puede perderse, ser robado o destruido por un incendio. Tus datos en Stockman están respaldados en la nube y accesibles desde cualquier lugar.</p><h3>3. Sin visión global</h3><p>Es difícil saber qué producto se vende mejor hojeando páginas. Stockman te da esta información en un clic.</p><h3>Conclusión</h3><p>Pasar al digital no es un gasto, es una inversión que te ahorra tiempo y dinero desde el primer mes.</p>"
+            },
+            "eviter-ruptures-fetes": {
+                "title": "¿Cómo evitar roturas de stock durante las fiestas?",
+                "excerpt": "Navidad y Tabaski son períodos críticos. Prepara tu stock con antelación gracias a nuestros consejos de expertos.",
+                "date": "10 Ene 2026",
+                "content": "<p>Las roturas de stock durante las fiestas suponen una pérdida directa de facturación. Aquí te explicamos cómo evitarlas.</p><h3>Anticipa la demanda</h3><p>Usa el historial de ventas del año pasado para prever las cantidades que necesitas pedir.</p><h3>Pide con antelación</h3><p>Los proveedores suelen estar desbordados. Haz tus pedidos de 2 a 3 semanas antes de lo habitual.</p><h3>Usa las alertas de Stockman</h3><p>Configura umbrales de alerta para recibir avisos en cuanto un producto empiece a escasear.</p>"
+            },
+            "augmenter-marge-2026": {
+                "title": "3 consejos para aumentar tu margen en 2026",
+                "excerpt": "La facturación está bien, ¡pero el margen es mejor! Aprende a optimizar tus costes y precios.",
+                "date": "05 Ene 2026",
+                "content": "<p>Subir los precios no es la única forma de ganar más. Aquí te mostramos cómo trabajar tu margen.</p><h3>1. Reduce las pérdidas</h3><p>Los productos caducados o robados cuestan caro. Un seguimiento riguroso del stock permite reducir estas pérdidas en un 30%.</p><h3>2. Negocia con tus proveedores</h3><p>Agrupando tus pedidos a través del Marketplace de Stockman, puedes obtener mejores tarifas.</p><h3>3. Fideliza a tus clientes</h3><p>Un cliente fiel cuesta menos de captar que uno nuevo. Usa el programa de fidelización para que vuelvan.</p>"
+            }
+        }
+    },
+    "help": {
+        "hero_start": "¿Cómo podemos",
+        "hero_highlight": "ayudarte",
+        "search_placeholder": "Buscar una respuesta...",
+        "no_results": "No se encontraron resultados para \"{{term}}\"",
+        "need_more": "¿Necesitas más ayuda?",
+        "email_support": "✉️ Soporte por email",
+        "whatsapp_chat": "💬 Chat WhatsApp",
+        "getting_started": {
+            "title": "Primeros pasos",
+            "q1": "¿Cómo creo una cuenta?",
+            "a1": "Descarga la app y sigue las instrucciones en pantalla. Tarda menos de 2 minutos.",
+            "q2": "¿Puedo usar la app sin internet?",
+            "a2": "Sí, Stockman funciona sin conexión y sincroniza tus datos en cuanto vuelve la conexión."
+        },
+        "account_billing": {
+            "title": "Cuenta y facturación",
+            "q1": "¿Cómo cambio mi contraseña?",
+            "a1": "Ve a Ajustes > Seguridad > Cambiar contraseña.",
+            "q2": "¿Cómo funciona la prueba gratuita?",
+            "a2": "Obtienes automáticamente 14 días de prueba gratuita con todas las funcionalidades desbloqueadas al registrarte."
+        },
+        "technical_support": {
+            "title": "Soporte técnico",
+            "q1": "La app no se abre, ¿qué hago?",
+            "a1": "Comprueba tu conexión a internet y asegúrate de tener la última actualización. Si el problema persiste, reinstala la app.",
+            "q2": "¿Cómo contacto con soporte?",
+            "a2": "Puedes escribirnos a través del formulario de abajo o directamente por WhatsApp."
+        }
+    },
+    "terms": {
+        "title": "Condiciones generales de uso",
+        "version": "Versión \"Ultimate\" 3.0 - Última actualización: 13 de febrero de 2026",
+        "content": "<p>Bienvenido a <strong>Stockman</strong>.<br/>Las presentes Condiciones Generales de Uso (en adelante \"CGU\") constituyen un marco legal vinculante entre el Usuario y el Editor de la solución Stockman.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO I: DISPOSICIONES GENERALES</h3><h4>Artículo 1: Definiciones</h4><ul><li><strong>Plataforma</strong>: Designa la infraestructura de software completa de Stockman.</li><li><strong>Usuario</strong>: Entidad o individuo que utiliza los servicios con fines profesionales.</li><li><strong>Editor</strong>: Stockman Inc., propietario y operador de Stockman.</li><li><strong>Tienda / Comercio</strong>: Instancia lógica creada por un Usuario para gestionar sus actividades.</li></ul><h4>Artículo 2: Objeto de los servicios</h4><p>Stockman es una solución ERP especializada en gestión de stock, punto de venta y relación con el cliente. Se proporciona como servicio (SaaS).</p><h4>Artículo 3: Aceptación de las condiciones</h4><p>El acceso a la Plataforma está condicionado a la aceptación plena y completa de las presentes CGU.</p><h4>Artículo 4: Capacidad y uso profesional</h4><p>Stockman es una herramienta estrictamente profesional. El Usuario garantiza que utiliza el servicio para su actividad comercial.</p><h4>Artículo 5: Modificación de las CGU</h4><p>El Editor se reserva el derecho de modificar las presentes CGU en cualquier momento. El uso continuado del Servicio tras la modificación constituye aceptación.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO II: ACCESO Y GESTIÓN DE CUENTAS</h3><h4>Artículo 6: Registro</h4><p>El Usuario se compromete a proporcionar datos veraces durante el registro.</p><h4>Artículo 7: Seguridad de las credenciales</h4><p>El Usuario es responsable de la custodia de su contraseña.</p><h4>Artículo 8: Gestión del perfil</h4><p>El Usuario puede modificar su información. Estos datos deben seguir siendo profesionales.</p><h4>Artículo 9: Cuentas de personal</h4><p>El Propietario puede crear accesos para sus empleados y asume la responsabilidad de sus acciones.</p><h4>Artículo 10: Permisos</h4><p>El Usuario acepta el sistema de roles (Admin, Vendedor, Gerente).</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO III: OPERACIONES COMERCIALES</h3><h4>Artículos 11-18</h4><p>El Usuario es responsable de la creación de sus fichas de productos, su inventario, sus ventas y devoluciones. Stockman proporciona un estado teórico del stock. El Editor no es responsable de las discrepancias.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULOS IV-IX: DATOS, IA, SEGURIDAD</h3><p>La IA puede producir errores. Las predicciones son probabilidades. Los datos se respaldan diariamente. El Editor garantiza el ejercicio de los derechos RGPD. Todo litigio estará sujeto a la ley del domicilio social del Editor.</p>"
+    },
+    "privacy": {
+        "title": "Política de privacidad",
+        "version": "Última actualización: 13 de febrero de 2026",
+        "content": "<p>Bienvenido a Stockman. La protección de tus datos personales es una prioridad para nosotros.</p><h3>1. Recopilación de datos</h3><p>Recopilamos: información de identificación (nombre, email, teléfono), datos profesionales (tienda, inventario, transacciones), datos técnicos (IP, dispositivo, registros).</p><h3>2. Uso de los datos</h3><p>Tus datos se utilizan exclusivamente para: la gestión de tu stock y ventas, la seguridad de tu cuenta, la mejora de nuestros servicios y el cumplimiento de nuestras obligaciones legales.</p><h3>3. Almacenamiento y seguridad</h3><p>Tus datos se almacenan en servidores seguros (MongoDB Atlas) y se cifran en reposo. Utilizamos el protocolo HTTPS para todas las transferencias.</p><h3>4. Compartición de datos</h3><p>No vendemos ni alquilamos tus datos. Solo pueden compartirse con nuestros proveedores de servicios técnicos y las autoridades si lo exige la ley.</p><h3>5. Tus derechos (RGPD)</h3><p>Tienes derechos de acceso, rectificación, supresión y portabilidad. Ejerce estos derechos desde la pestaña Ajustes de la app.</p><h3>6. Contacto</h3><p>Para cualquier pregunta, contáctanos a través de la app o en <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     }
-  },
-  "showcase": {
-    "title": "La interfaz que lo cambia todo",
-    "subtitle": "Un diseño limpio, pensado para ahorrarte tiempo.",
-    "app_interface": "Interfaz de la App"
-  },
-  "how_it_works": {
-    "title": "Inicio rápido",
-    "subtitle": "Tres pasos sencillos para transformar tu negocio.",
-    "step1": {
-      "title": "Crea tu cuenta",
-      "desc": "Descarga la app y configura tu tienda en menos de 2 minutos."
-    },
-    "step2": {
-      "title": "Escanea tus productos",
-      "desc": "Usa la cámara de tu teléfono para añadir tu inventario rápidamente."
-    },
-    "step3": {
-      "title": "Vende y haz seguimiento",
-      "desc": "Realiza tus primeras ventas y observa cómo crecen tus estadísticas en tiempo real."
-    }
-  },
-  "testimonials": {
-    "title": "Confían en nosotros",
-    "subtitle": "Descubre cómo Stockman ayuda a los comerciantes cada día.",
-    "t1": "Desde que uso Stockman, ya no pierdo dinero por roturas de stock. ¡La IA siempre me avisa en el momento justo!",
-    "t1_author": "Amadou Diallo",
-    "t1_job": "Electronics Shop",
-    "t2": "La app es muy sencilla. Mis empleados la dominaron en 10 minutos. La gestión de caja es perfecta.",
-    "t2_author": "Sarah Kouassi",
-    "t2_job": "Express Supermarket",
-    "t3": "¡Me encanta el marketplace! Puedo comparar precios de mis proveedores y pedir directamente. Un gran ahorro de tiempo.",
-    "t3_author": "Paul N'Goma",
-    "t3_job": "Central Pharmacy"
-  },
-  "pricing": {
-    "title": "Elige tu plan",
-    "subtitle": "Precios transparentes adaptados al tamaño de tu negocio.",
-    "month": "/mes",
-    "popular": "Popular",
-    "starter": {
-      "name": "Starter",
-      "f1": "1 Usuario",
-      "f2": "1 Tienda",
-      "f3": "Acceso completo a todas las funciones",
-      "f4": "3 meses de prueba gratuita",
-      "cta": "Empezar"
-    },
-    "business": {
-      "name": "Pro",
-      "f1": "Hasta 5 Usuarios",
-      "f2": "2 Tiendas",
-      "f3": "Acceso completo a todas las funciones",
-      "f4": "Marketplace Bouton-à-Bouton",
-      "f5": "3 meses de prueba gratuita",
-      "cta": "Prueba gratuita 14 días"
-    },
-    "enterprise": {
-      "name": "Enterprise",
-      "price": "Presupuesto personalizado",
-      "f1": "Usuarios ilimitados",
-      "f2": "Multi-tienda",
-      "f3": "API e Integraciones",
-      "f4": "Soporte dedicado 24/7",
-      "cta": "Contáctenos"
-    }
-  },
-  "faq": {
-    "title": "Preguntas frecuentes",
-    "q1": "¿Funciona sin internet?",
-    "a1": "Sí, Stockman funciona en modo offline. Tus datos se sincronizan en cuanto recuperas la conexión.",
-    "q2": "¿Mis datos están seguros?",
-    "a2": "Absolutamente. Utilizamos cifrado de nivel bancario para proteger toda tu información comercial."
-  },
-  "download": {
-    "title": "¿Listo para dar el siguiente paso?",
-    "subtitle": "Únete a miles de comerciantes que han modernizado su gestión.",
-    "app_store": "App Store",
-    "google_play": "Google Play",
-    "secure": "Pagos seguros",
-    "support": "Soporte profesional",
-    "updates": "Actualizaciones continuas"
-  },
-  "footer": {
-    "desc": "La solución todo en uno para comerciantes modernos en África.",
-    "product": "Producto",
-    "support": "Soporte",
-    "legal": "Legal",
-    "help_center": "Centro de ayuda",
-    "contact": "Contacto",
-    "community": "Comunidad",
-    "privacy": "Privacidad",
-    "terms": "Condiciones de uso",
-    "delete_account": "Supprimer mon compte",
-    "legal_notice": "Aviso legal",
-    "copyright": "© 2026 Stockman. Todos los derechos reservados."
-  },
-  "delete_account": {
-    "title": "Suppression de Compte & Données",
-    "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
-    "version": "Dernière mise à jour : 18 Février 2026",
-    "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
-    "method_app_title": "1. Via l'application (Recommandé)",
-    "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
-    "method_app_steps": [
-      "Ouvrez l'application Stockman.",
-      "Allez dans l'onglet **Réglages**.",
-      "Faites défiler jusqu'à la section **Zone de danger**.",
-      "Appuyez sur **Supprimer mon compte**.",
-      "Confirmez en saisissant votre mot de passe."
-    ],
-    "method_web_title": "2. Via ce formulaire (Sans l'application)",
-    "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
-    "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
-    "data_erased_title": "Quelles données seront effacées ?",
-    "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
-    "data_erased_list": [
-      "Votre profil utilisateur et identifiants.",
-      "Toutes vos boutiques et points de vente.",
-      "L'intégralité de votre inventaire et catalogue produits.",
-      "Toutes vos transactions de vente et historiques comptables.",
-      "Vos listes de clients, fournisseurs et historiques d'achats.",
-      "Vos accès à l'Assistant IA et historiques de chat."
-    ],
-    "retention_title": "Délai de traitement",
-    "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
-  },
-  "newsletter": {
-    "title": "Conviértete en un experto en stock",
-    "desc": "Únete a más de 5000 comerciantes y recibe gratis nuestra guía: \"Los 10 errores que matan tu rentabilidad\".",
-    "success": "¡Gracias! Revisa tu bandeja de entrada.",
-    "placeholder": "Tu email...",
-    "cta": "Recibir la guía",
-    "privacy": "Sin spam. Cancelar suscripción en 1 clic."
-  },
-  "contact": {
-    "title": "Contáctenos",
-    "subtitle": "¿Una pregunta? ¿Una colaboración? Escríbenos.",
-    "name": "Tu nombre",
-    "email": "Tu email",
-    "message": "Tu mensaje",
-    "submit": "Enviar mensaje",
-    "success_title": "¡Mensaje enviado!",
-    "success_desc": "Nuestro equipo te responderá en un plazo de 24 horas.",
-    "send_another": "Enviar otro mensaje"
-  },
-  "whatsapp": {
-    "message": "Hola, me gustaría saber más sobre Stockman."
-  },
-  "cookie": {
-    "message": "Utilizamos cookies para mejorar tu experiencia. Al continuar, aceptas nuestra política de privacidad.",
-    "accept": "Aceptar"
-  },
-  "comparison": {
-    "title": "¿Por qué elegir Stockman?",
-    "feature": "Funcionalidad",
-    "notebook": "Cuaderno / Excel 📝",
-    "stock_mgmt": "Gestión de stock",
-    "stock_yes": "✅ Automática y en tiempo real",
-    "stock_no": "❌ Manual y propensa a errores",
-    "alerts": "Alertas de rotura",
-    "alerts_yes": "✅ Notificaciones IA",
-    "alerts_no": "❌ Ninguna",
-    "pos": "TPV (Caja)",
-    "pos_yes": "✅ Integrada y rápida",
-    "pos_no": "❌ Calculadora separada",
-    "backup": "Copia de seguridad",
-    "backup_yes": "✅ Nube segura",
-    "backup_no": "❌ Riesgo de pérdida (robo, incendio)",
-    "financial": "Informe financiero",
-    "financial_yes": "✅ En 1 clic (P&L, Margen)",
-    "financial_no": "❌ Cálculos largos y tediosos",
-    "marketplace": "Marketplace",
-    "marketplace_yes": "✅ Acceso directo a proveedores",
-    "marketplace_no": "❌ Búsqueda física"
-  },
-  "feature_pages": {
-    "back_home": "Volver al inicio",
-    "why_use": "¿Por qué usar {{title}}?",
-    "discover_interface": "Descubre la interfaz en detalle",
-    "cta_title": "¿Listo para optimizar tu gestión?",
-    "cta_button": "Comenzar la prueba gratuita",
-    "dashboard": {
-      "title": "Panel de control",
-      "subtitle": "Gestiona tu actividad de un vistazo",
-      "description": "El panel de control es tu torre de control. No se limita a mostrar cifras: te ofrece una visión clara y accionable de la salud de tu negocio. Gracias a la integración de IA, analiza tus ventas en tiempo real para identificar oportunidades de crecimiento y riesgos (roturas, sobrestock). Aquí es donde tomas las decisiones que importan.",
-      "f1_title": "Estadísticas en tiempo real",
-      "f1_desc": "Sigue tu facturación, beneficios y número de ventas al segundo.",
-      "f2_title": "Alertas inteligentes",
-      "f2_desc": "Recibe notificaciones inmediatas sobre productos agotados o próximos a caducar.",
-      "f3_title": "Asistente IA",
-      "f3_desc": "Haz preguntas a tu asistente de negocio directamente desde la pantalla principal para obtener análisis instantáneos.",
-      "gallery": {
-        "kpi": {
-          "image": "/assets/screenshots/dashboard-kpi.jpg",
-          "title": "Vista general y KPIs",
-          "description": "Sigue tus indicadores clave de rendimiento en tiempo real al abrir la app."
-        },
-        "stats": {
-          "image": "/assets/screenshots/dashboard-stats.jpg",
-          "title": "Estadísticas globales",
-          "description": "Visualiza de un vistazo tu facturación, beneficios y tendencias de ventas."
-        },
-        "charts": {
-          "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-          "title": "Gráficos de rendimiento",
-          "description": "Sigue la evolución del valor de tu stock y analiza tus picos de ventas."
-        },
-        "analysis": {
-          "image": "/assets/screenshots/dashboard-analysis.jpg",
-          "title": "Análisis ABC y reaprovisionamiento",
-          "description": "Identifica tus productos más rentables y recibe sugerencias de pedido."
-        },
-        "history": {
-          "image": "/assets/screenshots/dashboard-history.jpg",
-          "title": "Historial de movimientos",
-          "description": "Mantén un registro de cada entrada y salida de stock con trazabilidad total."
-        }
-      }
-    },
-    "products": {
-      "title": "Gestión de productos",
-      "subtitle": "Tu inventario, perfectamente organizado",
-      "description": "Gestión de inventario profesional sin complejidad. Ya tengas 10 o 10 000 referencias, Stockman te permite organizarlas con precisión. El escáner de códigos de barras integrado convierte tu teléfono en un terminal de inventario ultrarrápido.",
-      "f1_title": "Escaneo de códigos de barras",
-      "f1_desc": "Usa la cámara de tu teléfono para añadir productos o hacer un inventario rápido.",
-      "f2_title": "Organización flexible",
-      "f2_desc": "Crea categorías, marcas y variantes para estructurar tu catálogo.",
-      "f3_title": "Valoración del stock",
-      "f3_desc": "Conoce en todo momento el valor total de tu inventario (precio de compra y precio de venta).",
-      "gallery": {
-        "list": {
-          "image": "/assets/screenshots/products-list.jpg",
-          "title": "Lista de productos",
-          "description": "Accede rápidamente a todo tu catálogo con búsqueda y filtros avanzados."
-        },
-        "create": {
-          "image": "/assets/screenshots/products-create-1.jpg",
-          "title": "Creación sencilla",
-          "description": "Añade un producto en segundos con toda su información esencial."
-        },
-        "variants": {
-          "image": "/assets/screenshots/products-create-2.jpg",
-          "title": "Detalles y variantes",
-          "description": "Gestiona tallas, colores y precios específicos para cada variante."
-        },
-        "thresholds": {
-          "image": "/assets/screenshots/products-create-3.jpg",
-          "title": "Stock y umbrales",
-          "description": "Define alertas de stock bajo para no quedarte sin mercancía."
-        }
-      }
-    },
-    "pos": {
-      "title": "Caja registradora",
-      "subtitle": "Cobra a tus clientes con facilidad",
-      "description": "Ofrece una experiencia de cobro fluida y moderna. Nuestro TPV táctil está diseñado para la rapidez: añade artículos, gestiona descuentos y maneja múltiples métodos de pago en segundos.",
-      "f1_title": "Carrito rápido",
-      "f1_desc": "Interfaz táctil optimizada para añadir productos al carrito en un instante.",
-      "f2_title": "Recibos digitales",
-      "f2_desc": "Envía recibos por WhatsApp, SMS o Email directamente a tus clientes.",
-      "f3_title": "Multi-pago",
-      "f3_desc": "Acepta efectivo, Mobile Money o tarjeta y controla todo en tu caja.",
-      "gallery": {
-        "sale": {
-          "image": "/assets/screenshots/pos-overview.jpg",
-          "title": "Interfaz de ventas",
-          "description": "Añade productos al carrito, gestiona cantidades y descuentos con fluidez."
-        },
-        "receipt": {
-          "image": "/assets/screenshots/pos-receipt-qr.jpg",
-          "title": "Recibo y código QR",
-          "description": "Genera un recibo instantáneo con un código QR que tus clientes pueden escanear."
-        }
-      }
-    },
-    "suppliers": {
-      "title": "Proveedores y Marketplace",
-      "subtitle": "Tu aprovisionamiento simplificado",
-      "description": "Convierte tu aprovisionamiento en una ventaja competitiva. Stockman centraliza tus proveedores y te abre las puertas de su Marketplace exclusivo. Compara precios en tiempo real y haz pedidos directamente.",
-      "f1_title": "Directorio de proveedores",
-      "f1_desc": "Centraliza los contactos de todos tus proveedores y el historial de tus intercambios.",
-      "f2_title": "Pedidos automatizados",
-      "f2_desc": "Genera órdenes de compra en un clic basándote en tus necesidades de stock.",
-      "f3_title": "Comparador de precios",
-      "f3_desc": "Encuentra el proveedor más barato para cada producto con nuestro comparador integrado.",
-      "gallery": {
-        "marketplace": {
-          "image": "/assets/screenshots/suppliers-marketplace.jpg",
-          "title": "Marketplace integrado",
-          "description": "Accede a una amplia red de proveedores verificados y compara precios."
-        },
-        "catalog": {
-          "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-          "title": "Catálogo de proveedores",
-          "description": "Consulta los productos disponibles de cada proveedor y sus condiciones."
-        },
-        "order": {
-          "image": "/assets/screenshots/suppliers-order-creation.jpg",
-          "title": "Realización de pedidos",
-          "description": "Crea y envía tus pedidos de reaprovisionamiento en unos pocos clics."
-        }
-      }
-    },
-    "orders": {
-      "title": "Seguimiento de pedidos",
-      "subtitle": "Del pedido a la entrega",
-      "description": "Mantén el control total sobre tu cadena de suministro. Desde la orden de compra hasta la recepción en tienda, sigue cada paso. El stock se actualiza automáticamente al recibir la mercancía.",
-      "f1_title": "Seguimiento de estado",
-      "f1_desc": "Visualiza el estado de cada pedido: Pendiente, Enviado, Recibido o Cancelado.",
-      "f2_title": "Recepción fácil",
-      "f2_desc": "Confirma la recepción de mercancías y actualiza automáticamente las cantidades en stock.",
-      "f3_title": "Historial completo",
-      "f3_desc": "Encuentra todos tus pedidos anteriores para facilitar el reaprovisionamiento.",
-      "gallery": {
-        "tracking": {
-          "image": "/assets/screenshots/orders-tracking.jpg",
-          "title": "Seguimiento en tiempo real",
-          "description": "Visualiza el estado de avance de cada pedido a proveedores."
-        }
-      }
-    },
-    "accounting": {
-      "title": "Contabilidad simplificada",
-      "subtitle": "Tus finanzas bajo control",
-      "description": "Tu contabilidad se hace sola. Cada venta, cada gasto alimenta automáticamente tus libros contables. Sigue tu flujo de caja y genera tu cuenta de resultados en un clic.",
-      "f1_title": "Cuenta de resultados",
-      "f1_desc": "Visualiza tus ingresos, costes y beneficio neto en el período que elijas.",
-      "f2_title": "Seguimiento de gastos",
-      "f2_desc": "Registra tus gastos (alquiler, electricidad, salarios) para un cálculo preciso de la rentabilidad.",
-      "f3_title": "Exportación PDF/Excel",
-      "f3_desc": "Descarga tus datos contables para tu contable o tus archivos personales.",
-      "gallery": {
-        "overview": {
-          "image": "/assets/screenshots/accounting-overview.jpg",
-          "title": "Vista contable global",
-          "description": "Analiza tu rentabilidad con indicadores claros y precisos."
-        },
-        "expenses": {
-          "image": "/assets/screenshots/accounting-expense-create.jpg",
-          "title": "Gestión de gastos",
-          "description": "Añade fácilmente tus costes fijos y variables."
-        },
-        "reports": {
-          "image": "/assets/screenshots/accounting-details-charts.jpg",
-          "title": "Informes y gráficos",
-          "description": "Visualiza la evolución de tus finanzas a lo largo del tiempo."
-        }
-      }
-    },
-    "clients": {
-      "title": "Gestión de clientes (CRM)",
-      "subtitle": "Fideliza a tu clientela",
-      "description": "Convierte a tus clientes ocasionales en habituales fieles. El CRM integrado registra cada interacción e historial de compras. Gestiona deudas y créditos para no perder nunca más dinero en cuentas pendientes.",
-      "f1_title": "Fichas de clientes",
-      "f1_desc": "Historial completo de compras, datos de contacto y preferencias de cada cliente.",
-      "f2_title": "Deudas y créditos",
-      "f2_desc": "Sigue las cuentas pendientes de los clientes y sabe exactamente quién te debe dinero.",
-      "f3_title": "Marketing WhatsApp",
-      "f3_desc": "Envía mensajes promocionales dirigidos directamente por WhatsApp.",
-      "gallery": {
-        "details": {
-          "image": "/assets/screenshots/clients-details.jpg",
-          "title": "Ficha detallada del cliente",
-          "description": "Toda la información del cliente, historial de compras y saldos de crédito/deuda."
-        },
-        "campaigns": {
-          "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-          "title": "Campañas WhatsApp",
-          "description": "Crea y envía campañas promocionales dirigidas a tus grupos de clientes."
-        }
-      }
-    },
-    "settings": {
-      "title": "Ajustes y configuración",
-      "subtitle": "Adapta Stockman a tus necesidades",
-      "description": "Configura Stockman para que se adapte a tu estructura: gestiona los derechos de acceso de tus empleados, añade nuevos puntos de venta y accede a un soporte reactivo.",
-      "f1_title": "Gestión de usuarios",
-      "f1_desc": "Crea cuentas para tus empleados y define sus permisos (vendedor, gerente, admin).",
-      "f2_title": "Multi-tienda",
-      "f2_desc": "Añade y gestiona varios puntos de venta desde una sola cuenta de administrador.",
-      "f3_title": "Personalización",
-      "f3_desc": "Cambia la moneda, el idioma y las preferencias de visualización de la app.",
-      "gallery": {
-        "team": {
-          "image": "/assets/screenshots/settings-employees.jpg",
-          "title": "Gestión de equipo",
-          "description": "Gestiona a tus empleados, sus roles y sus accesos."
-        },
-        "notifications": {
-          "image": "/assets/screenshots/settings-notifications.jpg",
-          "title": "Centro de notificaciones",
-          "description": "Configura tus alertas de stock y recordatorios importantes."
-        },
-        "security": {
-          "image": "/assets/screenshots/settings-support-security.jpg",
-          "title": "Soporte y seguridad",
-          "description": "Accede a la ayuda en línea y protege tu cuenta."
-        },
-        "guide": {
-          "image": "/assets/screenshots/settings-guide.jpg",
-          "title": "Guía completa",
-          "description": "Aprende a dominar todas las funcionalidades de Stockman."
-        }
-      }
-    }
-  },
-  "about": {
-    "seo_title": "Sobre nosotros",
-    "seo_desc": "Descubre el equipo detrás de Stockman y nuestra misión para digitalizar el comercio en África.",
-    "home": "Inicio",
-    "mission_start": "Nuestra misión:",
-    "mission_highlight": "Digitalizar África",
-    "mission_desc": "Creemos que cada comerciante, pequeño o grande, merece las mejores herramientas para tener éxito. Stockman no es solo un software, es tu socio de crecimiento.",
-    "team_title": "El equipo",
-    "team_subtitle": "Apasionados al servicio de los emprendedores.",
-    "member1_image": "👨🏿‍💼",
-    "member1_name": "Jean-Marc Koffi",
-    "member1_role": "CEO y cofundador",
-    "member1_bio": "Antiguo comerciante, creó Stockman para resolver sus propios problemas de gestión.",
-    "member2_image": "👩🏾‍💻",
-    "member2_name": "Awa Diop",
-    "member2_role": "CTO y Tech Lead",
-    "member2_bio": "Ingeniera apasionada por la IA y la accesibilidad digital en África.",
-    "member3_image": "🎧",
-    "member3_name": "David N'Guessan",
-    "member3_role": "Responsable de soporte",
-    "member3_bio": "Siempre a la escucha para acompañar a nuestros usuarios hacia el éxito.",
-    "values_title": "Nuestros valores",
-    "value1_title": "🔍 Simplicidad",
-    "value1_desc": "La tecnología debe ser accesible para todos, sin formación compleja.",
-    "value2_title": "🤝 Proximidad",
-    "value2_desc": "Estamos aquí, entendemos vuestras realidades y vuestros desafíos.",
-    "value3_title": "🚀 Innovación",
-    "value3_desc": "Mejoramos Stockman cada día gracias a vuestros comentarios."
-  },
-  "blog": {
-    "seo_title": "Blog y recursos",
-    "seo_desc": "Consejos y trucos para gestionar tu negocio, optimizar tu stock y aumentar tus ventas.",
-    "page_title": "Centro de recursos",
-    "page_subtitle": "Consejos de expertos para comerciantes modernos.",
-    "read_more": "Leer más →",
-    "not_found": "Artículo no encontrado 😕",
-    "back_to_blog": "Volver al blog",
-    "back_to_articles": "← Volver a los artículos",
-    "published_on": "PUBLICADO EL",
-    "liked_article": "¿Te ha gustado este artículo?",
-    "try_stockman": "Prueba Stockman para poner en práctica estos consejos.",
-    "start_trial": "Comenzar la prueba gratuita",
-    "posts": {
-      "abandonner-cahier-stock": {
-        "title": "¿Por qué abandonar el cuaderno para la gestión de stock?",
-        "excerpt": "El cuaderno tiene sus límites. Descubre cómo la digitalización puede salvar tu negocio de errores de cálculo y pérdidas.",
-        "date": "12 Feb 2026",
-        "content": "<p>Muchos comerciantes siguen usando un cuaderno para registrar sus ventas y su stock. Es un método tradicional, pero conlleva serios riesgos.</p><h3>1. Errores de cálculo</h3><p>Un simple error de suma puede falsear toda tu contabilidad. Con un software como Stockman, los cálculos son automáticos y sin errores.</p><h3>2. Pérdida de datos</h3><p>Un cuaderno puede perderse, ser robado o destruido por un incendio. Tus datos en Stockman están respaldados en la nube y accesibles desde cualquier lugar.</p><h3>3. Sin visión global</h3><p>Es difícil saber qué producto se vende mejor hojeando páginas. Stockman te da esta información en un clic.</p><h3>Conclusión</h3><p>Pasar al digital no es un gasto, es una inversión que te ahorra tiempo y dinero desde el primer mes.</p>"
-      },
-      "eviter-ruptures-fetes": {
-        "title": "¿Cómo evitar roturas de stock durante las fiestas?",
-        "excerpt": "Navidad y Tabaski son períodos críticos. Prepara tu stock con antelación gracias a nuestros consejos de expertos.",
-        "date": "10 Ene 2026",
-        "content": "<p>Las roturas de stock durante las fiestas suponen una pérdida directa de facturación. Aquí te explicamos cómo evitarlas.</p><h3>Anticipa la demanda</h3><p>Usa el historial de ventas del año pasado para prever las cantidades que necesitas pedir.</p><h3>Pide con antelación</h3><p>Los proveedores suelen estar desbordados. Haz tus pedidos de 2 a 3 semanas antes de lo habitual.</p><h3>Usa las alertas de Stockman</h3><p>Configura umbrales de alerta para recibir avisos en cuanto un producto empiece a escasear.</p>"
-      },
-      "augmenter-marge-2026": {
-        "title": "3 consejos para aumentar tu margen en 2026",
-        "excerpt": "La facturación está bien, ¡pero el margen es mejor! Aprende a optimizar tus costes y precios.",
-        "date": "05 Ene 2026",
-        "content": "<p>Subir los precios no es la única forma de ganar más. Aquí te mostramos cómo trabajar tu margen.</p><h3>1. Reduce las pérdidas</h3><p>Los productos caducados o robados cuestan caro. Un seguimiento riguroso del stock permite reducir estas pérdidas en un 30%.</p><h3>2. Negocia con tus proveedores</h3><p>Agrupando tus pedidos a través del Marketplace de Stockman, puedes obtener mejores tarifas.</p><h3>3. Fideliza a tus clientes</h3><p>Un cliente fiel cuesta menos de captar que uno nuevo. Usa el programa de fidelización para que vuelvan.</p>"
-      }
-    }
-  },
-  "help": {
-    "hero_start": "¿Cómo podemos",
-    "hero_highlight": "ayudarte",
-    "search_placeholder": "Buscar una respuesta...",
-    "no_results": "No se encontraron resultados para \"{{term}}\"",
-    "need_more": "¿Necesitas más ayuda?",
-    "email_support": "✉️ Soporte por email",
-    "whatsapp_chat": "💬 Chat WhatsApp",
-    "getting_started": {
-      "title": "Primeros pasos",
-      "q1": "¿Cómo creo una cuenta?",
-      "a1": "Descarga la app y sigue las instrucciones en pantalla. Tarda menos de 2 minutos.",
-      "q2": "¿Puedo usar la app sin internet?",
-      "a2": "Sí, Stockman funciona sin conexión y sincroniza tus datos en cuanto vuelve la conexión."
-    },
-    "account_billing": {
-      "title": "Cuenta y facturación",
-      "q1": "¿Cómo cambio mi contraseña?",
-      "a1": "Ve a Ajustes > Seguridad > Cambiar contraseña.",
-      "q2": "¿Cómo funciona la prueba gratuita?",
-      "a2": "Obtienes automáticamente 14 días de prueba gratuita con todas las funcionalidades desbloqueadas al registrarte."
-    },
-    "technical_support": {
-      "title": "Soporte técnico",
-      "q1": "La app no se abre, ¿qué hago?",
-      "a1": "Comprueba tu conexión a internet y asegúrate de tener la última actualización. Si el problema persiste, reinstala la app.",
-      "q2": "¿Cómo contacto con soporte?",
-      "a2": "Puedes escribirnos a través del formulario de abajo o directamente por WhatsApp."
-    }
-  },
-  "terms": {
-    "title": "Condiciones generales de uso",
-    "version": "Versión \"Ultimate\" 3.0 - Última actualización: 13 de febrero de 2026",
-    "content": "<p>Bienvenido a <strong>Stockman</strong>.<br/>Las presentes Condiciones Generales de Uso (en adelante \"CGU\") constituyen un marco legal vinculante entre el Usuario y el Editor de la solución Stockman.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO I: DISPOSICIONES GENERALES</h3><h4>Artículo 1: Definiciones</h4><ul><li><strong>Plataforma</strong>: Designa la infraestructura de software completa de Stockman.</li><li><strong>Usuario</strong>: Entidad o individuo que utiliza los servicios con fines profesionales.</li><li><strong>Editor</strong>: Stockman Inc., propietario y operador de Stockman.</li><li><strong>Tienda / Comercio</strong>: Instancia lógica creada por un Usuario para gestionar sus actividades.</li></ul><h4>Artículo 2: Objeto de los servicios</h4><p>Stockman es una solución ERP especializada en gestión de stock, punto de venta y relación con el cliente. Se proporciona como servicio (SaaS).</p><h4>Artículo 3: Aceptación de las condiciones</h4><p>El acceso a la Plataforma está condicionado a la aceptación plena y completa de las presentes CGU.</p><h4>Artículo 4: Capacidad y uso profesional</h4><p>Stockman es una herramienta estrictamente profesional. El Usuario garantiza que utiliza el servicio para su actividad comercial.</p><h4>Artículo 5: Modificación de las CGU</h4><p>El Editor se reserva el derecho de modificar las presentes CGU en cualquier momento. El uso continuado del Servicio tras la modificación constituye aceptación.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO II: ACCESO Y GESTIÓN DE CUENTAS</h3><h4>Artículo 6: Registro</h4><p>El Usuario se compromete a proporcionar datos veraces durante el registro.</p><h4>Artículo 7: Seguridad de las credenciales</h4><p>El Usuario es responsable de la custodia de su contraseña.</p><h4>Artículo 8: Gestión del perfil</h4><p>El Usuario puede modificar su información. Estos datos deben seguir siendo profesionales.</p><h4>Artículo 9: Cuentas de personal</h4><p>El Propietario puede crear accesos para sus empleados y asume la responsabilidad de sus acciones.</p><h4>Artículo 10: Permisos</h4><p>El Usuario acepta el sistema de roles (Admin, Vendedor, Gerente).</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULO III: OPERACIONES COMERCIALES</h3><h4>Artículos 11-18</h4><p>El Usuario es responsable de la creación de sus fichas de productos, su inventario, sus ventas y devoluciones. Stockman proporciona un estado teórico del stock. El Editor no es responsable de las discrepancias.</p><h3 style='margin-top:30px;color:var(--primary)'>TÍTULOS IV-IX: DATOS, IA, SEGURIDAD</h3><p>La IA puede producir errores. Las predicciones son probabilidades. Los datos se respaldan diariamente. El Editor garantiza el ejercicio de los derechos RGPD. Todo litigio estará sujeto a la ley del domicilio social del Editor.</p>"
-  },
-  "privacy": {
-    "title": "Política de privacidad",
-    "version": "Última actualización: 13 de febrero de 2026",
-    "content": "<p>Bienvenido a Stockman. La protección de tus datos personales es una prioridad para nosotros.</p><h3>1. Recopilación de datos</h3><p>Recopilamos: información de identificación (nombre, email, teléfono), datos profesionales (tienda, inventario, transacciones), datos técnicos (IP, dispositivo, registros).</p><h3>2. Uso de los datos</h3><p>Tus datos se utilizan exclusivamente para: la gestión de tu stock y ventas, la seguridad de tu cuenta, la mejora de nuestros servicios y el cumplimiento de nuestras obligaciones legales.</p><h3>3. Almacenamiento y seguridad</h3><p>Tus datos se almacenan en servidores seguros (MongoDB Atlas) y se cifran en reposo. Utilizamos el protocolo HTTPS para todas las transferencias.</p><h3>4. Compartición de datos</h3><p>No vendemos ni alquilamos tus datos. Solo pueden compartirse con nuestros proveedores de servicios técnicos y las autoridades si lo exige la ley.</p><h3>5. Tus derechos (RGPD)</h3><p>Tienes derechos de acceso, rectificación, supresión y portabilidad. Ejerce estos derechos desde la pestaña Ajustes de la app.</p><h3>6. Contacto</h3><p>Para cualquier pregunta, contáctanos a través de la app o en <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
-  }
 }

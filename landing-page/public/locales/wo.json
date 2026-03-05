@@ -1,567 +1,567 @@
 {
-  "nav": {
-    "features": "Xarala yi",
-    "resources": "Lireul",
-    "blog": "Blog",
-    "home": "Connexion",
-    "login": "connectel fi",
-    "free_trial": "Essayé ko"
-  },
-  "hero": {
-    "title_start": "Saytul",
-    "title_end": "Sa Bitik",
-    "subtitle": "Lii mo bakh ci sa bitik bi. Do amati benneu thiono pour kham linga am ci sa bitik, gaaw na yomb na.",
-    "cta": "Tambalil leegui"
-  },
-  "stats": {
-    "shops": "Bitik am negn ko",
-    "transactions": "Njaay ci weer bi",
-    "satisfaction": "Gni ci am contentement",
-    "support": "Ndimal 24/7"
-  },
-  "features": {
-    "title": "Lii mo nekk ci biir",
-    "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
-    "dashboard": {
-      "title": "Lepp li khew si bitik bi",
-      "desc": "Fii ngay guissé lou bari li khew si bitik bi. Sou amé probleme di ngako kham fii ak you baré"
+    "nav": {
+        "features": "Xarala yi",
+        "resources": "Lireul",
+        "blog": "Blog",
+        "home": "Connexion",
+        "login": "connectel fi",
+        "free_trial": "Essayé ko"
     },
-    "products": {
-      "title": "Produits",
-      "desc": "Fii nga toppato wé sa produits yi, meune nga yokk ak wagni ak khol lepp li fi khew. ."
+    "hero": {
+        "title_start": "Saytul",
+        "title_end": "Sa Bitik",
+        "subtitle": "Lii mo bakh ci sa bitik bi. Do amati benneu thiono pour kham linga am ci sa bitik, gaaw na yomb na.",
+        "cta": "Tambalil leegui"
     },
-    "pos": {
-      "title": "Caisse",
-      "desc": "Fii meune nga fi djay. Dangay djay produit bi rek mou wagnékou ci stock bi ci sass yi"
+    "stats": {
+        "shops": "Bitik am negn ko",
+        "transactions": "Njaay ci weer bi",
+        "satisfaction": "Gni ci am contentement",
+        "support": "Ndimal 24/7"
     },
-    "suppliers": {
-      "title": "Fournisseurs",
-      "desc": "Fii ngay ngay guiss say fournisseurs ak yénéne fournisseur, comme ça say produits dou meuss diekh. Meune nga commander fi wala nga message lene"
+    "features": {
+        "title": "Lii mo nekk ci biir",
+        "subtitle": "Une suite complète d'onglets pour gérer chaque aspect de votre business.",
+        "dashboard": {
+            "title": "Lepp li khew si bitik bi",
+            "desc": "Fii ngay guissé lou bari li khew si bitik bi. Sou amé probleme di ngako kham fii ak you baré"
+        },
+        "products": {
+            "title": "Produits",
+            "desc": "Fii nga toppato wé sa produits yi, meune nga yokk ak wagni ak khol lepp li fi khew. ."
+        },
+        "pos": {
+            "title": "Caisse",
+            "desc": "Fii meune nga fi djay. Dangay djay produit bi rek mou wagnékou ci stock bi ci sass yi"
+        },
+        "suppliers": {
+            "title": "Fournisseurs",
+            "desc": "Fii ngay ngay guiss say fournisseurs ak yénéne fournisseur, comme ça say produits dou meuss diekh. Meune nga commander fi wala nga message lene"
+        },
+        "orders": {
+            "title": "Commandes",
+            "desc": "Fii ngay gueusto commandes yi nga def ci fournisseurs yi, li nga djot dey yokk ci stock bi ci sass yi."
+        },
+        "accounting": {
+            "title": "Comptabilité",
+            "desc": "Fii nga khamé niata nga djay, niata nga dépensé ak li nga perte,manam dinga kham ndakh bitik bi dokh na am deet. Mom moy calculé lepp nga nopalou."
+        },
+        "clients": {
+            "title": "Clients",
+            "desc": "Fii nga am sa clients yeupp, Meune nga kham li niou djeunde, meune nga lene sakh message whatssap pour présenté lene say prouits you bess."
+        },
+        "settings": {
+            "title": "Réglages",
+            "desc": "Fii meune nga fii deffar lou bari. Ni nga beugue kham fii ngakey réglé."
+        }
     },
-    "orders": {
-      "title": "Commandes",
-      "desc": "Fii ngay gueusto commandes yi nga def ci fournisseurs yi, li nga djot dey yokk ci stock bi ci sass yi."
+    "showcase": {
+        "title": "L'interface qui change tout",
+        "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
+        "app_interface": "Interface App"
     },
-    "accounting": {
-      "title": "Comptabilité",
-      "desc": "Fii nga khamé niata nga djay, niata nga dépensé ak li nga perte,manam dinga kham ndakh bitik bi dokh na am deet. Mom moy calculé lepp nga nopalou."
+    "how_it_works": {
+        "title": "Démarrage rapide",
+        "subtitle": "Trois étapes simples pour transformer votre commerce.",
+        "step1": {
+            "title": "Créez votre compte",
+            "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
+        },
+        "step2": {
+            "title": "Scannez vos produits",
+            "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
+        },
+        "step3": {
+            "title": "Encaissez & Suivez",
+            "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
+        }
     },
-    "clients": {
-      "title": "Clients",
-      "desc": "Fii nga am sa clients yeupp, Meune nga kham li niou djeunde, meune nga lene sakh message whatssap pour présenté lene say prouits you bess."
+    "testimonials": {
+        "title": "Ils nous font confiance",
+        "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
+        "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
+        "t1_author": "Amadou Diallo",
+        "t1_job": "Boutique Électronique",
+        "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
+        "t2_author": "Sarah Kouassi",
+        "t2_job": "Supermarché Express",
+        "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
+        "t3_author": "Paul N'Goma",
+        "t3_job": "Pharmacie Centrale"
     },
-    "settings": {
-      "title": "Réglages",
-      "desc": "Fii meune nga fii deffar lou bari. Ni nga beugue kham fii ngakey réglé."
+    "pricing": {
+        "title": "Njeeg yu leer, amul lën-lën",
+        "subtitle": "Doreal feyeer, yokkul ni la neexee.",
+        "month": "/mois",
+        "popular": "Populaire",
+        "starter": {
+            "name": "Starter",
+            "f1": "1 Jëfandikukat",
+            "f2": "1 Bitik",
+            "f3": "Yéeg dëkk bi yépp",
+            "f4": "3 weer nguir jaare bu am solo",
+            "cta": "3 Mois Gratuits"
+        },
+        "business": {
+            "name": "Pro",
+            "f1": "Hatt ak 5 Jëfandikukaay",
+            "f2": "2 Bitik",
+            "f3": "Yéeg dëkk bi yépp",
+            "f4": "Marketplace Bouton-à-Bouton",
+            "f5": "3 weer nguir jaare bu am solo",
+            "cta": "3 Mois Gratuits"
+        },
+        "enterprise": {
+            "name": "Enterprise",
+            "price": "Sur devis",
+            "f1": "Multi-boutiques",
+            "f2": "Support dédié 24/7",
+            "f3": "API & Intégrations",
+            "f4": "IA personnalisée",
+            "cta": "Contacter"
+        }
+    },
+    "faq": {
+        "title": "Laaj yi nu bari laaj",
+        "q1": "Ndax mu ngi liggeey te amul internet?",
+        "a1": "Waaw, Stockman mu ngi liggeey ci mode offline. Sa mbiddu yi danuy simay sàssu internet bi delloo si.",
+        "q2": "Ndax sa mbiddu yi aaru nanu?",
+        "a2": "Dëgg la. Danuy jëfandikoo xarala bu fukk ngir aar sa mbiddu njaay yi."
+    },
+    "download": {
+        "title": "Ndax pare nga ngir wàcc ci sigoŋ bi?",
+        "subtitle": "Bokkal ci njaaykat yu bari yu baaxal sen saytu.",
+        "app_store": "App Store",
+        "google_play": "Google Play",
+        "secure": "Fey bi mu ngi aaru",
+        "support": "Ndimal xarala",
+        "updates": "Xarala yu bees bépp bës"
+    },
+    "footer": {
+        "desc": "Solisyon numéro 1 ngir baaxal njaay ci Afrik.",
+        "product": "Mbiddu",
+        "support": "Ndimal",
+        "legal": "Yoon",
+        "help_center": "Kër ndimal",
+        "contact": "Woo nu",
+        "community": "Mbooloo mi",
+        "privacy": "Aar mbiddu",
+        "terms": "Sartu jëfandikoo",
+        "delete_account": "Supprimer mon compte",
+        "legal_notice": "Xibaaru yoon",
+        "copyright": "© 2026 Stockman. Lu nu aar la."
+    },
+    "delete_account": {
+        "title": "Suppression de Compte & Données",
+        "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
+        "version": "Dernière mise à jour : 18 Février 2026",
+        "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
+        "method_app_title": "1. Via l'application (Recommandé)",
+        "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
+        "method_app_steps": [
+            "Ouvrez l'application Stockman.",
+            "Allez dans l'onglet **Réglages**.",
+            "Faites défiler jusqu'à la section **Zone de danger**.",
+            "Appuyez sur **Supprimer mon compte**.",
+            "Confirmez en saisissant votre mot de passe."
+        ],
+        "method_web_title": "2. Via ce formulaire (Sans l'application)",
+        "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
+        "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
+        "data_erased_title": "Quelles données seront effacées ?",
+        "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
+        "data_erased_list": [
+            "Votre profil utilisateur et identifiants.",
+            "Toutes vos boutiques et points de vente.",
+            "L'intégralité de votre inventaire et catalogue produits.",
+            "Toutes vos transactions de vente et historiques comptables.",
+            "Vos listes de clients, fournisseurs et historiques d'achats.",
+            "Vos accès à l'Assistant IA et historiques de chat."
+        ],
+        "retention_title": "Délai de traitement",
+        "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
+    },
+    "newsletter": {
+        "title": "Nekkaltal njiit ci saytu mbiddu",
+        "desc": "Bokkal ak 5000+ njaaykat te jëlal sunu teere ndimal: \"10 njuumte yu lay yàkkal sa njaay\".",
+        "success": "Jërëjëf! Xoolal sa email.",
+        "placeholder": "Sa email...",
+        "cta": "Jëlal teere bi",
+        "privacy": "Spam amul fi. Mën nga dakkal ci 1 bës."
+    },
+    "contact": {
+        "title": "Woo nu",
+        "subtitle": "Laaj? Bokk? Bind nu.",
+        "name": "Sa tur",
+        "email": "Sa email",
+        "message": "Sa bataaxal",
+        "submit": "Yónne bataaxal bi",
+        "success_title": "Bataaxal bi yónnee na!",
+        "success_desc": "Sunu ekip dina tontu ci 24 waxtu.",
+        "send_another": "Yónne beneen bataaxal"
+    },
+    "whatsapp": {
+        "message": "Assalamu alaykum, bëgg naa gën a xam lu soxal Stockman!"
+    },
+    "cookie": {
+        "message": "Danu jëfandikoo cookies ngir gëna baax sa xarala. Soo demee, dangay nangu sunu politique de confidentialité.",
+        "accept": "Nangu"
+    },
+    "comparison": {
+        "title": "Lu tax ngay tann Stockman?",
+        "feature": "Xarala",
+        "notebook": "Kaye / Excel 📝",
+        "stock_mgmt": "Saytu mbiddu",
+        "stock_yes": "✅ Ci sa waxtu te yomb",
+        "stock_no": "❌ Bind ak njuumte",
+        "alerts": "Artu mbiddu",
+        "alerts_yes": "✅ IA mooy yegal",
+        "alerts_no": "❌ Amul",
+        "pos": "POS (Caisse)",
+        "pos_yes": "✅ Da gaaw te mat",
+        "pos_no": "❌ Salkilatris doŋŋ",
+        "backup": "Aar xibaar",
+        "backup_yes": "✅ Cloud bu mat",
+        "backup_no": "❌ Mën na reer (sàcc, tàkk)",
+        "financial": "Rapport njaay",
+        "financial_yes": "✅ Ci 1 bës (P&L, Yokkuté)",
+        "financial_no": "❌ Coono bu réy ci kote",
+        "marketplace": "Marketplace",
+        "marketplace_yes": "✅ Grossiste yi ci sa loxo",
+        "marketplace_no": "❌ Dokkante bi ci mbedd bi"
+    },
+    "feature_pages": {
+        "back_home": "Delloo ci kër ga",
+        "why_use": "Lu tax ngay jëfandikoo {{title}}?",
+        "discover_interface": "Xoolal xarala yi bu baax",
+        "cta_title": "Ndax pare nga ngir baaxal sa saytu?",
+        "cta_button": "Dore natt bi weesu",
+        "dashboard": {
+            "title": "Xoolukaay",
+            "subtitle": "Saytul sa njaay ci sa bët",
+            "description": "Xoolukaay bi mooy sa kër njiit. Du wone rek ay mbiddu — mu ngi lay jox xibaar yu leer ngir sa njaay dox. Ak IA, dina saytu sa njaay ci sa waxtu ngir xam luy yokk sa kër gi. Fi la ngay jëlee ndigal yu am solo.",
+            "f1_title": "Mbiddu yu gaaw",
+            "f1_desc": "Topal sa xaalis, sa yokkuté ak sa njaay ci sa sigoŋ.",
+            "f2_title": "Artu yu am xel",
+            "f2_desc": "Xamël léegi mbiddu yu jeex wala mbiddu yu bëgg a dakk.",
+            "f3_title": "Dimbalikat IA",
+            "f3_desc": "Laajal sa dimbalikat njaay laaj yi la soxal ci xoolukaay bi.",
+            "gallery": {
+                "kpi": {
+                    "image": "/assets/screenshots/dashboard-kpi.jpg",
+                    "title": "Xoolukaay bu mat",
+                    "description": "Topal sa liggeey ci sa waxtu boo ubbee aplikasyon bi."
+                },
+                "stats": {
+                    "image": "/assets/screenshots/dashboard-stats.jpg",
+                    "title": "Mbiddu yu mat",
+                    "description": "Xoolal sa xaalis ak sa yokkuté ci sa bët."
+                },
+                "charts": {
+                    "image": "/assets/screenshots/dashboard-sales-chart.jpg",
+                    "title": "Xaye yu leer",
+                    "description": "Topal ni sa mbiddu di doxé te xool waxtu bi njaay di ëppé."
+                },
+                "analysis": {
+                    "image": "/assets/screenshots/dashboard-analysis.jpg",
+                    "title": "Saytu ABC & Jënd",
+                    "description": "Xamël mbiddu yi la gën a jox xaalis te jëlal ndigal ngir jënd."
+                },
+                "history": {
+                    "image": "/assets/screenshots/dashboard-history.jpg",
+                    "title": "Téere xarala",
+                    "description": "Dencal bépp mbiddu buy duggu wala buy génnu ci sa stock."
+                }
+            }
+        },
+        "products": {
+            "title": "Saytu mbiddu",
+            "subtitle": "Sa stock, ubbil ko ni la neexee",
+            "description": "Saytul sa mbiddu yi ni njiit te amul coono. Soo amee 10 wala 10,000 mbiddu, Stockman dina la dimbali nga tëral leen bu baax. Saytukaay borkood (barcode) bi ci biir dina def sa telefon mu nekk xarala bu gaaw.",
+            "f1_title": "Scanner Barcode",
+            "f1_desc": "Jëfandikool sa kamera telefon ngir yokk ay mbiddu wala jàng mbiddu yi ci gaawaay.",
+            "f2_title": "Tëralin bu mat",
+            "f2_desc": "Sosal ay kategóri, ay marka ak ay cét ngir baaxal sa kër njaay.",
+            "f3_title": "Njeegu stock bi",
+            "f3_desc": "Xamël njeegu sa stock bi lépp (njeegu jënd ak njeegu njaay).",
+            "gallery": {
+                "list": {
+                    "image": "/assets/screenshots/products-list.jpg",
+                    "title": "Limu mbiddu yi",
+                    "description": "Gaawal jëlee sa mbiddu yi ci lëkkalekaay bi ak seetukaay bu xarala."
+                },
+                "create": {
+                    "image": "/assets/screenshots/products-create-1.jpg",
+                    "title": "Sosal bu yomb",
+                    "description": "Yokkul sa mbiddu ci sigoŋ yi ak lépp lu mu soxal."
+                },
+                "variants": {
+                    "image": "/assets/screenshots/products-create-2.jpg",
+                    "title": "Cét yi ak detay",
+                    "description": "Saytul li réy, kulër yi ak njeeg yi wuute."
+                },
+                "thresholds": {
+                    "image": "/assets/screenshots/products-create-3.jpg",
+                    "title": "Stock ak artu",
+                    "description": "Tëralal ay artu ngir mbiddu bu néew ba nga bañ a reer sa njaay."
+                }
+            }
+        },
+        "pos": {
+            "title": "POS (Caisse)",
+            "subtitle": "Fey kilyan yi ci yomb",
+            "description": "Jox kilyan yi yoonu fey bu bees te gaaw. Sunu POS bi gaaw na lool: yokkul mbiddu yi, saytu rabat yi te fey ci ay fason yu bari ci sigoŋ yu néew.",
+            "f1_title": "Panniyé bu gaaw",
+            "f1_desc": "Ubbi sa panniyé te yokk mbiddu yi ci sa bët.",
+            "f2_title": "Resit digital",
+            "f2_desc": "Yónne resit yi ci WhatsApp, SMS wala Email sa kilyan yi.",
+            "f3_title": "Feyin yu bari",
+            "f3_desc": "Nangul xaalis, Mobile Money wala kart te topal lépp ci téere bi.",
+            "gallery": {
+                "sale": {
+                    "image": "/assets/screenshots/pos-overview.jpg",
+                    "title": "Buntu njaay bi",
+                    "description": "Yokkul mbiddu yi ci panniyé bi, saytul li nga bëgg ak rabat yi."
+                },
+                "receipt": {
+                    "image": "/assets/screenshots/pos-receipt-qr.jpg",
+                    "title": "Resit ak Code QR",
+                    "description": "Sosal resit bu gaaw ak code QR bu kilyan yi mën a scan."
+                }
+            }
+        },
+        "suppliers": {
+            "title": "Grossiste yi ak Marketplace",
+            "subtitle": "Sa jënd yomb na léegi",
+            "description": "Defal sa jënd mu nekk doole ngir nga raw sa moroom yi. Stockman dina la lëkkalé ak sa grossiste yi te ubbil la sunu Marketplace bu mat. Nattal njeeg yi te jënd ci kër gi.",
+            "f1_title": "Limu grossiste yi",
+            "f1_desc": "Dencal lépp lu jëm ci sa grossiste yi ak istoriku sa njaay ak nu.",
+            "f2_title": "Jënd bu gaaw",
+            "f2_desc": "Sosal ay mbataaxal jënd ci 1 bës ni sa stock soxalee.",
+            "f3_title": "Natt njeeg",
+            "f3_desc": "Seetal ba xam an moy grossiste bi gën a yomb ngir bépp mbiddu.",
+            "gallery": {
+                "marketplace": {
+                    "image": "/assets/screenshots/suppliers-marketplace.jpg",
+                    "title": "Marketplace bi ci biir",
+                    "description": "Bokkal ak mbooloo grossiste yi nu aar te nattal njeeg yi."
+                },
+                "catalog": {
+                    "image": "/assets/screenshots/suppliers-details-catalog.jpg",
+                    "title": "Xibaaru grossiste",
+                    "description": "Xoolal mbiddu yi grossiste bi am ak sarti jëndam."
+                },
+                "order": {
+                    "image": "/assets/screenshots/suppliers-order-creation.jpg",
+                    "title": "Liggeey njaay",
+                    "description": "Sosal te yónne sa jënd mbiddu ci sigoŋ yu néew."
+                }
+            }
+        },
+        "orders": {
+            "title": "Topal jënd bi",
+            "subtitle": "Dore ko ci jënd ba mu dugg ci dëkkaay bi",
+            "description": "Amal sa loxo ci bépp mbiddu buy dugg. Dore ko ci bon de commande ba ci njaay bi, topal lépp. Sa stock dina simay sàssu mbiddu bi dugee.",
+            "f1_title": "Topal dox bi",
+            "f1_desc": "Xoolal njaay bi: mu ngi fey, mu ngi njaay, mu ngi duggu wala dakk na.",
+            "f2_title": "Duggal bu yomb",
+            "f2_desc": "Nangul mbiddu yi te yokkul sa stock ci sigoŋ bi.",
+            "f3_title": "Istoriku bu mat",
+            "f3_desc": "Seetal bépp jënd bu fi amon ngir gën a yombal sa liggeey.",
+            "gallery": {
+                "tracking": {
+                    "image": "/assets/screenshots/orders-tracking.jpg",
+                    "title": "Topal bu mat",
+                    "description": "Xoolal njaay bi dore ba mu jéex ci sa grossiste."
+                }
+            }
+        },
+        "accounting": {
+            "title": "Kote njaay bu yomb",
+            "subtitle": "Sa xaalis ci sa loxo",
+            "description": "Sa kote njaay boppam mooy liggeeyal boppam. Bépp njaay, bépp depans dina dugg ci téere bi léegi. Topal sa xaalis te sosal sa bilan ci 1 bës.",
+            "f1_title": "Bilan (Profit & Loss)",
+            "f1_desc": "Xoolal sa yokkuté, sa njaay ak sa mën-mën ci bépp waxtu.",
+            "f2_title": "Topal depans yi",
+            "f2_desc": "Bindal sa depans (fey kër, kuraan, liggeeykat) ngir xam ni sa njaay di doxé.",
+            "f3_title": "Génne PDF/Excel",
+            "f3_desc": "Wàccal sa mbiddu kote ngir jox ko sa saytukat wala ngir denc ko.",
+            "gallery": {
+                "overview": {
+                    "image": "/assets/screenshots/accounting-overview.jpg",
+                    "title": "Xaralu kote bi",
+                    "description": "Saytul sa yokkuté ak ay xaye yu leer te dëggu."
+                },
+                "expenses": {
+                    "image": "/assets/screenshots/accounting-expense-create.jpg",
+                    "title": "Saytu depans",
+                    "description": "Yokkul sa depans yi ci yomb."
+                },
+                "reports": {
+                    "image": "/assets/screenshots/accounting-details-charts.jpg",
+                    "title": "Rappór ak xaye",
+                    "description": "Xoolal sa xaalis ni muy doxé ci sigoŋ bi."
+                }
+            }
+        },
+        "clients": {
+            "title": "Saytu kilyan (CRM)",
+            "subtitle": "Dencal sa kilyan",
+            "description": "Defal sa kilyan yi nu nekk kilyan yu dëggu. CRM bi dina denc bépp istoriku njaay. Saytul bor yi ak xaalis bi nu la yorel ba nga bañ a reerate xaalis ci \"bor\".",
+            "f1_title": "Xibaaru kilyan",
+            "f1_desc": "Istoriku njaay bu mat, nimero telefon ak lu neex kilyan bi.",
+            "f2_title": "Bor ak keredit",
+            "f2_desc": "Topal boru kilyan yi te xamël kan mooy fay te kan mooy yor xaalis bi.",
+            "f3_title": "Marketing WhatsApp",
+            "f3_desc": "Yónne bataaxali njaay sa kilyan yi ci WhatsApp.",
+            "gallery": {
+                "details": {
+                    "image": "/assets/screenshots/clients-details.jpg",
+                    "title": "Xibaaru kilyan bu mat",
+                    "description": "Lépp lu mu soxal kilyan bi, sa njaayam ak borom."
+                },
+                "campaigns": {
+                    "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
+                    "title": "WhatsApp njaay",
+                    "description": "Sosal te yónne ay bataaxal njaay ci mbooloo kilyan yi."
+                }
+            }
+        },
+        "settings": {
+            "title": "Paramétrage",
+            "subtitle": "Defal Stockman ni nga ko bëggé",
+            "description": "Tëralal Stockman ni sa liggeey baaxee: saytul sa liggeeykat yi, yokkul ay dëkkaay njaay yu bees te am ndimal bu gaaw.",
+            "f1_title": "Saytu liggeeykat",
+            "f1_desc": "Ubbi ay sët ngir sa liggeeykat yi te tëralal leen li nu mën a def (vendeur, manager, admin).",
+            "f2_title": "Bari dëkkaay njaay",
+            "f2_desc": "Yokkul te saytul ay dëkkaay njaay yu bari ci 1 sët.",
+            "f3_title": "Tëralin",
+            "f3_desc": "Soppal xaalis bi, làkk bi ak ni aplikasyon bi di wonee.",
+            "gallery": {
+                "team": {
+                    "image": "/assets/screenshots/settings-employees.jpg",
+                    "title": "Saytu ekip bi",
+                    "description": "Saytul sa liggeeykat yi, sunu role ak lu nu mën a ubbi."
+                },
+                "notifications": {
+                    "image": "/assets/screenshots/settings-notifications.jpg",
+                    "title": "Kër artu",
+                    "description": "Tëralal sa artu mbiddu ak fattali yi am solo."
+                },
+                "security": {
+                    "image": "/assets/screenshots/settings-support-security.jpg",
+                    "title": "Ndimal ak Aar",
+                    "description": "Ubbi ndimal ci kër gi te aar sa sët."
+                },
+                "guide": {
+                    "image": "/assets/screenshots/settings-guide.jpg",
+                    "title": "Teere ndimal",
+                    "description": "Jàngël lépp lu Stockman mën a def."
+                }
+            }
+        }
+    },
+    "about": {
+        "seo_title": "Lu nu soxal",
+        "seo_desc": "Xamël ekip Stockman bi ak liggeey bi nu yor ngir digitaliser njaay bi ci Afrik.",
+        "home": "Kër ga",
+        "mission_start": "Sunu liggeey:",
+        "mission_highlight": "Digitaliser Afrik",
+        "mission_desc": "Danu gëm ne bépp njaaykat, bu ndaw wala bu réy, am na sàrtu am xarala yu gën a baax ngir raw. Stockman du logicel doŋŋ — mooy sa liggeeykat ngir yokkuté sa njaay.",
+        "team_title": "Ekip bi",
+        "team_subtitle": "Liggeeykat yu am pass-pass ngir njaaykat yi.",
+        "member1_image": "👨🏿‍💼",
+        "member1_name": "Jean-Marc Koffi",
+        "member1_role": "CEO & Sosal-kat",
+        "member1_bio": "Njaaykat bu jëkk, dafa sos Stockman ngir saytu sa jàfe-jàfe njaay.",
+        "member2_image": "👩🏾‍💻",
+        "member2_name": "Awa Diop",
+        "member2_role": "CTO & Njiit xarala",
+        "member2_bio": "Injénieur bu am pass-pass ci IA ak digital bi ci Afrik.",
+        "member3_image": "🎧",
+        "member3_name": "David N'Guessan",
+        "member3_role": "Njiit ndimal",
+        "member3_bio": "Dafa nekk fi waxtu wu ne ngir dimbali sunu jëfandikookat yi.",
+        "values_title": "Sunu gëm-gëm",
+        "value1_title": "🔍 Yombal",
+        "value1_desc": "Xarala bi dafa wara yomb ba kii nekk mën na ko jëfandikoo.",
+        "value2_title": "🤝 Dokkante",
+        "value2_desc": "Fi lu nu dëkk — danu xam sa dund ak sa jàfe-jàfe.",
+        "value3_title": "🚀 Xarala mu bees",
+        "value3_desc": "Danuy gën a baaxal Stockman bépp bës ndax sa bataaxal yi."
+    },
+    "blog": {
+        "seo_title": "Blog ak ndimal",
+        "seo_desc": "Xarala ak ndimal ngir saytu sa njaay, baaxal sa mbiddu te yokk sa njaay.",
+        "page_title": "Kër xibaar",
+        "page_subtitle": "Ndigal yu njiit ngir njaaykat yu bees yi.",
+        "read_more": "Jàng ko léegi →",
+        "not_found": "Mbiddu bi amul fi 😕",
+        "back_to_blog": "Delloo ci Blog bi",
+        "back_to_articles": "← Delloo ci mbiddu yi",
+        "published_on": "PUBLIÉ LE",
+        "liked_article": "Ndax mbiddu bi neex na la?",
+        "try_stockman": "Nattal Stockman ngir jëfandikoo ndigal yii.",
+        "start_trial": "Dore natt bi feyeer",
+        "posts": {
+            "abandonner-cahier-stock": {
+                "title": "Lu tax ngay bayyi kaye bi ngir saytu sa mbiddu?",
+                "excerpt": "Kaye bi am na limite. Xamël ni digital bi mën a denc sa liggeey ci njuumte ak reer.",
+                "date": "12 Féw 2026",
+                "content": "<p>Njaaykat yu bari danuy jëfandikoo kaye ngir bind njaay ak mbiddu. Da yàgg, waaye am na risku bu réy.</p><h3>1. Njuumte kote</h3><p>Njuumte bu néew ci kote mën na wàcc sa njaay lépp. Ak logicel ni Stockman, mbiddu kote yi danuy gaaw te amul njuumte.</p><h3>2. Reer mbiddu</h3><p>Kaye mën na reer, sàcc ko wala mu tàkk ci lakku. Sa mbiddu ci Stockman danu ko denc ci cloud bi te mën nga ko xool lépp fula neex.</p><h3>3. Amul xoolukaay bu mat</h3><p>Dafa jafe nga xam nan moy mbiddu bi gën a njaay boo fëkké xub yi rek. Stockman dina la ko jox ci 1 bës.</p><h3>Bile bëj</h3><p>Duggal xarala du mbus — mooy jënd bi lay dencal waxtu ak xaalis dore ko ci weer bu jëkk bi.</p>"
+            },
+            "eviter-ruptures-fetes": {
+                "title": "Naka ngay daw njuumte mbiddu ci fët yi?",
+                "excerpt": "Noël ak Tabaski waxtu yu am solo nanu. Pareel sa mbiddu bala waxtu wi ak sunu ndigal yi.",
+                "date": "10 Jan 2026",
+                "content": "<p>Njuumte mbiddu ci fët yi mooy reer xaalis bu bari. Ni ngay daw loolu.</p><h3>Doxal njaay bi</h3><p>Xoolal lu nga njaayon weer bi weesu ngir xam lu mu la soxal njaay bi di ñëw.</p><h3>Jëndal ci gaawaay</h3><p>Grossiste yi danuy am liggeey bu bari. Jëndal sa mbiddu yi 2 wala 3 simenn bala fët bi dore.</p><h3>Jëfandikool artu Stockman</h3><p>Tëralal ay artu ngir Stockman yeegal la sàssu mbiddu bi néewé.</p>"
+            },
+            "augmenter-marge-2026": {
+                "title": "3 ndigal ngir yokk sa yokkuté ci 2026",
+                "excerpt": "Njaay baax na, waaye yokkuté mooy gën! Jàngal ni ngay baaxal xaalisu jënd ak njeegu njaay.",
+                "date": "05 Jan 2026",
+                "content": "<p>Yokkuté njeeg du doŋŋ moy yoonu yokkuté. Xoolal ni ngay liggeeyal sa mën-mën.</p><h3>1. Wàccal reer bi</h3><p>Mbiddu yu dakk wala yu nu sàcc am na njeeg bu réy. Soo topé sa stock bu baax mën nga wàcc reer bi ba 30%.</p><h3>2. Dokkanté ak sa grossiste</h3><p>Boo jëndé mbiddu yu bari ci Stockman Marketplace, mën nga am njeeg yu gën a baax.</p><h3>3. Dencal sa kilyan</h3><p>Kilyan bu dëggu mooy gën njariñ kilyan bu bees. Jëfandikool porogram keredit ngir kilyan bi delloo si.</p>"
+            }
+        }
+    },
+    "help": {
+        "hero_start": "Naka la nu la mën a",
+        "hero_highlight": "dimbali",
+        "search_placeholder": "Seetal tontu...",
+        "no_results": "Amul tontu ngir \"{{term}}\"",
+        "need_more": "Ndax soxal nga beneen ndimal?",
+        "email_support": "✉️ Ndimal Email",
+        "whatsapp_chat": "💬 WhatsApp Chat",
+        "getting_started": {
+            "title": "Dore liggeey bi",
+            "q1": "Naka laay sosee sët?",
+            "a1": "Wàccal aplikasyon bi te topal xibaar yi ci bët bi. Du mat 2 minit.",
+            "q2": "Ndax mën na jëfandikoo aplikasyon bi te amul internet?",
+            "a2": "Waaw, Stockman mu ngi liggeey ci mode offline te dina simay sa mbiddu yi sàssu internet bi delloo si."
+        },
+        "account_billing": {
+            "title": "Sët ak fey bi",
+            "q1": "Naka laay soppé kod bi?",
+            "a1": "Démal ci Paramètres > Sécurité > Changer mot de passe.",
+            "q2": "Naka la natt feyeer bi di doxé?",
+            "a2": "Dina nu la jox 14 bës yu feyeer ak bépp xarala yu bees boo sosee sa sët."
+        },
+        "technical_support": {
+            "title": "Ndimal xarala",
+            "q1": "Aplikasyon bi ubbul, lu may def?",
+            "a1": "Xoolal sa internet te xamël ne am nga xarala bu bees bi. Soo nekké ci jàfe-jàfe, wàccalat ko.",
+            "q2": "Naka laay woo ndimal bi?",
+            "a2": "Mën nga nu bind ci xub bi ci suuf wala ci WhatsApp léegi."
+        }
+    },
+    "terms": {
+        "title": "Sarti jëfandikoo",
+        "version": "Version \"Ultimate\" 3.0 - 13 Féw 2026",
+        "content": "<p>Dalal ak jàmm ci <strong>Stockman</strong>.<br/>Sartu jëfandikoo yii (nu koy woowé \"Sart\") mooy yoonu liggeey bi nekk diggënte Jëfandikookat bi ak Sosal-kat Stockman bi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE I: SARTI LIGGEEY</h3><h4>Marticle 1: Lu nu tekki</h4><ul><li><strong>Plateforme</strong>: Bépp xaralu Stockman.</li><li><strong>Jëfandikookat</strong>: Kër liggeey wala nit kiy jëfandikoo Stockman ngir liggeeyam.</li><li><strong>Sosal-kat</strong>: Stockman Inc., mooy borom Stockman.</li><li><strong>Boutique</strong>: Kër njaay bi liggeey bi koy doxal.</li></ul><h4>Marticle 2: Li nu bëgg</h4><p>Stockman mooy solisyon ERP ngir saytu mbiddu yi, POS ak kilyan yi. Dox na ni liggeey (SaaS).</p><h4>Marticle 3: Nangu sart yi</h4><p>Soo bëggé doxal Stockman foog nga nangu sart yi lépp.</p><h4>Marticle 4: Liggeey doŋŋ</h4><p>Stockman amul beneen njariñ ludul liggeey. Jëfandikookat bi dafa wara liggeeyal boppam.</p><h4>Marticle 5: Soppi sart yi</h4><p>Sosal-kat bi mën na soppi sart yi bépp bës. Soo wéyalé sa liggeey, dangay nangu sart yu bees yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE II: UBBI SËT</h3><h4>Marticle 6: Bindu</h4><p>Jëfandikookat bi dafa wara bind mbiddu yu dëggu.</p><h4>Marticle 7: Aar kod bi</h4><p>Nit ki mooy denc kodam ba nit bañ ko xam.</p><h4>Marticle 8: Saytu sët bi</h4><p>Nit ki mën na soppi mbiddu yi nekk ci sët am.</p><h4>Marticle 9: Sëtu liggeeykat yi</h4><p>Borom sët bi mën na ubbi ay sët ngir liggeeykat yi te mooy njiit ci liggeeyam.</p><h4>Marticle 10: Ndigal</h4><p>Am na ay role yu wuute (Administrator, Vendeur, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE III: NJAAY MI</h3><h4>Marticle 11-18</h4><p>Jëfandikookat bi mooy bind mbiddu yi, njaay mi ak mbiddu yu delloo si. Stockman xaye la lay jox. Sosal-kat bi nekkul njiit ci njuumte yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE IV-IX: MBIDDU, IA, AAR</h3><p>IA mën na am njuumte. Mbiddu yi danu ko denc bu baax. Yoonu RGPD mu ngi liggeey. Yoonu Sénégal wala dëkk Sosal-kat bi mooy dox boo amee deñ-kumpa.</p>"
+    },
+    "privacy": {
+        "title": "Aar mbiddu",
+        "version": "13 Féw 2026",
+        "content": "<p>Dalal ak jàmm ci Stockman. Aar sa mbiddu nit mooy sunu liggeey bu jëkk.</p><h3>1. Mbiddu yi nu denc</h3><p>Danu denc: sa tur, email, telefon, mbiddu sa shop, njaay ak mbiddu xarala (IP, xarala).</p><h3>2. Njariñu mbiddu yi</h3><p>Sa mbiddu ngir: saytu sa stock, aar sa sët, baaxal sunu liggeey ak yoon.</p><h3>3. Denc ak Aar</h3><p>Sa mbiddu danuxu denc ci MongoDB Atlas te dëjj nanu ko (encrypted). HTTPS lo nu jëfandikoo.</p><h3>4. Bokk mbiddu yi</h3><p>Danu jëndul wala nuy luyee sa mbiddu. Ak sunu partenaire xarala rek la nu koy bokkal bala yoon woo nu.</p><h3>5. Sa sàrtu (RGPD)</h3><p>Mën nga xool, soppi wala dakkal sa mbiddu ci aplikasyon bi ci Paramètres.</p><h3>6. Woo nu</h3><p>Soo amee laaj, woo nu ci aplikasyon bi wala ci <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     }
-  },
-  "showcase": {
-    "title": "L'interface qui change tout",
-    "subtitle": "Un design épuré, pensé pour vous faire gagner du temps.",
-    "app_interface": "Interface App"
-  },
-  "how_it_works": {
-    "title": "Démarrage rapide",
-    "subtitle": "Trois étapes simples pour transformer votre commerce.",
-    "step1": {
-      "title": "Créez votre compte",
-      "desc": "Téléchargez l'application et configurez votre boutique en moins de 2 minutes."
-    },
-    "step2": {
-      "title": "Scannez vos produits",
-      "desc": "Utilisez la caméra de votre téléphone pour ajouter rapidement votre stock."
-    },
-    "step3": {
-      "title": "Encaissez & Suivez",
-      "desc": "Faites vos premières ventes et regardez vos statistiques grimper en temps réel."
-    }
-  },
-  "testimonials": {
-    "title": "Ils nous font confiance",
-    "subtitle": "Découvrez comment Stockman aide les commerçants au quotidien.",
-    "t1": "Depuis que j'utilise Stockman, je ne perds plus d'argent à cause des ruptures de stock. L'IA me prévient toujours au bon moment !",
-    "t1_author": "Amadou Diallo",
-    "t1_job": "Boutique Électronique",
-    "t2": "L'application est tellement simple. Mes employés l'ont prise en main en 10 minutes. La gestion de caisse est parfaite.",
-    "t2_author": "Sarah Kouassi",
-    "t2_job": "Supermarché Express",
-    "t3": "J'adore la marketplace ! Je peux comparer les prix de mes fournisseurs et commander directement. Un gain de temps énorme.",
-    "t3_author": "Paul N'Goma",
-    "t3_job": "Pharmacie Centrale"
-  },
-  "pricing": {
-    "title": "Njeeg yu leer, amul lën-lën",
-    "subtitle": "Doreal feyeer, yokkul ni la neexee.",
-    "month": "/mois",
-    "popular": "Populaire",
-    "starter": {
-      "name": "Starter",
-      "f1": "1 Jëfandikukat",
-      "f2": "1 Bitik",
-      "f3": "Yéeg dëkk bi yépp",
-      "f4": "3 weer nguir jaare bu am solo",
-      "cta": "3 Mois Gratuits"
-    },
-    "business": {
-      "name": "Pro",
-      "f1": "Hatt ak 5 Jëfandikukaay",
-      "f2": "2 Bitik",
-      "f3": "Yéeg dëkk bi yépp",
-      "f4": "Marketplace Bouton-à-Bouton",
-      "f5": "3 weer nguir jaare bu am solo",
-      "cta": "3 Mois Gratuits"
-    },
-    "enterprise": {
-      "name": "Enterprise",
-      "price": "Sur devis",
-      "f1": "Multi-boutiques",
-      "f2": "Support dédié 24/7",
-      "f3": "API & Intégrations",
-      "f4": "IA personnalisée",
-      "cta": "Contacter"
-    }
-  },
-  "faq": {
-    "title": "Laaj yi nu bari laaj",
-    "q1": "Ndax mu ngi liggeey te amul internet?",
-    "a1": "Waaw, Stockman mu ngi liggeey ci mode offline. Sa mbiddu yi danuy simay sàssu internet bi delloo si.",
-    "q2": "Ndax sa mbiddu yi aaru nanu?",
-    "a2": "Dëgg la. Danuy jëfandikoo xarala bu fukk ngir aar sa mbiddu njaay yi."
-  },
-  "download": {
-    "title": "Ndax pare nga ngir wàcc ci sigoŋ bi?",
-    "subtitle": "Bokkal ci njaaykat yu bari yu baaxal sen saytu.",
-    "app_store": "App Store",
-    "google_play": "Google Play",
-    "secure": "Fey bi mu ngi aaru",
-    "support": "Ndimal xarala",
-    "updates": "Xarala yu bees bépp bës"
-  },
-  "footer": {
-    "desc": "Solisyon numéro 1 ngir baaxal njaay ci Afrik.",
-    "product": "Mbiddu",
-    "support": "Ndimal",
-    "legal": "Yoon",
-    "help_center": "Kër ndimal",
-    "contact": "Woo nu",
-    "community": "Mbooloo mi",
-    "privacy": "Aar mbiddu",
-    "terms": "Sartu jëfandikoo",
-    "delete_account": "Supprimer mon compte",
-    "legal_notice": "Xibaaru yoon",
-    "copyright": "© 2026 Stockman. Lu nu aar la."
-  },
-  "delete_account": {
-    "title": "Suppression de Compte & Données",
-    "subtitle": "Conformément au Règlement Général sur la Protection des Données (RGPD) et au Droit à l'Oubli.",
-    "version": "Dernière mise à jour : 18 Février 2026",
-    "intro": "Vous avez le contrôle total de vos données. Si vous souhaitez cesser d'utiliser Stockman, vous pouvez supprimer votre compte et l'intégralité des données associées de deux manières.",
-    "method_app_title": "1. Via l'application (Recommandé)",
-    "method_app_desc": "C'est la méthode la plus rapide et la plus sécurisée car elle valide votre identité instantanément.",
-    "method_app_steps": [
-      "Ouvrez l'application Stockman.",
-      "Allez dans l'onglet **Réglages**.",
-      "Faites défiler jusqu'à la section **Zone de danger**.",
-      "Appuyez sur **Supprimer mon compte**.",
-      "Confirmez en saisissant votre mot de passe."
-    ],
-    "method_web_title": "2. Via ce formulaire (Sans l'application)",
-    "method_web_desc": "Si vous n'avez plus accès à l'application, vous pouvez nous envoyer une demande manuelle de suppression.",
-    "method_web_note": "Note : Pour des raisons de sécurité, nous devrons vérifier votre identité par email ou téléphone avant de procéder à la suppression.",
-    "data_erased_title": "Quelles données seront effacées ?",
-    "data_erased_desc": "La suppression de votre compte est **définitive** et irréversible. Les données suivantes seront immédiatement supprimées de nos serveurs de production :",
-    "data_erased_list": [
-      "Votre profil utilisateur et identifiants.",
-      "Toutes vos boutiques et points de vente.",
-      "L'intégralité de votre inventaire et catalogue produits.",
-      "Toutes vos transactions de vente et historiques comptables.",
-      "Vos listes de clients, fournisseurs et historiques d'achats.",
-      "Vos accès à l'Assistant IA et historiques de chat."
-    ],
-    "retention_title": "Délai de traitement",
-    "retention_desc": "Une fois la demande validée, vos données sont immédiatement marquées pour suppression. L'effacement complet de nos sauvegardes (backups) peut prendre jusqu'à 30 jours, pendant lesquels vos données restent inaccessibles et non traitées."
-  },
-  "newsletter": {
-    "title": "Nekkaltal njiit ci saytu mbiddu",
-    "desc": "Bokkal ak 5000+ njaaykat te jëlal sunu teere ndimal: \"10 njuumte yu lay yàkkal sa njaay\".",
-    "success": "Jërëjëf! Xoolal sa email.",
-    "placeholder": "Sa email...",
-    "cta": "Jëlal teere bi",
-    "privacy": "Spam amul fi. Mën nga dakkal ci 1 bës."
-  },
-  "contact": {
-    "title": "Woo nu",
-    "subtitle": "Laaj? Bokk? Bind nu.",
-    "name": "Sa tur",
-    "email": "Sa email",
-    "message": "Sa bataaxal",
-    "submit": "Yónne bataaxal bi",
-    "success_title": "Bataaxal bi yónnee na!",
-    "success_desc": "Sunu ekip dina tontu ci 24 waxtu.",
-    "send_another": "Yónne beneen bataaxal"
-  },
-  "whatsapp": {
-    "message": "Assalamu alaykum, bëgg naa gën a xam lu soxal Stockman!"
-  },
-  "cookie": {
-    "message": "Danu jëfandikoo cookies ngir gëna baax sa xarala. Soo demee, dangay nangu sunu politique de confidentialité.",
-    "accept": "Nangu"
-  },
-  "comparison": {
-    "title": "Lu tax ngay tann Stockman?",
-    "feature": "Xarala",
-    "notebook": "Kaye / Excel 📝",
-    "stock_mgmt": "Saytu mbiddu",
-    "stock_yes": "✅ Ci sa waxtu te yomb",
-    "stock_no": "❌ Bind ak njuumte",
-    "alerts": "Artu mbiddu",
-    "alerts_yes": "✅ IA mooy yegal",
-    "alerts_no": "❌ Amul",
-    "pos": "POS (Caisse)",
-    "pos_yes": "✅ Da gaaw te mat",
-    "pos_no": "❌ Salkilatris doŋŋ",
-    "backup": "Aar xibaar",
-    "backup_yes": "✅ Cloud bu mat",
-    "backup_no": "❌ Mën na reer (sàcc, tàkk)",
-    "financial": "Rapport njaay",
-    "financial_yes": "✅ Ci 1 bës (P&L, Yokkuté)",
-    "financial_no": "❌ Coono bu réy ci kote",
-    "marketplace": "Marketplace",
-    "marketplace_yes": "✅ Grossiste yi ci sa loxo",
-    "marketplace_no": "❌ Dokkante bi ci mbedd bi"
-  },
-  "feature_pages": {
-    "back_home": "Delloo ci kër ga",
-    "why_use": "Lu tax ngay jëfandikoo {{title}}?",
-    "discover_interface": "Xoolal xarala yi bu baax",
-    "cta_title": "Ndax pare nga ngir baaxal sa saytu?",
-    "cta_button": "Dore natt bi weesu",
-    "dashboard": {
-      "title": "Xoolukaay",
-      "subtitle": "Saytul sa njaay ci sa bët",
-      "description": "Xoolukaay bi mooy sa kër njiit. Du wone rek ay mbiddu — mu ngi lay jox xibaar yu leer ngir sa njaay dox. Ak IA, dina saytu sa njaay ci sa waxtu ngir xam luy yokk sa kër gi. Fi la ngay jëlee ndigal yu am solo.",
-      "f1_title": "Mbiddu yu gaaw",
-      "f1_desc": "Topal sa xaalis, sa yokkuté ak sa njaay ci sa sigoŋ.",
-      "f2_title": "Artu yu am xel",
-      "f2_desc": "Xamël léegi mbiddu yu jeex wala mbiddu yu bëgg a dakk.",
-      "f3_title": "Dimbalikat IA",
-      "f3_desc": "Laajal sa dimbalikat njaay laaj yi la soxal ci xoolukaay bi.",
-      "gallery": {
-        "kpi": {
-          "image": "/assets/screenshots/dashboard-kpi.jpg",
-          "title": "Xoolukaay bu mat",
-          "description": "Topal sa liggeey ci sa waxtu boo ubbee aplikasyon bi."
-        },
-        "stats": {
-          "image": "/assets/screenshots/dashboard-stats.jpg",
-          "title": "Mbiddu yu mat",
-          "description": "Xoolal sa xaalis ak sa yokkuté ci sa bët."
-        },
-        "charts": {
-          "image": "/assets/screenshots/dashboard-sales-chart.jpg",
-          "title": "Xaye yu leer",
-          "description": "Topal ni sa mbiddu di doxé te xool waxtu bi njaay di ëppé."
-        },
-        "analysis": {
-          "image": "/assets/screenshots/dashboard-analysis.jpg",
-          "title": "Saytu ABC & Jënd",
-          "description": "Xamël mbiddu yi la gën a jox xaalis te jëlal ndigal ngir jënd."
-        },
-        "history": {
-          "image": "/assets/screenshots/dashboard-history.jpg",
-          "title": "Téere xarala",
-          "description": "Dencal bépp mbiddu buy duggu wala buy génnu ci sa stock."
-        }
-      }
-    },
-    "products": {
-      "title": "Saytu mbiddu",
-      "subtitle": "Sa stock, ubbil ko ni la neexee",
-      "description": "Saytul sa mbiddu yi ni njiit te amul coono. Soo amee 10 wala 10,000 mbiddu, Stockman dina la dimbali nga tëral leen bu baax. Saytukaay borkood (barcode) bi ci biir dina def sa telefon mu nekk xarala bu gaaw.",
-      "f1_title": "Scanner Barcode",
-      "f1_desc": "Jëfandikool sa kamera telefon ngir yokk ay mbiddu wala jàng mbiddu yi ci gaawaay.",
-      "f2_title": "Tëralin bu mat",
-      "f2_desc": "Sosal ay kategóri, ay marka ak ay cét ngir baaxal sa kër njaay.",
-      "f3_title": "Njeegu stock bi",
-      "f3_desc": "Xamël njeegu sa stock bi lépp (njeegu jënd ak njeegu njaay).",
-      "gallery": {
-        "list": {
-          "image": "/assets/screenshots/products-list.jpg",
-          "title": "Limu mbiddu yi",
-          "description": "Gaawal jëlee sa mbiddu yi ci lëkkalekaay bi ak seetukaay bu xarala."
-        },
-        "create": {
-          "image": "/assets/screenshots/products-create-1.jpg",
-          "title": "Sosal bu yomb",
-          "description": "Yokkul sa mbiddu ci sigoŋ yi ak lépp lu mu soxal."
-        },
-        "variants": {
-          "image": "/assets/screenshots/products-create-2.jpg",
-          "title": "Cét yi ak detay",
-          "description": "Saytul li réy, kulër yi ak njeeg yi wuute."
-        },
-        "thresholds": {
-          "image": "/assets/screenshots/products-create-3.jpg",
-          "title": "Stock ak artu",
-          "description": "Tëralal ay artu ngir mbiddu bu néew ba nga bañ a reer sa njaay."
-        }
-      }
-    },
-    "pos": {
-      "title": "POS (Caisse)",
-      "subtitle": "Fey kilyan yi ci yomb",
-      "description": "Jox kilyan yi yoonu fey bu bees te gaaw. Sunu POS bi gaaw na lool: yokkul mbiddu yi, saytu rabat yi te fey ci ay fason yu bari ci sigoŋ yu néew.",
-      "f1_title": "Panniyé bu gaaw",
-      "f1_desc": "Ubbi sa panniyé te yokk mbiddu yi ci sa bët.",
-      "f2_title": "Resit digital",
-      "f2_desc": "Yónne resit yi ci WhatsApp, SMS wala Email sa kilyan yi.",
-      "f3_title": "Feyin yu bari",
-      "f3_desc": "Nangul xaalis, Mobile Money wala kart te topal lépp ci téere bi.",
-      "gallery": {
-        "sale": {
-          "image": "/assets/screenshots/pos-overview.jpg",
-          "title": "Buntu njaay bi",
-          "description": "Yokkul mbiddu yi ci panniyé bi, saytul li nga bëgg ak rabat yi."
-        },
-        "receipt": {
-          "image": "/assets/screenshots/pos-receipt-qr.jpg",
-          "title": "Resit ak Code QR",
-          "description": "Sosal resit bu gaaw ak code QR bu kilyan yi mën a scan."
-        }
-      }
-    },
-    "suppliers": {
-      "title": "Grossiste yi ak Marketplace",
-      "subtitle": "Sa jënd yomb na léegi",
-      "description": "Defal sa jënd mu nekk doole ngir nga raw sa moroom yi. Stockman dina la lëkkalé ak sa grossiste yi te ubbil la sunu Marketplace bu mat. Nattal njeeg yi te jënd ci kër gi.",
-      "f1_title": "Limu grossiste yi",
-      "f1_desc": "Dencal lépp lu jëm ci sa grossiste yi ak istoriku sa njaay ak nu.",
-      "f2_title": "Jënd bu gaaw",
-      "f2_desc": "Sosal ay mbataaxal jënd ci 1 bës ni sa stock soxalee.",
-      "f3_title": "Natt njeeg",
-      "f3_desc": "Seetal ba xam an moy grossiste bi gën a yomb ngir bépp mbiddu.",
-      "gallery": {
-        "marketplace": {
-          "image": "/assets/screenshots/suppliers-marketplace.jpg",
-          "title": "Marketplace bi ci biir",
-          "description": "Bokkal ak mbooloo grossiste yi nu aar te nattal njeeg yi."
-        },
-        "catalog": {
-          "image": "/assets/screenshots/suppliers-details-catalog.jpg",
-          "title": "Xibaaru grossiste",
-          "description": "Xoolal mbiddu yi grossiste bi am ak sarti jëndam."
-        },
-        "order": {
-          "image": "/assets/screenshots/suppliers-order-creation.jpg",
-          "title": "Liggeey njaay",
-          "description": "Sosal te yónne sa jënd mbiddu ci sigoŋ yu néew."
-        }
-      }
-    },
-    "orders": {
-      "title": "Topal jënd bi",
-      "subtitle": "Dore ko ci jënd ba mu dugg ci dëkkaay bi",
-      "description": "Amal sa loxo ci bépp mbiddu buy dugg. Dore ko ci bon de commande ba ci njaay bi, topal lépp. Sa stock dina simay sàssu mbiddu bi dugee.",
-      "f1_title": "Topal dox bi",
-      "f1_desc": "Xoolal njaay bi: mu ngi fey, mu ngi njaay, mu ngi duggu wala dakk na.",
-      "f2_title": "Duggal bu yomb",
-      "f2_desc": "Nangul mbiddu yi te yokkul sa stock ci sigoŋ bi.",
-      "f3_title": "Istoriku bu mat",
-      "f3_desc": "Seetal bépp jënd bu fi amon ngir gën a yombal sa liggeey.",
-      "gallery": {
-        "tracking": {
-          "image": "/assets/screenshots/orders-tracking.jpg",
-          "title": "Topal bu mat",
-          "description": "Xoolal njaay bi dore ba mu jéex ci sa grossiste."
-        }
-      }
-    },
-    "accounting": {
-      "title": "Kote njaay bu yomb",
-      "subtitle": "Sa xaalis ci sa loxo",
-      "description": "Sa kote njaay boppam mooy liggeeyal boppam. Bépp njaay, bépp depans dina dugg ci téere bi léegi. Topal sa xaalis te sosal sa bilan ci 1 bës.",
-      "f1_title": "Bilan (Profit & Loss)",
-      "f1_desc": "Xoolal sa yokkuté, sa njaay ak sa mën-mën ci bépp waxtu.",
-      "f2_title": "Topal depans yi",
-      "f2_desc": "Bindal sa depans (fey kër, kuraan, liggeeykat) ngir xam ni sa njaay di doxé.",
-      "f3_title": "Génne PDF/Excel",
-      "f3_desc": "Wàccal sa mbiddu kote ngir jox ko sa saytukat wala ngir denc ko.",
-      "gallery": {
-        "overview": {
-          "image": "/assets/screenshots/accounting-overview.jpg",
-          "title": "Xaralu kote bi",
-          "description": "Saytul sa yokkuté ak ay xaye yu leer te dëggu."
-        },
-        "expenses": {
-          "image": "/assets/screenshots/accounting-expense-create.jpg",
-          "title": "Saytu depans",
-          "description": "Yokkul sa depans yi ci yomb."
-        },
-        "reports": {
-          "image": "/assets/screenshots/accounting-details-charts.jpg",
-          "title": "Rappór ak xaye",
-          "description": "Xoolal sa xaalis ni muy doxé ci sigoŋ bi."
-        }
-      }
-    },
-    "clients": {
-      "title": "Saytu kilyan (CRM)",
-      "subtitle": "Dencal sa kilyan",
-      "description": "Defal sa kilyan yi nu nekk kilyan yu dëggu. CRM bi dina denc bépp istoriku njaay. Saytul bor yi ak xaalis bi nu la yorel ba nga bañ a reerate xaalis ci \"bor\".",
-      "f1_title": "Xibaaru kilyan",
-      "f1_desc": "Istoriku njaay bu mat, nimero telefon ak lu neex kilyan bi.",
-      "f2_title": "Bor ak keredit",
-      "f2_desc": "Topal boru kilyan yi te xamël kan mooy fay te kan mooy yor xaalis bi.",
-      "f3_title": "Marketing WhatsApp",
-      "f3_desc": "Yónne bataaxali njaay sa kilyan yi ci WhatsApp.",
-      "gallery": {
-        "details": {
-          "image": "/assets/screenshots/clients-details.jpg",
-          "title": "Xibaaru kilyan bu mat",
-          "description": "Lépp lu mu soxal kilyan bi, sa njaayam ak borom."
-        },
-        "campaigns": {
-          "image": "/assets/screenshots/clients-campaign-whatsapp.jpg",
-          "title": "WhatsApp njaay",
-          "description": "Sosal te yónne ay bataaxal njaay ci mbooloo kilyan yi."
-        }
-      }
-    },
-    "settings": {
-      "title": "Paramétrage",
-      "subtitle": "Defal Stockman ni nga ko bëggé",
-      "description": "Tëralal Stockman ni sa liggeey baaxee: saytul sa liggeeykat yi, yokkul ay dëkkaay njaay yu bees te am ndimal bu gaaw.",
-      "f1_title": "Saytu liggeeykat",
-      "f1_desc": "Ubbi ay sët ngir sa liggeeykat yi te tëralal leen li nu mën a def (vendeur, manager, admin).",
-      "f2_title": "Bari dëkkaay njaay",
-      "f2_desc": "Yokkul te saytul ay dëkkaay njaay yu bari ci 1 sët.",
-      "f3_title": "Tëralin",
-      "f3_desc": "Soppal xaalis bi, làkk bi ak ni aplikasyon bi di wonee.",
-      "gallery": {
-        "team": {
-          "image": "/assets/screenshots/settings-employees.jpg",
-          "title": "Saytu ekip bi",
-          "description": "Saytul sa liggeeykat yi, sunu role ak lu nu mën a ubbi."
-        },
-        "notifications": {
-          "image": "/assets/screenshots/settings-notifications.jpg",
-          "title": "Kër artu",
-          "description": "Tëralal sa artu mbiddu ak fattali yi am solo."
-        },
-        "security": {
-          "image": "/assets/screenshots/settings-support-security.jpg",
-          "title": "Ndimal ak Aar",
-          "description": "Ubbi ndimal ci kër gi te aar sa sët."
-        },
-        "guide": {
-          "image": "/assets/screenshots/settings-guide.jpg",
-          "title": "Teere ndimal",
-          "description": "Jàngël lépp lu Stockman mën a def."
-        }
-      }
-    }
-  },
-  "about": {
-    "seo_title": "Lu nu soxal",
-    "seo_desc": "Xamël ekip Stockman bi ak liggeey bi nu yor ngir digitaliser njaay bi ci Afrik.",
-    "home": "Kër ga",
-    "mission_start": "Sunu liggeey:",
-    "mission_highlight": "Digitaliser Afrik",
-    "mission_desc": "Danu gëm ne bépp njaaykat, bu ndaw wala bu réy, am na sàrtu am xarala yu gën a baax ngir raw. Stockman du logicel doŋŋ — mooy sa liggeeykat ngir yokkuté sa njaay.",
-    "team_title": "Ekip bi",
-    "team_subtitle": "Liggeeykat yu am pass-pass ngir njaaykat yi.",
-    "member1_image": "👨🏿‍💼",
-    "member1_name": "Jean-Marc Koffi",
-    "member1_role": "CEO & Sosal-kat",
-    "member1_bio": "Njaaykat bu jëkk, dafa sos Stockman ngir saytu sa jàfe-jàfe njaay.",
-    "member2_image": "👩🏾‍💻",
-    "member2_name": "Awa Diop",
-    "member2_role": "CTO & Njiit xarala",
-    "member2_bio": "Injénieur bu am pass-pass ci IA ak digital bi ci Afrik.",
-    "member3_image": "🎧",
-    "member3_name": "David N'Guessan",
-    "member3_role": "Njiit ndimal",
-    "member3_bio": "Dafa nekk fi waxtu wu ne ngir dimbali sunu jëfandikookat yi.",
-    "values_title": "Sunu gëm-gëm",
-    "value1_title": "🔍 Yombal",
-    "value1_desc": "Xarala bi dafa wara yomb ba kii nekk mën na ko jëfandikoo.",
-    "value2_title": "🤝 Dokkante",
-    "value2_desc": "Fi lu nu dëkk — danu xam sa dund ak sa jàfe-jàfe.",
-    "value3_title": "🚀 Xarala mu bees",
-    "value3_desc": "Danuy gën a baaxal Stockman bépp bës ndax sa bataaxal yi."
-  },
-  "blog": {
-    "seo_title": "Blog ak ndimal",
-    "seo_desc": "Xarala ak ndimal ngir saytu sa njaay, baaxal sa mbiddu te yokk sa njaay.",
-    "page_title": "Kër xibaar",
-    "page_subtitle": "Ndigal yu njiit ngir njaaykat yu bees yi.",
-    "read_more": "Jàng ko léegi →",
-    "not_found": "Mbiddu bi amul fi 😕",
-    "back_to_blog": "Delloo ci Blog bi",
-    "back_to_articles": "← Delloo ci mbiddu yi",
-    "published_on": "PUBLIÉ LE",
-    "liked_article": "Ndax mbiddu bi neex na la?",
-    "try_stockman": "Nattal Stockman ngir jëfandikoo ndigal yii.",
-    "start_trial": "Dore natt bi feyeer",
-    "posts": {
-      "abandonner-cahier-stock": {
-        "title": "Lu tax ngay bayyi kaye bi ngir saytu sa mbiddu?",
-        "excerpt": "Kaye bi am na limite. Xamël ni digital bi mën a denc sa liggeey ci njuumte ak reer.",
-        "date": "12 Féw 2026",
-        "content": "<p>Njaaykat yu bari danuy jëfandikoo kaye ngir bind njaay ak mbiddu. Da yàgg, waaye am na risku bu réy.</p><h3>1. Njuumte kote</h3><p>Njuumte bu néew ci kote mën na wàcc sa njaay lépp. Ak logicel ni Stockman, mbiddu kote yi danuy gaaw te amul njuumte.</p><h3>2. Reer mbiddu</h3><p>Kaye mën na reer, sàcc ko wala mu tàkk ci lakku. Sa mbiddu ci Stockman danu ko denc ci cloud bi te mën nga ko xool lépp fula neex.</p><h3>3. Amul xoolukaay bu mat</h3><p>Dafa jafe nga xam nan moy mbiddu bi gën a njaay boo fëkké xub yi rek. Stockman dina la ko jox ci 1 bës.</p><h3>Bile bëj</h3><p>Duggal xarala du mbus — mooy jënd bi lay dencal waxtu ak xaalis dore ko ci weer bu jëkk bi.</p>"
-      },
-      "eviter-ruptures-fetes": {
-        "title": "Naka ngay daw njuumte mbiddu ci fët yi?",
-        "excerpt": "Noël ak Tabaski waxtu yu am solo nanu. Pareel sa mbiddu bala waxtu wi ak sunu ndigal yi.",
-        "date": "10 Jan 2026",
-        "content": "<p>Njuumte mbiddu ci fët yi mooy reer xaalis bu bari. Ni ngay daw loolu.</p><h3>Doxal njaay bi</h3><p>Xoolal lu nga njaayon weer bi weesu ngir xam lu mu la soxal njaay bi di ñëw.</p><h3>Jëndal ci gaawaay</h3><p>Grossiste yi danuy am liggeey bu bari. Jëndal sa mbiddu yi 2 wala 3 simenn bala fët bi dore.</p><h3>Jëfandikool artu Stockman</h3><p>Tëralal ay artu ngir Stockman yeegal la sàssu mbiddu bi néewé.</p>"
-      },
-      "augmenter-marge-2026": {
-        "title": "3 ndigal ngir yokk sa yokkuté ci 2026",
-        "excerpt": "Njaay baax na, waaye yokkuté mooy gën! Jàngal ni ngay baaxal xaalisu jënd ak njeegu njaay.",
-        "date": "05 Jan 2026",
-        "content": "<p>Yokkuté njeeg du doŋŋ moy yoonu yokkuté. Xoolal ni ngay liggeeyal sa mën-mën.</p><h3>1. Wàccal reer bi</h3><p>Mbiddu yu dakk wala yu nu sàcc am na njeeg bu réy. Soo topé sa stock bu baax mën nga wàcc reer bi ba 30%.</p><h3>2. Dokkanté ak sa grossiste</h3><p>Boo jëndé mbiddu yu bari ci Stockman Marketplace, mën nga am njeeg yu gën a baax.</p><h3>3. Dencal sa kilyan</h3><p>Kilyan bu dëggu mooy gën njariñ kilyan bu bees. Jëfandikool porogram keredit ngir kilyan bi delloo si.</p>"
-      }
-    }
-  },
-  "help": {
-    "hero_start": "Naka la nu la mën a",
-    "hero_highlight": "dimbali",
-    "search_placeholder": "Seetal tontu...",
-    "no_results": "Amul tontu ngir \"{{term}}\"",
-    "need_more": "Ndax soxal nga beneen ndimal?",
-    "email_support": "✉️ Ndimal Email",
-    "whatsapp_chat": "💬 WhatsApp Chat",
-    "getting_started": {
-      "title": "Dore liggeey bi",
-      "q1": "Naka laay sosee sët?",
-      "a1": "Wàccal aplikasyon bi te topal xibaar yi ci bët bi. Du mat 2 minit.",
-      "q2": "Ndax mën na jëfandikoo aplikasyon bi te amul internet?",
-      "a2": "Waaw, Stockman mu ngi liggeey ci mode offline te dina simay sa mbiddu yi sàssu internet bi delloo si."
-    },
-    "account_billing": {
-      "title": "Sët ak fey bi",
-      "q1": "Naka laay soppé kod bi?",
-      "a1": "Démal ci Paramètres > Sécurité > Changer mot de passe.",
-      "q2": "Naka la natt feyeer bi di doxé?",
-      "a2": "Dina nu la jox 14 bës yu feyeer ak bépp xarala yu bees boo sosee sa sët."
-    },
-    "technical_support": {
-      "title": "Ndimal xarala",
-      "q1": "Aplikasyon bi ubbul, lu may def?",
-      "a1": "Xoolal sa internet te xamël ne am nga xarala bu bees bi. Soo nekké ci jàfe-jàfe, wàccalat ko.",
-      "q2": "Naka laay woo ndimal bi?",
-      "a2": "Mën nga nu bind ci xub bi ci suuf wala ci WhatsApp léegi."
-    }
-  },
-  "terms": {
-    "title": "Sarti jëfandikoo",
-    "version": "Version \"Ultimate\" 3.0 - 13 Féw 2026",
-    "content": "<p>Dalal ak jàmm ci <strong>Stockman</strong>.<br/>Sartu jëfandikoo yii (nu koy woowé \"Sart\") mooy yoonu liggeey bi nekk diggënte Jëfandikookat bi ak Sosal-kat Stockman bi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE I: SARTI LIGGEEY</h3><h4>Marticle 1: Lu nu tekki</h4><ul><li><strong>Plateforme</strong>: Bépp xaralu Stockman.</li><li><strong>Jëfandikookat</strong>: Kër liggeey wala nit kiy jëfandikoo Stockman ngir liggeeyam.</li><li><strong>Sosal-kat</strong>: Stockman Inc., mooy borom Stockman.</li><li><strong>Boutique</strong>: Kër njaay bi liggeey bi koy doxal.</li></ul><h4>Marticle 2: Li nu bëgg</h4><p>Stockman mooy solisyon ERP ngir saytu mbiddu yi, POS ak kilyan yi. Dox na ni liggeey (SaaS).</p><h4>Marticle 3: Nangu sart yi</h4><p>Soo bëggé doxal Stockman foog nga nangu sart yi lépp.</p><h4>Marticle 4: Liggeey doŋŋ</h4><p>Stockman amul beneen njariñ ludul liggeey. Jëfandikookat bi dafa wara liggeeyal boppam.</p><h4>Marticle 5: Soppi sart yi</h4><p>Sosal-kat bi mën na soppi sart yi bépp bës. Soo wéyalé sa liggeey, dangay nangu sart yu bees yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE II: UBBI SËT</h3><h4>Marticle 6: Bindu</h4><p>Jëfandikookat bi dafa wara bind mbiddu yu dëggu.</p><h4>Marticle 7: Aar kod bi</h4><p>Nit ki mooy denc kodam ba nit bañ ko xam.</p><h4>Marticle 8: Saytu sët bi</h4><p>Nit ki mën na soppi mbiddu yi nekk ci sët am.</p><h4>Marticle 9: Sëtu liggeeykat yi</h4><p>Borom sët bi mën na ubbi ay sët ngir liggeeykat yi te mooy njiit ci liggeeyam.</p><h4>Marticle 10: Ndigal</h4><p>Am na ay role yu wuute (Administrator, Vendeur, Manager).</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE III: NJAAY MI</h3><h4>Marticle 11-18</h4><p>Jëfandikookat bi mooy bind mbiddu yi, njaay mi ak mbiddu yu delloo si. Stockman xaye la lay jox. Sosal-kat bi nekkul njiit ci njuumte yi.</p><h3 style='margin-top:30px;color:var(--primary)'>TÉERE IV-IX: MBIDDU, IA, AAR</h3><p>IA mën na am njuumte. Mbiddu yi danu ko denc bu baax. Yoonu RGPD mu ngi liggeey. Yoonu Sénégal wala dëkk Sosal-kat bi mooy dox boo amee deñ-kumpa.</p>"
-  },
-  "privacy": {
-    "title": "Aar mbiddu",
-    "version": "13 Féw 2026",
-    "content": "<p>Dalal ak jàmm ci Stockman. Aar sa mbiddu nit mooy sunu liggeey bu jëkk.</p><h3>1. Mbiddu yi nu denc</h3><p>Danu denc: sa tur, email, telefon, mbiddu sa shop, njaay ak mbiddu xarala (IP, xarala).</p><h3>2. Njariñu mbiddu yi</h3><p>Sa mbiddu ngir: saytu sa stock, aar sa sët, baaxal sunu liggeey ak yoon.</p><h3>3. Denc ak Aar</h3><p>Sa mbiddu danuxu denc ci MongoDB Atlas te dëjj nanu ko (encrypted). HTTPS lo nu jëfandikoo.</p><h3>4. Bokk mbiddu yi</h3><p>Danu jëndul wala nuy luyee sa mbiddu. Ak sunu partenaire xarala rek la nu koy bokkal bala yoon woo nu.</p><h3>5. Sa sàrtu (RGPD)</h3><p>Mën nga xool, soppi wala dakkal sa mbiddu ci aplikasyon bi ci Paramètres.</p><h3>6. Woo nu</h3><p>Soo amee laaj, woo nu ci aplikasyon bi wala ci <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
-  }
 }
