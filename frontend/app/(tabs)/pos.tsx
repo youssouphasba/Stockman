@@ -213,12 +213,13 @@ export default function POSScreen() {
                 } else {
                     Alert.alert(t('common.success'), t('pos.credit_success'));
                 }
-                setLastSale({
-                    ...result,
-                    customer_name: selectedCustomer?.name || t('pos.anonymous_customer')
-                });
-                setShowReceiptModal(true);
             }
+
+            setLastSale({
+                ...result,
+                customer_name: selectedCustomer?.name || t('pos.anonymous_customer')
+            });
+            setShowReceiptModal(true);
 
             setCart([]);
             setSelectedCustomer(null);
