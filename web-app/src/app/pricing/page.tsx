@@ -193,10 +193,10 @@ export default function PricingPage() {
                 ))}
               </ul>
               <Link
-                href="/"
+                href="/?signup=true"
                 className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${plan.highlight
-                    ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25"
-                    : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
+                  ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25"
+                  : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
                   }`}
               >
                 {plan.cta} {plan.highlight && <ArrowRight size={14} />}

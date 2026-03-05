@@ -6,9 +6,10 @@ export type Profile = 'merchant' | 'enterprise';
 interface HeroProps {
     profile: Profile;
     onProfileChange: (p: Profile) => void;
+    onSignup: (plan: 'starter' | 'pro') => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
+const Hero: React.FC<HeroProps> = ({ profile, onProfileChange, onSignup }) => {
     const { t } = useTranslation();
 
     return (
@@ -45,7 +46,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                                 <h1>{t('hero.title_start')} <span className="text-gradient">{t('hero.title_end')}</span></h1>
                                 <p>{t('hero.subtitle')}</p>
                                 <div className="hero-btns">
-                                    <button className="btn-primary">{t('hero.cta')}</button>
+                                    <button onClick={() => onSignup('starter')} className="btn-primary">{t('hero.cta')}</button>
                                     <a href="#pricing" className="btn-secondary">{t('hero.see_pricing')}</a>
                                 </div>
                             </>

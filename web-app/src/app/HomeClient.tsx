@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
 import Inventory from "../components/Inventory";
@@ -41,6 +42,7 @@ export default function Home() {
   const [features, setFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
 
   const [showSignup, setShowSignup] = useState(false);
 
@@ -56,6 +58,13 @@ export default function Home() {
       loadUser();
     }
   }, []);
+
+  // Auto-open signup modal from search params
+  useEffect(() => {
+    if (searchParams.get('signup') === 'true') {
+      setShowSignup(true);
+    }
+  }, [searchParams]);
 
   const loadUser = async () => {
     try {
@@ -622,11 +631,11 @@ export default function Home() {
                 )}
               </button>
               <div className="text-center">
-                <span className="text-sm text-muted">Pas encore de compte Enterprise ?{' '}
+                <span className="text-sm text-muted">{t('auth.login.noAccount')}{' '}
                   <button
                     onClick={() => setShowSignup(true)}
                     className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
-                  >Créer un compte gratuit</button>
+                  >{t('auth.login.signUp')}</button>
                 </span>
               </div>
             </div>
