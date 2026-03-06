@@ -5170,7 +5170,7 @@ def get_currency_from_phone(phone: str) -> str:
     return "EUR"
 
 @api_router.post("/auth/register", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def register(request: Request, user_data: UserCreate, response: Response):
     """Register a new user with email/password"""
     try:
@@ -5324,7 +5324,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             path="/"
         )
         

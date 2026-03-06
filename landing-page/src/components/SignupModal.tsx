@@ -110,6 +110,10 @@ export default function SignupModal({ plan, onClose }: Props) {
       setError('Vous devez accepter les CGU et la politique de confidentialité.');
       return;
     }
+    if (!businessType) {
+      setError('Veuillez sélectionner votre secteur d\'activité pour configurer votre interface.');
+      return;
+    }
 
     const fullPhone = phone.trim()
       ? (phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`)
@@ -269,7 +273,7 @@ export default function SignupModal({ plan, onClose }: Props) {
 
               {/* Secteur d'activité */}
               <div className="signup-field">
-                <label>Secteur d'activité <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></label>
+                <label>Secteur d'activité <span style={{ color: '#f87171' }}>*</span></label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
                   {SECTORS.map(s => (
                     <button

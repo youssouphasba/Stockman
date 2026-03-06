@@ -97,6 +97,10 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
       setError('Vous devez accepter les CGU et la politique de confidentialité.');
       return;
     }
+    if (!businessType) {
+      setError('Veuillez sélectionner votre secteur d\'activité pour configurer votre interface.');
+      return;
+    }
 
     const fullPhone = phone.trim()
       ? (phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`)
@@ -223,7 +227,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
               </div>
 
               <div>
-                <label className={labelClass}>Secteur d'activité <span className="text-white/30 font-normal">(optionnel)</span></label>
+                <label className={labelClass}>Secteur d'activité <span className="text-rose-400">*</span></label>
                 <div className="grid grid-cols-3 gap-1.5 mt-1">
                   {SECTORS.map(s => (
                     <button

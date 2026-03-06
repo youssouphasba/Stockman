@@ -400,6 +400,7 @@
             "selectCountry": "Select your country",
             "searchCountry": "Search a country...",
             "errorFillRequired": "Please fill in all fields (name, email, password, phone)",
+            "errorSelectSector": "Please select your business sector to configure your interface",
             "errorPasswordLength": "Password must be at least 6 characters long",
             "errorPasswordsMismatch": "Passwords do not match",
             "errorTerms": "Please accept the TOS and Privacy Policy",

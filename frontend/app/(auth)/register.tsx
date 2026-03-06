@@ -77,6 +77,10 @@ export default function RegisterScreen() {
       setError(t('auth.register.errorFillRequired'));
       return;
     }
+    if (!businessType) {
+      setError(t('auth.register.errorSelectSector') || 'Veuillez sélectionner votre secteur d\'activité.');
+      return;
+    }
     // Combine country dial code + local number
     const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`;
     if (password.length < 6) {

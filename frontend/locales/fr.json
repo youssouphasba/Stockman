@@ -394,6 +394,7 @@
             "createAccount": "Créer mon compte",
             "email": "Email",
             "errorFillRequired": "Veuillez remplir tous les champs (nom, email, mot de passe, téléphone)",
+            "errorSelectSector": "Veuillez sélectionner votre secteur d'activité pour configurer votre interface",
             "errorPasswordLength": "Le mot de passe doit contenir au moins 6 caractères",
             "errorPasswordsMismatch": "Les mots de passe ne correspondent pas",
             "errorRegister": "Erreur lors de l'inscription",
