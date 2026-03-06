@@ -39,9 +39,9 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
                         setLoading(true);
                         try {
                             await profile.deleteAccount(password);
-                            Alert.alert(t('modals.deleteAccount.successTitle'), t('modals.deleteAccount.successDesc'));
+                            await logout();
                             onClose();
-                            logout();
+                            Alert.alert(t('modals.deleteAccount.successTitle'), t('modals.deleteAccount.successDesc'));
                         } catch (error: any) {
                             console.error('Account deletion error:', error);
                             const errorMessage = error.message || t('modals.deleteAccount.errorDelete');

@@ -127,9 +127,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return await rawRequest<T>(endpoint, options);
   } catch (error) {
     if (!online) {
-      // Don't queue logouts for sync - they should be local-only if offline
+      // Don't queue logouts or account deletion for sync - must be live operations
       if (endpoint === '/auth/logout') {
         return { message: 'Déconnexion locale' } as any;
+      }
+      if (endpoint === '/profile') {
+        throw new ApiError('Connexion requise pour supprimer le compte', 503);
       }
 
       // Detect entity type from endpoint for syncAction
