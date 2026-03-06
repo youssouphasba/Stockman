@@ -742,6 +742,7 @@ class UserUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     currency: Optional[str] = None
+    business_type: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -1104,6 +1105,12 @@ class Sale(BaseModel):
     customer_id: Optional[str] = None
     terminal_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    table_id: Optional[str] = None
+    covers: Optional[int] = None
+    tip_amount: float = 0.0
+    service_charge_percent: float = 0.0
+    notes: Optional[str] = None
+    kitchen_sent: bool = False
 
 
 class SaleCreate(BaseModel):
@@ -1113,6 +1120,49 @@ class SaleCreate(BaseModel):
     discount_amount: Optional[float] = 0.0
     payments: Optional[List[dict]] = None  # [{method, amount}] — si fourni, écrase payment_method
     terminal_id: Optional[str] = None
+    table_id: Optional[str] = None
+    covers: Optional[int] = None
+    tip_amount: Optional[float] = 0.0
+    service_charge_percent: Optional[float] = 0.0
+    notes: Optional[str] = None
+    kitchen_sent: Optional[bool] = False
+
+class Table(BaseModel):
+    table_id: str = Field(default_factory=lambda: f"tbl_{uuid.uuid4().hex[:8]}")
+    user_id: str
+    store_id: str
+    name: str
+    capacity: int = 4
+    status: str = "free"  # free | occupied | reserved | cleaning
+    current_sale_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TableCreate(BaseModel):
+    name: str
+    capacity: int = 4
+
+class Reservation(BaseModel):
+    reservation_id: str = Field(default_factory=lambda: f"res_{uuid.uuid4().hex[:8]}")
+    user_id: str
+    store_id: str
+    customer_name: str
+    phone: Optional[str] = None
+    date: str  # YYYY-MM-DD
+    time: str  # HH:MM
+    covers: int = 2
+    table_id: Optional[str] = None
+    notes: Optional[str] = None
+    status: str = "pending"  # pending | confirmed | arrived | cancelled | no_show
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ReservationCreate(BaseModel):
+    customer_name: str
+    phone: Optional[str] = None
+    date: str
+    time: str
+    covers: int = 2
+    table_id: Optional[str] = None
+    notes: Optional[str] = None
 
 class AccountingStats(BaseModel):
     revenue: float
@@ -4211,6 +4261,7 @@ class ProjectCreate(BaseModel):
     budget_estimate: float = 0.0
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    retention_percent: float = 0.0  # Retenue de garantie (%)
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -4222,6 +4273,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    retention_percent: Optional[float] = None
 
 class MaterialAllocation(BaseModel):
     product_id: str
@@ -4244,6 +4296,36 @@ class SituationCreate(BaseModel):
     percent: float = 0.0
     amount: float = 0.0
     notes: str = ""
+
+class DevisItem(BaseModel):
+    designation: str
+    lot: str = ""
+    unite: str = "u"
+    quantity: float = 1.0
+    unit_price: float = 0.0
+
+class JournalEntry(BaseModel):
+    date: str  # YYYY-MM-DD
+    weather: str = ""  # soleil | nuageux | pluie | vent
+    workers_count: int = 0
+    work_done: str = ""
+    materials_received: str = ""
+    incidents: str = ""
+    notes: str = ""
+
+class SubcontractorCreate(BaseModel):
+    name: str
+    corps_metier: str = "autre"
+    contact: str = ""
+    contract_amount: float = 0.0
+    notes: str = ""
+
+class PhaseCreate(BaseModel):
+    name: str
+    corps_metier: str = "autre"
+    start_date: str = ""
+    end_date: str = ""
+    status: str = "pending"  # pending | in_progress | done
 
 
 @api_router.get("/projects")
@@ -4361,6 +4443,146 @@ async def complete_project(project_id: str, user: User = Depends(require_write("
         return await project_service.complete_project(db, project_id, user.active_store_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ─── BTP: Devis ──────────────────────────────────────────────────────────────
+
+@api_router.post("/projects/{project_id}/devis")
+async def add_devis_item(project_id: str, data: DevisItem, user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    item = {
+        "item_id": f"dv_{uuid.uuid4().hex[:8]}",
+        "designation": data.designation,
+        "lot": data.lot,
+        "unite": data.unite,
+        "quantity": data.quantity,
+        "unit_price": data.unit_price,
+        "total": round(data.quantity * data.unit_price, 2),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id},
+        {"$push": {"devis_items": item}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Chantier non trouvé")
+    result.pop("_id", None)
+    return result
+
+@api_router.delete("/projects/{project_id}/devis/{item_id}")
+async def delete_devis_item(project_id: str, item_id: str, user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id},
+        {"$pull": {"devis_items": {"item_id": item_id}}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Chantier non trouvé")
+    result.pop("_id", None)
+    return result
+
+# ─── BTP: Journal de chantier ─────────────────────────────────────────────────
+
+@api_router.post("/projects/{project_id}/journal")
+async def add_journal_entry(project_id: str, data: JournalEntry, user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    entry = {
+        "entry_id": f"jnl_{uuid.uuid4().hex[:8]}",
+        **data.model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id},
+        {"$push": {"journal": entry}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Chantier non trouvé")
+    result.pop("_id", None)
+    return result
+
+# ─── BTP: Sous-traitants ──────────────────────────────────────────────────────
+
+@api_router.post("/projects/{project_id}/subcontractors")
+async def add_subcontractor(project_id: str, data: SubcontractorCreate, user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    sub = {
+        "sub_id": f"sub_{uuid.uuid4().hex[:8]}",
+        **data.model_dump(),
+        "paid_amount": 0.0,
+        "payments": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id},
+        {"$push": {"subcontractors": sub}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Chantier non trouvé")
+    result.pop("_id", None)
+    return result
+
+@api_router.post("/projects/{project_id}/subcontractors/{sub_id}/payment")
+async def pay_subcontractor(project_id: str, sub_id: str, data: dict = Body(...), user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    amount = float(data.get("amount", 0))
+    payment = {"date": datetime.now(timezone.utc).isoformat(), "amount": amount, "notes": data.get("notes", "")}
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id, "subcontractors.sub_id": sub_id},
+        {"$push": {"subcontractors.$.payments": payment}, "$inc": {"subcontractors.$.paid_amount": amount}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Non trouvé")
+    result.pop("_id", None)
+    return result
+
+# ─── BTP: Planning / Phases ───────────────────────────────────────────────────
+
+@api_router.post("/projects/{project_id}/phases")
+async def add_phase(project_id: str, data: PhaseCreate, user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    phase = {
+        "phase_id": f"ph_{uuid.uuid4().hex[:8]}",
+        **data.model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id},
+        {"$push": {"phases": phase}},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Chantier non trouvé")
+    result.pop("_id", None)
+    return result
+
+@api_router.put("/projects/{project_id}/phases/{phase_id}")
+async def update_phase(project_id: str, phase_id: str, data: dict = Body(...), user: User = Depends(require_write("products"))):
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="No active store")
+    allowed = {"name", "corps_metier", "start_date", "end_date", "status"}
+    updates = {f"phases.$.{k}": v for k, v in data.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Aucun champ valide")
+    result = await db.projects.find_one_and_update(
+        {"project_id": project_id, "store_id": user.active_store_id, "phases.phase_id": phase_id},
+        {"$set": updates},
+        return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Non trouvé")
+    result.pop("_id", None)
+    return result
 
 
 # ===================== ADMIN CATALOGUE GLOBAL =====================
@@ -6031,6 +6253,123 @@ async def delete_location(location_id: str, user: User = Depends(require_permiss
     await db.locations.delete_one({"location_id": location_id, "user_id": owner_id})
     return {"message": "Emplacement supprimé"}
 
+# ─── TABLES (Restaurant) ────────────────────────────────────────────────────
+
+@api_router.get("/tables")
+async def list_tables(user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    tables = await db.tables.find({"user_id": owner_id, "store_id": store_id}).to_list(None)
+    for t in tables:
+        t.pop("_id", None)
+    return tables
+
+@api_router.post("/tables", status_code=201)
+async def create_table(data: TableCreate, user: User = Depends(require_permission("settings", "write"))):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    table = Table(user_id=owner_id, store_id=store_id, name=data.name, capacity=data.capacity)
+    await db.tables.insert_one(table.model_dump())
+    return {k: v for k, v in table.model_dump().items() if k != "_id"}
+
+@api_router.put("/tables/{table_id}")
+async def update_table(table_id: str, data: Any = Body(...), user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    existing = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Table non trouvée")
+    allowed = {"name", "capacity", "status", "current_sale_id"}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if updates:
+        await db.tables.update_one({"table_id": table_id}, {"$set": updates})
+    updated = await db.tables.find_one({"table_id": table_id})
+    updated.pop("_id", None)
+    return updated
+
+@api_router.delete("/tables/{table_id}")
+async def delete_table(table_id: str, user: User = Depends(require_permission("settings", "write"))):
+    owner_id = get_owner_id(user)
+    result = await db.tables.delete_one({"table_id": table_id, "user_id": owner_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Table non trouvée")
+    return {"message": "Table supprimée"}
+
+# ─── RESERVATIONS ────────────────────────────────────────────────────────────
+
+@api_router.get("/reservations")
+async def list_reservations(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    query: dict = {"user_id": owner_id, "store_id": store_id}
+    if date:
+        query["date"] = date
+    reservations = await db.reservations.find(query).sort("time", 1).to_list(None)
+    for r in reservations:
+        r.pop("_id", None)
+    return reservations
+
+@api_router.post("/reservations", status_code=201)
+async def create_reservation(data: ReservationCreate, user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    reservation = Reservation(
+        user_id=owner_id, store_id=store_id,
+        customer_name=data.customer_name, phone=data.phone,
+        date=data.date, time=data.time,
+        covers=data.covers, table_id=data.table_id, notes=data.notes
+    )
+    await db.reservations.insert_one(reservation.model_dump())
+    return {k: v for k, v in reservation.model_dump().items() if k != "_id"}
+
+@api_router.put("/reservations/{reservation_id}")
+async def update_reservation(reservation_id: str, data: Any = Body(...), user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    existing = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    allowed = {"customer_name", "phone", "date", "time", "covers", "table_id", "notes", "status"}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if updates:
+        await db.reservations.update_one({"reservation_id": reservation_id}, {"$set": updates})
+    updated = await db.reservations.find_one({"reservation_id": reservation_id})
+    updated.pop("_id", None)
+    return updated
+
+@api_router.delete("/reservations/{reservation_id}")
+async def delete_reservation(reservation_id: str, user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    result = await db.reservations.delete_one({"reservation_id": reservation_id, "user_id": owner_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    return {"message": "Réservation supprimée"}
+
+# ─── KITCHEN TICKET ──────────────────────────────────────────────────────────
+
+@api_router.post("/sales/{sale_id}/send-kitchen")
+async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Vente non trouvée")
+    await db.sales.update_one({"sale_id": sale_id}, {"$set": {"kitchen_sent": True, "kitchen_sent_at": datetime.now(timezone.utc)}})
+    return {"message": "Commande envoyée en cuisine", "sale_id": sale_id}
+
+@api_router.get("/kitchen/pending")
+async def get_kitchen_pending(user: User = Depends(get_current_user)):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    # Return sales from today that were sent to kitchen (not yet completed)
+    since = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    sales = await db.sales.find({
+        "user_id": owner_id,
+        "store_id": store_id,
+        "kitchen_sent": True,
+        "created_at": {"$gte": since}
+    }).sort("created_at", -1).to_list(50)
+    for s in sales:
+        s.pop("_id", None)
+    return sales
+
 # ===================== INVENTORY ROUTES =====================
 
 @api_router.get("/inventory/tasks", response_model=List[InventoryTask])
@@ -6504,7 +6843,10 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
 
     # 3. Apply discount (validated server-side: cannot exceed subtotal)
     discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
-    actual_total = round(total_amount - discount, 2)
+    subtotal_after_discount = round(total_amount - discount, 2)
+    service_charge = round(subtotal_after_discount * (sale_data.service_charge_percent or 0.0) / 100, 2)
+    tip = round(sale_data.tip_amount or 0.0, 2)
+    actual_total = round(subtotal_after_discount + service_charge + tip, 2)
 
     # 4. Resolve payment method(s)
     payments: List[dict] = []
@@ -6526,7 +6868,13 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         payment_method=primary_method,
         payments=payments,
         customer_id=sale_data.customer_id,
-        terminal_id=sale_data.terminal_id
+        terminal_id=sale_data.terminal_id,
+        table_id=sale_data.table_id,
+        covers=sale_data.covers,
+        tip_amount=sale_data.tip_amount or 0.0,
+        service_charge_percent=sale_data.service_charge_percent or 0.0,
+        notes=sale_data.notes,
+        kitchen_sent=sale_data.kitchen_sent or False,
     )
     
     # Log activity

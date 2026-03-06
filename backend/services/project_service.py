@@ -34,6 +34,11 @@ async def create_project(db: AsyncIOMotorDatabase, project_data: dict) -> dict:
         "materials_allocated": [],
         "labor_entries": [],
         "situations": [],
+        "devis_items": [],
+        "journal": [],
+        "subcontractors": [],
+        "phases": [],
+        "retention_percent": project_data.get("retention_percent", 0.0),
         "notes": project_data.get("notes", ""),
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
@@ -258,11 +263,17 @@ async def add_situation(
     if not project:
         raise ValueError("Project not found")
 
+    retention_percent = project.get("retention_percent", 0.0) or 0.0
+    retention_amount = round(amount * retention_percent / 100, 2)
+    net_amount = round(amount - retention_amount, 2)
+
     situation = {
         "situation_id": f"sit_{uuid.uuid4().hex[:8]}",
         "label": label,
         "percent": percent,
         "amount": amount,
+        "retention_amount": retention_amount,
+        "net_amount": net_amount,
         "notes": notes,
         "paid": False,
         "date": datetime.now(timezone.utc),

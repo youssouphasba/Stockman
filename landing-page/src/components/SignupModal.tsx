@@ -1,6 +1,31 @@
 import { useState } from 'react';
 import { API_URL } from '../config';
 
+const SECTORS = [
+  { key: 'epicerie',      label: 'Épicerie',         icon: '🛒' },
+  { key: 'supermarche',   label: 'Supermarché',       icon: '🏪' },
+  { key: 'pharmacie',     label: 'Pharmacie',         icon: '💊' },
+  { key: 'vetements',     label: 'Vêtements',         icon: '👗' },
+  { key: 'cosmetiques',   label: 'Cosmétiques',       icon: '💄' },
+  { key: 'electronique',  label: 'Électronique',      icon: '📱' },
+  { key: 'quincaillerie', label: 'Quincaillerie',     icon: '🔧' },
+  { key: 'automobile',    label: 'Auto / Garage',     icon: '🚗' },
+  { key: 'grossiste',     label: 'Grossiste',         icon: '📦' },
+  { key: 'papeterie',     label: 'Papeterie',         icon: '📎' },
+  { key: 'restaurant',    label: 'Restaurant',        icon: '🍽️', production: true },
+  { key: 'boulangerie',   label: 'Boulangerie',       icon: '🥖', production: true },
+  { key: 'traiteur',      label: 'Traiteur',          icon: '🍰', production: true },
+  { key: 'boissons',      label: 'Boissons',          icon: '🧃', production: true },
+  { key: 'couture',       label: 'Couture',           icon: '🧵', production: true },
+  { key: 'savonnerie',    label: 'Savonnerie',        icon: '🧼', production: true },
+  { key: 'menuiserie',    label: 'Menuiserie',        icon: '🪑', production: true },
+  { key: 'imprimerie',    label: 'Imprimerie',        icon: '🖨️', production: true },
+  { key: 'forge',         label: 'Forge',             icon: '⚒️', production: true },
+  { key: 'artisanat',     label: 'Artisanat',         icon: '🧶', production: true },
+  { key: 'btp',           label: 'BTP / Construction',icon: '🏗️', projects: true },
+  { key: 'autre',         label: 'Autre',             icon: '🔀' },
+];
+
 interface Country {
   name: string;
   code: string;
@@ -242,15 +267,42 @@ export default function SignupModal({ plan, onClose }: Props) {
                 />
               </div>
 
-              {/* Type de commerce */}
+              {/* Secteur d'activité */}
               <div className="signup-field">
-                <label>Type de commerce <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></label>
-                <input
-                  type="text"
-                  value={businessType}
-                  onChange={e => setBusinessType(e.target.value)}
-                  placeholder="Ex: Boutique, Pharmacie, Quincaillerie…"
-                />
+                <label>Secteur d'activité <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
+                  {SECTORS.map(s => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setBusinessType(businessType === s.key ? '' : s.key)}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                        padding: '8px 4px', borderRadius: '10px', border: '1px solid',
+                        borderColor: businessType === s.key ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                        backgroundColor: businessType === s.key ? 'rgba(var(--primary-rgb),0.15)' : 'rgba(255,255,255,0.04)',
+                        color: businessType === s.key ? '#fff' : 'rgba(255,255,255,0.55)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.icon}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>{s.label}</span>
+                      {'production' in s && (s as any).production && (
+                        <span style={{ fontSize: '8px', color: '#f59e0b', fontWeight: 700 }}>🏭 Production</span>
+                      )}
+                      {'projects' in s && (s as any).projects && (
+                        <span style={{ fontSize: '8px', color: '#60a5fa', fontWeight: 700 }}>🏗️ Chantiers</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {businessType && (
+                  <p style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '6px' }}>
+                    ✓ {SECTORS.find(s => s.key === businessType)?.icon} {SECTORS.find(s => s.key === businessType)?.label}
+                    {(SECTORS.find(s => s.key === businessType) as any)?.production ? ' — module Production activé' : ''}
+                    {(SECTORS.find(s => s.key === businessType) as any)?.projects ? ' — module Chantiers activé' : ''}
+                  </p>
+                )}
               </div>
 
               {/* Comment vous avez connu Stockman */}

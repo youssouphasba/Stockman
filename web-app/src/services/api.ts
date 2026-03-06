@@ -126,28 +126,33 @@ export type UserFeatures = {
 
 // ─── Production Types ───
 
-export type RecipeMaterial = {
+export type RecipeIngredient = {
     product_id: string;
-    name: string;
+    name?: string;
     quantity: number;
     unit: string;
-    loss_percent: number;
-    cost_at_creation: number;
 };
 
 export type Recipe = {
     recipe_id: string;
+    store_id?: string;
     name: string;
-    description: string;
-    output_product_id: string;
-    output_name: string;
+    category?: string;
+    description?: string;
+    output_product_id?: string;
     output_quantity: number;
-    unit: string;
-    materials: RecipeMaterial[];
+    output_unit: string;
+    ingredients: RecipeIngredient[];
+    prep_time_min: number;
+    instructions?: string;
+    waste_percent: number;
     labor_cost: number;
-    overhead_cost: number;
+    energy_cost: number;
+    computed_cost: number;
     total_cost: number;
     suggested_price: number;
+    margin_percent: number;
+    is_active: boolean;
     created_at: string;
 };
 
@@ -155,20 +160,27 @@ export type ProductionOrder = {
     order_id: string;
     recipe_id: string;
     recipe_name: string;
-    quantity: number;
-    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    batch_multiplier: number;
+    planned_output: number;
+    actual_output?: number;
+    output_unit: string;
+    status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+    planned_date?: string;
     started_at?: string;
     completed_at?: string;
-    actual_output?: number;
+    total_material_cost: number;
+    waste_quantity: number;
     notes?: string;
     created_at: string;
 };
 
 export type ProductionDashboard = {
-    pending_orders: number;
-    completed_today: number;
-    total_value_month: number;
-    top_recipes: { name: string; count: number }[];
+    today_productions: number;
+    month_productions: number;
+    month_cost: number;
+    waste_percent: number;
+    active_recipes: number;
+    in_progress: number;
 };
 
 // ─── BTP / Projects Types ───
@@ -242,7 +254,7 @@ export const auth = {
             body: { email, password },
         }),
     me: () => request<any>('/auth/me'),
-    updateProfile: (data: { name?: string; currency?: string }) =>
+    updateProfile: (data: { name?: string; currency?: string; business_type?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
     register: (data: {
         email: string; password: string; name: string;
@@ -287,21 +299,43 @@ export const locations = {
 };
 
 export const userFeatures = {
-    get: () => request<UserFeatures>('/user_features'),
+    get: () => request<UserFeatures>('/user/features'),
+};
+
+export const tables = {
+    list: () => request<any[]>('/tables'),
+    create: (data: { name: string; capacity: number }) => request<any>('/tables', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/tables/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/tables/${id}`, { method: 'DELETE' }),
+};
+
+export const reservations = {
+    list: (date?: string) => request<any[]>(`/reservations${date ? `?date=${date}` : ''}`),
+    create: (data: any) => request<any>('/reservations', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/reservations/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/reservations/${id}`, { method: 'DELETE' }),
+};
+
+export const kitchen = {
+    pending: () => request<any[]>('/kitchen/pending'),
+    sendToKitchen: (saleId: string) => request<any>(`/sales/${saleId}/send-kitchen`, { method: 'POST' }),
 };
 
 export const production = {
     recipes: {
-        list: () => request<Recipe[]>('/production/recipes'),
-        get: (id: string) => request<Recipe>(`/production/recipes/${id}`),
-        create: (data: any) => request<Recipe>('/production/recipes', { method: 'POST', body: data }),
+        list: () => request<Recipe[]>('/recipes'),
+        get: (id: string) => request<Recipe>(`/recipes/${id}`),
+        create: (data: any) => request<Recipe>('/recipes', { method: 'POST', body: data }),
+        delete: (id: string) => request<{ message: string }>(`/recipes/${id}`, { method: 'DELETE' }),
     },
     orders: {
         list: (status?: string) => request<ProductionOrder[]>(`/production/orders${status ? `?status=${status}` : ''}`),
-        create: (data: { recipe_id: string; quantity: number; notes?: string }) =>
-            request<ProductionOrder>('/production/orders', { method: 'POST', body: data }),
-        updateStatus: (id: string, status: string, actualOutput?: number) =>
-            request<ProductionOrder>(`/production/orders/${id}/status`, { method: 'PUT', body: { status, actual_output: actualOutput } }),
+        create: (recipeId: string, batchMultiplier = 1, notes?: string) =>
+            request<ProductionOrder>('/production/orders', { method: 'POST', body: { recipe_id: recipeId, batch_multiplier: batchMultiplier, notes } }),
+        start: (id: string) => request<ProductionOrder>(`/production/orders/${id}/start`, { method: 'PUT' }),
+        complete: (id: string, actualOutput: number, wasteQuantity = 0) =>
+            request<ProductionOrder>(`/production/orders/${id}/complete`, { method: 'PUT', body: { actual_output: actualOutput, waste_quantity: wasteQuantity } }),
+        cancel: (id: string) => request<ProductionOrder>(`/production/orders/${id}/cancel`, { method: 'PUT' }),
     },
     dashboard: () => request<ProductionDashboard>('/production/dashboard'),
 };
@@ -317,7 +351,39 @@ export const projects = {
         request<Project>(`/projects/${projectId}/labor`, { method: 'POST', body: data }),
     addSituation: (projectId: string, data: { label: string; percent: number; amount: number; notes?: string }) =>
         request<Project>(`/projects/${projectId}/situations`, { method: 'POST', body: data }),
+    complete: (projectId: string) => request<Project>(`/projects/${projectId}/complete`, { method: 'PUT' }),
     dashboard: () => request<ProjectDashboard>('/projects/dashboard'),
+    addDevisItem: (projectId: string, data: { designation: string; lot?: string; unite?: string; quantity: number; unit_price: number }) =>
+        request<Project>(`/projects/${projectId}/devis`, { method: 'POST', body: data }),
+    deleteDevisItem: (projectId: string, itemId: string) =>
+        request<Project>(`/projects/${projectId}/devis/${itemId}`, { method: 'DELETE' }),
+    addJournalEntry: (projectId: string, data: any) =>
+        request<Project>(`/projects/${projectId}/journal`, { method: 'POST', body: data }),
+    addSubcontractor: (projectId: string, data: any) =>
+        request<Project>(`/projects/${projectId}/subcontractors`, { method: 'POST', body: data }),
+    paySubcontractor: (projectId: string, subId: string, data: { amount: number; notes?: string }) =>
+        request<Project>(`/projects/${projectId}/subcontractors/${subId}/payment`, { method: 'POST', body: data }),
+    addPhase: (projectId: string, data: any) =>
+        request<Project>(`/projects/${projectId}/phases`, { method: 'POST', body: data }),
+    updatePhase: (projectId: string, phaseId: string, data: any) =>
+        request<Project>(`/projects/${projectId}/phases/${phaseId}`, { method: 'PUT', body: data }),
+};
+
+export const catalog = {
+    getSectors: () => request<any[]>('/catalog/sectors'),
+    browse: (params: { sector?: string; query?: string; skip?: number; limit?: number }) => {
+        const qs = new URLSearchParams();
+        if (params.sector) qs.set('sector', params.sector);
+        if (params.query) qs.set('query', params.query);
+        qs.set('skip', (params.skip || 0).toString());
+        qs.set('limit', (params.limit || 50).toString());
+        return request<any>(`/catalog/browse?${qs.toString()}`);
+    },
+    import: (productIds: string[], storeId: string) =>
+        request<any>('/catalog/import', { method: 'POST', body: { product_ids: productIds, store_id: storeId } }),
+    importAll: (sector: string, storeId: string) =>
+        request<any>('/catalog/import-all', { method: 'POST', body: { sector, store_id: storeId } }),
+    lookupBarcode: (barcode: string) => request<any>(`/catalog/barcode/${barcode}`),
 };
 
 export const dashboard = {

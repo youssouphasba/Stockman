@@ -1,242 +1,503 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Factory,
-    Plus,
-    LayoutDashboard,
-    ClipboardList,
-    Warehouse,
-    TrendingUp,
-    Clock,
-    Search,
-    ChevronRight,
-    ChefHat,
-    History,
-    AlertCircle,
-    CheckCircle2,
-    Play,
-    Settings2
+    Factory, Plus, ChefHat, ClipboardList, ShoppingBag, Leaf,
+    Play, CheckCircle2, XCircle, Trash2, Settings2, Flame,
+    Calendar, DollarSign, AlertTriangle, Loader2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { production, Recipe, ProductionOrder, ProductionDashboard } from '../services/api';
+import { production, products as productsApi, Recipe, ProductionOrder, ProductionDashboard } from '../services/api';
+import { useDateFormatter } from '../hooks/useDateFormatter';
+
+type SubTab = 'recipes' | 'orders' | 'shop' | 'materials';
+
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+            <div
+                className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="mb-4">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">{label}</label>
+            {children}
+        </div>
+    );
+}
+
+const input = "w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-secondary/50";
+const btn = (color: string) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${color}`;
 
 export default function ProductionView() {
     const { t } = useTranslation();
-    const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'recipes' | 'orders' | 'warehouse'>('dashboard');
-    const [dashboardData, setDashboardData] = useState<ProductionDashboard | null>(null);
-    const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [orders, setOrders] = useState<ProductionOrder[]>([]);
+    const { formatCurrency } = useDateFormatter();
+    const [activeTab, setActiveTab] = useState<SubTab>('recipes');
     const [loading, setLoading] = useState(true);
+    const [recipesList, setRecipesList] = useState<Recipe[]>([]);
+    const [ordersList, setOrdersList] = useState<ProductionOrder[]>([]);
+    const [dashboard, setDashboard] = useState<ProductionDashboard | null>(null);
+    const [rawMaterials, setRawMaterials] = useState<any[]>([]);
+    const [shopProducts, setShopProducts] = useState<any[]>([]);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    // Modals
+    const [showNewRecipe, setShowNewRecipe] = useState(false);
+    const [showProduceModal, setShowProduceModal] = useState(false);
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
 
-    const loadData = async () => {
-        setLoading(true);
+    // Recipe form
+    const [recipeName, setRecipeName] = useState('');
+    const [recipeCategory, setRecipeCategory] = useState('');
+    const [outputQty, setOutputQty] = useState('1');
+    const [outputUnit, setOutputUnit] = useState('pièce');
+    const [prepTime, setPrepTime] = useState('0');
+    const [instructions, setInstructions] = useState('');
+
+    // Produce form
+    const [batchMultiplier, setBatchMultiplier] = useState('1');
+    const [produceNotes, setProduceNotes] = useState('');
+
+    // Complete form
+    const [actualOutput, setActualOutput] = useState('');
+    const [wasteQty, setWasteQty] = useState('0');
+
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadData = useCallback(async () => {
         try {
-            const [dash, rec, ord] = await Promise.all([
-                production.dashboard(),
+            const [r, o, d] = await Promise.all([
                 production.recipes.list(),
-                production.orders.list()
+                production.orders.list(),
+                production.dashboard(),
             ]);
-            setDashboardData(dash);
-            setRecipes(rec);
-            setOrders(ord);
-        } catch (err) {
-            console.error('Failed to load production data:', err);
+            setRecipesList(r);
+            setOrdersList(o);
+            setDashboard(d);
+            const resp = await productsApi.list(undefined, 0, 200);
+            const all = resp.items || resp;
+            setRawMaterials(all.filter((p: any) => p.product_type === 'raw_material'));
+            setShopProducts(all.filter((p: any) => !p.product_type || p.product_type === 'standard'));
+        } catch (e) {
+            console.error(e);
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    useEffect(() => { loadData(); }, [loadData]);
+
+    // ─── Recipe CRUD ───
+    const handleCreateRecipe = async () => {
+        if (!recipeName.trim() || submitting) return;
+        setSubmitting(true);
+        setError(null);
+        try {
+            await production.recipes.create({
+                name: recipeName.trim(),
+                category: recipeCategory || undefined,
+                output_quantity: parseFloat(outputQty) || 1,
+                output_unit: outputUnit,
+                prep_time_min: parseInt(prepTime) || 0,
+                instructions: instructions || undefined,
+                ingredients: [],
+            });
+            setShowNewRecipe(false);
+            setRecipeName(''); setRecipeCategory(''); setOutputQty('1'); setOutputUnit('pièce'); setPrepTime('0'); setInstructions('');
+            loadData();
+        } catch (e: any) {
+            setError(e?.message || 'Erreur');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const stats = [
-        { label: t('production.pending_orders'), value: dashboardData?.pending_orders || 0, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-        { label: t('production.completed_today'), value: dashboardData?.completed_today || 0, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-        { label: t('production.total_value_month'), value: `${dashboardData?.total_value_month?.toLocaleString() || 0} CFA`, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-        { label: t('production.active_recipes'), value: recipes.length, icon: ChefHat, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    const handleDeleteRecipe = async (recipe: Recipe) => {
+        if (!confirm(`Supprimer la recette "${recipe.name}" ?`)) return;
+        try {
+            await production.recipes.delete(recipe.recipe_id);
+            loadData();
+        } catch (e: any) {
+            alert(e?.message || 'Erreur');
+        }
+    };
+
+    // ─── Order Actions ───
+    const handleProduce = async () => {
+        if (!selectedRecipe || submitting) return;
+        setSubmitting(true);
+        setError(null);
+        try {
+            await production.orders.create(selectedRecipe.recipe_id, parseFloat(batchMultiplier) || 1, produceNotes || undefined);
+            setShowProduceModal(false);
+            setBatchMultiplier('1'); setProduceNotes(''); setSelectedRecipe(null);
+            loadData();
+        } catch (e: any) {
+            setError(e?.message || 'Erreur');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleStartOrder = async (order: ProductionOrder) => {
+        try {
+            await production.orders.start(order.order_id);
+            loadData();
+        } catch (e: any) {
+            alert(e?.message || 'Erreur');
+        }
+    };
+
+    const handleCompleteOrder = async () => {
+        if (!selectedOrder || submitting) return;
+        setSubmitting(true);
+        setError(null);
+        try {
+            const output = parseFloat(actualOutput) || selectedOrder.planned_output;
+            const waste = parseFloat(wasteQty) || 0;
+            await production.orders.complete(selectedOrder.order_id, output, waste);
+            setShowCompleteModal(false);
+            setSelectedOrder(null); setActualOutput(''); setWasteQty('0');
+            loadData();
+        } catch (e: any) {
+            setError(e?.message || 'Erreur');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleCancelOrder = async (order: ProductionOrder) => {
+        if (!confirm('Annuler cet ordre ? Les matières premières seront remises en stock.')) return;
+        try {
+            await production.orders.cancel(order.order_id);
+            loadData();
+        } catch (e: any) {
+            alert(e?.message || 'Erreur');
+        }
+    };
+
+    const marginColor = (pct: number) => pct > 50 ? 'text-emerald-400' : pct > 20 ? 'text-amber-400' : 'text-red-400';
+
+    const statusCfg: Record<string, { color: string; label: string }> = {
+        planned: { color: 'bg-blue-500/20 text-blue-400', label: 'Planifié' },
+        in_progress: { color: 'bg-amber-500/20 text-amber-400', label: 'En cours' },
+        completed: { color: 'bg-emerald-500/20 text-emerald-400', label: 'Terminé' },
+        cancelled: { color: 'bg-red-500/20 text-red-400', label: 'Annulé' },
+    };
+
+    const tabs: { key: SubTab; label: string; Icon: any }[] = [
+        { key: 'recipes', label: t('production.tab_recipes', 'Recettes'), Icon: ChefHat },
+        { key: 'orders', label: t('production.tab_orders', 'Ordres'), Icon: ClipboardList },
+        { key: 'shop', label: t('production.tab_shop', 'Boutique'), Icon: ShoppingBag },
+        { key: 'materials', label: t('production.tab_materials', 'Matières'), Icon: Leaf },
     ];
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="animate-spin text-secondary" size={40} />
+            </div>
+        );
+    }
 
     return (
         <div className="flex-1 flex flex-col h-full bg-[#0F172A] p-6 overflow-y-auto">
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-black text-white flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-secondary/20 text-secondary">
-                            <Factory size={28} />
-                        </div>
-                        {t('production.title')}
-                    </h1>
-                    <p className="text-slate-400 mt-1">{t('production.subtitle', 'Gérez vos recettes, ordres de production et transformations de stocks.')}</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all border border-white/10">
-                        <Plus size={20} />
-                        {t('production.new_recipe')}
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-secondary/20 text-secondary"><Factory size={24} /></div>
+                    {t('production.title', 'Production')}
+                </h1>
+                {activeTab === 'recipes' && (
+                    <button onClick={() => setShowNewRecipe(true)} className={btn('bg-secondary hover:bg-secondary/80 text-white shadow-lg shadow-secondary/20')}>
+                        <Plus size={18} /> {t('production.new_recipe', 'Nouvelle recette')}
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl transition-all shadow-lg shadow-secondary/20">
-                        <Play size={20} />
-                        {t('production.start_production')}
-                    </button>
-                </div>
+                )}
             </div>
 
-            {/* Sub-tabs Navigation */}
-            <div className="flex gap-2 p-1 bg-white/5 rounded-2xl w-fit mb-8 border border-white/5">
-                {[
-                    { id: 'dashboard', label: t('common.dashboard'), icon: LayoutDashboard },
-                    { id: 'recipes', label: t('production.recipes'), icon: ChefHat },
-                    { id: 'orders', label: t('production.orders'), icon: ClipboardList },
-                    { id: 'warehouse', label: t('common.warehouse'), icon: Warehouse }
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveSubTab(tab.id as any)}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeSubTab === tab.id
-                                ? 'bg-white/10 text-white shadow-lg border border-white/10'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                            }`}
-                    >
-                        <tab.icon size={16} />
-                        {tab.label}
+            {/* KPI Row */}
+            {dashboard && (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                    {[
+                        { label: t('production.today', "Aujourd'hui"), value: dashboard.today_productions, Icon: Flame, color: 'text-amber-400 bg-amber-500/10' },
+                        { label: t('production.month', 'Ce mois'), value: dashboard.month_productions, Icon: Calendar, color: 'text-blue-400 bg-blue-500/10' },
+                        { label: t('production.cost', 'Coût mois'), value: formatCurrency(dashboard.month_cost), Icon: DollarSign, color: 'text-emerald-400 bg-emerald-500/10' },
+                        { label: t('production.waste', 'Pertes'), value: `${dashboard.waste_percent}%`, Icon: AlertTriangle, color: 'text-red-400 bg-red-500/10' },
+                    ].map(({ label, value, Icon, color }) => (
+                        <div key={label} className="glass-card p-4 flex items-center gap-3 border border-white/5">
+                            <div className={`p-3 rounded-xl ${color.split(' ')[1]}`}>
+                                <Icon size={20} className={color.split(' ')[0]} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400">{label}</p>
+                                <p className="text-xl font-black text-white">{value}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Sub-tabs */}
+            <div className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit mb-6 border border-white/5">
+                {tabs.map(({ key, label, Icon }) => (
+                    <button key={key} onClick={() => setActiveTab(key)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === key ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}>
+                        <Icon size={15} /> {label}
                     </button>
                 ))}
             </div>
 
-            {loading ? (
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-secondary/20 border-t-secondary rounded-full animate-spin"></div>
-                </div>
-            ) : (
-                <>
-                    {activeSubTab === 'dashboard' && (
-                        <div className="space-y-8">
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {stats.map((stat) => (
-                                    <div key={stat.label} className="glass-card p-6 flex items-center gap-5 group hover:border-secondary/30 transition-all border border-white/10">
-                                        <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
-                                            <stat.icon size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-400">{stat.label}</p>
-                                            <p className="text-2xl font-black text-white">{stat.value}</p>
-                                        </div>
+            {/* ─── Recipes Tab ─── */}
+            {activeTab === 'recipes' && (
+                recipesList.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500">
+                        <ChefHat size={56} className="mb-4 opacity-30" />
+                        <p className="text-lg font-bold">{t('production.no_recipes', 'Aucune recette')}</p>
+                        <p className="text-sm mt-1">{t('production.no_recipes_desc', 'Créez votre première recette.')}</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {recipesList.map(recipe => (
+                            <div key={recipe.recipe_id} className="glass-card p-5 border border-white/5 flex flex-col gap-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold text-white">{recipe.name}</p>
+                                        {recipe.category && (
+                                            <span className="text-xs px-2 py-0.5 rounded-md bg-secondary/20 text-secondary mt-1 inline-block">{recipe.category}</span>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
+                                    <button onClick={() => handleDeleteRecipe(recipe)} className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                                        <Trash2 size={15} />
+                                    </button>
+                                </div>
 
-                            {/* Main Dashboard Content */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* Recent Orders */}
-                                <div className="lg:col-span-2 space-y-4">
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <History size={20} className="text-secondary" />
-                                        {t('production.recent_orders')}
-                                    </h2>
-                                    <div className="glass-card overflow-hidden border border-white/5">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-white/5 border-b border-white/10">
-                                                <tr>
-                                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">{t('production.order_id')}</th>
-                                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">{t('production.recipe')}</th>
-                                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">{t('common.quantity')}</th>
-                                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">{t('common.status')}</th>
-                                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {orders.slice(0, 5).map((order) => (
-                                                    <tr key={order.order_id} className="group hover:bg-white/[0.02] transition-colors">
-                                                        <td className="p-4 text-sm font-mono text-slate-400">#{order.order_id.slice(-6)}</td>
-                                                        <td className="p-4">
-                                                            <span className="text-sm font-bold text-white">{order.recipe_name}</span>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <span className="text-sm text-slate-300">{order.quantity}</span>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${order.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    order.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                                        'bg-amber-500/20 text-amber-400'
-                                                                }`}>
-                                                                {t(`production.status.${order.status}`)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-4 text-right">
-                                                            <button className="p-2 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition-all">
-                                                                <ChevronRight size={18} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                {recipe.ingredients.length > 0 && (
+                                    <p className="text-xs text-slate-400 line-clamp-2">
+                                        {recipe.ingredients.map(i => `${i.name || i.product_id} ${i.quantity}${i.unit}`).join(' · ')}
+                                    </p>
+                                )}
+
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <p className="text-xs text-slate-500">Coût</p>
+                                        <p className="text-sm font-bold text-white">{Math.round(recipe.total_cost).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500">Sortie</p>
+                                        <p className="text-sm font-bold text-white">{recipe.output_quantity} {recipe.output_unit}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500">Marge</p>
+                                        <p className={`text-sm font-bold ${marginColor(recipe.margin_percent)}`}>{recipe.margin_percent}%</p>
                                     </div>
                                 </div>
 
-                                {/* Top Recipes */}
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <ChefHat size={20} className="text-purple-400" />
-                                        {t('production.top_recipes')}
-                                    </h2>
-                                    <div className="glass-card p-6 space-y-4 border border-white/5 text-slate-300">
-                                        {dashboardData?.top_recipes?.map((item, idx) => (
-                                            <div key={item.name} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-black text-slate-500 w-4">{idx + 1}</span>
-                                                    <span className="text-sm font-bold">{item.name}</span>
-                                                </div>
-                                                <span className="text-xs font-black text-secondary">{item.count} ordres</span>
-                                            </div>
-                                        ))}
-                                        {!dashboardData?.top_recipes?.length && (
-                                            <p className="text-center text-sm text-slate-500 py-8">Aucune donnée disponible</p>
+                                {recipe.prep_time_min > 0 && (
+                                    <p className="text-xs text-slate-500">⏱ {recipe.prep_time_min} min</p>
+                                )}
+
+                                <button
+                                    onClick={() => { setSelectedRecipe(recipe); setBatchMultiplier('1'); setShowProduceModal(true); }}
+                                    className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-xl transition-all border border-emerald-500/20 flex items-center justify-center gap-2"
+                                >
+                                    <Play size={15} /> {t('production.produce', 'Produire')}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            {/* ─── Orders Tab ─── */}
+            {activeTab === 'orders' && (
+                ordersList.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500">
+                        <ClipboardList size={56} className="mb-4 opacity-30" />
+                        <p className="text-lg font-bold">{t('production.no_orders', 'Aucun ordre de production')}</p>
+                        <p className="text-sm mt-1">{t('production.no_orders_desc', "Lancez une production depuis l'onglet Recettes.")}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {ordersList.map(order => {
+                            const sc = statusCfg[order.status] || statusCfg.planned;
+                            return (
+                                <div key={order.order_id} className="glass-card p-4 border border-white/5 flex items-center gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <p className="font-bold text-white">{order.recipe_name}</p>
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${sc.color}`}>{sc.label}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400">
+                                            ×{order.batch_multiplier} → {order.planned_output} {order.output_unit} · Coût: {Math.round(order.total_material_cost).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {order.status === 'planned' && (
+                                            <>
+                                                <button onClick={() => handleStartOrder(order)} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all" title="Démarrer">
+                                                    <Play size={16} />
+                                                </button>
+                                                <button onClick={() => handleCancelOrder(order)} className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Annuler">
+                                                    <XCircle size={16} />
+                                                </button>
+                                            </>
+                                        )}
+                                        {order.status === 'in_progress' && (
+                                            <>
+                                                <button onClick={() => { setSelectedOrder(order); setActualOutput(String(order.planned_output)); setShowCompleteModal(true); }}
+                                                    className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all" title="Terminer">
+                                                    <CheckCircle2 size={16} />
+                                                </button>
+                                                <button onClick={() => handleCancelOrder(order)} className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Annuler">
+                                                    <XCircle size={16} />
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            );
+                        })}
+                    </div>
+                )
+            )}
 
-                    {activeSubTab === 'recipes' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {recipes.map((recipe) => (
-                                <div key={recipe.recipe_id} className="glass-card p-6 group hover:border-secondary/20 transition-all border border-white/5">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 group-hover:scale-110 transition-transform">
-                                            <ChefHat size={24} />
-                                        </div>
-                                        <button className="p-2 rounded-lg bg-white/5 text-slate-500 hover:text-white">
-                                            <Settings2 size={16} />
-                                        </button>
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-secondary transition-colors">{recipe.name}</h3>
-                                    <p className="text-sm text-slate-400 mb-6 line-clamp-2">{recipe.description || 'Aucune description'}</p>
-
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-slate-500">Coût total</span>
-                                            <span className="font-black text-white">{recipe.total_cost.toLocaleString()} CFA</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-slate-500">Prix suggéré</span>
-                                            <span className="font-black text-secondary">{recipe.suggested_price.toLocaleString()} CFA</span>
-                                        </div>
-                                    </div>
-
-                                    <button className="w-full py-3 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white font-bold rounded-xl transition-all border border-secondary/20">
-                                        Lancer la production
-                                    </button>
+            {/* ─── Shop Tab ─── */}
+            {activeTab === 'shop' && (
+                <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mb-3">{t('production.shop_desc', 'Produits revendus (non produits)')}</p>
+                    {shopProducts.length === 0 ? (
+                        <div className="text-center py-16 text-slate-500"><ShoppingBag size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_shop', 'Aucun produit boutique')}</p></div>
+                    ) : (
+                        shopProducts.slice(0, 50).map((p: any) => (
+                            <div key={p.product_id} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold text-white text-sm">{p.name}</p>
+                                    <p className="text-xs text-slate-400">{formatCurrency(p.selling_price)} · Stock: {p.quantity} {p.unit || ''}</p>
                                 </div>
-                            ))}
-                        </div>
+                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.quantity <= 0 ? 'bg-red-500/20 text-red-400' : p.quantity <= (p.min_stock || 5) ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                    {p.quantity}
+                                </span>
+                            </div>
+                        ))
                     )}
-                </>
+                </div>
+            )}
+
+            {/* ─── Materials Tab ─── */}
+            {activeTab === 'materials' && (
+                <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mb-3">{t('production.materials_desc', 'Matières premières pour la production')}</p>
+                    {rawMaterials.length === 0 ? (
+                        <div className="text-center py-16 text-slate-500"><Leaf size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_materials', 'Aucune matière première')}</p></div>
+                    ) : (
+                        rawMaterials.map((p: any) => (
+                            <div key={p.product_id} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-emerald-500/10"><Leaf size={14} className="text-emerald-400" /></div>
+                                    <div>
+                                        <p className="font-semibold text-white text-sm">{p.name}</p>
+                                        <p className="text-xs text-slate-400">{formatCurrency(p.purchase_price)}/{p.unit || 'unité'} · Stock: {p.quantity}</p>
+                                    </div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.quantity <= 0 ? 'bg-red-500/20 text-red-400' : p.quantity <= (p.min_stock || 5) ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                    {p.quantity}
+                                </span>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {/* ═══ Create Recipe Modal ═══ */}
+            {showNewRecipe && (
+                <Modal onClose={() => setShowNewRecipe(false)}>
+                    <div className="flex justify-between items-center mb-5">
+                        <h2 className="text-lg font-black text-white">{t('production.new_recipe', 'Nouvelle recette')}</h2>
+                        <button onClick={() => setShowNewRecipe(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
+                    </div>
+                    {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+                    <Field label={t('production.recipe_name', 'Nom de la recette')}>
+                        <input className={input} value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Ex: Baguette tradition" />
+                    </Field>
+                    <Field label={t('production.category', 'Catégorie')}>
+                        <input className={input} value={recipeCategory} onChange={e => setRecipeCategory(e.target.value)} placeholder="Ex: Pains, Viennoiseries" />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label={t('production.output_qty', 'Qté produite')}>
+                            <input className={input} type="number" value={outputQty} onChange={e => setOutputQty(e.target.value)} />
+                        </Field>
+                        <Field label={t('production.output_unit', 'Unité')}>
+                            <input className={input} value={outputUnit} onChange={e => setOutputUnit(e.target.value)} placeholder="pièce" />
+                        </Field>
+                    </div>
+                    <Field label={t('production.prep_time', 'Temps préparation (min)')}>
+                        <input className={input} type="number" value={prepTime} onChange={e => setPrepTime(e.target.value)} />
+                    </Field>
+                    <Field label={t('production.instructions', 'Instructions (optionnel)')}>
+                        <textarea className={`${input} h-20 resize-none`} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Étapes de préparation..." />
+                    </Field>
+                    <p className="text-xs text-slate-500 italic mb-4">{t('production.ingredients_later', '💡 Vous pourrez ajouter les ingrédients après la création.')}</p>
+                    <button onClick={handleCreateRecipe} disabled={submitting || !recipeName.trim()}
+                        className="w-full py-3 bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-white font-bold rounded-xl transition-all">
+                        {submitting ? '...' : t('production.create_recipe', 'Créer la recette')}
+                    </button>
+                </Modal>
+            )}
+
+            {/* ═══ Produce Modal ═══ */}
+            {showProduceModal && selectedRecipe && (
+                <Modal onClose={() => setShowProduceModal(false)}>
+                    <div className="flex justify-between items-center mb-5">
+                        <h2 className="text-lg font-black text-white">{t('production.produce', 'Produire')} : {selectedRecipe.name}</h2>
+                        <button onClick={() => setShowProduceModal(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
+                    </div>
+                    {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+                    <Field label={t('production.multiplier', 'Multiplicateur de lot')}>
+                        <input className={input} type="number" min="1" value={batchMultiplier} onChange={e => setBatchMultiplier(e.target.value)} />
+                    </Field>
+                    <p className="text-xs text-slate-400 italic mb-3">
+                        → {(selectedRecipe.output_quantity * (parseFloat(batchMultiplier) || 1)).toFixed(0)} {selectedRecipe.output_unit} produites
+                    </p>
+                    <Field label={t('production.notes', 'Notes (optionnel)')}>
+                        <input className={input} value={produceNotes} onChange={e => setProduceNotes(e.target.value)} placeholder="Notes..." />
+                    </Field>
+                    <button onClick={handleProduce} disabled={submitting}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 mt-2">
+                        <Play size={18} /> {t('production.create_order', 'Lancer la production')}
+                    </button>
+                </Modal>
+            )}
+
+            {/* ═══ Complete Modal ═══ */}
+            {showCompleteModal && selectedOrder && (
+                <Modal onClose={() => setShowCompleteModal(false)}>
+                    <div className="flex justify-between items-center mb-5">
+                        <h2 className="text-lg font-black text-white">{t('production.complete', 'Terminer')} : {selectedOrder.recipe_name}</h2>
+                        <button onClick={() => setShowCompleteModal(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
+                    </div>
+                    {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+                    <Field label={t('production.actual_output', 'Quantité réelle produite')}>
+                        <input className={input} type="number" value={actualOutput} onChange={e => setActualOutput(e.target.value)} />
+                    </Field>
+                    <Field label={t('production.waste', 'Pertes (quantité)')}>
+                        <input className={input} type="number" value={wasteQty} onChange={e => setWasteQty(e.target.value)} placeholder="0" />
+                    </Field>
+                    <button onClick={handleCompleteOrder} disabled={submitting}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 mt-2">
+                        <CheckCircle2 size={18} /> {t('production.mark_complete', 'Marquer comme terminé')}
+                    </button>
+                </Modal>
             )}
         </div>
     );

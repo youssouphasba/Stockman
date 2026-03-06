@@ -350,8 +350,8 @@ export function exportInventory(
             (p.quantity || 0) <= 0
                 ? 'Rupture'
                 : (p.quantity || 0) <= (p.min_stock || 0)
-                ? 'Critique'
-                : 'Normal',
+                    ? 'Critique'
+                    : 'Normal',
         stock_value: (p.quantity || 0) * (p.purchase_price || 0),
     }));
 
@@ -442,8 +442,8 @@ export function exportCRM(
         const spent = c.total_spent || 0;
         const tier =
             spent > 1_000_000 ? 'Platine' :
-            spent > 500_000 ? 'Or' :
-            spent > 100_000 ? 'Argent' : 'Bronze';
+                spent > 500_000 ? 'Or' :
+                    spent > 100_000 ? 'Argent' : 'Bronze';
         return { ...c, tier_label: tier };
     });
 

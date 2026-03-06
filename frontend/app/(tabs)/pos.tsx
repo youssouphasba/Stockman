@@ -5,6 +5,7 @@ import {
     Text,
     StyleSheet,
     ScrollView,
+    FlatList,
     TouchableOpacity,
     TextInput,
     ActivityIndicator,
@@ -26,6 +27,9 @@ import {
     customers as customersApi,
     stores as storesApi,
     ai as aiApi,
+    tables,
+    kitchen,
+    userFeatures,
     Product,
     Sale,
     Customer,
@@ -131,6 +135,17 @@ export default function POSScreen() {
     const [showTerminalModal, setShowTerminalModal] = useState(false);
     const terminalSelectedRef = useRef(false);
 
+    // Restaurant mode
+    const [restaurantMode, setRestaurantMode] = useState(false);
+    const [tableList, setTableList] = useState<any[]>([]);
+    const [selectedTable, setSelectedTable] = useState<any | null>(null);
+    const [covers, setCovers] = useState(1);
+    const [tipPercent, setTipPercent] = useState(0);
+    const [serviceChargePercent, setServiceChargePercent] = useState(0);
+    const [orderNotes, setOrderNotes] = useState('');
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [showRestaurantOptions, setShowRestaurantOptions] = useState(false);
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
@@ -154,6 +169,13 @@ export default function POSScreen() {
                         setShowTerminalModal(true);
                     }
                 }
+            }
+
+            const features = await userFeatures.get().catch(() => null);
+            if (features?.has_production && ['restaurant', 'traiteur'].includes(features?.sector || '')) {
+                setRestaurantMode(true);
+                const tabs = await tables.list().catch(() => []);
+                setTableList(tabs);
             }
         } catch (error) {
             console.error(error);
@@ -276,6 +298,10 @@ export default function POSScreen() {
         }, 0);
     }, [cart]);
 
+    const calculateTipAmount = () => Math.round(total * tipPercent / 100);
+    const calculateServiceCharge = () => Math.round(total * serviceChargePercent / 100);
+    const calculateGrandTotal = () => total + calculateTipAmount() + calculateServiceCharge();
+
     const processCheckout = async (method: string) => {
         try {
             setCheckoutLoading(true);
@@ -300,6 +326,12 @@ export default function POSScreen() {
                 payment_method: method,
                 customer_id: selectedCustomer?.customer_id,
                 terminal_id: selectedTerminal || undefined,
+                table_id: selectedTable?.table_id,
+                covers: covers > 1 ? covers : undefined,
+                tip_amount: calculateTipAmount(),
+                service_charge_percent: serviceChargePercent,
+                notes: orderNotes || undefined,
+                total_amount: calculateGrandTotal(),
             });
 
             if (method === 'credit') {
@@ -321,6 +353,11 @@ export default function POSScreen() {
                 cart: [],
                 selectedCustomer: null
             }));
+            setSelectedTable(null);
+            setCovers(1);
+            setTipPercent(0);
+            setServiceChargePercent(0);
+            setOrderNotes('');
             await loadData();
         } catch (error: any) {
             if (Platform.OS === 'web') {
@@ -470,9 +507,105 @@ export default function POSScreen() {
                 </View>
             )}
 
+            {restaurantMode && (
+                <View style={{ marginBottom: 8 }}>
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: colors.card, borderRadius: 12, marginBottom: 4 }}
+                        onPress={() => setShowRestaurantOptions(!showRestaurantOptions)}
+                    >
+                        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>🍽️ Options restaurant</Text>
+                        <Ionicons name={showRestaurantOptions ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+                    </TouchableOpacity>
+
+                    {showRestaurantOptions && (
+                        <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, gap: 10 }}>
+                            {/* Table */}
+                            <TouchableOpacity
+                                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                                onPress={() => setShowTableModal(true)}
+                            >
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Table</Text>
+                                <Text style={{ color: selectedTable ? colors.primary : colors.textMuted, fontSize: 13, fontWeight: '600' }}>
+                                    {selectedTable ? selectedTable.name : 'Sélectionner'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Covers */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Couverts</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                    <TouchableOpacity onPress={() => setCovers(c => Math.max(1, c-1))} style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={{ color: colors.text, fontSize: 16 }}>-</Text>
+                                    </TouchableOpacity>
+                                    <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 16, minWidth: 24, textAlign: 'center' }}>{covers}</Text>
+                                    <TouchableOpacity onPress={() => setCovers(c => c+1)} style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={{ color: colors.text, fontSize: 16 }}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Service charge */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Frais de service</Text>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    {[0, 5, 10, 15].map(p => (
+                                        <TouchableOpacity
+                                            key={p}
+                                            onPress={() => setServiceChargePercent(p)}
+                                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: serviceChargePercent === p ? colors.primary : colors.divider, backgroundColor: serviceChargePercent === p ? colors.primary + '20' : 'transparent' }}
+                                        >
+                                            <Text style={{ color: serviceChargePercent === p ? colors.primary : colors.textMuted, fontSize: 11, fontWeight: '600' }}>{p}%</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* Tip */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Pourboire</Text>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    {[0, 5, 10, 15].map(p => (
+                                        <TouchableOpacity
+                                            key={p}
+                                            onPress={() => setTipPercent(p)}
+                                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: tipPercent === p ? colors.primary : colors.divider, backgroundColor: tipPercent === p ? colors.primary + '20' : 'transparent' }}
+                                        >
+                                            <Text style={{ color: tipPercent === p ? colors.primary : colors.textMuted, fontSize: 11, fontWeight: '600' }}>{p}%</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* Notes */}
+                            <TextInput
+                                value={orderNotes}
+                                onChangeText={setOrderNotes}
+                                placeholder="Notes cuisine..."
+                                placeholderTextColor={colors.textMuted}
+                                style={{ backgroundColor: colors.background, borderRadius: 10, padding: 10, color: colors.text, fontSize: 13 }}
+                            />
+
+                            {/* Total breakdown */}
+                            {(serviceChargePercent > 0 || tipPercent > 0) && (
+                                <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 8, gap: 4 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Service +{calculateServiceCharge()}</Text>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Pourboire +{calculateTipAmount()}</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 14 }}>Total final</Text>
+                                        <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>{calculateGrandTotal().toLocaleString()}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                </View>
+            )}
+
             <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>{t('pos.total')}</Text>
-                <Text style={styles.totalAmount}>{formatUserCurrency(total, user)}</Text>
+                <Text style={styles.totalAmount}>{formatUserCurrency(restaurantMode ? calculateGrandTotal() : total, user)}</Text>
             </View>
 
             <View style={styles.paymentMethods}>
@@ -772,6 +905,30 @@ export default function POSScreen() {
                         </View>
                         <TouchableOpacity style={styles.createBtn} onPress={handleCreateCustomer} disabled={createCustomerLoading}>
                             {createCustomerLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={showTableModal} animationType="slide" transparent>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                    <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' }}>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Choisir une table</Text>
+                        <FlatList
+                            data={[{ table_id: '', name: 'Sans table', capacity: 0, status: 'free' }, ...tableList]}
+                            keyExtractor={item => item.table_id || 'none'}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: selectedTable?.table_id === item.table_id ? colors.primary : colors.divider, backgroundColor: selectedTable?.table_id === item.table_id ? colors.primary + '15' : 'transparent', marginBottom: 6 }}
+                                    onPress={() => { setSelectedTable(item.table_id ? item : null); setShowTableModal(false); }}
+                                >
+                                    <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+                                    {item.capacity > 0 && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{item.capacity} pers.</Text>}
+                                </TouchableOpacity>
+                            )}
+                        />
+                        <TouchableOpacity onPress={() => setShowTableModal(false)} style={{ padding: 14, borderRadius: 12, backgroundColor: colors.divider, alignItems: 'center', marginTop: 8 }}>
+                            <Text style={{ color: colors.text, fontWeight: '600' }}>Fermer</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

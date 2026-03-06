@@ -128,7 +128,7 @@ function Landing() {
         </div>
       </nav>
 
-      <Hero profile={profile} onProfileChange={setProfile} onSignup={setSignupPlan} />
+      <Hero profile={profile} onProfileChange={setProfile} onSignup={(plan) => setSignupPlan(plan)} />
 
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <ComparisonTable />

@@ -22,6 +22,31 @@ import { COUNTRIES, Country } from '../../constants/countries';
 
 import { useTranslation } from 'react-i18next';
 
+const SECTORS = [
+  { key: 'epicerie',      label: 'Épicerie',          icon: '🛒' },
+  { key: 'supermarche',   label: 'Supermarché',        icon: '🏪' },
+  { key: 'pharmacie',     label: 'Pharmacie',          icon: '💊' },
+  { key: 'vetements',     label: 'Vêtements',          icon: '👗' },
+  { key: 'cosmetiques',   label: 'Cosmétiques',        icon: '💄' },
+  { key: 'electronique',  label: 'Électronique',       icon: '📱' },
+  { key: 'quincaillerie', label: 'Quincaillerie',      icon: '🔧' },
+  { key: 'automobile',    label: 'Auto / Garage',      icon: '🚗' },
+  { key: 'grossiste',     label: 'Grossiste',          icon: '📦' },
+  { key: 'papeterie',     label: 'Papeterie',          icon: '📎' },
+  { key: 'restaurant',    label: 'Restaurant',         icon: '🍽️', production: true },
+  { key: 'boulangerie',   label: 'Boulangerie',        icon: '🥖', production: true },
+  { key: 'traiteur',      label: 'Traiteur',           icon: '🍰', production: true },
+  { key: 'boissons',      label: 'Boissons',           icon: '🧃', production: true },
+  { key: 'couture',       label: 'Couture',            icon: '🧵', production: true },
+  { key: 'savonnerie',    label: 'Savonnerie',         icon: '🧼', production: true },
+  { key: 'menuiserie',    label: 'Menuiserie',         icon: '🪑', production: true },
+  { key: 'imprimerie',    label: 'Imprimerie',         icon: '🖨️', production: true },
+  { key: 'forge',         label: 'Forge',              icon: '⚒️', production: true },
+  { key: 'artisanat',     label: 'Artisanat',          icon: '🧶', production: true },
+  { key: 'btp',           label: 'BTP / Construction', icon: '🏗️', projects: true },
+  { key: 'autre',         label: 'Autre',              icon: '🔀' },
+];
+
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { register } = useAuth();
@@ -44,6 +69,7 @@ export default function RegisterScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [businessType, setBusinessType] = useState('');
+  const [showSectorModal, setShowSectorModal] = useState(false);
   const [howDidYouHear, setHowDidYouHear] = useState('');
 
   async function handleRegister() {
@@ -301,18 +327,73 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.businessType')}</Text>
-                <View style={[styles.inputWrapper, { paddingHorizontal: Spacing.md }]}>
+                <Text style={styles.label}>{t('auth.register.businessType', "Secteur d'activité")}</Text>
+                <TouchableOpacity
+                  style={[styles.inputWrapper, { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm }]}
+                  onPress={() => setShowSectorModal(true)}
+                >
                   <Ionicons name="business-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.register.businessTypePlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={businessType}
-                    onChangeText={setBusinessType}
-                  />
-                </View>
+                  {businessType ? (
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.input, { color: Colors.text }]}>
+                        {SECTORS.find(s => s.key === businessType)?.icon} {SECTORS.find(s => s.key === businessType)?.label}
+                      </Text>
+                      {SECTORS.find(s => s.key === businessType) && (SECTORS.find(s => s.key === businessType) as any).production && (
+                        <Text style={{ fontSize: 11, color: '#F59E0B', marginTop: 2 }}>🏭 Module Production activé</Text>
+                      )}
+                      {SECTORS.find(s => s.key === businessType) && (SECTORS.find(s => s.key === businessType) as any).projects && (
+                        <Text style={{ fontSize: 11, color: '#60A5FA', marginTop: 2 }}>🏗️ Module Chantiers activé</Text>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={[styles.input, { color: Colors.textMuted }]}>
+                      {t('auth.register.businessTypePlaceholder', 'Choisir un secteur...')}
+                    </Text>
+                  )}
+                  <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
+                </TouchableOpacity>
               </View>
+
+              {/* Sector picker modal */}
+              <Modal visible={showSectorModal} transparent animationType="slide">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+                  <View style={{ backgroundColor: Colors.bgDark || '#1E293B', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <Text style={{ color: Colors.text, fontSize: 18, fontWeight: '700' }}>
+                        {t('auth.register.businessType', "Secteur d'activité")}
+                      </Text>
+                      <TouchableOpacity onPress={() => setShowSectorModal(false)}>
+                        <Ionicons name="close" size={24} color={Colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                    <FlatList
+                      data={SECTORS}
+                      numColumns={3}
+                      keyExtractor={item => item.key}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={{
+                            flex: 1, margin: 4, padding: 10, borderRadius: 12, alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: businessType === item.key ? Colors.primary : 'rgba(255,255,255,0.1)',
+                            backgroundColor: businessType === item.key ? Colors.primary + '25' : 'rgba(255,255,255,0.05)',
+                          }}
+                          onPress={() => { setBusinessType(item.key); setShowSectorModal(false); }}
+                        >
+                          <Text style={{ fontSize: 22 }}>{item.icon}</Text>
+                          <Text style={{ color: Colors.text, fontSize: 10, fontWeight: '600', textAlign: 'center', marginTop: 4 }}>{item.label}</Text>
+                          {(item as any).production && (
+                            <Text style={{ color: '#F59E0B', fontSize: 8, fontWeight: '700', marginTop: 2 }}>🏭 Production</Text>
+                          )}
+                          {(item as any).projects && (
+                            <Text style={{ color: '#60A5FA', fontSize: 8, fontWeight: '700', marginTop: 2 }}>🏗️ Chantiers</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                </View>
+              </Modal>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>{t('auth.register.howDidYouHear')}</Text>

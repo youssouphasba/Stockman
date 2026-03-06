@@ -3,6 +3,31 @@
 import { useState } from 'react';
 import { X, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
+const SECTORS = [
+  { key: 'epicerie',      label: 'Épicerie',         icon: '🛒' },
+  { key: 'supermarche',   label: 'Supermarché',       icon: '🏪' },
+  { key: 'pharmacie',     label: 'Pharmacie',         icon: '💊' },
+  { key: 'vetements',     label: 'Vêtements',         icon: '👗' },
+  { key: 'cosmetiques',   label: 'Cosmétiques',       icon: '💄' },
+  { key: 'electronique',  label: 'Électronique',      icon: '📱' },
+  { key: 'quincaillerie', label: 'Quincaillerie',     icon: '🔧' },
+  { key: 'automobile',    label: 'Auto / Garage',     icon: '🚗' },
+  { key: 'grossiste',     label: 'Grossiste',         icon: '📦' },
+  { key: 'papeterie',     label: 'Papeterie',         icon: '📎' },
+  { key: 'restaurant',    label: 'Restaurant',        icon: '🍽️', production: true },
+  { key: 'boulangerie',   label: 'Boulangerie',       icon: '🥖', production: true },
+  { key: 'traiteur',      label: 'Traiteur',          icon: '🍰', production: true },
+  { key: 'boissons',      label: 'Boissons',          icon: '🧃', production: true },
+  { key: 'couture',       label: 'Couture',           icon: '🧵', production: true },
+  { key: 'savonnerie',    label: 'Savonnerie',        icon: '🧼', production: true },
+  { key: 'menuiserie',    label: 'Menuiserie',        icon: '🪑', production: true },
+  { key: 'imprimerie',    label: 'Imprimerie',        icon: '🖨️', production: true },
+  { key: 'forge',         label: 'Forge',             icon: '⚒️', production: true },
+  { key: 'artisanat',     label: 'Artisanat',         icon: '🧶', production: true },
+  { key: 'btp',           label: 'BTP / Construction',icon: '🏗️', projects: true },
+  { key: 'autre',         label: 'Autre',             icon: '🔀' },
+] as const;
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://stockman-production-149d.up.railway.app';
 
 interface Country { name: string; code: string; flag: string; dialCode: string; currency: string; }
@@ -198,8 +223,39 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
               </div>
 
               <div>
-                <label className={labelClass}>Type de commerce <span className="text-white/30 font-normal">(optionnel)</span></label>
-                <input type="text" value={businessType} onChange={e => setBusinessType(e.target.value)} placeholder="Ex: Boutique, Pharmacie, Supermarché…" className={inputClass} />
+                <label className={labelClass}>Secteur d'activité <span className="text-white/30 font-normal">(optionnel)</span></label>
+                <div className="grid grid-cols-3 gap-1.5 mt-1">
+                  {SECTORS.map(s => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setBusinessType(businessType === s.key ? '' : s.key)}
+                      className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border text-center transition-all ${
+                        businessType === s.key
+                          ? 'bg-primary/20 border-primary text-white'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{s.icon}</span>
+                      <span className="text-[10px] font-semibold leading-tight">{s.label}</span>
+                      {'production' in s && s.production && (
+                        <span className="text-[8px] text-amber-400 font-bold">🏭 Production</span>
+                      )}
+                      {'projects' in s && s.projects && (
+                        <span className="text-[8px] text-blue-400 font-bold">🏗️ Chantiers</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {businessType && (
+                  <p className="text-xs text-primary mt-1.5">
+                    ✓ {SECTORS.find(s => s.key === businessType)?.icon} {SECTORS.find(s => s.key === businessType)?.label}
+                    {SECTORS.find(s => s.key === businessType) && 'production' in SECTORS.find(s => s.key === businessType)! && (SECTORS.find(s => s.key === businessType) as any).production
+                      ? ' — module Production activé' : ''}
+                    {SECTORS.find(s => s.key === businessType) && 'projects' in SECTORS.find(s => s.key === businessType)! && (SECTORS.find(s => s.key === businessType) as any).projects
+                      ? ' — module Chantiers activé' : ''}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2 mt-1">

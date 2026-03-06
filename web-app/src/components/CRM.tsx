@@ -121,7 +121,7 @@ export default function CRM() {
             const res = await customersApi.list(0, 200, sortBy);
             setCustomers(res.items || res);
             // Auto-trigger churn prediction
-            aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => {});
+            aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => { });
         } catch (err) {
             console.error("CRM load error", err);
         } finally {
@@ -392,8 +392,8 @@ export default function CRM() {
                     <button
                         onClick={() => setIsFilterOpen(prev => !prev)}
                         className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${filterCategory !== 'all'
-                                ? 'bg-primary/10 border-primary/30 text-primary'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
                             }`}
                     >
                         <Filter size={20} />

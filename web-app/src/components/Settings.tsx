@@ -17,10 +17,36 @@ import {
     Monitor,
     Plus,
     Trash2,
-    MapPin
+    MapPin,
+    Briefcase
 } from 'lucide-react';
-import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi } from '../services/api';
+import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi, userFeatures } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
+
+const SECTORS = [
+    { key: 'boutique', label: 'Boutique / Commerce', icon: '🏪' },
+    { key: 'supermarche', label: 'Supermarché', icon: '🛒' },
+    { key: 'pharmacie', label: 'Pharmacie', icon: '💊' },
+    { key: 'restaurant', label: 'Restaurant', icon: '🍽️', production: true },
+    { key: 'boulangerie', label: 'Boulangerie / Pâtisserie', icon: '🥖', production: true },
+    { key: 'traiteur', label: 'Traiteur', icon: '🍲', production: true },
+    { key: 'boissons', label: 'Boissons / Jus', icon: '🥤', production: true },
+    { key: 'couture', label: 'Couture / Atelier', icon: '🧵', production: true },
+    { key: 'savonnerie', label: 'Savonnerie / Cosmétiques', icon: '🧴', production: true },
+    { key: 'menuiserie', label: 'Menuiserie / Ébénisterie', icon: '🪵', production: true },
+    { key: 'imprimerie', label: 'Imprimerie', icon: '🖨️', production: true },
+    { key: 'forge', label: 'Forge / Métallurgie', icon: '⚒️', production: true },
+    { key: 'artisanat', label: 'Artisanat', icon: '🎨', production: true },
+    { key: 'btp', label: 'BTP / Construction', icon: '🏗️', projects: true },
+    { key: 'quincaillerie', label: 'Quincaillerie', icon: '🔧' },
+    { key: 'electromenager', label: 'Électroménager', icon: '📺' },
+    { key: 'mode', label: 'Mode / Prêt-à-porter', icon: '👗' },
+    { key: 'beaute', label: 'Beauté / Salon', icon: '💇' },
+    { key: 'librairie', label: 'Librairie / Papeterie', icon: '📚' },
+    { key: 'agriculture', label: 'Agriculture / Élevage', icon: '🌾' },
+    { key: 'auto', label: 'Auto / Moto / Pièces', icon: '🚗' },
+    { key: 'autre', label: 'Autre', icon: '📦' },
+];
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
@@ -40,6 +66,8 @@ export default function Settings() {
     const [storeList, setStoreList] = useState<any[]>([]);
     const [editingStore, setEditingStore] = useState<any>(null);
     const [storeSaving, setStoreSaving] = useState(false);
+    const [selectedSector, setSelectedSector] = useState('');
+    const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
 
     const CURRENCIES = [
         { code: 'XOF', label: 'XOF — CFA BCEAO (Sénégal, Mali, CI…)' },
@@ -63,7 +91,7 @@ export default function Settings() {
     const loadSettings = async () => {
         setLoading(true);
         try {
-            const [res, locs, storesRes] = await Promise.all([settingsApi.get(), locationsApi.list(), storesApi.list()]);
+            const [res, locs, storesRes, features] = await Promise.all([settingsApi.get(), locationsApi.list(), storesApi.list(), userFeatures.get().catch(() => null)]);
             setSettings(res);
             setProfileName(res?.user_name || '');
             setCurrency(res?.currency || 'XOF');
@@ -72,6 +100,8 @@ export default function Settings() {
             setTerminals(res?.terminals || []);
             setLocations(locs || []);
             setStoreList(storesRes || []);
+            setSelectedSector(features?.sector || '');
+            setSectorFeatures(features ? { has_production: features.has_production, has_projects: features.has_projects } : null);
         } catch (err) {
             console.error("Settings load error", err);
         } finally {
@@ -150,6 +180,49 @@ export default function Settings() {
                                 />
                             </div>
                         </div>
+
+                        {/* Secteur d'activité */}
+                        <div className="mt-6">
+                            <label className="text-sm text-slate-400 mb-3 block">Secteur d&apos;activité</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {SECTORS.map(s => (
+                                    <button
+                                        key={s.key}
+                                        onClick={async () => {
+                                            setSelectedSector(s.key);
+                                            try {
+                                                await authApi.updateProfile({ business_type: s.key });
+                                                const features = await userFeatures.get();
+                                                setSectorFeatures({ has_production: features.has_production, has_projects: features.has_projects });
+                                                setSuccess(true);
+                                                setTimeout(() => setSuccess(false), 3000);
+                                            } catch (err) {
+                                                console.error('Sector update error', err);
+                                            }
+                                        }}
+                                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-sm transition-all ${
+                                            selectedSector === s.key
+                                                ? 'border-primary bg-primary/10 text-white'
+                                                : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        <span className="text-lg">{s.icon}</span>
+                                        <span className="truncate">{s.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {sectorFeatures?.has_production && (
+                                <div className="mt-3 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-xs inline-block">
+                                    🏭 Module Production activé
+                                </div>
+                            )}
+                            {sectorFeatures?.has_projects && (
+                                <div className="mt-3 ml-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs inline-block">
+                                    🏗️ Module Chantiers activé
+                                </div>
+                            )}
+                        </div>
+
                         <button
                             onClick={() => handleUpdateSettings({ user_name: profileName })}
                             disabled={saving}

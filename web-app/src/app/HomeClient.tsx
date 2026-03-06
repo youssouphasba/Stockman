@@ -26,6 +26,9 @@ import ExpiryAlerts from "../components/ExpiryAlerts";
 import MultiStoreDashboard from "../components/MultiStoreDashboard";
 import ProjectView from "../components/ProjectView";
 import ProductionView from "../components/ProductionView";
+import TableManagement from "../components/TableManagement";
+import Reservations from "../components/Reservations";
+import KitchenDisplay from "../components/KitchenDisplay";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import { auth, userFeatures, chat as chatApi, ApiError } from "../services/api";
@@ -493,6 +496,9 @@ export default function Home() {
             {activeTab === 'subscription' && <Subscription />}
             {activeTab === 'production' && <ProductionView />}
             {activeTab === 'projects' && <ProjectView />}
+            {activeTab === 'tables' && <TableManagement />}
+            {activeTab === 'reservations' && <Reservations />}
+            {activeTab === 'kitchen' && <KitchenDisplay />}
             {activeTab === 'admin' && <AdminDashboard />}
             {activeTab === 'supplier_portal' && <SupplierPortal />}
             {activeTab === 'settings' && <Settings />}

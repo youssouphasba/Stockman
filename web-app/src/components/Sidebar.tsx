@@ -27,6 +27,9 @@ import {
     Store,
     Factory,
     Hammer,
+    UtensilsCrossed,
+    CalendarCheck,
+    ChefHat,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,6 +45,7 @@ interface SidebarProps {
     features?: {
         has_production: boolean;
         has_projects: boolean;
+        sector?: string;
     };
 }
 
@@ -91,6 +95,11 @@ export default function Sidebar({
         ] : []),
         ...(features?.has_production ? [
             { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'] }
+        ] : []),
+        ...(features?.has_production && ['restaurant', 'traiteur'].includes(features?.sector || '') ? [
+            { id: 'tables', icon: UtensilsCrossed, label: 'Tables', roles: ['shopkeeper', 'staff', 'admin'] },
+            { id: 'reservations', icon: CalendarCheck, label: 'Réservations', roles: ['shopkeeper', 'staff', 'admin'] },
+            { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
         ] : []),
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },

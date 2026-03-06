@@ -29,12 +29,16 @@ import {
     categories as categoriesApi,
     customers as customersApi,
     ai as aiApi,
-    settings as settingsApi
+    settings as settingsApi,
+    userFeatures as userFeaturesApi,
+    tables as tablesApi
 } from '../services/api';
 import BarcodeScanner from './BarcodeScanner';
 import QuickCustomerModal from './QuickCustomerModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
 import OrderReturnModal from './OrderReturnModal';
+import ChangeCalculatorModal from './ChangeCalculatorModal';
+import LineDiscountModal from './LineDiscountModal';
 import { syncService } from '../services/syncService';
 import { WifiOff, HelpCircle } from 'lucide-react';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -62,9 +66,26 @@ export default function POS() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Discount state
+    // Discount state (cart-level)
     const [discountType, setDiscountType] = useState<'%' | 'F'>('F');
     const [discountValue, setDiscountValue] = useState<number>(0);
+
+    // Change calculator & line discount modals
+    const [showChangeCalc, setShowChangeCalc] = useState(false);
+    const [showLineDiscount, setShowLineDiscount] = useState(false);
+    const [selectedCartItemId, setSelectedCartItemId] = useState<string | null>(null);
+
+    // Restaurant mode
+    const [restaurantMode, setRestaurantMode] = useState(false);
+    const [tableList, setTableList] = useState<any[]>([]);
+    const [selectedTable, setSelectedTable] = useState<any | null>(null);
+    const [covers, setCovers] = useState(1);
+    const [tipPercent, setTipPercent] = useState(0);
+    const [tipFixed, setTipFixed] = useState(0);
+    const [tipType, setTipType] = useState<'percent' | 'fixed'>('percent');
+    const [serviceChargePercent, setServiceChargePercent] = useState(0);
+    const [orderNotes, setOrderNotes] = useState('');
+    const [showRestaurantPanel, setShowRestaurantPanel] = useState(false);
 
     // Store settings (terminals + receipt info)
     const [storeSettings, setStoreSettings] = useState<any>(null);
@@ -84,11 +105,13 @@ export default function POS() {
     const loadInitialData = async () => {
         try {
             setLoading(true);
-            const [prodsRes, catsRes, custsRes, settingsRes] = await Promise.all([
+            const [prodsRes, catsRes, custsRes, settingsRes, featuresRes, tablesRes] = await Promise.all([
                 productsApi.list(undefined, 0, 500),
                 categoriesApi.list(),
                 customersApi.list(),
-                settingsApi.get().catch(() => null)
+                settingsApi.get().catch(() => null),
+                userFeaturesApi.get().catch(() => null),
+                tablesApi.list().catch(() => [])
             ]);
             setAllProducts((prodsRes.items || prodsRes));
             setCategoriesList(catsRes);
@@ -97,6 +120,10 @@ export default function POS() {
                 setStoreSettings(settingsRes);
                 // Auto-select terminal if only one
                 if (settingsRes.terminals?.length === 1) setSelectedTerminal(settingsRes.terminals[0]);
+            }
+            if (featuresRes?.has_production && ['restaurant', 'traiteur'].includes(featuresRes?.sector || '')) {
+                setRestaurantMode(true);
+                setTableList(Array.isArray(tablesRes) ? tablesRes : []);
             }
         } catch (err) {
             console.error("Load error", err);
@@ -162,6 +189,17 @@ export default function POS() {
         setCart(current => current.filter(item => item.product_id !== productId));
     };
 
+    const applyLineDiscount = (productId: string, type: 'percentage' | 'fixed', value: number) => {
+        setCart(current => current.map(item => {
+            if (item.product_id !== productId) return item;
+            const base = item._base_price || item.selling_price;
+            const discounted = type === 'percentage'
+                ? Math.round(base * (1 - Math.min(value, 100) / 100))
+                : Math.max(0, base - value);
+            return { ...item, _base_price: base, selling_price: discounted };
+        }));
+    };
+
     const calculateSubtotal = () =>
         cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
 
@@ -173,8 +211,23 @@ export default function POS() {
 
     const calculateTotal = () => Math.max(0, calculateSubtotal() - calculateDiscount());
 
+    const calculateTipAmount = () => {
+        const base = calculateTotal();
+        if (tipType === 'percent') return Math.round(base * tipPercent / 100);
+        return tipFixed;
+    };
+
+    const calculateServiceCharge = () => {
+        const base = calculateTotal();
+        return Math.round(base * serviceChargePercent / 100);
+    };
+
+    const calculateGrandTotal = () => {
+        return calculateTotal() + calculateTipAmount() + calculateServiceCharge();
+    };
+
     const handleSplitCheckout = async () => {
-        const total = calculateTotal();
+        const total = calculateGrandTotal();
         const paid = splitPayments.reduce((s, p) => s + (p.amount || 0), 0);
         if (Math.abs(paid - total) > 0.01) {
             setError(`Les paiements (${paid}) ne couvrent pas le total (${total})`);
@@ -200,11 +253,16 @@ export default function POS() {
                     quantity: item.quantity,
                     price: item.selling_price
                 })),
-                total_amount: calculateTotal(),
+                total_amount: calculateGrandTotal(),
                 discount_amount: discountAmount,
                 payment_method: method,
                 customer_id: selectedCustomer?.customer_id,
                 terminal_id: selectedTerminal || undefined,
+                table_id: selectedTable?.table_id,
+                covers: covers > 1 ? covers : undefined,
+                tip_amount: calculateTipAmount(),
+                service_charge_percent: serviceChargePercent,
+                notes: orderNotes || undefined,
             };
             if (payments && payments.length > 1) saleData.payments = payments;
 
@@ -224,6 +282,12 @@ export default function POS() {
             setDiscountValue(0);
             setIsSplitPayment(false);
             setSplitPayments([{ method: 'cash', amount: 0 }, { method: 'mobile_money', amount: 0 }]);
+            setSelectedTable(null);
+            setCovers(1);
+            setTipPercent(0);
+            setTipFixed(0);
+            setServiceChargePercent(0);
+            setOrderNotes('');
             setIsReceiptOpen(true);
 
             // Refresh products
@@ -238,11 +302,11 @@ export default function POS() {
                         quantity: item.quantity,
                         price: item.selling_price
                     })),
-                    total_amount: calculateTotal(),
+                    total_amount: calculateGrandTotal(),
                     payment_method: method,
                     customer_id: selectedCustomer?.customer_id
                 });
-                setLastSale({ items: cart, total_amount: calculateTotal(), payment_method: method, is_offline: true });
+                setLastSale({ items: cart, total_amount: calculateGrandTotal(), payment_method: method, is_offline: true });
                 setCart([]);
                 setIsReceiptOpen(true);
             } else {
@@ -435,11 +499,22 @@ export default function POS() {
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <p className="text-white font-bold text-sm leading-tight">{item.name}</p>
-                                            <p className="text-primary font-black text-xs">{formatCurrency(item.selling_price)}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-primary font-black text-xs">{formatCurrency(item.selling_price)}</p>
+                                                {item._base_price && item._base_price !== item.selling_price && (
+                                                    <p className="text-slate-500 line-through text-[10px]">{formatCurrency(item._base_price)}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <button onClick={() => deleteFromCart(item.product_id)} className="p-1 text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all">
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => { setSelectedCartItemId(item.product_id); setShowLineDiscount(true); }}
+                                                className="p-1 text-slate-500 hover:text-amber-400 transition-colors" title="Remise ligne">
+                                                <Tag size={14} />
+                                            </button>
+                                            <button onClick={() => deleteFromCart(item.product_id)} className="p-1 text-slate-600 hover:text-rose-400 transition-all">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
                                         <button onClick={() => removeFromCart(item.product_id)} className="p-2 hover:bg-white/5 rounded-lg text-white">
@@ -497,6 +572,98 @@ export default function POS() {
                         </div>
                     )}
 
+                    {/* Restaurant Options Panel */}
+                    {restaurantMode && (
+                        <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-white">Options Restaurant</span>
+                            </div>
+
+                            {/* Table selector */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs text-slate-400">Table</label>
+                                <select
+                                    value={selectedTable?.table_id || ''}
+                                    onChange={e => setSelectedTable(tableList.find(t => t.table_id === e.target.value) || null)}
+                                    className="bg-[#0F172A] border border-white/10 rounded-xl p-2.5 text-white text-sm outline-none"
+                                >
+                                    <option value="">— Sans table —</option>
+                                    {tableList.filter(t => t.status !== 'occupied').map(t => (
+                                        <option key={t.table_id} value={t.table_id}>{t.name} ({t.capacity} pers.)</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Covers */}
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs text-slate-400 flex-1">Couverts</label>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setCovers(c => Math.max(1, c - 1))} className="w-7 h-7 rounded-lg bg-white/10 text-white text-sm flex items-center justify-center hover:bg-white/20">-</button>
+                                    <span className="text-white font-bold w-6 text-center">{covers}</span>
+                                    <button onClick={() => setCovers(c => c + 1)} className="w-7 h-7 rounded-lg bg-white/10 text-white text-sm flex items-center justify-center hover:bg-white/20">+</button>
+                                </div>
+                            </div>
+
+                            {/* Service charge */}
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs text-slate-400 flex-1">Service (%)</label>
+                                <select value={serviceChargePercent} onChange={e => setServiceChargePercent(Number(e.target.value))} className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none w-20">
+                                    <option value={0}>0%</option>
+                                    <option value={5}>5%</option>
+                                    <option value={10}>10%</option>
+                                    <option value={15}>15%</option>
+                                </select>
+                            </div>
+
+                            {/* Tip */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs text-slate-400">Pourboire</label>
+                                <div className="flex gap-1">
+                                    {[0, 5, 10, 15].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => { setTipType('percent'); setTipPercent(p); setTipFixed(0); }}
+                                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold border ${tipType === 'percent' && tipPercent === p ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20'}`}
+                                        >{p}%</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs text-slate-400">Notes cuisine</label>
+                                <input
+                                    value={orderNotes}
+                                    onChange={e => setOrderNotes(e.target.value)}
+                                    placeholder="Sans gluten, allergie arachide..."
+                                    className="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none"
+                                />
+                            </div>
+
+                            {/* Total breakdown */}
+                            {(serviceChargePercent > 0 || (tipType === 'percent' ? tipPercent > 0 : tipFixed > 0)) && (
+                                <div className="pt-2 border-t border-white/10 space-y-1">
+                                    <div className="flex justify-between text-xs text-slate-400">
+                                        <span>Sous-total</span><span>{calculateTotal().toLocaleString()}</span>
+                                    </div>
+                                    {serviceChargePercent > 0 && (
+                                        <div className="flex justify-between text-xs text-slate-400">
+                                            <span>Service ({serviceChargePercent}%)</span><span>+{calculateServiceCharge().toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    {calculateTipAmount() > 0 && (
+                                        <div className="flex justify-between text-xs text-slate-400">
+                                            <span>Pourboire</span><span>+{calculateTipAmount().toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-sm font-bold text-white pt-1">
+                                        <span>Total final</span><span>{calculateGrandTotal().toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Footer / Summary */}
                     <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
 
@@ -532,7 +699,7 @@ export default function POS() {
                                 {calculateDiscount() > 0 && (
                                     <p className="text-xs text-slate-500 line-through">{formatCurrency(calculateSubtotal())}</p>
                                 )}
-                                <span className="text-4xl font-black text-white tracking-tighter">{formatCurrency(calculateTotal())}</span>
+                                <span className="text-4xl font-black text-white tracking-tighter">{formatCurrency(calculateGrandTotal())}</span>
                                 {calculateDiscount() > 0 && (
                                     <p className="text-xs text-rose-400 font-bold">-{formatCurrency(calculateDiscount())} remise</p>
                                 )}
@@ -576,7 +743,7 @@ export default function POS() {
                                                     // Auto-fill other with remainder
                                                     if (prev.length === 2) {
                                                         const other = idx === 0 ? 1 : 0;
-                                                        next[other] = { ...next[other], amount: Math.max(0, calculateTotal() - val) };
+                                                        next[other] = { ...next[other], amount: Math.max(0, calculateGrandTotal() - val) };
                                                     }
                                                     return next;
                                                 });
@@ -602,7 +769,7 @@ export default function POS() {
                         <div className="space-y-3" id="pos-checkout">
                             <div className="grid grid-cols-3 gap-3">
                                 <button
-                                    onClick={() => handleCheckout('cash')}
+                                    onClick={() => cart.length > 0 && setShowChangeCalc(true)}
                                     disabled={cart.length === 0 || submitting}
                                     className="flex flex-col items-center gap-2 p-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all disabled:opacity-50 group shadow-lg shadow-emerald-500/10"
                                 >
@@ -628,7 +795,7 @@ export default function POS() {
                             </div>
                             <button
                                 onClick={() => {
-                                    setSplitPayments([{ method: 'cash', amount: 0 }, { method: 'mobile_money', amount: calculateTotal() }]);
+                                    setSplitPayments([{ method: 'cash', amount: 0 }, { method: 'mobile_money', amount: calculateGrandTotal() }]);
                                     setIsSplitPayment(true);
                                 }}
                                 disabled={cart.length === 0}
@@ -674,6 +841,21 @@ export default function POS() {
                 onClose={() => setIsReturnModalOpen(false)}
                 order={lastSale}
                 onSuccess={() => setIsReturnModalOpen(false)}
+            />
+
+            <ChangeCalculatorModal
+                isOpen={showChangeCalc}
+                onClose={() => setShowChangeCalc(false)}
+                totalAmount={calculateGrandTotal()}
+                onConfirm={() => handleCheckout('cash')}
+            />
+
+            <LineDiscountModal
+                isOpen={showLineDiscount}
+                onClose={() => { setShowLineDiscount(false); setSelectedCartItemId(null); }}
+                productName={cart.find(i => i.product_id === selectedCartItemId)?.name || ''}
+                currentPrice={cart.find(i => i.product_id === selectedCartItemId)?._base_price || cart.find(i => i.product_id === selectedCartItemId)?.selling_price || 0}
+                onApply={(type, val) => { if (selectedCartItemId) applyLineDiscount(selectedCartItemId, type, val); }}
             />
         </div>
     );

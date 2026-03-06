@@ -2192,6 +2192,8 @@ export const profile = {
     method: 'DELETE',
     body: { password },
   }),
+  updateProfile: (data: { name?: string; currency?: string; business_type?: string }) =>
+    request<any>('/auth/profile', { method: 'PUT', body: data }),
 };
 
 export const subscription = {
@@ -2209,4 +2211,23 @@ export type Location = {
 
 export const locations = {
   list: () => request<Location[]>('/locations'),
+};
+
+export const tables = {
+    list: () => request<any[]>('/tables'),
+    create: (data: { name: string; capacity: number }) => request<any>('/tables', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/tables/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/tables/${id}`, { method: 'DELETE' }),
+};
+
+export const reservations = {
+    list: (date?: string) => request<any[]>(`/reservations${date ? `?date=${date}` : ''}`),
+    create: (data: any) => request<any>('/reservations', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/reservations/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/reservations/${id}`, { method: 'DELETE' }),
+};
+
+export const kitchen = {
+    pending: () => request<any[]>('/kitchen/pending'),
+    sendToKitchen: (saleId: string) => request<any>(`/sales/${saleId}/send-kitchen`, { method: 'POST' }),
 };
