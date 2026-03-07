@@ -119,7 +119,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
 export type UserFeatures = {
     has_production: boolean;
-    has_projects: boolean;
+    is_restaurant: boolean;
     sector: string;
     sector_label: string;
 };
@@ -181,69 +181,6 @@ export type ProductionDashboard = {
     waste_percent: number;
     active_recipes: number;
     in_progress: number;
-};
-
-// ─── BTP / Projects Types ───
-
-export type ProjectMaterial = {
-    allocation_id: string;
-    product_id: string;
-    name: string;
-    quantity: number;
-    unit: string;
-    unit_cost: number;
-    total_cost: number;
-    corps_metier: string;
-    allocated_at: string;
-};
-
-export type ProjectLabor = {
-    labor_id: string;
-    name: string;
-    role: string;
-    days: number;
-    daily_rate: number;
-    total: number;
-    corps_metier: string;
-    added_at: string;
-};
-
-export type ProjectSituation = {
-    situation_id: string;
-    label: string;
-    percent: number;
-    amount: number;
-    notes: string;
-    paid: boolean;
-    date: string;
-};
-
-export type Project = {
-    project_id: string;
-    name: string;
-    client_name: string;
-    client_phone: string;
-    address: string;
-    description: string;
-    status: 'devis' | 'en_cours' | 'termine' | 'facture';
-    budget_estimate: number;
-    actual_cost: number;
-    start_date?: string;
-    end_date?: string;
-    materials_allocated: ProjectMaterial[];
-    labor_entries: ProjectLabor[];
-    situations: ProjectSituation[];
-    notes: string;
-    created_at: string;
-};
-
-export type ProjectDashboard = {
-    active_projects: number;
-    completed_month: number;
-    total_budget: number;
-    total_actual: number;
-    total_invoiced: number;
-    margin_percent: number;
 };
 
 // Ported services (Subset for the MVP)
@@ -314,11 +251,37 @@ export const reservations = {
     create: (data: any) => request<any>('/reservations', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/reservations/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<{ message: string }>(`/reservations/${id}`, { method: 'DELETE' }),
+    arrive: (id: string, tableId?: string) => request<any>(`/reservations/${id}/arrive`, { method: 'PUT', body: tableId ? { table_id: tableId } : {} }),
 };
 
 export const kitchen = {
-    pending: () => request<any[]>('/kitchen/pending'),
+    pending: (station?: string) => request<any[]>(`/kitchen/pending${station ? `?station=${station}` : ''}`),
     sendToKitchen: (saleId: string) => request<any>(`/sales/${saleId}/send-kitchen`, { method: 'POST' }),
+    markItemReady: (saleId: string, itemIdx: number) => request<any>(`/kitchen/${saleId}/items/${itemIdx}/ready`, { method: 'PUT' }),
+};
+
+export const restaurantOrders = {
+    getTableOrder: (tableId: string) => request<any>(`/tables/${tableId}/order`),
+    openOrder: (data: { table_id?: string; covers?: number; items: any[]; notes?: string; service_type?: string }) =>
+        request<any>('/sales', { method: 'POST', body: { ...data, status: 'open', payment_method: 'cash' } }),
+    addItems: (saleId: string, items: any[]) => request<any>(`/sales/${saleId}/items`, { method: 'POST', body: { items } }),
+    removeItem: (saleId: string, itemIdx: number) => request<any>(`/sales/${saleId}/items/${itemIdx}`, { method: 'DELETE' }),
+    finalize: (saleId: string, data: { payment_method?: string; payments?: any[]; tip_amount?: number; discount_amount?: number; service_charge_percent?: number; covers?: number }) =>
+        request<any>(`/sales/${saleId}/finalize`, { method: 'POST', body: data }),
+};
+
+export const restaurant = {
+    stats: () => request<{
+        today_revenue: number;
+        today_covers: number;
+        avg_ticket: number;
+        tables_total: number;
+        tables_occupied: number;
+        kitchen_pending: number;
+        today_reservations: any[];
+        hourly_revenue: { hour: number; revenue: number }[];
+        top_dishes: { name: string; qty: number }[];
+    }>('/restaurant/stats'),
 };
 
 export const production = {
@@ -338,35 +301,6 @@ export const production = {
         cancel: (id: string) => request<ProductionOrder>(`/production/orders/${id}/cancel`, { method: 'PUT' }),
     },
     dashboard: () => request<ProductionDashboard>('/production/dashboard'),
-};
-
-export const projects = {
-    list: (status?: string) => request<Project[]>(`/projects${status ? `?status=${status}` : ''}`),
-    get: (id: string) => request<Project>(`/projects/${id}`),
-    create: (data: any) => request<Project>('/projects', { method: 'POST', body: data }),
-    update: (id: string, data: any) => request<Project>(`/projects/${id}`, { method: 'PUT', body: data }),
-    allocateMaterial: (projectId: string, data: { product_id: string; quantity: number; corps_metier?: string }) =>
-        request<Project>(`/projects/${projectId}/materials`, { method: 'POST', body: data }),
-    addLabor: (projectId: string, data: { name: string; role: string; days: number; daily_rate: number; corps_metier?: string }) =>
-        request<Project>(`/projects/${projectId}/labor`, { method: 'POST', body: data }),
-    addSituation: (projectId: string, data: { label: string; percent: number; amount: number; notes?: string }) =>
-        request<Project>(`/projects/${projectId}/situations`, { method: 'POST', body: data }),
-    complete: (projectId: string) => request<Project>(`/projects/${projectId}/complete`, { method: 'PUT' }),
-    dashboard: () => request<ProjectDashboard>('/projects/dashboard'),
-    addDevisItem: (projectId: string, data: { designation: string; lot?: string; unite?: string; quantity: number; unit_price: number }) =>
-        request<Project>(`/projects/${projectId}/devis`, { method: 'POST', body: data }),
-    deleteDevisItem: (projectId: string, itemId: string) =>
-        request<Project>(`/projects/${projectId}/devis/${itemId}`, { method: 'DELETE' }),
-    addJournalEntry: (projectId: string, data: any) =>
-        request<Project>(`/projects/${projectId}/journal`, { method: 'POST', body: data }),
-    addSubcontractor: (projectId: string, data: any) =>
-        request<Project>(`/projects/${projectId}/subcontractors`, { method: 'POST', body: data }),
-    paySubcontractor: (projectId: string, subId: string, data: { amount: number; notes?: string }) =>
-        request<Project>(`/projects/${projectId}/subcontractors/${subId}/payment`, { method: 'POST', body: data }),
-    addPhase: (projectId: string, data: any) =>
-        request<Project>(`/projects/${projectId}/phases`, { method: 'POST', body: data }),
-    updatePhase: (projectId: string, phaseId: string, data: any) =>
-        request<Project>(`/projects/${projectId}/phases/${phaseId}`, { method: 'PUT', body: data }),
 };
 
 export const catalog = {

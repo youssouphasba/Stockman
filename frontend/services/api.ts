@@ -483,9 +483,9 @@ export const catalog = {
   }
 };
 
-// User Features (production/project mode detection)
+// User Features (production/restaurant mode detection)
 export const userFeatures = {
-  get: () => request<{ has_production: boolean; has_projects: boolean; sector: string; sector_label: string }>('/user/features'),
+  get: () => request<{ has_production: boolean; is_restaurant: boolean; sector: string; sector_label: string }>('/user/features'),
 };
 
 // Recipes (Production Module)

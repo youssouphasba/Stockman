@@ -80,7 +80,7 @@ export default function SettingsScreen() {
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
   const [selectedSector, setSelectedSector] = useState('');
   const [showSectorModal, setShowSectorModal] = useState(false);
-  const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
+  const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean } | null>(null);
 
   const handleExportData = async () => {
     try {
@@ -115,7 +115,7 @@ export default function SettingsScreen() {
       setSettingsData(result);
       if (features) {
         setSelectedSector(features.sector || '');
-        setSectorFeatures({ has_production: features.has_production, has_projects: features.has_projects });
+        setSectorFeatures({ has_production: features.has_production });
       }
     } catch {
       // ignore
@@ -212,6 +212,12 @@ export default function SettingsScreen() {
     statistics: t('settings.module_stats'),
     history: t('settings.module_history'),
     export: t('settings.module_export'),
+    crm: t('settings.module_crm', 'CRM clients'),
+    suppliers: t('settings.module_suppliers', 'Fournisseurs'),
+    orders: t('settings.module_orders', 'Commandes'),
+    accounting: t('settings.module_accounting', 'Comptabilité'),
+    reservations: t('settings.module_reservations', 'Réservations'),
+    kitchen: t('settings.module_kitchen', 'Cuisine (KDS)'),
   };
 
   if (loading) {
@@ -261,9 +267,6 @@ export default function SettingsScreen() {
               </Text>
               {sectorFeatures?.has_production && (
                 <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 2 }}>🏭 Module Production activé</Text>
-              )}
-              {sectorFeatures?.has_projects && (
-                <Text style={{ color: '#3b82f6', fontSize: 11, marginTop: 2 }}>🏗️ Module Chantiers activé</Text>
               )}
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -697,7 +700,7 @@ export default function SettingsScreen() {
                     try {
                       await profile.updateProfile({ business_type: item.key });
                       const features = await userFeatures.get();
-                      setSectorFeatures({ has_production: features.has_production, has_projects: features.has_projects });
+                      setSectorFeatures({ has_production: features.has_production });
                     } catch (err) {
                       console.error('Sector update error', err);
                     }

@@ -26,7 +26,6 @@ import {
     RefreshCcw,
     Store,
     Factory,
-    Hammer,
     UtensilsCrossed,
     CalendarCheck,
     ChefHat,
@@ -44,9 +43,10 @@ interface SidebarProps {
     unreadMessages?: number;
     features?: {
         has_production: boolean;
-        has_projects: boolean;
+        is_restaurant?: boolean;
         sector?: string;
     };
+    modules?: Record<string, boolean>;
 }
 
 type SidebarItem = {
@@ -82,32 +82,84 @@ export default function Sidebar({
     onOpenChat,
     unreadMessages = 0,
     features,
+    modules = {},
 }: SidebarProps) {
     const { t } = useTranslation();
 
-    const menuEntries: SidebarEntry[] = [
+    const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur'].includes(features?.sector || '');
+    const isProductionOnly = features?.has_production && !isRestaurant;
+
+    // Helper: returns false only when explicitly disabled in modules
+    const modEnabled = (key: string) => modules[key] !== false;
+
+    // Entrées communes (toujours visibles)
+    const commonBottom: SidebarEntry[] = [
+        { id: 'admin', icon: ShieldCheck, label: t('tabs.admin'), roles: ['admin', 'superadmin'] },
+        {
+            id: 'account_group',
+            icon: Settings,
+            label: t('settings.account'),
+            children: [
+                { id: 'subscription', icon: CreditCard, label: t('tabs.subscription'), roles: ['shopkeeper', 'admin'] },
+                { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
+            ],
+        },
+    ];
+
+    const menuEntries: SidebarEntry[] = isRestaurant ? [
+        // ── RESTAURANT ──────────────────────────────────────────
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
+        { id: 'pos', icon: ShoppingCart, label: 'Caisse', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'tables', icon: UtensilsCrossed, label: 'Tables', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'reservations', icon: CalendarCheck, label: 'Réservations', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'production', icon: Factory, label: 'Recettes', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
+        { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
+        {
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'admin'],
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
+        },
+        ...commonBottom,
+    ] : isProductionOnly ? [
+        // ── PRODUCTION (boulangerie, couture, forge…) ─────────────
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
-        // Dynamic modules based on features
-        ...(features?.has_projects ? [
-            { id: 'projects', icon: Hammer, label: t('tabs.projects'), roles: ['shopkeeper', 'staff', 'admin'] }
-        ] : []),
-        ...(features?.has_production ? [
-            { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'] }
-        ] : []),
-        ...(features?.has_production && ['restaurant', 'traiteur'].includes(features?.sector || '') ? [
-            { id: 'tables', icon: UtensilsCrossed, label: 'Tables', roles: ['shopkeeper', 'staff', 'admin'] },
-            { id: 'reservations', icon: CalendarCheck, label: 'Réservations', roles: ['shopkeeper', 'staff', 'admin'] },
-            { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
-        ] : []),
+        { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        {
+            id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
+            children: [
+                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
+                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'admin'] },
+                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'admin'] },
+            ],
+        },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
+        { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
+        {
+            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'supplier', 'admin'],
+            children: [
+                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'admin'] },
+                { id: 'supplier_portal', icon: Truck, label: t('sidebar.supplier_portal'), roles: ['supplier', 'admin'] },
+            ],
+        },
+        {
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'admin'],
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
+        },
+        ...commonBottom,
+    ] : [
+        // ── COMMERCE (défaut) ─────────────────────────────────────
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
+        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
         {
-            id: 'stock_group',
-            icon: Package,
-            label: t('sidebar.stock_inventory'),
-            roles: ['shopkeeper', 'staff', 'admin'],
+            id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
                 { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
                 { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
@@ -120,35 +172,34 @@ export default function Sidebar({
         { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
-            id: 'suppliers_group',
-            icon: Truck,
-            label: t('tabs.suppliers'),
-            roles: ['shopkeeper', 'supplier', 'admin'],
+            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'supplier', 'admin'],
             children: [
                 { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'admin'] },
                 { id: 'supplier_portal', icon: Truck, label: t('sidebar.supplier_portal'), roles: ['supplier', 'admin'] },
             ],
         },
         {
-            id: 'system_group',
-            icon: Clock,
-            label: t('sidebar.system'),
-            roles: ['shopkeeper', 'staff', 'admin'],
-            children: [
-                { id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] },
-            ],
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'],
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
         },
-        { id: 'admin', icon: ShieldCheck, label: t('tabs.admin'), roles: ['admin', 'superadmin'] },
-        {
-            id: 'account_group',
-            icon: Settings,
-            label: t('settings.account'),
-            children: [
-                { id: 'subscription', icon: CreditCard, label: t('tabs.subscription'), roles: ['shopkeeper', 'admin'] },
-                { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
-            ],
-        },
+        ...commonBottom,
     ];
+
+    // IDs that can be disabled via modules dict
+    const MODULE_GATED: Record<string, string> = {
+        reservations: 'reservations',
+        kitchen: 'kitchen',
+        crm: 'crm',
+        orders: 'orders',
+        accounting: 'accounting',
+        suppliers_group: 'suppliers',
+    };
+
+    const filteredMenuEntries = menuEntries.filter(entry => {
+        const modKey = MODULE_GATED[entry.id];
+        if (modKey) return modEnabled(modKey);
+        return true;
+    });
 
     const canSeeItem = (roles?: string[], permission?: string) => {
         if (!roles) return true;
@@ -306,7 +357,7 @@ export default function Sidebar({
 
                 {/* Navigation */}
                 <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar pr-1">
-                    {menuEntries.map(entry =>
+                    {filteredMenuEntries.map(entry =>
                         isGroup(entry) ? renderGroup(entry) : renderItem(entry)
                     )}
                 </nav>

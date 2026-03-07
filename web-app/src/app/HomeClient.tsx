@@ -24,7 +24,6 @@ import AbcAnalysis from "../components/AbcAnalysis";
 import InventoryCounting from "../components/InventoryCounting";
 import ExpiryAlerts from "../components/ExpiryAlerts";
 import MultiStoreDashboard from "../components/MultiStoreDashboard";
-import ProjectView from "../components/ProjectView";
 import ProductionView from "../components/ProductionView";
 import TableManagement from "../components/TableManagement";
 import Reservations from "../components/Reservations";
@@ -42,7 +41,8 @@ export default function Home() {
   const [email, setEmail] = useState('demo@stockman.pro');
   const [password, setPassword] = useState('password123');
   const [user, setUser] = useState<any>(null);
-  const [features, setFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
+  const [features, setFeatures] = useState<{ has_production: boolean; sector?: string; sector_label?: string; is_restaurant?: boolean } | null>(null);
+  const [modules, setModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
@@ -80,6 +80,7 @@ export default function Home() {
       import('../services/api').then(({ settings: settingsApi }) => {
         settingsApi.get().then((s: any) => {
           if (s?.currency) localStorage.setItem('user_currency', s.currency);
+          if (s?.modules) setModules(s.modules);
         }).catch(() => { });
       });
       // Load features
@@ -115,8 +116,11 @@ export default function Home() {
       localStorage.setItem('auth_token', response.access_token);
       setUser(response.user);
       setIsLogged(true);
-      // Load features after successful login
+      // Load features and settings after successful login
       userFeatures.get().then(setFeatures).catch(() => { });
+      import('../services/api').then(({ settings: settingsApi }) => {
+        settingsApi.get().then((s: any) => { if (s?.modules) setModules(s.modules); }).catch(() => { });
+      });
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : "Erreur d'authentification");
     } finally {
@@ -452,6 +456,7 @@ export default function Home() {
           onLogout={handleLogout}
           user={user}
           features={features || undefined}
+          modules={modules}
           isMobileOpen={isSidebarOpen}
           onMobileClose={() => setIsSidebarOpen(false)}
           onOpenChat={() => setIsChatOpen(true)}
@@ -478,7 +483,7 @@ export default function Home() {
 
           {/* Page content */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} features={features} />}
             {activeTab === 'multi_stores' && <MultiStoreDashboard />}
             {activeTab === 'pos' && <POS />}
             {activeTab === 'inventory' && <Inventory />}
@@ -495,7 +500,6 @@ export default function Home() {
             {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
             {activeTab === 'subscription' && <Subscription />}
             {activeTab === 'production' && <ProductionView />}
-            {activeTab === 'projects' && <ProjectView />}
             {activeTab === 'tables' && <TableManagement />}
             {activeTab === 'reservations' && <Reservations />}
             {activeTab === 'kitchen' && <KitchenDisplay />}

@@ -44,9 +44,8 @@ from services.import_service import ImportService
 from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
 from services.catalog_service import CatalogService
-from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, is_production_sector, PROJECT_SECTORS, is_project_sector
+from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, RESTAURANT_SECTORS, is_production_sector
 from services import production_service
-from services import project_service
 try:
     from services.rag_service import RAGService
 except Exception:
@@ -1041,12 +1040,20 @@ class UserSettings(BaseModel):
     loyalty: LoyaltySettings = Field(default_factory=LoyaltySettings)
     reminder_rules: ReminderRuleSettings = Field(default_factory=ReminderRuleSettings)
     modules: dict = Field(default_factory=lambda: {
+        # Commerce tabs
         "stock_management": True,
         "alerts": True,
         "rules": True,
         "statistics": True,
         "history": True,
-        "export": True
+        "export": True,
+        "crm": True,
+        "suppliers": True,
+        "orders": True,
+        "accounting": True,
+        # Restaurant tabs
+        "reservations": True,
+        "kitchen": True,
     })
     simple_mode: bool = False  # true = simple, false = advanced
     language: str = "fr"
@@ -1092,6 +1099,9 @@ class SaleItem(BaseModel):
     selling_price: float
     discount_amount: float = 0.0
     total: float
+    station: str = "plat"  # entree | plat | dessert | boisson | autre
+    item_notes: Optional[str] = None  # ex: "sans oignons", "saignant"
+    ready: bool = False  # marqué prêt par la cuisine
 
 class Sale(BaseModel):
     sale_id: str = Field(default_factory=lambda: f"sale_{uuid.uuid4().hex[:12]}")
@@ -1111,10 +1121,15 @@ class Sale(BaseModel):
     service_charge_percent: float = 0.0
     notes: Optional[str] = None
     kitchen_sent: bool = False
+    kitchen_sent_at: Optional[datetime] = None
+    status: str = "completed"  # "open" = commande en cours | "completed" = payée
+    service_type: str = "dine_in"  # dine_in | takeaway | delivery
+    occupied_since: Optional[datetime] = None  # quand la table a été occupée
+    current_amount: float = 0.0  # total provisoire avant paiement
 
 
 class SaleCreate(BaseModel):
-    items: List[dict] # [{product_id, quantity}]
+    items: List[dict] # [{product_id, quantity, station?, item_notes?}]
     payment_method: str = "cash"
     customer_id: Optional[str] = None
     discount_amount: Optional[float] = 0.0
@@ -1126,6 +1141,8 @@ class SaleCreate(BaseModel):
     service_charge_percent: Optional[float] = 0.0
     notes: Optional[str] = None
     kitchen_sent: Optional[bool] = False
+    status: Optional[str] = "completed"  # "open" pour commande restaurant en cours
+    service_type: Optional[str] = "dine_in"
 
 class Table(BaseModel):
     table_id: str = Field(default_factory=lambda: f"tbl_{uuid.uuid4().hex[:8]}")
@@ -4097,7 +4114,7 @@ async def get_user_features(user: User = Depends(require_auth)):
     sector = normalize_sector(user.business_type or "")
     return {
         "has_production": sector in PRODUCTION_SECTORS,
-        "has_projects": sector in PROJECT_SECTORS,
+        "is_restaurant": sector in RESTAURANT_SECTORS,
         "sector": sector,
         "sector_label": BUSINESS_SECTORS.get(sector, {}).get("label", ""),
     }
@@ -4248,341 +4265,6 @@ async def production_dashboard(user: User = Depends(require_auth)):
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     return await production_service.get_production_dashboard(db, user.active_store_id)
-
-
-# ═══════════════════════════════ BTP / CHANTIERS ═══════════════════════════════
-
-class ProjectCreate(BaseModel):
-    name: str
-    client_name: str = ""
-    client_phone: str = ""
-    address: str = ""
-    description: str = ""
-    budget_estimate: float = 0.0
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    retention_percent: float = 0.0  # Retenue de garantie (%)
-
-class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    client_name: Optional[str] = None
-    client_phone: Optional[str] = None
-    address: Optional[str] = None
-    description: Optional[str] = None
-    budget_estimate: Optional[float] = None
-    status: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    retention_percent: Optional[float] = None
-
-class MaterialAllocation(BaseModel):
-    product_id: str
-    quantity: float
-    corps_metier: str = "autre"
-
-class MaterialReturn(BaseModel):
-    allocation_id: str
-    return_qty: float
-
-class LaborEntry(BaseModel):
-    name: str
-    role: str = ""
-    days: float = 1.0
-    daily_rate: float = 0.0
-    corps_metier: str = "autre"
-
-class SituationCreate(BaseModel):
-    label: str
-    percent: float = 0.0
-    amount: float = 0.0
-    notes: str = ""
-
-class DevisItem(BaseModel):
-    designation: str
-    lot: str = ""
-    unite: str = "u"
-    quantity: float = 1.0
-    unit_price: float = 0.0
-
-class JournalEntry(BaseModel):
-    date: str  # YYYY-MM-DD
-    weather: str = ""  # soleil | nuageux | pluie | vent
-    workers_count: int = 0
-    work_done: str = ""
-    materials_received: str = ""
-    incidents: str = ""
-    notes: str = ""
-
-class SubcontractorCreate(BaseModel):
-    name: str
-    corps_metier: str = "autre"
-    contact: str = ""
-    contract_amount: float = 0.0
-    notes: str = ""
-
-class PhaseCreate(BaseModel):
-    name: str
-    corps_metier: str = "autre"
-    start_date: str = ""
-    end_date: str = ""
-    status: str = "pending"  # pending | in_progress | done
-
-
-@api_router.get("/projects")
-async def list_projects(status: Optional[str] = None, user: User = Depends(require_auth)):
-    """Lister les chantiers du magasin actif."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    return await project_service.list_projects(db, user.active_store_id, status)
-
-
-@api_router.post("/projects")
-async def create_project(data: ProjectCreate, user: User = Depends(require_write("products"))):
-    """Créer un nouveau chantier."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    project_data = data.model_dump()
-    project_data["store_id"] = user.active_store_id
-    project_data["created_by"] = user.user_id
-    return await project_service.create_project(db, project_data)
-
-
-@api_router.get("/projects/dashboard")
-async def project_dashboard(user: User = Depends(require_auth)):
-    """KPIs des chantiers."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    return await project_service.get_project_dashboard(db, user.active_store_id)
-
-
-@api_router.get("/projects/{project_id}")
-async def get_project(project_id: str, user: User = Depends(require_auth)):
-    """Récupérer un chantier par ID."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    project = await project_service.get_project(db, project_id, user.active_store_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
-
-
-@api_router.put("/projects/{project_id}")
-async def update_project(project_id: str, data: ProjectUpdate, user: User = Depends(require_write("products"))):
-    """Modifier un chantier."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    project = await project_service.update_project(db, project_id, user.active_store_id, update_data)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
-
-
-@api_router.post("/projects/{project_id}/materials")
-async def allocate_material(project_id: str, data: MaterialAllocation, user: User = Depends(require_write("products"))):
-    """Affecter du matériau du stock vers un chantier."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    try:
-        return await project_service.allocate_material(
-            db, project_id, user.active_store_id,
-            data.product_id, data.quantity, data.corps_metier, user.user_id
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@api_router.post("/projects/{project_id}/materials/return")
-async def return_material(project_id: str, data: MaterialReturn, user: User = Depends(require_write("products"))):
-    """Retourner du matériau non utilisé vers le stock."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    try:
-        return await project_service.return_material(
-            db, project_id, user.active_store_id,
-            data.allocation_id, data.return_qty, user.user_id
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@api_router.post("/projects/{project_id}/labor")
-async def add_labor(project_id: str, data: LaborEntry, user: User = Depends(require_write("products"))):
-    """Ajouter une entrée de main d'œuvre."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    try:
-        return await project_service.add_labor(
-            db, project_id, user.active_store_id,
-            data.name, data.role, data.days, data.daily_rate, data.corps_metier
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@api_router.post("/projects/{project_id}/situations")
-async def add_situation(project_id: str, data: SituationCreate, user: User = Depends(require_write("products"))):
-    """Ajouter une situation de travaux (facturation progressive)."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    try:
-        return await project_service.add_situation(
-            db, project_id, user.active_store_id,
-            data.label, data.percent, data.amount, data.notes
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@api_router.put("/projects/{project_id}/complete")
-async def complete_project(project_id: str, user: User = Depends(require_write("products"))):
-    """Clôturer un chantier."""
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    try:
-        return await project_service.complete_project(db, project_id, user.active_store_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# ─── BTP: Devis ──────────────────────────────────────────────────────────────
-
-@api_router.post("/projects/{project_id}/devis")
-async def add_devis_item(project_id: str, data: DevisItem, user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    item = {
-        "item_id": f"dv_{uuid.uuid4().hex[:8]}",
-        "designation": data.designation,
-        "lot": data.lot,
-        "unite": data.unite,
-        "quantity": data.quantity,
-        "unit_price": data.unit_price,
-        "total": round(data.quantity * data.unit_price, 2),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id},
-        {"$push": {"devis_items": item}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Chantier non trouvé")
-    result.pop("_id", None)
-    return result
-
-@api_router.delete("/projects/{project_id}/devis/{item_id}")
-async def delete_devis_item(project_id: str, item_id: str, user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id},
-        {"$pull": {"devis_items": {"item_id": item_id}}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Chantier non trouvé")
-    result.pop("_id", None)
-    return result
-
-# ─── BTP: Journal de chantier ─────────────────────────────────────────────────
-
-@api_router.post("/projects/{project_id}/journal")
-async def add_journal_entry(project_id: str, data: JournalEntry, user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    entry = {
-        "entry_id": f"jnl_{uuid.uuid4().hex[:8]}",
-        **data.model_dump(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id},
-        {"$push": {"journal": entry}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Chantier non trouvé")
-    result.pop("_id", None)
-    return result
-
-# ─── BTP: Sous-traitants ──────────────────────────────────────────────────────
-
-@api_router.post("/projects/{project_id}/subcontractors")
-async def add_subcontractor(project_id: str, data: SubcontractorCreate, user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    sub = {
-        "sub_id": f"sub_{uuid.uuid4().hex[:8]}",
-        **data.model_dump(),
-        "paid_amount": 0.0,
-        "payments": [],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id},
-        {"$push": {"subcontractors": sub}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Chantier non trouvé")
-    result.pop("_id", None)
-    return result
-
-@api_router.post("/projects/{project_id}/subcontractors/{sub_id}/payment")
-async def pay_subcontractor(project_id: str, sub_id: str, data: dict = Body(...), user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    amount = float(data.get("amount", 0))
-    payment = {"date": datetime.now(timezone.utc).isoformat(), "amount": amount, "notes": data.get("notes", "")}
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id, "subcontractors.sub_id": sub_id},
-        {"$push": {"subcontractors.$.payments": payment}, "$inc": {"subcontractors.$.paid_amount": amount}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Non trouvé")
-    result.pop("_id", None)
-    return result
-
-# ─── BTP: Planning / Phases ───────────────────────────────────────────────────
-
-@api_router.post("/projects/{project_id}/phases")
-async def add_phase(project_id: str, data: PhaseCreate, user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    phase = {
-        "phase_id": f"ph_{uuid.uuid4().hex[:8]}",
-        **data.model_dump(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id},
-        {"$push": {"phases": phase}},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Chantier non trouvé")
-    result.pop("_id", None)
-    return result
-
-@api_router.put("/projects/{project_id}/phases/{phase_id}")
-async def update_phase(project_id: str, phase_id: str, data: dict = Body(...), user: User = Depends(require_write("products"))):
-    if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="No active store")
-    allowed = {"name", "corps_metier", "start_date", "end_date", "status"}
-    updates = {f"phases.$.{k}": v for k, v in data.items() if k in allowed}
-    if not updates:
-        raise HTTPException(status_code=400, detail="Aucun champ valide")
-    result = await db.projects.find_one_and_update(
-        {"project_id": project_id, "store_id": user.active_store_id, "phases.phase_id": phase_id},
-        {"$set": updates},
-        return_document=True
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Non trouvé")
-    result.pop("_id", None)
-    return result
 
 
 # ===================== ADMIN CATALOGUE GLOBAL =====================
@@ -6355,20 +6037,328 @@ async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
     return {"message": "Commande envoyée en cuisine", "sale_id": sale_id}
 
 @api_router.get("/kitchen/pending")
-async def get_kitchen_pending(user: User = Depends(get_current_user)):
+async def get_kitchen_pending(station: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Commandes en attente cuisine. Filtre optionnel: station=entree|plat|dessert|boisson"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    # Return sales from today that were sent to kitchen (not yet completed)
     since = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    sales = await db.sales.find({
+    query: dict = {
         "user_id": owner_id,
         "store_id": store_id,
         "kitchen_sent": True,
-        "created_at": {"$gte": since}
-    }).sort("created_at", -1).to_list(50)
+        "created_at": {"$gte": since},
+        "all_items_ready": {"$ne": True},
+    }
+    sales = await db.sales.find(query).sort("kitchen_sent_at", 1).to_list(100)
+    result = []
     for s in sales:
         s.pop("_id", None)
-    return sales
+        # Filtre par station côté serveur
+        if station:
+            s["items"] = [it for it in s.get("items", []) if it.get("station") == station]
+            if not s["items"]:
+                continue
+        result.append(s)
+    return result
+
+# ─── RESTAURANT STATS ────────────────────────────────────────────────────────
+
+@api_router.get("/restaurant/stats")
+async def get_restaurant_stats(user: User = Depends(get_current_user)):
+    """KPIs spécifiques restaurant : couverts, ticket moyen, tables occupées, cuisine."""
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Ventes d'aujourd'hui
+    today_sales = await db.sales.find({
+        "user_id": owner_id, "store_id": store_id,
+        "created_at": {"$gte": today}
+    }).to_list(None)
+
+    today_revenue = sum(s.get("total", 0) for s in today_sales)
+    today_covers = sum(s.get("covers", 0) or 0 for s in today_sales)
+    today_count = len(today_sales)
+    avg_ticket = round(today_revenue / today_covers, 0) if today_covers > 0 else (
+        round(today_revenue / today_count, 0) if today_count > 0 else 0
+    )
+
+    # Tables
+    all_tables = await db.tables.find({"user_id": owner_id, "store_id": store_id}).to_list(None)
+    tables_total = len(all_tables)
+    tables_occupied = sum(1 for t in all_tables if t.get("status") == "occupied")
+
+    # Cuisine en attente
+    kitchen_pending = await db.sales.count_documents({
+        "user_id": owner_id, "store_id": store_id,
+        "kitchen_sent": True,
+        "created_at": {"$gte": today}
+    })
+
+    # Prochaines réservations (aujourd'hui)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    reservations = await db.reservations.find({
+        "user_id": owner_id, "store_id": store_id,
+        "date": today_str, "status": {"$ne": "cancelled"}
+    }).sort("time", 1).to_list(5)
+    for r in reservations:
+        r.pop("_id", None)
+
+    # CA par heure (courbe de service)
+    hourly = {}
+    for s in today_sales:
+        if s.get("status", "completed") == "completed":
+            h = s["created_at"].hour if isinstance(s.get("created_at"), datetime) else 0
+            hourly[h] = hourly.get(h, 0) + s.get("total_amount", 0)
+    hourly_revenue = [{"hour": h, "revenue": round(v, 0)} for h, v in sorted(hourly.items())]
+
+    # Top 5 plats du jour
+    item_totals: dict = {}
+    for s in today_sales:
+        if s.get("status", "completed") == "completed":
+            for it in s.get("items", []):
+                name = it.get("product_name", "?")
+                item_totals[name] = item_totals.get(name, 0) + it.get("quantity", 0)
+    top_dishes = sorted([{"name": k, "qty": v} for k, v in item_totals.items()], key=lambda x: -x["qty"])[:5]
+
+    return {
+        "today_revenue": today_revenue,
+        "today_covers": today_covers,
+        "avg_ticket": avg_ticket,
+        "tables_total": tables_total,
+        "tables_occupied": tables_occupied,
+        "kitchen_pending": kitchen_pending,
+        "today_reservations": reservations,
+        "hourly_revenue": hourly_revenue,
+        "top_dishes": top_dishes,
+    }
+
+
+# ─── RESTAURANT: Commande ouverte par table ────────────────────────────────────
+
+@api_router.get("/tables/{table_id}/order")
+async def get_table_order(table_id: str, user: User = Depends(get_current_user)):
+    """Récupère la commande ouverte pour une table."""
+    owner_id = get_owner_id(user)
+    table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Table non trouvée")
+    if not table.get("current_sale_id"):
+        return None
+    sale = await db.sales.find_one({"sale_id": table["current_sale_id"], "user_id": owner_id, "status": "open"})
+    if not sale:
+        return None
+    sale.pop("_id", None)
+    return sale
+
+
+@api_router.post("/sales/{sale_id}/items")
+async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
+    """Ajouter des articles à une commande ouverte."""
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
+
+    new_items = data.get("items", [])
+    sale_items_raw = sale.get("items", [])
+    new_total_delta = 0.0
+
+    for item in new_items:
+        prod_id = item["product_id"]
+        qty = item.get("quantity", 1)
+        product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
+        if not product:
+            continue
+        item_discount = item.get("discount_amount", 0.0)
+        line_total = (product["selling_price"] * qty) - item_discount
+        new_total_delta += line_total
+
+        # Merge si même produit + mêmes notes
+        existing = next((i for i in sale_items_raw if i["product_id"] == prod_id and i.get("item_notes") == item.get("item_notes")), None)
+        if existing:
+            existing["quantity"] += qty
+            existing["total"] = round(existing["total"] + line_total, 2)
+        else:
+            sale_items_raw.append({
+                "product_id": prod_id,
+                "product_name": product["name"],
+                "quantity": qty,
+                "purchase_price": product.get("purchase_price", 0.0),
+                "selling_price": product["selling_price"],
+                "discount_amount": item_discount,
+                "total": round(line_total, 2),
+                "station": item.get("station", "plat"),
+                "item_notes": item.get("item_notes"),
+                "ready": False,
+            })
+
+    new_total = round(sale.get("current_amount", 0) + new_total_delta, 2)
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {"items": sale_items_raw, "current_amount": new_total, "total_amount": new_total}}
+    )
+    if sale.get("table_id"):
+        await db.tables.update_one(
+            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"$set": {"current_amount": new_total}}
+        )
+    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated.pop("_id", None)
+    return updated
+
+
+@api_router.delete("/sales/{sale_id}/items/{item_idx}")
+async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depends(require_permission("pos", "write"))):
+    """Retirer un article d'une commande ouverte (par index)."""
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
+    items = sale.get("items", [])
+    if item_idx < 0 or item_idx >= len(items):
+        raise HTTPException(status_code=400, detail="Index invalide")
+    removed = items.pop(item_idx)
+    new_total = round(sale.get("current_amount", 0) - removed.get("total", 0), 2)
+    new_total = max(0, new_total)
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {"items": items, "current_amount": new_total, "total_amount": new_total}}
+    )
+    if sale.get("table_id"):
+        await db.tables.update_one(
+            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"$set": {"current_amount": new_total}}
+        )
+    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated.pop("_id", None)
+    return updated
+
+
+@api_router.post("/sales/{sale_id}/finalize")
+async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
+    """Finaliser une commande restaurant : déduction stock + paiement + libération table."""
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
+
+    items = sale.get("items", [])
+    # Déduction stock
+    for it in items:
+        try:
+            movement_data = StockMovementCreate(
+                product_id=it["product_id"], type="out",
+                quantity=it["quantity"], reason="stock.reasons.pos_sale"
+            )
+            await create_stock_movement(movement_data, user)
+        except Exception:
+            pass  # On continue même si stock insuffisant (restaurant ne bloque pas le service)
+
+    # Totaux finaux
+    subtotal = sale.get("total_amount", 0)
+    discount = max(0.0, min(float(data.get("discount_amount", 0)), subtotal))
+    tip = float(data.get("tip_amount", sale.get("tip_amount", 0)))
+    service_pct = float(data.get("service_charge_percent", sale.get("service_charge_percent", 0)))
+    service_charge = round((subtotal - discount) * service_pct / 100, 2)
+    actual_total = round(subtotal - discount + service_charge + tip, 2)
+
+    payment_method = data.get("payment_method", "cash")
+    payments = data.get("payments", [])
+    if payments:
+        primary_method = payments[0].get("method", "cash")
+    else:
+        primary_method = payment_method
+
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {
+            "status": "completed",
+            "total_amount": actual_total,
+            "discount_amount": discount,
+            "tip_amount": tip,
+            "service_charge_percent": service_pct,
+            "payment_method": primary_method,
+            "payments": payments,
+            "covers": data.get("covers", sale.get("covers")),
+        }}
+    )
+
+    # Libérer la table
+    if sale.get("table_id"):
+        await db.tables.update_one(
+            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"$set": {"status": "free", "current_sale_id": None, "current_amount": 0, "occupied_since": None, "covers": 0}}
+        )
+
+    await log_activity(
+        user=user, action="sale", module="pos",
+        description=f"Vente restaurant {actual_total:,} FCFA ({len(items)} articles)",
+        details={"sale_id": sale_id, "total": actual_total}
+    )
+
+    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated.pop("_id", None)
+    return updated
+
+
+@api_router.post("/sales/{sale_id}/serve")
+async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
+    """Marquer une commande comme servie (plats livrés à la table). Disparaît du KDS, table reste occupée."""
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {"all_items_ready": True, "served_at": datetime.now(timezone.utc)}}
+    )
+    return {"message": "Commande servie"}
+
+
+@api_router.put("/kitchen/{sale_id}/items/{item_idx}/ready")
+async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depends(get_current_user)):
+    """Marquer un article d'une commande comme prêt en cuisine."""
+    owner_id = get_owner_id(user)
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    items = sale.get("items", [])
+    if item_idx < 0 or item_idx >= len(items):
+        raise HTTPException(status_code=400, detail="Index invalide")
+    items[item_idx]["ready"] = True
+    all_ready = all(it.get("ready", False) for it in items)
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {"items": items, "all_items_ready": all_ready}}
+    )
+    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated.pop("_id", None)
+    return updated
+
+
+@api_router.put("/reservations/{reservation_id}/arrive")
+async def reservation_arrive(reservation_id: str, data: dict = Body(default={}), user: User = Depends(get_current_user)):
+    """Marquer une réservation comme arrivée et optionnellement occuper la table."""
+    owner_id = get_owner_id(user)
+    reservation = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    await db.reservations.update_one(
+        {"reservation_id": reservation_id},
+        {"$set": {"status": "arrived"}}
+    )
+    # Si une table est assignée → la passer en "reserved" visuellement
+    table_id = reservation.get("table_id") or data.get("table_id")
+    if table_id:
+        await db.tables.update_one(
+            {"table_id": table_id, "user_id": owner_id},
+            {"$set": {"status": "occupied", "occupied_since": datetime.now(timezone.utc).isoformat(), "covers": reservation.get("covers", 0)}}
+        )
+    updated = await db.reservations.find_one({"reservation_id": reservation_id})
+    updated.pop("_id", None)
+    return updated
+
 
 # ===================== INVENTORY ROUTES =====================
 
@@ -6794,25 +6784,24 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     
     sale_items = []
     total_amount = 0.0
-    
-    # We use a transaction-like approach or just careful sequential updates
-    # 1. Validate and Prepare
+    is_open_order = (sale_data.status == "open")
+
+    # 1. Validate and Prepare items
     for item in sale_data.items:
         prod_id = item["product_id"]
         qty = item["quantity"]
-        
+
         product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouvé")
-        
-        if product["quantity"] < qty:
+
+        if not is_open_order and product["quantity"] < qty:
             raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product['name']}")
-            
-        # Calculate line discount
+
         item_discount = item.get("discount_amount", 0.0)
         line_total = (product["selling_price"] * qty) - item_discount
         total_amount += line_total
-        
+
         sale_items.append(SaleItem(
             product_id=prod_id,
             product_name=product["name"],
@@ -6820,45 +6809,40 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             purchase_price=product.get("purchase_price", 0.0),
             selling_price=product["selling_price"],
             discount_amount=item_discount,
-            total=line_total
+            total=line_total,
+            station=item.get("station", "plat"),
+            item_notes=item.get("item_notes"),
         ))
-        
-    # 2. Process Stock Deductions (FEFO)
-    for si in sale_items:
-        # Use our existing FEFO logic by calling the internal part of create_stock_movement
-        # or just create a movement which triggers the logic
-        
-        # We'll create a movement record directly
-        movement_data = StockMovementCreate(
-            product_id=si.product_id,
-            type="out",
-            quantity=si.quantity,
-            reason="stock.reasons.pos_sale"
-        )
-        
-        # Actually call the logic of create_stock_movement but avoid re-auth check
-        # Since logic is in the route, we can extract it or just call it if we refactored
-        # For now, let's replicate the core logic for brevity or call the function
-        await create_stock_movement(movement_data, user)
 
-    # 3. Apply discount (validated server-side: cannot exceed subtotal)
+    # 2. Stock deduction — uniquement pour les ventes complètes
+    if not is_open_order:
+        for si in sale_items:
+            movement_data = StockMovementCreate(
+                product_id=si.product_id,
+                type="out",
+                quantity=si.quantity,
+                reason="stock.reasons.pos_sale"
+            )
+            await create_stock_movement(movement_data, user)
+
+    # 3. Totaux
     discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
     subtotal_after_discount = round(total_amount - discount, 2)
     service_charge = round(subtotal_after_discount * (sale_data.service_charge_percent or 0.0) / 100, 2)
     tip = round(sale_data.tip_amount or 0.0, 2)
     actual_total = round(subtotal_after_discount + service_charge + tip, 2)
 
-    # 4. Resolve payment method(s)
+    # 4. Paiements (seulement pour ventes complètes)
     payments: List[dict] = []
     primary_method = sale_data.payment_method
-    if sale_data.payments:
+    if not is_open_order and sale_data.payments:
         paid_sum = sum(p.get("amount", 0) for p in sale_data.payments)
         if round(paid_sum, 2) != actual_total:
             raise HTTPException(status_code=400, detail=f"Paiements ({paid_sum}) ne couvrent pas le total ({actual_total})")
         payments = sale_data.payments
         primary_method = sale_data.payments[0].get("method", "cash")
 
-    # 5. Save Sale
+    # 5. Créer la vente
     sale = Sale(
         user_id=owner_id,
         store_id=store_id,
@@ -6875,48 +6859,53 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         service_charge_percent=sale_data.service_charge_percent or 0.0,
         notes=sale_data.notes,
         kitchen_sent=sale_data.kitchen_sent or False,
+        status=sale_data.status or "completed",
+        service_type=sale_data.service_type or "dine_in",
+        current_amount=actual_total,
+        occupied_since=datetime.now(timezone.utc) if is_open_order and sale_data.table_id else None,
     )
-    
-    # Log activity
-    await log_activity(
-        user=user,
-        action="sale",
-        module="pos",
-        description=f"Vente de {actual_total:,} FCFA ({len(sale_items)} articles)" + (f" — remise {discount:,}" if discount > 0 else ""),
-        details={"sale_id": sale.sale_id, "total": actual_total, "discount": discount, "customer_id": sale_data.customer_id}
-    )
-    
-    # Update Customer Stats if applicable
-    if sale_data.customer_id:
-        # Handle Debt for Credit Sales
-        if sale_data.payment_method == 'credit':
-            await db.customers.update_one(
-                {"customer_id": sale_data.customer_id, "user_id": owner_id},
-                {"$inc": {"current_debt": actual_total}}
-            )
 
-        # Fetch loyalty settings
-        settings_doc = await db.user_settings.find_one({"user_id": owner_id})
-        ratio = 1000
-        if settings_doc and "loyalty" in settings_doc:
-            ratio = settings_doc["loyalty"].get("ratio", 1000)
-            if not settings_doc["loyalty"].get("is_active", True):
-                ratio = 0 # Disable points if loyalty program is inactive
-
-        if ratio > 0:
-            points_earned = int(actual_total / ratio)
-            await db.customers.update_one(
-                {"customer_id": sale_data.customer_id, "user_id": owner_id},
-                {
-                    "$inc": {
-                        "loyalty_points": points_earned,
-                        "total_spent": actual_total
-                    }
-                }
-            )
+    # 6. Si commande ouverte avec une table → occuper la table
+    if is_open_order and sale_data.table_id:
+        await db.tables.update_one(
+            {"table_id": sale_data.table_id, "user_id": owner_id},
+            {"$set": {
+                "status": "occupied",
+                "current_sale_id": sale.sale_id,
+                "occupied_since": datetime.now(timezone.utc).isoformat(),
+                "current_amount": actual_total,
+                "covers": sale_data.covers or 0,
+            }}
+        )
 
     await db.sales.insert_one(sale.model_dump())
-    
+
+    if not is_open_order:
+        await log_activity(
+            user=user, action="sale", module="pos",
+            description=f"Vente de {actual_total:,} FCFA ({len(sale_items)} articles)" + (f" — remise {discount:,}" if discount > 0 else ""),
+            details={"sale_id": sale.sale_id, "total": actual_total, "discount": discount, "customer_id": sale_data.customer_id}
+        )
+
+        if sale_data.customer_id:
+            if sale_data.payment_method == 'credit':
+                await db.customers.update_one(
+                    {"customer_id": sale_data.customer_id, "user_id": owner_id},
+                    {"$inc": {"current_debt": actual_total}}
+                )
+            settings_doc = await db.user_settings.find_one({"user_id": owner_id})
+            ratio = 1000
+            if settings_doc and "loyalty" in settings_doc:
+                ratio = settings_doc["loyalty"].get("ratio", 1000)
+                if not settings_doc["loyalty"].get("is_active", True):
+                    ratio = 0
+            if ratio > 0:
+                points_earned = int(actual_total / ratio)
+                await db.customers.update_one(
+                    {"customer_id": sale_data.customer_id, "user_id": owner_id},
+                    {"$inc": {"loyalty_points": points_earned, "total_spent": actual_total}}
+                )
+
     return sale
 
 # ===================== EXPENSE ROUTES =====================

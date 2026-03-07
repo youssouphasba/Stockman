@@ -31,7 +31,8 @@ import {
     ai as aiApi,
     settings as settingsApi,
     userFeatures as userFeaturesApi,
-    tables as tablesApi
+    tables as tablesApi,
+    restaurantOrders
 } from '../services/api';
 import BarcodeScanner from './BarcodeScanner';
 import QuickCustomerModal from './QuickCustomerModal';
@@ -79,6 +80,8 @@ export default function POS() {
     const [restaurantMode, setRestaurantMode] = useState(false);
     const [tableList, setTableList] = useState<any[]>([]);
     const [selectedTable, setSelectedTable] = useState<any | null>(null);
+    const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+    const [loadingTableOrder, setLoadingTableOrder] = useState(false);
     const [covers, setCovers] = useState(1);
     const [tipPercent, setTipPercent] = useState(0);
     const [tipFixed, setTipFixed] = useState(0);
@@ -121,7 +124,7 @@ export default function POS() {
                 // Auto-select terminal if only one
                 if (settingsRes.terminals?.length === 1) setSelectedTerminal(settingsRes.terminals[0]);
             }
-            if (featuresRes?.has_production && ['restaurant', 'traiteur'].includes(featuresRes?.sector || '')) {
+            if (featuresRes?.is_restaurant || ['restaurant', 'traiteur'].includes(featuresRes?.sector || '')) {
                 setRestaurantMode(true);
                 setTableList(Array.isArray(tablesRes) ? tablesRes : []);
             }
@@ -247,37 +250,52 @@ export default function POS() {
         setError(null);
         try {
             const discountAmount = calculateDiscount();
-            const saleData: any = {
-                items: cart.map(item => ({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    price: item.selling_price
-                })),
-                total_amount: calculateGrandTotal(),
-                discount_amount: discountAmount,
-                payment_method: method,
-                customer_id: selectedCustomer?.customer_id,
-                terminal_id: selectedTerminal || undefined,
-                table_id: selectedTable?.table_id,
-                covers: covers > 1 ? covers : undefined,
-                tip_amount: calculateTipAmount(),
-                service_charge_percent: serviceChargePercent,
-                notes: orderNotes || undefined,
-            };
-            if (payments && payments.length > 1) saleData.payments = payments;
 
-            if (!navigator.onLine) {
-                syncService.queueSale(saleData);
-                setLastSale({ ...saleData, id: 'offline-' + Date.now(), items: cart, is_offline: true });
-                setCart([]);
-                setSelectedCustomer(null);
-                setIsReceiptOpen(true);
-                return;
+            let result: any;
+            if (restaurantMode && openOrderId) {
+                // Finalize an existing open table order
+                result = await restaurantOrders.finalize(openOrderId, {
+                    payment_method: method,
+                    payments: payments && payments.length > 1 ? payments : undefined,
+                    tip_amount: calculateTipAmount() || undefined,
+                    discount_amount: discountAmount || undefined,
+                    service_charge_percent: serviceChargePercent || undefined,
+                    covers: covers > 1 ? covers : undefined,
+                });
+            } else {
+                const saleData: any = {
+                    items: cart.map(item => ({
+                        product_id: item.product_id,
+                        quantity: item.quantity,
+                        price: item.selling_price
+                    })),
+                    total_amount: calculateGrandTotal(),
+                    discount_amount: discountAmount,
+                    payment_method: method,
+                    customer_id: selectedCustomer?.customer_id,
+                    terminal_id: selectedTerminal || undefined,
+                    table_id: selectedTable?.table_id,
+                    covers: covers > 1 ? covers : undefined,
+                    tip_amount: calculateTipAmount(),
+                    service_charge_percent: serviceChargePercent,
+                    notes: orderNotes || undefined,
+                };
+                if (payments && payments.length > 1) saleData.payments = payments;
+
+                if (!navigator.onLine) {
+                    syncService.queueSale(saleData);
+                    setLastSale({ ...saleData, id: 'offline-' + Date.now(), items: cart, is_offline: true });
+                    setCart([]);
+                    setSelectedCustomer(null);
+                    setIsReceiptOpen(true);
+                    return;
+                }
+
+                result = await salesApi.create(saleData);
             }
-
-            const result = await salesApi.create(saleData);
             setLastSale({ ...result, items: cart });
             setCart([]);
+            setOpenOrderId(null);
             setSelectedCustomer(null);
             setDiscountValue(0);
             setIsSplitPayment(false);
@@ -289,6 +307,8 @@ export default function POS() {
             setServiceChargePercent(0);
             setOrderNotes('');
             setIsReceiptOpen(true);
+            // Refresh table list to reflect freed table
+            if (restaurantMode) tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
 
             // Refresh products
             const prodsRes = await productsApi.list(undefined, 0, 500);
@@ -321,6 +341,40 @@ export default function POS() {
         const product = (Array.isArray(allProducts) ? allProducts : []).find(p => p.sku === sku);
         if (product) {
             addToCart(product);
+        }
+    };
+
+    const handleTableSelect = async (tableId: string) => {
+        const table = tableList.find(t => t.table_id === tableId) || null;
+        setSelectedTable(table);
+        setOpenOrderId(null);
+        setCart([]);
+        if (!table) return;
+        if (table.status === 'occupied' && table.current_sale_id) {
+            setLoadingTableOrder(true);
+            try {
+                const order = await restaurantOrders.getTableOrder(table.table_id);
+                if (order && order.items?.length > 0) {
+                    // Map server items back to cart format
+                    const cartItems = order.items.map((item: any) => {
+                        const prod = allProducts.find(p => p.product_id === item.product_id);
+                        return {
+                            product_id: item.product_id,
+                            name: item.product_name || prod?.name || item.product_id,
+                            selling_price: item.price,
+                            quantity: item.quantity,
+                            image: prod?.image,
+                        };
+                    });
+                    setCart(cartItems);
+                    setOpenOrderId(order.sale_id);
+                    if (order.covers) setCovers(order.covers);
+                }
+            } catch {
+                // Table occupied but no open order found — just proceed with empty cart
+            } finally {
+                setLoadingTableOrder(false);
+            }
         }
     };
 
@@ -581,15 +635,21 @@ export default function POS() {
 
                             {/* Table selector */}
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs text-slate-400">Table</label>
+                                <label className="text-xs text-slate-400 flex items-center gap-1">
+                                    Table
+                                    {loadingTableOrder && <span className="text-[10px] text-primary animate-pulse">Chargement commande…</span>}
+                                    {openOrderId && <span className="text-[10px] text-amber-400 font-bold">• Commande ouverte</span>}
+                                </label>
                                 <select
                                     value={selectedTable?.table_id || ''}
-                                    onChange={e => setSelectedTable(tableList.find(t => t.table_id === e.target.value) || null)}
+                                    onChange={e => handleTableSelect(e.target.value)}
                                     className="bg-[#0F172A] border border-white/10 rounded-xl p-2.5 text-white text-sm outline-none"
                                 >
                                     <option value="">— Sans table —</option>
-                                    {tableList.filter(t => t.status !== 'occupied').map(t => (
-                                        <option key={t.table_id} value={t.table_id}>{t.name} ({t.capacity} pers.)</option>
+                                    {tableList.map(t => (
+                                        <option key={t.table_id} value={t.table_id}>
+                                            {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? '🔴' : t.status === 'reserved' ? '🔵' : '🟢'}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -717,6 +777,47 @@ export default function POS() {
                         )}
 
                         {error && <p className="text-xs text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
+
+                        {/* Restaurant: Send to kitchen (open order) */}
+                        {restaurantMode && cart.length > 0 && (
+                            <button
+                                onClick={async () => {
+                                    if (submitting) return;
+                                    setSubmitting(true);
+                                    setError(null);
+                                    try {
+                                        const items = cart.map(item => ({
+                                            product_id: item.product_id,
+                                            quantity: item.quantity,
+                                            price: item.selling_price,
+                                        }));
+                                        if (openOrderId) {
+                                            await restaurantOrders.addItems(openOrderId, items);
+                                        } else {
+                                            const order = await restaurantOrders.openOrder({
+                                                table_id: selectedTable?.table_id,
+                                                covers,
+                                                items,
+                                                notes: orderNotes || undefined,
+                                                service_type: selectedTable ? 'dine_in' : 'takeaway',
+                                            });
+                                            setOpenOrderId(order.sale_id);
+                                            // Refresh table list to show table as occupied
+                                            tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
+                                        }
+                                        // Keep cart open for adding more items
+                                    } catch (err: any) {
+                                        setError(err?.message || 'Erreur envoi cuisine');
+                                    } finally {
+                                        setSubmitting(false);
+                                    }
+                                }}
+                                disabled={submitting}
+                                className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500/20 border border-orange-500/40 text-orange-300 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-orange-500/30 transition-all disabled:opacity-50"
+                            >
+                                🍽️ {openOrderId ? 'Ajouter à la commande' : 'Envoyer en cuisine'}
+                            </button>
+                        )}
 
                         {isSplitPayment ? (
                             <div className="space-y-3" id="pos-checkout">

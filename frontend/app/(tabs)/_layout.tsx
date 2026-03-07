@@ -25,7 +25,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 export default function TabLayout() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { user, hasPermission, isSuperAdmin, hasProduction, hasProjects } = useAuth();
+  const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -44,23 +44,23 @@ export default function TabLayout() {
   const modules = userSettings?.modules ?? {};
   const simpleMode = userSettings?.simple_mode ?? false;
 
-  // Determine which tabs to hide (Global flags OR User permissions)
-  const hideAlerts = modules.alerts === false || !hasPermission('stock', 'read');
-  const hideStock = modules.stock_management === false || !hasPermission('stock', 'read');
-  const hideAccounting = simpleMode || !hasPermission('accounting', 'read');
-  const hideSuppliers = simpleMode || !hasPermission('suppliers', 'read');
-  const hideOrders = simpleMode || !hasPermission('stock', 'read'); // Orders linked to stock
+  // Masquage des onglets selon secteur + permissions + préférences modules
+  const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
+  const hideStock = isRestaurant || modules.stock_management === false || !hasPermission('stock', 'read');
+  const hideAccounting = simpleMode || modules.accounting === false || !hasPermission('accounting', 'read');
+  const hideSuppliers = isRestaurant || simpleMode || modules.suppliers === false || !hasPermission('suppliers', 'read');
+  const hideOrders = isRestaurant || simpleMode || modules.orders === false || !hasPermission('stock', 'read');
   const hidePos = !hasPermission('pos', 'read');
-  const hideCrm = !hasPermission('crm', 'read');
+  const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
 
-  // Determine products tab title & icon based on business type
-  const productsTabTitle = hasProjects
-    ? t('tabs.projects', 'Chantiers')
+  // Tab principal : Produits / Production / Caisse restaurant
+  const productsTabTitle = isRestaurant
+    ? 'Caisse'
     : hasProduction
       ? t('tabs.production', 'Production')
       : t('tabs.products');
-  const productsTabIcon = hasProjects
-    ? 'construct-outline'
+  const productsTabIcon = isRestaurant
+    ? 'restaurant-outline'
     : hasProduction
       ? 'flask-outline'
       : 'cube-outline';
@@ -170,7 +170,7 @@ export default function TabLayout() {
           name="products"
           options={{
             title: productsTabTitle,
-            href: hideStock ? null : '/products',
+            href: (isRestaurant || hideStock) ? null : '/products',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={productsTabIcon as any} size={size} color={color} />
             ),
@@ -209,6 +209,7 @@ export default function TabLayout() {
           name="crm"
           options={{
             title: t('tabs.crm'),
+            href: hideCrm ? null : '/crm',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person-add-outline" size={size} color={color} />
             ),

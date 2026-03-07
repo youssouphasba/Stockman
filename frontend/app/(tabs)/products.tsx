@@ -67,7 +67,6 @@ import { generateAndSharePdf, generateProductLabelPdf } from '../../utils/pdfRep
 import BulkImportModal from '../../components/BulkImportModal';
 import TextImportModal from '../../components/TextImportModal';
 import ProductionView from '../../components/ProductionView';
-import ProjectView from '../../components/ProjectView';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,15 +81,11 @@ export default function ProductsScreen() {
   }
   const router = useRouter();
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
-  const { user, hasPermission, hasProduction, hasProjects } = useAuth();
+  const { user, hasPermission, hasProduction } = useAuth();
 
   // If production mode → show the ProductionView instead
   if (hasProduction) {
     return <ProductionView currency={user?.currency || 'FCFA'} />;
-  }
-  // If BTP mode → show the ProjectView instead
-  if (hasProjects) {
-    return <ProjectView currency={user?.currency || 'FCFA'} />;
   }
   const insets = useSafeAreaInsets();
 

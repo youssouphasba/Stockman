@@ -18,7 +18,8 @@ import {
     Plus,
     Trash2,
     MapPin,
-    Briefcase
+    Briefcase,
+    Eye
 } from 'lucide-react';
 import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi, userFeatures } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
@@ -67,7 +68,7 @@ export default function Settings() {
     const [editingStore, setEditingStore] = useState<any>(null);
     const [storeSaving, setStoreSaving] = useState(false);
     const [selectedSector, setSelectedSector] = useState('');
-    const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean; has_projects: boolean } | null>(null);
+    const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean } | null>(null);
 
     const CURRENCIES = [
         { code: 'XOF', label: 'XOF — CFA BCEAO (Sénégal, Mali, CI…)' },
@@ -101,7 +102,7 @@ export default function Settings() {
             setLocations(locs || []);
             setStoreList(storesRes || []);
             setSelectedSector(features?.sector || '');
-            setSectorFeatures(features ? { has_production: features.has_production, has_projects: features.has_projects } : null);
+            setSectorFeatures(features ? { has_production: features.has_production } : null);
         } catch (err) {
             console.error("Settings load error", err);
         } finally {
@@ -193,7 +194,7 @@ export default function Settings() {
                                             try {
                                                 await authApi.updateProfile({ business_type: s.key });
                                                 const features = await userFeatures.get();
-                                                setSectorFeatures({ has_production: features.has_production, has_projects: features.has_projects });
+                                                setSectorFeatures({ has_production: features.has_production });
                                                 setSuccess(true);
                                                 setTimeout(() => setSuccess(false), 3000);
                                             } catch (err) {
@@ -214,11 +215,6 @@ export default function Settings() {
                             {sectorFeatures?.has_production && (
                                 <div className="mt-3 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-xs inline-block">
                                     🏭 Module Production activé
-                                </div>
-                            )}
-                            {sectorFeatures?.has_projects && (
-                                <div className="mt-3 ml-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs inline-block">
-                                    🏗️ Module Chantiers activé
                                 </div>
                             )}
                         </div>
@@ -611,6 +607,44 @@ export default function Settings() {
 
                 {/* Sidebar Settings */}
                 <div className="space-y-8">
+                    {/* Modules / Tab visibility */}
+                    {settings?.modules && (
+                        <div className="glass-card p-8">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
+                                <Eye size={24} className="text-primary" />
+                                Modules visibles
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6">Activez ou désactivez les onglets que vous n&apos;utilisez pas. Les données restent intactes.</p>
+                            <div className="space-y-2">
+                                {([
+                                    { key: 'crm', label: 'CRM Clients' },
+                                    { key: 'suppliers', label: 'Fournisseurs' },
+                                    { key: 'orders', label: 'Commandes' },
+                                    { key: 'accounting', label: 'Comptabilité' },
+                                    { key: 'reservations', label: 'Réservations (restaurant)' },
+                                    { key: 'kitchen', label: 'Cuisine / KDS (restaurant)' },
+                                ] as { key: string; label: string }[]).map(({ key, label }) => {
+                                    const enabled = settings.modules[key] !== false;
+                                    return (
+                                        <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <span className="text-slate-300 text-sm font-medium">{label}</span>
+                                            <button
+                                                onClick={async () => {
+                                                    const newModules = { ...settings.modules, [key]: !enabled };
+                                                    await handleUpdateSettings({ modules: newModules });
+                                                    setSettings((s: any) => ({ ...s, modules: newModules }));
+                                                }}
+                                                className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-primary' : 'bg-white/10'}`}
+                                            >
+                                                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled ? 'left-6' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                             <Shield size={24} className="text-primary" />

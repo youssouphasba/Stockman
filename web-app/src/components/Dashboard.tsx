@@ -35,7 +35,7 @@ import {
     Cell
 } from 'recharts';
 import StatCard from './StatCard';
-import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi } from '../services/api';
+import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi, restaurant as restaurantApi, UserFeatures } from '../services/api';
 import { useDateFormatter } from '../hooks/useDateFormatter';
 import AiSummaryModal from './AiSummaryModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
@@ -44,15 +44,18 @@ import { exportDashboard } from '../utils/ExportService';
 
 interface DashboardProps {
     onNavigate?: (tab: string) => void;
+    features?: UserFeatures | null;
 }
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
+export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const { t, i18n } = useTranslation();
     const { formatCurrency } = useDateFormatter();
     const [data, setData] = useState<any>(null);
+    const [restaurantStats, setRestaurantStats] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [forecast, setForecast] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur'].includes(features?.sector || '');
     const [period, setPeriod] = useState<number>(30); // Default 30 days
     const [aiSummary, setAiSummary] = useState<string>('');
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -78,12 +81,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             setLoading(true);
             try {
                 // Données essentielles en priorité
-                const [res, statsRes] = await Promise.all([
-                    dashboardApi.get(),
-                    statsApi.get(period),
-                ]);
+                const promises: Promise<any>[] = [dashboardApi.get(), statsApi.get(period)];
+                if (isRestaurant) promises.push(restaurantApi.stats());
+                const [res, statsRes, restStats] = await Promise.all(promises);
                 setData(res);
                 setStats(statsRes);
+                if (restStats) setRestaurantStats(restStats);
             } catch (err) {
                 console.error('Error fetching dashboard', err);
                 return;
@@ -239,7 +242,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         onClick={() => onNavigate?.('pos')}
                         className="btn-primary py-2 px-6 shadow-lg shadow-primary/20 font-black uppercase tracking-widest"
                     >
-                        + {t('dashboard.today_sales')}
+                        {isRestaurant ? '+ Commande' : `+ ${t('dashboard.today_sales')}`}
                     </button>
                 </div>
             </header>
@@ -247,30 +250,130 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             {/* KPI Stats */}
             {visibleSections.kpi && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                    <StatCard
-                        label={t('dashboard.today_revenue')}
-                        value={formatCurrency(data?.today_revenue || 0)}
-                        icon={TrendingUp}
-                        color="bg-emerald-500"
-                    />
-                    <StatCard
-                        label={t('dashboard.today_sales')}
-                        value={data?.today_sales_count || 0}
-                        icon={ShoppingCart}
-                        color="bg-blue-500"
-                    />
-                    <StatCard
-                        label={t('dashboard.stock_value')}
-                        value={formatCurrency(data?.total_stock_value || 0)}
-                        icon={Package}
-                        color="bg-amber-500"
-                    />
-                    <StatCard
-                        label={t('dashboard.month_revenue')}
-                        value={formatCurrency(data?.month_revenue || 0)}
-                        icon={TrendingUp}
-                        color="bg-purple-500"
-                    />
+                    {isRestaurant ? (<>
+                        <StatCard
+                            label="CA du jour"
+                            value={formatCurrency(restaurantStats?.today_revenue || 0)}
+                            icon={TrendingUp}
+                            color="bg-emerald-500"
+                        />
+                        <StatCard
+                            label="Couverts servis"
+                            value={restaurantStats?.today_covers || 0}
+                            icon={ShoppingCart}
+                            color="bg-blue-500"
+                        />
+                        <StatCard
+                            label="Ticket moyen"
+                            value={formatCurrency(restaurantStats?.avg_ticket || 0)}
+                            icon={TrendingUp}
+                            color="bg-amber-500"
+                        />
+                        <StatCard
+                            label={`Tables occupées (${restaurantStats?.tables_occupied || 0}/${restaurantStats?.tables_total || 0})`}
+                            value={restaurantStats?.kitchen_pending ? `🍳 ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
+                            icon={Package}
+                            color="bg-purple-500"
+                        />
+                    </>) : (<>
+                        <StatCard
+                            label={t('dashboard.today_revenue')}
+                            value={formatCurrency(data?.today_revenue || 0)}
+                            icon={TrendingUp}
+                            color="bg-emerald-500"
+                        />
+                        <StatCard
+                            label={t('dashboard.today_sales')}
+                            value={data?.today_sales_count || 0}
+                            icon={ShoppingCart}
+                            color="bg-blue-500"
+                        />
+                        <StatCard
+                            label={t('dashboard.stock_value')}
+                            value={formatCurrency(data?.total_stock_value || 0)}
+                            icon={Package}
+                            color="bg-amber-500"
+                        />
+                        <StatCard
+                            label={t('dashboard.month_revenue')}
+                            value={formatCurrency(data?.month_revenue || 0)}
+                            icon={TrendingUp}
+                            color="bg-purple-500"
+                        />
+                    </>)}
+                </div>
+            )}
+
+            {/* Restaurant-specific sections */}
+            {isRestaurant && restaurantStats && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Graphique CA par heure */}
+                    <div className="lg:col-span-2 glass-card p-5">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <TrendingUp size={16} className="text-primary" />
+                            CA par heure
+                        </h3>
+                        {restaurantStats.hourly_revenue?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={160}>
+                                <AreaChart data={restaurantStats.hourly_revenue}>
+                                    <defs>
+                                        <linearGradient id="colorHourly" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="hour" tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(h) => `${h}h`} />
+                                    <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(v) => formatCurrency(v)} width={60} />
+                                    <ReTooltip formatter={(v: any) => formatCurrency(v)} labelFormatter={(h) => `${h}h00`} contentStyle={{ backgroundColor: '#1E293B', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
+                                    <Area type="monotone" dataKey="revenue" stroke="#f59e0b" fill="url(#colorHourly)" strokeWidth={2} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">Aucune vente aujourd'hui</div>
+                        )}
+                    </div>
+
+                    {/* Top plats + Réservations */}
+                    <div className="space-y-4">
+                        {/* Top 5 plats */}
+                        <div className="glass-card p-4">
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">Top plats du jour</h3>
+                            {restaurantStats.top_dishes?.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {restaurantStats.top_dishes.slice(0, 5).map((d: any, i: number) => (
+                                        <li key={i} className="flex justify-between items-center">
+                                            <span className="text-sm text-slate-300 truncate">{d.name}</span>
+                                            <span className="text-xs font-bold text-amber-400 ml-2 shrink-0">×{d.qty}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-xs text-slate-500">Aucune vente aujourd'hui</p>
+                            )}
+                        </div>
+
+                        {/* Prochaines réservations */}
+                        <div className="glass-card p-4">
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">Réservations du jour</h3>
+                            {restaurantStats.today_reservations?.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {restaurantStats.today_reservations.map((r: any, i: number) => (
+                                        <li key={i} className="flex justify-between items-center">
+                                            <div>
+                                                <p className="text-sm text-white font-medium">{r.time} — {r.customer_name}</p>
+                                                <p className="text-xs text-slate-500">{r.covers} couverts{r.notes ? ` · ${r.notes}` : ''}</p>
+                                            </div>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === 'arrived' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                {r.status === 'arrived' ? 'Arrivé' : 'Confirmé'}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-xs text-slate-500">Aucune réservation aujourd'hui</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 

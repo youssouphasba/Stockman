@@ -21,7 +21,6 @@ BUSINESS_SECTORS = {
     "imprimerie": {"label": "Imprimerie / Sérigraphie", "icon": "🖨️"},
     "forge": {"label": "Forge / Métallurgie", "icon": "⚒️"},
     "artisanat": {"label": "Artisanat", "icon": "🧶"},
-    "btp": {"label": "BTP / Construction", "icon": "🏗️"},
     "autre": {"label": "Autre", "icon": "🔀"},
 }
 
@@ -32,8 +31,8 @@ PRODUCTION_SECTORS = {
     "forge", "artisanat"
 }
 
-# Secteurs qui activent le module Chantier / Projet
-PROJECT_SECTORS = {"btp"}
+# Secteurs restaurant (interface complète restaurant)
+RESTAURANT_SECTORS = {"restaurant", "traiteur"}
 
 # Mapping flexible : normalise les valeurs saisies par les utilisateurs
 # vers les clés du dictionnaire ci-dessus
@@ -51,7 +50,6 @@ SECTOR_ALIASES = {
     "vêtements": "vetements",
     "friperie": "vetements",
     "bricolage": "quincaillerie",
-    "btp": "quincaillerie",
     "matériaux": "quincaillerie",
     "téléphone": "electronique",
     "telephone": "electronique",
@@ -99,15 +97,6 @@ SECTOR_ALIASES = {
     "bijoux": "artisanat",
     "maroquinerie": "artisanat",
     "vannerie": "artisanat",
-    "construction": "btp",
-    "maçon": "btp",
-    "macon": "btp",
-    "chantier": "btp",
-    "bâtiment": "btp",
-    "batiment": "btp",
-    "génie civil": "btp",
-    "genie civil": "btp",
-    "entrepreneur": "btp",
 }
 
 
@@ -124,8 +113,3 @@ def normalize_sector(raw: str) -> str:
 def is_production_sector(raw: str) -> bool:
     """Vérifie si un type de commerce nécessite le module Production."""
     return normalize_sector(raw) in PRODUCTION_SECTORS
-
-
-def is_project_sector(raw: str) -> bool:
-    """Vérifie si un type de commerce nécessite le module Chantier/Projet."""
-    return normalize_sector(raw) in PROJECT_SECTORS
