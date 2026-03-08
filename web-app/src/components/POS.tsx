@@ -175,7 +175,7 @@ export default function POS() {
                         : item
                 );
             }
-            return [...current, { ...product, quantity: 1 }];
+            return [...current, { ...product, quantity: 1, item_notes: '' }];
         });
     };
 
@@ -267,7 +267,8 @@ export default function POS() {
                     items: cart.map(item => ({
                         product_id: item.product_id,
                         quantity: item.quantity,
-                        price: item.selling_price
+                        price: item.selling_price,
+                        item_notes: item.item_notes || undefined,
                     })),
                     total_amount: calculateGrandTotal(),
                     discount_amount: discountAmount,
@@ -379,6 +380,7 @@ export default function POS() {
     };
 
     const filteredProducts = (Array.isArray(allProducts) ? allProducts : []).filter(p => {
+        if (p.product_type === 'raw_material') return false; // Exclure les ingrédients du POS
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
             p.sku?.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
@@ -570,6 +572,17 @@ export default function POS() {
                                             </button>
                                         </div>
                                     </div>
+                                    {restaurantMode && (
+                                        <input
+                                            type="text"
+                                            placeholder="Notes: sans sel, bien cuit..."
+                                            value={item.item_notes || ''}
+                                            onChange={(e) => setCart(current => current.map(ci =>
+                                                ci.product_id === item.product_id ? { ...ci, item_notes: e.target.value } : ci
+                                            ))}
+                                            className="w-full text-[10px] text-slate-400 bg-transparent border-b border-white/5 outline-none placeholder:text-slate-600 px-1 pb-1"
+                                        />
+                                    )}
                                     <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
                                         <button onClick={() => removeFromCart(item.product_id)} className="p-2 hover:bg-white/5 rounded-lg text-white">
                                             <Minus size={14} />
@@ -790,6 +803,8 @@ export default function POS() {
                                             product_id: item.product_id,
                                             quantity: item.quantity,
                                             price: item.selling_price,
+                                            item_notes: item.item_notes || undefined,
+                                            station: item.station || undefined,
                                         }));
                                         if (openOrderId) {
                                             await restaurantOrders.addItems(openOrderId, items);
@@ -802,10 +817,9 @@ export default function POS() {
                                                 service_type: selectedTable ? 'dine_in' : 'takeaway',
                                             });
                                             setOpenOrderId(order.sale_id);
-                                            // Refresh table list to show table as occupied
                                             tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
                                         }
-                                        // Keep cart open for adding more items
+                                        setCart([]); // Vider le panier après envoi en cuisine
                                     } catch (err: any) {
                                         setError(err?.message || 'Erreur envoi cuisine');
                                     } finally {

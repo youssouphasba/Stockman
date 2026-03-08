@@ -499,7 +499,7 @@ export default function Home() {
             {activeTab === 'inventory_counting' && <InventoryCounting />}
             {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
             {activeTab === 'subscription' && <Subscription />}
-            {activeTab === 'production' && <ProductionView />}
+            {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
             {activeTab === 'tables' && <TableManagement />}
             {activeTab === 'reservations' && <Reservations />}
             {activeTab === 'kitchen' && <KitchenDisplay />}

@@ -80,7 +80,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
             });
 
             const response = await productsApi.parseImport(formData);
-            const csvHeaders: string[] = response.headers || [];
+            const csvHeaders: string[] = response.columns || [];
             setHeaders(csvHeaders);
             setRawData(response.data || []);
 

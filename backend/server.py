@@ -6255,6 +6255,24 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
         except Exception:
             pass  # On continue même si stock insuffisant (restaurant ne bloque pas le service)
 
+    # Déduction des ingrédients via recettes (restaurant)
+    for it in items:
+        recipe = await db.recipes.find_one({
+            "user_id": owner_id,
+            "output_product_id": it["product_id"]
+        })
+        if recipe:
+            for ing in recipe.get("ingredients", []):
+                try:
+                    ing_movement = StockMovementCreate(
+                        product_id=ing["product_id"], type="out",
+                        quantity=ing["quantity"] * it["quantity"],
+                        reason="stock.reasons.recipe_ingredient"
+                    )
+                    await create_stock_movement(ing_movement, user)
+                except Exception:
+                    pass  # Continue même si stock insuffisant
+
     # Totaux finaux
     subtotal = sale.get("total_amount", 0)
     discount = max(0.0, min(float(data.get("discount_amount", 0)), subtotal))
@@ -6825,6 +6843,24 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             )
             await create_stock_movement(movement_data, user)
 
+        # Déduction des ingrédients via recettes (restaurant)
+        for si in sale_items:
+            recipe = await db.recipes.find_one({
+                "user_id": owner_id,
+                "output_product_id": si.product_id
+            })
+            if recipe:
+                for ing in recipe.get("ingredients", []):
+                    try:
+                        ing_movement = StockMovementCreate(
+                            product_id=ing["product_id"], type="out",
+                            quantity=ing["quantity"] * si.quantity,
+                            reason="stock.reasons.recipe_ingredient"
+                        )
+                        await create_stock_movement(ing_movement, user)
+                    except Exception:
+                        pass  # Continue même si stock insuffisant
+
     # 3. Totaux
     discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
     subtotal_after_discount = round(total_amount - discount, 2)
@@ -6858,7 +6894,8 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         tip_amount=sale_data.tip_amount or 0.0,
         service_charge_percent=sale_data.service_charge_percent or 0.0,
         notes=sale_data.notes,
-        kitchen_sent=sale_data.kitchen_sent or False,
+        kitchen_sent=True if is_open_order else (sale_data.kitchen_sent or False),
+        kitchen_sent_at=datetime.now(timezone.utc) if is_open_order else None,
         status=sale_data.status or "completed",
         service_type=sale_data.service_type or "dine_in",
         current_amount=actual_total,
@@ -8388,108 +8425,10 @@ async def delete_order(order_id: str, user: User = Depends(require_auth)):
     return {"message": "Commande supprimée"}
 
 # ===================== DASHBOARD ROUTE =====================
-
-@api_router.get("/dashboard", response_model=DashboardData)
-async def get_dashboard(user: User = Depends(require_permission("stock", "read"))):
-    user_id = user.user_id
-    store_id = user.active_store_id
-
-    # Filter queries
-    product_query = {"user_id": user_id, "is_active": True}
-    if store_id:
-        product_query["store_id"] = store_id
-
-    alert_query = {"user_id": user_id, "is_dismissed": False, "is_read": False}
-    if store_id:
-        alert_query["store_id"] = store_id
-
-    # Fetch Data
-    products = await db.products.find(product_query, {"_id": 0}).to_list(1000)
-    alerts = await db.alerts.find(alert_query, {"_id": 0}).sort("created_at", -1).to_list(50)
-
-    # Calculate Stock Stats
-    total_stock_value = 0.0
-    potential_revenue = 0.0
-    critical = []
-    overstock = []
-    
-    out_of_stock_count = 0
-    low_stock_count = 0
-    overstock_count = 0
-
-    for p in products:
-        qty = p.get("quantity", 0)
-        cost = p.get("purchase_price", 0.0)
-        price = p.get("selling_price", 0.0)
-        total_stock_value += qty * cost
-        potential_revenue += qty * price
-        
-        # Status
-        min_s = p.get("min_stock", 0)
-        max_s = p.get("max_stock", 0)
-
-        if qty == 0:
-            out_of_stock_count += 1
-            critical.append(p)
-        elif min_s > 0 and qty <= min_s:
-            low_stock_count += 1
-            critical.append(p)
-        elif max_s > 0 and qty >= max_s:
-            overstock_count += 1
-            overstock.append(p)
-
-    # Sort critical by quantity asc (prioritize empty stock)
-    critical.sort(key=lambda x: x.get("quantity", 0))
-
-    # Sales Stats
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    start_of_month = today.replace(day=1)
-    
-    sales_query = {"user_id": user_id, "created_at": {"$gte": start_of_month}}
-    if store_id:
-        sales_query["store_id"] = store_id
-        
-    recent_sales_docs = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(500)
-    
-    today_revenue = 0.0
-    month_revenue = 0.0
-    today_sales = []
-    
-    for s in recent_sales_docs:
-        s_date = s["created_at"]
-        if isinstance(s_date, str):
-            try: s_date = datetime.fromisoformat(s_date.replace('Z', '+00:00'))
-            except: continue
-        
-        amount = s.get("total_amount", 0.0)
-        month_revenue += amount
-        
-        # Ensure s_date is timezone aware for comparison
-        if s_date.tzinfo is None:
-            s_date = s_date.replace(tzinfo=timezone.utc)
-            
-        if s_date >= today:
-            today_revenue += amount
-            today_sales.append(s)
-
-    # Format response
-    return DashboardData(
-        total_products=len(products),
-        total_stock_value=round(total_stock_value, 0),
-        potential_revenue=round(potential_revenue, 0),
-        critical_count=len(critical),
-        overstock_count=overstock_count,
-        low_stock_count=low_stock_count,
-        out_of_stock_count=out_of_stock_count,
-        unread_alerts=len(alerts),
-        critical_products=[Product(**p) for p in critical[:10]],
-        overstock_products=[Product(**p) for p in overstock[:10]],
-        recent_alerts=[Alert(**a) for a in alerts[:5]],
-        recent_sales=[Sale(**s) for s in recent_sales_docs[:5]],
-        today_revenue=round(today_revenue, 0),
-        month_revenue=round(month_revenue, 0),
-        today_sales_count=len(today_sales)
-    )
+# DUPLICATE REMOVED: a simpler version of GET /dashboard was here (used require_permission("stock","read"),
+# response_model=DashboardData, but lacked store fallback/backfill, AI anomaly auto-dismiss,
+# auto-resolve alerts, background checks, yesterday stats, and top_selling_today aggregation).
+# The canonical definition is earlier in this file (uses require_auth with richer logic).
 
 # ===================== STATISTICS ROUTES =====================
 
@@ -9999,93 +9938,6 @@ class AiTools:
 
 # ===================== AI SUPPORT =====================
 
-@api_router.get("/sales/forecast")
-async def get_sales_forecast(days: int = 30, user: User = Depends(require_auth)):
-    """Predict sales for the next period based on history"""
-    # 1. Get sales history
-    try:
-        store_id = user.active_store_id
-        owner_id = get_owner_id(user)
-        
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
-        query = {"user_id": owner_id, "created_at": {"$gte": start_date}}
-        if store_id:
-            query["store_id"] = store_id
-            
-        sales = await db.sales.find(query).to_list(5000)
-        
-        if not sales:
-            return {"forecast": [], "trend": "stable", "message": "Pas assez de données"}
-            
-        # 2. Daily aggregation
-        daily_sales = defaultdict(float)
-        total_revenue = 0.0
-        
-        for s in sales:
-            # Fix timezone issue: Ensure sale_date is timezone-aware
-            sale_date = s.get("created_at")
-            if isinstance(sale_date, str):
-                try:
-                    sale_date = datetime.fromisoformat(sale_date.replace('Z', '+00:00'))
-                except ValueError:
-                    continue # Skip invalid dates
-            
-            if sale_date and sale_date.tzinfo is None:
-                sale_date = sale_date.replace(tzinfo=timezone.utc)
-                
-            day_key = sale_date.strftime("%Y-%m-%d")
-            amount = s.get("total_amount", 0.0)
-            daily_sales[day_key] += amount
-            total_revenue += amount
-            
-        # 3. Calculate trend (Simple linear regression or average)
-        # Compare last 7 days vs previous
-        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-        last_7_sales = 0.0
-        prev_sales = 0.0
-        
-        for s in sales:
-             # Fix timezone issue again for comparison
-            sale_date = s.get("created_at")
-            if isinstance(sale_date, str):
-                try:
-                    sale_date = datetime.fromisoformat(sale_date.replace('Z', '+00:00'))
-                except ValueError:
-                    continue
-            if sale_date and sale_date.tzinfo is None:
-                sale_date = sale_date.replace(tzinfo=timezone.utc)
-                
-            if sale_date >= seven_days_ago:
-                last_7_sales += s.get("total_amount", 0.0)
-            else:
-                prev_sales += s.get("total_amount", 0.0)
-                
-        trend = "stable"
-        if last_7_sales > (prev_sales / max(1, (days-7)) * 7) * 1.1:
-            trend = "up"
-        elif last_7_sales < (prev_sales / max(1, (days-7)) * 7) * 0.9:
-            trend = "down"
-            
-        # 4. Forecast next 7 days
-        avg_daily = total_revenue / days if days > 0 else 0
-        forecast = []
-        for i in range(1, 8):
-            next_date = datetime.now(timezone.utc) + timedelta(days=i)
-            conf_modifier = 1.1 if trend == "up" else (0.9 if trend == "down" else 1.0)
-            forecast.append({
-                "date": next_date.strftime("%Y-%m-%d"),
-                "predicted_amount": round(avg_daily * conf_modifier, 2)
-            })
-            
-        return {
-            "forecast": forecast,
-            "trend": trend,
-            "total_period_revenue": total_revenue,
-            "average_daily": avg_daily
-        }
-    except Exception as e:
-        logger.error(f"Error in sales forecast: {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de la génération des prévisions")
 async def _get_ai_data_summary(user_id: str, store_id: Optional[str] = None) -> str:
     """Aggregates a detailed data summary for AI context across all modules"""
     try:

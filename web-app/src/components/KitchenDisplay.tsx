@@ -303,6 +303,7 @@ export default function KitchenDisplay() {
     const [readyMap, setReadyMap] = useState<Map<string, Set<number>>>(new Map());
     const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
     const loadingRef = useRef(false);
+    const prevTicketCount = useRef(0);
 
     // ── Data loading ─────────────────────────────────────────────────────────
 
@@ -317,6 +318,24 @@ export default function KitchenDisplay() {
                 items: t.items ?? [],
             })));
             setLastRefresh(new Date());
+            // Alerte sonore pour nouvelles commandes
+            const newCount = (data || []).length;
+            if (newCount > prevTicketCount.current && prevTicketCount.current > 0) {
+                try {
+                    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    gainNode.gain.value = 0.3;
+                    oscillator.start();
+                    setTimeout(() => { oscillator.frequency.value = 1000; }, 150);
+                    setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 400);
+                } catch {}
+            }
+            prevTicketCount.current = newCount;
         } catch (err) {
             console.error('Failed to load kitchen tickets:', err);
         } finally {

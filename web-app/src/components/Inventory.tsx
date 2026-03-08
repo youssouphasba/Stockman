@@ -66,6 +66,7 @@ export default function Inventory() {
         max_stock: 100,
         category_id: '',
         location_id: '',
+        product_type: 'standard',
         description: '',
         image: '',
         has_variants: false,
@@ -177,6 +178,7 @@ export default function Inventory() {
             max_stock: 100,
             category_id: '',
             location_id: '',
+            product_type: 'standard',
             description: '',
             image: '',
             has_variants: false,
@@ -198,6 +200,7 @@ export default function Inventory() {
             max_stock: product.max_stock || 100,
             category_id: product.category_id || '',
             location_id: product.location_id || '',
+            product_type: product.product_type || 'standard',
             description: product.description || '',
             image: product.image || '',
             has_variants: product.has_variants || false,
@@ -755,6 +758,18 @@ export default function Inventory() {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300">Type de produit</label>
+                                <select
+                                    value={form.product_type}
+                                    onChange={(e) => setForm({ ...form, product_type: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
+                                >
+                                    <option value="standard">Produit fini / Plat</option>
+                                    <option value="raw_material">Ingrédient / Matière première</option>
+                                </select>
                             </div>
 
                             {locationsList.length > 0 && (

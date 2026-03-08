@@ -120,6 +120,7 @@ export default function ProductsScreen() {
   const [formName, setFormName] = useState('');
   const [formSku, setFormSku] = useState('');
   const [formQuantity, setFormQuantity] = useState('0');
+  const [formProductType, setFormProductType] = useState('standard');
   const [formUnit, setFormUnit] = useState(t('products.default_unit'));
   const [formPurchasePrice, setFormPurchasePrice] = useState('0');
   const [formSellingPrice, setFormSellingPrice] = useState('0');
@@ -531,8 +532,9 @@ export default function ProductsScreen() {
     setCatalogLoading(true);
     try {
       const result = await catalogApi.lookupBarcode(barcode);
-      if (result && result.name) {
-        if (!formName) setFormName(result.name);
+      const resultName = result?.display_name || result?.name;
+      if (result && resultName) {
+        if (!formName) setFormName(resultName);
         if (!formDescription && result.description) setFormDescription(result.description);
         if (!formPurchasePrice || formPurchasePrice === '0') setFormPurchasePrice(String(result.purchase_price || 0));
         if (!formSellingPrice || formSellingPrice === '0') setFormSellingPrice(String(result.selling_price || 0));
@@ -559,6 +561,7 @@ export default function ProductsScreen() {
     setFormSellingPrice('0');
     setFormMinStock('0');
     setFormMaxStock('100');
+    setFormProductType('standard');
     setFormCategory(undefined);
     setFormSubcategory('');
     setFormCategoryName('');
@@ -642,6 +645,7 @@ export default function ProductsScreen() {
     // Resolve category name from categoryList
     const cat = categoryList.find(c => c.category_id === product.category_id);
     setFormCategoryName(cat?.name || '');
+    setFormProductType(product.product_type || 'standard');
     setFormImage(product.image || null);
     setFormRfidTag(product.rfid_tag || '');
     setFormExpiryDate(product.expiry_date ? product.expiry_date.split('T')[0] : '');
@@ -710,6 +714,7 @@ export default function ProductsScreen() {
         name: formName.trim(),
         description: formDescription.trim() || undefined,
         sku: formSku.trim() || undefined,
+        product_type: formProductType,
         quantity: parseInt(formQuantity) || 0,
         unit: formUnit,
         purchase_price: parseFloat(formPurchasePrice) || 0,
@@ -1940,6 +1945,29 @@ export default function ProductsScreen() {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
+                  </View>
+                </View>
+                {/* Type de produit */}
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={[styles.formLabel, { marginBottom: 8 }]}>Type de produit</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {[{ value: 'standard', label: 'Produit / Plat' }, { value: 'raw_material', label: 'Ingrédient' }].map(opt => (
+                      <TouchableOpacity
+                        key={opt.value}
+                        onPress={() => setFormProductType(opt.value)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 10,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          alignItems: 'center',
+                          backgroundColor: formProductType === opt.value ? colors.primary + '20' : 'transparent',
+                          borderColor: formProductType === opt.value ? colors.primary : colors.glassBorder,
+                        }}
+                      >
+                        <Text style={{ color: formProductType === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 13 }}>{opt.label}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
                 <View style={styles.formRow}>

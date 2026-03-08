@@ -51,7 +51,6 @@ const SECTORS = [
   { key: 'imprimerie', label: 'Imprimerie', icon: '🖨️', production: true },
   { key: 'forge', label: 'Forge / Métallurgie', icon: '⚒️', production: true },
   { key: 'artisanat', label: 'Artisanat', icon: '🎨', production: true },
-  { key: 'btp', label: 'BTP / Construction', icon: '🏗️', projects: true },
   { key: 'quincaillerie', label: 'Quincaillerie', icon: '🔧' },
   { key: 'electromenager', label: 'Électroménager', icon: '📺' },
   { key: 'mode', label: 'Mode / Prêt-à-porter', icon: '👗' },

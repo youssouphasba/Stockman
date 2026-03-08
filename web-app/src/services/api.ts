@@ -305,18 +305,18 @@ export const production = {
 
 export const catalog = {
     getSectors: () => request<any[]>('/catalog/sectors'),
-    browse: (params: { sector?: string; query?: string; skip?: number; limit?: number }) => {
+    browse: (params: { sector?: string; search?: string; skip?: number; limit?: number }) => {
         const qs = new URLSearchParams();
         if (params.sector) qs.set('sector', params.sector);
-        if (params.query) qs.set('query', params.query);
+        if (params.search) qs.set('search', params.search);
         qs.set('skip', (params.skip || 0).toString());
         qs.set('limit', (params.limit || 50).toString());
         return request<any>(`/catalog/browse?${qs.toString()}`);
     },
-    import: (productIds: string[], storeId: string) =>
-        request<any>('/catalog/import', { method: 'POST', body: { product_ids: productIds, store_id: storeId } }),
-    importAll: (sector: string, storeId: string) =>
-        request<any>('/catalog/import-all', { method: 'POST', body: { sector, store_id: storeId } }),
+    import: (catalogIds: string[]) =>
+        request<any>('/catalog/import', { method: 'POST', body: { catalog_ids: catalogIds } }),
+    importAll: (sector: string, countryCode: string) =>
+        request<any>('/catalog/import-all', { method: 'POST', body: { sector, country_code: countryCode } }),
     lookupBarcode: (barcode: string) => request<any>(`/catalog/barcode/${barcode}`),
 };
 
@@ -414,9 +414,9 @@ export const customers = {
             body: data,
         }),
     delete: (id: string) => request<any>(`/customers/${id}`, { method: 'DELETE' }),
-    getDebts: (id: string) => request<any>(`/customers/${id}/debts`),
+    getDebts: (id: string) => request<any>(`/customers/${id}/debt-history`),
     addDebt: (id: string, data: { amount: number; is_payment: boolean; description?: string }) =>
-        request<any>(`/customers/${id}/debts`, { method: 'POST', body: data }),
+        request<any>(`/customers/${id}/payments`, { method: 'POST', body: data }),
 };
 
 export const suppliers = {
@@ -510,12 +510,21 @@ export const categories = {
 export const ai = {
     dailySummary: (language: string = 'fr') =>
         request<{ summary: string }>(`/ai/daily-summary?lang=${language}`),
-    suggestCategory: (productName: string, lang: string = 'fr') =>
-        request<{ category: string; subcategory: string }>(`/ai/suggest-category?name=${encodeURIComponent(productName)}&lang=${lang}`),
+    suggestCategory: (name: string, lang: string = 'fr') =>
+        request<{ category: string; subcategory: string }>('/ai/suggest-category', {
+            method: 'POST',
+            body: { product_name: name, language: lang },
+        }),
     generateDescription: (name: string, category?: string, subcategory?: string, lang: string = 'fr') =>
-        request<{ description: string }>(`/ai/generate-description?name=${encodeURIComponent(name)}&category=${category || ''}&subcategory=${subcategory || ''}&lang=${lang}`),
+        request<{ description: string }>('/ai/generate-description', {
+            method: 'POST',
+            body: { product_name: name, category, subcategory, language: lang },
+        }),
     suggestPrice: (productId: string, lang: string = 'fr') =>
-        request<{ suggested_price: number; reasoning: string }>(`/ai/suggest-price/${productId}?lang=${lang}`),
+        request<{ suggested_price: number; reasoning: string }>('/ai/suggest-price', {
+            method: 'POST',
+            body: { product_id: productId, language: lang },
+        }),
     basketSuggestions: (productIds: string[]) =>
         request<{ suggestions: any[] }>('/ai/basket-suggestions', {
             method: 'POST',
@@ -524,7 +533,7 @@ export const ai = {
     scanInvoice: (base64: string, lang: string = 'fr') =>
         request<any>('/ai/scan-invoice', {
             method: 'POST',
-            body: { image: base64, lang },
+            body: { image: base64, language: lang },
         }),
     detectAnomalies: (language: string = 'fr') =>
         request<{ anomalies: any[] }>(`/ai/detect-anomalies?lang=${language}`),
@@ -547,7 +556,7 @@ export const returns = {
     list: () => request<any>('/returns'),
     get: (id: string) => request<any>(`/returns/${id}`),
     create: (data: any) => request<any>('/returns', { method: 'POST', body: data }),
-    complete: (id: string) => request<any>(`/returns/${id}/complete`, { method: 'POST' }),
+    complete: (id: string) => request<any>(`/returns/${id}/complete`, { method: 'PUT' }),
 };
 
 export const creditNotes = {
@@ -667,8 +676,7 @@ export const chat = {
 };
 
 export const supplierDashboard = {
-    get: () => request<any>('/supplier/dashboard/stats'),
-    getPerformance: (days = 30) => request<any>(`/supplier/dashboard/performance?days=${days}`),
+    get: () => request<any>('/supplier/dashboard'),
 };
 
 export const supplierOrders = {
@@ -684,6 +692,6 @@ export const supplierOrders = {
 
 export const supplierCatalog = {
     list: (skip = 0, limit = 50) => request<any>(`/supplier/catalog?skip=${skip}&limit=${limit}`),
-    updatePrice: (id: string, price: number) => request<any>(`/supplier/catalog/${id}/price`, { method: 'PUT', body: { price } }),
-    toggleStock: (id: string) => request<any>(`/supplier/catalog/${id}/toggle-stock`, { method: 'PUT' }),
+    update: (id: string, data: any) => request<any>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<any>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
 };

@@ -22,7 +22,6 @@ const SECTORS = [
   { key: 'imprimerie',    label: 'Imprimerie',        icon: '🖨️', production: true },
   { key: 'forge',         label: 'Forge',             icon: '⚒️', production: true },
   { key: 'artisanat',     label: 'Artisanat',         icon: '🧶', production: true },
-  { key: 'btp',           label: 'BTP / Construction',icon: '🏗️', projects: true },
   { key: 'autre',         label: 'Autre',             icon: '🔀' },
 ];
 

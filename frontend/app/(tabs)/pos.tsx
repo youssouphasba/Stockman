@@ -192,8 +192,9 @@ export default function POSScreen() {
 
     const filteredProducts = useMemo(() => {
         return productList.filter(p =>
-            p.name.toLowerCase().includes(search.toLowerCase()) ||
-            (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
+            p.product_type !== 'raw_material' &&
+            (p.name.toLowerCase().includes(search.toLowerCase()) ||
+            (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())))
         );
     }, [productList, search]);
 
@@ -340,6 +341,11 @@ export default function POSScreen() {
                 } else {
                     Alert.alert(t('common.success'), t('pos.credit_success'));
                 }
+            }
+
+            // En mode restaurant avec table, envoyer en cuisine automatiquement
+            if (restaurantMode && selectedTable && result?.sale_id) {
+                kitchen.sendToKitchen(result.sale_id).catch(() => {});
             }
 
             setLastSale({

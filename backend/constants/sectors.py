@@ -4,7 +4,7 @@ BUSINESS_SECTORS = {
     "epicerie": {"label": "Épicerie / Alimentation Générale", "icon": "🛒"},
     "pharmacie": {"label": "Pharmacie / Parapharmacie", "icon": "💊"},
     "vetements": {"label": "Boutique de Vêtements", "icon": "👗"},
-    "quincaillerie": {"label": "Quincaillerie / BTP", "icon": "🔧"},
+    "quincaillerie": {"label": "Quincaillerie", "icon": "🔧"},
     "electronique": {"label": "Électronique / Téléphonie", "icon": "📱"},
     "restaurant": {"label": "Restaurant / Fast-food", "icon": "🍽️"},
     "cosmetiques": {"label": "Cosmétiques / Beauté", "icon": "💄"},

@@ -38,7 +38,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const input = "w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-secondary/50";
 const btn = (color: string) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${color}`;
 
-export default function ProductionView() {
+export default function ProductionView({ onNavigate }: { onNavigate?: (page: string) => void }) {
     const { t } = useTranslation();
     const { formatCurrency } = useDateFormatter();
     const [activeTab, setActiveTab] = useState<SubTab>('recipes');
@@ -199,8 +199,8 @@ export default function ProductionView() {
     const tabs: { key: SubTab; label: string; Icon: any }[] = [
         { key: 'recipes', label: t('production.tab_recipes', 'Recettes'), Icon: ChefHat },
         { key: 'orders', label: t('production.tab_orders', 'Ordres'), Icon: ClipboardList },
-        { key: 'shop', label: t('production.tab_shop', 'Boutique'), Icon: ShoppingBag },
-        { key: 'materials', label: t('production.tab_materials', 'Matières'), Icon: Leaf },
+        { key: 'shop', label: t('production.tab_shop', 'Menu / Carte'), Icon: ShoppingBag },
+        { key: 'materials', label: t('production.tab_materials', 'Ingrédients'), Icon: Leaf },
     ];
 
     if (loading) {
@@ -222,6 +222,16 @@ export default function ProductionView() {
                 {activeTab === 'recipes' && (
                     <button onClick={() => setShowNewRecipe(true)} className={btn('bg-secondary hover:bg-secondary/80 text-white shadow-lg shadow-secondary/20')}>
                         <Plus size={18} /> {t('production.new_recipe', 'Nouvelle recette')}
+                    </button>
+                )}
+                {activeTab === 'shop' && onNavigate && (
+                    <button onClick={() => onNavigate('inventory')} className={btn('bg-secondary hover:bg-secondary/80 text-white shadow-lg shadow-secondary/20')}>
+                        <Plus size={18} /> {t('production.add_dish', 'Ajouter un plat')}
+                    </button>
+                )}
+                {activeTab === 'materials' && onNavigate && (
+                    <button onClick={() => onNavigate('inventory')} className={btn('bg-secondary hover:bg-secondary/80 text-white shadow-lg shadow-secondary/20')}>
+                        <Plus size={18} /> {t('production.add_ingredient', 'Ajouter un ingrédient')}
                     </button>
                 )}
             </div>
@@ -375,9 +385,9 @@ export default function ProductionView() {
             {/* ─── Shop Tab ─── */}
             {activeTab === 'shop' && (
                 <div className="space-y-2">
-                    <p className="text-xs text-slate-500 mb-3">{t('production.shop_desc', 'Produits revendus (non produits)')}</p>
+                    <p className="text-xs text-slate-500 mb-3">{t('production.shop_desc', 'Plats et produits du menu')}</p>
                     {shopProducts.length === 0 ? (
-                        <div className="text-center py-16 text-slate-500"><ShoppingBag size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_shop', 'Aucun produit boutique')}</p></div>
+                        <div className="text-center py-16 text-slate-500"><ShoppingBag size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_shop', 'Aucun plat dans le menu')}</p></div>
                     ) : (
                         shopProducts.slice(0, 50).map((p: any) => (
                             <div key={p.product_id} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
@@ -397,9 +407,9 @@ export default function ProductionView() {
             {/* ─── Materials Tab ─── */}
             {activeTab === 'materials' && (
                 <div className="space-y-2">
-                    <p className="text-xs text-slate-500 mb-3">{t('production.materials_desc', 'Matières premières pour la production')}</p>
+                    <p className="text-xs text-slate-500 mb-3">{t('production.materials_desc', 'Ingrédients et matières premières')}</p>
                     {rawMaterials.length === 0 ? (
-                        <div className="text-center py-16 text-slate-500"><Leaf size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_materials', 'Aucune matière première')}</p></div>
+                        <div className="text-center py-16 text-slate-500"><Leaf size={48} className="mx-auto mb-3 opacity-30" /><p>{t('production.no_materials', 'Aucun ingrédient enregistré')}</p></div>
                     ) : (
                         rawMaterials.map((p: any) => (
                             <div key={p.product_id} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
