@@ -1696,6 +1696,9 @@ export type UserSettings = {
     show_expiry_alerts: boolean;
     show_profitability: boolean;
   };
+  tax_enabled?: boolean;
+  tax_rate?: number;
+  tax_mode?: string; // "ttc" | "ht"
 };
 
 export type SupplierInvoice = {

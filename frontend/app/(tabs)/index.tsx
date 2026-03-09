@@ -23,6 +23,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
 import DashboardSettingsModal from '../../components/DashboardSettingsModal';
 import AnimatedCounter from '../../components/AnimatedCounter';
@@ -289,18 +291,72 @@ export default function DashboardScreen() {
 
   const handleShareReport = async () => {
     if (!data) return;
-    const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const deltaRevPct = data.yesterday_revenue > 0
       ? ((data.today_revenue - data.yesterday_revenue) / data.yesterday_revenue * 100).toFixed(0)
       : null;
-    const topProds = (data.top_selling_today ?? []).map((p, i) => `  ${i + 1}. ${p.name} — ${p.qty} vendu(s)`).join('\n') || '  Aucune vente aujourd\'hui';
-    const message =
-      `📊 Rapport du Jour — ${date}\n\n` +
-      `💰 CA : ${formatCurrency(data.today_revenue)}${deltaRevPct ? ` (${Number(deltaRevPct) >= 0 ? '+' : ''}${deltaRevPct}% vs hier)` : ''}\n` +
-      `🛍️  Ventes : ${data.today_sales_count} (hier : ${data.yesterday_sales_count})\n\n` +
-      `🏆 Top produits :\n${topProds}`;
+    const topProds = (data.top_selling_today ?? []).map((p, i) =>
+      `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;">#${i + 1}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;">${p.name}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${p.qty}</td></tr>`
+    ).join('') || '<tr><td colspan="3" style="padding:12px;text-align:center;color:#999;">Aucune vente aujourd\'hui</td></tr>';
+
+    const storeName = user?.store_name || user?.name || 'Stockman';
+    const html = `
+      <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+      <style>
+        body { font-family: -apple-system, Arial, sans-serif; padding: 32px; color: #1a1a2e; }
+        .header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #6366f1; }
+        .header h1 { font-size: 22px; color: #6366f1; margin: 0 0 4px; }
+        .header p { font-size: 13px; color: #888; margin: 0; }
+        .metrics { display: flex; gap: 16px; margin-bottom: 24px; }
+        .metric { flex: 1; background: #f8f9fa; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #e9ecef; }
+        .metric .value { font-size: 26px; font-weight: 800; }
+        .metric .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        .metric .delta { font-size: 12px; font-weight: 600; margin-top: 6px; }
+        .green { color: #22c55e; }
+        .red { color: #ef4444; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 8px 12px; background: #f1f5f9; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+        .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #aaa; }
+      </style></head><body>
+        <div class="header">
+          <h1>${storeName}</h1>
+          <p>${t('dashboard.daily_report')} — ${date}</p>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="value green">${formatCurrency(data.today_revenue)}</div>
+            <div class="label">${t('dashboard.today_revenue')}</div>
+            ${deltaRevPct ? `<div class="delta ${Number(deltaRevPct) >= 0 ? 'green' : 'red'}">${Number(deltaRevPct) >= 0 ? '+' : ''}${deltaRevPct}% vs ${t('dashboard.yesterday')}</div>` : ''}
+          </div>
+          <div class="metric">
+            <div class="value" style="color:#6366f1;">${data.today_sales_count}</div>
+            <div class="label">${t('dashboard.today_sales')}</div>
+            <div class="delta ${data.today_sales_count >= data.yesterday_sales_count ? 'green' : 'red'}">${data.today_sales_count >= data.yesterday_sales_count ? '+' : ''}${data.today_sales_count - data.yesterday_sales_count} vs ${t('dashboard.yesterday')}</div>
+          </div>
+        </div>
+        <h3 style="font-size:14px;margin-bottom:8px;">${t('dashboard.top_products_today')}</h3>
+        <table>
+          <thead><tr><th>#</th><th>${t('common.name') || 'Produit'}</th><th style="text-align:right;">${t('dashboard.units') || 'Qté'}</th></tr></thead>
+          <tbody>${topProds}</tbody>
+        </table>
+        <div class="footer">Généré par Stockman — ${new Date().toLocaleString('fr-FR')}</div>
+      </body></html>`;
+
     try {
-      await Share.share({ message });
+      if (Platform.OS === 'web') {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        iframe.contentWindow?.document.open();
+        iframe.contentWindow?.document.write(html);
+        iframe.contentWindow?.document.close();
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
     } catch { /* ignore */ }
   };
 

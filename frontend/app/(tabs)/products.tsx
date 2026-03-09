@@ -51,6 +51,7 @@ import {
   getToken,
   uploads,
   ApiError,
+  userFeatures as userFeaturesApi,
 } from '../../services/api';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
@@ -179,6 +180,7 @@ export default function ProductsScreen() {
   // Global Catalog states
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
+  const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
 
   useEffect(() => {
@@ -289,6 +291,36 @@ export default function ProductsScreen() {
     }
   }, [isConnected, selectedCategory, user?.active_store_id]);
 
+  // Load user sector for catalog import
+  useEffect(() => {
+    if (isConnected) {
+      userFeaturesApi.get().then((f: any) => setUserSector(f?.sector || '')).catch(() => {});
+    }
+  }, [isConnected]);
+
+  const handleImportCatalog = async () => {
+    if (!userSector) {
+      const msg = t('products.no_sector_defined');
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert(t('common.info'), msg);
+      return;
+    }
+    setCatalogLoading(true);
+    try {
+      const result = await catalogApi.importAll(userSector);
+      const msg = t('products.catalog_import_success', { count: result.imported });
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert(t('common.success'), msg);
+      await loadData();
+    } catch (error: any) {
+      const errMsg = error.message || t('products.catalog_import_error');
+      if (Platform.OS === 'web') window.alert(errMsg);
+      else Alert.alert(t('common.error'), errMsg);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
   const handleExportHistoryCSV = async () => {
     if (!selectedProduct) return;
     try {
@@ -388,7 +420,7 @@ export default function ProductsScreen() {
   }
 
   const filtered = useMemo(() => {
-    if (!productList) return [];
+    if (!productList || !Array.isArray(productList)) return [];
     return productList.filter((p) => {
       const searchTerms = debouncedSearch.toLowerCase();
       const matchesSearch = p.name.toLowerCase().includes(searchTerms) ||
@@ -1403,6 +1435,19 @@ export default function ProductsScreen() {
                 >
                   <Ionicons name="text-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
+                {userSector && (
+                  <TouchableOpacity
+                    style={[styles.iconBtn, { backgroundColor: colors.success + '20' }]}
+                    onPress={handleImportCatalog}
+                    disabled={catalogLoading}
+                  >
+                    {catalogLoading ? (
+                      <ActivityIndicator size="small" color={colors.success} />
+                    ) : (
+                      <Ionicons name="storefront-outline" size={20} color={colors.success} />
+                    )}
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.addBtn} onPress={() => {
                   setEditingProduct(null);
                   resetForm();
@@ -1500,7 +1545,7 @@ export default function ProductsScreen() {
           <View style={styles.valuationInfo}>
             <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
             <Text style={styles.valuationValue}>
-              {formatUserCurrency(productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0), user)}
+              {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
             </Text>
           </View>
           <View style={styles.valuationBadge}>
@@ -1949,9 +1994,9 @@ export default function ProductsScreen() {
                 </View>
                 {/* Type de produit */}
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={[styles.formLabel, { marginBottom: 8 }]}>Type de produit</Text>
+                  <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('products.product_type_label')}</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {[{ value: 'standard', label: 'Produit / Plat' }, { value: 'raw_material', label: 'Ingrédient' }].map(opt => (
+                    {[{ value: 'standard', label: t('products.product_type_standard') }, { value: 'raw_material', label: t('products.product_type_raw_material') }].map(opt => (
                       <TouchableOpacity
                         key={opt.value}
                         onPress={() => setFormProductType(opt.value)}

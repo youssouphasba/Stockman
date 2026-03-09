@@ -53,9 +53,9 @@ export default function TabLayout() {
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
 
-  // Tab principal : Produits / Production / Caisse restaurant
+  // Tab principal : Produits / Production / Menu restaurant
   const productsTabTitle = isRestaurant
-    ? 'Caisse'
+    ? t('tabs.menu', 'Menu')
     : hasProduction
       ? t('tabs.production', 'Production')
       : t('tabs.products');
@@ -170,7 +170,7 @@ export default function TabLayout() {
           name="products"
           options={{
             title: productsTabTitle,
-            href: (isRestaurant || hideStock) ? null : '/products',
+            href: hideStock && !isRestaurant ? null : '/products',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={productsTabIcon as any} size={size} color={color} />
             ),

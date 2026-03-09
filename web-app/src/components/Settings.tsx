@@ -266,6 +266,66 @@ export default function Settings() {
                         </div>
                     </div>
 
+                    {/* TVA / Taxes */}
+                    <div className="glass-card p-8">
+                        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                            💰 {t('settings.tax_title')}
+                        </h3>
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-white font-medium">{t('settings.tax_enabled')}</p>
+                                    <p className="text-xs text-slate-500">{t('settings.tax_enabled_desc')}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleUpdateSettings({ tax_enabled: !settings?.tax_enabled })}
+                                    className={`w-12 h-6 rounded-full transition-all ${settings?.tax_enabled ? 'bg-primary' : 'bg-white/10'}`}
+                                >
+                                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings?.tax_enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                </button>
+                            </div>
+                            {settings?.tax_enabled && (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-white font-medium">{t('settings.tax_rate')}</label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="30"
+                                                step="0.5"
+                                                value={settings?.tax_rate ?? 0}
+                                                onChange={e => setSettings((s: any) => ({ ...s, tax_rate: parseFloat(e.target.value) || 0 }))}
+                                                onBlur={() => handleUpdateSettings({ tax_rate: settings?.tax_rate ?? 0 })}
+                                                className="w-20 bg-white/5 border border-white/10 rounded-xl p-2 text-white text-center text-lg font-bold focus:border-primary/50 outline-none"
+                                            />
+                                            <span className="text-white font-bold text-lg">%</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-medium mb-1">{t('settings.tax_mode')}</p>
+                                        <p className="text-xs text-slate-500 mb-3">{t('settings.tax_mode_desc')}</p>
+                                        <div className="flex gap-3">
+                                            {(['ttc', 'ht'] as const).map(mode => (
+                                                <button
+                                                    key={mode}
+                                                    onClick={() => handleUpdateSettings({ tax_mode: mode })}
+                                                    className={`flex-1 py-3 rounded-xl border-2 font-bold transition-all ${
+                                                        settings?.tax_mode === mode
+                                                            ? 'border-primary bg-primary/20 text-primary'
+                                                            : 'border-white/10 text-slate-400 hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    {mode === 'ttc' ? t('settings.tax_mode_ttc') : t('settings.tax_mode_ht')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Multi-caisse — Terminal Management */}
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">

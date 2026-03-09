@@ -7,6 +7,7 @@ import {
     StyleSheet,
     TextInput,
     Dimensions,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -83,9 +84,21 @@ export default function ChangeCalculatorModal({
                         </View>
                         <View style={[styles.inputBox, { backgroundColor: colors.bgDark, borderColor: colors.primary }]}>
                             <Text style={[styles.inputLabel, { color: colors.primary }]}>{t('pos.received_amount')}</Text>
-                            <Text style={[styles.inputValue, { color: colors.text }]}>
-                                {receivedAmount || '0'} <Text style={{ fontSize: 18 }}>{user?.currency || 'XOF'}</Text>
-                            </Text>
+                            {Platform.OS === 'web' ? (
+                                <TextInput
+                                    style={[styles.inputValue, { color: colors.text, textAlign: 'center', borderWidth: 0, outlineStyle: 'none' } as any]}
+                                    value={receivedAmount}
+                                    onChangeText={val => setReceivedAmount(val.replace(/[^0-9.]/g, ''))}
+                                    keyboardType="numeric"
+                                    placeholder="0"
+                                    placeholderTextColor={colors.textMuted}
+                                    autoFocus
+                                />
+                            ) : (
+                                <Text style={[styles.inputValue, { color: colors.text }]}>
+                                    {receivedAmount || '0'} <Text style={{ fontSize: 18 }}>{user?.currency || 'XOF'}</Text>
+                                </Text>
+                            )}
                         </View>
                         {parseFloat(receivedAmount) >= totalAmount && (
                             <View style={[styles.changeBox, { backgroundColor: colors.success + '20' }]}>
@@ -95,28 +108,30 @@ export default function ChangeCalculatorModal({
                         )}
                     </View>
 
-                    <View style={styles.numpad}>
-                        <View style={styles.row}>
-                            <Key val="1" />
-                            <Key val="2" />
-                            <Key val="3" />
+                    {Platform.OS !== 'web' && (
+                        <View style={styles.numpad}>
+                            <View style={styles.row}>
+                                <Key val="1" />
+                                <Key val="2" />
+                                <Key val="3" />
+                            </View>
+                            <View style={styles.row}>
+                                <Key val="4" />
+                                <Key val="5" />
+                                <Key val="6" />
+                            </View>
+                            <View style={styles.row}>
+                                <Key val="7" />
+                                <Key val="8" />
+                                <Key val="9" />
+                            </View>
+                            <View style={styles.row}>
+                                <Key val="C" style={{ backgroundColor: colors.danger + '20' }} />
+                                <Key val="0" />
+                                <Key val="⌫" />
+                            </View>
                         </View>
-                        <View style={styles.row}>
-                            <Key val="4" />
-                            <Key val="5" />
-                            <Key val="6" />
-                        </View>
-                        <View style={styles.row}>
-                            <Key val="7" />
-                            <Key val="8" />
-                            <Key val="9" />
-                        </View>
-                        <View style={styles.row}>
-                            <Key val="C" style={{ backgroundColor: colors.danger + '20' }} />
-                            <Key val="0" />
-                            <Key val="⌫" />
-                        </View>
-                    </View>
+                    )}
 
                     <TouchableOpacity
                         style={[

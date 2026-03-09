@@ -30,11 +30,13 @@ import {
     tables,
     kitchen,
     userFeatures,
+    settings as settingsApi,
     Product,
     Sale,
     Customer,
     Store,
     BasketSuggestion,
+    UserSettings,
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -146,6 +148,11 @@ export default function POSScreen() {
     const [showTableModal, setShowTableModal] = useState(false);
     const [showRestaurantOptions, setShowRestaurantOptions] = useState(false);
 
+    // Tax settings
+    const [taxEnabled, setTaxEnabled] = useState(false);
+    const [taxRate, setTaxRate] = useState(0);
+    const [taxMode, setTaxMode] = useState<'ttc' | 'ht'>('ttc');
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
@@ -176,6 +183,14 @@ export default function POSScreen() {
                 setRestaurantMode(true);
                 const tabs = await tables.list().catch(() => []);
                 setTableList(tabs);
+            }
+
+            // Load tax settings
+            const sett = await settingsApi.get().catch(() => null);
+            if (sett) {
+                setTaxEnabled(sett.tax_enabled ?? false);
+                setTaxRate(sett.tax_rate ?? 0);
+                setTaxMode((sett.tax_mode as 'ttc' | 'ht') ?? 'ttc');
             }
         } catch (error) {
             console.error(error);
@@ -299,9 +314,21 @@ export default function POSScreen() {
         }, 0);
     }, [cart]);
 
+    const calculateTaxAmount = () => {
+        if (!taxEnabled || taxRate <= 0) return 0;
+        if (taxMode === 'ttc') return Math.round(total * taxRate / (100 + taxRate));
+        return Math.round(total * taxRate / 100);
+    };
+    const calculateHT = () => {
+        if (!taxEnabled || taxRate <= 0) return total;
+        return taxMode === 'ttc' ? total - calculateTaxAmount() : total;
+    };
     const calculateTipAmount = () => Math.round(total * tipPercent / 100);
     const calculateServiceCharge = () => Math.round(total * serviceChargePercent / 100);
-    const calculateGrandTotal = () => total + calculateTipAmount() + calculateServiceCharge();
+    const calculateGrandTotal = () => {
+        const base = taxMode === 'ht' ? total + calculateTaxAmount() : total;
+        return base + calculateTipAmount() + calculateServiceCharge();
+    };
 
     const processCheckout = async (method: string) => {
         try {
@@ -609,9 +636,27 @@ export default function POSScreen() {
                 </View>
             )}
 
+            {taxEnabled && taxRate > 0 && cart.length > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                        {taxMode === 'ttc' ? 'HT' : t('pos.total')} : {formatUserCurrency(calculateHT(), user)}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.warning, fontWeight: '600' }}>
+                        TVA ({taxRate}%) : {formatUserCurrency(calculateTaxAmount(), user)}
+                    </Text>
+                </View>
+            )}
+
             <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>{t('pos.total')}</Text>
-                <Text style={styles.totalAmount}>{formatUserCurrency(restaurantMode ? calculateGrandTotal() : total, user)}</Text>
+                <Text style={styles.totalLabel}>{taxEnabled ? (taxMode === 'ttc' ? 'TTC' : 'TTC') : t('pos.total')}</Text>
+                <Text style={styles.totalAmount}>{formatUserCurrency(restaurantMode ? calculateGrandTotal() : (taxMode === 'ht' && taxEnabled ? total + calculateTaxAmount() : total), user)}</Text>
+                <TouchableOpacity
+                    onPress={() => setShowCalculator(true)}
+                    style={{ marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: colors.info + '20' }}
+                    disabled={cart.length === 0}
+                >
+                    <Ionicons name="calculator-outline" size={22} color={colors.info} />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.paymentMethods}>
@@ -835,7 +880,7 @@ export default function POSScreen() {
             <ChangeCalculatorModal
                 visible={showCalculator}
                 onClose={() => setShowCalculator(false)}
-                totalAmount={total}
+                totalAmount={restaurantMode ? calculateGrandTotal() : total}
                 onConfirm={() => {
                     setShowCalculator(false);
                     processCheckout('cash');

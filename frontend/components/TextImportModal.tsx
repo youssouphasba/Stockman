@@ -32,17 +32,31 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const [resultMsg, setResultMsg] = useState('');
+
     async function handleImport() {
         if (!text.trim()) return;
         setLoading(true);
+        setResultMsg('');
         try {
             const result = await productsApi.importText(text, true);
-            Alert.alert(t('common.success'), t('products.import_text_success', { count: result.created || result.count }));
+            const msg = t('products.import_text_success', { count: result.created || result.count });
+            if (Platform.OS === 'web') {
+                window.alert(msg);
+            } else {
+                Alert.alert(t('common.success'), msg);
+            }
             setText('');
             onSuccess();
             onClose();
         } catch (error: any) {
-            Alert.alert(t('common.error'), error.message || t('products.import_text_error'));
+            const errMsg = error.message || t('products.import_text_error');
+            setResultMsg(errMsg);
+            if (Platform.OS === 'web') {
+                window.alert(errMsg);
+            } else {
+                Alert.alert(t('common.error'), errMsg);
+            }
         } finally {
             setLoading(false);
         }

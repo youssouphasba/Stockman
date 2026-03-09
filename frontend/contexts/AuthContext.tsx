@@ -4,6 +4,7 @@ import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken,
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { initPurchases } from '../services/purchases';
+import { cache } from '../services/cache';
 
 type AuthState = {
   user: User | null;
@@ -103,6 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     setUser(response.user);
+    // Load features (restaurant mode, production mode) — must await to ensure state is set before render
+    try {
+      const f = await userFeatures.get();
+      console.log('[DEBUG] User features:', JSON.stringify(f));
+      setHasProduction(f.has_production);
+      setIsRestaurant(f.is_restaurant || false);
+    } catch (e) {
+      console.warn('[DEBUG] Failed to load user features:', e);
+    }
     if (Platform.OS !== 'web') {
       initPurchases(response.user.user_id).catch(console.warn);
     }
@@ -147,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     try {
       const updatedUser = await storesApi.setActive(storeId);
+      await cache.clear(); // Clear all cached API responses to force fresh data load for the new store
       setUser(updatedUser);
     } catch (e) {
       console.error("Failed to switch store", e);

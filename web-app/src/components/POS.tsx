@@ -214,6 +214,22 @@ export default function POS() {
 
     const calculateTotal = () => Math.max(0, calculateSubtotal() - calculateDiscount());
 
+    const taxEnabled = storeSettings?.tax_enabled ?? false;
+    const taxRate = storeSettings?.tax_rate ?? 0;
+    const taxMode = storeSettings?.tax_mode ?? 'ttc';
+
+    const calculateTaxAmount = () => {
+        if (!taxEnabled || taxRate <= 0) return 0;
+        const base = calculateTotal();
+        if (taxMode === 'ttc') return Math.round(base * taxRate / (100 + taxRate));
+        return Math.round(base * taxRate / 100);
+    };
+
+    const calculateHT = () => {
+        if (!taxEnabled || taxRate <= 0) return calculateTotal();
+        return taxMode === 'ttc' ? calculateTotal() - calculateTaxAmount() : calculateTotal();
+    };
+
     const calculateTipAmount = () => {
         const base = calculateTotal();
         if (tipType === 'percent') return Math.round(base * tipPercent / 100);
@@ -226,7 +242,8 @@ export default function POS() {
     };
 
     const calculateGrandTotal = () => {
-        return calculateTotal() + calculateTipAmount() + calculateServiceCharge();
+        const base = taxMode === 'ht' && taxEnabled ? calculateTotal() + calculateTaxAmount() : calculateTotal();
+        return base + calculateTipAmount() + calculateServiceCharge();
     };
 
     const handleSplitCheckout = async () => {
@@ -766,8 +783,14 @@ export default function POS() {
                             </div>
                         )}
 
+                        {taxEnabled && taxRate > 0 && cart.length > 0 && (
+                            <div className="flex justify-between text-xs text-slate-400 mb-2">
+                                <span>HT : {formatCurrency(calculateHT())}</span>
+                                <span className="text-amber-400 font-semibold">TVA ({taxRate}%) : {formatCurrency(calculateTaxAmount())}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                            <span className="text-3xl font-black text-white tracking-tighter italic">TOTAL</span>
+                            <span className="text-3xl font-black text-white tracking-tighter italic">{taxEnabled ? 'TTC' : 'TOTAL'}</span>
                             <div className="text-right">
                                 {calculateDiscount() > 0 && (
                                     <p className="text-xs text-slate-500 line-through">{formatCurrency(calculateSubtotal())}</p>

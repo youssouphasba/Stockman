@@ -813,6 +813,7 @@ class Product(BaseModel):
     abc_class: Optional[str] = None # "A", "B", "C"
     abc_revenue_30d: Optional[float] = None
     source_catalog_id: Optional[str] = None  # catalog_id if created from marketplace delivery
+    tax_rate: Optional[float] = None  # TVA produit (override). None = utilise le taux boutique
     product_type: str = "standard"  # "standard", "raw_material", "semi_finished", "finished"
     is_producible: bool = False  # True if linked to a recipe as output
     user_id: str
@@ -843,6 +844,7 @@ class ProductCreate(BaseModel):
     variants: List[ProductVariant] = []
     has_variants: bool = False
     product_type: str = "standard"
+    tax_rate: Optional[float] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -865,6 +867,7 @@ class ProductUpdate(BaseModel):
     variants: Optional[List[ProductVariant]] = None
     has_variants: Optional[bool] = None
     product_type: Optional[str] = None
+    tax_rate: Optional[float] = None
 
 class PriceHistory(BaseModel):
     history_id: str = Field(default_factory=lambda: f"prc_{uuid.uuid4().hex[:12]}")
@@ -1075,6 +1078,10 @@ class UserSettings(BaseModel):
     })
     # Multi-caisse
     terminals: List[str] = Field(default_factory=list)
+    # TVA / Taxes
+    tax_enabled: bool = False
+    tax_rate: float = 0.0  # ex: 18.0 pour 18%
+    tax_mode: str = "ttc"  # "ttc" = prix saisis TTC, "ht" = prix saisis HT
     # Personnalisation reçu
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
@@ -1099,6 +1106,8 @@ class SaleItem(BaseModel):
     selling_price: float
     discount_amount: float = 0.0
     total: float
+    tax_rate: float = 0.0  # TVA appliquée en %
+    tax_amount: float = 0.0  # Montant TVA calculé
     station: str = "plat"  # entree | plat | dessert | boisson | autre
     item_notes: Optional[str] = None  # ex: "sans oignons", "saignant"
     ready: bool = False  # marqué prêt par la cuisine
@@ -1120,6 +1129,9 @@ class Sale(BaseModel):
     tip_amount: float = 0.0
     service_charge_percent: float = 0.0
     notes: Optional[str] = None
+    tax_total: float = 0.0  # TVA totale de la vente
+    tax_mode: str = "ttc"  # "ttc" ou "ht"
+    subtotal_ht: float = 0.0  # Sous-total hors taxe
     kitchen_sent: bool = False
     kitchen_sent_at: Optional[datetime] = None
     status: str = "completed"  # "open" = commande en cours | "completed" = payée
@@ -1200,6 +1212,7 @@ class AccountingStats(BaseModel):
     total_items_sold: int = 0
     stock_value: float = 0.0
     stock_selling_value: float = 0.0
+    tax_collected: float = 0.0  # TVA collectée sur la période
     product_performance: List[Dict[str, Any]] = [] # Detailed per-product stats
 
 class DashboardData(BaseModel):
@@ -3953,7 +3966,7 @@ async def import_from_catalog(
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="Aucun magasin actif. Créez d'abord un magasin.")
     result = await catalog_service.import_to_user(
-        data.catalog_ids, user.user_id, user.active_store_id
+        data.catalog_ids, get_owner_id(user), user.active_store_id
     )
     return result
 
@@ -3971,7 +3984,7 @@ async def import_all_from_catalog(
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="Aucun magasin actif.")
     result = await catalog_service.import_all_sector(
-        data.sector, data.country_code, user.user_id, user.active_store_id
+        data.sector, data.country_code, get_owner_id(user), user.active_store_id
     )
     return result
 
@@ -4059,7 +4072,7 @@ TEXTE À PARSER :
                 continue
             product_doc = {
                 "product_id": str(uuid.uuid4()),
-                "user_id": user.user_id,
+                "user_id": get_owner_id(user),
                 "store_id": user.active_store_id,
                 "name": name,
                 "barcode": p.get("barcode"),
@@ -5372,7 +5385,7 @@ async def create_store(store_data: StoreCreate, user: User = Depends(require_aut
     current_count = len(user.store_ids)
     if current_count >= limit:
         raise HTTPException(status_code=403, detail=f"Votre plan {user.plan} est limité à {limit} boutique(s). Passez à un plan supérieur.")
-    store = Store(**store_data.model_dump(), user_id=user.user_id)
+    store = Store(**store_data.model_dump(), user_id=get_owner_id(user))
     await db.stores.insert_one(store.model_dump())
     
     # Update user's store list and set as active if it's the first one
@@ -5532,9 +5545,6 @@ async def get_categories(user: User = Depends(require_auth), store_id: Optional[
     query = {"user_id": owner_id}
     target_store = store_id or user.active_store_id
     if target_store:
-        # For backward compatibility, also match if store_id is missing (legacy data)
-        # But for strictly multi-store, we should probably just filter by store_id if present
-        # Ideally we migrated data. Let's assume strict filtering for new/migrated users.
         query["store_id"] = target_store
         
     categories = await db.categories.find(query, {"_id": 0}).to_list(100)
@@ -6385,19 +6395,19 @@ async def get_inventory_tasks(
     user: User = Depends(require_auth),
     status: Optional[str] = "pending"
 ):
-    query: dict = {"user_id": user.user_id}
+    query: dict = {"user_id": get_owner_id(user)}
     if user.active_store_id:
         query["store_id"] = user.active_store_id
     if status:
         query["status"] = status
-        
+
     tasks = await db.inventory_tasks.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return [InventoryTask(**t) for t in tasks]
 
 @api_router.post("/inventory/generate")
 async def generate_inventory_tasks(user: User = Depends(require_auth)):
     """Generate cyclic inventory tasks prioritizing out-of-stock and low-stock products"""
-    user_id = user.user_id
+    user_id = get_owner_id(user)
     store_id = user.active_store_id
 
     # Build product query — store_id may be None for single-store users
@@ -6452,7 +6462,7 @@ async def submit_inventory_result(
     update: InventoryTaskUpdate,
     user: User = Depends(require_auth)
 ):
-    task = await db.inventory_tasks.find_one({"task_id": task_id, "user_id": user.user_id})
+    task = await db.inventory_tasks.find_one({"task_id": task_id, "user_id": get_owner_id(user)})
     if not task:
         raise HTTPException(status_code=404, detail=i18n.t("inventory.task_not_found", user.language))
         
@@ -6483,7 +6493,7 @@ async def submit_inventory_result(
         movement = StockMovement(
             product_id=task["product_id"],
             product_name=task["product_name"],
-            user_id=user.user_id,
+            user_id=get_owner_id(user),
             store_id=user.active_store_id,
             type=mov_type,
             quantity=qty,
@@ -6573,13 +6583,14 @@ async def get_customers(
     skip: int = 0,
     limit: int = 50
 ):
-    total = await db.customers.count_documents({"user_id": user.user_id})
-    customers_raw = await db.customers.find({"user_id": user.user_id}).skip(skip).limit(limit).to_list(limit)
+    owner_id = get_owner_id(user)
+    total = await db.customers.count_documents({"user_id": owner_id})
+    customers_raw = await db.customers.find({"user_id": owner_id}).skip(skip).limit(limit).to_list(limit)
 
     # Aggregate sales stats per customer in one query
     customer_ids = [c["customer_id"] for c in customers_raw if "customer_id" in c]
     sales_pipeline = [
-        {"$match": {"user_id": user.user_id, "customer_id": {"$in": customer_ids}}},
+        {"$match": {"user_id": owner_id, "customer_id": {"$in": customer_ids}}},
         {"$group": {
             "_id": "$customer_id",
             "visit_count": {"$sum": 1},
@@ -6624,7 +6635,7 @@ class CampaignCreate(BaseModel):
 async def get_customer_birthdays(user: User = Depends(require_permission("crm", "read")), days: int = Query(7, ge=1, le=90)):
     """Get customers with birthdays in the next N days"""
     customers_raw = await db.customers.find(
-        {"user_id": user.user_id, "birthday": {"$ne": None}}
+        {"user_id": get_owner_id(user), "birthday": {"$ne": None}}
     ).to_list(1000)
 
     today = datetime.now(timezone.utc)
@@ -6674,12 +6685,13 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_per
 @api_router.get("/customers/{customer_id}/sales")
 async def get_customer_sales(customer_id: str, user: User = Depends(require_permission("crm", "read"))):
     # Verify customer belongs to user
-    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": user.user_id})
+    owner_id = get_owner_id(user)
+    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
         raise HTTPException(status_code=404, detail="Client non trouvé")
 
     sales = await db.sales.find(
-        {"customer_id": customer_id, "user_id": user.user_id}, {"_id": 0}
+        {"customer_id": customer_id, "user_id": owner_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(500)
 
     visit_count = len(sales)
@@ -6749,8 +6761,9 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
 
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str, user: User = Depends(require_permission("crm", "write"))):
-    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": user.user_id}, {"name": 1})
-    result = await db.customers.delete_one({"customer_id": customer_id, "user_id": user.user_id})
+    owner_id = get_owner_id(user)
+    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"name": 1})
+    result = await db.customers.delete_one({"customer_id": customer_id, "user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Client non trouvé")
     await log_activity(user, "customer_deleted", "crm", f"Client '{cust.get('name', customer_id)}' supprimé", {"customer_id": customer_id})
@@ -6758,7 +6771,7 @@ async def delete_customer(customer_id: str, user: User = Depends(require_permiss
 
 @api_router.get("/promotions", response_model=List[Promotion])
 async def get_promotions(user: User = Depends(require_permission("crm", "read"))):
-    promotions = await db.promotions.find({"user_id": user.user_id, "is_active": True}).to_list(100)
+    promotions = await db.promotions.find({"user_id": get_owner_id(user), "is_active": True}).to_list(100)
     return [Promotion(**p) for p in promotions]
 
 class PromotionCreate(BaseModel):
@@ -6770,7 +6783,7 @@ class PromotionCreate(BaseModel):
 
 @api_router.post("/promotions", response_model=Promotion)
 async def create_promotion(data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
-    promotion = Promotion(**data.model_dump(), user_id=user.user_id)
+    promotion = Promotion(**data.model_dump(), user_id=get_owner_id(user))
     await db.promotions.insert_one(promotion.model_dump())
     return promotion
 
@@ -6778,7 +6791,7 @@ async def create_promotion(data: PromotionCreate, user: User = Depends(require_p
 async def update_promotion(promotion_id: str, data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
     update_dict = data.model_dump()
     result = await db.promotions.find_one_and_update(
-        {"promotion_id": promotion_id, "user_id": user.user_id},
+        {"promotion_id": promotion_id, "user_id": get_owner_id(user)},
         {"$set": update_dict},
         return_document=True
     )
@@ -6789,7 +6802,7 @@ async def update_promotion(promotion_id: str, data: PromotionCreate, user: User 
 
 @api_router.delete("/promotions/{promotion_id}")
 async def delete_promotion(promotion_id: str, user: User = Depends(require_permission("crm", "write"))):
-    result = await db.promotions.delete_one({"promotion_id": promotion_id, "user_id": user.user_id})
+    result = await db.promotions.delete_one({"promotion_id": promotion_id, "user_id": get_owner_id(user)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Promotion non trouvée")
     return {"message": "Promotion supprimée"}
@@ -6803,6 +6816,16 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     sale_items = []
     total_amount = 0.0
     is_open_order = (sale_data.status == "open")
+
+    # 0. Load tax settings
+    settings_doc = await db.user_settings.find_one({"user_id": owner_id})
+    tax_enabled = False
+    store_tax_rate = 0.0
+    tax_mode = "ttc"
+    if settings_doc:
+        tax_enabled = settings_doc.get("tax_enabled", False)
+        store_tax_rate = settings_doc.get("tax_rate", 0.0)
+        tax_mode = settings_doc.get("tax_mode", "ttc")
 
     # 1. Validate and Prepare items
     for item in sale_data.items:
@@ -6820,6 +6843,19 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         line_total = (product["selling_price"] * qty) - item_discount
         total_amount += line_total
 
+        # TVA par ligne
+        item_tax_rate = 0.0
+        item_tax_amount = 0.0
+        if tax_enabled:
+            item_tax_rate = product.get("tax_rate") if product.get("tax_rate") is not None else store_tax_rate
+            if item_tax_rate > 0 and line_total > 0:
+                if tax_mode == "ttc":
+                    # Prix saisis TTC → TVA = total × taux / (100 + taux)
+                    item_tax_amount = round(line_total * item_tax_rate / (100 + item_tax_rate), 2)
+                else:
+                    # Prix saisis HT → TVA = total × taux / 100
+                    item_tax_amount = round(line_total * item_tax_rate / 100, 2)
+
         sale_items.append(SaleItem(
             product_id=prod_id,
             product_name=product["name"],
@@ -6828,6 +6864,8 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             selling_price=product["selling_price"],
             discount_amount=item_discount,
             total=line_total,
+            tax_rate=item_tax_rate,
+            tax_amount=item_tax_amount,
             station=item.get("station", "plat"),
             item_notes=item.get("item_notes"),
         ))
@@ -6864,6 +6902,12 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     # 3. Totaux
     discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
     subtotal_after_discount = round(total_amount - discount, 2)
+    # TVA totale
+    tax_total_amount = round(sum(si.tax_amount for si in sale_items), 2)
+    subtotal_ht = round(subtotal_after_discount - tax_total_amount, 2) if tax_mode == "ttc" else subtotal_after_discount
+    # Si HT, le total final inclut la TVA
+    if tax_mode == "ht" and tax_enabled:
+        subtotal_after_discount = round(subtotal_after_discount + tax_total_amount, 2)
     service_charge = round(subtotal_after_discount * (sale_data.service_charge_percent or 0.0) / 100, 2)
     tip = round(sale_data.tip_amount or 0.0, 2)
     actual_total = round(subtotal_after_discount + service_charge + tip, 2)
@@ -6893,6 +6937,9 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         covers=sale_data.covers,
         tip_amount=sale_data.tip_amount or 0.0,
         service_charge_percent=sale_data.service_charge_percent or 0.0,
+        tax_total=tax_total_amount,
+        tax_mode=tax_mode,
+        subtotal_ht=subtotal_ht,
         notes=sale_data.notes,
         kitchen_sent=True if is_open_order else (sale_data.kitchen_sent or False),
         kitchen_sent_at=datetime.now(timezone.utc) if is_open_order else None,
@@ -6983,7 +7030,7 @@ async def get_expenses(
     skip: int = 0,
     limit: int = 50
 ):
-    query = {"user_id": user.user_id}
+    query = {"user_id": get_owner_id(user)}
     if store_id or user.active_store_id:
         query["store_id"] = store_id or user.active_store_id
 
@@ -7022,7 +7069,7 @@ async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: Use
 
 @api_router.delete("/expenses/{expense_id}")
 async def delete_expense(expense_id: str, user: User = Depends(require_permission("accounting", "write"))):
-    result = await db.expenses.delete_one({"expense_id": expense_id, "user_id": user.user_id})
+    result = await db.expenses.delete_one({"expense_id": expense_id, "user_id": get_owner_id(user)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=i18n.t("accounting.expense_not_found", user.language))
     return {"message": i18n.t("accounting.expense_deleted", user.language)}
@@ -7034,9 +7081,9 @@ async def get_accounting_stats(
     end_date_str: Optional[str] = Query(None, alias="end_date"),
     user: User = Depends(require_permission("accounting", "read"))
 ):
-    user_id = user.user_id
+    user_id = get_owner_id(user)
     store_id = user.active_store_id
-    
+
     # Date logic — always produce tz-aware datetimes (UTC)
     if start_date_str or end_date_str:
         now = datetime.now(timezone.utc)
@@ -7136,6 +7183,8 @@ async def get_accounting_stats(
 
     gross_profit = revenue - cogs
     daily_revenue = sorted(daily_map.values(), key=lambda d: d["date"])
+    # TVA collectée
+    tax_collected = sum(s.get("tax_total", 0) for s in sales)
 
     # 2. Losses Data
     mv_query: dict = {"user_id": user_id, "type": "out"}
@@ -7233,6 +7282,7 @@ async def get_accounting_stats(
         total_items_sold=total_items_sold,
         stock_value=round(stock_value, 0),
         stock_selling_value=round(stock_selling_value, 0),
+        tax_collected=round(tax_collected, 0),
         product_performance=list(perf_map.values())
     )
 
@@ -7444,7 +7494,8 @@ async def get_alerts(
     skip: int = 0,
     store_id: Optional[str] = None
 ):
-    query = {"user_id": user.user_id}
+    owner_id = get_owner_id(user)
+    query = {"user_id": owner_id}
 
     target_store = store_id or user.active_store_id
     if target_store:
@@ -7460,7 +7511,7 @@ async def get_alerts(
 @api_router.put("/alerts/{alert_id}/read")
 async def mark_alert_read(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.update_one(
-        {"alert_id": alert_id, "user_id": user.user_id},
+        {"alert_id": alert_id, "user_id": get_owner_id(user)},
         {"$set": {"is_read": True}}
     )
     if result.matched_count == 0:
@@ -7470,7 +7521,7 @@ async def mark_alert_read(alert_id: str, user: User = Depends(require_permission
 @api_router.put("/alerts/{alert_id}/dismiss")
 async def dismiss_alert(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.update_one(
-        {"alert_id": alert_id, "user_id": user.user_id},
+        {"alert_id": alert_id, "user_id": get_owner_id(user)},
         {"$set": {"is_dismissed": True}}
     )
     if result.matched_count == 0:
@@ -7479,26 +7530,26 @@ async def dismiss_alert(alert_id: str, user: User = Depends(require_permission("
 
 @api_router.delete("/alerts/dismissed")
 async def clear_dismissed_alerts(user: User = Depends(require_permission("stock", "write"))):
-    result = await db.alerts.delete_many({"user_id": user.user_id, "is_dismissed": True})
+    result = await db.alerts.delete_many({"user_id": get_owner_id(user), "is_dismissed": True})
     return {"message": f"{result.deleted_count} alertes supprimées"}
 
 # ===================== ALERT RULES ROUTES =====================
 
 @api_router.get("/alert-rules", response_model=List[AlertRule])
 async def get_alert_rules(user: User = Depends(require_permission("stock", "read"))):
-    rules = await db.alert_rules.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    rules = await db.alert_rules.find({"user_id": get_owner_id(user)}, {"_id": 0}).to_list(100)
     return [AlertRule(**rule) for rule in rules]
 
 @api_router.post("/alert-rules", response_model=AlertRule)
 async def create_alert_rule(rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
-    rule = AlertRule(**rule_data.model_dump(), user_id=user.user_id)
+    rule = AlertRule(**rule_data.model_dump(), user_id=get_owner_id(user))
     await db.alert_rules.insert_one(rule.model_dump())
     return rule
 
 @api_router.put("/alert-rules/{rule_id}", response_model=AlertRule)
 async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alert_rules.find_one_and_update(
-        {"rule_id": rule_id, "user_id": user.user_id},
+        {"rule_id": rule_id, "user_id": get_owner_id(user)},
         {"$set": rule_data.model_dump()},
         return_document=True
     )
@@ -7509,7 +7560,7 @@ async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User
 
 @api_router.delete("/alert-rules/{rule_id}")
 async def delete_alert_rule(rule_id: str, user: User = Depends(require_permission("stock", "write"))):
-    result = await db.alert_rules.delete_one({"rule_id": rule_id, "user_id": user.user_id})
+    result = await db.alert_rules.delete_one({"rule_id": rule_id, "user_id": get_owner_id(user)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Règle non trouvée")
     return {"message": "Règle supprimée"}
@@ -7556,11 +7607,12 @@ async def _safe_background_checks(user_id: str):
 
 @api_router.get("/dashboard")
 async def get_dashboard(user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
     # Run slow checks in background (fire-and-forget, don't block dashboard response)
-    asyncio.ensure_future(_safe_background_checks(user.user_id))
+    asyncio.ensure_future(_safe_background_checks(owner_id))
 
     # Fetch ALL user products (no is_active filter at DB level — handle in memory)
-    product_query: dict = {"user_id": user.user_id}
+    product_query: dict = {"user_id": owner_id}
     if user.active_store_id:
         product_query["store_id"] = user.active_store_id
 
@@ -7568,7 +7620,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
 
     # Fallback: if store_id filter returns nothing, try without store_id
     if not products and user.active_store_id:
-        fallback_query = {"user_id": user.user_id}
+        fallback_query = {"user_id": owner_id}
         products = await db.products.find(fallback_query, {"_id": 0}).to_list(1000)
         # Backfill store_id and is_active on found products
         if products:
@@ -7592,7 +7644,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
     # Auto-dismiss AI anomaly alerts for accounts with no products (false positives)
     if not products:
         await db.alerts.update_many(
-            {"user_id": user.user_id, "type": {"$regex": "^ai_"}, "is_dismissed": False},
+            {"user_id": owner_id, "type": {"$regex": "^ai_"}, "is_dismissed": False},
             {"$set": {"is_dismissed": True}}
         )
 
@@ -7616,7 +7668,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
     # Safety net: ensure alerts exist for critical products (catches missed alerts)
     for p in critical_products[:10]:  # Limit to avoid slow dashboard
         try:
-            await check_and_create_alerts(Product(**p), user.user_id, store_id=user.active_store_id)
+            await check_and_create_alerts(Product(**p), owner_id, store_id=user.active_store_id)
         except Exception:
             pass  # Don't break dashboard if alert creation fails
 
@@ -7625,7 +7677,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
     if normal_product_ids:
         await db.alerts.update_many(
             {
-                "user_id": user.user_id,
+                "user_id": owner_id,
                 "product_id": {"$in": normal_product_ids},
                 "type": {"$in": ["out_of_stock", "low_stock"]},
                 "is_dismissed": False,
@@ -7634,14 +7686,14 @@ async def get_dashboard(user: User = Depends(require_auth)):
         )
 
     # Now fetch alerts (after safety net has run)
-    alert_query = {"user_id": user.user_id, "is_dismissed": False}
+    alert_query = {"user_id": owner_id, "is_dismissed": False}
     if user.active_store_id:
         alert_query["store_id"] = user.active_store_id
 
     alerts = await db.alerts.find(alert_query, {"_id": 0}).to_list(100)
 
     # Recent sales (last 5)
-    sales_query = {"user_id": user.user_id}
+    sales_query = {"user_id": owner_id}
     if user.active_store_id:
         sales_query["store_id"] = user.active_store_id
 
@@ -7688,6 +7740,9 @@ async def get_dashboard(user: User = Depends(require_auth)):
     today_revenue = sum(s.get("total_amount", 0) for s in today_sales)
     yesterday_revenue = sum(s.get("total_amount", 0) for s in yesterday_sales)
     month_revenue = sum(s.get("total_amount", 0) for s in month_sales)
+    # TVA collectée
+    today_tax = sum(s.get("tax_total", 0) for s in today_sales)
+    month_tax = sum(s.get("tax_total", 0) for s in month_sales)
 
     # Top 3 selling products today (by quantity sold)
     top_today_pipeline = [
@@ -7721,6 +7776,8 @@ async def get_dashboard(user: User = Depends(require_auth)):
         "today_sales_count": len(today_sales),
         "yesterday_sales_count": len(yesterday_sales),
         "top_selling_today": top_selling_today,
+        "today_tax": round(today_tax, 0),
+        "month_tax": round(month_tax, 0),
     }
 
 # ===================== SUPPLIER ROUTES =====================
@@ -7729,6 +7786,8 @@ async def get_dashboard(user: User = Depends(require_auth)):
 async def get_suppliers(user: User = Depends(require_permission("suppliers", "read")), skip: int = 0, limit: int = 50, search: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id, "is_active": True}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
     if search:
         query["name"] = {"$regex": safe_regex(search), "$options": "i"}
     total = await db.suppliers.count_documents(query)
@@ -7941,6 +8000,8 @@ async def get_orders(
 ):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
     if status:
         query["status"] = status
     if supplier_id:
@@ -8193,7 +8254,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
     if status_data.status == "delivered" and not result.get("is_connected"):
         items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
         for item in items:
-            product = await db.products.find_one({"product_id": item["product_id"], "user_id": user.user_id}, {"_id": 0})
+            product = await db.products.find_one({"product_id": item["product_id"], "user_id": owner_id}, {"_id": 0})
             if product:
                 new_quantity = product["quantity"] + item["quantity"]
                 await db.products.update_one(
@@ -8204,7 +8265,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
                 # Create stock movement
                 movement = StockMovement(
                     product_id=item["product_id"],
-                    user_id=user.user_id,
+                    user_id=owner_id,
                     store_id=user.active_store_id,
                     type="in",
                     quantity=item["quantity"],
@@ -8323,7 +8384,7 @@ async def receive_partial_delivery(
         received_so_far[delivery_item.item_id] = new_received
 
         # Update product stock
-        product = await db.products.find_one({"product_id": item["product_id"], "user_id": user.user_id}, {"_id": 0})
+        product = await db.products.find_one({"product_id": item["product_id"], "user_id": owner_id}, {"_id": 0})
         if product:
             old_qty = product["quantity"]
             new_qty = old_qty + qty_delta
@@ -8335,7 +8396,7 @@ async def receive_partial_delivery(
             # Create stock movement
             movement = StockMovement(
                 product_id=item["product_id"],
-                user_id=user.user_id,
+                user_id=owner_id,
                 store_id=user.active_store_id,
                 type="in",
                 quantity=qty_delta,
@@ -8347,7 +8408,7 @@ async def receive_partial_delivery(
 
             # Check alerts
             product["quantity"] = new_qty
-            await check_and_create_alerts(Product(**product), user.user_id, store_id=user.active_store_id)
+            await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
 
     # Determine if fully delivered
     all_fully_received = True
@@ -8413,10 +8474,10 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
 
 @api_router.delete("/orders/{order_id}")
 async def delete_order(order_id: str, user: User = Depends(require_auth)):
-    order = await db.orders.find_one({"order_id": order_id, "user_id": user.user_id}, {"_id": 0})
+    order = await db.orders.find_one({"order_id": order_id, "user_id": get_owner_id(user)}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
-    
+
     if order["status"] not in ["pending", "cancelled"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer une commande en cours")
     
@@ -8434,7 +8495,7 @@ async def delete_order(order_id: str, user: User = Depends(require_auth)):
 
 @api_router.get("/statistics")
 async def get_statistics(user: User = Depends(require_auth)):
-    user_id = user.user_id
+    user_id = get_owner_id(user)
     store_id = user.active_store_id
 
     # Filter by store
@@ -8779,7 +8840,7 @@ async def get_grand_livre(
     sales (income), expenses (outflow), stock losses, and delivered supplier orders.
     Each entry includes: date, type, reference, description, amount_in, amount_out, running_balance.
     """
-    user_id = user.user_id
+    user_id = get_owner_id(user)
     store_id = user.active_store_id
 
     # Resolve date range
@@ -12190,20 +12251,25 @@ _is_production = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "developmen
 _raw_origins = os.environ.get("ALLOWED_ORIGIN", "")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
+# Toujours autoriser localhost pour les tests locaux (web + Expo)
+_localhost_origins = [
+    "http://localhost:3000", "http://localhost:3001",
+    "http://localhost:8081", "http://localhost:8082", "http://localhost:8083",
+    "http://localhost:19006", "http://localhost:19000",
+]
+_allowed_origins = list(set(_allowed_origins + _localhost_origins))
+
 if not _is_production:
     # Développement : permissif pour Expo (localhost, LAN, etc.)
     _allowed_origins = ["*"]
     logger.info("CORS Policy: PERMISSIVE (Development/Testing)")
 else:
-    if not _allowed_origins:
-        logger.warning("CORS Policy: RESTRICTIVE (Production) - No origins allowed! Set ALLOWED_ORIGIN in .env")
-    else:
-        logger.info(f"CORS Policy: RESTRICTED (Production) - Allowed: {', '.join(_allowed_origins)}")
+    logger.info(f"CORS Policy: RESTRICTED (Production) - Allowed: {', '.join(_allowed_origins)}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=not ("*" in _allowed_origins),
-    allow_origins=_allowed_origins,
+    allow_credentials="*" not in _allowed_origins,
+    allow_origins=_allowed_origins if "*" not in _allowed_origins else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

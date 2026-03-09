@@ -18,7 +18,8 @@ import {
     Edit2,
     X,
     Package,
-    BarChart2
+    BarChart2,
+    Receipt
 } from 'lucide-react';
 import {
     AreaChart,
@@ -363,6 +364,15 @@ export default function Accounting() {
                     icon={PieChartIcon}
                     color="bg-sky-500"
                 />
+                {(stats as any)?.tax_collected > 0 && (
+                    <StatCard
+                        label="TVA Collectée"
+                        value={formatCurrency((stats as any)?.tax_collected || 0)}
+                        trend={{ value: 'TVA sur la période', isUp: true }}
+                        icon={Receipt}
+                        color="bg-amber-500"
+                    />
+                )}
             </div>
 
             {/* Stock value row */}

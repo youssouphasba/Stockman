@@ -626,6 +626,19 @@ export default function AccountingScreen() {
                                     {formatCurrency(stats?.net_profit ?? 0)}
                                 </Text>
                             </View>
+
+                            {(stats as any)?.tax_collected > 0 && (
+                                <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                    <View style={styles.kpiHeader}>
+                                        <Ionicons name="receipt-outline" size={20} color={colors.warning} />
+                                    </View>
+                                    <Text style={styles.kpiLabel}>{t('accounting.tax_collected')}</Text>
+                                    <Text style={[styles.kpiValue, { color: colors.warning }]}>
+                                        {formatCurrency((stats as any)?.tax_collected ?? 0)}
+                                    </Text>
+                                    <Text style={styles.kpiSubValue}>TVA</Text>
+                                </View>
+                            )}
                         </View>
 
                         {/* Expenses Section */}

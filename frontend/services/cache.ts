@@ -48,6 +48,14 @@ export const cache = {
         }
     },
 
+    async clear(): Promise<void> {
+        try {
+            await AsyncStorage.clear();
+        } catch (e) {
+            console.error('Cache clear error', e);
+        }
+    },
+
     async setTimestamp(key: string): Promise<void> {
         try {
             const timestamps = await this.get<Record<string, number>>(KEYS.CACHE_TIMESTAMPS) || {};

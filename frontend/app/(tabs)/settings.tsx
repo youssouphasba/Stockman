@@ -37,29 +37,7 @@ import DeleteAccountModal from '../../components/DeleteAccountModal';
 import { disputes } from '../../services/api';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 
-const SECTORS = [
-  { key: 'boutique', label: 'Boutique / Commerce', icon: '🏪' },
-  { key: 'supermarche', label: 'Supermarché', icon: '🛒' },
-  { key: 'pharmacie', label: 'Pharmacie', icon: '💊' },
-  { key: 'restaurant', label: 'Restaurant', icon: '🍽️', production: true },
-  { key: 'boulangerie', label: 'Boulangerie / Pâtisserie', icon: '🥖', production: true },
-  { key: 'traiteur', label: 'Traiteur', icon: '🍲', production: true },
-  { key: 'boissons', label: 'Boissons / Jus', icon: '🥤', production: true },
-  { key: 'couture', label: 'Couture / Atelier', icon: '🧵', production: true },
-  { key: 'savonnerie', label: 'Savonnerie / Cosmétiques', icon: '🧴', production: true },
-  { key: 'menuiserie', label: 'Menuiserie / Ébénisterie', icon: '🪵', production: true },
-  { key: 'imprimerie', label: 'Imprimerie', icon: '🖨️', production: true },
-  { key: 'forge', label: 'Forge / Métallurgie', icon: '⚒️', production: true },
-  { key: 'artisanat', label: 'Artisanat', icon: '🎨', production: true },
-  { key: 'quincaillerie', label: 'Quincaillerie', icon: '🔧' },
-  { key: 'electromenager', label: 'Électroménager', icon: '📺' },
-  { key: 'mode', label: 'Mode / Prêt-à-porter', icon: '👗' },
-  { key: 'beaute', label: 'Beauté / Salon', icon: '💇' },
-  { key: 'librairie', label: 'Librairie / Papeterie', icon: '📚' },
-  { key: 'agriculture', label: 'Agriculture / Élevage', icon: '🌾' },
-  { key: 'auto', label: 'Auto / Moto / Pièces', icon: '🚗' },
-  { key: 'autre', label: 'Autre', icon: '📦' },
-];
+// Sector selection removed — defined at registration
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -77,9 +55,7 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
-  const [selectedSector, setSelectedSector] = useState('');
-  const [showSectorModal, setShowSectorModal] = useState(false);
-  const [sectorFeatures, setSectorFeatures] = useState<{ has_production: boolean } | null>(null);
+  // Sector state removed — sector is set at registration
 
   const handleExportData = async () => {
     try {
@@ -112,10 +88,6 @@ export default function SettingsScreen() {
         userFeatures.get().catch(() => null),
       ]);
       setSettingsData(result);
-      if (features) {
-        setSelectedSector(features.sector || '');
-        setSectorFeatures({ has_production: features.has_production });
-      }
     } catch {
       // ignore
     } finally {
@@ -252,26 +224,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Business Sector */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.business_sector') || "Secteur d'activité"}</Text>
-          <TouchableOpacity
-            style={[styles.settingRow, { borderBottomWidth: 0 }]}
-            onPress={() => setShowSectorModal(true)}
-          >
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>
-                {SECTORS.find(s => s.key === selectedSector)?.icon ?? '📦'}{' '}
-                {SECTORS.find(s => s.key === selectedSector)?.label ?? t('settings.select_sector') ?? 'Choisir un secteur'}
-              </Text>
-              {sectorFeatures?.has_production && (
-                <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 2 }}>🏭 Module Production activé</Text>
-              )}
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-
         {/* App settings */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
@@ -360,6 +312,100 @@ export default function SettingsScreen() {
               />
             </View>
           ))}
+        </View>
+
+        {/* TVA / Taxes */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{t('settings.tax_title')}</Text>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>{t('settings.tax_enabled')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.tax_enabled_desc')}</Text>
+            </View>
+            <Switch
+              value={settingsData?.tax_enabled ?? false}
+              onValueChange={async (val) => {
+                try {
+                  const updated = await settingsApi.update({ tax_enabled: val });
+                  setSettingsData(updated);
+                } catch {}
+              }}
+              trackColor={{ false: colors.divider, true: colors.primary + '60' }}
+              thumbColor={settingsData?.tax_enabled ? colors.primary : colors.textMuted}
+            />
+          </View>
+
+          {settingsData?.tax_enabled && (
+            <>
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>{t('settings.tax_rate')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.bgLight,
+                      color: colors.text,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      fontSize: 16,
+                      fontWeight: '700',
+                      width: 70,
+                      textAlign: 'center',
+                      borderWidth: 1,
+                      borderColor: colors.divider,
+                    }}
+                    keyboardType="numeric"
+                    value={String(settingsData?.tax_rate ?? 0)}
+                    onChangeText={(val) => {
+                      const num = parseFloat(val) || 0;
+                      setSettingsData((s: any) => s ? { ...s, tax_rate: num } : s);
+                    }}
+                    onBlur={async () => {
+                      try {
+                        await settingsApi.update({ tax_rate: settingsData?.tax_rate ?? 0 });
+                      } catch {}
+                    }}
+                  />
+                  <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>%</Text>
+                </View>
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>{t('settings.tax_mode')}</Text>
+                  <Text style={styles.settingDesc}>{t('settings.tax_mode_desc')}</Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: Spacing.md, paddingBottom: Spacing.md }}>
+                {(['ttc', 'ht'] as const).map(mode => (
+                  <TouchableOpacity
+                    key={mode}
+                    onPress={async () => {
+                      try {
+                        const updated = await settingsApi.update({ tax_mode: mode });
+                        setSettingsData(updated);
+                      } catch {}
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      alignItems: 'center',
+                      backgroundColor: (settingsData as any)?.tax_mode === mode ? colors.primary + '20' : 'transparent',
+                      borderColor: (settingsData as any)?.tax_mode === mode ? colors.primary : colors.divider,
+                    }}
+                  >
+                    <Text style={{ fontWeight: '700', color: (settingsData as any)?.tax_mode === mode ? colors.primary : colors.textMuted }}>
+                      {mode === 'ttc' ? t('settings.tax_mode_ttc') : t('settings.tax_mode_ht')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
         </View>
 
         {/* Reminder Rules */}
@@ -671,56 +717,7 @@ export default function SettingsScreen() {
         onClose={() => setShowLanguageModal(false)}
       />
 
-      <Modal visible={showSectorModal} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%', padding: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>
-              {t('settings.select_sector') || "Secteur d'activité"}
-            </Text>
-            <FlatList
-              data={SECTORS}
-              numColumns={2}
-              keyExtractor={item => item.key}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    margin: 4,
-                    padding: 12,
-                    borderRadius: 12,
-                    borderWidth: 1.5,
-                    borderColor: selectedSector === item.key ? colors.primary : colors.divider,
-                    backgroundColor: selectedSector === item.key ? colors.primary + '15' : colors.card,
-                    alignItems: 'center',
-                  }}
-                  onPress={async () => {
-                    setSelectedSector(item.key);
-                    setShowSectorModal(false);
-                    try {
-                      await profile.updateProfile({ business_type: item.key });
-                      const features = await userFeatures.get();
-                      setSectorFeatures({ has_production: features.has_production });
-                    } catch (err) {
-                      console.error('Sector update error', err);
-                    }
-                  }}
-                >
-                  <Text style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</Text>
-                  <Text style={{ fontSize: 11, color: colors.text, textAlign: 'center' }} numberOfLines={2}>{item.label}</Text>
-                  {item.production && <Text style={{ fontSize: 9, color: '#f59e0b', marginTop: 2 }}>🏭 Production</Text>}
-                  {item.projects && <Text style={{ fontSize: 9, color: '#3b82f6', marginTop: 2 }}>🏗️ Chantiers</Text>}
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity
-              onPress={() => setShowSectorModal(false)}
-              style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: colors.divider, alignItems: 'center' }}
-            >
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{t('common.close') || 'Fermer'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Sector modal removed — sector is defined at registration */}
     </LinearGradient >
   );
 }
