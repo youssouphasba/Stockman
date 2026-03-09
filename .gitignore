@@ -10,6 +10,7 @@ __pycache__/
 *.egg-info/
 mongo_data/
 .DS_Store
+desktop.ini
 .vscode/
 .idea/
 npm-debug.log*
