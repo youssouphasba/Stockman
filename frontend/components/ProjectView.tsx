@@ -391,7 +391,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         return (
             <FlatList
                 data={allMaterials}
-                keyExtractor={(item, i) => item.allocation_id + i}
+                keyExtractor={(item, i) => `${item.allocation_id ?? item.material_id}-${i}`}
                 renderItem={({ item }) => (
                     <View style={[s.matRow, { backgroundColor: colors.card }]}>
                         <View style={{ flex: 1 }}>

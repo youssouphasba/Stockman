@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
-  const { user, logout, isPinSet, isBiometricsEnabled, togglePin, toggleBiometrics } = useAuth();
+  const { user, logout, isPinSet, isBiometricsEnabled, togglePin, toggleBiometrics, isRestaurant, isOrgAdmin, isBillingAdmin, hasPermission } = useAuth();
   const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +54,8 @@ export default function SettingsScreen() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [billingContactName, setBillingContactName] = useState('');
+  const [billingContactEmail, setBillingContactEmail] = useState('');
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
   // Sector state removed — sector is set at registration
 
@@ -80,6 +82,8 @@ export default function SettingsScreen() {
   const [disputeSubject, setDisputeSubject] = useState('');
   const [disputeDesc, setDisputeDesc] = useState('');
   const [disputeType, setDisputeType] = useState('other');
+  const showManagerZone = (settingsData?.mobile_preferences?.show_manager_zone ?? true) && (isOrgAdmin || isBillingAdmin);
+  const canViewTeam = isOrgAdmin || hasPermission('staff', 'read');
 
   const loadSettings = useCallback(async () => {
     try {
@@ -88,6 +92,8 @@ export default function SettingsScreen() {
         userFeatures.get().catch(() => null),
       ]);
       setSettingsData(result);
+      setBillingContactName(result?.billing_contact_name || '');
+      setBillingContactEmail(result?.billing_contact_email || '');
     } catch {
       // ignore
     } finally {
@@ -279,8 +285,8 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Team (Owner only) */}
-        {user?.role === 'shopkeeper' && (
+        {/* Team / Manager zone */}
+        {canViewTeam && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>{t('settings.team_title')}</Text>
             <Link href="/(tabs)/users" asChild>
@@ -299,6 +305,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Modules */}
+        {isOrgAdmin && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.modules')}</Text>
           {settingsData && Object.entries(settingsData.modules).map(([key, enabled]) => (
@@ -313,8 +320,10 @@ export default function SettingsScreen() {
             </View>
           ))}
         </View>
+        )}
 
         {/* TVA / Taxes */}
+        {isOrgAdmin && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.tax_title')}</Text>
           <View style={styles.settingRow}>
@@ -407,8 +416,10 @@ export default function SettingsScreen() {
             </>
           )}
         </View>
+        )}
 
         {/* Reminder Rules */}
+        {isOrgAdmin && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.reminders')}</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
@@ -430,6 +441,7 @@ export default function SettingsScreen() {
             onUpdate={updateReminderRules}
           />
         </View>
+        )}
 
         {/* Synchronisation */}
         <View style={styles.card}>
@@ -488,6 +500,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Subscription */}
+        {showManagerZone && isBillingAdmin && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
           <TouchableOpacity
@@ -503,7 +516,48 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
+
+          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
+            <Text style={styles.settingLabel}>Contact de facturation</Text>
+            <Text style={styles.settingDesc}>Reçoit les échanges et informations d abonnement du compte entreprise.</Text>
+            <TextInput
+              style={styles.input}
+              value={billingContactName}
+              onChangeText={setBillingContactName}
+              placeholder="Nom du contact"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={billingContactEmail}
+              onChangeText={setBillingContactEmail}
+              placeholder="email@entreprise.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
+              onPress={async () => {
+                try {
+                  const updated = await settingsApi.update({
+                    billing_contact_name: billingContactName,
+                    billing_contact_email: billingContactEmail,
+                  } as any);
+                  setSettingsData(updated);
+                  setBillingContactName(updated?.billing_contact_name || '');
+                  setBillingContactEmail(updated?.billing_contact_email || '');
+                } catch {}
+              }}
+            >
+              <Ionicons name="save-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                Enregistrer le contact
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+        )}
 
         {/* Support */}
         <View style={styles.card}>
@@ -678,6 +732,7 @@ export default function SettingsScreen() {
         visible={showHelpCenter}
         onClose={() => setShowHelpCenter(false)}
         userRole="shopkeeper"
+        isRestaurant={isRestaurant}
         onLaunchGuide={(guideKey) => {
           const guide = (GUIDES as any)[guideKey];
           if (guide) {
@@ -790,6 +845,14 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  input: {
+    ...glassStyle,
+    backgroundColor: colors.bgDark + '50',
+    padding: Spacing.md,
+    color: colors.text,
+    borderRadius: BorderRadius.md,
+    width: '100%',
   },
   aboutRow: {
     flexDirection: 'row',

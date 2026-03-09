@@ -202,6 +202,66 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "receipt-outline", title: "Ticket de Caisse", description: "Imprimez le ticket ou partagez-le par WhatsApp/Email directement depuis l'écran de confirmation." }
         ]
     },
+    restaurantDashboard: {
+        title: "Pilotage Restaurant",
+        steps: [
+            { icon: "speedometer-outline", title: "Service du jour", description: "Suivez le chiffre d'affaires du jour, les couverts servis, le ticket moyen et l'occupation de salle." },
+            { icon: "restaurant-outline", title: "Salle et cuisine", description: "Le tableau de bord restaurant reunit les tables en cours, les tickets cuisine et les reservations attendues." },
+            { icon: "bar-chart-outline", title: "Heures de pointe", description: "Le graphique horaire aide a reperer les pics de service pour ajuster votre mise en place." },
+            { icon: "calendar-outline", title: "Reservations du jour", description: "Suivez les arrivees et transformez une reservation en service sans ressaisie inutile." }
+        ]
+    },
+    restaurantProducts: {
+        title: "Carte et Recettes",
+        steps: [
+            { icon: "book-outline", title: "Creer un plat", description: "Ajoutez un plat de menu avec son prix, sa categorie, sa station cuisine et son mode de production." },
+            { icon: "flask-outline", title: "Lier une recette", description: "Pour un plat a la commande ou hybride, reliez une recette de service pour consommer les bons ingredients." },
+            { icon: "layers-outline", title: "Choisir le bon mode", description: "Utilisez 'a l'avance' pour un produit fini, 'a la commande' pour une preparation minute, et 'hybride' pour les deux." },
+            { icon: "time-outline", title: "Piloter la disponibilite", description: "Gardez la carte alignee avec la cuisine en desactivant un plat indisponible ou sans preparation." }
+        ]
+    },
+    restaurantPos: {
+        title: "Caisse Restaurant",
+        steps: [
+            { icon: "restaurant-outline", title: "Associer une table", description: "Choisissez une table ou laissez une commande sans table pour l'emporte. La commande ouverte reste attachee au bon service." },
+            { icon: "cart-outline", title: "Construire la commande", description: "Ajoutez les plats du menu au panier. Les lignes deja envoyees restent verrouillees pour garder l'historique du service." },
+            { icon: "send-outline", title: "Envoyer en cuisine", description: "Creez une commande ouverte puis ajoutez de nouveaux plats au fil du service sans perdre la table ni les couverts." },
+            { icon: "cash-outline", title: "Cloturer l'addition", description: "Encaissez la commande en fin de repas pour liberer la table et finaliser correctement le stock." }
+        ]
+    },
+    restaurantHub: {
+        title: "Centre de Service",
+        steps: [
+            { icon: "restaurant-outline", title: "Vue d'ensemble", description: "Le hub restaurant regroupe les acces rapides vers les tables, reservations, cuisine et vente comptoir." },
+            { icon: "grid-outline", title: "Tables", description: "Consultez les tables libres, reservees ou occupees pour guider la salle en temps reel." },
+            { icon: "calendar-outline", title: "Reservations", description: "Planifiez les arrivees, affectez une table et gardez les notes utiles au service." },
+            { icon: "flame-outline", title: "Cuisine", description: "Les tickets envoyes en cuisine passent ensuite de 'en attente' a 'pret' puis 'servi'." }
+        ]
+    },
+    restaurantTables: {
+        title: "Gestion des Tables",
+        steps: [
+            { icon: "grid-outline", title: "Statuts de table", description: "Chaque table peut etre libre, reservee, occupee ou en nettoyage selon l'etat du service." },
+            { icon: "people-outline", title: "Capacite", description: "Renseignez la capacite de chaque table pour aider le placement des clients et les reservations." },
+            { icon: "checkmark-done-outline", title: "Fin de service", description: "Quand l'addition est reglee, la table revient a l'etat libre ou nettoyage selon votre organisation." }
+        ]
+    },
+    restaurantReservations: {
+        title: "Reservations",
+        steps: [
+            { icon: "calendar-outline", title: "Planifier une arrivee", description: "Enregistrez le nom du client, l'heure, le nombre de couverts et les demandes utiles." },
+            { icon: "time-outline", title: "Suivre les statuts", description: "Une reservation peut passer de demandee a confirmee, puis arrivee, annulee ou no-show." },
+            { icon: "swap-horizontal-outline", title: "Basculer en salle", description: "Quand le client arrive, assignez la table et ouvrez la commande pour lancer le service." }
+        ]
+    },
+    restaurantKitchen: {
+        title: "Cuisine",
+        steps: [
+            { icon: "receipt-outline", title: "Tickets entrants", description: "La cuisine recoit les plats envoyes depuis la caisse avec table, quantites et notes utiles." },
+            { icon: "checkmark-circle-outline", title: "Marquer pret", description: "Passez un item ou une commande a l'etat pret pour informer la salle que le dressage est termine." },
+            { icon: "walk-outline", title: "Marquer servi", description: "Une fois livree au client, marquez la commande servie pour garder une trace claire du service." }
+        ]
+    },
     activity: {
         title: "Flux d'Activité",
         steps: [

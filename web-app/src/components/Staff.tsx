@@ -18,9 +18,13 @@ import {
     Eye,
     Pencil,
     MessageSquare,
-    ExternalLink
+    ExternalLink,
+    Store,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
-import { subUsers as subUsersApi } from '../services/api';
+import { subUsers as subUsersApi, stores as storesApi } from '../services/api';
+import type { PermissionLevel, UserPermissions, StorePermissions } from '../services/api';
 import Modal from './Modal';
 
 const MODULE_LABELS: Record<string, string> = {
@@ -32,14 +36,9 @@ const MODULE_LABELS: Record<string, string> = {
     staff: '🏪 Gestion équipe',
 };
 
-interface StaffPermissions {
-    stock: string;
-    accounting: string;
-    crm: string;
-    pos: string;
-    suppliers: string;
-    staff: string;
-}
+type StaffPermissions = Record<keyof UserPermissions, PermissionLevel>;
+
+type AccountRole = 'billing_admin' | 'org_admin';
 
 const ROLE_TEMPLATES: Record<string, { label: string; permissions: StaffPermissions }> = {
     cashier: { label: '🧾 Caissier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
@@ -52,6 +51,7 @@ const ROLE_TEMPLATES: Record<string, { label: string; permissions: StaffPermissi
 export default function Staff() {
     const { t } = useTranslation();
     const [users, setUsers] = useState<any[]>([]);
+    const [stores, setStores] = useState<any[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -66,6 +66,9 @@ export default function Staff() {
         email: string;
         password: string;
         permissions: StaffPermissions;
+        accountRoles: AccountRole[];
+        storeIds: string[];
+        storePermissions: StorePermissions;
     }>({
         name: '',
         email: '',
@@ -77,8 +80,12 @@ export default function Staff() {
             pos: 'read',
             suppliers: 'none',
             staff: 'none',
-        }
+        },
+        accountRoles: [],
+        storeIds: [],
+        storePermissions: {},
     });
+    const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
 
     useEffect(() => {
         loadUsers();
@@ -88,8 +95,12 @@ export default function Staff() {
         setLoading(true);
         try {
             setError(null);
-            const data = await subUsersApi.list();
+            const [data, storesData] = await Promise.all([
+                subUsersApi.list(),
+                storesApi.list().catch(() => []),
+            ]);
             setUsers(Array.isArray(data) ? data : []);
+            setStores(Array.isArray(storesData) ? storesData : []);
         } catch (err: any) {
             console.error("Staff load error", err);
             setError(err.message || "Erreur de chargement");
@@ -111,8 +122,12 @@ export default function Staff() {
                 pos: 'read',
                 suppliers: 'none',
                 staff: 'none',
-            }
+            },
+            accountRoles: [],
+            storeIds: [],
+            storePermissions: {},
         });
+        setExpandedStoreId(null);
         setIsModalOpen(true);
     };
 
@@ -122,15 +137,20 @@ export default function Staff() {
             name: user.name,
             email: user.email,
             password: '',
-            permissions: user.permissions || {
+            permissions: {
                 stock: 'none',
                 accounting: 'none',
                 crm: 'none',
                 pos: 'read',
                 suppliers: 'none',
                 staff: 'none',
-            }
+                ...(user.permissions || {})
+            },
+            accountRoles: user.account_roles || [],
+            storeIds: user.store_ids || [],
+            storePermissions: user.store_permissions || {},
         });
+        setExpandedStoreId((user.store_ids || [])[0] || null);
         setIsModalOpen(true);
     };
 
@@ -141,11 +161,20 @@ export default function Staff() {
             if (editingUser) {
                 await subUsersApi.update(editingUser.user_id, {
                     name: form.name,
-                    permissions: form.permissions
+                    permissions: form.permissions,
+                    account_roles: form.accountRoles,
+                    store_ids: form.storeIds,
+                    store_permissions: form.storePermissions,
                 });
             } else {
                 await subUsersApi.create({
-                    ...form,
+                    name: form.name,
+                    email: form.email,
+                    password: form.password,
+                    permissions: form.permissions,
+                    account_roles: form.accountRoles,
+                    store_ids: form.storeIds,
+                    store_permissions: form.storePermissions,
                     role: 'staff'
                 });
             }
@@ -193,6 +222,64 @@ export default function Staff() {
             url: appUrl
         });
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    };
+
+    const toggleAccountRole = (role: AccountRole) => {
+        if (role === 'org_admin' && !form.accountRoles.includes('org_admin')) {
+            const confirmed = window.confirm('Admin operations donne un acces complet aux operations, aux magasins et a la gestion d equipe. Continuer ?');
+            if (!confirmed) return;
+        }
+        setForm((prev) => ({
+            ...prev,
+            accountRoles: prev.accountRoles.includes(role)
+                ? prev.accountRoles.filter((r) => r !== role)
+                : [...prev.accountRoles, role]
+        }));
+    };
+
+    const toggleStoreAssignment = (storeId: string) => {
+        setForm((prev) => {
+            const isSelected = prev.storeIds.includes(storeId);
+            const nextStoreIds = isSelected ? prev.storeIds.filter((id) => id !== storeId) : [...prev.storeIds, storeId];
+            const nextStorePermissions = { ...prev.storePermissions };
+            if (isSelected) {
+                delete nextStorePermissions[storeId];
+            }
+            if (!expandedStoreId && !isSelected) {
+                setExpandedStoreId(storeId);
+            }
+            if (expandedStoreId === storeId && isSelected) {
+                setExpandedStoreId(nextStoreIds[0] || null);
+            }
+            return {
+                ...prev,
+                storeIds: nextStoreIds,
+                storePermissions: nextStorePermissions,
+            };
+        });
+    };
+
+    const toggleStorePermission = (storeId: string, module: keyof StaffPermissions) => {
+        setForm((prev) => {
+            const currentStorePermissions = { ...(prev.storePermissions[storeId] || {}) };
+            const current = currentStorePermissions[module] || prev.permissions[module] || 'none';
+            const next = current === 'none' ? 'read' : current === 'read' ? 'write' : 'none';
+            if (next === prev.permissions[module]) {
+                delete currentStorePermissions[module];
+            } else {
+                currentStorePermissions[module] = next;
+            }
+            const nextStorePermissions = { ...prev.storePermissions };
+            if (Object.keys(currentStorePermissions).length === 0) {
+                delete nextStorePermissions[storeId];
+            } else {
+                nextStorePermissions[storeId] = currentStorePermissions;
+            }
+            return {
+                ...prev,
+                storePermissions: nextStorePermissions,
+            };
+        });
     };
 
     const getPermissionBadge = (level: string) => {
@@ -258,6 +345,9 @@ export default function Staff() {
                                 <div>
                                     <h3 className="text-white font-bold">{user.name}</h3>
                                     <p className="text-xs text-slate-400">{user.email}</p>
+                                    {!!(user.store_ids || []).length && (
+                                        <p className="text-[11px] text-slate-500 mt-1">{user.store_ids.length} magasin(s) assignes</p>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -272,6 +362,15 @@ export default function Staff() {
 
                         <div className="space-y-3 pt-4 border-t border-white/5">
                             <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-4">{t('users.permissions_section_title')}</h4>
+                            {(user.account_roles || []).length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {(user.account_roles || []).map((role: AccountRole) => (
+                                        <span key={role} className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 uppercase">
+                                            {role === 'org_admin' ? 'Admin opérations' : 'Admin facturation'}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-2">
                                 {Object.entries(user.permissions || {}).map(([mod, level]: [string, any]) => (
                                     <div key={mod} className="flex flex-col gap-1">
@@ -374,6 +473,90 @@ export default function Staff() {
                                     </button>
                                 </div>
                             ))}
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <div>
+                                <h4 className="text-sm font-bold text-white">Magasins assignes</h4>
+                                <p className="text-xs text-slate-500 mt-1">Les droits generaux s appliquent partout, puis tu peux affiner magasin par magasin.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {stores.map((store) => {
+                                    const selected = form.storeIds.includes(store.store_id);
+                                    return (
+                                        <button
+                                            key={store.store_id}
+                                            type="button"
+                                            onClick={() => toggleStoreAssignment(store.store_id)}
+                                            className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${selected ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-slate-400'}`}
+                                        >
+                                            {store.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {form.storeIds.map((storeId) => {
+                                const store = stores.find((item) => item.store_id === storeId);
+                                const isExpanded = expandedStoreId === storeId;
+                                return (
+                                    <div key={storeId} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpandedStoreId(isExpanded ? null : storeId)}
+                                            className="w-full flex items-center justify-between gap-4 text-left"
+                                        >
+                                            <div>
+                                                <div className="text-sm font-bold text-white">{store?.name || storeId}</div>
+                                                <div className="text-[11px] text-slate-500 mt-1">
+                                                    {form.storePermissions[storeId] ? 'Droits specifiques configures' : 'Suit les permissions generales'}
+                                                </div>
+                                            </div>
+                                            {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                                        </button>
+                                        {isExpanded && (
+                                            <div className="space-y-2 mt-4">
+                                                {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
+                                                    <div key={`${storeId}-${mod}`} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
+                                                        <span className="text-slate-200 font-medium">{MODULE_LABELS[mod] || mod}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleStorePermission(storeId, mod)}
+                                                            className="transition-all active:scale-95"
+                                                        >
+                                                            {getPermissionBadge(form.storePermissions[storeId]?.[mod] || form.permissions[mod])}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                            <div className="text-xs text-slate-500">`Admin facturation` gere l abonnement. `Admin operations` gere les magasins, les modules et l equipe.</div>
+                            <div className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
+                                <span className="text-slate-200 font-medium">Admin facturation</span>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleAccountRole('billing_admin')}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${form.accountRoles.includes('billing_admin') ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-slate-400 border border-white/10'}`}
+                                >
+                                    {form.accountRoles.includes('billing_admin') ? 'Actif' : 'Inactif'}
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
+                                <span className="text-slate-200 font-medium">Admin opérations</span>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleAccountRole('org_admin')}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${form.accountRoles.includes('org_admin') ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-slate-400 border border-white/10'}`}
+                                >
+                                    {form.accountRoles.includes('org_admin') ? 'Actif' : 'Inactif'}
+                                </button>
+                            </div>
                         </div>
                     </div>
 

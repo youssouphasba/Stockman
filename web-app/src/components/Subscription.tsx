@@ -12,9 +12,11 @@ import {
     ArrowRight,
     Star,
     Smartphone,
-    RefreshCw
+    RefreshCw,
+    Mail,
+    Save
 } from 'lucide-react';
-import { subscription as subApi } from '../services/api';
+import { settings as settingsApi, subscription as subApi } from '../services/api';
 
 export default function Subscription() {
     const { t } = useTranslation();
@@ -22,6 +24,9 @@ export default function Subscription() {
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState<'flutterwave' | 'stripe' | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [billingContactName, setBillingContactName] = useState('');
+    const [billingContactEmail, setBillingContactEmail] = useState('');
+    const [savingBillingContact, setSavingBillingContact] = useState(false);
 
     useEffect(() => {
         loadSubDetails();
@@ -33,6 +38,8 @@ export default function Subscription() {
             setError(null);
             const data = await subApi.getDetails();
             setSubDetails(data);
+            setBillingContactName(data?.billing_contact_name || '');
+            setBillingContactEmail(data?.billing_contact_email || '');
         } catch (err: any) {
             console.error("Subscription details error", err);
             setError(err.message || "Erreur de chargement");
@@ -64,6 +71,22 @@ export default function Subscription() {
             alert("Erreur lors de l'initialisation du paiement par carte.");
         } finally {
             setPurchasing(null);
+        }
+    };
+
+    const handleBillingContactSave = async () => {
+        setSavingBillingContact(true);
+        try {
+            await settingsApi.update({
+                billing_contact_name: billingContactName,
+                billing_contact_email: billingContactEmail,
+            });
+            await loadSubDetails();
+        } catch (err) {
+            console.error('Billing contact update error', err);
+            alert("Erreur lors de la mise a jour du contact de facturation.");
+        } finally {
+            setSavingBillingContact(false);
         }
     };
 
@@ -220,6 +243,42 @@ export default function Subscription() {
                         )}
                     </div>
                 ))}
+            </div>
+
+            <div className="mb-12 glass-card p-8">
+                <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                    <Mail size={24} className="text-primary" />
+                    Contact de facturation
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-slate-400">Nom du contact</label>
+                        <input
+                            type="text"
+                            value={billingContactName}
+                            onChange={(e) => setBillingContactName(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-slate-400">Email de facturation</label>
+                        <input
+                            type="email"
+                            value={billingContactEmail}
+                            onChange={(e) => setBillingContactEmail(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleBillingContactSave}
+                    disabled={savingBillingContact}
+                    className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                >
+                    <Save size={18} />
+                    {savingBillingContact ? 'Enregistrement...' : 'Mettre a jour le contact'}
+                </button>
             </div>
 
             {/* Payment Methods Info */}

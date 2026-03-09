@@ -19,9 +19,10 @@ type Props = {
   onClose: () => void;
   onLaunchGuide: (guideKey: string) => void;
   userRole?: 'shopkeeper' | 'supplier' | 'all';
+  isRestaurant?: boolean;
 };
 
-export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper' }: Props) {
+export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper', isRestaurant = false }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,9 +31,21 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
 
   const filteredModules = useMemo(() => {
     return HELP_MODULES.filter(
-      (m) => m.role === 'all' || m.role === userRole
+      (m) =>
+        (m.role === 'all' || m.role === userRole) &&
+        (isRestaurant
+          ? m.audience === 'restaurant' || m.audience === 'all'
+          : m.audience == null || m.audience === 'default' || m.audience === 'all')
     );
-  }, [userRole]);
+  }, [userRole, isRestaurant]);
+
+  const filteredFaq = useMemo(() => {
+    return FAQ.filter(
+      (item) => isRestaurant
+        ? item.audience === 'restaurant' || item.audience === 'all'
+        : item.audience == null || item.audience === 'default' || item.audience === 'all'
+    );
+  }, [isRestaurant]);
 
   const query = searchQuery.toLowerCase().trim();
 
@@ -51,14 +64,14 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
       }
     }
 
-    const faqResults: FAQItem[] = FAQ.filter(
+    const faqResults: FAQItem[] = filteredFaq.filter(
       (f) =>
         t(f.question).toLowerCase().includes(query) ||
         t(f.answer).toLowerCase().includes(query)
     );
 
     return { modules: moduleResults, faq: faqResults };
-  }, [query, filteredModules]);
+  }, [query, filteredModules, filteredFaq, t]);
 
   function toggleModule(key: string) {
     setExpandedModule(expandedModule === key ? null : key);
@@ -217,7 +230,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
                 {t('help.faq_title')}
               </Text>
 
-              {FAQ.map((faq, i) => (
+              {filteredFaq.map((faq, i) => (
                 <TouchableOpacity
                   key={i}
                   style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}

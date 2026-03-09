@@ -72,6 +72,8 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const selectedSectorConfig = SECTORS.find(s => s.key === businessType);
+  const isRestaurantOnboarding = ['restaurant', 'traiteur', 'boulangerie'].includes(businessType);
 
   const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm";
   const labelClass = "block text-xs font-semibold text-slate-400 mb-1";
@@ -244,7 +246,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                       {'production' in s && s.production && (
                         <span className="text-[8px] text-amber-400 font-bold">🏭 Production</span>
                       )}
-                      {'projects' in s && s.projects && (
+                      {Boolean((s as { projects?: boolean }).projects) && (
                         <span className="text-[8px] text-blue-400 font-bold">🏗️ Chantiers</span>
                       )}
                     </button>
@@ -258,6 +260,30 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                     {SECTORS.find(s => s.key === businessType) && 'projects' in SECTORS.find(s => s.key === businessType)! && (SECTORS.find(s => s.key === businessType) as any).projects
                       ? ' — module Chantiers activé' : ''}
                   </p>
+                )}
+                {selectedSectorConfig && (
+                  <div className={`mt-3 rounded-2xl border p-3 ${isRestaurantOnboarding ? 'border-amber-500/30 bg-amber-500/10' : 'border-white/10 bg-white/5'}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl leading-none">{selectedSectorConfig.icon}</span>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-white">
+                          {isRestaurantOnboarding ? 'Parcours restaurant activé' : 'Interface adaptée à votre secteur'}
+                        </p>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {isRestaurantOnboarding
+                            ? 'Votre espace sera configuré autour du menu, des tables, des réservations, de la cuisine et de la caisse.'
+                            : 'Les guides et les modules de démarrage seront ajustés selon votre activité.'}
+                        </p>
+                        {isRestaurantOnboarding && (
+                          <ul className="text-xs text-slate-300 space-y-1 pt-1">
+                            <li>- Création de la carte et liaison des recettes</li>
+                            <li>- Workflow table {'->'} cuisine {'->'} service {'->'} paiement</li>
+                            <li>- Aide et onboarding dédiés au fonctionnement restaurant</li>
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 

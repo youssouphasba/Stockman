@@ -33,6 +33,7 @@ import {
   MarketplaceSupplier,
   MarketplaceSupplierDetail,
   CatalogProductData,
+  MarketplaceCatalogProduct,
   SupplierStats,
   OrderWithDetails,
   SupplierInvoice,
@@ -73,7 +74,7 @@ export default function SuppliersScreen() {
 
   // Marketplace state
   const [mpSuppliers, setMpSuppliers] = useState<MarketplaceSupplier[]>([]);
-  const [mpProducts, setMpProducts] = useState<CatalogProductData[]>([]);
+  const [mpProducts, setMpProducts] = useState<MarketplaceCatalogProduct[]>([]);
   const [mpSearch, setMpSearch] = useState('');
   const [mpCity, setMpCity] = useState('');
   const [mpCategory, setMpCategory] = useState('');
@@ -2124,6 +2125,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   metricBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metric: {
     flex: 1,
     alignItems: 'center',
   },

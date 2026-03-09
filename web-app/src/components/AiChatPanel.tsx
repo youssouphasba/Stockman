@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Loader2, Trash2, Bot, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ai } from '../services/api';
 
 interface Message {
@@ -14,6 +15,7 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     currentUser: any;
+    features?: { is_restaurant?: boolean; sector?: string } | null;
 }
 
 const WELCOME: Message = {
@@ -22,8 +24,19 @@ const WELCOME: Message = {
     content: "Bonjour ! Je suis votre assistant Stockman alimenté par l'IA. Posez-moi n'importe quelle question sur votre stock, vos ventes, votre comptabilité ou demandez-moi des conseils.",
 };
 
-export default function AiChatPanel({ isOpen, onClose, currentUser }: Props) {
-    const [messages, setMessages] = useState<Message[]>([WELCOME]);
+export default function AiChatPanel({ isOpen, onClose, currentUser, features }: Props) {
+    const { t } = useTranslation();
+    const businessType = typeof currentUser?.business_type === 'string' ? currentUser.business_type.trim() : '';
+    const isRestaurant = Boolean(features?.is_restaurant) || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
+    const welcomeMessage: Message = {
+        id: 'welcome',
+        role: 'assistant',
+        content: t(
+            isRestaurant ? 'ai.chat_welcome_restaurant' : businessType ? 'ai.chat_welcome_sector' : 'ai.chat_welcome',
+            { sector: businessType }
+        ) || WELCOME.content,
+    };
+    const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,6 +46,13 @@ export default function AiChatPanel({ isOpen, onClose, currentUser }: Props) {
     useEffect(() => {
         if (isOpen) inputRef.current?.focus();
     }, [isOpen]);
+
+    useEffect(() => {
+        setMessages(prev => {
+            if (prev.length !== 1 || prev[0]?.id !== 'welcome') return prev;
+            return [welcomeMessage];
+        });
+    }, [welcomeMessage.content]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +83,7 @@ export default function AiChatPanel({ isOpen, onClose, currentUser }: Props) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     };
 
-    const clearHistory = () => setMessages([WELCOME]);
+    const clearHistory = () => setMessages([welcomeMessage]);
 
     // Simple markdown-ish: bold **text** and line breaks
     const renderContent = (text: string) => {

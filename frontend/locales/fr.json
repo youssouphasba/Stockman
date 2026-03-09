@@ -277,6 +277,10 @@
         "summary_role_admin": "Tu es l’assistant personnel de l’ADMINISTRATEUR de Stockman. Tu as accès aux métriques globales.",
         "summary_role_merchant": "Tu es l'assistant IA business de Stockman. Tu combines l'expertise d'un comptable, d'un gestionnaire de stock et d'un analyste commercial. Tu analyses proactivement les données, identifies les tendances cachées, les risques et les opportunités manquées.",
         "summary_tone": "Sois direct et analytique. Utilise des chiffres concrets. Donne des recommandations actionnables numérotées. Ne dis jamais 'il faudrait peut-être' — dis 'Fais X pour obtenir Y'. Écris comme un conseiller business expert qui connaît parfaitement le commerce africain et international.",
+        "summary_role_restaurant": "Tu es l'assistant IA operations de Stockman pour un restaurant. Tu combines l'expertise d'un directeur de salle, d'un responsable cuisine, d'un gestionnaire de stock ingredients et d'un analyste de marge.",
+        "summary_goal_restaurant": "Analyse les donnees reelles du restaurant. Ne te contente pas de repondre aux questions : detecte les tensions en salle, les retards cuisine, les plats sans recette, les risques de rupture ingredients, et suggere des actions immediates sur la carte, la production et le service.",
+        "summary_tone_restaurant": "Sois direct, operationnel et oriente service. Utilise des chiffres concrets. Donne des recommandations courtes pour la salle, la cuisine, les reservations, les tables et les ingredients.",
+        "support_instruction_restaurant": "Quand l'utilisateur est restaurant, raisonne d'abord en termes de menu, recettes, ingredients, production a l'avance, tickets cuisine, tables, reservations et addition. Si une question parle d'un plat, ne le traite pas comme un produit de boutique generique.",
         "tools": {
             "inventory_alerts": {
                 "empty": "Aucune alerte de stock critique.",
@@ -414,6 +418,14 @@
             "shopkeeper": "Commerçant",
             "shopkeeperAccount": "Compte Commerçant",
             "shopkeeperDesc": "Gerez vos stocks, commandez auprès de fournisseurs",
+            "sectorOnboardingTitle": "Interface adaptÃ©e Ã  votre secteur",
+            "sectorOnboardingSubtitle": "Les guides, modules et conseils de dÃ©marrage seront ajustÃ©s selon votre activitÃ©.",
+            "sectorOnboardingHint": "Vous pourrez ajuster vos modules et vos paramÃ¨tres plus tard.",
+            "restaurantOnboardingTitle": "Parcours restaurant activÃ©",
+            "restaurantOnboardingSubtitle": "Votre espace sera configurÃ© autour du menu, des tables, des rÃ©servations, de la cuisine et de la caisse.",
+            "restaurantOnboardingItem1": "- CrÃ©ation de la carte et liaison des recettes",
+            "restaurantOnboardingItem2": "- Workflow table -> cuisine -> service -> paiement",
+            "restaurantOnboardingItem3": "- Guides et FAQ dÃ©diÃ©s au fonctionnement restaurant",
             "supplier": "Fournisseur",
             "supplierAccount": "Compte Fournisseur",
             "supplierDesc": "Publiez votre catalogue, recevez des commandes",
@@ -910,6 +922,30 @@
             "q12": {
                 "q": "Comment fonctionne la fidélité ?",
                 "a": "Activez le programme dans Paramètres > Fidélité. Définissez le ratio de points (ex: 1 point pour un montant fixe). Les points s'accumulent à chaque vente et les clients progressent automatiquement dans les tiers."
+            },
+            "q13": {
+                "q": "Comment créer mon menu restaurant ?",
+                "a": "Dans l'onglet Menu, créez un plat avec son prix, sa catégorie, sa station cuisine et son mode de production. Reliez ensuite une recette de service si le plat doit consommer des ingrédients."
+            },
+            "q14": {
+                "q": "Quelle différence entre à l'avance, à la commande et hybride ?",
+                "a": "À l'avance retire un produit fini préparé en amont. À la commande consomme les ingrédients de la recette au moment du service. Hybride mélange les deux pour un plat qui utilise une base préparée et une finition minute."
+            },
+            "q15": {
+                "q": "Comment ouvrir une commande de table ?",
+                "a": "Dans la Caisse restaurant, sélectionnez une table puis ajoutez les plats. L'envoi en cuisine crée ou enrichit la commande ouverte liée à cette table."
+            },
+            "q16": {
+                "q": "Comment fonctionne l'écran cuisine ?",
+                "a": "Les plats envoyés depuis la caisse arrivent en cuisine avec la table et les notes utiles. Marquez les tickets prêts puis servis pour que la salle garde le bon suivi."
+            },
+            "q17": {
+                "q": "Comment gérer une réservation ?",
+                "a": "Dans Réservations, enregistrez le client, l'heure, les couverts et éventuellement la table. À l'arrivée, vous pouvez ensuite basculer la réservation vers le service en salle."
+            },
+            "q18": {
+                "q": "Le stock des ingrédients est-il lié aux recettes ?",
+                "a": "Oui. Un plat lié à une recette de service consomme ses ingrédients selon son mode de production. Un plat préparé à l'avance peut aussi retirer un produit fini déjà fabriqué."
             }
         },
         "faq_title": "QUESTIONS FRÉQUENTES",
@@ -1234,6 +1270,45 @@
                     "t": "Filtres & Historique",
                     "d": "Filtrez par statut (en attente, confirmée, expédiée, livrée) ou par période pour retrouver vos commandes."
                 }
+            },
+            "restaurantHub": {
+                "title": "Service Restaurant",
+                "f1": { "t": "Vue d'ensemble", "d": "Le hub restaurant regroupe les accès rapides vers les tables, réservations, cuisine et commande comptoir." },
+                "f2": { "t": "Suivi de salle", "d": "Repérez immédiatement les tables libres, réservées ou occupées pour fluidifier le placement." },
+                "f3": { "t": "Réservations", "d": "Préparez le service à venir avec les arrivées prévues et les demandes spéciales." },
+                "f4": { "t": "Cuisine", "d": "Suivez les tickets en attente, prêts ou servis pour garder une coordination claire entre salle et cuisine." }
+            },
+            "restaurantMenu": {
+                "title": "Carte & Recettes",
+                "f1": { "t": "Créer un plat", "d": "Ajoutez un plat avec son prix, sa catégorie carte et sa station cuisine." },
+                "f2": { "t": "Lier une recette", "d": "Associez une recette de service pour que le stock des ingrédients soit consommé correctement." },
+                "f3": { "t": "Mode de production", "d": "Choisissez entre à l'avance, à la commande ou hybride selon votre fonctionnement en cuisine." },
+                "f4": { "t": "Disponibilité", "d": "Gardez la carte alignée sur la réalité de production en désactivant un plat momentanément indisponible." }
+            },
+            "restaurantPos": {
+                "title": "Caisse Restaurant",
+                "f1": { "t": "Commande de table", "d": "Sélectionnez une table ou laissez une commande sans table pour l'emporté." },
+                "f2": { "t": "Panier de service", "d": "Ajoutez les plats du menu et complétez une commande ouverte sans écraser les lignes déjà envoyées." },
+                "f3": { "t": "Envoi cuisine", "d": "Les nouveaux plats sont envoyés en cuisine tout en gardant la table et les couverts." },
+                "f4": { "t": "Clôture", "d": "Encaissez à la fin du repas pour fermer l'addition et libérer la table." }
+            },
+            "restaurantTables": {
+                "title": "Tables",
+                "f1": { "t": "Statuts", "d": "Chaque table peut être libre, réservée, occupée ou en nettoyage." },
+                "f2": { "t": "Capacité", "d": "La capacité aide à proposer rapidement une table adaptée au nombre de couverts." },
+                "f3": { "t": "Fin de service", "d": "Après paiement, la table repasse à libre ou nettoyage selon votre organisation." }
+            },
+            "restaurantReservations": {
+                "title": "Réservations",
+                "f1": { "t": "Planifier", "d": "Enregistrez le client, l'heure, les couverts et les demandes utiles au service." },
+                "f2": { "t": "Suivre", "d": "Les réservations évoluent de confirmée à arrivée, annulée ou no-show." },
+                "f3": { "t": "Basculer en salle", "d": "À l'arrivée, affectez la table et ouvrez le service sans ressaisie." }
+            },
+            "restaurantKitchen": {
+                "title": "Cuisine",
+                "f1": { "t": "Tickets entrants", "d": "La cuisine reçoit les plats envoyés depuis la caisse avec table, quantités et notes." },
+                "f2": { "t": "Marquer prêt", "d": "Passez un ticket à prêt pour prévenir la salle que le plat peut sortir." },
+                "f3": { "t": "Marquer servi", "d": "Quand le plat est livré, marquez-le servi pour conserver un suivi complet du service." }
             }
         },
         "modules_title": "FONCTIONNALITÉS PAR MODULE",
@@ -1298,6 +1373,8 @@
         "ai_placeholder": "Ask your question...",
         "ai_recording": "🎙️ Recording...",
         "ai_welcome": "Hello! I am your Stockman assistant. How can I help you today?",
+        "ai_welcome_restaurant": "Bonjour ! Je suis votre assistant Stockman pour restaurant. Je peux vous aider sur la carte, les recettes, la cuisine, les tables, les reservations et le service.",
+        "ai_welcome_sector": "Bonjour ! Je suis votre assistant Stockman pour {{sector}}. Je peux vous aider sur vos produits, vos ventes, votre stock et vos decisions du jour.",
         "cancel": "Annuler",
         "changePassword": {
             "title": "Changer le mot de passe",
@@ -1567,9 +1644,37 @@
         "select_customer_credit": "Veuillez sélectionner un client pour une vente à crédit.",
         "sku_not_found": "No product found with SKU:",
         "stock_depleted": "Stock depleted",
-        "success": "Sale recorded",
-        "suggestions_title": "Souvent achetés ensemble",
-        "terminal_active": "Terminal : {{name}}",
+    "success": "Sale recorded",
+    "suggestions_title": "Souvent achetés ensemble",
+    "production_mode_prepped": "À l'avance",
+    "production_mode_on_demand": "À la commande",
+    "production_mode_hybrid": "Hybride",
+    "restaurant_options": "Options restaurant",
+    "table_label": "Table",
+    "select_table": "Sélectionner",
+    "open_order_linked": "Commande ouverte liée à cette table",
+    "loading_open_order": "Chargement de la commande ouverte...",
+    "send_to_kitchen": "Envoyer en cuisine",
+    "add_to_open_order": "Ajouter à la commande",
+    "kitchen_notes_placeholder": "Notes cuisine...",
+    "service_label": "Service",
+    "tip_label": "Pourboire",
+    "final_total": "Total final",
+    "discount_label": "Remise",
+    "return_last_sale": "Retour sur dernière vente",
+    "cart_locked_open_order": "Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.",
+    "open_order_locked_title": "Commande ouverte",
+    "no_new_items_to_send": "Aucun nouvel article à envoyer.",
+    "add_item_before_kitchen": "Ajoutez au moins un plat avant l'envoi en cuisine.",
+    "kitchen_send_error": "Erreur lors de l'envoi en cuisine",
+    "dish_count": "{{count}} plat",
+    "dish_count_plural": "{{count}} plats",
+    "no_table": "Sans table",
+    "terminal_label": "Caisse",
+    "ai_suggest": "Suggestion IA",
+    "cancel_action": "Annuler",
+    "confirm_action": "Confirmer",
+    "terminal_active": "Terminal : {{name}}",
         "terminal_modal_subtitle": "Sélectionnez le terminal pour cette session de caisse.",
         "terminal_modal_title": "Choisir un Terminal",
         "terminal_select": "Changer de terminal",
@@ -1579,11 +1684,41 @@
         "total_to_pay": "Total à payer",
         "received_amount": "Montant reçu",
         "change_to_render": "Monnaie à rendre",
-        "unknown": "Unknown",
-        "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
-        "unknown_product_title": "Produit inconnu"
-    },
-    "premium": {
+    "unknown": "Unknown",
+    "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
+    "unknown_product_title": "Produit inconnu"
+  },
+  "restaurant": {
+    "menu_category": "Catégorie menu",
+    "menu_category_placeholder": "Ex: Grillades, Entrées, Desserts",
+    "service_recipe": "Recette de service",
+    "no_recipe": "Aucune",
+    "recipe_required": "Veuillez lier une recette de service pour ce plat.",
+    "menu_form_hint": "Ce formulaire crée un article de menu. Le stock sera piloté selon le mode choisi : préparation à l'avance, à la commande ou hybride.",
+    "station_label": "Station cuisine",
+    "station_plat": "Plat",
+    "station_grill": "Grill",
+    "station_froid": "Froid",
+    "station_boisson": "Boisson",
+    "station_dessert": "Dessert",
+    "recipe_linked": "Recette liée",
+    "recipe_to_define": "À définir",
+    "sale_price": "Prix de vente",
+    "production_label": "Production",
+    "edit_dish": "Modifier le plat",
+    "add_dish": "Ajouter un plat",
+    "no_dish": "Aucun plat",
+    "covers": "Couverts",
+    "service_charge": "Frais de service",
+    "first_dish_hint": "Commencez par créer votre premier plat de menu.",
+    "mark_ready": "Prêt",
+    "served": "Servi",
+    "kitchen_ready_error": "Impossible de marquer cet article comme prêt.",
+    "kitchen_served_error": "Impossible de marquer cette commande comme servie.",
+    "kitchen_subtitle": "Liste des tickets envoyés en cuisine et encore en attente.",
+    "kitchen_empty_desc": "Les commandes envoyées depuis la caisse apparaîtront ici."
+  },
+  "premium": {
         "features": {
             "orders": {
                 "title": "Commandes Intelligentes",

@@ -3,7 +3,7 @@ import json
 import logging
 import asyncio
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 
 
@@ -13,9 +13,11 @@ class RAGService:
     def __init__(self, api_key: str, root_dir: Path):
         self.api_key = api_key
         self.root_dir = root_dir
+        self.index_version = 2
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.guides_path = root_dir.parent / "frontend" / "constants" / "guides.ts"
+        self.frontend_locales_dir = root_dir.parent / "frontend" / "locales"
         self.index = []
         
         genai.configure(api_key=api_key)
@@ -39,7 +41,7 @@ class RAGService:
             logger.error(f"Embedding error: {e}")
             return []
 
-    def _chunk_markdown(self, text: str, source: str) -> List[Dict[str, Any]]:
+    def _chunk_markdown(self, text: str, source: str, audience: str = "all", language: str = "fr") -> List[Dict[str, Any]]:
         """Chunk markdown text into smaller pieces."""
         chunks = []
         # Split by H2 or H3 headers
@@ -64,11 +66,18 @@ class RAGService:
                 parts = section.split('\n\n')
                 for part in parts:
                     if part.strip():
-                        chunks.append({"content": part.strip(), "source": source})
+                        chunks.append({"content": part.strip(), "source": source, "audience": audience, "language": language})
             else:
-                chunks.append({"content": section, "source": source})
-        
+                chunks.append({"content": section, "source": source, "audience": audience, "language": language})
+
         return chunks
+
+    def _guide_audience(self, key: str) -> str:
+        if key.startswith("restaurant"):
+            return "restaurant"
+        if key.startswith("supplier"):
+            return "supplier"
+        return "default"
 
     def _chunk_guides(self) -> List[Dict[str, Any]]:
         """Parse and chunk guides.ts."""
@@ -87,14 +96,56 @@ class RAGService:
             guide_blocks = re.findall(r'(\w+):\s*{\s*title:\s*"([^"]+)",\s*steps:\s*\[([\s\S]*?)\]\s*}', content)
             
             for key, title, steps_content in guide_blocks:
+                audience = self._guide_audience(key)
                 # Extract individual steps
                 steps = re.findall(r'{\s*icon:\s*"[^"]*",\s*title:\s*"([^"]+)",\s*description:\s*"([^"]+)"\s*}', steps_content)
                 for step_title, step_desc in steps:
                     text = f"Guide {title} - {step_title}: {step_desc}"
-                    chunks.append({"content": text, "source": f"guides.ts:{key}"})
+                    chunks.append({
+                        "content": text,
+                        "source": f"guides.ts:{key}",
+                        "audience": audience,
+                        "language": "fr",
+                    })
         except Exception as e:
             logger.error(f"Error parsing guides: {e}")
             
+        return chunks
+
+    def _chunk_localized_help(self) -> List[Dict[str, Any]]:
+        """Extract FAQ/help content from locale files for better support answers."""
+        chunks: List[Dict[str, Any]] = []
+        locale_files = {
+            "fr": self.frontend_locales_dir / "fr.json",
+            "en": self.frontend_locales_dir / "en.json",
+        }
+
+        for lang, path in locale_files.items():
+            if not path.exists():
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading locale file {path}: {e}")
+                continue
+
+            faq = (((data.get("help") or {}).get("faq")) or {})
+            for key, value in faq.items():
+                if not isinstance(value, dict):
+                    continue
+                question = str(value.get("q", "")).strip()
+                answer = str(value.get("a", "")).strip()
+                if not question or not answer:
+                    continue
+                audience = "restaurant" if key.startswith(("q13", "q14", "q15", "q16", "q17", "q18")) else "default"
+                chunks.append({
+                    "content": f"FAQ: {question}\nRéponse: {answer}",
+                    "source": f"locales/{lang}.json:help.faq.{key}",
+                    "audience": audience,
+                    "language": lang,
+                })
+
         return chunks
 
     async def index_documents(self):
@@ -111,8 +162,9 @@ class RAGService:
                 except Exception as e:
                     logger.error(f"Error reading {md_file}: {e}")
 
-        # 2. Process Guides
+        # 2. Process Guides and localized help
         all_chunks.extend(self._chunk_guides())
+        all_chunks.extend(self._chunk_localized_help())
 
         logger.info(f"Indexing {len(all_chunks)} chunks...")
         
@@ -131,7 +183,11 @@ class RAGService:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None,
-            lambda: json.dump(self.index, open(self.index_path, "w", encoding="utf-8"), ensure_ascii=False)
+            lambda: json.dump(
+                {"version": self.index_version, "chunks": self.index},
+                open(self.index_path, "w", encoding="utf-8"),
+                ensure_ascii=False,
+            )
         )
         
         logger.info("Indexing complete.")
@@ -140,15 +196,29 @@ class RAGService:
         """Load index from cache."""
         if self.index_path.exists():
             loop = asyncio.get_event_loop()
-            self.index = await loop.run_in_executor(
+            payload = await loop.run_in_executor(
                 None,
                 lambda: json.load(open(self.index_path, "r", encoding="utf-8"))
             )
+            if isinstance(payload, dict) and payload.get("version") == self.index_version:
+                self.index = payload.get("chunks", [])
+            else:
+                logger.info("RAG index cache is outdated; rebuilding.")
+                return False
             logger.info(f"Loaded {len(self.index)} chunks from index.")
             return True
         return False
 
-    async def get_relevant_context(self, query: str, limit: int = 5) -> str:
+    def _audience_matches(self, chunk_audience: str, sector: Optional[str]) -> bool:
+        if chunk_audience == "all":
+            return True
+        if sector == "restaurant":
+            return chunk_audience in {"restaurant", "all"}
+        if sector == "supplier":
+            return chunk_audience in {"supplier", "all"}
+        return chunk_audience in {"default", "all"}
+
+    async def get_relevant_context(self, query: str, limit: int = 5, sector: Optional[str] = None, language: str = "fr") -> str:
         """Find most relevant chunks for a query using manual cosine similarity."""
         if not self.index:
             if not await self.load_index():
@@ -169,6 +239,11 @@ class RAGService:
         q_mag = magnitude(query_embedding)
         
         for chunk in self.index:
+            if not self._audience_matches(chunk.get("audience", "all"), sector):
+                continue
+            chunk_lang = chunk.get("language")
+            if chunk_lang and chunk_lang != language and chunk_lang != "fr":
+                continue
             c_emb = chunk["embedding"]
             c_mag = magnitude(c_emb)
             
@@ -177,6 +252,10 @@ class RAGService:
             else:
                 score = dot_product(query_embedding, c_emb) / (q_mag * c_mag)
             
+            if chunk.get("language") == language:
+                score += 0.03
+            if sector == "restaurant" and chunk.get("audience") == "restaurant":
+                score += 0.05
             similarities.append((score, chunk))
 
         # Sort by score descending

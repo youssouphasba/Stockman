@@ -28,12 +28,13 @@ import {
     TrendingDown
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
-import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi, stock as stockApi } from '../services/api';
+import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi, stock as stockApi, analytics as analyticsApi, AnalyticsStockHealth } from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
 import BarcodeScanner from './BarcodeScanner';
 import BatchScanModal from './BatchScanModal';
+import StockHealthPanel from './analytics/StockHealthPanel';
 
 export default function Inventory() {
     const { t, i18n } = useTranslation();
@@ -84,6 +85,8 @@ export default function Inventory() {
     const [transferring, setTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
+    const [stockHealthLoading, setStockHealthLoading] = useState(true);
 
     // AI Replenishment advice
     const [replenishAdvice, setReplenishAdvice] = useState<{ advice: string; priority_count: number } | null>(null);
@@ -114,6 +117,7 @@ export default function Inventory() {
                     ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
                     : p
             ));
+            loadStockHealth();
             setStockModalOpen(false);
             setStockMovQty('');
             setStockMovReason('');
@@ -142,8 +146,21 @@ export default function Inventory() {
         }
     };
 
+    const loadStockHealth = async () => {
+        setStockHealthLoading(true);
+        try {
+            const response = await analyticsApi.getStockHealth({ days: 30 });
+            setStockHealth(response);
+        } catch (err) {
+            console.error('Error loading stock health', err);
+        } finally {
+            setStockHealthLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchProducts();
+        loadStockHealth();
         // Load stores + user for transfer feature
         Promise.all([storesApi.list(), import('../services/api').then(m => m.auth.me())])
             .then(([storesRes, userRes]) => {
@@ -234,6 +251,7 @@ export default function Inventory() {
             });
             setIsTransferOpen(false);
             fetchProducts();
+            loadStockHealth();
         } catch (err: any) {
             alert(err?.message || 'Erreur lors du transfert');
         } finally {
@@ -252,6 +270,7 @@ export default function Inventory() {
             }
             setIsProductModalOpen(false);
             fetchProducts();
+            loadStockHealth();
         } catch (err) {
             console.error('Error saving product', err);
         } finally {
@@ -416,6 +435,8 @@ export default function Inventory() {
                     </button>
                 </div>
             </header>
+
+            <StockHealthPanel data={stockHealth} loading={stockHealthLoading} />
 
             {/* AI Replenishment Advice Banner */}
             {showReplenish && (

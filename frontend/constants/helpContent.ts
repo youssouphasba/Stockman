@@ -14,11 +14,13 @@ export type HelpModule = {
   guideKey: string;
   features: HelpFeature[];
   role: 'shopkeeper' | 'supplier' | 'all';
+  audience?: 'default' | 'restaurant' | 'all';
 };
 
 export type FAQItem = {
   question: string;
   answer: string;
+  audience?: 'default' | 'restaurant' | 'all';
 };
 
 export const HELP_MODULES: HelpModule[] = [
@@ -29,6 +31,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#6366f1',
     guideKey: 'dashboard',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'trending-up-outline', title: 'help.modules.dashboard.f1.t', description: "help.modules.dashboard.f1.d" },
       { icon: 'pie-chart-outline', title: 'help.modules.dashboard.f2.t', description: "help.modules.dashboard.f2.d" },
@@ -45,6 +48,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#10b981',
     guideKey: 'products',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'search-outline', title: 'help.modules.products.f1.t', description: "help.modules.products.f1.d" },
       { icon: 'pricetag-outline', title: 'help.modules.products.f2.t', description: "help.modules.products.f2.d" },
@@ -62,6 +66,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#f59e0b',
     guideKey: 'pos',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'barcode-outline', title: 'help.modules.pos.f1.t', description: "help.modules.pos.f1.d" },
       { icon: 'cart-outline', title: 'help.modules.pos.f2.t', description: "help.modules.pos.f2.d" },
@@ -78,6 +83,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#3b82f6',
     guideKey: 'orders',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'add-circle-outline', title: 'help.modules.orders.f1.t', description: "help.modules.orders.f1.d" },
       { icon: 'navigate-outline', title: 'help.modules.orders.f2.t', description: "help.modules.orders.f2.d" },
@@ -93,6 +99,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#8b5cf6',
     guideKey: 'suppliers',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'person-add-outline', title: 'help.modules.suppliers.f1.t', description: "help.modules.suppliers.f1.d" },
       { icon: 'call-outline', title: 'help.modules.suppliers.f2.t', description: "help.modules.suppliers.f2.d" },
@@ -109,6 +116,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#ec4899',
     guideKey: 'crm',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'people-outline', title: 'help.modules.crm.f1.t', description: "help.modules.crm.f1.d" },
       { icon: 'ribbon-outline', title: 'help.modules.crm.f2.t', description: "help.modules.crm.f2.d" },
@@ -125,6 +133,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#14b8a6',
     guideKey: 'accounting',
     role: 'shopkeeper',
+    audience: 'all',
     features: [
       { icon: 'calendar-outline', title: 'help.modules.accounting.f1.t', description: "help.modules.accounting.f1.d" },
       { icon: 'stats-chart-outline', title: 'help.modules.accounting.f2.t', description: "help.modules.accounting.f2.d" },
@@ -141,6 +150,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#ef4444',
     guideKey: 'alerts',
     role: 'shopkeeper',
+    audience: 'default',
     features: [
       { icon: 'settings-outline', title: 'help.modules.alerts.f1.t', description: "help.modules.alerts.f1.d" },
       { icon: 'flash-outline', title: 'help.modules.alerts.f2.t', description: "help.modules.alerts.f2.d" },
@@ -155,6 +165,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#64748b',
     guideKey: 'activity',
     role: 'shopkeeper',
+    audience: 'all',
     features: [
       { icon: 'list-outline', title: 'help.modules.activity.f1.t', description: "help.modules.activity.f1.d" },
       { icon: 'funnel-outline', title: 'help.modules.activity.f2.t', description: "help.modules.activity.f2.d" },
@@ -168,6 +179,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#f97316',
     guideKey: 'users',
     role: 'shopkeeper',
+    audience: 'all',
     features: [
       { icon: 'person-add-outline', title: 'help.modules.users.f1.t', description: "help.modules.users.f1.d" },
       { icon: 'lock-closed-outline', title: 'help.modules.users.f2.t', description: "help.modules.users.f2.d" },
@@ -182,6 +194,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#6366f1',
     guideKey: 'settings',
     role: 'all',
+    audience: 'all',
     features: [
       { icon: 'storefront-outline', title: 'help.modules.settings.f1.t', description: "help.modules.settings.f1.d" },
       { icon: 'moon-outline', title: 'help.modules.settings.f2.t', description: "help.modules.settings.f2.d" },
@@ -196,6 +209,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#6366f1',
     guideKey: 'supplierDashboard',
     role: 'supplier',
+    audience: 'all',
     features: [
       { icon: 'trending-up-outline', title: 'help.modules.supplierDashboard.f1.t', description: "help.modules.supplierDashboard.f1.d" },
       { icon: 'star-outline', title: 'help.modules.supplierDashboard.f2.t', description: "help.modules.supplierDashboard.f2.d" },
@@ -210,6 +224,7 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#10b981',
     guideKey: 'supplierCatalog',
     role: 'supplier',
+    audience: 'all',
     features: [
       { icon: 'add-circle-outline', title: 'help.modules.supplierCatalog.f1.t', description: "help.modules.supplierCatalog.f1.d" },
       { icon: 'pricetag-outline', title: 'help.modules.supplierCatalog.f2.t', description: "help.modules.supplierCatalog.f2.d" },
@@ -224,11 +239,99 @@ export const HELP_MODULES: HelpModule[] = [
     color: '#3b82f6',
     guideKey: 'supplierOrders',
     role: 'supplier',
+    audience: 'all',
     features: [
       { icon: 'list-outline', title: 'help.modules.supplierOrders.f1.t', description: "help.modules.supplierOrders.f1.d" },
       { icon: 'checkmark-circle-outline', title: 'help.modules.supplierOrders.f2.t', description: "help.modules.supplierOrders.f2.d" },
       { icon: 'airplane-outline', title: 'help.modules.supplierOrders.f3.t', description: "help.modules.supplierOrders.f3.d" },
       { icon: 'funnel-outline', title: 'help.modules.supplierOrders.f4.t', description: "help.modules.supplierOrders.f4.d" },
+    ],
+  },
+  {
+    key: 'restaurantHub',
+    title: 'help.modules.restaurantHub.title',
+    icon: 'restaurant-outline',
+    color: '#f97316',
+    guideKey: 'restaurantHub',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'restaurant-outline', title: 'help.modules.restaurantHub.f1.t', description: "help.modules.restaurantHub.f1.d" },
+      { icon: 'calculator-outline', title: 'help.modules.restaurantHub.f2.t', description: "help.modules.restaurantHub.f2.d" },
+      { icon: 'grid-outline', title: 'help.modules.restaurantHub.f3.t', description: "help.modules.restaurantHub.f3.d" },
+      { icon: 'calendar-outline', title: 'help.modules.restaurantHub.f4.t', description: "help.modules.restaurantHub.f4.d" },
+    ],
+  },
+  {
+    key: 'restaurantMenu',
+    title: 'help.modules.restaurantMenu.title',
+    icon: 'book-outline',
+    color: '#10b981',
+    guideKey: 'restaurantProducts',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'add-circle-outline', title: 'help.modules.restaurantMenu.f1.t', description: "help.modules.restaurantMenu.f1.d" },
+      { icon: 'flask-outline', title: 'help.modules.restaurantMenu.f2.t', description: "help.modules.restaurantMenu.f2.d" },
+      { icon: 'layers-outline', title: 'help.modules.restaurantMenu.f3.t', description: "help.modules.restaurantMenu.f3.d" },
+      { icon: 'time-outline', title: 'help.modules.restaurantMenu.f4.t', description: "help.modules.restaurantMenu.f4.d" },
+    ],
+  },
+  {
+    key: 'restaurantPos',
+    title: 'help.modules.restaurantPos.title',
+    icon: 'calculator-outline',
+    color: '#f59e0b',
+    guideKey: 'restaurantPos',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'grid-outline', title: 'help.modules.restaurantPos.f1.t', description: "help.modules.restaurantPos.f1.d" },
+      { icon: 'restaurant-outline', title: 'help.modules.restaurantPos.f2.t', description: "help.modules.restaurantPos.f2.d" },
+      { icon: 'send-outline', title: 'help.modules.restaurantPos.f3.t', description: "help.modules.restaurantPos.f3.d" },
+      { icon: 'cash-outline', title: 'help.modules.restaurantPos.f4.t', description: "help.modules.restaurantPos.f4.d" },
+    ],
+  },
+  {
+    key: 'restaurantTables',
+    title: 'help.modules.restaurantTables.title',
+    icon: 'grid-outline',
+    color: '#3b82f6',
+    guideKey: 'restaurantTables',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'ellipse-outline', title: 'help.modules.restaurantTables.f1.t', description: "help.modules.restaurantTables.f1.d" },
+      { icon: 'people-outline', title: 'help.modules.restaurantTables.f2.t', description: "help.modules.restaurantTables.f2.d" },
+      { icon: 'checkmark-done-outline', title: 'help.modules.restaurantTables.f3.t', description: "help.modules.restaurantTables.f3.d" },
+    ],
+  },
+  {
+    key: 'restaurantReservations',
+    title: 'help.modules.restaurantReservations.title',
+    icon: 'calendar-outline',
+    color: '#8b5cf6',
+    guideKey: 'restaurantReservations',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'add-circle-outline', title: 'help.modules.restaurantReservations.f1.t', description: "help.modules.restaurantReservations.f1.d" },
+      { icon: 'time-outline', title: 'help.modules.restaurantReservations.f2.t', description: "help.modules.restaurantReservations.f2.d" },
+      { icon: 'swap-horizontal-outline', title: 'help.modules.restaurantReservations.f3.t', description: "help.modules.restaurantReservations.f3.d" },
+    ],
+  },
+  {
+    key: 'restaurantKitchen',
+    title: 'help.modules.restaurantKitchen.title',
+    icon: 'flame-outline',
+    color: '#ef4444',
+    guideKey: 'restaurantKitchen',
+    role: 'shopkeeper',
+    audience: 'restaurant',
+    features: [
+      { icon: 'receipt-outline', title: 'help.modules.restaurantKitchen.f1.t', description: "help.modules.restaurantKitchen.f1.d" },
+      { icon: 'checkmark-circle-outline', title: 'help.modules.restaurantKitchen.f2.t', description: "help.modules.restaurantKitchen.f2.d" },
+      { icon: 'walk-outline', title: 'help.modules.restaurantKitchen.f3.t', description: "help.modules.restaurantKitchen.f3.d" },
     ],
   },
 ];
@@ -281,5 +384,36 @@ export const FAQ: FAQItem[] = [
   {
     question: 'help.faq.q12.q',
     answer: "help.faq.q12.a",
+    audience: 'default',
+  },
+  {
+    question: 'help.faq.q13.q',
+    answer: "help.faq.q13.a",
+    audience: 'restaurant',
+  },
+  {
+    question: 'help.faq.q14.q',
+    answer: "help.faq.q14.a",
+    audience: 'restaurant',
+  },
+  {
+    question: 'help.faq.q15.q',
+    answer: "help.faq.q15.a",
+    audience: 'restaurant',
+  },
+  {
+    question: 'help.faq.q16.q',
+    answer: "help.faq.q16.a",
+    audience: 'restaurant',
+  },
+  {
+    question: 'help.faq.q17.q',
+    answer: "help.faq.q17.a",
+    audience: 'restaurant',
+  },
+  {
+    question: 'help.faq.q18.q',
+    answer: "help.faq.q18.a",
+    audience: 'restaurant',
   },
 ];

@@ -124,6 +124,264 @@ export type UserFeatures = {
     sector_label: string;
 };
 
+export type PermissionLevel = 'none' | 'read' | 'write';
+
+export type UserPermissions = {
+    stock?: PermissionLevel;
+    accounting?: PermissionLevel;
+    crm?: PermissionLevel;
+    pos?: PermissionLevel;
+    suppliers?: PermissionLevel;
+    staff?: PermissionLevel;
+};
+
+export type StorePermissions = Record<string, Partial<UserPermissions>>;
+
+export type User = {
+    user_id: string;
+    name: string;
+    email: string;
+    store_name?: string;
+    role: string;
+    permissions?: UserPermissions;
+    effective_permissions?: UserPermissions;
+    account_id?: string;
+    account_roles?: ('billing_admin' | 'org_admin')[];
+    store_permissions?: StorePermissions;
+    plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+    effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+    subscription_status?: 'active' | 'expired' | 'cancelled';
+    effective_subscription_status?: 'active' | 'expired' | 'cancelled';
+    currency?: string;
+    business_type?: string;
+    active_store_id?: string;
+    store_ids?: string[];
+};
+
+export type DashboardLayoutSettings = {
+    show_kpi: boolean;
+    show_stock_status: boolean;
+    show_smart_reminders: boolean;
+    show_forecast: boolean;
+    show_recent_alerts: boolean;
+    show_recent_sales: boolean;
+    show_stock_chart: boolean;
+    show_category_chart: boolean;
+    show_abc_analysis: boolean;
+    show_reorder: boolean;
+    show_inventory_tasks: boolean;
+    show_expiry_alerts: boolean;
+    show_profitability: boolean;
+};
+
+export type UserSettings = {
+    user_id?: string;
+    account_id?: string;
+    user_name?: string;
+    email?: string;
+    currency?: string;
+    modules: Record<string, boolean>;
+    simple_mode: boolean;
+    push_notifications?: boolean;
+    tax_enabled?: boolean;
+    tax_rate?: number;
+    tax_mode?: 'ttc' | 'ht';
+    receipt_business_name?: string;
+    receipt_footer?: string;
+    terminals?: string[];
+    billing_contact_name?: string;
+    billing_contact_email?: string;
+    loyalty?: {
+        is_active: boolean;
+        ratio: number;
+        reward_threshold: number;
+    };
+    mobile_preferences?: {
+        simple_mode: boolean;
+        show_manager_zone?: boolean;
+    };
+    web_preferences?: {
+        dashboard_layout?: DashboardLayoutSettings;
+    };
+    dashboard_layout?: DashboardLayoutSettings;
+    reminder_rules?: Record<string, any>;
+};
+
+export type AnalyticsFilterOption = {
+    id: string;
+    label: string;
+    hint?: string;
+};
+
+export type AnalyticsPeriodOption = {
+    label: string;
+    days: number;
+};
+
+export type AnalyticsFilterMeta = {
+    stores: AnalyticsFilterOption[];
+    categories: AnalyticsFilterOption[];
+    suppliers: AnalyticsFilterOption[];
+    periods: AnalyticsPeriodOption[];
+};
+
+export type AnalyticsFilters = {
+    days?: number;
+    store_id?: string;
+    category_id?: string;
+    supplier_id?: string;
+};
+
+export type AnalyticsExecutiveOverview = {
+    currency: string;
+    days: number;
+    summary: string;
+    kpis: {
+        revenue: number;
+        previous_revenue: number;
+        revenue_delta: number;
+        gross_profit: number;
+        previous_gross_profit: number;
+        gross_profit_delta: number;
+        sales_count: number;
+        previous_sales_count: number;
+        sales_count_delta: number;
+        average_ticket: number;
+        previous_average_ticket: number;
+        average_ticket_delta: number;
+        stock_value: number;
+        low_stock_count: number;
+        out_of_stock_count: number;
+        dormant_products_count: number;
+        total_products: number;
+    };
+    top_products: {
+        product_id: string;
+        name: string;
+        revenue: number;
+        quantity: number;
+        gross_profit: number;
+    }[];
+    top_categories: {
+        category_id?: string;
+        name: string;
+        revenue: number;
+        quantity: number;
+        gross_profit: number;
+    }[];
+};
+
+export type AnalyticsStoreComparisonRow = {
+    store_id: string;
+    store_name: string;
+    address?: string;
+    active: boolean;
+    revenue: number;
+    previous_revenue: number;
+    revenue_delta: number;
+    gross_profit: number;
+    sales_count: number;
+    previous_sales_count: number;
+    sales_count_delta: number;
+    average_ticket: number;
+    stock_value: number;
+    low_stock_count: number;
+    out_of_stock_count: number;
+    dormant_products_count: number;
+    total_products: number;
+};
+
+export type AnalyticsStoreComparison = {
+    currency: string;
+    days: number;
+    totals: {
+        store_count: number;
+        revenue: number;
+        previous_revenue: number;
+        revenue_delta: number;
+        gross_profit: number;
+        sales_count: number;
+        average_ticket: number;
+        stock_value: number;
+        low_stock_count: number;
+        out_of_stock_count: number;
+        dormant_products_count: number;
+        total_products: number;
+    };
+    stores: AnalyticsStoreComparisonRow[];
+};
+
+export type AnalyticsStockProductRisk = {
+    product_id: string;
+    name: string;
+    quantity: number;
+    stock_value: number;
+    store_id?: string;
+    min_stock?: number;
+    max_stock?: number;
+    shortage?: number;
+    overstock_units?: number;
+    suggested_order?: number;
+    expiry_date?: string;
+};
+
+export type AnalyticsStockHealth = {
+    currency: string;
+    days: number;
+    kpis: {
+        stock_value: number;
+        low_stock_count: number;
+        out_of_stock_count: number;
+        overstock_count: number;
+        dormant_products_count: number;
+        expiring_soon_count: number;
+        total_products: number;
+        replenishment_candidates_count: number;
+    };
+    critical_products: AnalyticsStockProductRisk[];
+    overstock_products: AnalyticsStockProductRisk[];
+    dormant_products: AnalyticsStockProductRisk[];
+    expiring_products: AnalyticsStockProductRisk[];
+    replenishment_candidates: AnalyticsStockProductRisk[];
+};
+
+export type AnalyticsStockAbcItem = {
+    product_id: string;
+    name: string;
+    class: 'A' | 'B' | 'C';
+    sales_count: number;
+    revenue: number;
+    quantity: number;
+    unit: string;
+    stock_value: number;
+    share_of_revenue: number;
+    gross_profit: number;
+    recommendation: string;
+};
+
+export type AnalyticsStockAbc = {
+    currency: string;
+    days: number;
+    totals: {
+        revenue: number;
+        product_count: number;
+        class_a_count: number;
+        class_b_count: number;
+        class_c_count: number;
+    };
+    classes: {
+        A: AnalyticsStockAbcItem[];
+        B: AnalyticsStockAbcItem[];
+        C: AnalyticsStockAbcItem[];
+    };
+};
+
+type AuthResponse = {
+    access_token: string;
+    refresh_token?: string;
+    user: User;
+};
+
 // ─── Production Types ───
 
 export type RecipeIngredient = {
@@ -139,6 +397,8 @@ export type Recipe = {
     name: string;
     category?: string;
     description?: string;
+    recipe_type?: 'prep' | 'service';
+    menu_product_id?: string;
     output_product_id?: string;
     output_quantity: number;
     output_unit: string;
@@ -183,20 +443,149 @@ export type ProductionDashboard = {
     in_progress: number;
 };
 
+type ProjectAllocatePayload = {
+    product_id: string;
+    quantity: number;
+    corps_metier?: string;
+};
+
+type ProjectLaborPayload = {
+    name: string;
+    role?: string;
+    days: number;
+    daily_rate: number;
+    corps_metier?: string;
+};
+
+type ProjectSituationPayload = {
+    label: string;
+    percent: number;
+    amount: number;
+    notes?: string;
+};
+
+type ProjectDevisPayload = {
+    designation: string;
+    lot?: string;
+    unite?: string;
+    quantity: number;
+    unit_price: number;
+};
+
+type ProjectJournalPayload = {
+    date: string;
+    weather?: string;
+    workers_count?: number;
+    work_done?: string;
+    materials_received?: string;
+    incidents?: string;
+    notes?: string;
+};
+
+type ProjectSubcontractorPayload = {
+    name: string;
+    corps_metier?: string;
+    contact?: string;
+    contract_amount?: number;
+    notes?: string;
+};
+
+type ProjectSubcontractorPaymentPayload = {
+    amount: number;
+};
+
+type ProjectPhasePayload = {
+    name: string;
+    corps_metier?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+};
+
+export type ProjectMaterial = {
+    material_id: string;
+    allocation_id?: string;
+    product_id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    unit_cost?: number;
+    total_cost: number;
+    corps_metier?: string;
+    allocated_at: string;
+};
+
+export type ProjectLaborEntry = {
+    labor_id: string;
+    name: string;
+    role?: string;
+    days: number;
+    daily_rate: number;
+    total_cost: number;
+    corps_metier?: string;
+    created_at?: string;
+};
+
+export type ProjectSituation = {
+    situation_id: string;
+    label: string;
+    percent: number;
+    amount: number;
+    notes?: string;
+    date: string;
+    paid?: boolean;
+};
+
+export type Project = {
+    project_id: string;
+    name: string;
+    client_name?: string;
+    client_phone?: string;
+    address?: string;
+    budget_estimate: number;
+    description?: string;
+    retention_percent?: number;
+    actual_cost: number;
+    status: string;
+    materials_allocated: ProjectMaterial[];
+    labor_entries: ProjectLaborEntry[];
+    situations: ProjectSituation[];
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type ProjectCreate = {
+    name: string;
+    client_name?: string;
+    client_phone?: string;
+    address?: string;
+    budget_estimate?: number;
+    description?: string;
+    retention_percent?: number;
+    status?: string;
+};
+
+export type ProjectDashboard = {
+    active_projects: number;
+    total_budget: number;
+    total_actual: number;
+    margin_percent: number;
+};
+
 // Ported services (Subset for the MVP)
 export const auth = {
     login: (email: string, password: string) =>
-        request<{ access_token: string; user: any }>('/auth/login', {
+        request<AuthResponse>('/auth/login', {
             method: 'POST',
             body: { email, password },
         }),
-    me: () => request<any>('/auth/me'),
+    me: () => request<User>('/auth/me'),
     updateProfile: (data: { name?: string; currency?: string; business_type?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
     register: (data: {
         email: string; password: string; name: string;
         role: string; phone?: string; business_type?: string; how_did_you_hear?: string;
-    }) => request<{ access_token: string; user: any }>('/auth/register', { method: 'POST', body: data }),
+    }) => request<AuthResponse>('/auth/register', { method: 'POST', body: data }),
     logout: () => {
         removeToken();
         return Promise.resolve({ message: 'Success' });
@@ -204,10 +593,11 @@ export const auth = {
 };
 
 export const products = {
-    list: (categoryId?: string, skip = 0, limit = 50, locationId?: string) => {
+    list: (categoryId?: string, skip = 0, limit = 50, locationId?: string, isMenuItem?: boolean) => {
         const qs = new URLSearchParams();
         if (categoryId) qs.set('category_id', categoryId);
         if (locationId) qs.set('location_id', locationId);
+        if (typeof isMenuItem === 'boolean') qs.set('is_menu_item', String(isMenuItem));
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<any>(`/products?${qs.toString()}`);
@@ -228,6 +618,37 @@ export const products = {
         request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
 };
 
+export const projects = {
+    list: () => request<Project[]>('/projects'),
+    dashboard: () => request<ProjectDashboard>('/projects/dashboard'),
+    create: (data: ProjectCreate) =>
+        request<Project>('/projects', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<ProjectCreate>) =>
+        request<Project>(`/projects/${id}`, { method: 'PUT', body: data }),
+    complete: (id: string) =>
+        request<Project>(`/projects/${id}/complete`, { method: 'POST' }),
+    allocateMaterial: (projectId: string, data: ProjectAllocatePayload) =>
+        request<Project>(`/projects/${projectId}/materials`, { method: 'POST', body: data }),
+    addLabor: (projectId: string, data: ProjectLaborPayload) =>
+        request<Project>(`/projects/${projectId}/labor`, { method: 'POST', body: data }),
+    addSituation: (projectId: string, data: ProjectSituationPayload) =>
+        request<Project>(`/projects/${projectId}/situations`, { method: 'POST', body: data }),
+    addDevisItem: (projectId: string, data: ProjectDevisPayload) =>
+        request<Project>(`/projects/${projectId}/devis`, { method: 'POST', body: data }),
+    deleteDevisItem: (projectId: string, itemId: string) =>
+        request<Project>(`/projects/${projectId}/devis/${itemId}`, { method: 'DELETE' }),
+    addJournalEntry: (projectId: string, data: ProjectJournalPayload) =>
+        request<Project>(`/projects/${projectId}/journal`, { method: 'POST', body: data }),
+    addSubcontractor: (projectId: string, data: ProjectSubcontractorPayload) =>
+        request<Project>(`/projects/${projectId}/subcontractors`, { method: 'POST', body: data }),
+    paySubcontractor: (projectId: string, subId: string, data: ProjectSubcontractorPaymentPayload) =>
+        request<Project>(`/projects/${projectId}/subcontractors/${subId}/payments`, { method: 'POST', body: data }),
+    addPhase: (projectId: string, data: ProjectPhasePayload) =>
+        request<Project>(`/projects/${projectId}/phases`, { method: 'POST', body: data }),
+    updatePhase: (projectId: string, phaseId: string, data: Partial<ProjectPhasePayload>) =>
+        request<Project>(`/projects/${projectId}/phases/${phaseId}`, { method: 'PUT', body: data }),
+};
+
 export const locations = {
     list: () => request<any[]>('/locations'),
     create: (data: { name: string; type: string }) => request<any>('/locations', { method: 'POST', body: data }),
@@ -243,6 +664,12 @@ export const tables = {
     list: () => request<any[]>('/tables'),
     create: (data: { name: string; capacity: number }) => request<any>('/tables', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/tables/${id}`, { method: 'PUT', body: data }),
+    act: (id: string, action: 'reserve' | 'seat' | 'clean' | 'free', data?: { covers?: number }) =>
+        request<any>(`/tables/${id}/actions/${action}`, { method: 'POST', body: data || {} }),
+    reserve: (id: string) => request<any>(`/tables/${id}/actions/reserve`, { method: 'POST', body: {} }),
+    seat: (id: string, data?: { covers?: number }) => request<any>(`/tables/${id}/actions/seat`, { method: 'POST', body: data || {} }),
+    clean: (id: string) => request<any>(`/tables/${id}/actions/clean`, { method: 'POST', body: {} }),
+    free: (id: string) => request<any>(`/tables/${id}/actions/free`, { method: 'POST', body: {} }),
     delete: (id: string) => request<{ message: string }>(`/tables/${id}`, { method: 'DELETE' }),
 };
 
@@ -258,6 +685,7 @@ export const kitchen = {
     pending: (station?: string) => request<any[]>(`/kitchen/pending${station ? `?station=${station}` : ''}`),
     sendToKitchen: (saleId: string) => request<any>(`/sales/${saleId}/send-kitchen`, { method: 'POST' }),
     markItemReady: (saleId: string, itemIdx: number) => request<any>(`/kitchen/${saleId}/items/${itemIdx}/ready`, { method: 'PUT' }),
+    serveOrder: (saleId: string) => request<any>(`/sales/${saleId}/serve`, { method: 'POST' }),
 };
 
 export const restaurantOrders = {
@@ -324,13 +752,62 @@ export const dashboard = {
     get: () => request<any>('/dashboard'),
 };
 
+export const analytics = {
+    getFilterMeta: () => request<AnalyticsFilterMeta>('/analytics/filters/meta'),
+    getExecutiveOverview: (filters: AnalyticsFilters = {}) => {
+        const qs = new URLSearchParams();
+        if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.store_id) qs.set('store_id', filters.store_id);
+        if (filters.category_id) qs.set('category_id', filters.category_id);
+        if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
+        return request<AnalyticsExecutiveOverview>(`/analytics/executive/overview?${qs.toString()}`);
+    },
+    getStoreComparison: (filters: AnalyticsFilters = {}) => {
+        const qs = new URLSearchParams();
+        if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.store_id) qs.set('store_id', filters.store_id);
+        if (filters.category_id) qs.set('category_id', filters.category_id);
+        if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
+        return request<AnalyticsStoreComparison>(`/analytics/stores/compare?${qs.toString()}`);
+    },
+    getStockHealth: (filters: AnalyticsFilters = {}) => {
+        const qs = new URLSearchParams();
+        if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.store_id) qs.set('store_id', filters.store_id);
+        if (filters.category_id) qs.set('category_id', filters.category_id);
+        if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
+        return request<AnalyticsStockHealth>(`/analytics/stock/health?${qs.toString()}`);
+    },
+    getStockAbc: (filters: AnalyticsFilters = {}) => {
+        const qs = new URLSearchParams();
+        if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.store_id) qs.set('store_id', filters.store_id);
+        if (filters.category_id) qs.set('category_id', filters.category_id);
+        if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
+        return request<AnalyticsStockAbc>(`/analytics/stock/abc?${qs.toString()}`);
+    },
+};
+
 export const stock = {
-    getMovements: (productId?: string, days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+    getMovements: (
+        productId?: string,
+        days?: number,
+        startDate?: string,
+        endDate?: string,
+        skip = 0,
+        limit = 50,
+        storeId?: string,
+        categoryId?: string,
+        supplierId?: string,
+    ) => {
         const qs = new URLSearchParams();
         if (productId) qs.set('product_id', productId);
         if (days) qs.set('days', days.toString());
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
+        if (storeId) qs.set('store_id', storeId);
+        if (categoryId) qs.set('category_id', categoryId);
+        if (supplierId) qs.set('supplier_id', supplierId);
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<any>(`/stock/movements?${qs.toString()}`);
@@ -471,9 +948,9 @@ export const activityLogs = {
 
 // Settings
 export const settings = {
-    get: () => request<any>('/settings'),
-    update: (data: any) =>
-        request<any>('/settings', { method: 'PUT', body: data }),
+    get: () => request<UserSettings>('/settings'),
+    update: (data: Partial<UserSettings> & Record<string, any>) =>
+        request<UserSettings>('/settings', { method: 'PUT', body: data }),
 };
 
 // Marketplace
@@ -565,9 +1042,9 @@ export const creditNotes = {
 };
 
 export const subUsers = {
-    list: () => request<any[]>('/sub-users'),
-    create: (data: any) => request<any>('/sub-users', { method: 'POST', body: data }),
-    update: (id: string, data: any) => request<any>(`/sub-users/${id}`, { method: 'PUT', body: data }),
+    list: () => request<User[]>('/sub-users'),
+    create: (data: Partial<User> & { password?: string }) => request<User>('/sub-users', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<User>) => request<User>(`/sub-users/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/sub-users/${id}`, { method: 'DELETE' }),
 };
 

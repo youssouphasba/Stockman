@@ -290,7 +290,7 @@ export class AuthError extends ApiError {
 // Auth
 export const auth = {
   login: (email: string, password: string) =>
-    request<{ access_token: string; user: User }>('/auth/login', {
+    request<{ access_token: string; refresh_token?: string; user: User }>('/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
@@ -306,7 +306,7 @@ export const auth = {
     country_code?: string,
     plan?: string
   ) =>
-    request<{ access_token: string; user: User }>('/auth/register', {
+    request<{ access_token: string; refresh_token?: string; user: User }>('/auth/register', {
       method: 'POST',
       body: {
         email,
@@ -406,9 +406,10 @@ export const uploads = {
 };
 
 export const products = {
-  list: (categoryId?: string, skip = 0, limit = 50) => {
+  list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean) => {
     const qs = new URLSearchParams();
     if (categoryId) qs.set('category_id', categoryId);
+    if (typeof isMenuItem === 'boolean') qs.set('is_menu_item', String(isMenuItem));
     qs.set('skip', skip.toString());
     qs.set('limit', limit.toString());
     return request<PaginatedResponse<Product>>(`/products?${qs.toString()}`);
@@ -449,6 +450,67 @@ export const products = {
       method: 'POST',
       body: { text, auto_create: autoCreate },
     }),
+};
+
+export const productsApi = products;
+
+type ProjectAllocatePayload = {
+  product_id: string;
+  quantity: number;
+  corps_metier?: string;
+};
+
+type ProjectLaborPayload = {
+  name: string;
+  role?: string;
+  days: number;
+  daily_rate: number;
+  corps_metier?: string;
+};
+
+type ProjectSituationPayload = {
+  label: string;
+  percent: number;
+  amount: number;
+  notes?: string;
+};
+
+type ProjectDevisPayload = {
+  designation: string;
+  lot?: string;
+  unite?: string;
+  quantity: number;
+  unit_price: number;
+};
+
+type ProjectJournalPayload = {
+  date: string;
+  weather?: string;
+  workers_count?: number;
+  work_done?: string;
+  materials_received?: string;
+  incidents?: string;
+  notes?: string;
+};
+
+type ProjectSubcontractorPayload = {
+  name: string;
+  corps_metier?: string;
+  contact?: string;
+  contract_amount?: number;
+  notes?: string;
+};
+
+type ProjectSubcontractorPaymentPayload = {
+  amount: number;
+};
+
+type ProjectPhasePayload = {
+  name: string;
+  corps_metier?: string;
+  start_date?: string;
+  end_date?: string;
+  status?: string;
 };
 
 // Global Catalog
@@ -501,6 +563,8 @@ export type Recipe = {
   store_id: string;
   name: string;
   category?: string;
+  recipe_type?: 'prep' | 'service';
+  menu_product_id?: string;
   output_product_id?: string;
   output_quantity: number;
   output_unit: string;
@@ -522,6 +586,8 @@ export type Recipe = {
 export type RecipeCreate = {
   name: string;
   category?: string;
+  recipe_type?: 'prep' | 'service';
+  menu_product_id?: string;
   output_product_id?: string;
   output_quantity?: number;
   output_unit?: string;
@@ -629,6 +695,58 @@ export const categories = {
     request<Category>(`/categories/${id}`, { method: 'PUT', body: data }),
   delete: (id: string) =>
     request<{ message: string }>(`/categories/${id}`, { method: 'DELETE' }),
+};
+
+export const projects = {
+  list: () => request<Project[]>('/projects'),
+  dashboard: () => request<ProjectDashboard>('/projects/dashboard'),
+  create: (data: ProjectCreate) =>
+    request<Project>('/projects', { method: 'POST', body: data }),
+  update: (id: string, data: Partial<ProjectCreate>) =>
+    request<Project>(`/projects/${id}`, { method: 'PUT', body: data }),
+  complete: (id: string) =>
+    request<Project>(`/projects/${id}/complete`, { method: 'POST' }),
+  allocateMaterial: (projectId: string, dataOrProductId: ProjectAllocatePayload | string, quantity?: number, corps_metier?: string) => {
+    const body: ProjectAllocatePayload = typeof dataOrProductId === 'string'
+      ? { product_id: dataOrProductId, quantity: quantity ?? 0, corps_metier }
+      : dataOrProductId;
+    return request<Project>(`/projects/${projectId}/materials`, { method: 'POST', body });
+  },
+  addLabor: (projectId: string, dataOrName: ProjectLaborPayload | string, role?: string, days?: number, daily_rate?: number, corps_metier?: string) => {
+    const body: ProjectLaborPayload = typeof dataOrName === 'string'
+      ? {
+          name: dataOrName,
+          role,
+          days: days ?? 0,
+          daily_rate: daily_rate ?? 0,
+          corps_metier,
+        }
+      : dataOrName;
+    return request<Project>(`/projects/${projectId}/labor`, { method: 'POST', body });
+  },
+  addSituation: (projectId: string, dataOrLabel: ProjectSituationPayload | string, percent?: number, amount?: number, notes?: string) => {
+    const body: ProjectSituationPayload = typeof dataOrLabel === 'string'
+      ? {
+          label: dataOrLabel,
+          percent: percent ?? 0,
+          amount: amount ?? 0,
+          notes,
+        }
+      : dataOrLabel;
+    return request<Project>(`/projects/${projectId}/situations`, { method: 'POST', body });
+  },
+  addDevisItem: (projectId: string, data: ProjectDevisPayload) =>
+    request<Project>(`/projects/${projectId}/devis`, { method: 'POST', body: data }),
+  addJournalEntry: (projectId: string, data: ProjectJournalPayload) =>
+    request<Project>(`/projects/${projectId}/journal`, { method: 'POST', body: data }),
+  addSubcontractor: (projectId: string, data: ProjectSubcontractorPayload) =>
+    request<Project>(`/projects/${projectId}/subcontractors`, { method: 'POST', body: data }),
+  paySubcontractor: (projectId: string, subId: string, data: ProjectSubcontractorPaymentPayload) =>
+    request<Project>(`/projects/${projectId}/subcontractors/${subId}/payments`, { method: 'POST', body: data }),
+  addPhase: (projectId: string, data: ProjectPhasePayload) =>
+    request<Project>(`/projects/${projectId}/phases`, { method: 'POST', body: data }),
+  updatePhase: (projectId: string, phaseId: string, data: Partial<ProjectPhasePayload>) =>
+    request<Project>(`/projects/${projectId}/phases/${phaseId}`, { method: 'PUT', body: data }),
 };
 
 // Stock
@@ -839,7 +957,7 @@ export const marketplace = {
     if (params?.price_min) qs.append('price_min', params.price_min.toString());
     if (params?.price_max) qs.append('price_max', params.price_max.toString());
     if (params?.min_supplier_rating) qs.append('min_supplier_rating', params.min_supplier_rating.toString());
-    return request<CatalogProductData[]>(`/marketplace/search-products?${qs.toString()}`);
+    return request<MarketplaceCatalogProduct[]>(`/marketplace/search-products?${qs.toString()}`);
   }
 };
 
@@ -1180,28 +1298,40 @@ export type StoreCreate = {
   address?: string;
 };
 
+export type PermissionLevel = 'none' | 'read' | 'write';
+
 export type UserPermissions = {
-  stock: 'none' | 'read' | 'write';
-  accounting: 'none' | 'read' | 'write';
-  crm: 'none' | 'read' | 'write';
-  pos: 'none' | 'read' | 'write';
-  suppliers: 'none' | 'read' | 'write';
+  stock: PermissionLevel;
+  accounting: PermissionLevel;
+  crm: PermissionLevel;
+  pos: PermissionLevel;
+  suppliers: PermissionLevel;
+  staff: PermissionLevel;
 };
+
+export type StorePermissions = Record<string, Partial<UserPermissions>>;
 
 export type User = {
   user_id: string;
   email: string;
   name: string;
+  store_name?: string;
   picture?: string;
   auth_type: string;
   role: string; // "shopkeeper" | "staff" | "supplier"
-  permissions?: Record<string, 'none' | 'read' | 'write'>;
+  permissions?: Partial<UserPermissions>;
+  effective_permissions?: Partial<UserPermissions>;
   parent_user_id?: string;
+  account_id?: string;
+  account_roles?: ('billing_admin' | 'org_admin')[];
+  store_permissions?: StorePermissions;
   created_at: string;
   active_store_id?: string;
   store_ids?: string[];
   plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
-  subscription_status?: 'active' | 'expired';
+  effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+  subscription_status?: 'active' | 'expired' | 'cancelled';
+  effective_subscription_status?: 'active' | 'expired' | 'cancelled';
   trial_ends_at?: string;
   currency?: string;
   business_type?: string;
@@ -1232,6 +1362,7 @@ export type Product = {
   unit: string;
   purchase_price: number;
   selling_price: number;
+  tax_rate?: number;
   min_stock: number;
   max_stock: number;
   lead_time_days: number;
@@ -1239,12 +1370,88 @@ export type Product = {
   rfid_tag?: string;
   expiry_date?: string;
   location_id?: string;
+  product_type?: string;
+  is_producible?: boolean;
+  is_menu_item?: boolean;
+  menu_category?: string;
+  kitchen_station?: string;
+  production_mode?: 'prepped' | 'on_demand' | 'hybrid';
+  linked_recipe_id?: string;
   user_id: string;
   is_active: boolean;
   variants: ProductVariant[];
   has_variants: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type ProjectMaterial = {
+  material_id: string;
+  allocation_id?: string;
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  unit_cost?: number;
+  total_cost: number;
+  corps_metier?: string;
+  allocated_at: string;
+};
+
+export type ProjectLaborEntry = {
+  labor_id: string;
+  name: string;
+  role?: string;
+  days: number;
+  daily_rate: number;
+  total_cost: number;
+  corps_metier?: string;
+  created_at?: string;
+};
+
+export type ProjectSituation = {
+  situation_id: string;
+  label: string;
+  percent: number;
+  amount: number;
+  notes?: string;
+  date: string;
+};
+
+export type Project = {
+  project_id: string;
+  name: string;
+  client_name?: string;
+  client_phone?: string;
+  address?: string;
+  budget_estimate: number;
+  description?: string;
+  retention_percent?: number;
+  actual_cost: number;
+  status: string;
+  materials_allocated: ProjectMaterial[];
+  labor_entries: ProjectLaborEntry[];
+  situations: ProjectSituation[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ProjectCreate = {
+  name: string;
+  client_name?: string;
+  client_phone?: string;
+  address?: string;
+  budget_estimate?: number;
+  description?: string;
+  retention_percent?: number;
+  status?: string;
+};
+
+export type ProjectDashboard = {
+  active_projects: number;
+  total_budget: number;
+  total_actual: number;
+  margin_percent: number;
 };
 
 export type ProductCreate = {
@@ -1266,6 +1473,11 @@ export type ProductCreate = {
   variants?: ProductVariant[];
   has_variants?: boolean;
   product_type?: string; // 'standard' | 'raw_material' | 'semi_finished' | 'finished'
+  is_menu_item?: boolean;
+  menu_category?: string;
+  kitchen_station?: string;
+  production_mode?: 'prepped' | 'on_demand' | 'hybrid';
+  linked_recipe_id?: string;
 };
 
 export type PriceHistory = {
@@ -1565,6 +1777,12 @@ export type SaleCreate = {
   discount_amount?: number; // Global discount
   payments?: { method: string; amount: number }[];
   terminal_id?: string;
+  table_id?: string;
+  covers?: number;
+  tip_amount?: number;
+  service_charge_percent?: number;
+  notes?: string;
+  total_amount?: number;
 };
 
 
@@ -1675,10 +1893,32 @@ export type ReminderRuleSettings = {
 export type UserSettings = {
   settings_id: string;
   user_id: string;
+  account_id?: string;
   loyalty: LoyaltySettings;
   reminder_rules?: ReminderRuleSettings;
   modules: Record<string, boolean>;
   simple_mode: boolean;
+  mobile_preferences?: {
+    simple_mode: boolean;
+    show_manager_zone?: boolean;
+  };
+  web_preferences?: {
+    dashboard_layout?: {
+      show_kpi: boolean;
+      show_stock_status: boolean;
+      show_smart_reminders: boolean;
+      show_forecast: boolean;
+      show_recent_alerts: boolean;
+      show_recent_sales: boolean;
+      show_stock_chart: boolean;
+      show_category_chart: boolean;
+      show_abc_analysis: boolean;
+      show_reorder: boolean;
+      show_inventory_tasks: boolean;
+      show_expiry_alerts: boolean;
+      show_profitability: boolean;
+    };
+  };
   language: string;
   push_notifications: boolean;
   dashboard_layout?: {
@@ -1699,6 +1939,8 @@ export type UserSettings = {
   tax_enabled?: boolean;
   tax_rate?: number;
   tax_mode?: string; // "ttc" | "ht"
+  billing_contact_name?: string;
+  billing_contact_email?: string;
 };
 
 export type SupplierInvoice = {
@@ -1742,6 +1984,7 @@ export type SupplierStats = {
 
 export type Supplier = {
   supplier_id: string;
+  user_id?: string;
   name: string;
   contact_name?: string;
   email?: string;
@@ -2075,7 +2318,7 @@ export type SubscriptionData = {
   status: 'active' | 'expired' | 'cancelled';
   trial_ends_at: string;
   subscription_end?: string;
-  subscription_provider: 'none' | 'revenuecat' | '';
+  subscription_provider: 'none' | 'revenuecat' | 'flutterwave' | '';
   remaining_days: number;
   is_trial: boolean;
 };
@@ -2113,6 +2356,12 @@ export const tables = {
     list: () => request<any[]>('/tables'),
     create: (data: { name: string; capacity: number }) => request<any>('/tables', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/tables/${id}`, { method: 'PUT', body: data }),
+    act: (id: string, action: 'reserve' | 'seat' | 'clean' | 'free', data?: { covers?: number }) =>
+      request<any>(`/tables/${id}/actions/${action}`, { method: 'POST', body: data || {} }),
+    reserve: (id: string) => request<any>(`/tables/${id}/actions/reserve`, { method: 'POST', body: {} }),
+    seat: (id: string, data?: { covers?: number }) => request<any>(`/tables/${id}/actions/seat`, { method: 'POST', body: data || {} }),
+    clean: (id: string) => request<any>(`/tables/${id}/actions/clean`, { method: 'POST', body: {} }),
+    free: (id: string) => request<any>(`/tables/${id}/actions/free`, { method: 'POST', body: {} }),
     delete: (id: string) => request<{ message: string }>(`/tables/${id}`, { method: 'DELETE' }),
 };
 
@@ -2121,9 +2370,21 @@ export const reservations = {
     create: (data: any) => request<any>('/reservations', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/reservations/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<{ message: string }>(`/reservations/${id}`, { method: 'DELETE' }),
+    arrive: (id: string, tableId?: string) => request<any>(`/reservations/${id}/arrive`, { method: 'PUT', body: tableId ? { table_id: tableId } : {} }),
 };
 
 export const kitchen = {
     pending: () => request<any[]>('/kitchen/pending'),
     sendToKitchen: (saleId: string) => request<any>(`/sales/${saleId}/send-kitchen`, { method: 'POST' }),
+    markItemReady: (saleId: string, itemIdx: number) => request<any>(`/kitchen/${saleId}/items/${itemIdx}/ready`, { method: 'PUT' }),
+    serveOrder: (saleId: string) => request<any>(`/sales/${saleId}/serve`, { method: 'POST' }),
+};
+
+export const restaurantOrders = {
+    getTableOrder: (tableId: string) => request<any>(`/tables/${tableId}/order`),
+    openOrder: (data: { table_id?: string; covers?: number; items: any[]; notes?: string; service_type?: string }) =>
+        request<any>('/sales', { method: 'POST', body: { ...data, status: 'open', payment_method: 'cash' } }),
+    addItems: (saleId: string, items: any[]) => request<any>(`/sales/${saleId}/items`, { method: 'POST', body: { items } }),
+    finalize: (saleId: string, data: { payment_method?: string; payments?: any[]; tip_amount?: number; discount_amount?: number; service_charge_percent?: number; covers?: number }) =>
+        request<any>(`/sales/${saleId}/finalize`, { method: 'POST', body: data }),
 };

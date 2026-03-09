@@ -31,6 +31,7 @@ import {
     ai as aiApi,
     settings as settingsApi,
     userFeatures as userFeaturesApi,
+    kitchen,
     tables as tablesApi,
     restaurantOrders
 } from '../services/api';
@@ -43,6 +44,9 @@ import LineDiscountModal from './LineDiscountModal';
 import { syncService } from '../services/syncService';
 import { WifiOff, HelpCircle } from 'lucide-react';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+
+const createCartKey = (prefix: 'draft' | 'persisted' = 'draft') =>
+    `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 export default function POS() {
     const { t } = useTranslation();
@@ -104,16 +108,42 @@ export default function POS() {
     // AI Suggestions
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const suggestTimeout = useRef<any>(null);
+    const draftCartItems = useMemo(() => cart.filter(item => !item.persisted), [cart]);
+
+    const getProductionModeLabel = (product: any) => {
+        switch (product?.production_mode) {
+            case 'on_demand':
+                return t('pos.production_mode_on_demand');
+            case 'hybrid':
+                return t('pos.production_mode_hybrid');
+            default:
+                return t('pos.production_mode_prepped');
+        }
+    };
+
+    const getProductionModeClasses = (product: any) => {
+        switch (product?.production_mode) {
+            case 'on_demand':
+                return 'bg-amber-500/15 text-amber-300 border border-amber-500/30';
+            case 'hybrid':
+                return 'bg-sky-500/15 text-sky-300 border border-sky-500/30';
+            default:
+                return 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+        }
+    };
+
+    const requiresFinishedStock = (product: any) => (product?.production_mode || 'prepped') !== 'on_demand';
 
     const loadInitialData = async () => {
         try {
             setLoading(true);
-            const [prodsRes, catsRes, custsRes, settingsRes, featuresRes, tablesRes] = await Promise.all([
-                productsApi.list(undefined, 0, 500),
+            const featuresRes = await userFeaturesApi.get().catch(() => null);
+            const isRestaurantAccount = !!(featuresRes?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(featuresRes?.sector || ''));
+            const [prodsRes, catsRes, custsRes, settingsRes, tablesRes] = await Promise.all([
+                productsApi.list(undefined, 0, 500, undefined, isRestaurantAccount ? true : undefined),
                 categoriesApi.list(),
                 customersApi.list(),
                 settingsApi.get().catch(() => null),
-                userFeaturesApi.get().catch(() => null),
                 tablesApi.list().catch(() => [])
             ]);
             setAllProducts((prodsRes.items || prodsRes));
@@ -124,9 +154,11 @@ export default function POS() {
                 // Auto-select terminal if only one
                 if (settingsRes.terminals?.length === 1) setSelectedTerminal(settingsRes.terminals[0]);
             }
-            if (featuresRes?.is_restaurant || ['restaurant', 'traiteur'].includes(featuresRes?.sector || '')) {
+            if (isRestaurantAccount) {
                 setRestaurantMode(true);
                 setTableList(Array.isArray(tablesRes) ? tablesRes : []);
+            } else {
+                setRestaurantMode(false);
             }
         } catch (err) {
             console.error("Load error", err);
@@ -154,7 +186,10 @@ export default function POS() {
                 // Filter out products already in cart and products with 0 stock
                 setSuggestions((Array.isArray(result.suggestions) ? result.suggestions : []).filter((s: any) =>
                     !cartPids.has(s.product_id) &&
-                    (Array.isArray(allProducts) ? allProducts : []).find(p => p.product_id === s.product_id)?.quantity > 0
+                    (() => {
+                        const prod = (Array.isArray(allProducts) ? allProducts : []).find(p => p.product_id === s.product_id);
+                        return prod ? (!requiresFinishedStock(prod) || prod.quantity > 0) : false;
+                    })()
                 ));
             } catch (err) {
                 // silent
@@ -164,43 +199,56 @@ export default function POS() {
     }, [cart, allProducts]);
 
     const addToCart = (product: any) => {
-        if (product.quantity <= 0) return;
+        if (requiresFinishedStock(product) && product.quantity <= 0) return;
         setCart(current => {
-            const existing = current.find(item => item.product_id === product.product_id);
+            const existing = current.find(item => item.product_id === product.product_id && !item.persisted);
             if (existing) {
-                if (existing.quantity >= product.quantity) return current;
+                if (requiresFinishedStock(product) && existing.quantity >= product.quantity) return current;
                 return current.map(item =>
-                    item.product_id === product.product_id
+                    item.cart_key === existing.cart_key
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             }
-            return [...current, { ...product, quantity: 1, item_notes: '' }];
+            return [...current, { ...product, cart_key: createCartKey('draft'), quantity: 1, item_notes: '', persisted: false }];
         });
     };
 
-    const removeFromCart = (productId: string) => {
+    const removeFromCart = (cartKey: string) => {
         setCart(current => current.map(item => {
-            if (item.product_id === productId) {
+            if (item.cart_key === cartKey && !item.persisted) {
                 return { ...item, quantity: Math.max(1, item.quantity - 1) };
             }
             return item;
         }));
     };
 
-    const deleteFromCart = (productId: string) => {
-        setCart(current => current.filter(item => item.product_id !== productId));
+    const deleteFromCart = (cartKey: string) => {
+        setCart(current => current.filter(item => item.cart_key !== cartKey));
     };
 
-    const applyLineDiscount = (productId: string, type: 'percentage' | 'fixed', value: number) => {
+    const applyLineDiscount = (cartKey: string, type: 'percentage' | 'fixed', value: number) => {
         setCart(current => current.map(item => {
-            if (item.product_id !== productId) return item;
+            if (item.cart_key !== cartKey || item.persisted) return item;
             const base = item._base_price || item.selling_price;
             const discounted = type === 'percentage'
                 ? Math.round(base * (1 - Math.min(value, 100) / 100))
                 : Math.max(0, base - value);
             return { ...item, _base_price: base, selling_price: discounted };
         }));
+    };
+
+    const buildSaleItemPayload = (item: any) => {
+        const basePrice = item._base_price || item.selling_price;
+        const discountAmount = Math.max(0, (basePrice - item.selling_price) * item.quantity);
+        return {
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: Math.round(item.selling_price * 100) / 100,
+            discount_amount: Math.round(discountAmount * 100) / 100,
+            item_notes: item.item_notes || undefined,
+            station: item.station || undefined,
+        };
     };
 
     const calculateSubtotal = () =>
@@ -217,34 +265,76 @@ export default function POS() {
     const taxEnabled = storeSettings?.tax_enabled ?? false;
     const taxRate = storeSettings?.tax_rate ?? 0;
     const taxMode = storeSettings?.tax_mode ?? 'ttc';
+    const hasLineLevelTax = cart.some(item => Math.max(0, Number(item.tax_rate ?? 0)) > 0);
+    const effectiveTaxEnabled = taxEnabled || hasLineLevelTax;
+    const taxSummary = useMemo(() => {
+        const subtotal = Math.round(calculateSubtotal() * 100) / 100;
+        const discount = Math.round(Math.min(calculateDiscount(), subtotal) * 100) / 100;
+        const ratesUsed = new Set<number>();
 
-    const calculateTaxAmount = () => {
-        if (!taxEnabled || taxRate <= 0) return 0;
-        const base = calculateTotal();
-        if (taxMode === 'ttc') return Math.round(base * taxRate / (100 + taxRate));
-        return Math.round(base * taxRate / 100);
-    };
+        if (!effectiveTaxEnabled || cart.length === 0) {
+            const netSubtotal = Math.max(0, subtotal - discount);
+            return {
+                taxAmount: 0,
+                htAmount: netSubtotal,
+                taxableBase: netSubtotal,
+                ratesUsed: [] as number[],
+            };
+        }
 
-    const calculateHT = () => {
-        if (!taxEnabled || taxRate <= 0) return calculateTotal();
-        return taxMode === 'ttc' ? calculateTotal() - calculateTaxAmount() : calculateTotal();
-    };
+        let remainingDiscount = discount;
+        let taxAmount = 0;
+
+        for (let index = 0; index < cart.length; index += 1) {
+            const item = cart[index];
+            const lineTotal = Math.round(item.selling_price * item.quantity * 100) / 100;
+            let lineDiscount = 0;
+            if (discount > 0 && lineTotal > 0) {
+                lineDiscount = index === cart.length - 1
+                    ? Math.min(lineTotal, Math.max(0, remainingDiscount))
+                    : Math.min(lineTotal, Math.round((discount * lineTotal / subtotal) * 100) / 100);
+                remainingDiscount = Math.round(Math.max(0, remainingDiscount - lineDiscount) * 100) / 100;
+            }
+
+            const discountedLineTotal = Math.max(0, lineTotal - lineDiscount);
+            const lineTaxRate = Math.max(0, Number(item.tax_rate ?? taxRate ?? 0));
+            if (lineTaxRate <= 0 || discountedLineTotal <= 0) continue;
+            ratesUsed.add(lineTaxRate);
+            taxAmount += taxMode === 'ttc'
+                ? discountedLineTotal * lineTaxRate / (100 + lineTaxRate)
+                : discountedLineTotal * lineTaxRate / 100;
+        }
+
+        const roundedTaxAmount = Math.round(taxAmount * 100) / 100;
+        const netSubtotal = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+        return {
+            taxAmount: roundedTaxAmount,
+            htAmount: taxMode === 'ttc' ? Math.round((netSubtotal - roundedTaxAmount) * 100) / 100 : netSubtotal,
+            taxableBase: taxMode === 'ht' ? Math.round((netSubtotal + roundedTaxAmount) * 100) / 100 : netSubtotal,
+            ratesUsed: Array.from(ratesUsed).sort((a, b) => a - b),
+        };
+    }, [cart, discountType, discountValue, effectiveTaxEnabled, taxMode, taxRate]);
+
+    const calculateTaxAmount = () => taxSummary.taxAmount;
+
+    const calculateHT = () => taxSummary.htAmount;
 
     const calculateTipAmount = () => {
-        const base = calculateTotal();
+        const base = taxSummary.taxableBase;
         if (tipType === 'percent') return Math.round(base * tipPercent / 100);
         return tipFixed;
     };
 
     const calculateServiceCharge = () => {
-        const base = calculateTotal();
+        const base = taxSummary.taxableBase;
         return Math.round(base * serviceChargePercent / 100);
     };
 
     const calculateGrandTotal = () => {
-        const base = taxMode === 'ht' && taxEnabled ? calculateTotal() + calculateTaxAmount() : calculateTotal();
+        const base = taxSummary.taxableBase;
         return base + calculateTipAmount() + calculateServiceCharge();
     };
+    const taxLabel = taxSummary.ratesUsed.length === 1 ? `TVA (${taxSummary.ratesUsed[0]}%)` : 'TVA';
 
     const handleSplitCheckout = async () => {
         const total = calculateGrandTotal();
@@ -259,7 +349,11 @@ export default function POS() {
     const handleCheckout = async (method: string, payments?: { method: string; amount: number }[]) => {
         if (cart.length === 0 || submitting) return;
         if (method === 'credit' && !selectedCustomer) {
-            setError("Veuillez sélectionner un client pour une vente à crédit.");
+            setError(t('pos.select_customer_credit'));
+            return;
+        }
+        if (restaurantMode && openOrderId && draftCartItems.length > 0) {
+            setError(t('pos.send_pending_items_before_payment', 'Envoyez d\'abord les nouveaux articles en cuisine avant de clôturer cette commande.'));
             return;
         }
 
@@ -281,12 +375,7 @@ export default function POS() {
                 });
             } else {
                 const saleData: any = {
-                    items: cart.map(item => ({
-                        product_id: item.product_id,
-                        quantity: item.quantity,
-                        price: item.selling_price,
-                        item_notes: item.item_notes || undefined,
-                    })),
+                    items: cart.map(buildSaleItemPayload),
                     total_amount: calculateGrandTotal(),
                     discount_amount: discountAmount,
                     payment_method: method,
@@ -335,11 +424,7 @@ export default function POS() {
             if (!navigator.onLine) {
                 // Fallback if network dropped exactly during call
                 syncService.queueSale({
-                    items: cart.map(item => ({
-                        product_id: item.product_id,
-                        quantity: item.quantity,
-                        price: item.selling_price
-                    })),
+                    items: cart.map(buildSaleItemPayload),
                     total_amount: calculateGrandTotal(),
                     payment_method: method,
                     customer_id: selectedCustomer?.customer_id
@@ -362,8 +447,7 @@ export default function POS() {
         }
     };
 
-    const handleTableSelect = async (tableId: string) => {
-        const table = tableList.find(t => t.table_id === tableId) || null;
+    const loadOpenTableOrder = async (table: any | null) => {
         setSelectedTable(table);
         setOpenOrderId(null);
         setCart([]);
@@ -376,12 +460,18 @@ export default function POS() {
                     // Map server items back to cart format
                     const cartItems = order.items.map((item: any) => {
                         const prod = allProducts.find(p => p.product_id === item.product_id);
+                        const itemPrice = item.selling_price ?? item.price ?? prod?.selling_price ?? 0;
                         return {
+                            cart_key: createCartKey('persisted'),
                             product_id: item.product_id,
                             name: item.product_name || prod?.name || item.product_id,
-                            selling_price: item.price,
+                            selling_price: itemPrice,
+                            tax_rate: item.tax_rate ?? prod?.tax_rate,
                             quantity: item.quantity,
                             image: prod?.image,
+                            item_notes: item.item_notes || '',
+                            station: item.station || prod?.kitchen_station,
+                            persisted: true,
                         };
                     });
                     setCart(cartItems);
@@ -396,6 +486,11 @@ export default function POS() {
         }
     };
 
+    const handleTableSelect = async (tableId: string) => {
+        const table = tableList.find(t => t.table_id === tableId) || null;
+        await loadOpenTableOrder(table);
+    };
+
     const filteredProducts = (Array.isArray(allProducts) ? allProducts : []).filter(p => {
         if (p.product_type === 'raw_material') return false; // Exclure les ingrédients du POS
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -404,25 +499,29 @@ export default function POS() {
         return matchesSearch && matchesCategory;
     });
 
+    const displayProducts = (Array.isArray(filteredProducts) ? filteredProducts : []).filter((p: any) => !restaurantMode || p.is_menu_item);
+
     const posSteps: GuideStep[] = [
         {
-            title: "Bienvenue au POS",
-            content: "C'est ici que vous effectuez vos ventes rapidement.",
+            title: restaurantMode ? t('pos.guide_restaurant_welcome_title', 'Welcome to restaurant checkout') : t('pos.guide_welcome_title', 'Welcome to POS'),
+            content: restaurantMode ? t('pos.guide_restaurant_welcome_content', 'Manage table orders, send dishes to kitchen, and close the bill from here.') : t('pos.guide_welcome_content', 'This is where you process sales quickly.'),
             position: "center"
         },
         {
-            title: "Recherche & Scan",
-            content: "Recherchez un produit par son nom ou utilisez le scanner de code-barres pour aller plus vite.",
+            title: restaurantMode ? t('pos.guide_restaurant_menu_title', 'Menu and table') : t('pos.guide_search_title', 'Search and scan'),
+            content: restaurantMode ? t('pos.guide_restaurant_menu_content', 'Choose menu dishes, then attach the order to a table or keep it as takeaway.') : t('pos.guide_search_content', 'Search for a product by name or use the barcode scanner to move faster.'),
             targetId: "pos-search"
         },
         {
-            title: "Gestion du Panier",
-            content: "Vos articles s'affichent ici. Vous pouvez ajuster les quantités ou supprimer des produits.",
+            title: restaurantMode ? t('pos.guide_restaurant_cart_title', 'Open order flow') : t('pos.guide_cart_title', 'Cart management'),
+            content: restaurantMode ? t('pos.guide_restaurant_cart_content', 'Already-sent lines stay locked so you can add new dishes without losing service history.') : t('pos.guide_cart_content', 'Your items appear here. You can adjust quantities or remove products.'),
             targetId: "pos-cart"
         },
         {
-            title: "Paiement & Validation",
-            content: "Choisissez le mode de paiement (Cash, Mobile, Crédit) pour finaliser la vente.",
+            title: restaurantMode ? t('pos.guide_restaurant_checkout_title', 'Kitchen and payment') : t('pos.guide_checkout_title', 'Payment and validation'),
+
+
+            content: restaurantMode ? t('pos.guide_restaurant_checkout_content', 'Send dishes to kitchen during service, then finalize payment when the table is ready to close.') : t('pos.guide_checkout_content', 'Choose a payment method to complete the sale.'),
             targetId: "pos-checkout"
         }
     ];
@@ -480,12 +579,12 @@ export default function POS() {
 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                        {filteredProducts.map((p) => (
+                        {displayProducts.map((p) => (
                             <button
                                 key={p.product_id}
                                 onClick={() => addToCart(p)}
-                                disabled={p.quantity <= 0}
-                                className={`glass-card p-4 flex flex-col h-full hover:border-primary/50 hover:bg-white/5 transition-all text-left relative overflow-hidden group ${p.quantity <= 0 ? 'opacity-40 grayscale' : ''}`}
+                                disabled={requiresFinishedStock(p) && p.quantity <= 0}
+                                className={`glass-card p-4 flex flex-col h-full hover:border-primary/50 hover:bg-white/5 transition-all text-left relative overflow-hidden group ${(requiresFinishedStock(p) && p.quantity <= 0) ? 'opacity-40 grayscale' : ''}`}
                             >
                                 <div className="aspect-square rounded-xl bg-white/5 mb-3 flex items-center justify-center overflow-hidden">
                                     {p.image ? (
@@ -495,10 +594,20 @@ export default function POS() {
                                     )}
                                 </div>
                                 <h3 className="text-sm font-bold text-white mb-1 line-clamp-2">{p.name}</h3>
+                                {restaurantMode && (
+                                    <div className="mb-2 space-y-2">
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getProductionModeClasses(p)}`}>
+                                            {getProductionModeLabel(p)}
+                                        </span>
+                                        <div className="text-[10px] text-slate-400">
+                                            {t('restaurant.station_label', 'Station')}: {p.kitchen_station || 'plat'}{p.linked_recipe_id ? ` · ${t('restaurant.recipe_linked', 'Recette liée')}` : ''}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-end mt-auto">
                                     <span className="text-primary font-black text-base">{formatCurrency(p.selling_price)}</span>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.quantity < 5 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/5 text-slate-500'}`}>
-                                        {p.quantity} en stock
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(requiresFinishedStock(p) && p.quantity < 5) ? 'bg-rose-500/20 text-rose-400' : restaurantMode && !requiresFinishedStock(p) ? 'bg-sky-500/20 text-sky-300' : 'bg-white/5 text-slate-500'}`}>
+                                        {requiresFinishedStock(p) ? `${p.quantity} ${t('pos.menu_stock_label', 'en stock')}` : t('pos.made_to_order_stock_label', 'à la commande')}
                                     </span>
                                 </div>
                             </button>
@@ -516,7 +625,7 @@ export default function POS() {
                             PANIER
                         </h2>
                         {cart.length > 0 && (
-                            <button onClick={() => setCart([])} className="text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest bg-rose-400/10 px-3 py-1 rounded-full">
+                            <button onClick={() => setCart(current => openOrderId ? current.filter(item => item.persisted) : [])} className="text-[10px] font-black text-rose-400 hover:text-rose-300 uppercase tracking-widest bg-rose-400/10 px-3 py-1 rounded-full">
                                 Vider
                             </button>
                         )}
@@ -544,7 +653,7 @@ export default function POS() {
                                     onChange={(e) => setSelectedCustomer(customersList.find(c => c.customer_id === e.target.value) || null)}
                                     value={selectedCustomer?.customer_id || ''}
                                 >
-                                    <option value="" className="bg-slate-900">Client Anonyme</option>
+                                    <option value="" className="bg-slate-900">{t('pos.anonymous_client', 'Client anonyme')}</option>
                                     {customersList.map(c => (
                                         <option key={c.customer_id} value={c.customer_id} className="bg-slate-900">{c.name}</option>
                                     ))}
@@ -564,11 +673,11 @@ export default function POS() {
                         {cart.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-800 opacity-50">
                                 <ShoppingCart size={64} strokeWidth={1} className="mb-4" />
-                                <p className="font-black text-xs uppercase tracking-widest">Le panier est vide</p>
+                                <p className="font-black text-xs uppercase tracking-widest">{t('pos.empty_cart')}</p>
                             </div>
                         ) : (
                             cart.map((item) => (
-                                <div key={item.product_id} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3 group">
+                                <div key={item.cart_key || item.product_id} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3 group">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <p className="text-white font-bold text-sm leading-tight">{item.name}</p>
@@ -580,11 +689,17 @@ export default function POS() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={() => { setSelectedCartItemId(item.product_id); setShowLineDiscount(true); }}
+                                            <button
+                                                onClick={() => {
+                                                    if (item.persisted) return;
+                                                    setSelectedCartItemId(item.cart_key);
+                                                    setShowLineDiscount(true);
+                                                }}
+                                                disabled={item.persisted}
                                                 className="p-1 text-slate-500 hover:text-amber-400 transition-colors" title="Remise ligne">
                                                 <Tag size={14} />
                                             </button>
-                                            <button onClick={() => deleteFromCart(item.product_id)} className="p-1 text-slate-600 hover:text-rose-400 transition-all">
+                                            <button onClick={() => deleteFromCart(item.cart_key)} disabled={item.persisted} className="p-1 text-slate-600 hover:text-rose-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
@@ -592,20 +707,21 @@ export default function POS() {
                                     {restaurantMode && (
                                         <input
                                             type="text"
-                                            placeholder="Notes: sans sel, bien cuit..."
+                                            placeholder={t('pos.kitchen_notes_placeholder', 'Sans gluten, allergie arachide...')}
                                             value={item.item_notes || ''}
                                             onChange={(e) => setCart(current => current.map(ci =>
-                                                ci.product_id === item.product_id ? { ...ci, item_notes: e.target.value } : ci
+                                                ci.cart_key === item.cart_key ? { ...ci, item_notes: e.target.value } : ci
                                             ))}
+                                            disabled={item.persisted}
                                             className="w-full text-[10px] text-slate-400 bg-transparent border-b border-white/5 outline-none placeholder:text-slate-600 px-1 pb-1"
                                         />
                                     )}
                                     <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
-                                        <button onClick={() => removeFromCart(item.product_id)} className="p-2 hover:bg-white/5 rounded-lg text-white">
+                                        <button onClick={() => removeFromCart(item.cart_key)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
                                             <Minus size={14} />
                                         </button>
                                         <span className="text-white font-black text-sm">{item.quantity}</span>
-                                        <button onClick={() => addToCart(item)} className="p-2 hover:bg-white/5 rounded-lg text-white">
+                                        <button onClick={() => addToCart(item)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
                                             <Plus size={14} />
                                         </button>
                                     </div>
@@ -618,7 +734,7 @@ export default function POS() {
                     {suggestions.length > 0 && (
                         <div className="mb-6 bg-primary/5 border border-primary/20 rounded-2xl p-4">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-1">
-                                <Sparkles size={12} /> Suggeré pour vous
+                                <Sparkles size={12} /> {t('pos.suggestions_title')}
                             </h4>
                             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
                                 {suggestions.map((s: any) => (
@@ -630,7 +746,7 @@ export default function POS() {
                                         <p className="text-white font-bold text-[10px] line-clamp-1">{s.name}</p>
                                         <p className="text-primary font-black text-xs">{formatCurrency(s.selling_price)}</p>
                                         <div className="mt-1 flex justify-between items-center">
-                                            <span className="text-[8px] text-slate-500 font-medium">IA Suggest</span>
+                                            <span className="text-[8px] text-slate-500 font-medium">{t('pos.ai_suggest')}</span>
                                             <Plus size={12} className="text-primary opacity-0 group-hover:opacity-100" />
                                         </div>
                                     </button>
@@ -642,7 +758,7 @@ export default function POS() {
                     {/* Terminal selector */}
                     {storeSettings?.terminals?.length > 1 && (
                         <div className="mb-2 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-                            <span className="text-xs text-slate-400 font-medium shrink-0">Caisse</span>
+                            <span className="text-xs text-slate-400 font-medium shrink-0">{t('pos.terminal_label')}</span>
                             <select
                                 value={selectedTerminal}
                                 onChange={e => setSelectedTerminal(e.target.value)}
@@ -660,22 +776,22 @@ export default function POS() {
                     {restaurantMode && (
                         <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-white">Options Restaurant</span>
+                                <span className="text-sm font-bold text-white">{t('pos.restaurant_options', 'Options restaurant')}</span>
                             </div>
 
                             {/* Table selector */}
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs text-slate-400 flex items-center gap-1">
-                                    Table
-                                    {loadingTableOrder && <span className="text-[10px] text-primary animate-pulse">Chargement commande…</span>}
-                                    {openOrderId && <span className="text-[10px] text-amber-400 font-bold">• Commande ouverte</span>}
+                                    {t('pos.table_label', 'Table')}
+                                    {loadingTableOrder && <span className="text-[10px] text-primary animate-pulse">{t('pos.loading_open_order', 'Chargement commande…')}</span>}
+                                    {openOrderId && <span className="text-[10px] text-amber-400 font-bold">• {t('pos.open_order_linked', 'Commande ouverte')}</span>}
                                 </label>
                                 <select
                                     value={selectedTable?.table_id || ''}
                                     onChange={e => handleTableSelect(e.target.value)}
                                     className="bg-[#0F172A] border border-white/10 rounded-xl p-2.5 text-white text-sm outline-none"
                                 >
-                                    <option value="">— Sans table —</option>
+                                    <option value="">{t('pos.no_table')}</option>
                                     {tableList.map(t => (
                                         <option key={t.table_id} value={t.table_id}>
                                             {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? '🔴' : t.status === 'reserved' ? '🔵' : '🟢'}
@@ -686,7 +802,7 @@ export default function POS() {
 
                             {/* Covers */}
                             <div className="flex items-center gap-3">
-                                <label className="text-xs text-slate-400 flex-1">Couverts</label>
+                                <label className="text-xs text-slate-400 flex-1">{t('restaurant.covers')}</label>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setCovers(c => Math.max(1, c - 1))} className="w-7 h-7 rounded-lg bg-white/10 text-white text-sm flex items-center justify-center hover:bg-white/20">-</button>
                                     <span className="text-white font-bold w-6 text-center">{covers}</span>
@@ -696,7 +812,7 @@ export default function POS() {
 
                             {/* Service charge */}
                             <div className="flex items-center gap-3">
-                                <label className="text-xs text-slate-400 flex-1">Service (%)</label>
+                                <label className="text-xs text-slate-400 flex-1">{t('restaurant.service_charge')} (%)</label>
                                 <select value={serviceChargePercent} onChange={e => setServiceChargePercent(Number(e.target.value))} className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none w-20">
                                     <option value={0}>0%</option>
                                     <option value={5}>5%</option>
@@ -707,7 +823,7 @@ export default function POS() {
 
                             {/* Tip */}
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs text-slate-400">Pourboire</label>
+                                <label className="text-xs text-slate-400">{t('pos.tip_label', 'Pourboire')}</label>
                                 <div className="flex gap-1">
                                     {[0, 5, 10, 15].map(p => (
                                         <button
@@ -721,11 +837,11 @@ export default function POS() {
 
                             {/* Notes */}
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs text-slate-400">Notes cuisine</label>
+                                <label className="text-xs text-slate-400">{t('pos.kitchen_notes_label', 'Notes cuisine')}</label>
                                 <input
                                     value={orderNotes}
                                     onChange={e => setOrderNotes(e.target.value)}
-                                    placeholder="Sans gluten, allergie arachide..."
+                                    placeholder={t('pos.kitchen_notes_placeholder', 'Sans gluten, allergie arachide...')}
                                     className="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none"
                                 />
                             </div>
@@ -734,20 +850,20 @@ export default function POS() {
                             {(serviceChargePercent > 0 || (tipType === 'percent' ? tipPercent > 0 : tipFixed > 0)) && (
                                 <div className="pt-2 border-t border-white/10 space-y-1">
                                     <div className="flex justify-between text-xs text-slate-400">
-                                        <span>Sous-total</span><span>{calculateTotal().toLocaleString()}</span>
+                                        <span>{t('pos.subtotal_label', 'Sous-total')}</span><span>{calculateTotal().toLocaleString()}</span>
                                     </div>
                                     {serviceChargePercent > 0 && (
                                         <div className="flex justify-between text-xs text-slate-400">
-                                            <span>Service ({serviceChargePercent}%)</span><span>+{calculateServiceCharge().toLocaleString()}</span>
+                                            <span>{t('pos.service_label', 'Service')} ({serviceChargePercent}%)</span><span>+{calculateServiceCharge().toLocaleString()}</span>
                                         </div>
                                     )}
                                     {calculateTipAmount() > 0 && (
                                         <div className="flex justify-between text-xs text-slate-400">
-                                            <span>Pourboire</span><span>+{calculateTipAmount().toLocaleString()}</span>
+                                            <span>{t('pos.tip_label', 'Pourboire')}</span><span>+{calculateTipAmount().toLocaleString()}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-sm font-bold text-white pt-1">
-                                        <span>Total final</span><span>{calculateGrandTotal().toLocaleString()}</span>
+                                        <span>{t('pos.final_total', 'Total final')}</span><span>{calculateGrandTotal().toLocaleString()}</span>
                                     </div>
                                 </div>
                             )}
@@ -761,7 +877,7 @@ export default function POS() {
                         {cart.length > 0 && (
                             <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
                                 <Tag size={14} className="text-slate-500 shrink-0" />
-                                <span className="text-xs text-slate-400 font-medium">Remise</span>
+                                <span className="text-xs text-slate-400 font-medium">{t('pos.discount_label', 'Remise')}</span>
                                 <div className="ml-auto flex items-center gap-2">
                                     <button
                                         type="button"
@@ -783,14 +899,14 @@ export default function POS() {
                             </div>
                         )}
 
-                        {taxEnabled && taxRate > 0 && cart.length > 0 && (
+                        {effectiveTaxEnabled && cart.length > 0 && (
                             <div className="flex justify-between text-xs text-slate-400 mb-2">
                                 <span>HT : {formatCurrency(calculateHT())}</span>
-                                <span className="text-amber-400 font-semibold">TVA ({taxRate}%) : {formatCurrency(calculateTaxAmount())}</span>
+                                <span className="text-amber-400 font-semibold">{taxLabel} : {formatCurrency(calculateTaxAmount())}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                            <span className="text-3xl font-black text-white tracking-tighter italic">{taxEnabled ? 'TTC' : 'TOTAL'}</span>
+                            <span className="text-3xl font-black text-white tracking-tighter italic">{effectiveTaxEnabled ? 'TTC' : 'TOTAL'}</span>
                             <div className="text-right">
                                 {calculateDiscount() > 0 && (
                                     <p className="text-xs text-slate-500 line-through">{formatCurrency(calculateSubtotal())}</p>
@@ -808,29 +924,24 @@ export default function POS() {
                                 onClick={() => setIsReturnModalOpen(true)}
                                 className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-white bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-all"
                             >
-                                <RotateCcw size={14} /> Retour sur dernière vente
+                                <RotateCcw size={14} /> {t('pos.return_last_sale', 'Retour sur dernière vente')}
                             </button>
                         )}
 
                         {error && <p className="text-xs text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
 
                         {/* Restaurant: Send to kitchen (open order) */}
-                        {restaurantMode && cart.length > 0 && (
+                        {restaurantMode && draftCartItems.length > 0 && (
                             <button
                                 onClick={async () => {
                                     if (submitting) return;
                                     setSubmitting(true);
                                     setError(null);
                                     try {
-                                        const items = cart.map(item => ({
-                                            product_id: item.product_id,
-                                            quantity: item.quantity,
-                                            price: item.selling_price,
-                                            item_notes: item.item_notes || undefined,
-                                            station: item.station || undefined,
-                                        }));
+                                        const items = draftCartItems.map(buildSaleItemPayload);
                                         if (openOrderId) {
                                             await restaurantOrders.addItems(openOrderId, items);
+                                            await kitchen.sendToKitchen(openOrderId).catch(() => {});
                                         } else {
                                             const order = await restaurantOrders.openOrder({
                                                 table_id: selectedTable?.table_id,
@@ -840,11 +951,18 @@ export default function POS() {
                                                 service_type: selectedTable ? 'dine_in' : 'takeaway',
                                             });
                                             setOpenOrderId(order.sale_id);
-                                            tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
+                                            await kitchen.sendToKitchen(order.sale_id).catch(() => {});
                                         }
-                                        setCart([]); // Vider le panier après envoi en cuisine
+                                        if (selectedTable?.table_id) {
+                                            const refreshedTables = await tablesApi.list().catch(() => tableList);
+                                            const nextTables = Array.isArray(refreshedTables) ? refreshedTables : tableList;
+                                            setTableList(nextTables);
+                                            await loadOpenTableOrder(nextTables.find(t => t.table_id === selectedTable.table_id) || selectedTable);
+                                        } else {
+                                            setCart([]);
+                                        }
                                     } catch (err: any) {
-                                        setError(err?.message || 'Erreur envoi cuisine');
+                                        setError(err?.message || t('pos.error_save_sale'));
                                     } finally {
                                         setSubmitting(false);
                                     }
@@ -852,7 +970,7 @@ export default function POS() {
                                 disabled={submitting}
                                 className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500/20 border border-orange-500/40 text-orange-300 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-orange-500/30 transition-all disabled:opacity-50"
                             >
-                                🍽️ {openOrderId ? 'Ajouter à la commande' : 'Envoyer en cuisine'}
+                                🍽️ {openOrderId ? t('pos.add_to_open_order', 'Ajouter à la commande') : t('pos.send_to_kitchen', 'Envoyer en cuisine')}
                             </button>
                         )}
 
@@ -886,7 +1004,7 @@ export default function POS() {
                                                     return next;
                                                 });
                                             }}
-                                            placeholder="Montant"
+                                            placeholder={t('accounting.amount')}
                                             className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-black text-sm outline-none text-right"
                                         />
                                     </div>
@@ -895,12 +1013,12 @@ export default function POS() {
                                     <button
                                         onClick={() => setIsSplitPayment(false)}
                                         className="flex-1 py-2 text-xs font-bold text-slate-400 bg-white/5 rounded-xl border border-white/10"
-                                    >Annuler</button>
+                                    >{t('pos.cancel_action')}</button>
                                     <button
                                         onClick={handleSplitCheckout}
                                         disabled={submitting}
                                         className="flex-1 py-2 text-xs font-black text-white bg-primary rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50"
-                                    >{submitting ? '...' : 'Confirmer'}</button>
+                                    >{submitting ? '...' : t('pos.confirm_action')}</button>
                                 </div>
                             </div>
                         ) : (
@@ -928,7 +1046,7 @@ export default function POS() {
                                     className="flex flex-col items-center gap-2 p-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all disabled:opacity-50 group shadow-lg shadow-indigo-500/10"
                                 >
                                     <CreditCard size={24} className="group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Crédit</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{t('pos.payment_credit')}</span>
                                 </button>
                             </div>
                             <button
@@ -991,10 +1109,11 @@ export default function POS() {
             <LineDiscountModal
                 isOpen={showLineDiscount}
                 onClose={() => { setShowLineDiscount(false); setSelectedCartItemId(null); }}
-                productName={cart.find(i => i.product_id === selectedCartItemId)?.name || ''}
-                currentPrice={cart.find(i => i.product_id === selectedCartItemId)?._base_price || cart.find(i => i.product_id === selectedCartItemId)?.selling_price || 0}
+                productName={cart.find(i => i.cart_key === selectedCartItemId)?.name || ''}
+                currentPrice={cart.find(i => i.cart_key === selectedCartItemId)?._base_price || cart.find(i => i.cart_key === selectedCartItemId)?.selling_price || 0}
                 onApply={(type, val) => { if (selectedCartItemId) applyLineDiscount(selectedCartItemId, type, val); }}
             />
         </div>
     );
 }
+

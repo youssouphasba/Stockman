@@ -5,19 +5,25 @@ import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
+import { isRestaurantBusiness } from '../utils/business';
+import { getAccessContext, hasModulePermission } from '../utils/access';
 
 type AuthState = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isShopkeeper: boolean;
+  isOrgAdmin: boolean;
+  isBillingAdmin: boolean;
   isSupplier: boolean;
   isStaff: boolean;
   isSuperAdmin: boolean;
   isAppLocked: boolean;
   isPinSet: boolean;
   isBiometricsEnabled: boolean;
+  hasAccountRole: (role: 'billing_admin' | 'org_admin') => boolean;
   hasPermission: (module: string, level?: 'read' | 'write') => boolean;
+  hasOperationalAccess: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string) => Promise<void>;
   verifyPhone: (otp: string) => Promise<void>;
@@ -85,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Detect production mode
         userFeatures.get().then(f => {
           setHasProduction(f.has_production);
-          setIsRestaurant(f.is_restaurant || false);
+          setIsRestaurant(isRestaurantBusiness(f));
         }).catch(() => { });
         if (Platform.OS !== 'web') {
           initPurchases(userData.user_id).catch(console.warn);
@@ -109,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const f = await userFeatures.get();
       console.log('[DEBUG] User features:', JSON.stringify(f));
       setHasProduction(f.has_production);
-      setIsRestaurant(f.is_restaurant || false);
+      setIsRestaurant(isRestaurantBusiness(f));
     } catch (e) {
       console.warn('[DEBUG] Failed to load user features:', e);
     }
@@ -211,6 +217,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const role = user?.role || 'shopkeeper';
+  const access = getAccessContext(user);
+  const accountRoles = access.accountRoles;
+  const isSuperAdmin = access.isSuperAdmin;
+  const isOrgAdmin = access.isOrgAdmin;
+  const isBillingAdmin = access.isBillingAdmin;
+  const effectivePermissions = access.effectivePermissions;
+  const hasOperationalAccess = access.hasOperationalAccess;
 
   return (
     <AuthContext.Provider
@@ -219,15 +232,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         isShopkeeper: role === 'shopkeeper',
+        isOrgAdmin,
+        isBillingAdmin,
         isSupplier: role === 'supplier',
         isStaff: role === 'staff',
-        isSuperAdmin: role === 'superadmin',
+        isSuperAdmin,
+        hasAccountRole: (requiredRole: 'billing_admin' | 'org_admin') => isSuperAdmin || accountRoles.includes(requiredRole) || role === 'shopkeeper',
         hasPermission: (module: string, level: 'read' | 'write' = 'read') => {
-          if (role === 'shopkeeper' || role === 'superadmin') return true;
-          const userPerm = user?.permissions?.[module] || 'none';
-          if (level === 'write') return userPerm === 'write';
-          return userPerm === 'read' || userPerm === 'write';
+          return hasModulePermission(user, module as any, level);
         },
+        hasOperationalAccess,
         login,
         register,
         verifyPhone,

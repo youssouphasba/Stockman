@@ -31,6 +31,7 @@ import { cache, KEYS } from '../../services/cache';
 import { syncService } from '../../services/sync';
 import {
   products as productsApi,
+  recipes as recipesApi,
   categories as categoriesApi,
   stock as stockApi,
   sales as salesApi,
@@ -44,6 +45,7 @@ import {
   Category,
   Location,
   ProductCreate,
+  Recipe,
   StockMovement,
   Sale,
   PriceHistory,
@@ -82,16 +84,11 @@ export default function ProductsScreen() {
   }
   const router = useRouter();
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
-  const { user, hasPermission, hasProduction } = useAuth();
-
-  // If production mode → show the ProductionView instead
-  if (hasProduction) {
-    return <ProductionView currency={user?.currency || 'FCFA'} />;
-  }
+  const { user, hasPermission, hasProduction, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
-
   const canWrite = hasPermission('stock', 'write');
   const { isConnected } = useNetwork();
+
   const [productList, setProductList] = useState<Product[]>([]);
   const [categoryList, setCategoryList] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +113,7 @@ export default function ProductsScreen() {
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [locationList, setLocationList] = useState<Location[]>([]);
+  const [recipeList, setRecipeList] = useState<Recipe[]>([]);
 
   // Add/Edit product form
   const [formName, setFormName] = useState('');
@@ -156,6 +154,10 @@ export default function ProductsScreen() {
   const [aiPriceLoading, setAiPriceLoading] = useState(false);
   const [aiPriceReasoning, setAiPriceReasoning] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formMenuCategory, setFormMenuCategory] = useState('');
+  const [formKitchenStation, setFormKitchenStation] = useState<'plat' | 'grill' | 'froid' | 'boisson' | 'dessert'>('plat');
+  const [formProductionMode, setFormProductionMode] = useState<'prepped' | 'on_demand' | 'hybrid'>('prepped');
+  const [formLinkedRecipeId, setFormLinkedRecipeId] = useState('');
 
   // Category management modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -239,17 +241,19 @@ export default function ProductsScreen() {
     try {
       if (isConnected) {
         const isEnterprise = user?.plan === 'enterprise';
-        const [prodsRes, cats, forecast, locsRes] = await Promise.all([
-          productsApi.list(selectedCategory ?? undefined, 0, 500),
+        const [prodsRes, cats, forecast, locsRes, recipesRes] = await Promise.all([
+          productsApi.list(selectedCategory ?? undefined, 0, 500, isRestaurant ? true : undefined),
           categoriesApi.list(),
           salesApi.forecast(),
           isEnterprise ? locationsApi.list() : Promise.resolve([]),
+          isRestaurant ? recipesApi.list() : Promise.resolve([]),
         ]);
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
         setCategoryList(cats);
         setForecastData(forecast);
         if (isEnterprise) setLocationList(locsRes as Location[]);
+        setRecipeList((recipesRes as Recipe[]).filter((recipe) => recipe.recipe_type !== 'prep'));
         // Determine whether to cache: only cache full list (no category filter)
         if (!selectedCategory) {
           await cache.set(KEYS.PRODUCTS, prods);
@@ -260,9 +264,10 @@ export default function ProductsScreen() {
         const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
         const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
         if (cachedProds) {
+          const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
           const filtered = selectedCategory
-            ? cachedProds.filter((p) => p.category_id === selectedCategory)
-            : cachedProds;
+            ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
+            : sectorFiltered;
           setProductList(filtered);
         }
         if (cachedCats) setCategoryList(cachedCats);
@@ -277,9 +282,10 @@ export default function ProductsScreen() {
       // Fallback to cache on error
       const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
       if (cachedProds) {
+        const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
         const filtered = selectedCategory
-          ? cachedProds.filter((p) => p.category_id === selectedCategory)
-          : cachedProds;
+          ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
+          : sectorFiltered;
         setProductList(filtered);
       }
       const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
@@ -289,7 +295,7 @@ export default function ProductsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isConnected, selectedCategory, user?.active_store_id]);
+  }, [isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
 
   // Load user sector for catalog import
   useEffect(() => {
@@ -434,6 +440,33 @@ export default function ProductsScreen() {
       return matchesSearch && matchesFilter;
     });
   }, [productList, search, filterType]);
+
+  const serviceRecipes = useMemo(
+    () => recipeList.filter((recipe) => recipe.recipe_type !== 'prep'),
+    [recipeList]
+  );
+
+  function getMenuProductionModeLabel(product: Product) {
+    switch (product.production_mode) {
+      case 'on_demand':
+        return t('pos.production_mode_on_demand', 'A la commande');
+      case 'hybrid':
+        return t('pos.production_mode_hybrid', 'Hybride');
+      default:
+        return t('pos.production_mode_prepped', 'A l’avance');
+    }
+  }
+
+  function getMenuProductionModeColor(product: Product) {
+    switch (product.production_mode) {
+      case 'on_demand':
+        return colors.warning;
+      case 'hybrid':
+        return colors.info;
+      default:
+        return colors.success;
+    }
+  }
 
   function getStatusColor(product: Product) {
     if (product.quantity === 0) return colors.danger;
@@ -601,6 +634,10 @@ export default function ProductsScreen() {
     setFormRfidTag('');
     setFormExpiryDate('');
     setFormDescription('');
+    setFormMenuCategory('');
+    setFormKitchenStation('plat');
+    setFormProductionMode('prepped');
+    setFormLinkedRecipeId('');
     setAiPriceReasoning('');
     setFormHasVariants(false);
     setFormVariants([]);
@@ -682,6 +719,10 @@ export default function ProductsScreen() {
     setFormRfidTag(product.rfid_tag || '');
     setFormExpiryDate(product.expiry_date ? product.expiry_date.split('T')[0] : '');
     setFormDescription(product.description || '');
+    setFormMenuCategory(product.menu_category || '');
+    setFormKitchenStation((product.kitchen_station as 'plat' | 'grill' | 'froid' | 'boisson' | 'dessert') || 'plat');
+    setFormProductionMode((product.production_mode as 'prepped' | 'on_demand' | 'hybrid') || 'prepped');
+    setFormLinkedRecipeId(product.linked_recipe_id || '');
     setFormHasVariants(product.has_variants || false);
     setFormVariants(product.variants || []);
     setShowAddModal(true);
@@ -740,6 +781,10 @@ export default function ProductsScreen() {
 
   async function handleSubmitProduct() {
     if (!formName.trim()) return;
+    if (isRestaurant && formProductionMode !== 'prepped' && !formLinkedRecipeId) {
+      Alert.alert(t('common.error'), t('restaurant.recipe_required', 'Veuillez lier une recette de service pour ce plat.'));
+      return;
+    }
     setFormLoading(true);
     try {
       const data: ProductCreate = {
@@ -760,6 +805,11 @@ export default function ProductsScreen() {
         expiry_date: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
         variants: formHasVariants ? formVariants : [],
         has_variants: formHasVariants,
+        is_menu_item: isRestaurant || undefined,
+        menu_category: isRestaurant ? (formMenuCategory.trim() || formCategoryName || undefined) : undefined,
+        kitchen_station: isRestaurant ? formKitchenStation : undefined,
+        production_mode: isRestaurant ? formProductionMode : undefined,
+        linked_recipe_id: isRestaurant ? (formLinkedRecipeId || undefined) : undefined,
       };
 
       if (isConnected) {
@@ -1352,6 +1402,11 @@ export default function ProductsScreen() {
     }
   }
 
+  // If production mode → show the ProductionView instead
+  if (hasProduction && !isRestaurant) {
+    return <ProductionView currency={user?.currency || 'FCFA'} />;
+  }
+
   if (accessDenied) {
     return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
   }
@@ -1385,24 +1440,28 @@ export default function ProductsScreen() {
       >
         <View style={{ paddingTop: Spacing.xs }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
-            <TouchableOpacity
-              style={[styles.iconBtn, isInventoryMode && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => {
-                setIsInventoryMode(!isInventoryMode);
-                if (!isInventoryMode) {
-                  setInventoryValues({});
-                }
-                Alert.alert(
-                  isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
-                  isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
-                );
-              }}
-            >
-              <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={exportInventoryPdf}>
-              <Ionicons name="document-text-outline" size={20} color={colors.primary} />
-            </TouchableOpacity>
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={[styles.iconBtn, isInventoryMode && { backgroundColor: colors.primary + '20' }]}
+                onPress={() => {
+                  setIsInventoryMode(!isInventoryMode);
+                  if (!isInventoryMode) {
+                    setInventoryValues({});
+                  }
+                  Alert.alert(
+                    isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
+                    isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
+                  );
+                }}
+              >
+                <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && (
+              <TouchableOpacity style={styles.iconBtn} onPress={exportInventoryPdf}>
+                <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.iconBtn} onPress={handleExportCSV}>
               <Ionicons name="download-outline" size={20} color={colors.primary} />
             </TouchableOpacity>
@@ -1417,25 +1476,31 @@ export default function ProductsScreen() {
                 >
                   <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: colors.info + '20' }]}
-                  onPress={() => router.push('/inventory/batch-scan')}
-                >
-                  <Ionicons name="scan-outline" size={20} color={colors.info} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: colors.secondary + '20' }]}
-                  onPress={() => setShowBulkImportModal(true)}
-                >
-                  <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: colors.primary + '20' }]}
-                  onPress={() => setShowTextImportModal(true)}
-                >
-                  <Ionicons name="text-outline" size={20} color={colors.primary} />
-                </TouchableOpacity>
-                {userSector && (
+                {!isRestaurant && (
+                  <TouchableOpacity
+                    style={[styles.iconBtn, { backgroundColor: colors.info + '20' }]}
+                    onPress={() => router.push('/inventory/batch-scan')}
+                  >
+                    <Ionicons name="scan-outline" size={20} color={colors.info} />
+                  </TouchableOpacity>
+                )}
+                {!isRestaurant && (
+                  <TouchableOpacity
+                    style={[styles.iconBtn, { backgroundColor: colors.secondary + '20' }]}
+                    onPress={() => setShowBulkImportModal(true)}
+                  >
+                    <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
+                  </TouchableOpacity>
+                )}
+                {!isRestaurant && (
+                  <TouchableOpacity
+                    style={[styles.iconBtn, { backgroundColor: colors.primary + '20' }]}
+                    onPress={() => setShowTextImportModal(true)}
+                  >
+                    <Ionicons name="text-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+                {!isRestaurant && userSector && (
                   <TouchableOpacity
                     style={[styles.iconBtn, { backgroundColor: colors.success + '20' }]}
                     onPress={handleImportCatalog}
@@ -1476,34 +1541,36 @@ export default function ProductsScreen() {
           )}
         </View>
 
-        <View style={styles.filterWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            <TouchableOpacity
-              style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
-              onPress={() => setFilterType('all')}
-            >
-              <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]}
-              onPress={() => setFilterType('out_of_stock')}
-            >
-              <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]}
-              onPress={() => setFilterType('low_stock')}
-            >
-              <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]}
-              onPress={() => setFilterType('overstock')}
-            >
-              <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+        {!isRestaurant && (
+          <View style={styles.filterWrapper}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity
+                style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
+                onPress={() => setFilterType('all')}
+              >
+                <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]}
+                onPress={() => setFilterType('out_of_stock')}
+              >
+                <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]}
+                onPress={() => setFilterType('low_stock')}
+              >
+                <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]}
+                onPress={() => setFilterType('overstock')}
+              >
+                <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.categoryRow}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, { flex: 1 }]}>
@@ -1541,28 +1608,32 @@ export default function ProductsScreen() {
         </View>
 
         {/* Valuation Card */}
-        <View style={styles.valuationCard}>
-          <View style={styles.valuationInfo}>
-            <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
-            <Text style={styles.valuationValue}>
-              {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
-            </Text>
+        {!isRestaurant && (
+          <View style={styles.valuationCard}>
+            <View style={styles.valuationInfo}>
+              <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
+              <Text style={styles.valuationValue}>
+                {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
+              </Text>
+            </View>
+            <View style={styles.valuationBadge}>
+              <Ionicons name="trending-up" size={20} color={colors.success} />
+            </View>
           </View>
-          <View style={styles.valuationBadge}>
-            <Ionicons name="trending-up" size={20} color={colors.success} />
-          </View>
-        </View>
+        )}
 
-        <Text style={styles.resultCount}>{t('products.product_count', { count: filtered.length })}</Text>
+        <Text style={styles.resultCount}>
+          {isRestaurant ? t(filtered.length > 1 ? 'pos.dish_count_plural' : 'pos.dish_count', { count: filtered.length }) : t('products.product_count', { count: filtered.length })}
+        </Text>
 
         {filtered.length === 0 ? (
           <EmptyState
-            title={debouncedSearch ? t('common.no_results') : t('products.no_products')}
+            title={debouncedSearch ? t('common.no_results') : isRestaurant ? t('restaurant.no_dish', 'Aucun plat') : t('products.no_products')}
             message={debouncedSearch
               ? t('products.no_results_for', { query: debouncedSearch })
-              : t('products.no_products_desc')}
+              : isRestaurant ? t('restaurant.first_dish_hint', 'Commencez par créer votre premier plat de menu.') : t('products.no_products_desc')}
             icon={debouncedSearch ? "search-outline" : "cube-outline"}
-            actionLabel={debouncedSearch ? t('common.clear_search') : t('products.add_product')}
+            actionLabel={debouncedSearch ? t('common.clear_search') : isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}
             onAction={() => {
               if (debouncedSearch) {
                 setSearch('');
@@ -1609,32 +1680,56 @@ export default function ProductsScreen() {
                   </View>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
-                      <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
-                        <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
-                          +{formatUserCurrency(margin, user)}
-                        </Text>
-                      </View>
-                      {user?.plan === 'enterprise' && product.location_id && (() => {
-                        const loc = locationList.find(l => l.location_id === product.location_id);
-                        return loc ? (
-                          <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
-                            <Ionicons name="location-outline" size={10} color={colors.info} />
-                            <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
-                              {loc.name}
+                    {isRestaurant ? (
+                      <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <View style={[styles.marginBadge, { backgroundColor: getMenuProductionModeColor(product) + '15' }]}>
+                            <Text style={[styles.marginText, { color: getMenuProductionModeColor(product) }]}>
+                              {getMenuProductionModeLabel(product)}
                             </Text>
                           </View>
-                        ) : null;
-                      })()}
+                          {product.menu_category ? (
+                            <View style={[styles.locationBadge, { backgroundColor: colors.secondary + '18' }]}>
+                              <Text style={[styles.locationBadgeText, { color: colors.secondary }]} numberOfLines={1}>
+                                {product.menu_category}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={[styles.productSku, { marginTop: 6 }]}>
+                          {t('restaurant.station_label', 'Station')}: {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ` · ${t('restaurant.recipe_linked', 'Recette liée')}` : ''}
+                        </Text>
+                      </>
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
+                        <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
+                          <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
+                            +{formatUserCurrency(margin, user)}
+                          </Text>
+                        </View>
+                        {user?.plan === 'enterprise' && product.location_id && (() => {
+                          const loc = locationList.find(l => l.location_id === product.location_id);
+                          return loc ? (
+                            <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
+                              <Ionicons name="location-outline" size={10} color={colors.info} />
+                              <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
+                                {loc.name}
+                              </Text>
+                            </View>
+                          ) : null;
+                        })()}
+                      </View>
+                    )}
+                  </View>
+                  {!isRestaurant && (
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
+                      <Text style={[styles.statusText, { color: getStatusColor(product) }]}>
+                        {getStatusLabel(product)}
+                      </Text>
                     </View>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(product) }]}>
-                      {getStatusLabel(product)}
-                    </Text>
-                  </View>
-                  {product.expiry_date && (
+                  )}
+                  {!isRestaurant && product.expiry_date && (
                     <View style={[styles.expiryBadge, { backgroundColor: getExpiryWarningColor(product.expiry_date) }]}>
                       <Ionicons name="time-outline" size={12} color="#fff" />
                       <Text style={styles.expiryBadgeText}>{getExpiryLabel(product.expiry_date)}</Text>
@@ -1678,6 +1773,23 @@ export default function ProductsScreen() {
                   </View>
                 ) : (
                   <>
+                    {isRestaurant && (
+                      <View style={styles.productDetails}>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>{t('restaurant.sale_price', 'Prix de vente')}</Text>
+                          <Text style={styles.detailValue}>{formatUserCurrency(product.selling_price, user)}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>{t('common.recipe', 'Recette')}</Text>
+                            <Text style={styles.detailValue}>{product.linked_recipe_id ? t('restaurant.recipe_linked', 'Recette liée') : t('restaurant.recipe_to_define', 'À définir')}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>{t('restaurant.production_label', 'Production')}</Text>
+                          <Text style={styles.detailValue}>{getMenuProductionModeLabel(product)}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {!isRestaurant && (
                     <View style={styles.productDetails}>
                       <View style={styles.detailItem}>
                         <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
@@ -1710,9 +1822,10 @@ export default function ProductsScreen() {
                         <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
                       </View>
                     </View>
+                    )}
 
                     {/* Variants display */}
-                    {product.has_variants && product.variants && product.variants.length > 0 && (
+                    {!isRestaurant && product.has_variants && product.variants && product.variants.length > 0 && (
                       <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
                         <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{t('products.variants')}</Text>
                         {product.variants.map(v => (
@@ -1726,13 +1839,15 @@ export default function ProductsScreen() {
 
                     {!isSelectionMode && (
                       <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: colors.secondary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                          onPress={() => openHistoryModal(product)}
-                        >
-                          <Ionicons name="time-outline" size={16} color={colors.secondary} />
-                          <Text style={[styles.actionText, { color: colors.secondary }]}>{t('products.history')}</Text>
-                        </TouchableOpacity>
+                        {!isRestaurant && (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: colors.secondary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                            onPress={() => openHistoryModal(product)}
+                          >
+                            <Ionicons name="time-outline" size={16} color={colors.secondary} />
+                            <Text style={[styles.actionText, { color: colors.secondary }]}>{t('products.history')}</Text>
+                          </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity
                           style={[styles.actionBtn, { backgroundColor: colors.primary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
@@ -1742,7 +1857,7 @@ export default function ProductsScreen() {
                           <Text style={[styles.actionText, { color: colors.primary }]}>{t('products.edit')}</Text>
                         </TouchableOpacity>
 
-                        {canWrite && (
+                        {!isRestaurant && canWrite && (
                           <>
                             <TouchableOpacity
                               style={[styles.actionBtn, { backgroundColor: colors.success + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
@@ -1770,12 +1885,14 @@ export default function ProductsScreen() {
                           </>
                         )}
 
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: colors.textMuted + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                          onPress={() => printLabel(product)}
-                        >
-                          <Ionicons name="print-outline" size={16} color={colors.textMuted} />
-                        </TouchableOpacity>
+                        {!isRestaurant && (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: colors.textMuted + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                            onPress={() => printLabel(product)}
+                          >
+                            <Ionicons name="print-outline" size={16} color={colors.textMuted} />
+                          </TouchableOpacity>
+                        )}
 
                         {canWrite && (
                           <TouchableOpacity
@@ -1829,7 +1946,11 @@ export default function ProductsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingProduct ? t('products.edit_product') : t('products.add_product')}</Text>
+              <Text style={styles.modalTitle}>
+                {isRestaurant
+                  ? editingProduct ? t('restaurant.edit_dish', 'Modifier le plat') : t('restaurant.add_dish', 'Ajouter un plat')
+                  : editingProduct ? t('products.edit_product') : t('products.add_product')}
+              </Text>
               <TouchableOpacity onPress={() => { setShowAddModal(false); setEditingProduct(null); }}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -1919,6 +2040,128 @@ export default function ProductsScreen() {
                     numberOfLines={3}
                   />
                 </View>
+                {isRestaurant && (
+                  <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.md, padding: Spacing.sm, marginBottom: Spacing.md, borderWidth: 1, borderColor: colors.primary + '25' }}>
+                    <Text style={{ color: colors.text, fontSize: 12, lineHeight: 18 }}>
+                      {t('restaurant.menu_form_hint', 'Ce formulaire crée un article de menu. Le stock sera piloté selon le mode choisi : préparation à l\'avance, à la commande ou hybride.')}
+                    </Text>
+                  </View>
+                )}
+                {isRestaurant && (
+                  <>
+                    <FormField
+                      label={t('restaurant.menu_category', 'Catégorie menu')}
+                      value={formMenuCategory}
+                      onChangeText={setFormMenuCategory}
+                      placeholder={t('restaurant.menu_category_placeholder', 'Ex: Grillades, Entrées, Desserts')}
+                      colors={colors}
+                      styles={styles}
+                    />
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.production_label', 'Production')}</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {[
+                          { value: 'prepped', label: t('pos.production_mode_prepped', 'A l’avance') },
+                          { value: 'on_demand', label: t('pos.production_mode_on_demand', 'A la commande') },
+                          { value: 'hybrid', label: t('pos.production_mode_hybrid', 'Hybride') },
+                        ].map((opt) => (
+                          <TouchableOpacity
+                            key={opt.value}
+                            onPress={() => setFormProductionMode(opt.value as 'prepped' | 'on_demand' | 'hybrid')}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 10,
+                              borderRadius: 12,
+                              borderWidth: 1.5,
+                              alignItems: 'center',
+                              backgroundColor: formProductionMode === opt.value ? colors.primary + '20' : 'transparent',
+                              borderColor: formProductionMode === opt.value ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formProductionMode === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 12 }}>
+                              {opt.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.station_label', 'Station cuisine')}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                        {[
+                          { value: 'plat', label: t('restaurant.station_plat', 'Plat') },
+                          { value: 'grill', label: t('restaurant.station_grill', 'Grill') },
+                          { value: 'froid', label: t('restaurant.station_froid', 'Froid') },
+                          { value: 'boisson', label: t('restaurant.station_boisson', 'Boisson') },
+                          { value: 'dessert', label: t('restaurant.station_dessert', 'Dessert') },
+                        ].map((station) => (
+                          <TouchableOpacity
+                            key={station.value}
+                            onPress={() => setFormKitchenStation(station.value as 'plat' | 'grill' | 'froid' | 'boisson' | 'dessert')}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              backgroundColor: formKitchenStation === station.value ? colors.primary : colors.glass,
+                              borderRadius: 20,
+                              marginRight: 8,
+                              borderWidth: 1,
+                              borderColor: formKitchenStation === station.value ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formKitchenStation === station.value ? '#fff' : colors.text, fontSize: 13 }}>
+                              {station.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.service_recipe', 'Recette de service')}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <TouchableOpacity
+                          onPress={() => setFormLinkedRecipeId('')}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            backgroundColor: formLinkedRecipeId === '' ? colors.primary : colors.glass,
+                            borderRadius: 20,
+                            marginRight: 8,
+                            borderWidth: 1,
+                            borderColor: formLinkedRecipeId === '' ? colors.primary : colors.glassBorder,
+                          }}
+                        >
+                          <Text style={{ color: formLinkedRecipeId === '' ? '#fff' : colors.text, fontSize: 13 }}>
+                            {t('restaurant.no_recipe', 'Aucune')}
+                          </Text>
+                        </TouchableOpacity>
+                        {serviceRecipes.map((recipe) => (
+                          <TouchableOpacity
+                            key={recipe.recipe_id}
+                            onPress={() => setFormLinkedRecipeId(recipe.recipe_id)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              backgroundColor: formLinkedRecipeId === recipe.recipe_id ? colors.primary : colors.glass,
+                              borderRadius: 20,
+                              marginRight: 8,
+                              borderWidth: 1,
+                              borderColor: formLinkedRecipeId === recipe.recipe_id ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formLinkedRecipeId === recipe.recipe_id ? '#fff' : colors.text, fontSize: 13 }}>
+                              {recipe.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                      {(formProductionMode === 'on_demand' || formProductionMode === 'hybrid') && !formLinkedRecipeId && (
+                        <Text style={{ color: colors.warning, fontSize: 11, marginTop: 6 }}>
+                          {t('restaurant.recipe_required', 'Veuillez lier une recette de service pour ce plat.')}
+                        </Text>
+                      )}
+                    </View>
+                  </>
+                )}
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
                     <FormField label={t('products.field_sku')} value={formSku} onChangeText={setFormSku} placeholder={t('products.field_sku_placeholder')} colors={colors} styles={styles} />
@@ -1928,19 +2171,21 @@ export default function ProductsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.inputRowWithAction}>
-                  <View style={{ flex: 1 }}>
-                    <FormField label={t('products.field_rfid')} value={formRfidTag} onChangeText={setFormRfidTag} placeholder={t('products.field_rfid_placeholder')} colors={colors} styles={styles} />
+                {!isRestaurant && (
+                  <View style={styles.inputRowWithAction}>
+                    <View style={{ flex: 1 }}>
+                      <FormField label={t('products.field_rfid')} value={formRfidTag} onChangeText={setFormRfidTag} placeholder={t('products.field_rfid_placeholder')} colors={colors} styles={styles} />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.scanBtnMini, { backgroundColor: colors.info + '20' }]}
+                      onPress={() => {
+                        Alert.alert(t('products.rfid_info_title'), t('products.rfid_reading_not_supported'));
+                      }}
+                    >
+                      <Ionicons name="radio-outline" size={24} color={colors.info} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={[styles.scanBtnMini, { backgroundColor: colors.info + '20' }]}
-                    onPress={() => {
-                      Alert.alert(t('products.rfid_info_title'), t('products.rfid_reading_not_supported'));
-                    }}
-                  >
-                    <Ionicons name="radio-outline" size={24} color={colors.info} />
-                  </TouchableOpacity>
-                </View>
+                )}
 
                 {editingProduct && (
                   <TouchableOpacity
@@ -1952,18 +2197,20 @@ export default function ProductsScreen() {
                   </TouchableOpacity>
                 )}
 
-                <View style={styles.formRow}>
-                  <View style={[styles.formHalf, { flex: 1 }]}>
-                    <FormField
-                      label={t('products.field_expiry')}
-                      value={formExpiryDate}
-                      onChangeText={setFormExpiryDate}
-                      placeholder={t('products.date_format_placeholder')}
-                      colors={colors}
-                      styles={styles}
-                    />
+                {!isRestaurant && (
+                  <View style={styles.formRow}>
+                    <View style={[styles.formHalf, { flex: 1 }]}>
+                      <FormField
+                        label={t('products.field_expiry')}
+                        value={formExpiryDate}
+                        onChangeText={setFormExpiryDate}
+                        placeholder={t('products.date_format_placeholder')}
+                        colors={colors}
+                        styles={styles}
+                      />
+                    </View>
                   </View>
-                </View>
+                )}
 
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
@@ -1992,29 +2239,30 @@ export default function ProductsScreen() {
                     </ScrollView>
                   </View>
                 </View>
-                {/* Type de produit */}
-                <View style={{ marginBottom: 16 }}>
-                  <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('products.product_type_label')}</Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {[{ value: 'standard', label: t('products.product_type_standard') }, { value: 'raw_material', label: t('products.product_type_raw_material') }].map(opt => (
-                      <TouchableOpacity
-                        key={opt.value}
-                        onPress={() => setFormProductType(opt.value)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: 10,
-                          borderRadius: 12,
-                          borderWidth: 1.5,
-                          alignItems: 'center',
-                          backgroundColor: formProductType === opt.value ? colors.primary + '20' : 'transparent',
-                          borderColor: formProductType === opt.value ? colors.primary : colors.glassBorder,
-                        }}
-                      >
-                        <Text style={{ color: formProductType === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 13 }}>{opt.label}</Text>
-                      </TouchableOpacity>
-                    ))}
+                {!isRestaurant && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('products.product_type_label')}</Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {[{ value: 'standard', label: t('products.product_type_standard') }, { value: 'raw_material', label: t('products.product_type_raw_material') }].map(opt => (
+                        <TouchableOpacity
+                          key={opt.value}
+                          onPress={() => setFormProductType(opt.value)}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 12,
+                            borderWidth: 1.5,
+                            alignItems: 'center',
+                            backgroundColor: formProductType === opt.value ? colors.primary + '20' : 'transparent',
+                            borderColor: formProductType === opt.value ? colors.primary : colors.glassBorder,
+                          }}
+                        >
+                          <Text style={{ color: formProductType === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 13 }}>{opt.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
                     <FormField label={t('products.field_purchase_price')} value={formPurchasePrice} onChangeText={setFormPurchasePrice} keyboardType="numeric" colors={colors} styles={styles} />
@@ -2046,14 +2294,16 @@ export default function ProductsScreen() {
                     <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{aiPriceReasoning}</Text>
                   </View>
                 )}
-                <View style={styles.formRow}>
-                  <View style={styles.formHalf}>
-                    <FormField label={t('products.field_min_stock')} value={formMinStock} onChangeText={setFormMinStock} keyboardType="numeric" colors={colors} styles={styles} />
+                {!isRestaurant && (
+                  <View style={styles.formRow}>
+                    <View style={styles.formHalf}>
+                      <FormField label={t('products.field_min_stock')} value={formMinStock} onChangeText={setFormMinStock} keyboardType="numeric" colors={colors} styles={styles} />
+                    </View>
+                    <View style={styles.formHalf}>
+                      <FormField label={t('products.field_max_stock')} value={formMaxStock} onChangeText={setFormMaxStock} keyboardType="numeric" colors={colors} styles={styles} />
+                    </View>
                   </View>
-                  <View style={styles.formHalf}>
-                    <FormField label={t('products.field_max_stock')} value={formMaxStock} onChangeText={setFormMaxStock} keyboardType="numeric" colors={colors} styles={styles} />
-                  </View>
-                </View>
+                )}
 
                 {/* Variants Section */}
                 <View style={{ marginBottom: Spacing.md }}>
@@ -2579,8 +2829,8 @@ export default function ProductsScreen() {
       <ScreenGuide
         visible={showGuide}
         onClose={() => { setShowGuide(false); markSeen(); }}
-        title={GUIDES.products.title}
-        steps={GUIDES.products.steps}
+        title={(isRestaurant ? GUIDES.restaurantProducts : GUIDES.products).title}
+        steps={(isRestaurant ? GUIDES.restaurantProducts : GUIDES.products).steps}
       />
     </LinearGradient >
   );

@@ -32,7 +32,7 @@ PRODUCTION_SECTORS = {
 }
 
 # Secteurs restaurant (interface complète restaurant)
-RESTAURANT_SECTORS = {"restaurant", "traiteur"}
+RESTAURANT_SECTORS = {"restaurant", "traiteur", "boulangerie"}
 
 # Mapping flexible : normalise les valeurs saisies par les utilisateurs
 # vers les clés du dictionnaire ci-dessus

@@ -56,9 +56,11 @@ export default function Reservations() {
         }
     };
 
-    const updateStatus = async (id: string, status: string) => {
-        await reservationsApi.update(id, { status });
-        setList(prev => prev.map(r => r.reservation_id === id ? { ...r, status } : r));
+    const updateStatus = async (reservation: any, status: string) => {
+        const updated = status === 'arrived'
+            ? await reservationsApi.arrive(reservation.reservation_id, reservation.table_id)
+            : await reservationsApi.update(reservation.reservation_id, { status });
+        setList(prev => prev.map(r => r.reservation_id === reservation.reservation_id ? { ...r, ...(updated || {}), status: updated?.status || status } : r));
     };
 
     return (
@@ -147,7 +149,7 @@ export default function Reservations() {
                                 <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUS_STYLES[r.status] || ''}`}>{STATUS_LABELS[r.status] || r.status}</span>
                                 <select
                                     value={r.status}
-                                    onChange={e => updateStatus(r.reservation_id, e.target.value)}
+                                    onChange={e => updateStatus(r, e.target.value)}
                                     className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
                                 >
                                     {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

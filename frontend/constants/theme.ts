@@ -12,6 +12,7 @@ export const DarkTheme = {
 
   // Accent colors
   primary: '#10B981', // Emerald Green
+  primaryDark: '#059669',
   primaryLight: '#34D399',
   secondary: '#1E293B', // Navy Blue
   secondaryLight: '#334155',
@@ -28,6 +29,8 @@ export const DarkTheme = {
   textMuted: 'rgba(255, 255, 255, 0.4)',
 
   // Misc
+  card: 'rgba(255, 255, 255, 0.08)',
+  border: 'rgba(255, 255, 255, 0.15)',
   inputBg: 'rgba(255, 255, 255, 0.06)',
   divider: 'rgba(255, 255, 255, 0.1)',
 };
@@ -46,6 +49,7 @@ export const LightTheme = {
 
   // Accent colors (Slightly more saturated)
   primary: '#059669', // Emerald Green (Stronger for light mode)
+  primaryDark: '#047857',
   primaryLight: '#10B981',
   secondary: '#0F172A', // Deeper Navy
   secondaryLight: '#1E293B',
@@ -62,6 +66,8 @@ export const LightTheme = {
   textMuted: '#64748B',    // Darker for better contrast
 
   // Misc
+  card: '#FFFFFF',
+  border: '#CBD5E1',
   inputBg: '#F8FAFC',      // Slightly grey input bg to distinguish from white cards
   divider: '#CBD5E1',      // Darker divider for visibility
 };

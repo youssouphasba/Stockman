@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Modal, Platform, TextInput } from 'react-native';
 import { admin, CollectionInfo, CollectionData } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';

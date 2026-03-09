@@ -55,7 +55,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [stats, setStats] = useState<any>(null);
     const [forecast, setForecast] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur'].includes(features?.sector || '');
+    const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
     const [period, setPeriod] = useState<number>(30); // Default 30 days
     const [aiSummary, setAiSummary] = useState<string>('');
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -79,11 +79,13 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     useEffect(() => {
         async function fetchDashboard() {
             setLoading(true);
+            let dashboardRes: any = null;
             try {
                 // Données essentielles en priorité
                 const promises: Promise<any>[] = [dashboardApi.get(), statsApi.get(period)];
                 if (isRestaurant) promises.push(restaurantApi.stats());
                 const [res, statsRes, restStats] = await Promise.all(promises);
+                dashboardRes = res;
                 setData(res);
                 setStats(statsRes);
                 if (restStats) setRestaurantStats(restStats);
@@ -96,7 +98,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
 
             // Données IA en arrière-plan (non bloquantes)
             // Ne pas appeler detectAnomalies si aucun produit (évite les faux positifs)
-            const hasProducts = (res?.total_products || 0) > 0;
+            const hasProducts = (dashboardRes?.total_products || 0) > 0;
             Promise.allSettled([
                 aiApi.dailySummary(i18n.language),
                 salesApi.forecast(),
@@ -141,7 +143,28 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
 
 
 
-    const dashboardSteps: GuideStep[] = [
+    const dashboardSteps: GuideStep[] = isRestaurant ? [
+        {
+            title: t('dashboard.restaurant_guide_welcome_title', 'Welcome to your restaurant dashboard'),
+            content: t('dashboard.restaurant_guide_welcome_content', 'Monitor service, covers, kitchen flow, and reservations from one place.'),
+            position: "center"
+        },
+        {
+            title: t('dashboard.restaurant_guide_kpi_title', 'Service KPIs'),
+            content: t('dashboard.restaurant_guide_kpi_content', 'Track daily revenue, covers served, average ticket, and occupied tables in real time.'),
+            targetId: "kpi-stats"
+        },
+        {
+            title: t('dashboard.restaurant_guide_sales_title', 'Peak service hours'),
+            content: t('dashboard.restaurant_guide_sales_content', 'Use hourly revenue to understand rush periods and organize the team.'),
+            targetId: "sales-forecast"
+        },
+        {
+            title: t('dashboard.restaurant_guide_reservations_title', 'Reservations and dining room'),
+            content: t('dashboard.restaurant_guide_reservations_content', 'Keep an eye on upcoming reservations and current kitchen workload before service starts.'),
+            targetId: "smart-reminders"
+        }
+    ] : [
         {
             title: t('dashboard.guide_welcome_title', 'Welcome to your Dashboard'),
             content: t('dashboard.guide_welcome_content', 'Monitor your business health at a glance.'),
@@ -329,7 +352,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">Aucune vente aujourd'hui</div>
+                            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">Aucun service enregistre pour le moment.</div>
                         )}
                     </div>
 
@@ -348,7 +371,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-xs text-slate-500">Aucune vente aujourd'hui</p>
+                                <p className="text-xs text-slate-500">Aucun plat encore vendu aujourd'hui.</p>
                             )}
                         </div>
 
@@ -370,7 +393,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-xs text-slate-500">Aucune réservation aujourd'hui</p>
+                                <p className="text-xs text-slate-500">Aucune reservation planifiee pour aujourd'hui.</p>
                             )}
                         </div>
                     </div>

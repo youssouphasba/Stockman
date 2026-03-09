@@ -29,6 +29,7 @@ import {
     ai as aiApi,
     tables,
     kitchen,
+    restaurantOrders,
     userFeatures,
     settings as settingsApi,
     Product,
@@ -41,6 +42,7 @@ import {
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatUserCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
+import { isRestaurantBusiness } from '../../utils/business';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
@@ -50,10 +52,13 @@ import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
 import LineDiscountModal from '../../components/LineDiscountModal';
 
 export type CartItem = {
+    cartKey: string;
     product: Product;
     quantity: number;
     discountType?: 'percentage' | 'fixed';
     discountValue?: number;
+    item_notes?: string;
+    persisted?: boolean;
 };
 
 export type POSSession = {
@@ -147,17 +152,47 @@ export default function POSScreen() {
     const [orderNotes, setOrderNotes] = useState('');
     const [showTableModal, setShowTableModal] = useState(false);
     const [showRestaurantOptions, setShowRestaurantOptions] = useState(false);
+    const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+    const [loadingTableOrder, setLoadingTableOrder] = useState(false);
 
     // Tax settings
     const [taxEnabled, setTaxEnabled] = useState(false);
     const [taxRate, setTaxRate] = useState(0);
     const [taxMode, setTaxMode] = useState<'ttc' | 'ht'>('ttc');
 
+    const getProductionModeLabel = (product: Product) => {
+        switch (product.production_mode) {
+            case 'on_demand':
+                return t('pos.production_mode_on_demand');
+            case 'hybrid':
+                return t('pos.production_mode_hybrid');
+            default:
+                return 'A l’avance';
+        }
+    };
+
+    const getProductionModeColor = (product: Product) => {
+        switch (product.production_mode) {
+            case 'on_demand':
+                return colors.warning;
+            case 'hybrid':
+                return colors.info;
+            default:
+                return colors.success;
+        }
+    };
+
+    const requiresFinishedStock = (product: Product) =>
+        (product.production_mode || 'prepped') !== 'on_demand';
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
+            const features = await userFeatures.get().catch(() => null);
+            const isRestaurantAccount = Boolean(features && isRestaurantBusiness(features));
+
             const [prodsRes, custsRes, storesRes] = await Promise.all([
-                productsApi.list(undefined, 0, 500),
+                productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined),
                 customersApi.list(),
                 storesApi.list(),
             ]);
@@ -178,11 +213,12 @@ export default function POSScreen() {
                 }
             }
 
-            const features = await userFeatures.get().catch(() => null);
-            if (features?.has_production && ['restaurant', 'traiteur'].includes(features?.sector || '')) {
+            if (isRestaurantAccount) {
                 setRestaurantMode(true);
                 const tabs = await tables.list().catch(() => []);
                 setTableList(tabs);
+            } else {
+                setRestaurantMode(false);
             }
 
             // Load tax settings
@@ -208,31 +244,93 @@ export default function POSScreen() {
     const filteredProducts = useMemo(() => {
         return productList.filter(p =>
             p.product_type !== 'raw_material' &&
+            (!restaurantMode || p.is_menu_item) &&
             (p.name.toLowerCase().includes(search.toLowerCase()) ||
             (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())))
         );
-    }, [productList, search]);
+    }, [productList, restaurantMode, search]);
 
     const updateActiveSession = (updater: (s: POSSession) => POSSession) => {
         setSessions(prev => prev.map(s => s.id === activeSessionId ? updater(s) : s));
     };
 
+    const setCartItems = (items: CartItem[]) => {
+        updateActiveSession(s => ({
+            ...s,
+            cart: items,
+        }));
+    };
+
+    const loadOpenTableOrder = useCallback(async (table: any) => {
+        if (!table?.table_id) {
+            setOpenOrderId(null);
+            setCartItems([]);
+            return;
+        }
+
+        setLoadingTableOrder(true);
+        try {
+            const order = await restaurantOrders.getTableOrder(table.table_id);
+            if (order?.sale_id) {
+                setOpenOrderId(order.sale_id);
+                if (order.covers) setCovers(order.covers);
+                setCartItems((order.items || []).map((item: any, index: number) => {
+                    const prod = productList.find(p => p.product_id === item.product_id);
+                    const itemPrice = item.selling_price ?? item.price ?? prod?.selling_price ?? 0;
+                    return {
+                        cartKey: `persisted_${order.sale_id}_${index}`,
+                        product: prod ? {
+                            ...prod,
+                            selling_price: itemPrice,
+                            tax_rate: item.tax_rate ?? prod.tax_rate,
+                            kitchen_station: item.station ?? prod.kitchen_station,
+                        } : {
+                            product_id: item.product_id,
+                            name: item.product_name || 'Article',
+                            selling_price: itemPrice,
+                            tax_rate: item.tax_rate,
+                            quantity: item.quantity ?? 0,
+                            unit: 'Pièce',
+                            purchase_price: 0,
+                            min_stock: 0,
+                            max_stock: 0,
+                            is_active: true,
+                            product_type: 'standard',
+                            kitchen_station: item.station || 'plat',
+                        } as Product,
+                        quantity: item.quantity || 1,
+                        item_notes: item.item_notes || undefined,
+                        persisted: true,
+                    };
+                }));
+            } else {
+                setOpenOrderId(null);
+                setCartItems([]);
+            }
+        } catch {
+            setOpenOrderId(null);
+            setCartItems([]);
+        } finally {
+            setLoadingTableOrder(false);
+        }
+    }, [productList]);
+
     const addToCart = (product: Product) => {
-        const existing = cart.find(item => item.product.product_id === product.product_id);
+        const existing = cart.find(item => item.product.product_id === product.product_id && !item.persisted);
         const currentQtyInCart = existing ? existing.quantity : 0;
 
-        if (currentQtyInCart + 1 > product.quantity) {
+        if (requiresFinishedStock(product) && currentQtyInCart + 1 > product.quantity) {
             Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
             return;
         }
 
         updateActiveSession(s => {
-            const existingInSession = s.cart.find(item => item.product.product_id === product.product_id);
+            const existingInSession = s.cart.find(item => item.product.product_id === product.product_id && !item.persisted);
             if (existingInSession) {
                 return {
                     ...s,
                     cart: s.cart.map(item =>
-                        item.product.product_id === product.product_id
+                        item.cartKey === existingInSession.cartKey
                             ? { ...item, quantity: item.quantity + 1 }
                             : item
                     )
@@ -240,38 +338,47 @@ export default function POSScreen() {
             }
             return {
                 ...s,
-                cart: [...s.cart, { product, quantity: 1 }]
+                cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
             };
         });
     };
 
-    const removeFromCart = (productId: string) => {
+    const removeFromCart = (cartKey: string) => {
+        const target = cart.find(item => item.cartKey === cartKey);
+        if (target?.persisted) {
+            Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
+            return;
+        }
         updateActiveSession(s => ({
             ...s,
-            cart: s.cart.filter(item => item.product.product_id !== productId)
+            cart: s.cart.filter(item => item.cartKey !== cartKey)
         }));
     };
 
-    const updateQuantity = (productId: string, delta: number) => {
-        const item = cart.find(i => i.product.product_id === productId);
+    const updateQuantity = (cartKey: string, delta: number) => {
+        const item = cart.find(i => i.cartKey === cartKey);
         if (!item) return;
+        if (item.persisted) {
+            Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
+            return;
+        }
 
         const newQty = Math.max(1, item.quantity + delta);
-        if (newQty > item.product.quantity) {
+        if (requiresFinishedStock(item.product) && newQty > item.product.quantity) {
             Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
             return;
         }
 
         updateActiveSession(s => ({
             ...s,
-            cart: s.cart.map(i => i.product.product_id === productId ? { ...i, quantity: newQty } : i)
+            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: newQty } : i)
         }));
     };
 
-    const applyDiscount = (productId: string, type: 'percentage' | 'fixed', value: number) => {
+    const applyDiscount = (cartKey: string, type: 'percentage' | 'fixed', value: number) => {
         updateActiveSession(s => ({
             ...s,
-            cart: s.cart.map(i => i.product.product_id === productId ? { ...i, discountType: type, discountValue: value } : i)
+            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, discountType: type, discountValue: value } : i)
         }));
     };
 
@@ -313,24 +420,69 @@ export default function POSScreen() {
             return acc + (itemPrice * item.quantity);
         }, 0);
     }, [cart]);
+    const hasLineLevelTax = cart.some(item => Math.max(0, Number(item.product.tax_rate ?? 0)) > 0);
+    const effectiveTaxEnabled = taxEnabled || hasLineLevelTax;
 
-    const calculateTaxAmount = () => {
-        if (!taxEnabled || taxRate <= 0) return 0;
-        if (taxMode === 'ttc') return Math.round(total * taxRate / (100 + taxRate));
-        return Math.round(total * taxRate / 100);
-    };
-    const calculateHT = () => {
-        if (!taxEnabled || taxRate <= 0) return total;
-        return taxMode === 'ttc' ? total - calculateTaxAmount() : total;
-    };
-    const calculateTipAmount = () => Math.round(total * tipPercent / 100);
-    const calculateServiceCharge = () => Math.round(total * serviceChargePercent / 100);
+    const taxSummary = useMemo(() => {
+        const roundedTotal = Math.round(total * 100) / 100;
+        const ratesUsed = new Set<number>();
+
+        if (!effectiveTaxEnabled || cart.length === 0) {
+            return {
+                taxAmount: 0,
+                htAmount: roundedTotal,
+                taxableBase: roundedTotal,
+                ratesUsed: [] as number[],
+            };
+        }
+
+        let taxAmount = 0;
+        for (const item of cart) {
+            let unitPrice = item.product.selling_price;
+            if (item.discountType === 'percentage' && item.discountValue) {
+                unitPrice = unitPrice * (1 - item.discountValue / 100);
+            } else if (item.discountType === 'fixed' && item.discountValue) {
+                unitPrice = Math.max(0, unitPrice - item.discountValue);
+            }
+            const lineTotal = Math.round(unitPrice * item.quantity * 100) / 100;
+            const lineTaxRate = Math.max(0, Number(item.product.tax_rate ?? taxRate ?? 0));
+            if (lineTaxRate <= 0 || lineTotal <= 0) continue;
+            ratesUsed.add(lineTaxRate);
+            taxAmount += taxMode === 'ttc'
+                ? lineTotal * lineTaxRate / (100 + lineTaxRate)
+                : lineTotal * lineTaxRate / 100;
+        }
+
+        const roundedTaxAmount = Math.round(taxAmount * 100) / 100;
+        return {
+            taxAmount: roundedTaxAmount,
+            htAmount: taxMode === 'ttc' ? Math.round((roundedTotal - roundedTaxAmount) * 100) / 100 : roundedTotal,
+            taxableBase: taxMode === 'ht' ? Math.round((roundedTotal + roundedTaxAmount) * 100) / 100 : roundedTotal,
+            ratesUsed: Array.from(ratesUsed).sort((a, b) => a - b),
+        };
+    }, [cart, effectiveTaxEnabled, taxMode, taxRate, total]);
+
+    const calculateTaxAmount = () => taxSummary.taxAmount;
+    const calculateHT = () => taxSummary.htAmount;
+    const calculateTipAmount = () => Math.round(taxSummary.taxableBase * tipPercent) / 100;
+    const calculateServiceCharge = () => Math.round(taxSummary.taxableBase * serviceChargePercent) / 100;
     const calculateGrandTotal = () => {
-        const base = taxMode === 'ht' ? total + calculateTaxAmount() : total;
+        const base = taxSummary.taxableBase;
         return base + calculateTipAmount() + calculateServiceCharge();
     };
+    const taxLabel = taxSummary.ratesUsed.length === 1 ? `TVA (${taxSummary.ratesUsed[0]}%)` : 'TVA';
 
     const processCheckout = async (method: string) => {
+        if (openOrderId && cart.some(item => !item.persisted)) {
+            const message = t('pos.send_pending_items_before_payment', 'Envoyez d\'abord les nouveaux articles en cuisine avant de clôturer cette commande.');
+            if (Platform.OS === 'web') {
+                window.alert(message);
+            } else {
+                Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), message);
+            }
+            return;
+        }
+
         try {
             setCheckoutLoading(true);
             const items = cart.map(item => {
@@ -345,22 +497,31 @@ export default function POSScreen() {
                 return {
                     product_id: item.product.product_id,
                     quantity: item.quantity,
-                    discount_amount: Math.round(discount_amount * 100) / 100
+                    price: Math.round(unitPrice * 100) / 100,
+                    discount_amount: Math.round(discount_amount * 100) / 100,
+                    item_notes: item.item_notes || undefined,
                 };
             });
 
-            const result = await salesApi.create({
-                items,
-                payment_method: method,
-                customer_id: selectedCustomer?.customer_id,
-                terminal_id: selectedTerminal || undefined,
-                table_id: selectedTable?.table_id,
-                covers: covers > 1 ? covers : undefined,
-                tip_amount: calculateTipAmount(),
-                service_charge_percent: serviceChargePercent,
-                notes: orderNotes || undefined,
-                total_amount: calculateGrandTotal(),
-            });
+            const result = openOrderId
+                ? await restaurantOrders.finalize(openOrderId, {
+                    payment_method: method,
+                    covers: covers > 1 ? covers : undefined,
+                    tip_amount: calculateTipAmount(),
+                    service_charge_percent: serviceChargePercent,
+                })
+                : await salesApi.create({
+                    items,
+                    payment_method: method,
+                    customer_id: selectedCustomer?.customer_id,
+                    terminal_id: selectedTerminal || undefined,
+                    table_id: selectedTable?.table_id,
+                    covers: covers > 1 ? covers : undefined,
+                    tip_amount: calculateTipAmount(),
+                    service_charge_percent: serviceChargePercent,
+                    notes: orderNotes || undefined,
+                    total_amount: calculateGrandTotal(),
+                });
 
             if (method === 'credit') {
                 if (Platform.OS === 'web') {
@@ -368,11 +529,6 @@ export default function POSScreen() {
                 } else {
                     Alert.alert(t('common.success'), t('pos.credit_success'));
                 }
-            }
-
-            // En mode restaurant avec table, envoyer en cuisine automatiquement
-            if (restaurantMode && selectedTable && result?.sale_id) {
-                kitchen.sendToKitchen(result.sale_id).catch(() => {});
             }
 
             setLastSale({
@@ -387,6 +543,7 @@ export default function POSScreen() {
                 selectedCustomer: null
             }));
             setSelectedTable(null);
+            setOpenOrderId(null);
             setCovers(1);
             setTipPercent(0);
             setServiceChargePercent(0);
@@ -448,10 +605,81 @@ export default function POSScreen() {
         processCheckout(method);
     };
 
+    const handleTableSelect = async (table: any | null) => {
+        setSelectedTable(table);
+        setShowTableModal(false);
+        if (!table?.table_id) {
+            setOpenOrderId(null);
+            setCartItems([]);
+            setCovers(1);
+            return;
+        }
+        await loadOpenTableOrder(table);
+    };
+
+    const handleSendRestaurantOrder = async () => {
+        const draftItems = cart.filter(item => !item.persisted);
+        if (draftItems.length === 0) {
+            Alert.alert(
+                t('pos.open_order_locked_title'),
+                openOrderId ? t('pos.no_new_items_to_send') : t('pos.add_item_before_kitchen')
+            );
+            return;
+        }
+
+        try {
+            setCheckoutLoading(true);
+            const payloadItems = draftItems.map(item => {
+                let unitPrice = item.product.selling_price;
+                if (item.discountType === 'percentage' && item.discountValue) {
+                    unitPrice = unitPrice * (1 - item.discountValue / 100);
+                } else if (item.discountType === 'fixed' && item.discountValue) {
+                    unitPrice = Math.max(0, unitPrice - item.discountValue);
+                }
+                const discountAmount = (item.product.selling_price - unitPrice) * item.quantity;
+                return {
+                    product_id: item.product.product_id,
+                    quantity: item.quantity,
+                    price: Math.round(unitPrice * 100) / 100,
+                    discount_amount: Math.round(discountAmount * 100) / 100,
+                    station: item.product.kitchen_station || undefined,
+                    item_notes: item.item_notes || undefined,
+                };
+            });
+
+            if (openOrderId) {
+                await restaurantOrders.addItems(openOrderId, payloadItems);
+                await kitchen.sendToKitchen(openOrderId).catch(() => {});
+            } else {
+                const order = await restaurantOrders.openOrder({
+                    table_id: selectedTable?.table_id,
+                    covers,
+                    items: payloadItems,
+                    notes: orderNotes || undefined,
+                    service_type: selectedTable ? 'dine_in' : 'takeaway',
+                });
+                setOpenOrderId(order.sale_id);
+                await kitchen.sendToKitchen(order.sale_id).catch(() => {});
+            }
+
+            if (selectedTable?.table_id) {
+                const refreshedTables = await tables.list().catch(() => tableList);
+                setTableList(refreshedTables);
+                await loadOpenTableOrder(selectedTable);
+            } else {
+                setCartItems([]);
+            }
+        } catch (error: any) {
+            Alert.alert(t('common.error'), error.message || t('pos.kitchen_send_error', 'Erreur lors de l\'envoi en cuisine'));
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
     const handleBarcodeScanned = (sku: string) => {
         const found = productList.find(p => p.sku === sku);
         if (found) {
-            if (found.quantity > 0) {
+            if (!requiresFinishedStock(found) || found.quantity > 0) {
                 addToCart(found);
                 // No alert needed for speed, maybe a small sound or haptic feedback later
             } else {
@@ -546,7 +774,7 @@ export default function POSScreen() {
                         style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: colors.card, borderRadius: 12, marginBottom: 4 }}
                         onPress={() => setShowRestaurantOptions(!showRestaurantOptions)}
                     >
-                        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>🍽️ Options restaurant</Text>
+                        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{t('pos.restaurant_options')}</Text>
                         <Ionicons name={showRestaurantOptions ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
                     </TouchableOpacity>
 
@@ -557,15 +785,22 @@ export default function POSScreen() {
                                 style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
                                 onPress={() => setShowTableModal(true)}
                             >
-                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Table</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('pos.table_label', 'Table')}</Text>
                                 <Text style={{ color: selectedTable ? colors.primary : colors.textMuted, fontSize: 13, fontWeight: '600' }}>
-                                    {selectedTable ? selectedTable.name : 'Sélectionner'}
+                                    {selectedTable ? selectedTable.name : t('pos.select_table')}
                                 </Text>
                             </TouchableOpacity>
 
+                            {loadingTableOrder && (
+                                <Text style={{ color: colors.primary, fontSize: 11 }}>{t('pos.loading_open_order', 'Chargement de la commande ouverte...')}</Text>
+                            )}
+                            {openOrderId && (
+                                <Text style={{ color: colors.warning, fontSize: 11, fontWeight: '600' }}>{t('pos.open_order_linked', 'Commande ouverte liée à cette table')}</Text>
+                            )}
+
                             {/* Covers */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Couverts</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('restaurant.covers')}</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                                     <TouchableOpacity onPress={() => setCovers(c => Math.max(1, c-1))} style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
                                         <Text style={{ color: colors.text, fontSize: 16 }}>-</Text>
@@ -579,7 +814,7 @@ export default function POSScreen() {
 
                             {/* Service charge */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Frais de service</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('restaurant.service_charge')}</Text>
                                 <View style={{ flexDirection: 'row', gap: 6 }}>
                                     {[0, 5, 10, 15].map(p => (
                                         <TouchableOpacity
@@ -595,7 +830,7 @@ export default function POSScreen() {
 
                             {/* Tip */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>Pourboire</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('pos.tip_label')}</Text>
                                 <View style={{ flexDirection: 'row', gap: 6 }}>
                                     {[0, 5, 10, 15].map(p => (
                                         <TouchableOpacity
@@ -613,7 +848,7 @@ export default function POSScreen() {
                             <TextInput
                                 value={orderNotes}
                                 onChangeText={setOrderNotes}
-                                placeholder="Notes cuisine..."
+                                placeholder={t('pos.kitchen_notes_placeholder')}
                                 placeholderTextColor={colors.textMuted}
                                 style={{ backgroundColor: colors.background, borderRadius: 10, padding: 10, color: colors.text, fontSize: 13 }}
                             />
@@ -622,11 +857,11 @@ export default function POSScreen() {
                             {(serviceChargePercent > 0 || tipPercent > 0) && (
                                 <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: 8, gap: 4 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Service +{calculateServiceCharge()}</Text>
-                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Pourboire +{calculateTipAmount()}</Text>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t('pos.service_label')} +{calculateServiceCharge()}</Text>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t('pos.tip_label')} +{calculateTipAmount()}</Text>
                                     </View>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                        <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 14 }}>Total final</Text>
+                                        <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 14 }}>{t('pos.final_total')}</Text>
                                         <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>{calculateGrandTotal().toLocaleString()}</Text>
                                     </View>
                                 </View>
@@ -636,20 +871,31 @@ export default function POSScreen() {
                 </View>
             )}
 
-            {taxEnabled && taxRate > 0 && cart.length > 0 && (
+            {restaurantMode && cart.filter(item => !item.persisted).length > 0 && (
+                <TouchableOpacity
+                    style={[styles.payButton, { backgroundColor: colors.secondary, marginBottom: 8 }, checkoutLoading && { opacity: 0.5 }]}
+                    onPress={handleSendRestaurantOrder}
+                    disabled={checkoutLoading}
+                >
+                    <Ionicons name="restaurant-outline" size={20} color="#fff" />
+                    <Text style={styles.payButtonText}>{openOrderId ? t('pos.add_to_open_order', 'Ajouter à la commande') : t('pos.send_to_kitchen', 'Envoyer en cuisine')}</Text>
+                </TouchableOpacity>
+            )}
+
+            {effectiveTaxEnabled && cart.length > 0 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 12, color: colors.textMuted }}>
                         {taxMode === 'ttc' ? 'HT' : t('pos.total')} : {formatUserCurrency(calculateHT(), user)}
                     </Text>
                     <Text style={{ fontSize: 12, color: colors.warning, fontWeight: '600' }}>
-                        TVA ({taxRate}%) : {formatUserCurrency(calculateTaxAmount(), user)}
+                        {taxLabel} : {formatUserCurrency(calculateTaxAmount(), user)}
                     </Text>
                 </View>
             )}
 
             <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>{taxEnabled ? (taxMode === 'ttc' ? 'TTC' : 'TTC') : t('pos.total')}</Text>
-                <Text style={styles.totalAmount}>{formatUserCurrency(restaurantMode ? calculateGrandTotal() : (taxMode === 'ht' && taxEnabled ? total + calculateTaxAmount() : total), user)}</Text>
+                <Text style={styles.totalLabel}>{effectiveTaxEnabled ? 'TTC' : t('pos.total')}</Text>
+                <Text style={styles.totalAmount}>{formatUserCurrency(restaurantMode ? calculateGrandTotal() : (taxMode === 'ht' && effectiveTaxEnabled ? total + calculateTaxAmount() : total), user)}</Text>
                 <TouchableOpacity
                     onPress={() => setShowCalculator(true)}
                     style={{ marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: colors.info + '20' }}
@@ -755,12 +1001,26 @@ export default function POSScreen() {
                                         key={product.product_id}
                                         style={styles.productCard}
                                         onPress={() => addToCart(product)}
-                                        disabled={product.quantity === 0}
+                                        disabled={requiresFinishedStock(product) && product.quantity === 0}
                                     >
-                                        <View style={[styles.stockBadge, { backgroundColor: product.quantity === 0 ? colors.danger : colors.success }]}>
-                                            <Text style={styles.stockText}>{product.quantity}</Text>
+                                        <View style={[styles.stockBadge, { backgroundColor: requiresFinishedStock(product) ? (product.quantity === 0 ? colors.danger : colors.success) : colors.info }]}>
+                                            <Text style={styles.stockText}>
+                                                {requiresFinishedStock(product) ? product.quantity : 'CMD'}
+                                            </Text>
                                         </View>
                                         <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                                        {restaurantMode && (
+                                            <>
+                                                <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(product) + '20' }]}>
+                                                    <Text style={[styles.modeBadgeText, { color: getProductionModeColor(product) }]}>
+                                                        {getProductionModeLabel(product)}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.productMetaText} numberOfLines={1}>
+                                                    {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ' · Recette liee' : ''}
+                                                </Text>
+                                            </>
+                                        )}
                                         <Text style={styles.productPrice}>{formatUserCurrency(product.selling_price, user)}</Text>
                                     </TouchableOpacity>
                                 ))}
@@ -784,7 +1044,7 @@ export default function POSScreen() {
                                         </TouchableOpacity>
                                     )}
                                 </View>
-                                <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: [] }))}>
+                                <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: openOrderId ? s.cart.filter(item => item.persisted) : [] }))}>
                                     <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
                                 </TouchableOpacity>
                             </View>
@@ -827,15 +1087,31 @@ export default function POSScreen() {
                                     </View>
                                 ) : (
                                     cart.map(item => (
-                                        <View key={item.product.product_id} style={styles.cartItem}>
+                                        <View key={item.cartKey} style={styles.cartItem}>
                                             <TouchableOpacity
                                                 style={{ flex: 1 }}
                                                 onPress={() => {
+                                                    if (item.persisted) {
+                                                        Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
+                                                        return;
+                                                    }
                                                     setSelectedCartItem(item);
                                                     setShowDiscountModal(true);
                                                 }}
                                             >
                                                 <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
+                                                {restaurantMode && (
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                                                        <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(item.product) + '20' }]}>
+                                                            <Text style={[styles.modeBadgeText, { color: getProductionModeColor(item.product) }]}>
+                                                                {getProductionModeLabel(item.product)}
+                                                            </Text>
+                                                        </View>
+                                                        <Text style={styles.cartMetaText}>
+                                                            {item.product.kitchen_station || 'plat'}{item.product.linked_recipe_id ? ' · recette' : ''}
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                                     <Text style={[styles.cartItemPrice, (item.discountValue || 0) > 0 && { textDecorationLine: 'line-through' }]}>
                                                         {formatUserCurrency(item.product.selling_price * item.quantity, user)}
@@ -854,15 +1130,15 @@ export default function POSScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                             <View style={styles.qtyContainer}>
-                                                <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, -1)}>
+                                                <TouchableOpacity onPress={() => updateQuantity(item.cartKey, -1)}>
                                                     <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
                                                 </TouchableOpacity>
                                                 <Text style={styles.qtyText}>{item.quantity}</Text>
-                                                <TouchableOpacity onPress={() => updateQuantity(item.product.product_id, 1)}>
+                                                <TouchableOpacity onPress={() => updateQuantity(item.cartKey, 1)}>
                                                     <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
                                                 </TouchableOpacity>
                                             </View>
-                                            <TouchableOpacity onPress={() => removeFromCart(item.product.product_id)} style={{ marginLeft: 8 }}>
+                                            <TouchableOpacity onPress={() => removeFromCart(item.cartKey)} style={{ marginLeft: 8 }}>
                                                 <Ionicons name="trash-outline" size={20} color={colors.danger} />
                                             </TouchableOpacity>
                                         </View>
@@ -896,7 +1172,7 @@ export default function POSScreen() {
                     }}
                     productName={selectedCartItem.product.name}
                     currentPrice={selectedCartItem.product.selling_price}
-                    onApply={(type, val) => applyDiscount(selectedCartItem.product.product_id, type, val)}
+                    onApply={(type, val) => applyDiscount(selectedCartItem.cartKey, type, val)}
                 />
             )}
 
@@ -964,14 +1240,14 @@ export default function POSScreen() {
             <Modal visible={showTableModal} animationType="slide" transparent>
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
                     <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' }}>
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>Choisir une table</Text>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>{t('pos.select_table')}</Text>
                         <FlatList
-                            data={[{ table_id: '', name: 'Sans table', capacity: 0, status: 'free' }, ...tableList]}
+                            data={[{ table_id: '', name: t('pos.no_table'), capacity: 0, status: 'free' }, ...tableList]}
                             keyExtractor={item => item.table_id || 'none'}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: selectedTable?.table_id === item.table_id ? colors.primary : colors.divider, backgroundColor: selectedTable?.table_id === item.table_id ? colors.primary + '15' : 'transparent', marginBottom: 6 }}
-                                    onPress={() => { setSelectedTable(item.table_id ? item : null); setShowTableModal(false); }}
+                                    onPress={() => { handleTableSelect(item.table_id ? item : null); }}
                                 >
                                     <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
                                     {item.capacity > 0 && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{item.capacity} pers.</Text>}
@@ -979,7 +1255,7 @@ export default function POSScreen() {
                             )}
                         />
                         <TouchableOpacity onPress={() => setShowTableModal(false)} style={{ padding: 14, borderRadius: 12, backgroundColor: colors.divider, alignItems: 'center', marginTop: 8 }}>
-                            <Text style={{ color: colors.text, fontWeight: '600' }}>Fermer</Text>
+                            <Text style={{ color: colors.text, fontWeight: '600' }}>{t('pos.cancel_action')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -1181,6 +1457,22 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         fontWeight: '700',
         marginTop: 4,
     },
+    modeBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        marginTop: 6,
+    },
+    modeBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    productMetaText: {
+        color: colors.textMuted,
+        fontSize: 10,
+        marginTop: 4,
+    },
 
     cartHeader: {
         flexDirection: 'row',
@@ -1223,6 +1515,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     cartItemPrice: {
         color: colors.textSecondary,
         fontSize: FontSize.xs,
+    },
+    cartMetaText: {
+        color: colors.textMuted,
+        fontSize: 11,
     },
     qtyContainer: {
         flexDirection: 'row',

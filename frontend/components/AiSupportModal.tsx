@@ -16,6 +16,7 @@ import Markdown from 'react-native-markdown-display';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { ai } from '../services/api';
 import { useTranslation } from 'react-i18next';
@@ -35,13 +36,20 @@ type AiSupportModalProps = {
 export default function AiSupportModal({ visible, onClose }: AiSupportModalProps) {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
+    const { isRestaurant, user } = useAuth();
     const styles = getStyles(colors, glassStyle);
     const markdownStyles = getMarkdownStyles(colors);
+    const businessType = typeof user?.business_type === 'string' ? user.business_type.trim() : '';
+    const welcomeKey = isRestaurant
+        ? 'modals.ai_welcome_restaurant'
+        : businessType
+            ? 'modals.ai_welcome_sector'
+            : 'modals.ai_welcome';
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 'welcome',
             role: 'assistant',
-            content: t('modals.ai_welcome'),
+            content: t(welcomeKey, { sector: businessType }),
             timestamp: new Date(),
         },
     ]);
@@ -142,13 +150,25 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
             setMessages([{
                 id: 'welcome',
                 role: 'assistant',
-                content: t('modals.ai_history_cleared'),
+                content: t(welcomeKey, { sector: businessType }),
                 timestamp: new Date(),
             }]);
         } catch (error) {
             console.error('Failed to clear history', error);
         }
     };
+
+    useEffect(() => {
+        setMessages((prev) => {
+            if (prev.length !== 1 || prev[0]?.id !== 'welcome') return prev;
+            return [{
+                id: 'welcome',
+                role: 'assistant',
+                content: t(welcomeKey, { sector: businessType }),
+                timestamp: prev[0].timestamp || new Date(),
+            }];
+        });
+    }, [welcomeKey, businessType, t]);
 
     useEffect(() => {
         if (visible) {

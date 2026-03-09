@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+declare const require: (moduleName: string) => any;
+
 let isInitialized = false;
 let PurchasesSDK: any = null;
 
@@ -35,7 +37,8 @@ export async function initPurchases(userId: string): Promise<void> {
     }
 
     try {
-        PurchasesSDK = (await import('react-native-purchases')).default;
+        const purchasesModule = require('react-native-purchases');
+        PurchasesSDK = purchasesModule.default ?? purchasesModule;
         PurchasesSDK.configure({ apiKey, appUserID: userId });
         isInitialized = true;
         console.log('RevenueCat initialized for user', userId);

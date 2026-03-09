@@ -18,20 +18,32 @@ import {
     Plus,
     Trash2,
     MapPin,
+    Mail,
     Eye
 } from 'lucide-react';
 import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
+import type { User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
+import { getAccessContext } from '../utils/access';
 
 
-export default function Settings() {
+type SettingsProps = {
+    user?: AppUser | null;
+};
+
+export default function Settings({ user }: SettingsProps) {
     const { t, i18n } = useTranslation();
+    const access = getAccessContext(user);
+    const canManageOrgSettings = access.isOrgAdmin;
+    const canManageBilling = access.isBillingAdmin;
     const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
     const [profileName, setProfileName] = useState('');
     const [currency, setCurrency] = useState('XOF');
+    const [billingContactName, setBillingContactName] = useState('');
+    const [billingContactEmail, setBillingContactEmail] = useState('');
     const [receiptName, setReceiptName] = useState('');
     const [receiptFooter, setReceiptFooter] = useState('');
     const [terminals, setTerminals] = useState<string[]>([]);
@@ -70,6 +82,8 @@ export default function Settings() {
             setSettings(res);
             setProfileName(res?.user_name || '');
             setCurrency(res?.currency || 'XOF');
+            setBillingContactName(res?.billing_contact_name || '');
+            setBillingContactEmail(res?.billing_contact_email || '');
             setReceiptName(res?.receipt_business_name || '');
             setReceiptFooter(res?.receipt_footer || '');
             setTerminals(res?.terminals || []);
@@ -84,6 +98,27 @@ export default function Settings() {
     };
 
     const handleUpdateSettings = async (updates: any) => {
+        const updateKeys = Object.keys(updates || {});
+        const billingKeys = new Set(['billing_contact_name', 'billing_contact_email']);
+        const orgKeys = new Set([
+            'modules',
+            'loyalty',
+            'reminder_rules',
+            'tax_enabled',
+            'tax_rate',
+            'tax_mode',
+            'receipt_business_name',
+            'receipt_footer',
+            'terminals',
+        ]);
+
+        if (updateKeys.some((key) => billingKeys.has(key)) && !canManageBilling) {
+            return;
+        }
+        if (updateKeys.some((key) => orgKeys.has(key)) && !canManageOrgSettings) {
+            return;
+        }
+
         setSaving(true);
         setSuccess(false);
         try {
@@ -165,7 +200,45 @@ export default function Settings() {
                         </button>
                     </div>
 
-                    {/* Smart Reminder Rules */}
+                    {canManageBilling && (
+                    <div className="glass-card p-8">
+                        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                            <Mail size={24} className="text-primary" />
+                            Contact de facturation
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Nom du contact</label>
+                                <input
+                                    type="text"
+                                    value={billingContactName}
+                                    onChange={(e) => setBillingContactName(e.target.value)}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Email de facturation</label>
+                                <input
+                                    type="email"
+                                    value={billingContactEmail}
+                                    onChange={(e) => setBillingContactEmail(e.target.value)}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => handleUpdateSettings({ billing_contact_name: billingContactName, billing_contact_email: billingContactEmail })}
+                            disabled={saving}
+                            className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Enregistrement...' : 'Mettre a jour la facturation'}
+                        </button>
+                    </div>
+                    )}
+
+                    {canManageOrgSettings && (
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
                             <Bell size={24} className="text-primary" />
@@ -179,6 +252,7 @@ export default function Settings() {
                             onUpdate={(newRules) => handleUpdateSettings({ reminder_rules: newRules })}
                         />
                     </div>
+                    )}
 
                     {/* Preferences */}
                     <div className="glass-card p-8">
@@ -230,6 +304,7 @@ export default function Settings() {
                         </div>
                     </div>
                     {/* Receipt Customization */}
+                    {canManageOrgSettings && (
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
                             <Printer size={24} className="text-primary" />
@@ -265,8 +340,10 @@ export default function Settings() {
                             </button>
                         </div>
                     </div>
+                    )}
 
                     {/* TVA / Taxes */}
+                    {canManageOrgSettings && (
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
                             💰 {t('settings.tax_title')}
@@ -325,8 +402,10 @@ export default function Settings() {
                             )}
                         </div>
                     </div>
+                    )}
 
                     {/* Multi-caisse — Terminal Management */}
+                    {canManageOrgSettings && (
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
                             <Monitor size={24} className="text-primary" />
@@ -380,6 +459,7 @@ export default function Settings() {
                             </button>
                         </div>
                     </div>
+                    )}
 
                     {/* Emplacements / Locations */}
                     <div className="glass-card p-8">
@@ -448,7 +528,7 @@ export default function Settings() {
                     </div>
 
                     {/* Per-Store Settings */}
-                    {storeList.length > 0 && (
+                    {canManageOrgSettings && storeList.length > 0 && (
                         <div className="glass-card p-8">
                             <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
                                 <Store size={24} className="text-primary" />
@@ -604,7 +684,7 @@ export default function Settings() {
                 {/* Sidebar Settings */}
                 <div className="space-y-8">
                     {/* Modules / Tab visibility */}
-                    {settings?.modules && (
+                    {canManageOrgSettings && settings?.modules && (
                         <div className="glass-card p-8">
                             <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
                                 <Eye size={24} className="text-primary" />
@@ -613,6 +693,12 @@ export default function Settings() {
                             <p className="text-sm text-slate-500 mb-6">Activez ou désactivez les onglets que vous n&apos;utilisez pas. Les données restent intactes.</p>
                             <div className="space-y-2">
                                 {([
+                                    { key: 'stock_management', label: 'Gestion du stock', showFor: 'all' },
+                                    { key: 'alerts', label: 'Alertes', showFor: 'all' },
+                                    { key: 'history', label: 'Historique', showFor: 'all' },
+                                    { key: 'statistics', label: 'Statistiques', showFor: 'all' },
+                                    { key: 'rules', label: 'Règles', showFor: 'all' },
+                                    { key: 'export', label: 'Exports', showFor: 'all' },
                                     { key: 'crm', label: 'CRM Clients', showFor: 'all' },
                                     { key: 'suppliers', label: 'Fournisseurs', showFor: 'all' },
                                     { key: 'orders', label: 'Commandes', showFor: 'all' },

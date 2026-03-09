@@ -44,10 +44,11 @@ export default function BatchScanScreen() {
                 router.back();
             } else if (action === 'inventory') {
                 const res = await productsApi.batchStockUpdate(scannedCodes, 1);
+                const missingCodes = res.not_found ?? [];
 
                 let message = res.message;
                 if (res.not_found_count && res.not_found_count > 0) {
-                    message += `\n\n${t('batch_scan.unknown_codes', { count: res.not_found_count })} : ${res.not_found.join(', ')}`;
+                    message += `\n\n${t('batch_scan.unknown_codes', { count: res.not_found_count })} : ${missingCodes.join(', ')}`;
                 }
 
                 Alert.alert(

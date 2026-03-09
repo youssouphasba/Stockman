@@ -44,33 +44,36 @@ const MANUAL_FLAG_KEY = 'user-language-manual';
 const languageDetector: LanguageDetectorAsyncModule = {
     type: 'languageDetector',
     async: true,
-    detect: async (callback: (lng: string) => void) => {
-        try {
-            const isManual = await AsyncStorage.getItem(MANUAL_FLAG_KEY);
-            const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
+    detect: (callback) => {
+        void (async () => {
+            try {
+                const isManual = await AsyncStorage.getItem(MANUAL_FLAG_KEY);
+                const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
 
-            console.log('[i18n] Detection started. Manual flag:', isManual, 'Saved lang:', savedLanguage);
+                console.log('[i18n] Detection started. Manual flag:', isManual, 'Saved lang:', savedLanguage);
 
-            if (isManual === 'true' && savedLanguage) {
-                console.log('[i18n] SUCCESS: Using manually selected language:', savedLanguage);
-                return callback(savedLanguage);
+                if (isManual === 'true' && savedLanguage) {
+                    console.log('[i18n] SUCCESS: Using manually selected language:', savedLanguage);
+                    callback(savedLanguage);
+                    return;
+                }
+
+                if (savedLanguage && isManual !== 'true') {
+                    await AsyncStorage.removeItem(LANGUAGE_KEY);
+                    console.log('[i18n] CLEANUP: Removed stale language cache');
+                }
+            } catch (error) {
+                console.error('[i18n] Error during detection:', error);
             }
 
-            if (savedLanguage && isManual !== 'true') {
-                await AsyncStorage.removeItem(LANGUAGE_KEY);
-                console.log('[i18n] CLEANUP: Removed stale language cache');
-            }
-        } catch (error) {
-            console.error('[i18n] Error during detection:', error);
-        }
+            const locales = Localization.getLocales();
+            const deviceLanguage = locales?.[0]?.languageCode ?? 'fr';
 
-        const locales = Localization.getLocales();
-        const deviceLanguage = locales?.[0]?.languageCode ?? 'fr';
+            console.log('[i18n] SYSTEM: Device Locales:', JSON.stringify(locales));
+            console.log('[i18n] FINAL CHOICE: Using system language ->', deviceLanguage);
 
-        console.log('[i18n] SYSTEM: Device Locales:', JSON.stringify(locales));
-        console.log('[i18n] FINAL CHOICE: Using system language ->', deviceLanguage);
-
-        callback(deviceLanguage);
+            callback(deviceLanguage);
+        })();
     },
     init: () => { },
     cacheUserLanguage: async (lng: string) => {

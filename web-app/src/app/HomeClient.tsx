@@ -6,6 +6,7 @@ import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, 
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
+import ExecutiveDashboard from "../components/ExecutiveDashboard";
 import Inventory from "../components/Inventory";
 import POS from "../components/POS";
 import Accounting from "../components/Accounting";
@@ -30,9 +31,12 @@ import Reservations from "../components/Reservations";
 import KitchenDisplay from "../components/KitchenDisplay";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
-import { auth, userFeatures, chat as chatApi, ApiError } from "../services/api";
+import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures } from "../services/api";
+import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
+import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
+import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -41,13 +45,21 @@ export default function Home() {
   const [email, setEmail] = useState('demo@stockman.pro');
   const [password, setPassword] = useState('password123');
   const [user, setUser] = useState<any>(null);
-  const [features, setFeatures] = useState<{ has_production: boolean; sector?: string; sector_label?: string; is_restaurant?: boolean } | null>(null);
+  const [features, setFeatures] = useState<UserFeatures | null>(null);
   const [modules, setModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
 
   const [showSignup, setShowSignup] = useState(false);
+  const effectivePlan = user?.effective_plan || user?.plan;
+  const access = getAccessContext(user);
+  const isOrgAdmin = access.isOrgAdmin;
+  const isBillingAdmin = access.isBillingAdmin;
+  const hasOperationalAccess = access.hasOperationalAccess;
+  const isBillingOnly = access.isBillingOnly;
+  const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
+  const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats'].includes(activeTab);
 
   // Sidebar & Chat state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -141,11 +153,17 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (isLogged && isBillingOnly && activeTab !== 'subscription') {
+      setActiveTab('subscription');
+    }
+  }, [activeTab, isBillingOnly, isLogged]);
+
   if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
 
   // Guard Enterprise : Starter/Pro n'ont pas accès au web
-  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.plan !== 'enterprise') {
-    const currentPlan = user?.plan === 'pro' ? 'Pro' : 'Starter';
+  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && effectivePlan !== 'enterprise') {
+    const currentPlan = effectivePlan === 'pro' ? 'Pro' : 'Starter';
 
     const WEB_MODULES = [
       {
@@ -325,7 +343,7 @@ export default function Home() {
             </h1>
             <p className="text-slate-400 max-w-2xl mx-auto text-base mb-8">
               Le plan <strong className="text-white">Enterprise</strong> débloque l'application web complète de Stockman —
-              12 modules puissants pour piloter votre commerce depuis n'importe quel ordinateur, tablette ou écran.
+              12 modules puissants pour piloter votre commerce ou votre restaurant depuis n'importe quel ordinateur, tablette ou écran.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
@@ -353,7 +371,7 @@ export default function Home() {
             <div className="text-center mb-10">
               <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Ce qui vous attend</p>
               <h2 className="text-2xl font-black text-white">12 modules professionnels inclus</h2>
-              <p className="text-slate-500 text-sm mt-1">Chaque module conçu pour les commerces qui veulent aller plus loin.</p>
+              <p className="text-slate-500 text-sm mt-1">Chaque module conçu pour les commerces et restaurants qui veulent aller plus loin.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {WEB_MODULES.map(mod => {
@@ -427,7 +445,7 @@ export default function Home() {
             <Star size={32} className="text-primary mx-auto mb-4" />
             <h2 className="text-2xl font-black text-white mb-2">Prêt à passer au niveau supérieur ?</h2>
             <p className="text-slate-400 text-sm max-w-lg mx-auto mb-6">
-              Rejoignez les commerces qui utilisent le back-office Enterprise pour prendre de meilleures décisions, gérer leur équipe efficacement et développer leur activité.
+              Rejoignez les commerces et restaurants qui utilisent le back-office Enterprise pour mieux piloter leur activité, leur équipe et leur service.
             </p>
             <a
               href="/pricing"
@@ -447,85 +465,112 @@ export default function Home() {
     );
   }
 
+  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && !isBillingAdmin && !hasOperationalAccess) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+        <div className="max-w-md glass-card p-8 text-center">
+          <h1 className="text-2xl font-bold mb-3">Accès web limité</h1>
+          <p className="text-slate-400 text-sm leading-6">
+            Votre compte Enterprise est bien rattaché à l’entreprise, mais aucun module web ne vous a encore été attribué.
+            Demandez à un administrateur opérations ou facturation de mettre à jour vos droits.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (isLogged) {
     return (
-      <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onLogout={handleLogout}
-          user={user}
-          features={features || undefined}
-          modules={modules}
-          isMobileOpen={isSidebarOpen}
-          onMobileClose={() => setIsSidebarOpen(false)}
-          onOpenChat={() => setIsChatOpen(true)}
-          unreadMessages={unreadMessages}
-        />
+      <AnalyticsFiltersProvider enabled={analyticsEnabled}>
+        <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
+          <Sidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onLogout={handleLogout}
+            user={user}
+            features={features || undefined}
+            modules={modules}
+            isMobileOpen={isSidebarOpen}
+            onMobileClose={() => setIsSidebarOpen(false)}
+            onOpenChat={() => setIsChatOpen(true)}
+            unreadMessages={unreadMessages}
+          />
 
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
-          {/* Mobile top bar */}
-          <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <Package className="text-white" size={14} />
+          <div className="flex-1 flex flex-col h-screen overflow-hidden">
+            <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
+            {/* Mobile top bar */}
+            <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
+              >
+                <Menu size={20} />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                  <Package className="text-white" size={14} />
+                </div>
+                <span className="text-white font-bold text-gradient">Stockman</span>
               </div>
-              <span className="text-white font-bold text-gradient">Stockman</span>
+            </div>
+
+            {analyticsEnabled && (
+              <div className="shrink-0">
+                <GlobalFiltersBar />
+              </div>
+            )}
+
+            {/* Page content */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {activeTab === 'dashboard' && (
+                isRestaurantBusiness
+                  ? <Dashboard onNavigate={setActiveTab} features={features} />
+                  : <ExecutiveDashboard onNavigate={setActiveTab} />
+              )}
+              {activeTab === 'multi_stores' && <MultiStoreDashboard user={user} />}
+              {activeTab === 'pos' && <POS />}
+              {activeTab === 'inventory' && <Inventory />}
+              {activeTab === 'orders' && <Orders />}
+              {activeTab === 'accounting' && <Accounting />}
+              {activeTab === 'crm' && <CRM user={user} />}
+              {activeTab === 'staff' && <Staff />}
+              {activeTab === 'suppliers' && <Suppliers />}
+              {activeTab === 'activity' && <Activity />}
+              {activeTab === 'alerts' && <Alerts />}
+              {activeTab === 'stock_history' && <StockHistory />}
+              {activeTab === 'stats' && <AbcAnalysis />}
+              {activeTab === 'inventory_counting' && <InventoryCounting />}
+              {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
+              {activeTab === 'subscription' && <Subscription />}
+              {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
+              {activeTab === 'tables' && <TableManagement />}
+              {activeTab === 'reservations' && <Reservations />}
+              {activeTab === 'kitchen' && <KitchenDisplay />}
+              {activeTab === 'admin' && <AdminDashboard />}
+              {activeTab === 'supplier_portal' && <SupplierPortal />}
+              {activeTab === 'settings' && <Settings user={user} />}
             </div>
           </div>
 
-          {/* Page content */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} features={features} />}
-            {activeTab === 'multi_stores' && <MultiStoreDashboard />}
-            {activeTab === 'pos' && <POS />}
-            {activeTab === 'inventory' && <Inventory />}
-            {activeTab === 'orders' && <Orders />}
-            {activeTab === 'accounting' && <Accounting />}
-            {activeTab === 'crm' && <CRM />}
-            {activeTab === 'staff' && <Staff />}
-            {activeTab === 'suppliers' && <Suppliers />}
-            {activeTab === 'activity' && <Activity />}
-            {activeTab === 'alerts' && <Alerts />}
-            {activeTab === 'stock_history' && <StockHistory />}
-            {activeTab === 'stats' && <AbcAnalysis />}
-            {activeTab === 'inventory_counting' && <InventoryCounting />}
-            {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
-            {activeTab === 'subscription' && <Subscription />}
-            {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
-            {activeTab === 'tables' && <TableManagement />}
-            {activeTab === 'reservations' && <Reservations />}
-            {activeTab === 'kitchen' && <KitchenDisplay />}
-            {activeTab === 'admin' && <AdminDashboard />}
-            {activeTab === 'supplier_portal' && <SupplierPortal />}
-            {activeTab === 'settings' && <Settings />}
-          </div>
-        </div>
+          {/* Floating AI chat button */}
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
+          >
+            <Sparkles size={18} />
+            <span className="text-sm">Assistant IA</span>
+          </button>
 
-        {/* Floating AI chat button */}
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
-        >
-          <Sparkles size={18} />
-          <span className="text-sm">Assistant IA</span>
-        </button>
+          {/* AI chat panel */}
+          <AiChatPanel
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            currentUser={user}
+            features={features}
+          />
 
-        {/* AI chat panel */}
-        <AiChatPanel
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          currentUser={user}
-        />
-
-      </main>
+        </main>
+      </AnalyticsFiltersProvider>
     );
   }
 
@@ -545,11 +590,11 @@ export default function Home() {
 
             <div className="flex flex-col gap-4">
               <h2 className="text-4xl font-extrabold text-white leading-tight">
-                Votre commerce, <br />
+                Votre activite, <br />
                 <span className="text-secondary">maîtrisé et optimisé.</span>
               </h2>
               <p className="text-xl text-muted leading-relaxed max-w-lg">
-                La puissance de la gestion de stock intelligente, maintenant disponible sur grand écran pour une expertise totale.
+                La puissance de la gestion, du stock et du service, maintenant disponible sur grand ecran pour un pilotage complet.
               </p>
             </div>
 

@@ -33,15 +33,22 @@ import {
     X
 } from 'lucide-react';
 import { customers as customersApi, ai as aiApi } from '../services/api';
+import type { User } from '../services/api';
 import Modal from './Modal';
 import LoyaltySettingsModal from './LoyaltySettingsModal';
 import CampaignModal from './CampaignModal';
 import { exportCRM } from '../utils/ExportService';
+import { getAccessContext } from '../utils/access';
 
+type CRMProps = {
+    user?: User | null;
+};
 
-export default function CRM() {
+export default function CRM({ user }: CRMProps) {
     const { t, i18n } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
+    const access = getAccessContext(user);
+    const canManageLoyalty = access.isOrgAdmin;
     const [customers, setCustomers] = useState<any[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
@@ -225,12 +232,12 @@ export default function CRM() {
                     >
                         <Megaphone size={20} className="text-primary" /> Campagne
                     </button>
-                    <button
+                    {canManageLoyalty && (<button
                         onClick={() => setIsLoyaltyModalOpen(true)}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
                         <Settings size={20} className="text-primary" /> Fidélité
-                    </button>
+                    </button>)}
                     <div className="h-10 w-[1px] bg-white/10 mx-1"></div>
                     <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                         <button
@@ -818,10 +825,12 @@ export default function CRM() {
             </Modal >
 
             {/* Loyalty Settings Modal */}
-            <LoyaltySettingsModal
-                isOpen={isLoyaltyModalOpen}
-                onClose={() => setIsLoyaltyModalOpen(false)}
-            />
+            {canManageLoyalty && (
+                <LoyaltySettingsModal
+                    isOpen={isLoyaltyModalOpen}
+                    onClose={() => setIsLoyaltyModalOpen(false)}
+                />
+            )}
 
             {/* Marketing Campaign Modal */}
             <CampaignModal

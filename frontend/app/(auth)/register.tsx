@@ -70,6 +70,8 @@ export default function RegisterScreen() {
   const [businessType, setBusinessType] = useState('');
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [howDidYouHear, setHowDidYouHear] = useState('');
+  const selectedSectorConfig = SECTORS.find(s => s.key === businessType);
+  const isRestaurantOnboarding = ['restaurant', 'traiteur', 'boulangerie'].includes(businessType);
 
   async function handleRegister() {
     if (!name.trim() || !email.trim() || !password.trim() || !phone.trim()) {
@@ -356,6 +358,37 @@ export default function RegisterScreen() {
                   <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>
               </View>
+
+              {selectedSectorConfig && (
+                <View style={[styles.sectorInsightCard, isRestaurantOnboarding && styles.sectorInsightCardRestaurant]}>
+                  <View style={styles.sectorInsightHeader}>
+                    <Text style={styles.sectorInsightEmoji}>{selectedSectorConfig.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.sectorInsightTitle}>
+                        {isRestaurantOnboarding
+                          ? t('auth.register.restaurantOnboardingTitle', 'Parcours restaurant active')
+                          : t('auth.register.sectorOnboardingTitle', 'Interface adaptee a votre secteur')}
+                      </Text>
+                      <Text style={styles.sectorInsightSubtitle}>
+                        {isRestaurantOnboarding
+                          ? t('auth.register.restaurantOnboardingSubtitle', 'Votre espace sera configure autour du menu, des tables, des reservations, de la cuisine et de la caisse.')
+                          : t('auth.register.sectorOnboardingSubtitle', 'Les guides, modules et conseils de demarrage seront ajustes selon votre activite.')}
+                      </Text>
+                    </View>
+                  </View>
+                  {isRestaurantOnboarding ? (
+                    <View style={styles.sectorInsightList}>
+                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem1', '- Creation de la carte et liaison des recettes')}</Text>
+                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem2', '- Workflow table -> cuisine -> service -> paiement')}</Text>
+                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem3', '- Guides et FAQ dedies au fonctionnement restaurant')}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.sectorInsightItem}>
+                      {t('auth.register.sectorOnboardingHint', 'Vous pourrez ajuster vos modules et vos parametres plus tard.')}
+                    </Text>
+                  )}
+                </View>
+              )}
 
               {/* Sector picker modal */}
               <Modal visible={showSectorModal} transparent animationType="slide">
@@ -875,6 +908,47 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginLeft: Spacing.sm,
     fontSize: FontSize.md,
+  },
+  sectorInsightCard: {
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  sectorInsightCardRestaurant: {
+    borderColor: 'rgba(245,158,11,0.4)',
+    backgroundColor: 'rgba(245,158,11,0.08)',
+  },
+  sectorInsightHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  sectorInsightEmoji: {
+    fontSize: 22,
+    marginTop: 2,
+  },
+  sectorInsightTitle: {
+    color: Colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  sectorInsightSubtitle: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  sectorInsightList: {
+    gap: 6,
+  },
+  sectorInsightItem: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
   },
   // Plan selection
   planCard: {

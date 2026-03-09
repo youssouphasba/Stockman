@@ -270,6 +270,10 @@
         "summary_role_admin": "You are the personal assistant to Stockman's ADMINISTRATOR. You have access to global metrics.",
         "summary_role_merchant": "You are Stockman's AI business assistant — combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
         "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' — say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
+        "summary_role_restaurant": "You are Stockman's AI operations assistant for a restaurant. You combine the perspective of a floor manager, kitchen lead, ingredient stock manager, and margin analyst.",
+        "summary_goal_restaurant": "Analyze the restaurant's real operating data. Do more than answer questions: detect dining room tension, kitchen delays, menu items without recipes, ingredient stock risks, and recommend immediate actions across menu, prep, and service.",
+        "summary_tone_restaurant": "Be direct, operational, and service-focused. Use concrete numbers. Give short, actionable recommendations for dining room flow, kitchen execution, reservations, tables, and ingredients.",
+        "support_instruction_restaurant": "When the business is a restaurant, reason first in terms of menu items, recipes, ingredients, prep production, kitchen tickets, tables, reservations, and checks. If the user mentions a dish, do not treat it like a generic retail product.",
         "tools": {
             "inventory_alerts": {
                 "empty": "No critical stock alerts.",
@@ -405,6 +409,14 @@
             "errorPasswordLength": "Password must be at least 6 characters long",
             "errorPasswordsMismatch": "Passwords do not match",
             "errorTerms": "Please accept the TOS and Privacy Policy",
+            "sectorOnboardingTitle": "Interface tailored to your sector",
+            "sectorOnboardingSubtitle": "Guides, modules, and getting-started tips will adjust to your business.",
+            "sectorOnboardingHint": "You will still be able to adjust modules and settings later.",
+            "restaurantOnboardingTitle": "Restaurant journey enabled",
+            "restaurantOnboardingSubtitle": "Your workspace will be organized around menu, tables, reservations, kitchen, and checkout.",
+            "restaurantOnboardingItem1": "- Build the menu and link service recipes",
+            "restaurantOnboardingItem2": "- Use the full table -> kitchen -> service -> payment flow",
+            "restaurantOnboardingItem3": "- Get restaurant-specific guides and FAQ",
             "errorRegister": "Registration error"
         },
         "verifyPhone": {
@@ -896,6 +908,30 @@
             "q12": {
                 "q": "How does loyalty work?",
                 "a": "Enable the program in Settings > Loyalty. Define the points ratio (e.g., 1 point per fixed amount). Points accumulate at each sale and customers automatically progress through tiers."
+            },
+            "q13": {
+                "q": "How do I create my restaurant menu?",
+                "a": "In the Menu tab, create a dish with its price, category, kitchen station, and production mode. Then link a service recipe if the dish must consume ingredients."
+            },
+            "q14": {
+                "q": "What is the difference between prepared, made to order, and hybrid?",
+                "a": "Prepared removes a finished product made ahead of time. Made to order consumes recipe ingredients during service. Hybrid combines both for a dish that uses a prepared base plus fresh finishing."
+            },
+            "q15": {
+                "q": "How do I open a table order?",
+                "a": "In the restaurant checkout, select a table and add dishes. Sending to kitchen creates or updates the open order linked to that table."
+            },
+            "q16": {
+                "q": "How does the kitchen screen work?",
+                "a": "Dishes sent from checkout appear in kitchen with table and useful notes. Mark tickets as ready, then served, so front-of-house keeps the right status."
+            },
+            "q17": {
+                "q": "How do I manage a reservation?",
+                "a": "In Reservations, record the guest, time, covers, and optionally a table. When guests arrive, you can move the reservation into live table service."
+            },
+            "q18": {
+                "q": "Is ingredient stock linked to recipes?",
+                "a": "Yes. A dish linked to a service recipe consumes ingredients according to its production mode. A prepared dish can also deduct a finished product produced in advance."
             }
         },
         "faq_title": "FREQUENT QUESTIONS",
@@ -1220,6 +1256,45 @@
                     "t": "Filters & History",
                     "d": "Filter by status (pending, confirmed, shipped, delivered) or by period to find your orders."
                 }
+            },
+            "restaurantHub": {
+                "title": "Restaurant Service",
+                "f1": { "t": "Overview", "d": "The restaurant hub groups quick access to tables, reservations, kitchen, and counter orders." },
+                "f2": { "t": "Front-of-house follow-up", "d": "Spot free, reserved, and occupied tables instantly to keep seating smooth." },
+                "f3": { "t": "Reservations", "d": "Prepare upcoming service with expected arrivals and special requests." },
+                "f4": { "t": "Kitchen", "d": "Track tickets waiting, ready, or served to keep dining room and kitchen aligned." }
+            },
+            "restaurantMenu": {
+                "title": "Menu & Recipes",
+                "f1": { "t": "Create a dish", "d": "Add a dish with price, menu category, and kitchen station." },
+                "f2": { "t": "Link a recipe", "d": "Attach a service recipe so ingredient stock is consumed correctly." },
+                "f3": { "t": "Production mode", "d": "Choose prepared, made to order, or hybrid depending on how your kitchen operates." },
+                "f4": { "t": "Availability", "d": "Keep the menu aligned with production reality by disabling a dish that is temporarily unavailable." }
+            },
+            "restaurantPos": {
+                "title": "Restaurant Checkout",
+                "f1": { "t": "Table order", "d": "Select a table or keep an order without table for takeaway." },
+                "f2": { "t": "Service cart", "d": "Add menu dishes and extend an open order without overwriting already-sent lines." },
+                "f3": { "t": "Send to kitchen", "d": "New dishes are sent to kitchen while keeping table and covers attached." },
+                "f4": { "t": "Close the bill", "d": "Collect payment at the end of the meal to close the bill and free the table." }
+            },
+            "restaurantTables": {
+                "title": "Tables",
+                "f1": { "t": "Statuses", "d": "Each table can be free, reserved, occupied, or cleaning." },
+                "f2": { "t": "Capacity", "d": "Capacity helps suggest the right table quickly for the party size." },
+                "f3": { "t": "End of service", "d": "After payment, the table goes back to free or cleaning depending on your flow." }
+            },
+            "restaurantReservations": {
+                "title": "Reservations",
+                "f1": { "t": "Plan ahead", "d": "Record guest name, time, covers, and useful requests for service." },
+                "f2": { "t": "Track status", "d": "Reservations move through confirmed, arrived, cancelled, or no-show." },
+                "f3": { "t": "Move to live service", "d": "When guests arrive, assign a table and open service without re-entering data." }
+            },
+            "restaurantKitchen": {
+                "title": "Kitchen",
+                "f1": { "t": "Incoming tickets", "d": "Kitchen receives dishes sent from checkout with table, quantities, and notes." },
+                "f2": { "t": "Mark ready", "d": "Move a ticket to ready so front-of-house knows the dish can be served." },
+                "f3": { "t": "Mark served", "d": "Once delivered, mark it served to keep a full trace of service progress." }
             }
         },
         "modules_title": "FEATURES PER MODULE",
@@ -1288,6 +1363,8 @@
         "ai_placeholder": "Ask your question...",
         "ai_recording": "🎙️ Recording...",
         "ai_welcome": "Hello! I am your Stockman assistant. How can I help you today?",
+        "ai_welcome_restaurant": "Hello! I am your Stockman restaurant assistant. I can help with your menu, recipes, kitchen flow, tables, reservations, and service.",
+        "ai_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions.",
         "cancel": "Cancel",
         "changePassword": {
             "title": "Change Password",
@@ -1550,9 +1627,37 @@
         "select_customer_credit": "Please select a customer for a credit sale.",
         "sku_not_found": "No product found with SKU:",
         "stock_depleted": "Stock depleted",
-        "success": "Sale recorded",
-        "suggestions_title": "Often bought together",
-        "terminal_active": "Terminal : {{name}}",
+    "success": "Sale recorded",
+    "suggestions_title": "Often bought together",
+    "production_mode_prepped": "Prepared in advance",
+    "production_mode_on_demand": "Made to order",
+    "production_mode_hybrid": "Hybrid",
+    "restaurant_options": "Restaurant options",
+    "table_label": "Table",
+    "select_table": "Select",
+    "open_order_linked": "Open order linked to this table",
+    "loading_open_order": "Loading open order...",
+    "send_to_kitchen": "Send to kitchen",
+    "add_to_open_order": "Add to order",
+    "kitchen_notes_placeholder": "Kitchen notes...",
+    "service_label": "Service",
+    "tip_label": "Tip",
+    "final_total": "Final total",
+    "discount_label": "Discount",
+    "return_last_sale": "Return last sale",
+    "cart_locked_open_order": "This line has already been sent. Add a new line to extend the order.",
+    "open_order_locked_title": "Open order",
+    "no_new_items_to_send": "No new items to send.",
+    "add_item_before_kitchen": "Add at least one dish before sending to the kitchen.",
+    "kitchen_send_error": "Error while sending to kitchen",
+    "dish_count": "{{count}} dish",
+    "dish_count_plural": "{{count}} dishes",
+    "no_table": "No table",
+    "terminal_label": "Register",
+    "ai_suggest": "AI suggestion",
+    "cancel_action": "Cancel",
+    "confirm_action": "Confirm",
+    "terminal_active": "Terminal : {{name}}",
         "terminal_modal_subtitle": "Sélectionnez le terminal pour cette session de caisse.",
         "terminal_modal_title": "Choisir un Terminal",
         "terminal_select": "Changer de terminal",
@@ -1562,11 +1667,41 @@
         "total_to_pay": "Total to pay",
         "received_amount": "Amount received",
         "change_to_render": "Change to give back",
-        "unknown": "Unknown",
-        "unknown_product_msg": "No product found with SKU: {{sku}}",
-        "unknown_product_title": "Unknown product"
-    },
-    "premium": {
+    "unknown": "Unknown",
+    "unknown_product_msg": "No product found with SKU: {{sku}}",
+    "unknown_product_title": "Unknown product"
+  },
+  "restaurant": {
+    "menu_category": "Menu category",
+    "menu_category_placeholder": "e.g. Grill, Starters, Desserts",
+    "service_recipe": "Service recipe",
+    "no_recipe": "None",
+    "recipe_required": "Please link a service recipe for this dish.",
+    "menu_form_hint": "This form creates a menu item. Stock will be managed according to the selected mode: prepared in advance, made to order, or hybrid.",
+    "station_label": "Kitchen station",
+    "station_plat": "Main",
+    "station_grill": "Grill",
+    "station_froid": "Cold",
+    "station_boisson": "Drinks",
+    "station_dessert": "Dessert",
+    "recipe_linked": "Recipe linked",
+    "recipe_to_define": "To define",
+    "sale_price": "Sale price",
+    "production_label": "Production",
+    "edit_dish": "Edit dish",
+    "add_dish": "Add dish",
+    "no_dish": "No dish",
+    "covers": "Covers",
+    "service_charge": "Service charge",
+    "first_dish_hint": "Start by creating your first menu dish.",
+    "mark_ready": "Ready",
+    "served": "Served",
+    "kitchen_ready_error": "Unable to mark this item as ready.",
+    "kitchen_served_error": "Unable to mark this order as served.",
+    "kitchen_subtitle": "List of tickets sent to the kitchen and still pending.",
+    "kitchen_empty_desc": "Orders sent from the POS will appear here."
+  },
+  "premium": {
         "features": {
             "orders": {
                 "title": "Smart Ordering",

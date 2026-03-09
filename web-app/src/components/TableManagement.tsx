@@ -1,12 +1,19 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Plus, Trash2, Users, Check, X, Clock, DollarSign,
-    UtensilsCrossed, Layers, RefreshCw, ChevronDown,
+    Plus,
+    Trash2,
+    Users,
+    Check,
+    X,
+    Clock,
+    DollarSign,
+    UtensilsCrossed,
+    Layers,
+    RefreshCw,
+    ChevronDown,
 } from 'lucide-react';
 import { tables as tablesApi } from '../services/api';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Table {
     table_id: string;
@@ -22,8 +29,6 @@ interface Table {
 interface TableManagementProps {
     onTableSelect?: (table: Table) => void;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, { border: string; bg: string; text: string; badge: string; dot: string }> = {
     free: {
@@ -58,21 +63,30 @@ const STATUS_COLORS: Record<string, { border: string; bg: string; text: string; 
 
 const STATUS_LABELS: Record<string, string> = {
     free: 'Libre',
-    occupied: 'Occupée',
-    reserved: 'Réservée',
+    occupied: 'Occupee',
+    reserved: 'Reservee',
     cleaning: 'Nettoyage',
 };
 
-const STATUS_CYCLE: Record<string, string> = {
-    free: 'cleaning',
-    occupied: 'cleaning',
-    reserved: 'free',
-    cleaning: 'free',
+const TABLE_ACTIONS: Record<Table['status'], Array<{ action: 'reserve' | 'seat' | 'clean' | 'free'; label: string }>> = {
+    free: [
+        { action: 'reserve', label: 'Reserver' },
+        { action: 'seat', label: 'Installer' },
+    ],
+    reserved: [
+        { action: 'seat', label: 'Marquer arrivee' },
+        { action: 'free', label: 'Liberer' },
+    ],
+    occupied: [
+        { action: 'clean', label: 'Passer en nettoyage' },
+    ],
+    cleaning: [
+        { action: 'free', label: 'Marquer propre' },
+        { action: 'reserve', label: 'Reserver' },
+    ],
 };
 
 type FilterTab = 'all' | 'free' | 'occupied' | 'reserved' | 'cleaning';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatElapsed(dateStr: string): string {
     const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -89,17 +103,15 @@ function formatAmount(amount: number): string {
     }).format(amount);
 }
 
-// ─── Context Menu Component ───────────────────────────────────────────────────
-
 interface ContextMenuProps {
     table: Table;
     position: { x: number; y: number };
     onClose: () => void;
-    onStatusChange: (table: Table, status: string) => void;
+    onAction: (table: Table, action: 'reserve' | 'seat' | 'clean' | 'free') => void;
     onDelete: (id: string) => void;
 }
 
-function ContextMenu({ table, position, onClose, onStatusChange, onDelete }: ContextMenuProps) {
+function ContextMenu({ table, position, onClose, onAction, onDelete }: ContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -108,13 +120,12 @@ function ContextMenu({ table, position, onClose, onStatusChange, onDelete }: Con
                 onClose();
             }
         }
+
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    const statuses = ['free', 'occupied', 'reserved', 'cleaning'].filter(s => s !== table.status);
-
-    // Ensure menu doesn't overflow viewport
+    const actions = TABLE_ACTIONS[table.status] || [];
     const menuStyle: React.CSSProperties = {
         position: 'fixed',
         top: Math.min(position.y, window.innerHeight - 220),
@@ -126,26 +137,42 @@ function ContextMenu({ table, position, onClose, onStatusChange, onDelete }: Con
         <div
             ref={menuRef}
             style={menuStyle}
-            className="w-48 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+            className="w-48 overflow-hidden rounded-xl border border-white/10 bg-[#1E293B] shadow-2xl"
         >
-            <div className="px-3 py-2 border-b border-white/10 text-xs text-slate-400 font-semibold uppercase tracking-wider">
+            <div className="border-b border-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {table.name}
             </div>
             <div className="py-1">
-                {statuses.map(s => (
-                    <button
-                        key={s}
-                        onClick={() => { onStatusChange(table, s); onClose(); }}
-                        className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2 transition-colors"
-                    >
-                        <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[s]?.dot}`} />
-                        Passer en « {STATUS_LABELS[s]} »
-                    </button>
-                ))}
-                <div className="border-t border-white/10 my-1" />
+                {actions.map(({ action, label }) => {
+                    const targetStatus =
+                        action === 'seat'
+                            ? 'occupied'
+                            : action === 'clean'
+                                ? 'cleaning'
+                                : action === 'reserve'
+                                    ? 'reserved'
+                                    : 'free';
+                    return (
+                        <button
+                            key={action}
+                            onClick={() => {
+                                onAction(table, action);
+                                onClose();
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-300 transition-colors hover:bg-white/5"
+                        >
+                            <span className={`h-2 w-2 rounded-full ${STATUS_COLORS[targetStatus]?.dot}`} />
+                            {label}
+                        </button>
+                    );
+                })}
+                <div className="my-1 border-t border-white/10" />
                 <button
-                    onClick={() => { onDelete(table.table_id); onClose(); }}
-                    className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                        onDelete(table.table_id);
+                        onClose();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-400 transition-colors hover:bg-rose-500/10"
                 >
                     <Trash2 size={13} /> Supprimer
                 </button>
@@ -153,8 +180,6 @@ function ContextMenu({ table, position, onClose, onStatusChange, onDelete }: Con
         </div>
     );
 }
-
-// ─── Timer Component (refreshes independently) ────────────────────────────────
 
 function OccupiedTimer({ since }: { since: string }) {
     const [elapsed, setElapsed] = useState(() => formatElapsed(since));
@@ -165,13 +190,11 @@ function OccupiedTimer({ since }: { since: string }) {
     }, [since]);
 
     return (
-        <span className="font-mono text-xs font-bold text-[#f59e0b] flex items-center gap-1">
+        <span className="flex items-center gap-1 font-mono text-xs font-bold text-[#f59e0b]">
             <Clock size={11} /> {elapsed}
         </span>
     );
 }
-
-// ─── Table Card ───────────────────────────────────────────────────────────────
 
 interface TableCardProps {
     table: Table;
@@ -185,9 +208,11 @@ function TableCard({ table, onClick, onContextMenu }: TableCardProps) {
 
     const handleTouchStart = (e: React.TouchEvent) => {
         longPressTimer.current = setTimeout(() => {
-            // Simulate a right-click position from touch
             const touch = e.touches[0];
-            onContextMenu(table, { clientX: touch.clientX, clientY: touch.clientY } as unknown as React.MouseEvent);
+            onContextMenu(table, {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+            } as unknown as React.MouseEvent);
         }, 600);
     };
 
@@ -201,42 +226,39 @@ function TableCard({ table, onClick, onContextMenu }: TableCardProps) {
     return (
         <div
             onClick={() => onClick(table)}
-            onContextMenu={e => { e.preventDefault(); onContextMenu(table, e); }}
+            onContextMenu={e => {
+                e.preventDefault();
+                onContextMenu(table, e);
+            }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchEnd}
             className={`
-                relative bg-[#1E293B] border-2 rounded-2xl p-5 cursor-pointer
-                transition-all duration-200 select-none
+                group relative cursor-pointer select-none rounded-2xl border-2 bg-[#1E293B] p-5
+                transition-all duration-200
                 ${colors.border} ${colors.bg}
                 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]
             `}
         >
-            {/* Table name */}
-            <div className="text-lg font-bold text-white leading-tight mb-0.5 pr-4">
+            <div className="mb-0.5 pr-4 text-lg font-bold leading-tight text-white">
                 {table.name}
             </div>
 
-            {/* Capacity */}
-            <div className="flex items-center gap-1 text-xs text-slate-400 mb-3">
+            <div className="mb-3 flex items-center gap-1 text-xs text-slate-400">
                 <Users size={11} />
                 <span>{table.capacity} couvert{table.capacity > 1 ? 's' : ''}</span>
             </div>
 
-            {/* Status badge */}
-            <div className="flex items-center gap-1.5 mb-3">
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${colors.badge}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+            <div className="mb-3 flex items-center gap-1.5">
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${colors.badge}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
                     {STATUS_LABELS[table.status] ?? table.status}
                 </span>
             </div>
 
-            {/* Occupied details */}
             {table.status === 'occupied' && (
                 <div className="space-y-1.5 border-t border-white/5 pt-2.5">
-                    {table.occupied_since && (
-                        <OccupiedTimer since={table.occupied_since} />
-                    )}
+                    {table.occupied_since && <OccupiedTimer since={table.occupied_since} />}
                     {table.covers != null && table.covers > 0 && (
                         <div className="flex items-center gap-1 text-xs text-slate-400">
                             <UtensilsCrossed size={11} />
@@ -252,15 +274,12 @@ function TableCard({ table, onClick, onContextMenu }: TableCardProps) {
                 </div>
             )}
 
-            {/* Right-click hint */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <ChevronDown size={12} className="text-slate-600" />
             </div>
         </div>
     );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TableManagement({ onTableSelect }: TableManagementProps) {
     const [tableList, setTableList] = useState<Table[]>([]);
@@ -272,8 +291,6 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
     const [saving, setSaving] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ table: Table; position: { x: number; y: number } } | null>(null);
     const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
-    // ── Data loading ─────────────────────────────────────────────────────────
 
     const load = useCallback(async () => {
         try {
@@ -293,27 +310,22 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
         return () => clearInterval(interval);
     }, [load]);
 
-    // ── Actions ───────────────────────────────────────────────────────────────
-
     const handleTableClick = (table: Table) => {
-        if (table.status === 'free' || table.status === 'occupied') {
-            onTableSelect?.(table);
-        } else {
-            // For reserved/cleaning, still allow selecting but also open context menu
-            onTableSelect?.(table);
-        }
+        onTableSelect?.(table);
     };
 
-    const handleStatusChange = async (table: Table, newStatus: string) => {
+    const handleTableAction = async (table: Table, action: 'reserve' | 'seat' | 'clean' | 'free') => {
         try {
-            await tablesApi.update(table.table_id, { status: newStatus });
+            const updated = action === 'seat'
+                ? await tablesApi.seat(table.table_id, { covers: table.covers })
+                : await tablesApi.act(table.table_id, action);
+
             setTableList(prev =>
-                prev.map(t =>
-                    t.table_id === table.table_id ? { ...t, status: newStatus as Table['status'] } : t
-                )
+                prev.map(t => (t.table_id === table.table_id ? { ...t, ...(updated || {}) } : t))
             );
-        } catch (err) {
-            console.error('Failed to update table status:', err);
+        } catch (err: any) {
+            console.error('Failed to run table action:', err);
+            window.alert(err?.message || 'Impossible de mettre a jour la table.');
         }
     };
 
@@ -334,7 +346,7 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Supprimer cette table ? Cette action est irréversible.')) return;
+        if (!confirm('Supprimer cette table ? Cette action est irreversible.')) return;
         try {
             await tablesApi.delete(id);
             setTableList(prev => prev.filter(t => t.table_id !== id));
@@ -348,8 +360,6 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
         setContextMenu({ table, position: { x: e.clientX, y: e.clientY } });
     };
 
-    // ── Derived state ─────────────────────────────────────────────────────────
-
     const filtered = filter === 'all' ? tableList : tableList.filter(t => t.status === filter);
 
     const counts = {
@@ -362,59 +372,53 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
     const filterTabs: { key: FilterTab; label: string; count: number }[] = [
         { key: 'all', label: 'Toutes', count: tableList.length },
         { key: 'free', label: 'Libres', count: counts.free },
-        { key: 'occupied', label: 'Occupées', count: counts.occupied },
-        { key: 'reserved', label: 'Réservées', count: counts.reserved },
+        { key: 'occupied', label: 'Occupees', count: counts.occupied },
+        { key: 'reserved', label: 'Reservees', count: counts.reserved },
         { key: 'cleaning', label: 'Nettoyage', count: counts.cleaning },
     ];
 
-    // ── Render ────────────────────────────────────────────────────────────────
-
     if (loading) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
-                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <div className="flex flex-1 items-center justify-center bg-[#0F172A]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
             </div>
         );
     }
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#0F172A]">
-            {/* Context menu */}
+        <div className="flex flex-1 flex-col overflow-hidden bg-[#0F172A]">
             {contextMenu && (
                 <ContextMenu
                     table={contextMenu.table}
                     position={contextMenu.position}
                     onClose={() => setContextMenu(null)}
-                    onStatusChange={handleStatusChange}
+                    onAction={handleTableAction}
                     onDelete={handleDelete}
                 />
             )}
 
-            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-6 lg:p-8">
-
-                {/* Header */}
-                <header className="flex flex-wrap justify-between items-start gap-4 mb-6">
+                <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl lg:text-3xl font-bold text-white mb-1 flex items-center gap-3">
+                        <h1 className="mb-1 flex items-center gap-3 text-2xl font-bold text-white lg:text-3xl">
                             <Layers size={28} className="text-primary" />
                             Plan de Salle
                         </h1>
-                        <p className="text-slate-400 text-sm">
-                            Dernière mise à jour : {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        <p className="text-sm text-slate-400">
+                            Derniere mise a jour : {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={load}
-                            className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl text-slate-400 text-sm hover:bg-white/10 transition-colors"
-                            title="Rafraîchir"
+                            className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/10"
+                            title="Rafraichir"
                         >
                             <RefreshCw size={14} />
                         </button>
                         <button
                             onClick={() => setShowCreate(v => !v)}
-                            className="btn-primary px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold"
+                            className="btn-primary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold"
                         >
                             <Plus size={15} />
                             Ajouter une table
@@ -422,73 +426,75 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
                     </div>
                 </header>
 
-                {/* Summary bar */}
-                <div className="flex flex-wrap gap-3 mb-5">
+                <div className="mb-5 flex flex-wrap gap-3">
                     <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                        <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
                         <span className="font-semibold text-white">{counts.free}</span> libre{counts.free > 1 ? 's' : ''}
                     </div>
-                    <span className="text-slate-700">·</span>
+                    <span className="text-slate-700">.</span>
                     <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
-                        <span className="font-semibold text-white">{counts.occupied}</span> occupée{counts.occupied > 1 ? 's' : ''}
+                        <span className="h-2 w-2 rounded-full bg-[#f59e0b]" />
+                        <span className="font-semibold text-white">{counts.occupied}</span> occupee{counts.occupied > 1 ? 's' : ''}
                     </div>
-                    <span className="text-slate-700">·</span>
+                    <span className="text-slate-700">.</span>
                     <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-[#3b82f6]" />
-                        <span className="font-semibold text-white">{counts.reserved}</span> réservée{counts.reserved > 1 ? 's' : ''}
+                        <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
+                        <span className="font-semibold text-white">{counts.reserved}</span> reservee{counts.reserved > 1 ? 's' : ''}
                     </div>
                     {counts.cleaning > 0 && (
                         <>
-                            <span className="text-slate-700">·</span>
+                            <span className="text-slate-700">.</span>
                             <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                                <span className="w-2 h-2 rounded-full bg-[#6b7280]" />
+                                <span className="h-2 w-2 rounded-full bg-[#6b7280]" />
                                 <span className="font-semibold text-white">{counts.cleaning}</span> nettoyage
                             </div>
                         </>
                     )}
                 </div>
 
-                {/* Create table form */}
                 {showCreate && (
-                    <div className="glass-card p-5 mb-6 border border-white/10 rounded-2xl">
-                        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                    <div className="glass-card mb-6 rounded-2xl border border-white/10 p-5">
+                        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
                             <Plus size={14} className="text-primary" /> Nouvelle table
                         </h3>
                         <div className="flex flex-wrap items-end gap-3">
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-xs text-slate-400 font-medium">Nom / Numéro</label>
+                                <label className="text-xs font-medium text-slate-400">Nom / Numero</label>
                                 <input
                                     value={newName}
                                     onChange={e => setNewName(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                                    placeholder="ex: Table 5, Terrasse A…"
+                                    placeholder="ex: Table 5, Terrasse A..."
                                     autoFocus
-                                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-slate-600 outline-none focus:border-primary/50 w-52 text-sm"
+                                    className="w-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder-slate-600 focus:border-primary/50"
                                 />
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-xs text-slate-400 font-medium">Capacité (couverts)</label>
+                                <label className="text-xs font-medium text-slate-400">Capacite (couverts)</label>
                                 <input
                                     type="number"
                                     min={1}
                                     max={30}
                                     value={newCapacity}
                                     onChange={e => setNewCapacity(Math.max(1, Number(e.target.value)))}
-                                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white outline-none focus:border-primary/50 w-28 text-sm"
+                                    className="w-28 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/50"
                                 />
                             </div>
                             <button
                                 onClick={handleCreate}
                                 disabled={saving || !newName.trim()}
-                                className="btn-primary px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Check size={15} />
-                                {saving ? 'Création…' : 'Créer'}
+                                {saving ? 'Creation...' : 'Creer'}
                             </button>
                             <button
-                                onClick={() => { setShowCreate(false); setNewName(''); setNewCapacity(4); }}
-                                className="px-4 py-2.5 rounded-xl bg-white/5 text-slate-400 text-sm hover:bg-white/10 flex items-center gap-1.5 transition-colors"
+                                onClick={() => {
+                                    setShowCreate(false);
+                                    setNewName('');
+                                    setNewCapacity(4);
+                                }}
+                                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-4 py-2.5 text-sm text-slate-400 transition-colors hover:bg-white/10"
                             >
                                 <X size={14} /> Annuler
                             </button>
@@ -496,18 +502,16 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
                     </div>
                 )}
 
-                {/* Filter tabs */}
-                <div className="flex gap-1 mb-5 flex-wrap">
+                <div className="mb-5 flex flex-wrap gap-1">
                     {filterTabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setFilter(tab.key)}
                             className={`
-                                px-3.5 py-1.5 rounded-full text-sm font-medium transition-all
+                                rounded-full px-3.5 py-1.5 text-sm font-medium transition-all
                                 ${filter === tab.key
                                     ? 'bg-primary text-white shadow-md'
-                                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                                }
+                                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}
                             `}
                         >
                             {tab.label}
@@ -520,18 +524,17 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
                     ))}
                 </div>
 
-                {/* Table grid */}
                 {filtered.length === 0 ? (
-                    <div className="text-center py-20 text-slate-500">
+                    <div className="py-20 text-center text-slate-500">
                         <Layers size={40} className="mx-auto mb-4 opacity-20" />
                         <p className="text-base">
                             {filter === 'all'
                                 ? 'Aucune table. Cliquez sur "Ajouter une table" pour commencer.'
-                                : `Aucune table avec le statut « ${STATUS_LABELS[filter]} ».`}
+                                : `Aucune table avec le statut "${STATUS_LABELS[filter]}".`}
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                         {filtered.map(table => (
                             <TableCard
                                 key={table.table_id}
@@ -543,9 +546,8 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
                     </div>
                 )}
 
-                {/* Help hint */}
-                <p className="mt-8 text-xs text-slate-700 text-center">
-                    Clic gauche pour ouvrir la table · Clic droit (ou appui long) pour changer le statut ou supprimer
+                <p className="mt-8 text-center text-xs text-slate-700">
+                    Clic gauche pour ouvrir la table. Clic droit ou appui long pour lancer une action ou supprimer.
                 </p>
             </div>
         </div>

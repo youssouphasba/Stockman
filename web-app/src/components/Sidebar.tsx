@@ -31,6 +31,8 @@ import {
     ChefHat,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getAccessContext } from '../utils/access';
+import type { UserPermissions } from '../services/api';
 
 interface SidebarProps {
     activeTab: string;
@@ -54,7 +56,10 @@ type SidebarItem = {
     icon: any;
     label: string;
     roles?: string[];
-    permission?: string; // module permission key required for staff users
+    permission?: keyof UserPermissions;
+    accountRole?: 'billing_admin' | 'org_admin';
+    managerOnly?: boolean;
+    operational?: boolean;
 };
 
 type SidebarGroup = {
@@ -63,7 +68,10 @@ type SidebarGroup = {
     label: string;
     children: SidebarItem[];
     roles?: string[];
-    permission?: string;
+    permission?: keyof UserPermissions;
+    accountRole?: 'billing_admin' | 'org_admin';
+    managerOnly?: boolean;
+    operational?: boolean;
 };
 
 type SidebarEntry = SidebarItem | (SidebarGroup & { children: SidebarItem[] });
@@ -91,6 +99,13 @@ export default function Sidebar({
 
     // Helper: returns false only when explicitly disabled in modules
     const modEnabled = (key: string) => modules[key] !== false;
+    const access = getAccessContext(user);
+    const accountRoles = access.accountRoles;
+    const effectivePermissions = access.effectivePermissions;
+    const isSuperAdmin = access.isSuperAdmin;
+    const isOrgAdmin = access.isOrgAdmin;
+    const isBillingAdmin = access.isBillingAdmin;
+    const hasOperationalAccess = access.hasOperationalAccess;
 
     // Entrées communes (toujours visibles)
     const commonBottom: SidebarEntry[] = [
@@ -100,87 +115,87 @@ export default function Sidebar({
             icon: Settings,
             label: t('settings.account'),
             children: [
-                { id: 'subscription', icon: CreditCard, label: t('tabs.subscription'), roles: ['shopkeeper', 'admin'] },
-                { id: 'settings', icon: Settings, label: t('admin.segments.settings') },
+                { id: 'subscription', icon: CreditCard, label: t('tabs.subscription'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'billing_admin' },
+                { id: 'settings', icon: Settings, label: t('admin.segments.settings'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin' },
             ],
         },
     ];
 
     const menuEntries: SidebarEntry[] = isRestaurant ? [
         // ── RESTAURANT ──────────────────────────────────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
-        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
-        { id: 'pos', icon: ShoppingCart, label: 'Caisse', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
+        { id: 'pos', icon: ShoppingCart, label: 'Caisse', roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'tables', icon: UtensilsCrossed, label: 'Tables', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'reservations', icon: CalendarCheck, label: 'Réservations', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'production', icon: Factory, label: 'Recettes', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
-            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'admin'],
-            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true,
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin' }],
         },
         ...commonBottom,
     ] : isProductionOnly ? [
         // ── PRODUCTION (boulangerie, couture, forge…) ─────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
-        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
-        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
+        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
+        { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
         {
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
-                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
-                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'admin'] },
-                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'admin'] },
+                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
             ],
         },
-        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
-            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'supplier', 'admin'],
+            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'staff', 'supplier', 'admin'],
             children: [
-                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'admin'] },
+                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'suppliers' },
                 { id: 'supplier_portal', icon: Truck, label: t('sidebar.supplier_portal'), roles: ['supplier', 'admin'] },
             ],
         },
         {
-            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'admin'],
-            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true,
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin' }],
         },
         ...commonBottom,
     ] : [
         // ── COMMERCE (défaut) ─────────────────────────────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title') },
-        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'admin'] },
-        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'admin'] },
-        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
+        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
+        { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+        { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         {
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
-                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'] },
-                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'] },
-                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'admin'] },
-                { id: 'inventory_counting', icon: RefreshCcw, label: t('dashboard.rotating_inventory'), roles: ['shopkeeper', 'admin'] },
-                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'admin'] },
-                { id: 'stats', icon: BarChart3, label: t('sidebar.abc_analysis'), roles: ['shopkeeper', 'admin'] },
+                { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'inventory_counting', icon: RefreshCcw, label: t('dashboard.rotating_inventory'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'stats', icon: BarChart3, label: t('sidebar.abc_analysis'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock', managerOnly: true },
             ],
         },
-        { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'crm' },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
-            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'supplier', 'admin'],
+            id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'staff', 'supplier', 'admin'],
             children: [
-                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'admin'] },
+                { id: 'suppliers', icon: Users, label: t('sidebar.my_suppliers'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'suppliers' },
                 { id: 'supplier_portal', icon: Truck, label: t('sidebar.supplier_portal'), roles: ['supplier', 'admin'] },
             ],
         },
         {
-            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'],
-            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'admin'] }],
+            id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true,
+            children: [{ id: 'activity', icon: Clock, label: t('sidebar.system_history'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin' }],
         },
         ...commonBottom,
     ];
@@ -193,6 +208,13 @@ export default function Sidebar({
         orders: 'orders',
         accounting: 'accounting',
         suppliers_group: 'suppliers',
+        suppliers: 'suppliers',
+        inventory: 'stock_management',
+        inventory_counting: 'stock_management',
+        alerts: 'alerts',
+        stock_history: 'history',
+        expiry_alerts: 'alerts',
+        stats: 'statistics',
     };
 
     const filteredMenuEntries = menuEntries.filter(entry => {
@@ -201,20 +223,21 @@ export default function Sidebar({
         return true;
     });
 
-    const canSeeItem = (roles?: string[], permission?: string) => {
+    const canSeeItem = (roles?: string[], permission?: keyof UserPermissions, accountRole?: 'billing_admin' | 'org_admin', managerOnly?: boolean) => {
         if (!roles) return true;
         if (!user) return true;
-        // Superadmin voit tout
-        if (user.role === 'superadmin') return true;
-        if (roles.includes(user.role)) {
-            // For staff with a permission requirement, check it
-            if (user.role === 'staff' && permission) {
-                const perm = user.permissions?.[permission];
-                return perm === 'read' || perm === 'write';
-            }
-            return true;
+        if (isSuperAdmin) return true;
+        if (user.role === 'supplier') return roles.includes(user.role);
+        if (managerOnly && !isOrgAdmin) return false;
+        if (accountRole === 'billing_admin' && !isBillingAdmin) return false;
+        if (accountRole === 'org_admin' && !isOrgAdmin) return false;
+        if (!hasOperationalAccess && accountRole !== 'billing_admin') return false;
+        if (!roles.includes(user.role)) return false;
+        if (permission && !isOrgAdmin) {
+            const perm = effectivePermissions[permission];
+            return perm === 'read' || perm === 'write';
         }
-        return false;
+        return true;
     };
 
     const getDefaultOpenGroups = (): Set<string> => {
@@ -264,7 +287,9 @@ export default function Sidebar({
     };
 
     const renderItem = (item: SidebarItem, indent = false) => {
-        if (!canSeeItem(item.roles, item.permission)) return null;
+        const modKey = MODULE_GATED[item.id];
+        if (modKey && !modEnabled(modKey)) return null;
+        if (!canSeeItem(item.roles, item.permission, item.accountRole, item.managerOnly)) return null;
         const Icon = item.icon;
         const isActive = activeTab === item.id;
         return (
@@ -287,8 +312,11 @@ export default function Sidebar({
     };
 
     const renderGroup = (group: SidebarGroup) => {
-        if (!canSeeItem(group.roles, group.permission)) return null;
-        const visibleChildren = group.children.filter(c => canSeeItem(c.roles, c.permission));
+        if (!canSeeItem(group.roles, group.permission, group.accountRole, group.managerOnly)) return null;
+        const visibleChildren = group.children.filter(c => {
+            const modKey = MODULE_GATED[c.id];
+            return (!modKey || modEnabled(modKey)) && canSeeItem(c.roles, c.permission, c.accountRole, c.managerOnly);
+        });
         if (visibleChildren.length === 0) return null;
 
         const isOpen = openGroups.has(group.id);

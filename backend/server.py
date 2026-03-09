@@ -31,6 +31,29 @@ import base64
 from fastapi.staticfiles import StaticFiles
 from collections import defaultdict
 import random
+from enterprise_access import (
+    ACCOUNT_SHARED_SETTING_FIELDS,
+    BILLING_ADMIN_SETTING_FIELDS,
+    ORG_ADMIN_SETTING_FIELDS,
+    PERMISSION_MODULES,
+    STORE_SCOPED_SETTING_FIELDS,
+    USER_SELF_SETTING_FIELDS,
+    build_effective_access_context,
+    build_effective_permissions as compute_effective_permissions,
+    default_dashboard_layout as shared_default_dashboard_layout,
+    default_modules as shared_default_modules,
+    is_billing_admin_doc as shared_is_billing_admin_doc,
+    is_org_admin_doc as shared_is_org_admin_doc,
+    merge_effective_settings,
+    normalize_account_roles as shared_normalize_account_roles,
+    normalize_plan as shared_normalize_plan,
+    normalize_store_permissions,
+    partition_settings_update,
+    resolve_allowed_store_ids,
+    seed_business_account,
+    user_can_access_store,
+    user_has_operational_access as shared_user_has_operational_access,
+)
 
 # Configure logging
 print("---------------- SERVER STARTING ----------------")
@@ -356,6 +379,25 @@ async def run_startup_migrations():
                 {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
                 {"$set": {"store_id": sid}}
             )
+        owner_docs = await db.users.find(
+            {"role": {"$in": ["shopkeeper", "staff", "admin"]}},
+            {"_id": 0}
+        ).to_list(None)
+        for owner_doc in owner_docs:
+            try:
+                account_doc = await ensure_business_account_for_user_doc(owner_doc)
+                access_context = build_effective_access_context(owner_doc, account_doc)
+                await db.users.update_one(
+                    {"user_id": owner_doc["user_id"]},
+                    {"$set": {
+                        "account_id": (account_doc or {}).get("account_id") or owner_doc.get("account_id"),
+                        "store_ids": access_context["store_ids"],
+                        "active_store_id": access_context["active_store_id"],
+                        "store_permissions": access_context["store_permissions"],
+                    }}
+                )
+            except Exception as account_err:
+                logger.warning(f"Business account migration skipped for {owner_doc.get('user_id')}: {account_err}")
         logger.info("Background Migration: store_id + is_active backfill completed")
         # Supervised tasks
         asyncio.create_task(supervised_loop("alerts", check_alerts_loop, 300))
@@ -390,6 +432,8 @@ async def create_indexes_and_init():
                 logger.info("Initializing database indexes in background...")
                 await db.users.create_index("user_id", unique=True)
                 await db.users.create_index("email", unique=True)
+                await db.business_accounts.create_index("account_id", unique=True)
+                await db.business_accounts.create_index("owner_user_id")
                 await db.products.create_index([("user_id", 1), ("store_id", 1)])
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
@@ -506,31 +550,34 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             now = datetime.now(timezone.utc)
 
             # 1. Expire paid subscriptions (Flutterwave / Stripe)
-            result = await db.users.update_many(
+            expired_paid_accounts = await db.business_accounts.find(
                 {
                     "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
                     "subscription_provider": {"$in": ["flutterwave", "stripe"]},
                     "subscription_end": {"$lt": now},
                     "subscription_status": "active",
                 },
-                {"$set": {"subscription_status": "expired"}}
-            )
-            if result.modified_count:
-                logger.info(f"Expired {result.modified_count} paid subscriptions")
+                {"_id": 0, "owner_user_id": 1}
+            ).to_list(length=None)
+            for account in expired_paid_accounts:
+                await update_business_account_for_owner(account["owner_user_id"], {"subscription_status": "expired"})
+            if expired_paid_accounts:
+                logger.info(f"Expired {len(expired_paid_accounts)} paid subscriptions")
 
             # 2. Expire free trials (provider = none, trial_ends_at dépassé)
             # Les fournisseurs (role=supplier) ont un compte gratuit permanent
-            trial_result = await db.users.update_many(
+            expired_trials = await db.business_accounts.find(
                 {
                     "subscription_provider": "none",
                     "trial_ends_at": {"$lt": now},
                     "subscription_status": "active",
-                    "role": {"$ne": "supplier"},
                 },
-                {"$set": {"subscription_status": "expired"}}
-            )
-            if trial_result.modified_count:
-                logger.info(f"Expired {trial_result.modified_count} free trials")
+                {"_id": 0, "owner_user_id": 1}
+            ).to_list(length=None)
+            for account in expired_trials:
+                await update_business_account_for_owner(account["owner_user_id"], {"subscription_status": "expired"})
+            if expired_trials:
+                logger.info(f"Expired {len(expired_trials)} free trials")
 
             # 3. Rappels trial J-7 et J-1
             for days_left in (7, 1):
@@ -569,6 +616,9 @@ class Store(BaseModel):
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
     terminals: Optional[List[str]] = None
+    tax_enabled: Optional[bool] = None
+    tax_rate: Optional[float] = None
+    tax_mode: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StoreCreate(BaseModel):
@@ -582,6 +632,9 @@ class StoreUpdate(BaseModel):
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
     terminals: Optional[List[str]] = None
+    tax_enabled: Optional[bool] = None
+    tax_rate: Optional[float] = None
+    tax_mode: Optional[str] = None
 
 class StockTransfer(BaseModel):
     product_id: str
@@ -680,6 +733,15 @@ class UserPermissions(BaseModel):
     crm: str = "none"
     pos: str = "none"
     suppliers: str = "none"
+    staff: str = "none"
+
+
+def default_modules() -> Dict[str, bool]:
+    return shared_default_modules()
+
+
+def default_dashboard_layout() -> Dict[str, bool]:
+    return shared_default_dashboard_layout()
 
 class UserBase(BaseModel):
     email: str
@@ -701,6 +763,10 @@ class UserCreate(BaseModel):
     country_code: Optional[str] = None
     plan: Optional[str] = None  # "starter", "pro", "enterprise" — choisi sur la landing page
 
+    account_roles: List[str] = Field(default_factory=list)
+    store_ids: List[str] = Field(default_factory=list)
+    store_permissions: Dict[str, Dict[str, str]] = Field(default_factory=dict)
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -716,6 +782,12 @@ class User(UserBase):
     role: str = "shopkeeper"  # "shopkeeper", "staff", "supplier"
     permissions: Dict[str, str] = {}
     parent_user_id: Optional[str] = None
+    account_id: Optional[str] = None
+    account_roles: List[str] = []
+    store_permissions: Dict[str, Dict[str, str]] = {}
+    effective_permissions: Dict[str, str] = {}
+    effective_plan: str = "starter"
+    effective_subscription_status: str = "active"
     active_store_id: Optional[str] = None # The store currently being managed
     store_ids: List[str] = [] # List of stores this user has access to
     plan: str = "starter" # "starter", "pro", "enterprise" (legacy: "premium")
@@ -731,17 +803,43 @@ class User(UserBase):
     country_code: Optional[str] = "SN" # Default to Senegal
     language: str = "fr" # User preferred language
 
+class BusinessAccount(BaseModel):
+    account_id: str = Field(default_factory=lambda: f"acct_{uuid.uuid4().hex[:12]}")
+    owner_user_id: str
+    business_type: Optional[str] = None
+    store_ids: List[str] = Field(default_factory=list)
+    plan: str = "starter"
+    subscription_status: str = "active"
+    subscription_provider: str = "none"
+    subscription_provider_id: Optional[str] = None
+    subscription_end: Optional[datetime] = None
+    trial_ends_at: Optional[datetime] = None
+    currency: str = "XOF"
+    modules: Dict[str, bool] = Field(default_factory=default_modules)
+    billing_contact_name: Optional[str] = None
+    billing_contact_email: Optional[EmailStr] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     picture: Optional[str] = None
     role: Optional[str] = None
     permissions: Optional[Dict[str, str]] = None
     active_store_id: Optional[str] = None
+    account_roles: Optional[List[str]] = None
+    store_ids: Optional[List[str]] = None
+    store_permissions: Optional[Dict[str, Dict[str, str]]] = None
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     currency: Optional[str] = None
     business_type: Optional[str] = None
+
+
+class BillingContactUpdate(BaseModel):
+    billing_contact_name: Optional[str] = None
+    billing_contact_email: Optional[EmailStr] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -816,6 +914,11 @@ class Product(BaseModel):
     tax_rate: Optional[float] = None  # TVA produit (override). None = utilise le taux boutique
     product_type: str = "standard"  # "standard", "raw_material", "semi_finished", "finished"
     is_producible: bool = False  # True if linked to a recipe as output
+    is_menu_item: bool = False
+    menu_category: Optional[str] = None
+    kitchen_station: str = "plat"  # entree | plat | dessert | boisson | autre
+    production_mode: str = "prepped"  # prepped | on_demand | hybrid
+    linked_recipe_id: Optional[str] = None  # Service recipe used for on_demand / hybrid items
     user_id: str
     store_id: Optional[str] = None
     is_active: bool = True
@@ -845,6 +948,11 @@ class ProductCreate(BaseModel):
     has_variants: bool = False
     product_type: str = "standard"
     tax_rate: Optional[float] = None
+    is_menu_item: bool = False
+    menu_category: Optional[str] = None
+    kitchen_station: str = "plat"
+    production_mode: str = "prepped"
+    linked_recipe_id: Optional[str] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -868,6 +976,11 @@ class ProductUpdate(BaseModel):
     has_variants: Optional[bool] = None
     product_type: Optional[str] = None
     tax_rate: Optional[float] = None
+    is_menu_item: Optional[bool] = None
+    menu_category: Optional[str] = None
+    kitchen_station: Optional[str] = None
+    production_mode: Optional[str] = None
+    linked_recipe_id: Optional[str] = None
 
 class PriceHistory(BaseModel):
     history_id: str = Field(default_factory=lambda: f"prc_{uuid.uuid4().hex[:12]}")
@@ -889,6 +1002,8 @@ class RecipeIngredient(BaseModel):
 class RecipeCreate(BaseModel):
     name: str
     category: Optional[str] = None
+    recipe_type: str = "prep"  # prep | service
+    menu_product_id: Optional[str] = None
     output_product_id: Optional[str] = None
     output_quantity: float = 1
     output_unit: str = "pièce"
@@ -903,6 +1018,8 @@ class RecipeCreate(BaseModel):
 class RecipeUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
+    recipe_type: Optional[str] = None
+    menu_product_id: Optional[str] = None
     output_product_id: Optional[str] = None
     output_quantity: Optional[float] = None
     output_unit: Optional[str] = None
@@ -1040,42 +1157,21 @@ class ReminderRuleSettings(BaseModel):
 class UserSettings(BaseModel):
     settings_id: str = Field(default_factory=lambda: f"settings_{uuid.uuid4().hex[:12]}")
     user_id: str
+    account_id: Optional[str] = None
     loyalty: LoyaltySettings = Field(default_factory=LoyaltySettings)
     reminder_rules: ReminderRuleSettings = Field(default_factory=ReminderRuleSettings)
-    modules: dict = Field(default_factory=lambda: {
-        # Commerce tabs
-        "stock_management": True,
-        "alerts": True,
-        "rules": True,
-        "statistics": True,
-        "history": True,
-        "export": True,
-        "crm": True,
-        "suppliers": True,
-        "orders": True,
-        "accounting": True,
-        # Restaurant tabs
-        "reservations": True,
-        "kitchen": True,
-    })
+    modules: dict = Field(default_factory=default_modules)
     simple_mode: bool = False  # true = simple, false = advanced
+    mobile_preferences: Dict[str, Any] = Field(default_factory=lambda: {
+        "simple_mode": False,
+        "show_manager_zone": True,
+    })
+    web_preferences: Dict[str, Any] = Field(default_factory=lambda: {
+        "dashboard_layout": default_dashboard_layout(),
+    })
     language: str = "fr"
     push_notifications: bool = True
-    dashboard_layout: Dict[str, bool] = Field(default_factory=lambda: {
-        "show_kpi": True,
-        "show_stock_status": True,
-        "show_smart_reminders": True,
-        "show_forecast": True,
-        "show_recent_alerts": True,
-        "show_recent_sales": True,
-        "show_stock_chart": True,
-        "show_category_chart": True,
-        "show_abc_analysis": True,
-        "show_reorder": True,
-        "show_inventory_tasks": True,
-        "show_expiry_alerts": True,
-        "show_profitability": True
-    })
+    dashboard_layout: Dict[str, bool] = Field(default_factory=default_dashboard_layout)
     # Multi-caisse
     terminals: List[str] = Field(default_factory=list)
     # TVA / Taxes
@@ -1085,6 +1181,8 @@ class UserSettings(BaseModel):
     # Personnalisation reçu
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
+    billing_contact_name: Optional[str] = None
+    billing_contact_email: Optional[EmailStr] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -1164,6 +1262,9 @@ class Table(BaseModel):
     capacity: int = 4
     status: str = "free"  # free | occupied | reserved | cleaning
     current_sale_id: Optional[str] = None
+    occupied_since: Optional[str] = None
+    current_amount: float = 0.0
+    covers: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TableCreate(BaseModel):
@@ -1442,6 +1543,8 @@ def sanitize_user_doc(user_doc: dict) -> dict:
         user_doc["store_ids"] = []
     if user_doc.get("permissions") is None:
         user_doc["permissions"] = {}
+    if user_doc.get("store_permissions") is None:
+        user_doc["store_permissions"] = {}
     if user_doc.get("plan") is None:
         user_doc["plan"] = "starter"
     if user_doc.get("subscription_status") is None:
@@ -1458,7 +1561,130 @@ def sanitize_user_doc(user_doc: dict) -> dict:
         user_doc["is_phone_verified"] = False
     if user_doc.get("auth_type") is None:
         user_doc["auth_type"] = "email"
+    if user_doc.get("account_roles") is None:
+        user_doc["account_roles"] = []
+    if user_doc.get("account_id") is None:
+        user_doc["account_id"] = None
     return user_doc
+
+
+def normalize_plan(plan: Optional[str]) -> str:
+    return shared_normalize_plan(plan)
+
+
+def normalize_account_roles(user_doc: dict) -> List[str]:
+    return shared_normalize_account_roles(user_doc)
+
+
+def is_org_admin_doc(user_doc: dict) -> bool:
+    return shared_is_org_admin_doc(user_doc)
+
+
+def is_billing_admin_doc(user_doc: dict) -> bool:
+    return shared_is_billing_admin_doc(user_doc)
+
+
+def build_effective_permissions(user_doc: dict) -> Dict[str, str]:
+    return compute_effective_permissions(user_doc)
+
+
+def user_has_operational_access(user_doc: dict) -> bool:
+    return shared_user_has_operational_access(user_doc)
+
+
+async def ensure_business_account_for_user_doc(user_doc: dict) -> Optional[dict]:
+    role = user_doc.get("role")
+    if role in ("supplier", "superadmin"):
+        return None
+
+    owner_id = user_doc.get("parent_user_id") or user_doc.get("user_id")
+    owner_doc = user_doc if user_doc.get("user_id") == owner_id else await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
+        owner_doc = user_doc
+    sanitize_user_doc(owner_doc)
+
+    account_id = user_doc.get("account_id") or owner_doc.get("account_id") or f"acct_{owner_id}"
+    account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+
+    if not account_doc:
+        owner_settings = await db.user_settings.find_one({"user_id": owner_id}, {"_id": 0}) or {}
+        account_doc = BusinessAccount(**seed_business_account(owner_doc, owner_settings)).model_dump()
+        await db.business_accounts.update_one(
+            {"account_id": account_id},
+            {"$set": account_doc},
+            upsert=True,
+        )
+    else:
+        updates = {}
+        if not account_doc.get("owner_user_id"):
+            updates["owner_user_id"] = owner_id
+        if not account_doc.get("business_type") and owner_doc.get("business_type"):
+            updates["business_type"] = owner_doc.get("business_type")
+        if not account_doc.get("store_ids") and owner_doc.get("store_ids"):
+            updates["store_ids"] = owner_doc.get("store_ids")
+        if not account_doc.get("modules"):
+            owner_settings = await db.user_settings.find_one({"user_id": owner_id}, {"_id": 0}) or {}
+            updates["modules"] = owner_settings.get("modules") or default_modules()
+        if not account_doc.get("billing_contact_name") and owner_doc.get("name"):
+            updates["billing_contact_name"] = owner_doc.get("name")
+        if not account_doc.get("billing_contact_email") and owner_doc.get("email"):
+            updates["billing_contact_email"] = owner_doc.get("email")
+        if updates:
+            updates["updated_at"] = datetime.now(timezone.utc)
+            await db.business_accounts.update_one({"account_id": account_id}, {"$set": updates})
+            account_doc.update(updates)
+
+    await db.users.update_many(
+        {"$or": [{"user_id": owner_id}, {"parent_user_id": owner_id}]},
+        {"$set": {"account_id": account_id}},
+    )
+    return account_doc
+
+
+async def update_business_account_for_owner(owner_id: str, updates: Dict[str, Any]) -> Optional[dict]:
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
+        return None
+    target_owner_id = owner_doc.get("parent_user_id") or owner_doc["user_id"]
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    if not account_doc:
+        return None
+    payload = {**updates, "updated_at": datetime.now(timezone.utc)}
+    await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": payload})
+    legacy_updates = {k: v for k, v in updates.items() if k in {
+        "plan", "subscription_status", "subscription_provider", "subscription_provider_id",
+        "subscription_end", "trial_ends_at", "business_type", "currency"
+    }}
+    if legacy_updates:
+        await db.users.update_one({"user_id": target_owner_id}, {"$set": legacy_updates})
+    account_doc.update(payload)
+    return account_doc
+
+
+async def build_user_from_doc(user_doc: dict) -> User:
+    sanitize_user_doc(user_doc)
+    account_doc = await ensure_business_account_for_user_doc(user_doc)
+    access_context = build_effective_access_context(user_doc, account_doc)
+    source_doc = dict(user_doc)
+    source_doc["account_id"] = (account_doc or {}).get("account_id") or user_doc.get("account_id")
+    source_doc["account_roles"] = access_context["account_roles"]
+    source_doc["store_ids"] = access_context["store_ids"]
+    source_doc["active_store_id"] = access_context["active_store_id"]
+    source_doc["store_permissions"] = access_context["store_permissions"]
+    source_doc["effective_permissions"] = access_context["effective_permissions"]
+    source_doc["effective_plan"] = access_context["effective_plan"]
+    source_doc["effective_subscription_status"] = access_context["effective_subscription_status"]
+    source_doc["plan"] = access_context["effective_plan"]
+    source_doc["subscription_status"] = access_context["effective_subscription_status"]
+    source_doc["subscription_provider"] = (account_doc or {}).get("subscription_provider") or user_doc.get("subscription_provider", "none")
+    source_doc["subscription_provider_id"] = (account_doc or {}).get("subscription_provider_id") or user_doc.get("subscription_provider_id")
+    source_doc["subscription_end"] = (account_doc or {}).get("subscription_end") or user_doc.get("subscription_end")
+    source_doc["trial_ends_at"] = (account_doc or {}).get("trial_ends_at") or user_doc.get("trial_ends_at")
+    source_doc["business_type"] = (account_doc or {}).get("business_type") or user_doc.get("business_type")
+    source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", "XOF")
+    if source_doc["active_store_id"] != user_doc.get("active_store_id"):
+        await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": {"active_store_id": source_doc["active_store_id"]}})
+    return User(**source_doc)
 
 # Security scheme for Swagger UI
 api_security = HTTPBearer(auto_error=False)
@@ -1485,8 +1711,7 @@ async def get_current_user(request: Request) -> Optional[User]:
         if not user_doc:
             return None
 
-        sanitize_user_doc(user_doc)
-        user = User(**user_doc)
+        user = await build_user_from_doc(user_doc)
 
         # Update last_active (fire-and-forget, must not break auth)
         try:
@@ -1514,12 +1739,10 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
 
 def require_permission(module: str, level: str = "read"):
     async def permission_checker(user: User = Depends(require_auth)):
-        # Owner/Shopkeeper/Superadmin has all permissions
-        if user.role in ["shopkeeper", "superadmin"]:
+        if user.role == "superadmin" or "org_admin" in (user.account_roles or []):
             return user
         
-        # staff permissions check
-        user_perms = user.permissions or {}
+        user_perms = user.effective_permissions or user.permissions or {}
         perm = user_perms.get(module, "none")
         
         if level == "write" and perm != "write":
@@ -1542,6 +1765,94 @@ def require_read(module: str):
 def require_write(module: str):
     return require_permission(module, "write")
 
+
+def is_org_admin_user(user: User) -> bool:
+    return user.role == "superadmin" or "org_admin" in (user.account_roles or [])
+
+
+def is_billing_admin_user(user: User) -> bool:
+    return user.role == "superadmin" or "billing_admin" in (user.account_roles or [])
+
+
+def has_operational_access_user(user: User) -> bool:
+    if is_org_admin_user(user):
+        return True
+    user_perms = user.effective_permissions or user.permissions or {}
+    return any(user_perms.get(module) in ("read", "write") for module in PERMISSION_MODULES)
+
+
+def ensure_user_store_access(user: User, store_id: Optional[str], detail: str = "Accès refusé pour ce magasin") -> None:
+    if not user_can_access_store(
+        {
+            "role": user.role,
+            "account_roles": user.account_roles,
+            "store_ids": user.store_ids,
+            "active_store_id": user.active_store_id,
+        },
+        store_id,
+    ):
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def apply_store_scope(query: Dict[str, Any], user: User, requested_store_id: Optional[str] = None) -> Dict[str, Any]:
+    target_store = requested_store_id or user.active_store_id
+    if target_store:
+        ensure_user_store_access(user, target_store)
+        query["store_id"] = target_store
+    elif not is_org_admin_user(user) and user.store_ids:
+        query["store_id"] = {"$in": user.store_ids}
+    return query
+
+
+def apply_completed_sales_scope(query: Dict[str, Any]) -> Dict[str, Any]:
+    scoped_query = dict(query)
+    scoped_query["$or"] = [{"status": {"$exists": False}}, {"status": "completed"}]
+    return scoped_query
+
+
+def ensure_scoped_document_access(
+    user: User,
+    document: Optional[dict],
+    detail: str = "Accès refusé pour ce magasin",
+    store_field: str = "store_id",
+) -> None:
+    if not document:
+        return
+    store_id = document.get(store_field)
+    if store_id:
+        ensure_user_store_access(user, store_id, detail=detail)
+        return
+    if not is_org_admin_user(user) and len(user.store_ids or []) > 1:
+        raise HTTPException(status_code=403, detail=detail)
+
+
+async def require_operational_access(user: User = Depends(require_auth)) -> User:
+    if not has_operational_access_user(user):
+        raise HTTPException(status_code=403, detail="Accès opérationnel requis")
+    return user
+
+
+async def require_org_admin(user: User = Depends(require_auth)) -> User:
+    if not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail="Accès administrateur opérations requis")
+    return user
+
+
+def require_procurement_access(level: str = "read"):
+    async def procurement_checker(user: User = Depends(require_auth)) -> User:
+        if is_org_admin_user(user):
+            return user
+
+        user_perms = user.effective_permissions or user.permissions or {}
+        accepted_levels = {"read", "write"} if level == "read" else {"write"}
+        for module in ("suppliers", "stock"):
+            if user_perms.get(module) in accepted_levels:
+                return user
+
+        raise HTTPException(status_code=403, detail="Accès refusé au module approvisionnement")
+
+    return procurement_checker
+
 async def require_superadmin(user: User = Depends(require_auth)) -> User:
 
     if user.role != "superadmin":
@@ -1563,20 +1874,32 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
     """Crée une session de paiement Flutterwave (Mobile Money, Afrique)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
-    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
-    if not user_doc:
+    if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
+        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    user_doc = dict(owner_doc)
+    if account_doc:
+        user_doc["plan"] = account_doc.get("plan", user_doc.get("plan"))
+        user_doc["subscription_status"] = account_doc.get("subscription_status", user_doc.get("subscription_status"))
+        user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
+        user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
+        user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
     user_currency = user_doc.get("currency", "XOF")
     if user_currency not in FLUTTERWAVE_CURRENCIES:
         raise HTTPException(status_code=400, detail=f"Flutterwave Mobile Money ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
     try:
         session = await create_flutterwave_session(user_doc, plan)
     except Exception as e:
-        logger.error(f"Flutterwave session error for {user.user_id}: {e}")
+        logger.error(f"Flutterwave session error for {owner_id}: {e}")
         raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
     await db.pending_transactions.insert_one({
         "transaction_id": session["transaction_id"],
-        "user_id": user.user_id,
+        "user_id": owner_id,
+        "account_id": (account_doc or {}).get("account_id"),
         "plan": plan,
         "created_at": datetime.now(timezone.utc),
     })
@@ -1588,13 +1911,24 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
     """Crée une session Stripe Checkout (carte bancaire, EUR)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
-    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
-    if not user_doc:
+    if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
+        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    user_doc = dict(owner_doc)
+    if account_doc:
+        user_doc["plan"] = account_doc.get("plan", user_doc.get("plan"))
+        user_doc["subscription_status"] = account_doc.get("subscription_status", user_doc.get("subscription_status"))
+        user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
+        user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
+        user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
     try:
         session = await create_stripe_session(user_doc, plan)
     except Exception as e:
-        logger.error(f"Stripe session error for {user.user_id}: {e}")
+        logger.error(f"Stripe session error for {owner_id}: {e}")
         raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
     return {"checkout_url": session["checkout_url"], "session_id": session["session_id"]}
 
@@ -1639,22 +1973,22 @@ async def stripe_webhook(request: Request):
         if user_doc:
             # Get plan from subscription metadata
             metadata = obj.get("subscription_details", {}).get("metadata", {})
-            plan = metadata.get("plan") or user_doc.get("plan", "starter")
+            plan = normalize_plan(metadata.get("plan") or user_doc.get("plan", "starter"))
             period_end = obj.get("lines", {}).get("data", [{}])[0].get("period", {}).get("end")
             sub_end = (
                 datetime.fromtimestamp(period_end, tz=timezone.utc)
                 if period_end
                 else datetime.now(timezone.utc) + timedelta(days=31)
             )
-            await db.users.update_one(
-                {"user_id": user_doc["user_id"]},
-                {"$set": {
+            await update_business_account_for_owner(
+                user_doc["user_id"],
+                {
                     "plan": plan,
                     "subscription_status": "active",
                     "subscription_provider": "stripe",
                     "subscription_provider_id": sub_id,
                     "subscription_end": sub_end,
-                }}
+                },
             )
             logger.info(f"Stripe invoice.paid: user={user_doc['user_id']} plan={plan} end={sub_end}")
 
@@ -1667,9 +2001,9 @@ async def stripe_webhook(request: Request):
             {"user_id": 1}
         )
         if user_doc:
-            await db.users.update_one(
-                {"user_id": user_doc["user_id"]},
-                {"$set": {"subscription_status": "expired", "plan": "starter"}}
+            await update_business_account_for_owner(
+                user_doc["user_id"],
+                {"subscription_status": "expired", "plan": "starter"},
             )
             logger.info(f"Stripe subscription deleted: user={user_doc['user_id']}")
 
@@ -1683,9 +2017,9 @@ async def stripe_webhook(request: Request):
             {"user_id": 1}
         )
         if user_doc and status in ("past_due", "unpaid"):
-            await db.users.update_one(
-                {"user_id": user_doc["user_id"]},
-                {"$set": {"subscription_status": "expired"}}
+            await update_business_account_for_owner(
+                user_doc["user_id"],
+                {"subscription_status": "expired"},
             )
             logger.info(f"Stripe subscription {status}: user={user_doc['user_id']}")
 
@@ -1737,15 +2071,15 @@ async def flutterwave_webhook(request: Request):
 
     plan = pending["plan"]
     subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
-    await db.users.update_one(
-        {"user_id": pending["user_id"]},
-        {"$set": {
+    await update_business_account_for_owner(
+        pending["user_id"],
+        {
             "plan": plan,
             "subscription_status": "active",
             "subscription_provider": "flutterwave",
             "subscription_provider_id": str(tx_data.get("id", "")),
             "subscription_end": subscription_end,
-        }}
+        },
     )
 
     # Notify user to refresh app data (I5)
@@ -1784,14 +2118,14 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
         raise HTTPException(status_code=403, detail="Mock webhook disabled in production")
     logger.info(f"PAYMENT VALIDATED (MOCK): {method} for {user_id} by admin {admin.user_id}")
     # Activate Subscription
-    await db.users.update_one(
-        {"user_id": user_id},
-        {"$set": {
+    await update_business_account_for_owner(
+        user_id,
+        {
             "plan": "pro",
             "subscription_status": "active",
             "subscription_provider": "flutterwave",
             "subscription_end": datetime.now(timezone.utc) + timedelta(days=30)
-        }}
+        },
     )
     return {"status": "ok"}
 
@@ -1801,12 +2135,10 @@ async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_
     valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
         raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
-    result = await db.users.update_one(
-        {"user_id": user_id},
-        {"$set": {"plan": plan, "subscription_status": "active"}}
-    )
-    if result.matched_count == 0:
+    result = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not result:
         raise HTTPException(status_code=404, detail="User non trouvé")
+    await update_business_account_for_owner(user_id, {"plan": plan, "subscription_status": "active"})
     return {"status": "ok", "user_id": user_id, "plan": plan}
 
 @api_router.post("/admin/set-plan-all")
@@ -1815,11 +2147,10 @@ async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = 
     valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
         raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
-    result = await db.users.update_many(
-        {"role": role},
-        {"$set": {"plan": plan, "subscription_status": "active"}}
-    )
-    return {"status": "ok", "modified": result.modified_count, "plan": plan}
+    owners = await db.users.find({"role": role}, {"user_id": 1, "_id": 0}).to_list(None)
+    for owner in owners:
+        await update_business_account_for_owner(owner["user_id"], {"plan": plan, "subscription_status": "active"})
+    return {"status": "ok", "modified": len(owners), "plan": plan}
 
 @api_router.delete("/admin/users")
 async def admin_delete_user(email: str, admin: User = Depends(require_superadmin)):
@@ -1950,6 +2281,28 @@ def get_owner_id(user: User) -> str:
     """Returns the user_id of the shopkeeper (owner)."""
     return user.parent_user_id if user.parent_user_id else user.user_id
 
+
+def sanitize_store_scope_payload(
+    requested_store_ids: Optional[List[str]],
+    requested_store_permissions: Optional[Dict[str, Dict[str, str]]],
+    allowed_account_store_ids: List[str],
+) -> Dict[str, Any]:
+    allowed_set = set(allowed_account_store_ids)
+    store_ids = [store_id for store_id in (requested_store_ids or []) if store_id in allowed_set]
+    normalized_permissions = normalize_store_permissions(requested_store_permissions)
+    store_permissions = {
+        store_id: permission_map
+        for store_id, permission_map in normalized_permissions.items()
+        if store_id in allowed_set
+    }
+    for store_id in store_permissions:
+        if store_id not in store_ids:
+            store_ids.append(store_id)
+    return {
+        "store_ids": store_ids,
+        "store_permissions": store_permissions,
+    }
+
 async def log_activity(user: User, action: str, module: str, description: str, details: Dict[str, Any] = {}):
     """Saves a record of the action performed by a user."""
     try:
@@ -1971,34 +2324,43 @@ async def log_activity(user: User, action: str, module: str, description: str, d
 
 @api_router.get("/sub-users", response_model=List[User])
 async def list_sub_users(user: User = Depends(require_auth)):
-    perms = user.permissions or {}
-    if user.role == "shopkeeper":
-        # Owner voit tous ses sub-users
-        sub_users = await db.users.find({"parent_user_id": user.user_id}, {"_id": 0}).to_list(100)
+    perms = user.effective_permissions or user.permissions or {}
+    if user.role == "superadmin" or "org_admin" in (user.account_roles or []):
+        owner_id = user.parent_user_id or user.user_id
+        sub_users = await db.users.find({"parent_user_id": owner_id}, {"_id": 0}).to_list(100)
     elif user.role == "staff" and perms.get("staff") in ("read", "write"):
         # Manager délégué : voit les employés sans staff:write (ne peut pas gérer d'autres managers)
         owner_id = user.parent_user_id
         all_subs = await db.users.find({"parent_user_id": owner_id}, {"_id": 0}).to_list(100)
-        sub_users = [u for u in all_subs if u.get("user_id") != user.user_id and (u.get("permissions") or {}).get("staff") != "write"]
+        sub_users = [
+            u for u in all_subs
+            if u.get("user_id") != user.user_id
+            and (u.get("permissions") or {}).get("staff") != "write"
+            and not normalize_account_roles(u)
+            and bool(set(u.get("store_ids") or []) & set(user.store_ids or []))
+        ]
     else:
         raise HTTPException(status_code=403, detail="Accès refusé")
-    return sub_users
+    return [await build_user_from_doc(u) for u in sub_users]
 
 @api_router.post("/sub-users", response_model=User)
 async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(require_auth)):
-    perms = user.permissions or {}
+    perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if user.role != "shopkeeper" and not is_delegated_manager:
+    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="Accès refusé")
     # Anti-escalade : un manager délégué ne peut pas créer d'autres managers
     if is_delegated_manager and (sub_user_data.permissions or {}).get("staff") == "write":
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
+    if is_delegated_manager and sub_user_data.account_roles:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rôles de compte")
     
     # Plan limits on staff count
     STAFF_LIMITS = {"starter": 1, "pro": 5, "enterprise": 9999}
     owner_id = get_owner_id(user)
-    owner_doc = await db.users.find_one({"user_id": owner_id})
-    owner_plan = (owner_doc or {}).get("plan", "starter")
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
+    owner_plan = normalize_plan((account_doc or {}).get("plan") or (owner_doc or {}).get("plan"))
     staff_limit = STAFF_LIMITS.get(owner_plan, 1)
     current_staff = await db.users.count_documents({"parent_user_id": owner_id})
     if current_staff >= staff_limit:
@@ -2010,9 +2372,18 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     
     new_user_id = f"user_{uuid.uuid4().hex[:12]}"
     hashed_password = pwd_context.hash(sub_user_data.password)
-    
-    # Si c'est un manager délégué, les sous-utilisateurs appartiennent au même owner
-    owner_parent_id = user.parent_user_id if is_delegated_manager else user.user_id
+    account_store_ids = resolve_allowed_store_ids({"role": "shopkeeper", "store_ids": (account_doc or {}).get("store_ids") or []}, account_doc)
+    assignable_store_ids = [store_id for store_id in account_store_ids if not is_delegated_manager or store_id in (user.store_ids or [])]
+    store_scope = sanitize_store_scope_payload(sub_user_data.store_ids, sub_user_data.store_permissions, assignable_store_ids)
+    if not store_scope["store_ids"]:
+        if sub_user_data.account_roles and "org_admin" in sub_user_data.account_roles:
+            store_scope["store_ids"] = account_store_ids
+        elif user.active_store_id and user.active_store_id in assignable_store_ids:
+            store_scope["store_ids"] = [user.active_store_id]
+        elif assignable_store_ids:
+            store_scope["store_ids"] = [assignable_store_ids[0]]
+
+    owner_parent_id = get_owner_id(user)
     new_user = User(
         user_id=new_user_id,
         email=sub_user_data.email,
@@ -2020,14 +2391,17 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         role="staff",
         permissions=sub_user_data.permissions,
         parent_user_id=owner_parent_id,
+        account_id=user.account_id,
+        account_roles=sub_user_data.account_roles or [],
+        store_permissions=store_scope["store_permissions"],
         auth_type="email",
-        active_store_id=user.active_store_id,
-        store_ids=user.store_ids,
+        active_store_id=store_scope["store_ids"][0] if store_scope["store_ids"] else None,
+        store_ids=store_scope["store_ids"],
         created_at=datetime.now(timezone.utc)
     )
     
     # Save to DB
-    await db.users.insert_one(new_user.model_dump())
+    await db.users.insert_one(new_user.model_dump(exclude={"effective_permissions", "effective_plan", "effective_subscription_status"}))
     await db.credentials.insert_one({
         "user_id": new_user_id,
         "password_hash": hashed_password
@@ -2035,16 +2409,16 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
 
     await log_activity(user, "staff_created", "staff", f"Employé '{new_user.name}' créé ({new_user.email})", {"sub_user_id": new_user_id})
 
-    return new_user
+    return await build_user_from_doc(new_user.model_dump())
 
 @api_router.put("/sub-users/{sub_user_id}", response_model=User)
 async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User = Depends(require_auth)):
-    perms = user.permissions or {}
+    perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if user.role != "shopkeeper" and not is_delegated_manager:
+    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
-    owner_id = user.user_id if user.role == "shopkeeper" else user.parent_user_id
+    owner_id = user.parent_user_id or user.user_id
     target = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id})
     if not target:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé ou accès refusé")
@@ -2052,30 +2426,47 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
     if is_delegated_manager:
         if (target.get("permissions") or {}).get("staff") == "write":
             raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier un autre manager")
+        if normalize_account_roles(target):
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier un administrateur de compte")
         if (update_data.permissions or {}).get("staff") == "write":
             raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
-    
+        if "account_roles" in update_data.model_fields_set:
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rôles de compte")
+
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
+    account_store_ids = resolve_allowed_store_ids({"role": "shopkeeper", "store_ids": (account_doc or {}).get("store_ids") or []}, account_doc)
+    assignable_store_ids = [store_id for store_id in account_store_ids if not is_delegated_manager or store_id in (user.store_ids or [])]
     update_dict = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
+    if "store_ids" in update_dict or "store_permissions" in update_dict:
+        requested_store_ids = update_dict.get("store_ids", target.get("store_ids"))
+        requested_store_permissions = update_dict.get("store_permissions", target.get("store_permissions"))
+        store_scope = sanitize_store_scope_payload(requested_store_ids, requested_store_permissions, assignable_store_ids)
+        update_dict["store_ids"] = store_scope["store_ids"]
+        update_dict["store_permissions"] = store_scope["store_permissions"]
+        active_store_id = update_dict.get("active_store_id", target.get("active_store_id"))
+        update_dict["active_store_id"] = active_store_id if active_store_id in store_scope["store_ids"] else (store_scope["store_ids"][0] if store_scope["store_ids"] else None)
     if update_dict:
         await db.users.update_one({"user_id": sub_user_id}, {"$set": update_dict})
 
     updated = await db.users.find_one({"user_id": sub_user_id}, {"_id": 0})
     await log_activity(user, "staff_updated", "staff", f"Employé '{updated.get('name', sub_user_id)}' modifié", {"sub_user_id": sub_user_id})
-    sanitize_user_doc(updated)
-    return User(**updated)
+    return await build_user_from_doc(updated)
 
 @api_router.delete("/sub-users/{sub_user_id}")
 async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
-    perms = user.permissions or {}
+    perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if user.role != "shopkeeper" and not is_delegated_manager:
+    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="Accès refusé")
     
-    owner_id = user.user_id if user.role == "shopkeeper" else user.parent_user_id
-    target_user = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id}, {"name": 1, "permissions": 1})
+    owner_id = user.parent_user_id or user.user_id
+    target_user = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id}, {"name": 1, "permissions": 1, "account_roles": 1, "role": 1})
     # Anti-escalade : manager délégué ne peut pas supprimer un autre manager
     if is_delegated_manager and target_user and (target_user.get("permissions") or {}).get("staff") == "write":
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas supprimer un autre manager")
+    if is_delegated_manager and target_user and normalize_account_roles(target_user):
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas supprimer un administrateur de compte")
     result = await db.users.delete_one({"user_id": sub_user_id, "parent_user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
@@ -2556,7 +2947,7 @@ async def admin_broadcast(data: BroadcastMessage):
 # ===================== INVENTORY MANAGEMENT =====================
 
 @admin_router.get("/inventory/abc-analysis")
-async def run_abc_analysis(user: User = Depends(require_auth)):
+async def run_abc_analysis(user: User = Depends(require_org_admin)):
     """Run ABC Analysis for the user's inventory"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -2570,7 +2961,7 @@ class BatchActionRequest(BaseModel):
     value: Optional[str] = None # For set_category
 
 @admin_router.post("/products/batch-action")
-async def batch_product_action(data: BatchActionRequest, user: User = Depends(require_auth)):
+async def batch_product_action(data: BatchActionRequest, user: User = Depends(require_permission("stock", "write"))):
     """Perform bulk actions on selected products"""
     owner_id = get_owner_id(user)
     
@@ -2711,6 +3102,138 @@ def get_language_instruction(lang: str = "fr") -> str:
         return f"Tu es {persona}. Réponds en français."
     return f"IMPORTANT: You are {persona}. You MUST respond in {name} ({lang}). All text output must be in {name}."
 
+
+def get_ai_business_profile(user_doc: Optional[dict]) -> dict:
+    """Return the normalized business profile used to specialize AI behavior."""
+    sector = normalize_sector((user_doc or {}).get("business_type", ""))
+    sector_label = BUSINESS_SECTORS.get(sector, {}).get("label", "Commerce")
+    return {
+        "sector": sector,
+        "sector_label": sector_label,
+        "is_restaurant": sector in RESTAURANT_SECTORS,
+    }
+
+
+def get_ai_business_guidance(profile: dict, lang: str = "fr") -> dict:
+    """Return business-type-specific guidance for prompts and AI UX."""
+    sector = profile.get("sector", "autre")
+    sector_label = profile.get("sector_label", "Commerce")
+
+    sector_focus = {
+        "restaurant": {
+            "fr": {
+                "focus": "Concentre-toi sur la carte, les recettes, les ingredients, la production a l'avance, les tickets cuisine, les tables, les reservations et le service.",
+                "category": "Tu classes des plats, boissons et articles de carte pour un restaurant.",
+                "description": "Ecris comme pour une carte de restaurant, appetissante et claire pour le client final.",
+                "daily": "Insiste sur le service du jour, la salle, la cuisine, les reservations, les couverts et les risques ingredients.",
+                "replenishment": "Priorise les ingredients critiques, les preparatifs de service et les bases de production.",
+                "anomalies": "Cherche aussi les tensions de service, plats sans recette, saturation cuisine et ruptures ingredients.",
+            },
+            "en": {
+                "focus": "Focus on menu items, recipes, ingredients, prep production, kitchen tickets, tables, reservations, and service flow.",
+                "category": "You classify dishes, drinks, and menu items for a restaurant.",
+                "description": "Write like a restaurant menu copywriter: clear and appetizing for guests.",
+                "daily": "Emphasize today's service, dining room flow, kitchen load, reservations, covers, and ingredient risks.",
+                "replenishment": "Prioritize critical ingredients, service prep, and batch preparation bases.",
+                "anomalies": "Also look for service tension, menu items without recipes, kitchen saturation, and ingredient stock-outs.",
+            },
+        },
+        "pharmacie": {
+            "fr": {
+                "focus": "Concentre-toi sur la disponibilite des references sensibles, la rotation, la peremption, la conformite et les produits de sante.",
+                "category": "Tu classes des produits de pharmacie et parapharmacie.",
+                "description": "Ecris avec un ton professionnel, rassurant et informatif, sans promesses medicales excessives.",
+                "daily": "Insiste sur les ruptures sensibles, les dates de peremption, les familles a forte rotation et les besoins de reassort.",
+                "replenishment": "Priorise les produits de sante essentiels, les references a rotation rapide et les lots proches de rupture.",
+                "anomalies": "Cherche surtout les anomalies de rotation, peremption, ruptures sur references essentielles et marges anormales.",
+            },
+            "en": {
+                "focus": "Focus on sensitive item availability, turnover, expiry, compliance, and health products.",
+                "category": "You classify pharmacy and personal care products.",
+                "description": "Write with a professional, reassuring, informative tone without excessive medical claims.",
+                "daily": "Emphasize sensitive stock-outs, expiry dates, high-turnover families, and replenishment needs.",
+                "replenishment": "Prioritize essential health items, fast-moving references, and lines close to stock-out.",
+                "anomalies": "Look especially for turnover, expiry, essential-item stock-out, and abnormal margin anomalies.",
+            },
+        },
+        "electronique": {
+            "fr": {
+                "focus": "Concentre-toi sur les references a forte valeur, les accessoires complementaires, les marges et les ruptures sur produits vedettes.",
+                "category": "Tu classes des produits electroniques, telephonie et accessoires.",
+                "description": "Mets en avant les usages, la compatibilite et les benefices produit.",
+                "daily": "Insiste sur le panier moyen, les ventes de produits vedettes, les accessoires associes et la tresorerie immobilisee.",
+                "replenishment": "Priorise les best-sellers, les accessoires lies et les references a forte demande ou forte marge.",
+                "anomalies": "Cherche surtout les chutes de ventes sur vedettes, les surstocks couteux et les marges incoherentes.",
+            },
+            "en": {
+                "focus": "Focus on high-value items, complementary accessories, margins, and stock-outs on hero products.",
+                "category": "You classify electronics, telecom, and accessory products.",
+                "description": "Highlight usage, compatibility, and product benefits.",
+                "daily": "Emphasize average basket, hero-product sales, linked accessories, and cash tied up in stock.",
+                "replenishment": "Prioritize best-sellers, linked accessories, and high-demand or high-margin items.",
+                "anomalies": "Look especially for hero-product sales drops, costly overstocks, and incoherent margins.",
+            },
+        },
+        "vetements": {
+            "fr": {
+                "focus": "Concentre-toi sur les tailles, couleurs, rotations de collection, marges et invendus.",
+                "category": "Tu classes des articles de mode, textile, chaussures et accessoires.",
+                "description": "Mets en avant le style, la matiere, l'usage et le public vise.",
+                "daily": "Insiste sur les tailles manquantes, les meilleures rotations et les invendus qui immobilisent la tresorerie.",
+                "replenishment": "Priorise les tailles/couleurs qui tournent vite et les references saisonnieres les plus demandees.",
+                "anomalies": "Cherche les ruptures de tailles cles, les collections qui ne tournent pas et les marges trop faibles.",
+            },
+            "en": {
+                "focus": "Focus on sizes, colors, collection turnover, margins, and dead stock.",
+                "category": "You classify fashion, textile, footwear, and accessory items.",
+                "description": "Highlight style, material, use case, and target customer.",
+                "daily": "Emphasize missing sizes, best rotations, and unsold stock tying up cash.",
+                "replenishment": "Prioritize fast-moving sizes/colors and the strongest seasonal references.",
+                "anomalies": "Look for key-size stock-outs, slow collections, and margins that are too thin.",
+            },
+        },
+        "quincaillerie": {
+            "fr": {
+                "focus": "Concentre-toi sur les references techniques, les achats repetitifs, la disponibilite et les marges par famille.",
+                "category": "Tu classes des produits de quincaillerie, bricolage et materiaux.",
+                "description": "Sois concret, technique et oriente usage chantier ou depannage.",
+                "daily": "Insiste sur les references essentielles, les articles a forte rotation et les familles qui tirent le chiffre.",
+                "replenishment": "Priorise les references de base, les consommables et les familles a rotation stable.",
+                "anomalies": "Cherche les ruptures sur references essentielles, surstocks lourds et marges anormales.",
+            },
+            "en": {
+                "focus": "Focus on technical references, repeat purchases, availability, and family-level margins.",
+                "category": "You classify hardware, DIY, and materials products.",
+                "description": "Be concrete, technical, and oriented toward repair or job-site usage.",
+                "daily": "Emphasize essential references, high-turnover items, and the families driving revenue.",
+                "replenishment": "Prioritize core references, consumables, and stable-turnover families.",
+                "anomalies": "Look for essential-item stock-outs, heavy overstocks, and abnormal margins.",
+            },
+        },
+    }
+
+    default_guidance = {
+        "fr": {
+            "focus": f"Adapte tes conseils au secteur {sector_label}. Reste concret sur les produits, les ventes, les marges, le stock et l'exploitation quotidienne.",
+            "category": f"Tu classes des produits pour un business de type {sector_label}.",
+            "description": f"Ecris des descriptions coherentes avec un business de type {sector_label}.",
+            "daily": f"Adapte le briefing quotidien aux priorites du secteur {sector_label}.",
+            "replenishment": f"Priorise les produits critiques et les achats utiles pour un business de type {sector_label}.",
+            "anomalies": f"Repere les anomalies importantes pour un business de type {sector_label}.",
+        },
+        "en": {
+            "focus": f"Adapt your advice to the {sector_label} business context. Stay concrete on products, sales, margins, stock, and daily operations.",
+            "category": f"You classify products for a {sector_label} business.",
+            "description": f"Write descriptions that match a {sector_label} business.",
+            "daily": f"Adapt the daily briefing to the priorities of a {sector_label} business.",
+            "replenishment": f"Prioritize critical items and purchases that matter for a {sector_label} business.",
+            "anomalies": f"Detect anomalies that matter for a {sector_label} business.",
+        },
+    }
+
+    lang_key = "fr" if (lang or "fr").lower().startswith("fr") else "en"
+    return sector_focus.get(sector, default_guidance)[lang_key]
+
 class AiPrompt(BaseModel):
     message: str
     history: List[Dict[str, str]] = []
@@ -2770,12 +3293,17 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
 
     try:
         user_doc = await db.users.find_one({"user_id": user.user_id})
+        business_profile = get_ai_business_profile(user_doc)
         genai.configure(api_key=api_key)
 
         # 1. Get relevant context via RAG
         context_docs = ""
         if rag_service:
-            context_docs = await rag_service.get_relevant_context(prompt.message)
+            context_docs = await rag_service.get_relevant_context(
+                prompt.message,
+                sector="restaurant" if business_profile["is_restaurant"] else None,
+                language=(prompt.language or user.language or "fr").lower().split("-")[0],
+            )
         else:
             # Fallback if RAG not init
             guides_path = PathLib(ROOT_DIR).parent / "frontend" / "constants" / "guides.ts"
@@ -2792,6 +3320,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         
         lang_code = (prompt.language or user.language or "fr").lower().split("-")[0]
         lang_instr = get_language_instruction(lang_code)
+        business_guidance = get_ai_business_guidance(business_profile, lang_code)
 
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
         ai_tools = AiTools(user_id=owner_id, store_id=store_id, currency=currency, lang=lang_code)
@@ -2806,18 +3335,22 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         if user.role in ["admin", "superadmin"]:
             role_context = i18n.t("ai.summary_role_admin", lang_code)
             special_instr = i18n.t("ai.summary_instruction_admin", lang_code)
+        elif business_profile["is_restaurant"]:
+            role_context = i18n.t("ai.summary_role_restaurant", lang_code)
+            special_instr = i18n.t("ai.support_instruction_restaurant", lang_code)
         else:
             role_context = i18n.t("ai.summary_role_merchant", lang_code)
             special_instr = ""
 
-        summary_goal = i18n.t("ai.summary_goal", lang_code)
-        summary_tone = i18n.t("ai.summary_tone", lang_code)
+        summary_goal = i18n.t("ai.summary_goal_restaurant", lang_code) if business_profile["is_restaurant"] else i18n.t("ai.summary_goal", lang_code)
+        summary_tone = i18n.t("ai.summary_tone_restaurant", lang_code) if business_profile["is_restaurant"] else i18n.t("ai.summary_tone", lang_code)
 
         data_summary = await _get_ai_data_summary(owner_id, store_id)
 
         system_instruction = f"""
         {role_context}
         {summary_goal}
+        {business_guidance["focus"]}
 
         COMPORTEMENT ANALYTIQUE ATTENDU :
         - Quand tu vois des données de ventes, calcule et commente les tendances (hausse/baisse, produits moteurs).
@@ -2949,24 +3482,43 @@ async def ai_suggest_category(request: Request, data: dict = Body(...), user: Us
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
-    categories_list = [
-        "Alimentation", "Hygiène & Beauté", "Maison & Entretien", "Bébé",
-        "Boissons", "High-Tech", "Mode & Textile", "Bricolage & Quincaillerie",
-        "Papeterie & Bureau", "Automobile & Moto", "Autre"
-    ]
-    subcategories_map = {
-        "Alimentation": ["Riz", "Huile", "Sucre", "Farine", "Lait", "Boissons", "Conserves", "Épices", "Pâtes", "Céréales", "Fruits & Légumes", "Viande & Poisson", "Biscuits & Snacks", "Produits Frais", "Autre"],
-        "Hygiène & Beauté": ["Savon", "Dentifrice", "Shampoing", "Crème", "Parfum", "Maquillage", "Serviettes hygiéniques", "Autre"],
-        "Maison & Entretien": ["Détergent", "Javel", "Balai & Nettoyage", "Insecticide", "Cuisine", "Décoration", "Autre"],
-        "Bébé": ["Couches", "Lait infantile", "Céréales bébé", "Hygiène bébé", "Autre"],
-        "Boissons": ["Eau", "Jus", "Soda", "Bière", "Vin & Alcool", "Énergisant", "Autre"],
-        "High-Tech": ["Téléphonie", "Accessoires", "Informatique", "Piles & Batteries", "Autre"],
-        "Mode & Textile": ["Homme", "Femme", "Enfant", "Chaussures", "Accessoires", "Autre"],
-        "Bricolage & Quincaillerie": ["Outillage", "Matériaux", "Électricité", "Plomberie", "Peinture", "Autre"],
-        "Papeterie & Bureau": ["Cahiers", "Stylos", "Fournitures", "Autre"],
-        "Automobile & Moto": ["Huile moteur", "Pièces", "Accessoires", "Autre"],
-        "Autre": ["Autre"],
-    }
+    business_profile = get_ai_business_profile({"business_type": user.business_type})
+    business_guidance = get_ai_business_guidance(business_profile, lang)
+    business_guidance = get_ai_business_guidance(business_profile, lang)
+    if business_profile["is_restaurant"]:
+        categories_list = ["Entrees", "Plats", "Desserts", "Boissons", "Snacks", "Menus", "Accompagnements", "Sauces", "Autre"]
+        subcategories_map = {
+            "Entrees": ["Salades", "Soupes", "Fritures", "Grillades legeres", "Autre"],
+            "Plats": ["Viandes", "Poissons", "Pates", "Riz", "Sandwichs", "Pizzas", "Burgers", "Autre"],
+            "Desserts": ["Gateaux", "Glaces", "Fruits", "Viennoiseries", "Autre"],
+            "Boissons": ["Eau", "Jus", "Sodas", "Boissons chaudes", "Cocktails", "Autre"],
+            "Snacks": ["Fast-food", "Street food", "Petites portions", "Autre"],
+            "Menus": ["Menu midi", "Menu enfant", "Formule", "Autre"],
+            "Accompagnements": ["Frites", "Riz", "Legumes", "Pain", "Autre"],
+            "Sauces": ["Maison", "Piquantes", "Douces", "Autre"],
+            "Autre": ["Autre"],
+        }
+        domain_instruction = business_guidance["category"]
+    else:
+        categories_list = [
+            "Alimentation", "Hygiène & Beauté", "Maison & Entretien", "Bébé",
+            "Boissons", "High-Tech", "Mode & Textile", "Bricolage & Quincaillerie",
+            "Papeterie & Bureau", "Automobile & Moto", "Autre"
+        ]
+        subcategories_map = {
+            "Alimentation": ["Riz", "Huile", "Sucre", "Farine", "Lait", "Boissons", "Conserves", "Épices", "Pâtes", "Céréales", "Fruits & Légumes", "Viande & Poisson", "Biscuits & Snacks", "Produits Frais", "Autre"],
+            "Hygiène & Beauté": ["Savon", "Dentifrice", "Shampoing", "Crème", "Parfum", "Maquillage", "Serviettes hygiéniques", "Autre"],
+            "Maison & Entretien": ["Détergent", "Javel", "Balai & Nettoyage", "Insecticide", "Cuisine", "Décoration", "Autre"],
+            "Bébé": ["Couches", "Lait infantile", "Céréales bébé", "Hygiène bébé", "Autre"],
+            "Boissons": ["Eau", "Jus", "Soda", "Bière", "Vin & Alcool", "Énergisant", "Autre"],
+            "High-Tech": ["Téléphonie", "Accessoires", "Informatique", "Piles & Batteries", "Autre"],
+            "Mode & Textile": ["Homme", "Femme", "Enfant", "Chaussures", "Accessoires", "Autre"],
+            "Bricolage & Quincaillerie": ["Outillage", "Matériaux", "Électricité", "Plomberie", "Peinture", "Autre"],
+            "Papeterie & Bureau": ["Cahiers", "Stylos", "Fournitures", "Autre"],
+            "Automobile & Moto": ["Huile moteur", "Pièces", "Accessoires", "Autre"],
+            "Autre": ["Autre"],
+        }
+        domain_instruction = business_guidance["category"]
 
     lang_instr = get_language_instruction(lang)
     prompt = f"""Tu es un assistant de catégorisation de produits pour un commerce.
@@ -2979,6 +3531,7 @@ Pour chaque catégorie, voici les sous-catégories possibles :
 
 Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
 {{"category": "NomCatégorie", "subcategory": "NomSousCatégorie"}}
+{domain_instruction}
 {lang_instr}"""
 
     try:
@@ -3016,6 +3569,7 @@ async def ai_generate_description(request: Request, data: dict = Body(...), user
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
+    business_profile = get_ai_business_profile({"business_type": user.business_type})
     cat_context = ""
     if category:
         cat_context = f"\nCatégorie : {category}"
@@ -3023,9 +3577,21 @@ async def ai_generate_description(request: Request, data: dict = Body(...), user
             cat_context += f" > {subcategory}"
 
     lang_instr = get_language_instruction(lang)
-    prompt = f"""Tu es un expert en rédaction de fiches produits pour un commerce.
+    if business_profile["is_restaurant"]:
+        prompt = f"""Tu es un expert en rédaction de cartes de restaurant.
+Génère une description courte, appétissante et claire (1-2 phrases max, 160 caractères max) pour un plat ou une boisson.
+La description doit aider un client à choisir, sans jargon interne ni vocabulaire de stock.
+{business_guidance["description"]}
+
+Produit : "{product_name}"{cat_context}
+
+Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
+{lang_instr}"""
+    else:
+        prompt = f"""Tu es un expert en rédaction de fiches produits pour un commerce.
 Génère une description marketing courte et vendeuse (2-3 phrases max, 150 caractères max) pour ce produit.
 La description doit être professionnelle, informative et donner envie d'acheter.
+{business_guidance["description"]}
 
 Produit : "{product_name}"{cat_context}
 
@@ -3053,10 +3619,37 @@ async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depe
     try:
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
+        user_doc = await db.users.find_one({"user_id": owner_id})
+        business_profile = get_ai_business_profile(user_doc)
+        business_guidance = get_ai_business_guidance(business_profile, lang)
         data_summary = await _get_ai_data_summary(owner_id, store_id)
 
         lang_instr = get_language_instruction(lang)
-        prompt = f"""Tu es le co-pilote business d'un commerçant. Génère son briefing du jour : direct, chiffré, actionnable.
+        if business_profile["is_restaurant"]:
+            prompt = f"""Tu es le co-pilote d'un restaurant. Génère le briefing du jour : direct, chiffré, actionnable.
+{lang_instr}
+
+DONNÉES DU RESTAURANT :
+{data_summary}
+
+Structure du briefing (max 250 mots) :
+**Service du jour**
+(Etat du service, occupation de salle, réservations et tickets cuisine. Dis si la mise en place semble fluide ou tendue.)
+
+**⚠️ Priorités opérationnelles**
+(Maximum 3 alertes classées par urgence — manque d'ingrédients, plats sans recette, tables saturées, tickets cuisine en attente. Si rien de critique : écris "RAS".)
+
+**Actions immédiates**
+(3 actions numérotées, concrètes, faisables aujourd'hui pour la salle, la cuisine ou la carte.)
+
+**Opportunité du jour**
+(1 opportunité identifiée : plat à pousser, créneau à renforcer, réservation à convertir, préparation à anticiper.)
+
+{business_guidance["daily"]}
+
+Sois direct comme un directeur d'exploitation. Aucune formule de politesse. Que des faits et des actions."""
+        else:
+            prompt = f"""Tu es le co-pilote business d'un commerçant. Génère son briefing du jour : direct, chiffré, actionnable.
 {lang_instr}
 
 DONNÉES DU COMMERCE :
@@ -3074,6 +3667,8 @@ Structure du briefing (max 250 mots) :
 
 **Opportunité du jour**
 (1 opportunité identifiée dans les données : un produit sous-exploité, un client à relancer, une marge à améliorer)
+
+{business_guidance["daily"]}
 
 Sois direct comme un associé qui connaît le business. Aucune formule de politesse. Que des faits et des actions."""
 
@@ -3128,6 +3723,8 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
                         product_sales_prev[pid] += qty
 
         user_doc = await db.users.find_one({"user_id": user_id})
+        business_profile = get_ai_business_profile(user_doc)
+        business_guidance = get_ai_business_guidance(business_profile, lang)
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
         
         avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
@@ -3163,6 +3760,8 @@ Changements de volume inhabituels : {chr(10).join(volume_changes[:15]) if volume
 Marges anormales : {chr(10).join(margin_issues[:15]) if margin_issues else "Normales"}
 Produits : {len(products)}
 Ruptures : {len([p for p in products if p.get('quantity', 0) == 0])}
+Contexte métier : {business_profile.get('sector_label')}
+Consigne métier : {business_guidance["anomalies"]}
 
 Réponds UNIQUEMENT en JSON (sans markdown) avec ce format :
 [ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
@@ -3262,6 +3861,8 @@ async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User
         if not suggestions:
             return {"advice": "Tous vos stocks sont à un niveau satisfaisant. Aucun réapprovisionnement nécessaire pour le moment.", "priority_count": 0}
 
+        business_profile = get_ai_business_profile({"business_type": user.business_type})
+        business_guidance = get_ai_business_guidance(business_profile, lang)
         critical = [s for s in suggestions if s.priority == "critical"]
         warning = [s for s in suggestions if s.priority == "warning"]
 
@@ -3288,6 +3889,8 @@ Aujourd'hui : {day_name} {now.strftime('%d/%m/%Y')}
 {lang_instr}
 
 SITUATION : {len(critical)} produits CRITIQUES (rupture imminente < 3j), {len(warning)} en ATTENTION
+Contexte metier : {business_profile.get('sector_label')}
+Consigne metier : {business_guidance["replenishment"]}
 Regroupement fournisseurs : {supplier_summary}
 
 DÉTAIL DES PRODUITS :
@@ -3331,6 +3934,7 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
         product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
         if not product:
             raise HTTPException(status_code=404, detail="Produit introuvable")
+        ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
 
         # Sales data for this product (last 30 days)
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
@@ -3350,6 +3954,8 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
                     total_qty_sold += qty
                     total_revenue += qty * price
 
+        business_profile = get_ai_business_profile({"business_type": user.business_type})
+        business_guidance = get_ai_business_guidance(business_profile, lang)
         currency = user.currency if hasattr(user, 'currency') else "XOF"
         
         # Price history
@@ -3385,6 +3991,9 @@ Stock : {product.get('quantity', 0)} {product.get('unit', 'pièce')}(s)
 
 Ventes 30 derniers jours : {total_qty_sold} unités vendues, CA = {total_revenue:.0f} {currency}
 Vélocité : {total_qty_sold / 30:.1f} unités/jour
+
+Contexte metier : {business_profile.get('sector_label')}
+Consigne metier : {business_guidance["focus"]}
 
 Historique des prix :
 {price_changes}
@@ -4159,6 +4768,11 @@ async def create_recipe(data: RecipeCreate, user: User = Depends(require_write("
             {"product_id": data.output_product_id, "store_id": user.active_store_id},
             {"$set": {"is_producible": True, "product_type": "finished"}}
         )
+    if data.menu_product_id:
+        await db.products.update_one(
+            {"product_id": data.menu_product_id, "store_id": user.active_store_id},
+            {"$set": {"is_menu_item": True, "linked_recipe_id": recipe["recipe_id"]}}
+        )
     return recipe
 
 
@@ -4187,6 +4801,11 @@ async def update_recipe(recipe_id: str, data: RecipeUpdate, user: User = Depends
     recipe = await production_service.update_recipe(db, recipe_id, user.active_store_id, update_data)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if data.menu_product_id:
+        await db.products.update_one(
+            {"product_id": data.menu_product_id, "store_id": user.active_store_id},
+            {"$set": {"is_menu_item": True, "linked_recipe_id": recipe_id}}
+        )
     return recipe
 
 
@@ -4654,6 +5273,7 @@ class SupplierProductCreate(BaseModel):
 class Order(BaseModel):
     order_id: str = Field(default_factory=lambda: f"ord_{uuid.uuid4().hex[:12]}")
     user_id: str
+    store_id: Optional[str] = None
     supplier_id: str
     supplier_user_id: Optional[str] = None  # CAS 1: user_id du fournisseur inscrit
     is_connected: bool = False  # True si commande via marketplace (CAS 1)
@@ -4902,6 +5522,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "picture": None,
             "auth_type": "email",
             "role": role,
+            "account_id": f"acct_{user_id}" if role != "supplier" else None,
+            "account_roles": ["billing_admin", "org_admin"] if role == "shopkeeper" else [],
             "active_store_id": store_id,
             "store_ids": [store_id],
             "plan": initial_plan,
@@ -4935,23 +5557,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         # It's already generated above
 
         # Log registration activity
-        log_user = User(
-            user_id=user_id,
-            email=user_data.email,
-            name=user_data.name,
-            phone=user_data.phone,
-            picture=None,
-            created_at=user_doc["created_at"],
-            auth_type="email",
-            role=role,
-            active_store_id=store_id,
-            store_ids=[store_id],
-            plan="starter",
-            subscription_status="active",
-            trial_ends_at=trial_ends_at,
-            currency=user_doc["currency"],
-            country_code=user_data.country_code or "SN",
-        )
+        log_user = await build_user_from_doc(user_doc)
         await log_activity(
             log_user,
             "registration",
@@ -4961,8 +5567,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         )
         
         # Create default settings
-        settings = UserSettings(user_id=user_id)
+        settings = UserSettings(user_id=user_id, account_id=user_doc.get("account_id"))
         await db.user_settings.insert_one(settings.model_dump())
+        await ensure_business_account_for_user_doc(user_doc)
         
         # Create default alert rules
         default_rules = [
@@ -5035,21 +5642,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             path="/"
         )
         
-        user = User(
-            user_id=user_id,
-            email=user_data.email,
-            name=user_data.name,
-            picture=None,
-            created_at=user_doc["created_at"],
-            auth_type="email",
-            role=role,
-            active_store_id=store_id,
-            store_ids=[store_id],
-            plan="starter",
-            subscription_status="active",
-            trial_ends_at=trial_ends_at,
-            currency=user_doc["currency"]
-        )
+        user = await build_user_from_doc(user_doc)
 
         return TokenResponse(access_token=access_token, user=user)
     except HTTPException:
@@ -5094,8 +5687,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
         updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
-        sanitize_user_doc(updated_user)
-        return {"message": "Téléphone vérifié avec succès", "user": User(**updated_user)}
+        return {"message": "Téléphone vérifié avec succès", "user": await build_user_from_doc(updated_user)}
     else:
         # Increment failed attempts
         await db.users.update_one(
@@ -5230,27 +5822,9 @@ async def login(request: Request, user_data: UserLogin, response: Response):
 
         
     try:
-        user = User(
-            user_id=user_doc["user_id"],
-            email=user_doc["email"],
-            name=user_doc.get("name", "Utilisateur"),
-            picture=user_doc.get("picture"),
-            created_at=user_doc.get("created_at", datetime.now(timezone.utc)),
-            auth_type=user_doc.get("auth_type", "email"),
-            role=user_doc.get("role", "shopkeeper"),
-            active_store_id=active_store_id,
-            store_ids=store_ids,
-            plan=user_doc.get("plan", "starter"),
-            subscription_status=user_doc.get("subscription_status", "active"),
-            subscription_provider=user_doc.get("subscription_provider", "none"),
-            subscription_provider_id=user_doc.get("subscription_provider_id"),
-            subscription_end=user_doc.get("subscription_end"),
-            trial_ends_at=user_doc.get("trial_ends_at"),
-            currency=user_doc.get("currency", "XOF"),
-            phone=user_doc.get("phone"),
-            country_code=user_doc.get("country_code", "SN"),
-            is_phone_verified=user_doc.get("is_phone_verified", False),
-        )
+        user_doc["active_store_id"] = active_store_id
+        user_doc["store_ids"] = store_ids
+        user = await build_user_from_doc(user_doc)
     except Exception as e:
         logger.error(f"Login User build failed: {e} - doc keys: {list(user_doc.keys())}")
         raise HTTPException(status_code=500, detail="Erreur interne de construction du profil")
@@ -5310,10 +5884,7 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
         path="/"
     )
 
-    sanitize_user_doc(user_doc)
-
-    # Reconstruct user object
-    user = User(**user_doc)
+    user = await build_user_from_doc(user_doc)
     return TokenResponse(access_token=new_access, refresh_token=new_refresh, user=user)
 
 @api_router.put("/auth/profile")
@@ -5323,6 +5894,9 @@ async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)
     if not update:
         return {"message": "Aucune modification"}
     await db.users.update_one({"user_id": user.user_id}, {"$set": update})
+    shared_update = {k: v for k, v in update.items() if k in {"currency", "business_type"}}
+    if shared_update and (user.role == "superadmin" or "org_admin" in (user.account_roles or []) or "billing_admin" in (user.account_roles or [])):
+        await update_business_account_for_owner(get_owner_id(user), shared_update)
     return {"message": "Profil mis à jour"}
 
 @api_router.post("/auth/logout")
@@ -5375,40 +5949,52 @@ async def change_password(data: PasswordChange, user: User = Depends(require_aut
 @api_router.get("/stores", response_model=List[Store])
 async def get_stores(user: User = Depends(require_auth)):
     owner_id = get_owner_id(user)
-    stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
+    query = {"user_id": owner_id}
+    if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
+        query["store_id"] = {"$in": user.store_ids or []}
+    stores = await db.stores.find(query, {"_id": 0}).to_list(100)
     return [Store(**s) for s in stores]
 
 @api_router.post("/stores", response_model=Store)
 async def create_store(store_data: StoreCreate, user: User = Depends(require_auth)):
+    if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent créer des boutiques")
     STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
-    limit = STORE_LIMITS.get(user.plan, 1)
-    current_count = len(user.store_ids)
+    limit = STORE_LIMITS.get(user.effective_plan or user.plan, 1)
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0}) or {"user_id": owner_id, "role": "shopkeeper", "account_id": user.account_id, "store_ids": user.store_ids}
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    current_count = len((account_doc or {}).get("store_ids") or user.store_ids)
     if current_count >= limit:
-        raise HTTPException(status_code=403, detail=f"Votre plan {user.plan} est limité à {limit} boutique(s). Passez à un plan supérieur.")
-    store = Store(**store_data.model_dump(), user_id=get_owner_id(user))
+        raise HTTPException(status_code=403, detail=f"Votre plan {user.effective_plan or user.plan} est limité à {limit} boutique(s). Passez à un plan supérieur.")
+    store = Store(**store_data.model_dump(), user_id=owner_id)
     await db.stores.insert_one(store.model_dump())
-    
-    # Update user's store list and set as active if it's the first one
-    update_data = {"$push": {"store_ids": store.store_id}}
-    if not user.active_store_id:
-        update_data["$set"] = {"active_store_id": store.store_id}
-        
+
     await db.users.update_one(
-        {"user_id": user.user_id},
-        update_data
+        {"user_id": owner_id},
+        {
+            "$addToSet": {"store_ids": store.store_id},
+            **({"$set": {"active_store_id": store.store_id}} if not owner_doc.get("active_store_id") else {}),
+        }
     )
-    
+    if user.account_id:
+        await db.business_accounts.update_one(
+            {"account_id": user.account_id},
+            {"$addToSet": {"store_ids": store.store_id}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+        )
     return store
 
 @api_router.put("/auth/active-store", response_model=User)
 async def set_active_store(store_data: dict, user: User = Depends(require_auth)):
     store_id = store_data.get("store_id")
-    if not store_id or store_id not in user.store_ids:
+    if not store_id:
         raise HTTPException(status_code=400, detail="Magasin invalide")
+    ensure_user_store_access(user, store_id, detail="Magasin invalide")
         
     # Check that store is within current plan limits
     STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
-    limit = STORE_LIMITS.get(user.plan, 1)
+    plan = user.effective_plan or user.plan
+    limit = STORE_LIMITS.get(plan, 1)
     
     try:
         store_index = user.store_ids.index(store_id)
@@ -5424,12 +6010,14 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
         {"user_id": user.user_id},
         {"$set": {"active_store_id": store_id}}
     )
-    
-    user.active_store_id = store_id
-    return user
+
+    updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    return await build_user_from_doc(updated_user)
 
 @api_router.put("/stores/{store_id}", response_model=Store)
 async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), user: User = Depends(require_auth)):
+    if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent modifier les boutiques")
     owner_id = get_owner_id(user)
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
@@ -5441,7 +6029,7 @@ async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a
     return Store(**doc)
 
 @api_router.get("/stores/consolidated-stats")
-async def get_consolidated_stats(days: int = 30, user: User = Depends(require_auth)):
+async def get_consolidated_stats(days: int = 30, user: User = Depends(require_org_admin)):
     owner_id = get_owner_id(user)
     stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
@@ -5486,6 +6074,8 @@ async def get_consolidated_stats(days: int = 30, user: User = Depends(require_au
 @api_router.post("/stock/transfer")
 async def transfer_stock(data: StockTransfer, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    ensure_user_store_access(user, data.from_store_id)
+    ensure_user_store_access(user, data.to_store_id)
 
     from_store = await db.stores.find_one({"store_id": data.from_store_id, "user_id": owner_id})
     to_store = await db.stores.find_one({"store_id": data.to_store_id, "user_id": owner_id})
@@ -5540,18 +6130,16 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
 # ===================== CATEGORY ROUTES =====================
 
 @api_router.get("/categories", response_model=List[Category])
-async def get_categories(user: User = Depends(require_auth), store_id: Optional[str] = None):
+async def get_categories(user: User = Depends(require_permission("stock", "read")), store_id: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
         
     categories = await db.categories.find(query, {"_id": 0}).to_list(100)
     return [Category(**cat) for cat in categories]
 
 @api_router.post("/categories", response_model=Category)
-async def create_category(cat_data: CategoryCreate, user: User = Depends(require_auth)):
+async def create_category(cat_data: CategoryCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     category = Category(
         **cat_data.model_dump(),
@@ -5562,8 +6150,12 @@ async def create_category(cat_data: CategoryCreate, user: User = Depends(require
     return category
 
 @api_router.put("/categories/{category_id}", response_model=Category)
-async def update_category(category_id: str, cat_data: CategoryCreate, user: User = Depends(require_auth)):
+async def update_category(category_id: str, cat_data: CategoryCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    current = await db.categories.find_one({"category_id": category_id, "user_id": owner_id}, {"_id": 0})
+    if not current:
+        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+    ensure_scoped_document_access(user, current, detail="Acces refuse pour cette categorie")
     result = await db.categories.find_one_and_update(
         {"category_id": category_id, "user_id": owner_id},
         {"$set": cat_data.model_dump()},
@@ -5575,8 +6167,12 @@ async def update_category(category_id: str, cat_data: CategoryCreate, user: User
     return Category(**result)
 
 @api_router.delete("/categories/{category_id}")
-async def delete_category(category_id: str, user: User = Depends(require_auth)):
+async def delete_category(category_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    current = await db.categories.find_one({"category_id": category_id, "user_id": owner_id}, {"_id": 0})
+    if not current:
+        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+    ensure_scoped_document_access(user, current, detail="Acces refuse pour cette categorie")
     result = await db.categories.delete_one({"category_id": category_id, "user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Catégorie non trouvée")
@@ -5594,6 +6190,7 @@ async def get_products(
     user: User = Depends(require_permission("stock", "read")),
     category_id: Optional[str] = None,
     location_id: Optional[str] = None,
+    is_menu_item: Optional[bool] = None,
     active_only: bool = True,
     store_id: Optional[str] = None,
     skip: int = 0,
@@ -5602,15 +6199,16 @@ async def get_products(
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
 
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
 
     if category_id:
         query["category_id"] = category_id
 
     if location_id:
         query["location_id"] = location_id
+
+    if is_menu_item is not None:
+        query["is_menu_item"] = is_menu_item
 
     if active_only:
         query["is_active"] = {"$ne": False}
@@ -5624,6 +6222,7 @@ async def get_products(
 async def get_product(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     return Product(**product)
@@ -5636,6 +6235,11 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     if prod_data.image:
         prod_data.image = compress_image_base64(prod_data.image)
         
+    if prod_data.linked_recipe_id:
+        prod_data.is_menu_item = True
+    if prod_data.production_mode in ("on_demand", "hybrid"):
+        prod_data.is_menu_item = True
+
     product = Product(
         **prod_data.model_dump(),
         user_id=owner_id,
@@ -5676,10 +6280,15 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         prod_data.image = compress_image_base64(prod_data.image)
         
     update_dict = {k: v for k, v in prod_data.model_dump().items() if v is not None}
+    if update_dict.get("linked_recipe_id"):
+        update_dict["is_menu_item"] = True
+    if update_dict.get("production_mode") in ("on_demand", "hybrid"):
+        update_dict["is_menu_item"] = True
     update_dict["updated_at"] = datetime.now(timezone.utc)
 
     # Get current product to compare prices
     current_product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
+    ensure_scoped_document_access(user, current_product, detail="Acces refuse pour ce produit")
     if not current_product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
 
@@ -5719,8 +6328,12 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     return product
 
 @api_router.get("/products/{product_id}/price-history", response_model=List[PriceHistory])
-async def get_product_price_history(product_id: str, user: User = Depends(require_auth)):
+async def get_product_price_history(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
+    product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0, "store_id": 1})
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
     history = await db.price_history.find(
         {"product_id": product_id, "user_id": owner_id},
         {"_id": 0}
@@ -5734,6 +6347,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     previous_quantity = product["quantity"]
     actual_quantity = adj_data.actual_quantity
     diff = actual_quantity - previous_quantity
@@ -5779,7 +6393,8 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"name": 1})
+    product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"name": 1, "store_id": 1})
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     result = await db.products.delete_one({"product_id": product_id, "user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
@@ -5791,10 +6406,13 @@ async def delete_product(product_id: str, user: User = Depends(require_permissio
 @api_router.post("/stock/movement", response_model=StockMovement)
 async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    product = await db.products.find_one({"product_id": mov_data.product_id, "user_id": owner_id}, {"_id": 0})
+    product_query = {"product_id": mov_data.product_id, "user_id": owner_id}
+    product_query = apply_store_scope(product_query, user)
+    product = await db.products.find_one(product_query, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     previous_quantity = product["quantity"]
     
     # Handle Batch Sync
@@ -5836,7 +6454,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     
     # Update product quantity
     await db.products.update_one(
-        {"product_id": mov_data.product_id},
+        {"product_id": mov_data.product_id, "user_id": owner_id, "store_id": product.get("store_id")},
         {"$set": {"quantity": new_quantity, "updated_at": datetime.now(timezone.utc)}}
     )
     
@@ -5845,7 +6463,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         product_id=mov_data.product_id,
         product_name=product["name"],
         user_id=owner_id,
-        store_id=user.active_store_id,
+        store_id=product.get("store_id") or user.active_store_id,
         type=mov_data.type,
         quantity=mov_data.quantity,
         reason=mov_data.reason,
@@ -5866,7 +6484,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
 
     # Check for alerts
     product["quantity"] = new_quantity
-    await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
+    await check_and_create_alerts(Product(**product), owner_id, store_id=product.get("store_id") or user.active_store_id)
 
     return movement
 
@@ -5874,16 +6492,14 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
 
 @api_router.get("/batches", response_model=List[Batch])
 async def get_batches(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("stock", "read")),
     product_id: Optional[str] = None,
     store_id: Optional[str] = None,
     active_only: bool = True
 ):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
     if product_id:
         query["product_id"] = product_id
     if active_only:
@@ -5893,7 +6509,7 @@ async def get_batches(
     return [Batch(**b) for b in batches]
 
 @api_router.post("/batches", response_model=Batch)
-async def create_batch(batch_data: BatchCreate, user: User = Depends(require_auth)):
+async def create_batch(batch_data: BatchCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     batch = Batch(
         **batch_data.model_dump(),
@@ -5911,7 +6527,7 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_aut
 # ===================== LOCATION ROUTES =====================
 
 @api_router.get("/locations")
-async def get_locations(user: User = Depends(require_auth)):
+async def get_locations(user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
     if user.active_store_id:
@@ -5965,16 +6581,82 @@ async def create_table(data: TableCreate, user: User = Depends(require_permissio
     return {k: v for k, v in table.model_dump().items() if k != "_id"}
 
 @api_router.put("/tables/{table_id}")
-async def update_table(table_id: str, data: Any = Body(...), user: User = Depends(get_current_user)):
+async def update_table(table_id: str, data: Any = Body(...), user: User = Depends(require_permission("settings", "write"))):
     owner_id = get_owner_id(user)
     existing = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Table non trouvée")
-    allowed = {"name", "capacity", "status", "current_sale_id"}
+    allowed = {"name", "capacity"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if updates:
         await db.tables.update_one({"table_id": table_id}, {"$set": updates})
     updated = await db.tables.find_one({"table_id": table_id})
+    updated.pop("_id", None)
+    return updated
+
+@api_router.post("/tables/{table_id}/actions/{action}")
+async def table_action(table_id: str, action: str, data: dict = Body(default={}), user: User = Depends(require_permission("pos", "write"))):
+    owner_id = get_owner_id(user)
+    store_id = user.active_store_id
+    table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
+
+    open_sale = None
+    if table.get("current_sale_id"):
+        open_sale = await db.sales.find_one({
+            "sale_id": table["current_sale_id"],
+            "user_id": owner_id,
+            "store_id": store_id,
+            "status": "open",
+        })
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if action == "reserve":
+        if open_sale or table.get("status") == "occupied":
+            raise HTTPException(status_code=409, detail="Impossible de rÃ©server une table occupÃ©e ou liÃ©e Ã  une commande ouverte")
+        updates = {
+            "status": "reserved",
+            "current_sale_id": None,
+            "occupied_since": None,
+            "current_amount": 0,
+            "covers": 0,
+        }
+    elif action == "seat":
+        updates = {
+            "status": "occupied",
+            "occupied_since": table.get("occupied_since") or now_iso,
+            "covers": max(0, int(data.get("covers", table.get("covers", 0) or 0))),
+        }
+        if not open_sale:
+            updates["current_sale_id"] = None
+            updates["current_amount"] = 0
+    elif action == "clean":
+        if open_sale:
+            raise HTTPException(status_code=409, detail="Finalisez ou libÃ©rez d'abord la commande ouverte avant de passer la table en nettoyage")
+        updates = {
+            "status": "cleaning",
+            "current_sale_id": None,
+            "occupied_since": None,
+            "current_amount": 0,
+            "covers": 0,
+        }
+    elif action == "free":
+        if open_sale:
+            raise HTTPException(status_code=409, detail="Finalisez ou libÃ©rez d'abord la commande ouverte avant de libÃ©rer la table")
+        updates = {
+            "status": "free",
+            "current_sale_id": None,
+            "occupied_since": None,
+            "current_amount": 0,
+            "covers": 0,
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Action de table inconnue")
+
+    await db.tables.update_one({"table_id": table_id, "user_id": owner_id}, {"$set": updates})
+    updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
     updated.pop("_id", None)
     return updated
 
@@ -6043,7 +6725,17 @@ async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
     if not sale:
         raise HTTPException(status_code=404, detail="Vente non trouvée")
-    await db.sales.update_one({"sale_id": sale_id}, {"$set": {"kitchen_sent": True, "kitchen_sent_at": datetime.now(timezone.utc)}})
+    items = sale.get("items", [])
+    all_ready = all(it.get("ready", False) for it in items) if items else False
+    await db.sales.update_one(
+        {"sale_id": sale_id},
+        {"$set": {
+            "kitchen_sent": True,
+            "kitchen_sent_at": datetime.now(timezone.utc),
+            "all_items_ready": all_ready,
+            "served_at": None if not all_ready else sale.get("served_at"),
+        }}
+    )
     return {"message": "Commande envoyée en cuisine", "sale_id": sale_id}
 
 @api_router.get("/kitchen/pending")
@@ -6085,10 +6777,11 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
         "user_id": owner_id, "store_id": store_id,
         "created_at": {"$gte": today}
     }).to_list(None)
+    completed_today_sales = [s for s in today_sales if s.get("status", "completed") == "completed"]
 
-    today_revenue = sum(s.get("total", 0) for s in today_sales)
-    today_covers = sum(s.get("covers", 0) or 0 for s in today_sales)
-    today_count = len(today_sales)
+    today_revenue = sum(s.get("total_amount", 0) for s in completed_today_sales)
+    today_covers = sum(s.get("covers", 0) or 0 for s in completed_today_sales)
+    today_count = len(completed_today_sales)
     avg_ticket = round(today_revenue / today_covers, 0) if today_covers > 0 else (
         round(today_revenue / today_count, 0) if today_count > 0 else 0
     )
@@ -6102,7 +6795,8 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
     kitchen_pending = await db.sales.count_documents({
         "user_id": owner_id, "store_id": store_id,
         "kitchen_sent": True,
-        "created_at": {"$gte": today}
+        "created_at": {"$gte": today},
+        "all_items_ready": {"$ne": True},
     })
 
     # Prochaines réservations (aujourd'hui)
@@ -6116,19 +6810,17 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
 
     # CA par heure (courbe de service)
     hourly = {}
-    for s in today_sales:
-        if s.get("status", "completed") == "completed":
-            h = s["created_at"].hour if isinstance(s.get("created_at"), datetime) else 0
-            hourly[h] = hourly.get(h, 0) + s.get("total_amount", 0)
+    for s in completed_today_sales:
+        h = s["created_at"].hour if isinstance(s.get("created_at"), datetime) else 0
+        hourly[h] = hourly.get(h, 0) + s.get("total_amount", 0)
     hourly_revenue = [{"hour": h, "revenue": round(v, 0)} for h, v in sorted(hourly.items())]
 
     # Top 5 plats du jour
     item_totals: dict = {}
-    for s in today_sales:
-        if s.get("status", "completed") == "completed":
-            for it in s.get("items", []):
-                name = it.get("product_name", "?")
-                item_totals[name] = item_totals.get(name, 0) + it.get("quantity", 0)
+    for s in completed_today_sales:
+        for it in s.get("items", []):
+            name = it.get("product_name", "?")
+            item_totals[name] = item_totals.get(name, 0) + it.get("quantity", 0)
     top_dishes = sorted([{"name": k, "qty": v} for k, v in item_totals.items()], key=lambda x: -x["qty"])[:5]
 
     return {
@@ -6170,9 +6862,10 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
     if not sale:
         raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
 
+    tax_settings = await _load_tax_settings_for_user(user)
+    sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
     new_items = data.get("items", [])
     sale_items_raw = sale.get("items", [])
-    new_total_delta = 0.0
 
     for item in new_items:
         prod_id = item["product_id"]
@@ -6180,38 +6873,82 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
         product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
         if not product:
             continue
-        item_discount = item.get("discount_amount", 0.0)
-        line_total = (product["selling_price"] * qty) - item_discount
-        new_total_delta += line_total
+        base_unit_price = float(product["selling_price"])
+        raw_unit_price = item.get("price")
+        if raw_unit_price is not None:
+            effective_unit_price = max(0.0, float(raw_unit_price))
+            derived_discount = round(max(0.0, (base_unit_price - effective_unit_price) * qty), 2)
+            item_discount = round(float(item.get("discount_amount", derived_discount)), 2)
+            line_total = round(effective_unit_price * qty, 2)
+        else:
+            item_discount = round(float(item.get("discount_amount", 0.0)), 2)
+            line_total = round(max(0.0, (base_unit_price * qty) - item_discount), 2)
+            effective_unit_price = round(line_total / qty, 2) if qty else base_unit_price
+        item_tax_rate = _resolve_product_tax_rate(product, tax_settings["tax_enabled"], tax_settings["tax_rate"])
 
-        # Merge si même produit + mêmes notes
-        existing = next((i for i in sale_items_raw if i["product_id"] == prod_id and i.get("item_notes") == item.get("item_notes")), None)
+        # Merge si même produit + mêmes notes + même prix effectif
+        existing = next((
+            i for i in sale_items_raw
+            if i["product_id"] == prod_id
+            and i.get("item_notes") == item.get("item_notes")
+            and round(float(i.get("selling_price", base_unit_price)), 2) == round(effective_unit_price, 2)
+        ), None)
         if existing:
             existing["quantity"] += qty
             existing["total"] = round(existing["total"] + line_total, 2)
+            existing["discount_amount"] = round(existing.get("discount_amount", 0.0) + item_discount, 2)
+            existing["tax_rate"] = item_tax_rate
+            existing["ready"] = False
         else:
             sale_items_raw.append({
                 "product_id": prod_id,
                 "product_name": product["name"],
                 "quantity": qty,
                 "purchase_price": product.get("purchase_price", 0.0),
-                "selling_price": product["selling_price"],
+                "selling_price": effective_unit_price,
                 "discount_amount": item_discount,
                 "total": round(line_total, 2),
+                "tax_rate": item_tax_rate,
+                "tax_amount": _compute_tax_amount_from_total(line_total, item_tax_rate, sale_tax_mode),
                 "station": item.get("station", "plat"),
                 "item_notes": item.get("item_notes"),
                 "ready": False,
             })
 
-    new_total = round(sale.get("current_amount", 0) + new_total_delta, 2)
+    sale_items_raw = await _enrich_sale_items_with_product_tax(
+        owner_id,
+        sale_items_raw,
+        store_tax_enabled=tax_settings["tax_enabled"],
+        store_tax_rate=tax_settings["tax_rate"],
+        tax_mode=sale_tax_mode,
+    )
+    totals = _compute_sale_totals(
+        sale_items_raw,
+        tax_mode=sale_tax_mode,
+        order_discount=sale.get("discount_amount", 0.0),
+        service_charge_percent=sale.get("service_charge_percent", 0.0),
+        tip_amount=sale.get("tip_amount", 0.0),
+    )
+
     await db.sales.update_one(
         {"sale_id": sale_id},
-        {"$set": {"items": sale_items_raw, "current_amount": new_total, "total_amount": new_total}}
+        {"$set": {
+            "items": totals["items"],
+            "current_amount": totals["total_amount"],
+            "total_amount": totals["total_amount"],
+            "tax_total": totals["tax_total"],
+            "subtotal_ht": totals["subtotal_ht"],
+            "tax_mode": totals["tax_mode"],
+            "all_items_ready": False,
+            "kitchen_sent": False,
+            "kitchen_sent_at": None,
+            "served_at": None,
+        }}
     )
     if sale.get("table_id"):
         await db.tables.update_one(
             {"table_id": sale["table_id"], "user_id": owner_id},
-            {"$set": {"current_amount": new_total}}
+            {"$set": {"current_amount": totals["total_amount"]}}
         )
     updated = await db.sales.find_one({"sale_id": sale_id})
     updated.pop("_id", None)
@@ -6228,17 +6965,38 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
     items = sale.get("items", [])
     if item_idx < 0 or item_idx >= len(items):
         raise HTTPException(status_code=400, detail="Index invalide")
-    removed = items.pop(item_idx)
-    new_total = round(sale.get("current_amount", 0) - removed.get("total", 0), 2)
-    new_total = max(0, new_total)
+    items.pop(item_idx)
+    tax_settings = await _load_tax_settings_for_user(user)
+    sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
+    items = await _enrich_sale_items_with_product_tax(
+        owner_id,
+        items,
+        store_tax_enabled=tax_settings["tax_enabled"],
+        store_tax_rate=tax_settings["tax_rate"],
+        tax_mode=sale_tax_mode,
+    )
+    totals = _compute_sale_totals(
+        items,
+        tax_mode=sale_tax_mode,
+        order_discount=sale.get("discount_amount", 0.0),
+        service_charge_percent=sale.get("service_charge_percent", 0.0),
+        tip_amount=sale.get("tip_amount", 0.0),
+    )
     await db.sales.update_one(
         {"sale_id": sale_id},
-        {"$set": {"items": items, "current_amount": new_total, "total_amount": new_total}}
+        {"$set": {
+            "items": totals["items"],
+            "current_amount": totals["total_amount"],
+            "total_amount": totals["total_amount"],
+            "tax_total": totals["tax_total"],
+            "subtotal_ht": totals["subtotal_ht"],
+            "tax_mode": totals["tax_mode"],
+        }}
     )
     if sale.get("table_id"):
         await db.tables.update_one(
             {"table_id": sale["table_id"], "user_id": owner_id},
-            {"$set": {"current_amount": new_total}}
+            {"$set": {"current_amount": totals["total_amount"]}}
         )
     updated = await db.sales.find_one({"sale_id": sale_id})
     updated.pop("_id", None)
@@ -6253,46 +7011,42 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
     if not sale:
         raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
 
-    items = sale.get("items", [])
+    tax_settings = await _load_tax_settings_for_user(user)
+    sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
+    items = await _enrich_sale_items_with_product_tax(
+        owner_id,
+        sale.get("items", []),
+        store_tax_enabled=tax_settings["tax_enabled"],
+        store_tax_rate=tax_settings["tax_rate"],
+        tax_mode=sale_tax_mode,
+    )
     # Déduction stock
     for it in items:
-        try:
-            movement_data = StockMovementCreate(
-                product_id=it["product_id"], type="out",
-                quantity=it["quantity"], reason="stock.reasons.pos_sale"
-            )
-            await create_stock_movement(movement_data, user)
-        except Exception:
-            pass  # On continue même si stock insuffisant (restaurant ne bloque pas le service)
-
-    # Déduction des ingrédients via recettes (restaurant)
-    for it in items:
-        recipe = await db.recipes.find_one({
-            "user_id": owner_id,
-            "output_product_id": it["product_id"]
-        })
-        if recipe:
-            for ing in recipe.get("ingredients", []):
-                try:
-                    ing_movement = StockMovementCreate(
-                        product_id=ing["product_id"], type="out",
-                        quantity=ing["quantity"] * it["quantity"],
-                        reason="stock.reasons.recipe_ingredient"
-                    )
-                    await create_stock_movement(ing_movement, user)
-                except Exception:
-                    pass  # Continue même si stock insuffisant
+        product_doc = await db.products.find_one({"product_id": it["product_id"], "user_id": owner_id})
+        if product_doc:
+            await _apply_sale_item_inventory(product_doc, it["quantity"], user, suppress_errors=True)
 
     # Totaux finaux
-    subtotal = sale.get("total_amount", 0)
-    discount = max(0.0, min(float(data.get("discount_amount", 0)), subtotal))
+    discount = float(data.get("discount_amount", sale.get("discount_amount", 0)))
     tip = float(data.get("tip_amount", sale.get("tip_amount", 0)))
     service_pct = float(data.get("service_charge_percent", sale.get("service_charge_percent", 0)))
-    service_charge = round((subtotal - discount) * service_pct / 100, 2)
-    actual_total = round(subtotal - discount + service_charge + tip, 2)
+    totals = _compute_sale_totals(
+        items,
+        tax_mode=sale_tax_mode,
+        order_discount=discount,
+        service_charge_percent=service_pct,
+        tip_amount=tip,
+    )
+    discount = totals["discount_amount"]
+    tip = totals["tip_amount"]
+    actual_total = totals["total_amount"]
 
     payment_method = data.get("payment_method", "cash")
     payments = data.get("payments", [])
+    if payments:
+        paid_sum = round(sum(float(p.get("amount", 0)) for p in payments), 2)
+        if paid_sum != actual_total:
+            raise HTTPException(status_code=400, detail=f"Paiements ({paid_sum}) ne couvrent pas le total ({actual_total})")
     if payments:
         primary_method = payments[0].get("method", "cash")
     else:
@@ -6302,10 +7056,15 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
         {"sale_id": sale_id},
         {"$set": {
             "status": "completed",
+            "items": totals["items"],
             "total_amount": actual_total,
+            "current_amount": actual_total,
             "discount_amount": discount,
             "tip_amount": tip,
             "service_charge_percent": service_pct,
+            "tax_total": totals["tax_total"],
+            "tax_mode": totals["tax_mode"],
+            "subtotal_ht": totals["subtotal_ht"],
             "payment_method": primary_method,
             "payments": payments,
             "covers": data.get("covers", sale.get("covers")),
@@ -6392,7 +7151,7 @@ async def reservation_arrive(reservation_id: str, data: dict = Body(default={}),
 
 @api_router.get("/inventory/tasks", response_model=List[InventoryTask])
 async def get_inventory_tasks(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("stock", "read")),
     status: Optional[str] = "pending"
 ):
     query: dict = {"user_id": get_owner_id(user)}
@@ -6405,7 +7164,7 @@ async def get_inventory_tasks(
     return [InventoryTask(**t) for t in tasks]
 
 @api_router.post("/inventory/generate")
-async def generate_inventory_tasks(user: User = Depends(require_auth)):
+async def generate_inventory_tasks(user: User = Depends(require_permission("stock", "write"))):
     """Generate cyclic inventory tasks prioritizing out-of-stock and low-stock products"""
     user_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -6460,11 +7219,12 @@ async def generate_inventory_tasks(user: User = Depends(require_auth)):
 async def submit_inventory_result(
     task_id: str, 
     update: InventoryTaskUpdate,
-    user: User = Depends(require_auth)
+    user: User = Depends(require_permission("stock", "write"))
 ):
     task = await db.inventory_tasks.find_one({"task_id": task_id, "user_id": get_owner_id(user)})
     if not task:
         raise HTTPException(status_code=404, detail=i18n.t("inventory.task_not_found", user.language))
+    ensure_scoped_document_access(user, task, detail="Acces refuse pour cette tache d'inventaire")
         
     actual = update.actual_quantity
     expected = task["expected_quantity"]
@@ -6530,9 +7290,7 @@ async def get_sales(
 ):
     owner_id = get_owner_id(user)
     query: dict = {"user_id": owner_id}
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
 
     if product_id:
         query["items.product_id"] = product_id
@@ -6807,6 +7565,200 @@ async def delete_promotion(promotion_id: str, user: User = Depends(require_permi
         raise HTTPException(status_code=404, detail="Promotion non trouvée")
     return {"message": "Promotion supprimée"}
 
+async def _get_service_recipe_for_product(store_id: Optional[str], product: dict) -> Optional[dict]:
+    if not store_id:
+        return None
+
+    linked_recipe_id = product.get("linked_recipe_id")
+    if linked_recipe_id:
+        recipe = await db.recipes.find_one({"recipe_id": linked_recipe_id, "store_id": store_id})
+        if recipe:
+            return recipe
+
+    return await db.recipes.find_one({
+        "store_id": store_id,
+        "output_product_id": product.get("product_id")
+    })
+
+
+async def _consume_recipe_ingredients(recipe: dict, multiplier: int, user: User, suppress_errors: bool = True):
+    for ing in recipe.get("ingredients", []):
+        try:
+            ing_movement = StockMovementCreate(
+                product_id=ing["product_id"],
+                type="out",
+                quantity=int((ing.get("quantity", 0) or 0) * multiplier),
+                reason="stock.reasons.recipe_ingredient"
+            )
+            await create_stock_movement(ing_movement, user)
+        except Exception:
+            if not suppress_errors:
+                raise
+
+
+async def _apply_sale_item_inventory(product: dict, quantity: int, user: User, suppress_errors: bool = True):
+    mode = (product.get("production_mode") or "prepped").lower()
+    recipe = await _get_service_recipe_for_product(user.active_store_id, product)
+
+    if mode in ("prepped", "hybrid"):
+        try:
+            movement_data = StockMovementCreate(
+                product_id=product["product_id"],
+                type="out",
+                quantity=quantity,
+                reason="stock.reasons.pos_sale"
+            )
+            await create_stock_movement(movement_data, user)
+        except Exception:
+            if not suppress_errors:
+                raise
+
+    if mode in ("on_demand", "hybrid") and recipe:
+        await _consume_recipe_ingredients(recipe, quantity, user, suppress_errors=suppress_errors)
+
+
+def _round_money(value: Any) -> float:
+    return round(float(value or 0.0), 2)
+
+
+def _normalize_tax_mode(tax_mode: Optional[str]) -> str:
+    return "ht" if tax_mode == "ht" else "ttc"
+
+
+def _compute_tax_amount_from_total(line_total: float, tax_rate: float, tax_mode: str) -> float:
+    line_total = _round_money(line_total)
+    tax_rate = max(0.0, float(tax_rate or 0.0))
+    if line_total <= 0 or tax_rate <= 0:
+        return 0.0
+    if _normalize_tax_mode(tax_mode) == "ttc":
+        return _round_money(line_total * tax_rate / (100 + tax_rate))
+    return _round_money(line_total * tax_rate / 100)
+
+
+def _resolve_product_tax_rate(product: Optional[dict], store_tax_enabled: bool, store_tax_rate: float) -> float:
+    if not store_tax_enabled:
+        return 0.0
+    if product and product.get("tax_rate") is not None:
+        return max(0.0, float(product.get("tax_rate") or 0.0))
+    return max(0.0, float(store_tax_rate or 0.0))
+
+
+def _normalize_sale_item_dict(item: dict) -> dict:
+    quantity = int(item.get("quantity", 0) or 0)
+    selling_price = _round_money(item.get("selling_price", 0.0))
+    total = item.get("total")
+    if total is None:
+        total = selling_price * quantity
+    return {
+        **item,
+        "quantity": quantity,
+        "selling_price": selling_price,
+        "discount_amount": _round_money(item.get("discount_amount", 0.0)),
+        "total": _round_money(total),
+        "tax_rate": max(0.0, float(item.get("tax_rate", 0.0) or 0.0)),
+        "tax_amount": _round_money(item.get("tax_amount", 0.0)),
+        "purchase_price": _round_money(item.get("purchase_price", 0.0)),
+    }
+
+
+def _compute_sale_totals(
+    items: List[dict],
+    tax_mode: str,
+    order_discount: float = 0.0,
+    service_charge_percent: float = 0.0,
+    tip_amount: float = 0.0,
+) -> Dict[str, Any]:
+    normalized_items = [_normalize_sale_item_dict(item) for item in items]
+    subtotal_before_discount = _round_money(sum(item.get("total", 0.0) for item in normalized_items))
+    discount_amount = _round_money(max(0.0, min(float(order_discount or 0.0), subtotal_before_discount)))
+    remaining_discount = discount_amount
+    tax_mode = _normalize_tax_mode(tax_mode)
+
+    for index, item in enumerate(normalized_items):
+        line_total = _round_money(item.get("total", 0.0))
+        if discount_amount <= 0 or line_total <= 0:
+            allocated_discount = 0.0
+        elif index == len(normalized_items) - 1:
+            allocated_discount = min(line_total, max(0.0, remaining_discount))
+        else:
+            allocated_discount = min(
+                line_total,
+                _round_money(discount_amount * line_total / subtotal_before_discount) if subtotal_before_discount > 0 else 0.0,
+            )
+        remaining_discount = _round_money(max(0.0, remaining_discount - allocated_discount))
+        taxable_line_total = _round_money(max(0.0, line_total - allocated_discount))
+        item["tax_amount"] = _compute_tax_amount_from_total(
+            taxable_line_total,
+            item.get("tax_rate", 0.0),
+            tax_mode,
+        )
+
+    net_subtotal = _round_money(max(0.0, subtotal_before_discount - discount_amount))
+    tax_total = _round_money(sum(item.get("tax_amount", 0.0) for item in normalized_items))
+    subtotal_ht = _round_money(net_subtotal - tax_total) if tax_mode == "ttc" else net_subtotal
+    taxable_total = _round_money(net_subtotal if tax_mode == "ttc" else net_subtotal + tax_total)
+    service_charge = _round_money(taxable_total * max(0.0, float(service_charge_percent or 0.0)) / 100)
+    tip_amount = _round_money(tip_amount)
+    total_amount = _round_money(taxable_total + service_charge + tip_amount)
+
+    return {
+        "items": normalized_items,
+        "subtotal_before_discount": subtotal_before_discount,
+        "discount_amount": discount_amount,
+        "tax_total": tax_total,
+        "subtotal_ht": subtotal_ht,
+        "taxable_total": taxable_total,
+        "service_charge": service_charge,
+        "tip_amount": tip_amount,
+        "total_amount": total_amount,
+        "tax_mode": tax_mode,
+    }
+
+
+async def _load_tax_settings_for_user(user: User) -> Dict[str, Any]:
+    settings = await load_effective_settings_for_user(user)
+    return {
+        "tax_enabled": bool(settings.tax_enabled),
+        "tax_rate": float(settings.tax_rate or 0.0),
+        "tax_mode": _normalize_tax_mode(settings.tax_mode),
+    }
+
+
+async def _enrich_sale_items_with_product_tax(
+    owner_id: str,
+    items: List[dict],
+    store_tax_enabled: bool,
+    store_tax_rate: float,
+    tax_mode: str,
+) -> List[dict]:
+    if not items:
+        return []
+
+    product_ids = list({item.get("product_id") for item in items if item.get("product_id")})
+    products = await db.products.find(
+        {"product_id": {"$in": product_ids}, "user_id": owner_id},
+        {"_id": 0, "product_id": 1, "tax_rate": 1},
+    ).to_list(len(product_ids) or 1)
+    product_map = {product["product_id"]: product for product in products}
+
+    enriched: List[dict] = []
+    for item in items:
+        normalized = _normalize_sale_item_dict(item)
+        if "tax_rate" not in item or item.get("tax_rate") is None:
+            normalized["tax_rate"] = _resolve_product_tax_rate(
+                product_map.get(normalized.get("product_id")),
+                store_tax_enabled,
+                store_tax_rate,
+            )
+        normalized["tax_amount"] = _compute_tax_amount_from_total(
+            normalized.get("total", 0.0),
+            normalized.get("tax_rate", 0.0),
+            tax_mode,
+        )
+        enriched.append(normalized)
+    return enriched
+
+
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permission("pos", "write"))):
     user_id = user.user_id
@@ -6814,18 +7766,13 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     store_id = user.active_store_id
     
     sale_items = []
-    total_amount = 0.0
     is_open_order = (sale_data.status == "open")
 
     # 0. Load tax settings
-    settings_doc = await db.user_settings.find_one({"user_id": owner_id})
-    tax_enabled = False
-    store_tax_rate = 0.0
-    tax_mode = "ttc"
-    if settings_doc:
-        tax_enabled = settings_doc.get("tax_enabled", False)
-        store_tax_rate = settings_doc.get("tax_rate", 0.0)
-        tax_mode = settings_doc.get("tax_mode", "ttc")
+    tax_settings = await _load_tax_settings_for_user(user)
+    tax_enabled = tax_settings["tax_enabled"]
+    store_tax_rate = tax_settings["tax_rate"]
+    tax_mode = tax_settings["tax_mode"]
 
     # 1. Validate and Prepare items
     for item in sale_data.items:
@@ -6836,81 +7783,61 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouvé")
 
-        if not is_open_order and product["quantity"] < qty:
+        sale_mode = (product.get("production_mode") or "prepped").lower()
+        if not is_open_order and sale_mode in ("prepped", "hybrid") and product["quantity"] < qty:
             raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product['name']}")
 
-        item_discount = item.get("discount_amount", 0.0)
-        line_total = (product["selling_price"] * qty) - item_discount
-        total_amount += line_total
+        base_unit_price = float(product["selling_price"])
+        raw_unit_price = item.get("price")
+        if raw_unit_price is not None:
+            effective_unit_price = max(0.0, float(raw_unit_price))
+            derived_discount = round(max(0.0, (base_unit_price - effective_unit_price) * qty), 2)
+            item_discount = round(float(item.get("discount_amount", derived_discount)), 2)
+            line_total = round(effective_unit_price * qty, 2)
+        else:
+            item_discount = round(float(item.get("discount_amount", 0.0)), 2)
+            line_total = round(max(0.0, (base_unit_price * qty) - item_discount), 2)
+            effective_unit_price = round(line_total / qty, 2) if qty else base_unit_price
 
-        # TVA par ligne
-        item_tax_rate = 0.0
-        item_tax_amount = 0.0
-        if tax_enabled:
-            item_tax_rate = product.get("tax_rate") if product.get("tax_rate") is not None else store_tax_rate
-            if item_tax_rate > 0 and line_total > 0:
-                if tax_mode == "ttc":
-                    # Prix saisis TTC → TVA = total × taux / (100 + taux)
-                    item_tax_amount = round(line_total * item_tax_rate / (100 + item_tax_rate), 2)
-                else:
-                    # Prix saisis HT → TVA = total × taux / 100
-                    item_tax_amount = round(line_total * item_tax_rate / 100, 2)
+        item_tax_rate = _resolve_product_tax_rate(product, tax_enabled, store_tax_rate)
+        item_tax_amount = _compute_tax_amount_from_total(line_total, item_tax_rate, tax_mode)
 
-        sale_items.append(SaleItem(
-            product_id=prod_id,
-            product_name=product["name"],
-            quantity=qty,
-            purchase_price=product.get("purchase_price", 0.0),
-            selling_price=product["selling_price"],
-            discount_amount=item_discount,
-            total=line_total,
-            tax_rate=item_tax_rate,
-            tax_amount=item_tax_amount,
-            station=item.get("station", "plat"),
-            item_notes=item.get("item_notes"),
-        ))
+        sale_items.append({
+            "product_id": prod_id,
+            "product_name": product["name"],
+            "quantity": qty,
+            "purchase_price": product.get("purchase_price", 0.0),
+            "selling_price": effective_unit_price,
+            "discount_amount": item_discount,
+            "total": line_total,
+            "tax_rate": item_tax_rate,
+            "tax_amount": item_tax_amount,
+            "station": item.get("station", product.get("kitchen_station", "plat")),
+            "item_notes": item.get("item_notes"),
+        })
+
+    totals = _compute_sale_totals(
+        sale_items,
+        tax_mode=tax_mode,
+        order_discount=sale_data.discount_amount or 0.0,
+        service_charge_percent=sale_data.service_charge_percent or 0.0,
+        tip_amount=sale_data.tip_amount or 0.0,
+    )
+    sale_items = [SaleItem(**item) for item in totals["items"]]
 
     # 2. Stock deduction — uniquement pour les ventes complètes
     if not is_open_order:
         for si in sale_items:
-            movement_data = StockMovementCreate(
-                product_id=si.product_id,
-                type="out",
-                quantity=si.quantity,
-                reason="stock.reasons.pos_sale"
-            )
-            await create_stock_movement(movement_data, user)
-
-        # Déduction des ingrédients via recettes (restaurant)
-        for si in sale_items:
-            recipe = await db.recipes.find_one({
-                "user_id": owner_id,
-                "output_product_id": si.product_id
-            })
-            if recipe:
-                for ing in recipe.get("ingredients", []):
-                    try:
-                        ing_movement = StockMovementCreate(
-                            product_id=ing["product_id"], type="out",
-                            quantity=ing["quantity"] * si.quantity,
-                            reason="stock.reasons.recipe_ingredient"
-                        )
-                        await create_stock_movement(ing_movement, user)
-                    except Exception:
-                        pass  # Continue même si stock insuffisant
+            product_doc = await db.products.find_one({"product_id": si.product_id, "user_id": owner_id})
+            if product_doc:
+                await _apply_sale_item_inventory(product_doc, si.quantity, user, suppress_errors=True)
 
     # 3. Totaux
-    discount = max(0.0, min(sale_data.discount_amount or 0.0, total_amount))
-    subtotal_after_discount = round(total_amount - discount, 2)
-    # TVA totale
-    tax_total_amount = round(sum(si.tax_amount for si in sale_items), 2)
-    subtotal_ht = round(subtotal_after_discount - tax_total_amount, 2) if tax_mode == "ttc" else subtotal_after_discount
-    # Si HT, le total final inclut la TVA
-    if tax_mode == "ht" and tax_enabled:
-        subtotal_after_discount = round(subtotal_after_discount + tax_total_amount, 2)
-    service_charge = round(subtotal_after_discount * (sale_data.service_charge_percent or 0.0) / 100, 2)
-    tip = round(sale_data.tip_amount or 0.0, 2)
-    actual_total = round(subtotal_after_discount + service_charge + tip, 2)
+    discount = totals["discount_amount"]
+    tax_total_amount = totals["tax_total"]
+    subtotal_ht = totals["subtotal_ht"]
+    tip = totals["tip_amount"]
+    actual_total = totals["total_amount"]
 
     # 4. Paiements (seulement pour ventes complètes)
     payments: List[dict] = []
@@ -6941,8 +7868,8 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         tax_mode=tax_mode,
         subtotal_ht=subtotal_ht,
         notes=sale_data.notes,
-        kitchen_sent=True if is_open_order else (sale_data.kitchen_sent or False),
-        kitchen_sent_at=datetime.now(timezone.utc) if is_open_order else None,
+        kitchen_sent=sale_data.kitchen_sent or False,
+        kitchen_sent_at=datetime.now(timezone.utc) if (sale_data.kitchen_sent or False) else None,
         status=sale_data.status or "completed",
         service_type=sale_data.service_type or "dine_in",
         current_amount=actual_total,
@@ -7128,8 +8055,8 @@ async def get_accounting_stats(
 
     # 1. Sales Data
     sales_query: dict = {"user_id": user_id}
-    if store_id:
-        sales_query["store_id"] = store_id
+    sales_query = apply_store_scope(sales_query, user)
+    sales_query = apply_completed_sales_scope(sales_query)
     
     # Apply date filters directly to the query
     sales_query["created_at"] = {"$gte": start_date, "$lte": end_date}
@@ -7293,6 +8220,8 @@ async def get_stock_movements(
     limit: int = 50,
     skip: int = 0,
     store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
     days: Optional[int] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
@@ -7300,12 +8229,26 @@ async def get_stock_movements(
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
 
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
 
     if product_id:
         query["product_id"] = product_id
+    else:
+        product_query: Dict[str, Any] = {"user_id": owner_id}
+        product_query = apply_accessible_store_scope(product_query, user, store_id)
+        if category_id:
+            product_query["category_id"] = category_id
+        if supplier_id:
+            supplier_product_ids = await load_supplier_product_ids(owner_id, supplier_id) or []
+            if not supplier_product_ids:
+                return {"items": [], "total": 0}
+            product_query["product_id"] = {"$in": supplier_product_ids}
+        if category_id or supplier_id:
+            scoped_products = await db.products.find(product_query, {"_id": 0, "product_id": 1}).to_list(5000)
+            scoped_product_ids = [product["product_id"] for product in scoped_products if product.get("product_id")]
+            if not scoped_product_ids:
+                return {"items": [], "total": 0}
+            query["product_id"] = {"$in": scoped_product_ids}
 
     # Date filtering
     if start_date or end_date:
@@ -7332,13 +8275,8 @@ async def get_stock_movements(
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         query["created_at"] = {"$gte": cutoff}
 
-    # If date filter is applied, we might want to increase limit or remove it
-    fetch_limit = limit
-    if days or start_date or end_date:
-        fetch_limit = 1000
-
     total = await db.stock_movements.count_documents(query)
-    movements = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(fetch_limit).to_list(fetch_limit)
+    movements = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
 
     # Populate product names
     if movements:
@@ -7497,9 +8435,7 @@ async def get_alerts(
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
 
-    target_store = store_id or user.active_store_id
-    if target_store:
-        query["store_id"] = target_store
+    query = apply_store_scope(query, user, store_id)
 
     if not include_dismissed:
         query["is_dismissed"] = False
@@ -7567,28 +8503,124 @@ async def delete_alert_rule(rule_id: str, user: User = Depends(require_permissio
 
 # ===================== SETTINGS ROUTES =====================
 
-@api_router.get("/settings", response_model=UserSettings)
-async def get_settings(user: User = Depends(require_auth)):
+async def load_effective_settings_for_user(user: User) -> UserSettings:
     settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0})
     if not settings:
-        # Create default settings
-        settings = UserSettings(user_id=user.user_id)
-        await db.user_settings.insert_one(settings.model_dump())
-        return settings
-    return UserSettings(**settings)
+        settings = UserSettings(user_id=user.user_id, account_id=user.account_id).model_dump()
+        await db.user_settings.insert_one(settings)
+    account_doc = None
+    active_store_doc = None
+    if user.account_id:
+        account_doc = await db.business_accounts.find_one({"account_id": user.account_id}, {"_id": 0})
+    if user.active_store_id:
+        active_store_doc = await db.stores.find_one(
+            {"store_id": user.active_store_id, "user_id": get_owner_id(user)},
+            {"_id": 0},
+        )
+    merged = merge_effective_settings(
+        user_id=user.user_id,
+        account_id=user.account_id,
+        user_settings=settings,
+        account_doc=account_doc,
+        active_store_doc=active_store_doc,
+    )
+    return UserSettings(**merged)
+
+@api_router.get("/settings", response_model=UserSettings)
+async def get_settings(user: User = Depends(require_auth)):
+    return await load_effective_settings_for_user(user)
 
 @api_router.put("/settings")
 async def update_settings(settings_update: dict, user: User = Depends(require_auth)):
-    settings_update["updated_at"] = datetime.now(timezone.utc)
-    result = await db.user_settings.find_one_and_update(
+    await load_effective_settings_for_user(user)
+
+    settings_update = dict(settings_update)
+    if not settings_update:
+        raise HTTPException(status_code=400, detail="Aucune modification fournie")
+
+    sections = partition_settings_update(settings_update)
+    if sections["unknown"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Champs de paramètres non supportés: {', '.join(sections['unknown'])}",
+        )
+    now = datetime.now(timezone.utc)
+    account_updates = {}
+    store_updates = {}
+    user_updates = {"updated_at": now, "account_id": user.account_id}
+
+    if sections["account"]:
+        if not is_org_admin_user(user):
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier les modules partagés")
+        account_updates["modules"] = settings_update.pop("modules") or default_modules()
+        user_updates["modules"] = account_updates["modules"]
+
+    if sections["billing"]:
+        if not is_billing_admin_user(user):
+            raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent modifier le contact de facturation")
+        if "billing_contact_name" in settings_update:
+            account_updates["billing_contact_name"] = settings_update.pop("billing_contact_name") or None
+        if "billing_contact_email" in settings_update:
+            account_updates["billing_contact_email"] = settings_update.pop("billing_contact_email") or None
+
+    if sections["org_admin"] and not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier ces paramètres")
+
+    if sections["store"]:
+        if not is_org_admin_user(user):
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier les paramètres du magasin")
+        if not user.active_store_id:
+            raise HTTPException(status_code=400, detail="Aucun magasin actif")
+        for key in STORE_SCOPED_SETTING_FIELDS:
+            if key in settings_update:
+                store_updates[key] = settings_update.pop(key)
+
+    if "simple_mode" in settings_update:
+        mobile_preferences = dict(settings_update.get("mobile_preferences") or {})
+        mobile_preferences["simple_mode"] = settings_update.pop("simple_mode")
+        settings_update["mobile_preferences"] = mobile_preferences
+
+    if "dashboard_layout" in settings_update:
+        web_preferences = dict(settings_update.get("web_preferences") or {})
+        web_preferences["dashboard_layout"] = settings_update.pop("dashboard_layout")
+        settings_update["web_preferences"] = web_preferences
+
+    if "mobile_preferences" in settings_update:
+        mobile_preferences = dict(settings_update.pop("mobile_preferences") or {})
+        if "simple_mode" not in mobile_preferences:
+            current = await load_effective_settings_for_user(user)
+            mobile_preferences["simple_mode"] = current.mobile_preferences.get("simple_mode", current.simple_mode)
+        user_updates["mobile_preferences"] = mobile_preferences
+        user_updates["simple_mode"] = mobile_preferences.get("simple_mode", False)
+
+    if "web_preferences" in settings_update:
+        web_preferences = dict(settings_update.pop("web_preferences") or {})
+        if "dashboard_layout" not in web_preferences:
+            current = await load_effective_settings_for_user(user)
+            web_preferences["dashboard_layout"] = current.web_preferences.get("dashboard_layout", current.dashboard_layout)
+        user_updates["web_preferences"] = web_preferences
+        user_updates["dashboard_layout"] = web_preferences.get("dashboard_layout") or default_dashboard_layout()
+
+    allowed_user_keys = USER_SELF_SETTING_FIELDS | ORG_ADMIN_SETTING_FIELDS
+    user_updates.update({key: value for key, value in settings_update.items() if key in allowed_user_keys})
+
+    await db.user_settings.update_one(
         {"user_id": user.user_id},
-        {"$set": settings_update},
-        return_document=True
+        {"$set": user_updates},
+        upsert=True,
     )
-    if not result:
-        raise HTTPException(status_code=404, detail="Paramètres non trouvés")
-    result.pop("_id", None)
-    return UserSettings(**result)
+    if store_updates:
+        await db.stores.update_one(
+            {"store_id": user.active_store_id, "user_id": get_owner_id(user)},
+            {"$set": store_updates},
+        )
+    if account_updates and user.account_id:
+        await db.business_accounts.update_one(
+            {"account_id": user.account_id},
+            {"$set": {**account_updates, "updated_at": now}},
+        )
+
+    return await load_effective_settings_for_user(user)
 
 # Removed redundant push-token routes (unified in /notifications/register-token)
 
@@ -7605,8 +8637,664 @@ async def _safe_background_checks(user_id: str):
     except Exception as e:
         logger.warning(f"check_late_deliveries_internal failed: {e}")
 
+
+def apply_accessible_store_scope(
+    query: Dict[str, Any],
+    user: User,
+    requested_store_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if requested_store_id:
+        ensure_user_store_access(user, requested_store_id)
+        query["store_id"] = requested_store_id
+        return query
+
+    if is_org_admin_user(user):
+        return query
+
+    allowed_store_ids = list(dict.fromkeys((user.store_ids or []) + ([user.active_store_id] if user.active_store_id else [])))
+    if not allowed_store_ids:
+        return query
+    if len(allowed_store_ids) == 1:
+        query["store_id"] = allowed_store_ids[0]
+    else:
+        query["store_id"] = {"$in": allowed_store_ids}
+    return query
+
+
+def parse_analytics_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    return None
+
+
+def normalize_analytics_days(days: int) -> int:
+    return max(1, min(int(days or 30), 365))
+
+
+def compute_delta_ratio(current: float, previous: float) -> float:
+    if previous <= 0:
+        return 1.0 if current > 0 else 0.0
+    return round((current - previous) / previous, 4)
+
+
+def build_store_metric_bucket() -> Dict[str, Any]:
+    return {
+        "revenue": 0.0,
+        "previous_revenue": 0.0,
+        "gross_profit": 0.0,
+        "sale_ids": set(),
+        "previous_sale_ids": set(),
+        "stock_value": 0.0,
+        "low_stock_count": 0,
+        "out_of_stock_count": 0,
+        "dormant_products_count": 0,
+        "total_products": 0,
+    }
+
+
+async def load_accessible_stores(user: User) -> List[dict]:
+    owner_id = get_owner_id(user)
+    query: Dict[str, Any] = {"user_id": owner_id}
+    query = apply_accessible_store_scope(query, user)
+    stores = await db.stores.find(query, {"_id": 0}).to_list(200)
+    if requested_ids := (user.store_ids or []):
+        stores.sort(key=lambda store: requested_ids.index(store["store_id"]) if store["store_id"] in requested_ids else len(requested_ids))
+    return stores
+
+
+async def load_supplier_product_ids(owner_id: str, supplier_id: Optional[str]) -> Optional[List[str]]:
+    if not supplier_id:
+        return None
+
+    supplier_links = await db.supplier_products.find(
+        {"user_id": owner_id, "supplier_id": supplier_id},
+        {"_id": 0, "product_id": 1},
+    ).to_list(5000)
+    return [link.get("product_id") for link in supplier_links if link.get("product_id")]
+
+
+async def load_analytics_products(
+    user: User,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+) -> List[dict]:
+    owner_id = get_owner_id(user)
+    query: Dict[str, Any] = {"user_id": owner_id}
+    query = apply_accessible_store_scope(query, user, store_id)
+
+    if category_id:
+        query["category_id"] = category_id
+
+    if supplier_id:
+        product_ids = await load_supplier_product_ids(owner_id, supplier_id) or []
+        if not product_ids:
+            return []
+        query["product_id"] = {"$in": product_ids}
+
+    products = await db.products.find(query, {"_id": 0}).to_list(5000)
+    return [product for product in products if product.get("is_active", True)]
+
+
+async def build_analytics_snapshot(
+    user: User,
+    days: int = 30,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    owner_id = get_owner_id(user)
+    normalized_days = normalize_analytics_days(days)
+    now = datetime.now(timezone.utc)
+    current_start = now - timedelta(days=normalized_days)
+    previous_start = current_start - timedelta(days=normalized_days)
+    dormant_start = now - timedelta(days=30)
+    sales_window_start = min(previous_start, dormant_start)
+
+    stores = await load_accessible_stores(user)
+    if store_id:
+        stores = [store for store in stores if store.get("store_id") == store_id]
+
+    products = await load_analytics_products(
+        user,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    product_map = {product["product_id"]: product for product in products if product.get("product_id")}
+    category_ids = [product.get("category_id") for product in products if product.get("category_id")]
+    categories = await db.categories.find(
+        {"user_id": owner_id, "category_id": {"$in": list(set(category_ids))}},
+        {"_id": 0, "category_id": 1, "name": 1},
+    ).to_list(1000)
+    category_name_map = {category["category_id"]: category.get("name") or "Sans categorie" for category in categories}
+    filter_on_product_set = bool(category_id or supplier_id)
+    allowed_product_ids = set(product_map.keys()) if filter_on_product_set else None
+
+    sales_query: Dict[str, Any] = {
+        "user_id": owner_id,
+        "created_at": {"$gte": sales_window_start, "$lt": now},
+        "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
+    }
+    sales_query = apply_accessible_store_scope(sales_query, user, store_id)
+    sales_docs = await db.sales.find(sales_query, {"_id": 0}).to_list(10000)
+
+    current_sale_ids = set()
+    previous_sale_ids = set()
+    sold_product_ids_30d = set()
+    top_products: Dict[str, Dict[str, Any]] = {}
+    top_categories: Dict[str, Dict[str, Any]] = {}
+    per_store_metrics: Dict[str, Dict[str, Any]] = defaultdict(build_store_metric_bucket)
+
+    current_revenue = 0.0
+    previous_revenue = 0.0
+    current_gross_profit = 0.0
+    previous_gross_profit = 0.0
+
+    for sale in sales_docs:
+        sale_date = parse_analytics_datetime(sale.get("created_at"))
+        if not sale_date:
+            continue
+
+        bucket = None
+        if sale_date >= current_start:
+            bucket = "current"
+        elif sale_date >= previous_start:
+            bucket = "previous"
+
+        sale_id = sale.get("sale_id")
+        sale_store_id = sale.get("store_id")
+        sale_has_line_in_bucket = False
+        sale_has_line_in_previous = False
+
+        for item in sale.get("items") or []:
+            product_id = item.get("product_id")
+            if allowed_product_ids is not None and product_id not in allowed_product_ids:
+                continue
+
+            product_doc = product_map.get(product_id, {})
+            quantity = float(item.get("quantity") or 0)
+            line_revenue = float(item.get("total") or 0)
+            if not line_revenue:
+                line_revenue = max(
+                    0.0,
+                    (float(item.get("selling_price") or product_doc.get("selling_price") or 0) * quantity)
+                    - float(item.get("discount_amount") or 0),
+                )
+            purchase_price = float(item.get("purchase_price") or product_doc.get("purchase_price") or 0)
+            line_gross_profit = line_revenue - (purchase_price * quantity)
+
+            if sale_date >= dormant_start and product_id:
+                sold_product_ids_30d.add(product_id)
+
+            if bucket == "current":
+                sale_has_line_in_bucket = True
+                current_revenue += line_revenue
+                current_gross_profit += line_gross_profit
+                if sale_store_id:
+                    per_store_metrics[sale_store_id]["revenue"] += line_revenue
+                    per_store_metrics[sale_store_id]["gross_profit"] += line_gross_profit
+
+                if product_id:
+                    product_entry = top_products.setdefault(
+                        product_id,
+                        {
+                            "product_id": product_id,
+                            "name": item.get("product_name") or product_doc.get("name") or "Produit",
+                            "revenue": 0.0,
+                            "quantity": 0.0,
+                            "gross_profit": 0.0,
+                        },
+                    )
+                    product_entry["revenue"] += line_revenue
+                    product_entry["quantity"] += quantity
+                    product_entry["gross_profit"] += line_gross_profit
+
+                category_key = product_doc.get("category_id") or item.get("category_id") or "uncategorized"
+                category_entry = top_categories.setdefault(
+                    category_key,
+                    {
+                        "category_id": None if category_key == "uncategorized" else category_key,
+                        "name": category_name_map.get(category_key, "Sans categorie"),
+                        "revenue": 0.0,
+                        "quantity": 0.0,
+                        "gross_profit": 0.0,
+                    },
+                )
+                category_entry["revenue"] += line_revenue
+                category_entry["quantity"] += quantity
+                category_entry["gross_profit"] += line_gross_profit
+
+            elif bucket == "previous":
+                sale_has_line_in_previous = True
+                previous_revenue += line_revenue
+                previous_gross_profit += line_gross_profit
+                if sale_store_id:
+                    per_store_metrics[sale_store_id]["previous_revenue"] += line_revenue
+
+        if sale_has_line_in_bucket and sale_id:
+            current_sale_ids.add(sale_id)
+            if sale_store_id:
+                per_store_metrics[sale_store_id]["sale_ids"].add(sale_id)
+        if sale_has_line_in_previous and sale_id:
+            previous_sale_ids.add(sale_id)
+            if sale_store_id:
+                per_store_metrics[sale_store_id]["previous_sale_ids"].add(sale_id)
+
+    summary_metrics = {
+        "stock_value": 0.0,
+        "low_stock_count": 0,
+        "out_of_stock_count": 0,
+        "dormant_products_count": 0,
+        "total_products": 0,
+    }
+
+    for product in products:
+        store_key = product.get("store_id")
+        quantity = int(product.get("quantity") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        stock_value = quantity * purchase_price
+        is_low_stock = product.get("min_stock", 0) > 0 and quantity <= int(product.get("min_stock") or 0)
+        is_out_of_stock = quantity <= 0
+        is_dormant = product.get("product_id") not in sold_product_ids_30d
+
+        summary_metrics["stock_value"] += stock_value
+        summary_metrics["total_products"] += 1
+        if is_low_stock:
+            summary_metrics["low_stock_count"] += 1
+        if is_out_of_stock:
+            summary_metrics["out_of_stock_count"] += 1
+        if is_dormant:
+            summary_metrics["dormant_products_count"] += 1
+
+        if store_key:
+            bucket = per_store_metrics[store_key]
+            bucket["stock_value"] += stock_value
+            bucket["total_products"] += 1
+            if is_low_stock:
+                bucket["low_stock_count"] += 1
+            if is_out_of_stock:
+                bucket["out_of_stock_count"] += 1
+            if is_dormant:
+                bucket["dormant_products_count"] += 1
+
+    for metric in per_store_metrics.values():
+        metric["sales_count"] = len(metric["sale_ids"])
+        metric["previous_sales_count"] = len(metric["previous_sale_ids"])
+        metric["average_ticket"] = round(metric["revenue"] / metric["sales_count"], 2) if metric["sales_count"] else 0.0
+        metric["revenue_delta"] = compute_delta_ratio(metric["revenue"], metric["previous_revenue"])
+
+    current_sales_count = len(current_sale_ids)
+    previous_sales_count = len(previous_sale_ids)
+    average_ticket = round(current_revenue / current_sales_count, 2) if current_sales_count else 0.0
+    previous_average_ticket = round(previous_revenue / previous_sales_count, 2) if previous_sales_count else 0.0
+
+    return {
+        "days": normalized_days,
+        "currency": user.currency or "XOF",
+        "stores": stores,
+        "products": products,
+        "product_map": product_map,
+        "sold_product_ids_30d": sold_product_ids_30d,
+        "current_revenue": round(current_revenue, 2),
+        "previous_revenue": round(previous_revenue, 2),
+        "current_gross_profit": round(current_gross_profit, 2),
+        "previous_gross_profit": round(previous_gross_profit, 2),
+        "current_sales_count": current_sales_count,
+        "previous_sales_count": previous_sales_count,
+        "average_ticket": average_ticket,
+        "previous_average_ticket": previous_average_ticket,
+        "summary_metrics": summary_metrics,
+        "top_products": top_products,
+        "top_categories": top_categories,
+        "per_store_metrics": per_store_metrics,
+    }
+
+
+@api_router.get("/analytics/filters/meta")
+async def get_analytics_filter_meta(user: User = Depends(require_operational_access)):
+    owner_id = get_owner_id(user)
+    stores = await load_accessible_stores(user)
+
+    categories_query: Dict[str, Any] = {"user_id": owner_id}
+    if not is_org_admin_user(user):
+        allowed_store_ids = list(dict.fromkeys((user.store_ids or []) + ([user.active_store_id] if user.active_store_id else [])))
+        if allowed_store_ids:
+            categories_query["$or"] = [
+                {"store_id": {"$exists": False}},
+                {"store_id": None},
+                {"store_id": {"$in": allowed_store_ids}},
+            ]
+
+    categories = await db.categories.find(categories_query, {"_id": 0, "category_id": 1, "name": 1}).to_list(1000)
+    suppliers = await db.suppliers.find(
+        {"user_id": owner_id, "is_active": True},
+        {"_id": 0, "supplier_id": 1, "name": 1},
+    ).to_list(1000)
+
+    return {
+        "stores": [{"id": store["store_id"], "label": store.get("name") or "Magasin"} for store in stores],
+        "categories": [{"id": category["category_id"], "label": category.get("name") or "Categorie"} for category in categories],
+        "suppliers": [{"id": supplier["supplier_id"], "label": supplier.get("name") or "Fournisseur"} for supplier in suppliers],
+        "periods": [
+            {"label": "7 jours", "days": 7},
+            {"label": "30 jours", "days": 30},
+            {"label": "90 jours", "days": 90},
+        ],
+    }
+
+
+@api_router.get("/analytics/executive/overview")
+async def get_executive_overview(
+    days: int = 30,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_operational_access),
+):
+    snapshot = await build_analytics_snapshot(
+        user,
+        days=days,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    summary_metrics = snapshot["summary_metrics"]
+    revenue_delta = compute_delta_ratio(snapshot["current_revenue"], snapshot["previous_revenue"])
+    gross_profit_delta = compute_delta_ratio(snapshot["current_gross_profit"], snapshot["previous_gross_profit"])
+    sales_delta = compute_delta_ratio(snapshot["current_sales_count"], snapshot["previous_sales_count"])
+    average_ticket_delta = compute_delta_ratio(snapshot["average_ticket"], snapshot["previous_average_ticket"])
+
+    trend_label = "progresse" if revenue_delta > 0.03 else "recule" if revenue_delta < -0.03 else "reste stable"
+    summary = (
+        f"Le chiffre d'affaires {trend_label} de {abs(revenue_delta) * 100:.1f}% sur {snapshot['days']} jours. "
+        f"{summary_metrics['low_stock_count']} produits sont en stock bas et "
+        f"{summary_metrics['dormant_products_count']} sont dormants depuis 30 jours."
+    )
+
+    top_products = sorted(snapshot["top_products"].values(), key=lambda item: item["revenue"], reverse=True)[:5]
+    top_categories = sorted(snapshot["top_categories"].values(), key=lambda item: item["revenue"], reverse=True)[:5]
+
+    return {
+        "currency": snapshot["currency"],
+        "days": snapshot["days"],
+        "summary": summary,
+        "kpis": {
+            "revenue": snapshot["current_revenue"],
+            "previous_revenue": snapshot["previous_revenue"],
+            "revenue_delta": revenue_delta,
+            "gross_profit": snapshot["current_gross_profit"],
+            "previous_gross_profit": snapshot["previous_gross_profit"],
+            "gross_profit_delta": gross_profit_delta,
+            "sales_count": snapshot["current_sales_count"],
+            "previous_sales_count": snapshot["previous_sales_count"],
+            "sales_count_delta": sales_delta,
+            "average_ticket": snapshot["average_ticket"],
+            "previous_average_ticket": snapshot["previous_average_ticket"],
+            "average_ticket_delta": average_ticket_delta,
+            "stock_value": round(summary_metrics["stock_value"], 2),
+            "low_stock_count": summary_metrics["low_stock_count"],
+            "out_of_stock_count": summary_metrics["out_of_stock_count"],
+            "dormant_products_count": summary_metrics["dormant_products_count"],
+            "total_products": summary_metrics["total_products"],
+        },
+        "top_products": top_products,
+        "top_categories": top_categories,
+    }
+
+
+@api_router.get("/analytics/stores/compare")
+async def get_analytics_store_comparison(
+    days: int = 30,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_org_admin),
+):
+    snapshot = await build_analytics_snapshot(
+        user,
+        days=days,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+
+    rows = []
+    for store in snapshot["stores"]:
+        metrics = snapshot["per_store_metrics"].get(store["store_id"], build_store_metric_bucket())
+        sales_count = metrics.get("sales_count", len(metrics.get("sale_ids", set())))
+        previous_sales_count = metrics.get("previous_sales_count", len(metrics.get("previous_sale_ids", set())))
+        average_ticket = round(metrics["revenue"] / sales_count, 2) if sales_count else 0.0
+        rows.append({
+            "store_id": store["store_id"],
+            "store_name": store.get("name") or "Magasin",
+            "address": store.get("address"),
+            "active": store["store_id"] == user.active_store_id,
+            "revenue": round(metrics["revenue"], 2),
+            "previous_revenue": round(metrics["previous_revenue"], 2),
+            "revenue_delta": metrics.get("revenue_delta", compute_delta_ratio(metrics["revenue"], metrics["previous_revenue"])),
+            "gross_profit": round(metrics["gross_profit"], 2),
+            "sales_count": sales_count,
+            "previous_sales_count": previous_sales_count,
+            "sales_count_delta": compute_delta_ratio(sales_count, previous_sales_count),
+            "average_ticket": average_ticket,
+            "stock_value": round(metrics["stock_value"], 2),
+            "low_stock_count": metrics["low_stock_count"],
+            "out_of_stock_count": metrics["out_of_stock_count"],
+            "dormant_products_count": metrics["dormant_products_count"],
+            "total_products": metrics["total_products"],
+        })
+
+    rows.sort(key=lambda row: row["revenue"], reverse=True)
+    summary_metrics = snapshot["summary_metrics"]
+    totals_average_ticket = round(snapshot["current_revenue"] / snapshot["current_sales_count"], 2) if snapshot["current_sales_count"] else 0.0
+
+    return {
+        "currency": snapshot["currency"],
+        "days": snapshot["days"],
+        "totals": {
+            "store_count": len(rows),
+            "revenue": snapshot["current_revenue"],
+            "previous_revenue": snapshot["previous_revenue"],
+            "revenue_delta": compute_delta_ratio(snapshot["current_revenue"], snapshot["previous_revenue"]),
+            "gross_profit": snapshot["current_gross_profit"],
+            "sales_count": snapshot["current_sales_count"],
+            "average_ticket": totals_average_ticket,
+            "stock_value": round(summary_metrics["stock_value"], 2),
+            "low_stock_count": summary_metrics["low_stock_count"],
+            "out_of_stock_count": summary_metrics["out_of_stock_count"],
+            "dormant_products_count": summary_metrics["dormant_products_count"],
+            "total_products": summary_metrics["total_products"],
+        },
+        "stores": rows,
+    }
+
+
+@api_router.get("/analytics/stock/health")
+async def get_stock_health(
+    days: int = 30,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_permission("stock", "read")),
+):
+    snapshot = await build_analytics_snapshot(
+        user,
+        days=days,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    now = datetime.now(timezone.utc)
+    expiry_cutoff = now + timedelta(days=30)
+    summary_metrics = snapshot["summary_metrics"]
+    products = snapshot["products"]
+    sold_product_ids_30d = snapshot["sold_product_ids_30d"]
+
+    critical_products = []
+    overstock_products = []
+    dormant_products = []
+    expiring_products = []
+    replenishment_candidates = []
+
+    for product in products:
+        quantity = int(product.get("quantity") or 0)
+        min_stock = int(product.get("min_stock") or 0)
+        max_stock = int(product.get("max_stock") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        stock_value = round(quantity * purchase_price, 2)
+        expiry_date = parse_analytics_datetime(product.get("expiry_date"))
+
+        if quantity <= min_stock and min_stock > 0:
+            shortage = max(min_stock - quantity, 0)
+            critical_products.append({
+                "product_id": product["product_id"],
+                "name": product.get("name") or "Produit",
+                "quantity": quantity,
+                "min_stock": min_stock,
+                "shortage": shortage,
+                "stock_value": stock_value,
+                "store_id": product.get("store_id"),
+            })
+            replenishment_candidates.append({
+                "product_id": product["product_id"],
+                "name": product.get("name") or "Produit",
+                "quantity": quantity,
+                "min_stock": min_stock,
+                "shortage": shortage,
+                "suggested_order": max(shortage, 1),
+                "stock_value": stock_value,
+                "store_id": product.get("store_id"),
+            })
+
+        if max_stock > 0 and quantity >= max_stock:
+            overstock_products.append({
+                "product_id": product["product_id"],
+                "name": product.get("name") or "Produit",
+                "quantity": quantity,
+                "max_stock": max_stock,
+                "overstock_units": max(quantity - max_stock, 0),
+                "stock_value": stock_value,
+                "store_id": product.get("store_id"),
+            })
+
+        if product.get("product_id") not in sold_product_ids_30d and quantity > 0:
+            dormant_products.append({
+                "product_id": product["product_id"],
+                "name": product.get("name") or "Produit",
+                "quantity": quantity,
+                "stock_value": stock_value,
+                "store_id": product.get("store_id"),
+            })
+
+        if expiry_date and quantity > 0 and expiry_date <= expiry_cutoff:
+            expiring_products.append({
+                "product_id": product["product_id"],
+                "name": product.get("name") or "Produit",
+                "quantity": quantity,
+                "expiry_date": expiry_date,
+                "store_id": product.get("store_id"),
+            })
+
+    critical_products.sort(key=lambda item: (item["quantity"] > 0, item["shortage"], item["stock_value"]))
+    overstock_products.sort(key=lambda item: (item["overstock_units"], item["stock_value"]), reverse=True)
+    dormant_products.sort(key=lambda item: item["stock_value"], reverse=True)
+    expiring_products.sort(key=lambda item: parse_analytics_datetime(item["expiry_date"]) or expiry_cutoff)
+    replenishment_candidates.sort(key=lambda item: (item["shortage"], item["stock_value"]), reverse=True)
+
+    return {
+        "currency": snapshot["currency"],
+        "days": snapshot["days"],
+        "kpis": {
+            "stock_value": round(summary_metrics["stock_value"], 2),
+            "low_stock_count": summary_metrics["low_stock_count"],
+            "out_of_stock_count": summary_metrics["out_of_stock_count"],
+            "overstock_count": len(overstock_products),
+            "dormant_products_count": summary_metrics["dormant_products_count"],
+            "expiring_soon_count": len(expiring_products),
+            "total_products": summary_metrics["total_products"],
+            "replenishment_candidates_count": len(replenishment_candidates),
+        },
+        "critical_products": critical_products[:6],
+        "overstock_products": overstock_products[:6],
+        "dormant_products": dormant_products[:6],
+        "expiring_products": expiring_products[:6],
+        "replenishment_candidates": replenishment_candidates[:6],
+    }
+
+
+@api_router.get("/analytics/stock/abc")
+async def get_stock_abc_analysis(
+    days: int = 90,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_permission("stock", "read")),
+):
+    snapshot = await build_analytics_snapshot(
+        user,
+        days=days,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    product_map = snapshot["product_map"]
+    products_ranked = sorted(snapshot["top_products"].values(), key=lambda item: item["revenue"], reverse=True)
+    total_revenue = sum(item["revenue"] for item in products_ranked)
+    cumulative = 0.0
+    classes = {"A": [], "B": [], "C": []}
+
+    for item in products_ranked:
+        share = (item["revenue"] / total_revenue) if total_revenue > 0 else 0.0
+        cumulative += share
+        if cumulative <= 0.8:
+            abc_class = "A"
+        elif cumulative <= 0.95:
+            abc_class = "B"
+        else:
+            abc_class = "C"
+
+        product_doc = product_map.get(item["product_id"], {})
+        classes[abc_class].append({
+            "product_id": item["product_id"],
+            "name": item.get("name") or product_doc.get("name") or "Produit",
+            "class": abc_class,
+            "sales_count": round(item.get("quantity") or 0, 2),
+            "revenue": round(item.get("revenue") or 0, 2),
+            "quantity": int(product_doc.get("quantity") or 0),
+            "unit": product_doc.get("unit") or "piece",
+            "stock_value": round((int(product_doc.get("quantity") or 0) * float(product_doc.get("purchase_price") or 0)), 2),
+            "share_of_revenue": round(share, 4),
+            "gross_profit": round(item.get("gross_profit") or 0, 2),
+            "recommendation": (
+                "Securiser le stock et surveiller les ruptures" if abc_class == "A"
+                else "Optimiser la marge et la couverture" if abc_class == "B"
+                else "Reduire le capital immobilise ou animer la rotation"
+            ),
+        })
+
+    return {
+        "currency": snapshot["currency"],
+        "days": snapshot["days"],
+        "totals": {
+            "revenue": round(total_revenue, 2),
+            "product_count": len(products_ranked),
+            "class_a_count": len(classes["A"]),
+            "class_b_count": len(classes["B"]),
+            "class_c_count": len(classes["C"]),
+        },
+        "classes": classes,
+    }
+
 @api_router.get("/dashboard")
-async def get_dashboard(user: User = Depends(require_auth)):
+async def get_dashboard(user: User = Depends(require_operational_access)):
     owner_id = get_owner_id(user)
     # Run slow checks in background (fire-and-forget, don't block dashboard response)
     asyncio.ensure_future(_safe_background_checks(owner_id))
@@ -7704,11 +9392,11 @@ async def get_dashboard(user: User = Depends(require_auth)):
     month_start = datetime.now(timezone.utc) - timedelta(days=30)
 
     # Optimization: Use DB-level filtering and field selection for stats
-    # Reduced memory by fetching only required fields: created_at, total_amount
-    stats_query = {**sales_query, "created_at": {"$gte": month_start}}
+    # Reduced memory by fetching only required fields: created_at, total_amount, tax_total
+    stats_query = apply_completed_sales_scope({**sales_query, "created_at": {"$gte": month_start}})
     stats_sales = await db.sales.find(
         stats_query,
-        {"_id": 0, "created_at": 1, "total_amount": 1}
+        {"_id": 0, "created_at": 1, "total_amount": 1, "tax_total": 1}
     ).to_list(5000)
     
     def parse_date(d):
@@ -7746,7 +9434,7 @@ async def get_dashboard(user: User = Depends(require_auth)):
 
     # Top 3 selling products today (by quantity sold)
     top_today_pipeline = [
-        {"$match": {**sales_query, "created_at": {"$gte": today_start}}},
+        {"$match": apply_completed_sales_scope({**sales_query, "created_at": {"$gte": today_start}})},
         {"$unwind": "$items"},
         {"$group": {"_id": "$items.product_id", "qty": {"$sum": "$items.quantity"}}},
         {"$sort": {"qty": -1}},
@@ -7808,7 +9496,7 @@ async def get_suppliers(user: User = Depends(require_permission("suppliers", "re
     return {"items": results, "total": total}
 
 @api_router.get("/suppliers/{supplier_id}", response_model=Supplier)
-async def get_supplier(supplier_id: str, user: User = Depends(require_auth)):
+async def get_supplier(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
     if not supplier:
@@ -7850,7 +9538,7 @@ async def delete_supplier(supplier_id: str, user: User = Depends(require_permiss
 
 # Supplier-Product links
 @api_router.get("/suppliers/{supplier_id}/products")
-async def get_supplier_products(supplier_id: str, user: User = Depends(require_auth)):
+async def get_supplier_products(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     links = await db.supplier_products.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
@@ -7858,9 +9546,9 @@ async def get_supplier_products(supplier_id: str, user: User = Depends(require_a
     
     # Get product details
     product_ids = [link["product_id"] for link in links]
-    products = await db.products.find(
-        {"product_id": {"$in": product_ids}, "user_id": owner_id}, {"_id": 0}
-    ).to_list(100)
+    product_query = {"product_id": {"$in": product_ids}, "user_id": owner_id}
+    product_query = apply_store_scope(product_query, user)
+    products = await db.products.find(product_query, {"_id": 0}).to_list(100)
     products_map = {p["product_id"]: p for p in products}
     
     result = []
@@ -7874,7 +9562,7 @@ async def get_supplier_products(supplier_id: str, user: User = Depends(require_a
     return result
 
 @api_router.get("/suppliers/{supplier_id}/stats")
-async def get_supplier_stats(supplier_id: str, user: User = Depends(require_auth)):
+async def get_supplier_stats(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     
     # Verify supplier
@@ -7882,8 +9570,12 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_auth
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
         
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
+
     # Get all orders for this supplier
-    orders = await db.orders.find({"supplier_id": supplier_id, "user_id": owner_id}).to_list(1000)
+    orders_query = {"supplier_id": supplier_id, "user_id": owner_id}
+    orders_query = apply_store_scope(orders_query, user)
+    orders = await db.orders.find(orders_query).to_list(1000)
     
     total_spent = sum(o.get("total_amount", 0) for o in orders if o["status"] == "delivered")
     pending_spent = sum(o.get("total_amount", 0) for o in orders if o["status"] in ["pending", "confirmed", "shipped"])
@@ -7920,7 +9612,7 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_auth
     }
 
 @api_router.get("/suppliers/{supplier_id}/invoices", response_model=List[SupplierInvoice])
-async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_auth)):
+async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     invoices = await db.supplier_invoices.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
@@ -7928,14 +9620,14 @@ async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_a
     return [SupplierInvoice(**i) for i in invoices]
 
 @api_router.post("/suppliers/{supplier_id}/invoices", response_model=SupplierInvoice)
-async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User = Depends(require_auth)):
+async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     invoice = SupplierInvoice(**inv_data, supplier_id=supplier_id, user_id=owner_id)
     await db.supplier_invoices.insert_one(invoice.model_dump())
     return invoice
 
 @api_router.get("/suppliers/{supplier_id}/logs", response_model=List[SupplierCommunicationLog])
-async def get_supplier_logs(supplier_id: str, user: User = Depends(require_auth)):
+async def get_supplier_logs(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     logs = await db.supplier_logs.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
@@ -7943,14 +9635,14 @@ async def get_supplier_logs(supplier_id: str, user: User = Depends(require_auth)
     return [SupplierCommunicationLog(**l) for l in logs]
 
 @api_router.post("/suppliers/{supplier_id}/logs", response_model=SupplierCommunicationLog)
-async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, user: User = Depends(require_auth)):
+async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     log = SupplierCommunicationLog(**log_data.model_dump(), supplier_id=supplier_id, user_id=owner_id)
     await db.supplier_logs.insert_one(log.model_dump())
     return log
 
 @api_router.post("/supplier-products", response_model=SupplierProduct)
-async def link_supplier_product(link_data: SupplierProductCreate, user: User = Depends(require_auth)):
+async def link_supplier_product(link_data: SupplierProductCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     # Check if link already exists
     existing = await db.supplier_products.find_one({
@@ -7979,7 +9671,7 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
     return link
 
 @api_router.delete("/supplier-products/{link_id}")
-async def unlink_supplier_product(link_id: str, user: User = Depends(require_auth)):
+async def unlink_supplier_product(link_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     result = await db.supplier_products.delete_one({"link_id": link_id, "user_id": owner_id})
     if result.deleted_count == 0:
@@ -7990,7 +9682,7 @@ async def unlink_supplier_product(link_id: str, user: User = Depends(require_aut
 
 @api_router.get("/orders")
 async def get_orders(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_procurement_access("read")),
     status: Optional[str] = None,
     supplier_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -8000,8 +9692,7 @@ async def get_orders(
 ):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
-    if user.active_store_id:
-        query["store_id"] = user.active_store_id
+    query = apply_store_scope(query, user)
     if status:
         query["status"] = status
     if supplier_id:
@@ -8094,12 +9785,14 @@ async def get_orders(
     return {"items": orders, "total": total}
 
 @api_router.get("/orders/filter-suppliers")
-async def get_orders_filter_suppliers(user: User = Depends(require_auth)):
+async def get_orders_filter_suppliers(user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     
     # Aggregate orders to find unique suppliers and their last order date
+    match_stage: dict = {"user_id": owner_id}
+    match_stage = apply_store_scope(match_stage, user)
     pipeline = [
-        {"$match": {"user_id": owner_id}},
+        {"$match": match_stage},
         {
             "$group": {
                 "_id": {
@@ -8140,9 +9833,10 @@ async def get_orders_filter_suppliers(user: User = Depends(require_auth)):
     return filter_suppliers
 
 @api_router.get("/orders/{order_id}")
-async def get_order(order_id: str, user: User = Depends(require_auth)):
+async def get_order(order_id: str, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     
@@ -8181,7 +9875,7 @@ async def get_order(order_id: str, user: User = Depends(require_auth)):
     return order
 
 @api_router.post("/orders")
-async def create_order(order_data: OrderCreate, user: User = Depends(require_auth)):
+async def create_order(order_data: OrderCreate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
 
     # Check if this is a marketplace order (supplier_user_id provided)
@@ -8202,6 +9896,7 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_aut
 
     order = Order(
         user_id=owner_id,
+        store_id=user.active_store_id,
         supplier_id=order_data.supplier_id,
         supplier_user_id=order_data.supplier_user_id,
         is_connected=is_connected,
@@ -8235,11 +9930,13 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_aut
     return {"message": "Commande créée", "order_id": order.order_id}
 
 @api_router.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status_data: OrderStatusUpdate, user: User = Depends(require_auth)):
+async def update_order_status(order_id: str, status_data: OrderStatusUpdate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
     valid_statuses = ["pending", "confirmed", "shipped", "partially_delivered", "delivered", "cancelled"]
     if status_data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Statut invalide")
+    current_order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    ensure_scoped_document_access(user, current_order, detail="Acces refuse pour cette commande")
     
     result = await db.orders.find_one_and_update(
         {"order_id": order_id, "user_id": owner_id},
@@ -8316,6 +10013,9 @@ class Return(BaseModel):
     status: str = "pending"  # "pending", "approved", "completed", "rejected"
     items: List[ReturnItem] = []
     total_amount: float = 0.0
+    tax_total: float = 0.0
+    tax_mode: str = "ttc"
+    subtotal_ht: float = 0.0
     credit_note_id: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -8330,6 +10030,9 @@ class CreditNote(BaseModel):
     supplier_name: Optional[str] = None
     type: str = "supplier"
     amount: float
+    tax_total: float = 0.0
+    tax_mode: str = "ttc"
+    subtotal_ht: float = 0.0
     status: str = "active"  # "active", "used", "expired"
     used_amount: float = 0.0
     notes: Optional[str] = None
@@ -8473,8 +10176,9 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
     return {"message": "Statut mis à jour"}
 
 @api_router.delete("/orders/{order_id}")
-async def delete_order(order_id: str, user: User = Depends(require_auth)):
+async def delete_order(order_id: str, user: User = Depends(require_procurement_access("write"))):
     order = await db.orders.find_one({"order_id": order_id, "user_id": get_owner_id(user)}, {"_id": 0})
+    ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
@@ -8494,21 +10198,20 @@ async def delete_order(order_id: str, user: User = Depends(require_auth)):
 # ===================== STATISTICS ROUTES =====================
 
 @api_router.get("/statistics")
-async def get_statistics(user: User = Depends(require_auth)):
+async def get_statistics(user: User = Depends(require_permission("stock", "read"))):
     user_id = get_owner_id(user)
-    store_id = user.active_store_id
 
     # Filter by store
     product_query = {"user_id": user_id, "is_active": True}
     movement_query = {"user_id": user_id}
-    orders_query = {"user_id": user_id} # Orders might not have store_id yet
+    orders_query = {"user_id": user_id}
     sales_query = {"user_id": user_id}
-
-    if store_id:
-        product_query["store_id"] = store_id
-        movement_query["store_id"] = store_id
-        sales_query["store_id"] = store_id
-        # orders_query["store_id"] = store_id # Uncomment if Order has store_id
+    category_query = {"user_id": user_id}
+    product_query = apply_store_scope(product_query, user)
+    movement_query = apply_store_scope(movement_query, user)
+    orders_query = apply_store_scope(orders_query, user)
+    sales_query = apply_store_scope(sales_query, user)
+    category_query = apply_store_scope(category_query, user)
 
     products = await db.products.find(product_query, {"_id": 0}).to_list(1000)
     movements = await db.stock_movements.find(movement_query, {"_id": 0}).sort("created_at", -1).to_list(500)
@@ -8520,7 +10223,7 @@ async def get_statistics(user: User = Depends(require_auth)):
     recent_sales = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
     # Stock by category
-    categories = await db.categories.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+    categories = await db.categories.find(category_query, {"_id": 0}).to_list(100)
     category_map = {c["category_id"]: c["name"] for c in categories}
     
     stock_by_category = {}
@@ -9476,15 +11179,7 @@ async def register_from_invitation(user_data: UserCreate, token: str):
         "ip": None
     })
 
-    user_obj = User(
-        user_id=user_id,
-        email=user_data.email,
-        name=user_data.name,
-        picture=None,
-        created_at=user_doc["created_at"],
-        auth_type="email",
-        role="supplier"
-    )
+    user_obj = await build_user_from_doc(user_doc)
 
     return TokenResponse(access_token=access_token, user=user_obj)
 
@@ -10004,6 +11699,7 @@ async def _get_ai_data_summary(user_id: str, store_id: Optional[str] = None) -> 
     try:
         user_doc = await db.users.find_one({"user_id": user_id})
         is_admin = user_doc and user_doc.get("role") in ["admin", "superadmin"]
+        business_profile = get_ai_business_profile(user_doc)
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
         
         now = datetime.now(timezone.utc)
@@ -10123,6 +11819,77 @@ Tickets ouverts: {open_tickets} | Litiges en cours: {open_disputes}
         crit_prod_str = ", ".join([p['name'] for p in (out_of_stock + low_stock)[:10]])
         forecast_str = "\n".join(forecast_risks[:10]) if forecast_risks else "Aucun risque immédiat détecté."
 
+        if business_profile["is_restaurant"]:
+            today_key = now.date().isoformat()
+            tables_query = {"user_id": user_id}
+            reservations_query = {"user_id": user_id, "date": today_key}
+            kitchen_query = {"user_id": user_id}
+            open_orders_query = {"user_id": user_id, "status": "open"}
+            recipes_query = {"user_id": user_id}
+            if store_id:
+                tables_query["store_id"] = store_id
+                reservations_query["store_id"] = store_id
+                kitchen_query["store_id"] = store_id
+                open_orders_query["store_id"] = store_id
+                recipes_query["store_id"] = store_id
+
+            tables = await db.tables.find(tables_query).to_list(300)
+            reservations_today = await db.reservations.find(reservations_query).to_list(300)
+            kitchen_pending = await db.sales.count_documents({
+                **kitchen_query,
+                "kitchen_sent": True,
+                "all_items_ready": {"$ne": True},
+                "created_at": {"$gte": now.replace(hour=0, minute=0, second=0, microsecond=0)},
+            })
+            open_orders = await db.sales.count_documents(open_orders_query)
+            menu_items = [p for p in products if p.get("is_menu_item")]
+            raw_materials = [p for p in products if not p.get("is_menu_item")]
+            menu_without_recipe = [
+                p for p in menu_items
+                if p.get("production_mode") in ("on_demand", "hybrid") and not p.get("linked_recipe_id")
+            ]
+            prep_recipes = await db.recipes.count_documents({**recipes_query, "recipe_type": "prep"})
+            service_recipes = await db.recipes.count_documents({**recipes_query, "recipe_type": "service"})
+            occupied_tables = [t for t in tables if t.get("status") == "occupied"]
+            reserved_tables = [t for t in tables if t.get("status") == "reserved"]
+            free_tables = [t for t in tables if t.get("status") == "free"]
+            menu_modes = defaultdict(int)
+            for item in menu_items:
+                menu_modes[item.get("production_mode") or "unknown"] += 1
+            menu_mode_str = " | ".join([f"{mode}: {count}" for mode, count in sorted(menu_modes.items())]) if menu_modes else "Aucun plat"
+            low_ingredient_names = ", ".join([p["name"] for p in (out_of_stock + low_stock)[:8]]) if (out_of_stock or low_stock) else "RAS"
+            pending_res_names = ", ".join([r.get("customer_name", "Client") for r in reservations_today[:6]]) if reservations_today else "Aucune"
+
+            summary = f"""
+--- ACTIVITE RESTAURANT (30 DERNIERS JOURS) ---
+CA: {total_rev:.0f} {currency} | Ventes: {len(sales)} | Panier moyen: {avg_basket:.0f} {currency}
+COGS: {total_cogs:.0f} {currency} | Marge brute: {gross_profit:.0f} {currency} ({margin_pct}%)
+Depenses: {total_exp:.0f} {currency} | Resultat net: {net_profit:.0f} {currency} (marge nette: {net_margin}%)
+Modes de paiement: {pm_str}
+
+--- SERVICE DU JOUR ---
+Tables: {len(tables)} total | Libres: {len(free_tables)} | Reservees: {len(reserved_tables)} | Occupees: {len(occupied_tables)}
+Reservations du jour: {len(reservations_today)} | Arrivees attendues: {pending_res_names}
+Commandes ouvertes: {open_orders} | Tickets cuisine actifs: {kitchen_pending}
+
+--- CARTE ET PRODUCTION ---
+Plats menu: {len(menu_items)} | Ingredients/stock: {len(raw_materials)}
+Modes de production: {menu_mode_str}
+Recettes service: {service_recipes} | Recettes preparation: {prep_recipes}
+Plats sans recette liee: {len(menu_without_recipe)}
+
+--- INGREDIENTS ET RISQUES ---
+Ingredients en stock bas ou rupture: {len(low_stock) + len(out_of_stock)}
+Ingredients critiques: {low_ingredient_names}
+Previsions de rupture:
+{forecast_str}
+
+--- SORTIES ET CARTE ---
+Top sorties / ventes:
+{top_prod_str if top_prod_str else "Pas de ventes recentes"}
+"""
+            return summary
+
         summary = f"""
 --- INTELLIGENCE BUSINESS (30 DERNIERS JOURS) ---
 CA: {total_rev:.0f} {currency} | Ventes: {len(sales)} | Panier moyen: {avg_basket:.0f} {currency}
@@ -10149,16 +11916,13 @@ Règle fidélité: {loyalty.get('ratio', '?')} {currency} = 1 point
         return "\n(Note: Erreur partielle lors de la récupération des données analytiques.)"
 
 @api_router.get("/replenishment/suggestions", response_model=List[ReplenishmentSuggestion])
-async def get_replenishment_suggestions(user: User = Depends(require_auth)):
+async def get_replenishment_suggestions(user: User = Depends(require_permission("stock", "read"))):
     """Analyze sales velocity and stock levels to suggest replenishment"""
     try:
         owner_id = get_owner_id(user)
-        store_id = user.active_store_id
-        
         # 1. Get all products
         query = {"user_id": owner_id}
-        if store_id:
-            query["store_id"] = store_id
+        query = apply_store_scope(query, user)
         
         products = await db.products.find(query).to_list(1000)
         if not products:
@@ -10167,8 +11931,7 @@ async def get_replenishment_suggestions(user: User = Depends(require_auth)):
         # 2. Calculate velocity (last 30 days)
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         sales_query = {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}
-        if store_id:
-            sales_query["store_id"] = store_id
+        sales_query = apply_store_scope(sales_query, user)
             
         sales = await db.sales.find(sales_query).to_list(5000)
         
@@ -10254,7 +12017,7 @@ async def get_replenishment_suggestions(user: User = Depends(require_auth)):
 
 
 @api_router.post("/replenishment/automate")
-async def automate_replenishment(user: User = Depends(require_auth)):
+async def automate_replenishment(user: User = Depends(require_procurement_access("write"))):
     """Backend trigger for the automated reorder approval workflow"""
     owner_id = get_owner_id(user)
     suggestions = await get_replenishment_suggestions(user)
@@ -10333,7 +12096,7 @@ class BatchStockUpdate(BaseModel):
     increment: int = 1
 
 @api_router.post("/products/batch-stock-update")
-async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(require_auth)):
+async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(require_permission("stock", "write"))):
     """Increment stock for all products matching the scanned RFID tags or SKUs"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -10342,15 +12105,18 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
     not_found = []
     for code in data.codes:
         # Search by RFID or SKU
-        target = await db.products.find_one({
+        query = {
             "user_id": owner_id,
             "$or": [{"rfid_tag": code}, {"sku": code}]
-        })
+        }
+        query = apply_store_scope(query, user)
+        target = await db.products.find_one(query)
         
         if target:
+            ensure_scoped_document_access(user, target, detail="Acces refuse pour ce produit")
             # Increment quantity
             await db.products.update_one(
-                {"product_id": target["product_id"]},
+                {"product_id": target["product_id"], "user_id": owner_id, "store_id": target.get("store_id")},
                 {
                     "$inc": {"quantity": data.increment},
                     "$set": {"updated_at": datetime.now(timezone.utc)}
@@ -10363,7 +12129,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
                 "product_id": target["product_id"],
                 "product_name": target["name"],
                 "user_id": owner_id,
-                "store_id": store_id,
+                "store_id": target.get("store_id") or store_id,
                 "type": "in" if data.increment > 0 else "out",
                 "quantity": abs(data.increment),
                 "reason": "Mise à jour collective (Scanner)",
@@ -10388,17 +12154,20 @@ class BatchRFIDAssociation(BaseModel):
     associations: List[RFIDAssociation]
 
 @api_router.post("/products/batch-associate-rfid")
-async def batch_associate_rfid(data: BatchRFIDAssociation, user: User = Depends(require_auth)):
+async def batch_associate_rfid(data: BatchRFIDAssociation, user: User = Depends(require_permission("stock", "write"))):
     """Associate multiple RFID tags with existing SKUs"""
     owner_id = get_owner_id(user)
     
     associated_count = 0
     for assoc in data.associations:
         # Find product by SKU
-        product = await db.products.find_one({"user_id": owner_id, "sku": assoc.sku})
+        query = {"user_id": owner_id, "sku": assoc.sku}
+        query = apply_store_scope(query, user)
+        product = await db.products.find_one(query)
         if product:
+            ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
             await db.products.update_one(
-                {"product_id": product["product_id"]},
+                {"product_id": product["product_id"], "user_id": owner_id, "store_id": product.get("store_id")},
                 {"$set": {"rfid_tag": assoc.rfid, "updated_at": datetime.now(timezone.utc)}}
             )
             associated_count += 1
@@ -10744,6 +12513,7 @@ async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User =
 
     # Verify the product exists
     product = await db.products.find_one({"product_id": mapping.product_id, "user_id": owner_id})
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé dans votre inventaire")
 
@@ -10772,12 +12542,13 @@ async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User =
 # ===================== PRODUCT VARIANTS ENDPOINTS =====================
 
 @api_router.post("/products/{product_id}/variants")
-async def add_product_variant(product_id: str, variant: ProductVariant, user: User = Depends(require_auth)):
+async def add_product_variant(product_id: str, variant: ProductVariant, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     variants = product.get("variants", [])
     new_variant = variant.model_dump()
     variants.append(new_variant)
@@ -10799,13 +12570,14 @@ async def add_product_variant(product_id: str, variant: ProductVariant, user: Us
     return {"message": "Variante ajoutée", "variant": new_variant, "total_quantity": total_qty}
 
 @api_router.put("/products/{product_id}/variants/{variant_id}")
-async def update_product_variant(product_id: str, variant_id: str, variant: ProductVariant, user: User = Depends(require_auth)):
+async def update_product_variant(product_id: str, variant_id: str, variant: ProductVariant, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     variants = product.get("variants", [])
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     found = False
     for i, v in enumerate(variants):
         if v.get("variant_id") == variant_id:
@@ -10832,13 +12604,14 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
     return {"message": "Variante mise à jour", "total_quantity": total_qty}
 
 @api_router.delete("/products/{product_id}/variants/{variant_id}")
-async def delete_product_variant(product_id: str, variant_id: str, user: User = Depends(require_auth)):
+async def delete_product_variant(product_id: str, variant_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     variants = product.get("variants", [])
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     new_variants = [v for v in variants if v.get("variant_id") != variant_id]
     
     if len(new_variants) == len(variants):
@@ -10883,7 +12656,7 @@ class SalesForecastResponse(BaseModel):
     currency: str = "XOF"
 
 @api_router.get("/sales/forecast")
-async def get_sales_forecast(user: User = Depends(require_auth)):
+async def get_sales_forecast(user: User = Depends(require_permission("stock", "read"))):
     """Analyze sales trends and predict future sales using velocity data + Gemini AI"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -11076,11 +12849,9 @@ Top produits:
     ).model_dump()
 
 @api_router.get("/sales/forecast/{product_id}")
-async def get_product_sales_forecast(product_id: str, user: User = Depends(require_auth)):
+async def get_product_sales_forecast(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     """Analyze sales trends and predict future sales for a specific product"""
     owner_id = get_owner_id(user)
-    store_id = user.active_store_id
-    
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
@@ -11089,14 +12860,15 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
     thirty_days_ago = now - timedelta(days=30)
     seven_days_ago = now - timedelta(days=7)
     
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+
     # Sales last 30 days for this product
     sales_query = {
         "user_id": owner_id, 
         "created_at": {"$gte": thirty_days_ago},
         "items.product_id": product_id
     }
-    if store_id:
-        sales_query["store_id"] = store_id
+    sales_query = apply_store_scope(sales_query, user)
         
     sales_30 = await db.sales.find(sales_query).to_list(1000)
     
@@ -11158,8 +12930,39 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
 
 # ===================== RETURNS & CREDIT NOTES ENDPOINTS =====================
 
+async def _compute_return_totals(items: List[ReturnItem], owner_id: str, user: User) -> Dict[str, float]:
+    tax_settings = await _load_tax_settings_for_user(user)
+    product_ids = list({item.product_id for item in items if item.product_id})
+    products = await db.products.find(
+        {"product_id": {"$in": product_ids}, "user_id": owner_id},
+        {"_id": 0, "product_id": 1, "tax_rate": 1},
+    ).to_list(len(product_ids) or 1)
+    product_map = {product["product_id"]: product for product in products}
+
+    tax_items = []
+    for item in items:
+        tax_items.append({
+            "product_id": item.product_id,
+            "quantity": item.quantity,
+            "selling_price": _round_money(item.unit_price),
+            "total": _round_money(item.quantity * item.unit_price),
+            "tax_rate": _resolve_product_tax_rate(
+                product_map.get(item.product_id),
+                tax_settings["tax_enabled"],
+                tax_settings["tax_rate"],
+            ),
+        })
+
+    totals = _compute_sale_totals(tax_items, tax_mode=tax_settings["tax_mode"])
+    return {
+        "total_amount": totals["taxable_total"],
+        "tax_total": totals["tax_total"],
+        "subtotal_ht": totals["subtotal_ht"],
+        "tax_mode": totals["tax_mode"],
+    }
+
 @api_router.post("/returns")
-async def create_return(data: ReturnCreate, user: User = Depends(require_auth)):
+async def create_return(data: ReturnCreate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
     
     # Build supplier name
@@ -11169,7 +12972,7 @@ async def create_return(data: ReturnCreate, user: User = Depends(require_auth)):
         if supplier:
             supplier_name = supplier.get("name")
     
-    total = sum(item.quantity * item.unit_price for item in data.items)
+    totals = await _compute_return_totals(data.items, owner_id, user)
     
     ret = Return(
         user_id=owner_id,
@@ -11179,21 +12982,23 @@ async def create_return(data: ReturnCreate, user: User = Depends(require_auth)):
         supplier_name=supplier_name,
         type=data.type,
         items=data.items,
-        total_amount=total,
+        total_amount=totals["total_amount"],
+        tax_total=totals["tax_total"],
+        tax_mode=totals["tax_mode"],
+        subtotal_ht=totals["subtotal_ht"],
         notes=data.notes,
     )
     
     await db.returns.insert_one(ret.model_dump())
-    await log_activity(user, "create", "returns", f"Retour créé - {total:.0f} FCFA" + (f" - {supplier_name}" if supplier_name else ""))
+    await log_activity(user, "create", "returns", f"Retour créé - {ret.total_amount:.0f} FCFA" + (f" - {supplier_name}" if supplier_name else ""))
     
     return ret.model_dump()
 
 @api_router.get("/returns")
-async def list_returns(type: Optional[str] = None, status: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_auth)):
+async def list_returns(type: Optional[str] = None, status: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     query: Dict[str, Any] = {"user_id": owner_id}
-    if user.active_store_id:
-        query["store_id"] = user.active_store_id
+    query = apply_store_scope(query, user)
     if type:
         query["type"] = type
     if status:
@@ -11204,21 +13009,23 @@ async def list_returns(type: Optional[str] = None, status: Optional[str] = None,
     return {"items": items, "total": total}
 
 @api_router.get("/returns/{return_id}")
-async def get_return(return_id: str, user: User = Depends(require_auth)):
+async def get_return(return_id: str, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     ret = await db.returns.find_one({"return_id": return_id, "user_id": owner_id}, {"_id": 0})
     if not ret:
         raise HTTPException(status_code=404, detail="Retour non trouvé")
+    ensure_scoped_document_access(user, ret, detail="Acces refuse pour ce retour")
     return ret
 
 @api_router.put("/returns/{return_id}/complete")
-async def complete_return(return_id: str, user: User = Depends(require_auth)):
+async def complete_return(return_id: str, user: User = Depends(require_procurement_access("write"))):
     """Complete a return: reintegrate stock and generate credit note"""
     owner_id = get_owner_id(user)
     ret = await db.returns.find_one({"return_id": return_id, "user_id": owner_id}, {"_id": 0})
     if not ret:
         raise HTTPException(status_code=404, detail="Retour non trouvé")
     
+    ensure_scoped_document_access(user, ret, detail="Acces refuse pour ce retour")
     if ret["status"] == "completed":
         raise HTTPException(status_code=400, detail="Ce retour est déjà complété")
     
@@ -11229,6 +13036,7 @@ async def complete_return(return_id: str, user: User = Depends(require_auth)):
     for item in ret["items"]:
         product = await db.products.find_one({"product_id": item["product_id"], "user_id": owner_id}, {"_id": 0})
         if product:
+            ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
             old_qty = product["quantity"]
             if movement_type == "in":
                 new_qty = old_qty + item["quantity"]
@@ -11236,7 +13044,7 @@ async def complete_return(return_id: str, user: User = Depends(require_auth)):
                 new_qty = max(0, old_qty - item["quantity"])
             
             await db.products.update_one(
-                {"product_id": item["product_id"]},
+                {"product_id": item["product_id"], "user_id": owner_id, "store_id": product.get("store_id")},
                 {"$set": {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}}
             )
             
@@ -11244,7 +13052,7 @@ async def complete_return(return_id: str, user: User = Depends(require_auth)):
                 product_id=item["product_id"],
                 product_name=item.get("product_name", ""),
                 user_id=user.user_id,
-                store_id=user.active_store_id,
+                store_id=product.get("store_id") or ret.get("store_id") or user.active_store_id,
                 type=movement_type,
                 quantity=item["quantity"],
                 reason=f"Retour {'client' if ret['type'] == 'customer' else 'fournisseur'} - {return_id}" + (f" - {item.get('reason', '')}" if item.get('reason') else ""),
@@ -11254,17 +13062,20 @@ async def complete_return(return_id: str, user: User = Depends(require_auth)):
             await db.stock_movements.insert_one(movement.model_dump())
             
             product["quantity"] = new_qty
-            await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
+            await check_and_create_alerts(Product(**product), owner_id, store_id=product.get("store_id") or ret.get("store_id") or user.active_store_id)
     
     # Generate credit note
     credit_note = CreditNote(
         return_id=return_id,
         user_id=owner_id,
-        store_id=user.active_store_id,
+        store_id=ret.get("store_id") or user.active_store_id,
         supplier_id=ret.get("supplier_id"),
         supplier_name=ret.get("supplier_name"),
         type=ret["type"],
         amount=ret["total_amount"],
+        tax_total=ret.get("tax_total", 0.0),
+        tax_mode=ret.get("tax_mode", "ttc"),
+        subtotal_ht=ret.get("subtotal_ht", max(0.0, ret.get("total_amount", 0.0) - ret.get("tax_total", 0.0))),
         notes=f"Avoir généré pour retour {return_id}",
     )
     await db.credit_notes.insert_one(credit_note.model_dump())
@@ -11287,11 +13098,10 @@ async def complete_return(return_id: str, user: User = Depends(require_auth)):
     }
 
 @api_router.get("/credit-notes")
-async def list_credit_notes(status: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_auth)):
+async def list_credit_notes(status: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     query: Dict[str, Any] = {"user_id": owner_id}
-    if user.active_store_id:
-        query["store_id"] = user.active_store_id
+    query = apply_store_scope(query, user)
     if status:
         query["status"] = status
     
@@ -12038,31 +13848,33 @@ async def export_user_data(user: User = Depends(require_auth)):
 @api_router.get("/subscription/me")
 async def get_subscription_info(user: User = Depends(require_auth)):
     """Get current user subscription and trial status"""
-    user_doc = await db.users.find_one({"user_id": user.user_id}, {
-        "_id": 0, "plan": 1, "trial_ends_at": 1, "subscription_status": 1,
-        "subscription_provider": 1, "subscription_end": 1, "currency": 1,
-    })
-    if not user_doc:
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    source = account_doc or owner_doc
 
     # Calculate remaining days
     remaining_days = 0
-    if user_doc.get("subscription_end"):
-        delta = user_doc["subscription_end"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
+    if source.get("subscription_end"):
+        delta = source["subscription_end"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
-    elif user_doc.get("trial_ends_at"):
-        delta = user_doc["trial_ends_at"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
+    elif source.get("trial_ends_at"):
+        delta = source["trial_ends_at"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
 
-    currency = user_doc.get("currency", "XOF")
+    currency = source.get("currency", owner_doc.get("currency", "XOF"))
     return {
-        "plan": user_doc.get("plan", "starter"),
-        "status": user_doc.get("subscription_status", "active"),
-        "trial_ends_at": user_doc.get("trial_ends_at"),
-        "subscription_end": user_doc.get("subscription_end"),
-        "subscription_provider": user_doc.get("subscription_provider", "none"),
+        "plan": normalize_plan(source.get("plan", "starter")),
+        "status": source.get("subscription_status", "active"),
+        "trial_ends_at": source.get("trial_ends_at"),
+        "subscription_end": source.get("subscription_end"),
+        "subscription_provider": source.get("subscription_provider", "none"),
+        "billing_contact_name": source.get("billing_contact_name"),
+        "billing_contact_email": source.get("billing_contact_email"),
         "remaining_days": remaining_days,
-        "is_trial": bool(user_doc.get("trial_ends_at") and remaining_days > 0),
+        "is_trial": bool(source.get("trial_ends_at") and remaining_days > 0),
         "currency": currency,
         "use_mobile_money": currency in ("XOF", "XAF", "GNF", "CDF"),
     }
@@ -12109,7 +13921,11 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
         "customers", "suppliers", "catalog_product_mappings", 
         "expenses", "orders", "promotions", "activity_logs",
         "support_tickets", "user_sessions", "idempotency_keys",
-        "security_events", "pending_transactions", "notifications"
+        "security_events", "pending_transactions", "notifications",
+        "order_items", "supplier_products", "supplier_invoices",
+        "supplier_logs", "inventory_tasks", "price_history",
+        "categories", "locations", "tables", "reservations",
+        "returns", "credit_notes"
     ]
     
     for col in collections_to_wipe:
@@ -12120,6 +13936,7 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
     
     # C. Sub-users
     await db.users.delete_many({"parent_user_id": owner_id})
+    await db.business_accounts.delete_many({"$or": [{"owner_user_id": owner_id}, {"account_id": user.account_id}]})
     
     # D. The user itself
     await db.users.delete_one({"user_id": owner_id})
@@ -12173,26 +13990,26 @@ async def revenuecat_webhook(request: Request):
             if expiration_ms
             else datetime.now(timezone.utc) + timedelta(days=30)
         )
-        await db.users.update_one(
-            {"user_id": app_user_id},
-            {"$set": {
+        await update_business_account_for_owner(
+            app_user_id,
+            {
                 "plan": plan,
                 "subscription_status": "active",
                 "subscription_provider": "revenuecat",
                 "subscription_end": sub_end,
-            }}
+            },
         )
         logger.info(f"RevenueCat {event_type} → plan={plan} user={app_user_id}")
     elif event_type in deactivate_events:
-        await db.users.update_one(
-            {"user_id": app_user_id},
-            {"$set": {"plan": "starter", "subscription_status": "expired"}}
+        await update_business_account_for_owner(
+            app_user_id,
+            {"plan": "starter", "subscription_status": "expired"},
         )
         logger.info(f"RevenueCat {event_type} - expired user {app_user_id}")
     elif event_type in cancel_events:
-        await db.users.update_one(
-            {"user_id": app_user_id},
-            {"$set": {"subscription_status": "cancelled"}}
+        await update_business_account_for_owner(
+            app_user_id,
+            {"subscription_status": "cancelled"},
         )
         logger.info(f"RevenueCat CANCELLATION for user {app_user_id}")
 
@@ -12201,19 +14018,20 @@ async def revenuecat_webhook(request: Request):
 @api_router.post("/subscription/sync")
 async def sync_subscription(user: User = Depends(require_auth)):
     """Manual sync fallback - check if subscription is still active."""
-    user_doc = await db.users.find_one({"user_id": user.user_id})
-    if not user_doc:
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
         raise HTTPException(status_code=404)
-    sub_end = user_doc.get("subscription_end")
-    if sub_end and user_doc.get("plan") in ("pro", "enterprise"):
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    source = account_doc or owner_doc
+    sub_end = source.get("subscription_end")
+    current_plan = normalize_plan(source.get("plan"))
+    if sub_end and current_plan in ("pro", "enterprise"):
         sub_end_aware = sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)
         if sub_end_aware < datetime.now(timezone.utc):
-            await db.users.update_one(
-                {"user_id": user.user_id},
-                {"$set": {"plan": "starter", "subscription_status": "expired"}}
-            )
+            await update_business_account_for_owner(owner_id, {"plan": "starter", "subscription_status": "expired"})
             return {"plan": "starter", "status": "expired"}
-    return {"plan": user_doc.get("plan", "starter"), "status": user_doc.get("subscription_status", "active")}
+    return {"plan": current_plan, "status": source.get("subscription_status", "active")}
 
 @api_router.get("/payment/success")
 async def payment_success():

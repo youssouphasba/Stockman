@@ -25,7 +25,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 export default function TabLayout() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant } = useAuth();
+  const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -43,6 +43,7 @@ export default function TabLayout() {
 
   const modules = userSettings?.modules ?? {};
   const simpleMode = userSettings?.simple_mode ?? false;
+  const billingOnly = isBillingAdmin && !hasOperationalAccess;
 
   // Masquage des onglets selon secteur + permissions + préférences modules
   const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
@@ -66,12 +67,19 @@ export default function TabLayout() {
       : 'cube-outline';
 
   const segments = useSegments();
+  const currentRoute = (segments[segments.length - 1] || 'index') as string;
   const [showGuide, setShowGuide] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('navigation');
 
   useEffect(() => {
     if (isFirstVisit) setShowGuide(true);
   }, [isFirstVisit]);
+
+  useEffect(() => {
+    if (user && billingOnly && currentRoute !== 'settings' && currentRoute !== 'subscription') {
+      router.replace('/subscription');
+    }
+  }, [billingOnly, currentRoute, router, user]);
 
   const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
@@ -82,9 +90,9 @@ export default function TabLayout() {
     const routeName = (segments[segments.length - 1] || 'index') as string;
 
     switch (routeName) {
-      case 'index': return GUIDES.dashboard;
-      case 'pos': return GUIDES.pos ?? GUIDES.sales;
-      case 'products': return GUIDES.products;
+      case 'index': return isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard;
+      case 'pos': return isRestaurant ? GUIDES.restaurantPos : (GUIDES.pos ?? GUIDES.sales);
+      case 'products': return isRestaurant ? GUIDES.restaurantProducts : GUIDES.products;
       case 'accounting': return GUIDES.accounting;
       case 'suppliers': return GUIDES.suppliers;
       case 'crm': return GUIDES.crm;
@@ -93,6 +101,10 @@ export default function TabLayout() {
       case 'activity': return GUIDES.activity;
       case 'users': return GUIDES.users;
       case 'settings': return GUIDES.settings;
+      case 'restaurant': return GUIDES.restaurantHub;
+      case 'tables': return GUIDES.restaurantTables;
+      case 'reservations': return GUIDES.restaurantReservations;
+      case 'kitchen': return GUIDES.restaurantKitchen;
       default: return null;
     }
   };
@@ -124,12 +136,16 @@ export default function TabLayout() {
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
                 <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowChat(true)} style={{ padding: 4 }}>
-                <Ionicons name="chatbubbles-outline" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4 }}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text} />
-              </TouchableOpacity>
+              {hasOperationalAccess && (
+                <TouchableOpacity onPress={() => setShowChat(true)} style={{ padding: 4 }}>
+                  <Ionicons name="chatbubbles-outline" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              {hasOperationalAccess && (
+                <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4 }}>
+                  <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>
                 <Ionicons name="book-outline" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -138,7 +154,7 @@ export default function TabLayout() {
                   <Ionicons name="help-circle-outline" size={24} color={colors.text} />
                 </TouchableOpacity>
               )}
-              <StoreSelector />
+              {hasOperationalAccess && <StoreSelector />}
             </View>
           ),
           tabBarStyle: {
@@ -161,6 +177,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: t('tabs.home'),
+            href: billingOnly ? null : '/',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -170,7 +187,7 @@ export default function TabLayout() {
           name="products"
           options={{
             title: productsTabTitle,
-            href: hideStock && !isRestaurant ? null : '/products',
+            href: billingOnly || (hideStock && !isRestaurant) ? null : '/products',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={productsTabIcon as any} size={size} color={color} />
             ),
@@ -180,6 +197,7 @@ export default function TabLayout() {
           name="pos"
           options={{
             title: t('tabs.pos'),
+            href: hidePos ? null : '/pos',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="calculator-outline" size={size} color={color} />
             ),
@@ -222,6 +240,16 @@ export default function TabLayout() {
             href: hideOrders ? null : '/orders',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="restaurant"
+          options={{
+            title: t('tabs.restaurant', 'Service'),
+            href: isRestaurant && hasOperationalAccess ? '/restaurant' : null,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="restaurant-outline" size={size} color={color} />
             ),
           }}
         />
@@ -272,6 +300,27 @@ export default function TabLayout() {
             href: null,
           }}
         />
+        <Tabs.Screen
+          name="tables"
+          options={{
+            title: t('tabs.tables', 'Tables'),
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="reservations"
+          options={{
+            title: t('tabs.reservations', 'Réservations'),
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="kitchen"
+          options={{
+            title: t('tabs.kitchen', 'Cuisine'),
+            href: null,
+          }}
+        />
       </Tabs>
 
       {
@@ -296,6 +345,7 @@ export default function TabLayout() {
         visible={showHelpCenter}
         onClose={() => setShowHelpCenter(false)}
         userRole="shopkeeper"
+        isRestaurant={isRestaurant}
         onLaunchGuide={(guideKey) => {
           const guide = GUIDES[guideKey];
           if (guide) {

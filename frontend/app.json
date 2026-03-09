@@ -3,7 +3,7 @@
         "name": "Stockman",
         "slug": "stockman",
         "version": "1.0.2",
-        "orientation": "portrait",
+        "orientation": "default",
         "android": {
             "package": "com.youssouphasba.stockman",
             "versionCode": 3,

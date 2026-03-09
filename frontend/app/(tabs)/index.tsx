@@ -107,7 +107,7 @@ function StatusBadge({ label, count, color, styles }: { label: string; count: nu
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isConnected } = useNetwork();
@@ -1261,8 +1261,8 @@ export default function DashboardScreen() {
       <ScreenGuide
         visible={showGuide}
         onClose={() => { setShowGuide(false); markSeen(); }}
-        title={GUIDES.sales.title} // Dashboard acts as Sales/POS entry often
-        steps={GUIDES.sales.steps}
+        title={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.sales).title}
+        steps={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.sales).steps}
       />
 
       {/* Notifications Modal */}
