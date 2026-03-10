@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ENTERPRISE_FEATURES_URL } from '../../data/marketing';
 
 const WebAppShowcase: React.FC = () => {
     const { t } = useTranslation();
@@ -46,7 +47,7 @@ const WebAppShowcase: React.FC = () => {
                             <span className="dot yellow"></span>
                             <span className="dot green"></span>
                         </div>
-                        <div className="mockup-address-bar">https://app.stockman.pro/features</div>
+                        <div className="mockup-address-bar">{ENTERPRISE_FEATURES_URL}</div>
                     </div>
                     <div className="mockup-screen">
                         <img
@@ -55,7 +56,7 @@ const WebAppShowcase: React.FC = () => {
                             className="mockup-image"
                         />
                         <div className="mockup-overlay">
-                            <a href="https://app.stockman.pro/features" target="_blank" rel="noopener noreferrer" className="btn-primary btn-large glow">
+                            <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-primary btn-large glow">
                                 {t('web_app.cta')}
                             </a>
                         </div>

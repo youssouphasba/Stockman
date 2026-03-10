@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Zap, Smartphone, Monitor, ArrowRight } from "lucide-react";
-import { BUSINESS_TYPE_GROUPS, ENTERPRISE_SIGNUP_URL, MOBILE_APP_URL, PLAN_COMPARISON_ROWS, PLAN_MARKETING } from "@/data/marketing";
+import {
+  BUSINESS_TYPE_GROUPS,
+  ENTERPRISE_SIGNUP_URL,
+  MOBILE_APP_URL,
+  PLAN_COMPARISON_ROWS,
+  PLAN_MARKETING,
+  PUBLIC_BUSINESS_TYPES_URL,
+  PUBLIC_ENTERPRISE_URL,
+} from "@/data/marketing";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -19,9 +27,9 @@ const structuredData = {
 };
 
 export const metadata: Metadata = {
-  title: "Tarifs - Plans Starter, Pro & Enterprise",
+  title: "Tarifs - Starter mobile, Pro mobile et Enterprise web + mobile",
   description:
-    "Choisissez le plan Stockman adapte a votre activite. Starter et Pro sur mobile. Enterprise ajoute le back-office web. Essai gratuit 3 mois.",
+    "Choisissez le bon parcours Stockman: Starter et Pro sur mobile, Enterprise avec back-office web et mobile terrain. Essai gratuit 3 mois.",
   alternates: { canonical: "https://app.stockman.pro/pricing" },
   openGraph: {
     type: "website",
@@ -39,7 +47,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     "tarif logiciel gestion stock", "prix Stockman", "abonnement gestion boutique",
-    "logiciel commercant Afrique prix", "Stockman Enterprise tarif",
+    "logiciel commercant Afrique prix", "Stockman Enterprise tarif", "tarif supermarche", "tarif restaurant",
   ],
 };
 
@@ -210,6 +218,14 @@ export default function PricingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
+              href={PUBLIC_ENTERPRISE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-sm"
+            >
+              Comprendre Enterprise <ArrowRight size={14} />
+            </a>
+            <a
               href={MOBILE_APP_URL}
               target="_blank"
               rel="noopener noreferrer"
@@ -229,6 +245,14 @@ export default function PricingPage() {
             >
               Voir les fonctionnalites <ArrowRight size={14} />
             </Link>
+            <a
+              href={PUBLIC_BUSINESS_TYPES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-sm"
+            >
+              Voir les business types <ArrowRight size={14} />
+            </a>
           </div>
         </section>
       </div>

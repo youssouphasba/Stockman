@@ -5,19 +5,19 @@ import {
   Bell, Store, BarChart3, Settings2, ClipboardList, CheckCircle2,
   Zap, ArrowRight,
 } from "lucide-react";
-import { BUSINESS_TYPE_GROUPS, ENTERPRISE_SIGNUP_URL } from "@/data/marketing";
+import { BUSINESS_TYPE_GROUPS, ENTERPRISE_SIGNUP_URL, PUBLIC_BUSINESS_TYPES_URL, PUBLIC_ENTERPRISE_URL } from "@/data/marketing";
 
 export const metadata: Metadata = {
-  title: "Fonctionnalites Enterprise - Dashboard, POS, CRM, Comptabilite",
+  title: "Fonctionnalites Enterprise - app web de gestion stock, POS, CRM et comptabilite",
   description:
-    "Stockman Enterprise : 12 modules professionnels accessibles depuis le web pour commerces, restaurants et activites de production.",
+    "Stockman Enterprise : 12 modules web pour supermarches, commerces, restaurants, boulangeries et activites de production.",
   alternates: { canonical: "https://app.stockman.pro/features" },
   openGraph: {
     type: "website",
     url: "https://app.stockman.pro/features",
     title: "Fonctionnalites Stockman Enterprise - Back-Office Web Professionnel",
     description:
-      "12 modules pour piloter votre activite depuis le web. Commerce, restauration, production, stock, CRM, compta et multi-boutiques.",
+      "12 modules pour piloter commerce, restauration et production depuis le web. Stock, CRM, compta et multi-boutiques.",
     images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630 }],
     locale: "fr_FR",
   },
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   keywords: [
     "back-office web commerce", "logiciel gestion boutique", "caisse enregistreuse web",
     "comptabilite commercant", "CRM fidelite", "multi-boutiques", "gestion stock Afrique",
-    "Stockman fonctionnalites",
+    "Stockman fonctionnalites", "logiciel supermarche", "logiciel restaurant", "logiciel boulangerie",
   ],
 };
 
@@ -143,12 +143,14 @@ export default function FeaturesPage() {
             >
               <Zap size={16} /> Commencer l&apos;essai gratuit
             </Link>
-            <Link
-              href="/pricing"
+            <a
+              href={PUBLIC_ENTERPRISE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-sm"
             >
-              Voir les tarifs <ArrowRight size={14} />
-            </Link>
+              Retour a la page Enterprise <ArrowRight size={14} />
+            </a>
           </div>
         </div>
       </section>
@@ -193,12 +195,22 @@ export default function FeaturesPage() {
           <p className="text-slate-400 text-sm max-w-lg mx-auto mb-6">
             Essai gratuit 3 mois inclus. Aucune carte bancaire requise.
           </p>
-          <Link
-            href={ENTERPRISE_SIGNUP_URL}
-            className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/30 text-base"
-          >
-            <Zap size={18} /> Creer mon compte gratuitement
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href={PUBLIC_BUSINESS_TYPES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-base"
+            >
+              Voir les business types <ArrowRight size={16} />
+            </a>
+            <Link
+              href={ENTERPRISE_SIGNUP_URL}
+              className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/30 text-base"
+            >
+              <Zap size={18} /> Creer mon compte gratuitement
+            </Link>
+          </div>
         </div>
       </section>
     </main>

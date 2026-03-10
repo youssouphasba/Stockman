@@ -1,4 +1,7 @@
 export const MOBILE_APP_URL = "https://stockman.app";
+export const PUBLIC_SITE_URL = "https://stockman.pro";
+export const PUBLIC_ENTERPRISE_URL = `${PUBLIC_SITE_URL}/enterprise`;
+export const PUBLIC_BUSINESS_TYPES_URL = `${PUBLIC_SITE_URL}/business-types`;
 export const ENTERPRISE_SIGNUP_URL = "/?signup=true";
 
 export type MarketingPlanId = "starter" | "pro" | "enterprise";

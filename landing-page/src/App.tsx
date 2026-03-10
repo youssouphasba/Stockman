@@ -10,36 +10,42 @@ import Blog from './Blog';
 import BlogPost from './BlogPost';
 import About from './About';
 import DeleteAccount from './DeleteAccount';
+import EnterprisePage from './EnterprisePage';
+import BusinessTypesPage from './BusinessTypesPage';
 
 import ComparisonTable from './components/ComparisonTable';
 import CookieBanner from './components/CookieBanner';
 import WhatsAppButton from './components/WhatsAppButton';
 import Newsletter from './components/Newsletter';
-import LanguageSwitcher from './components/LanguageSwitcher';
 import SEO from './components/SEO';
 import ContactSection from './components/ContactSection';
 import Analytics from './components/Analytics';
 import AdminLeads from './components/AdminLeads';
 import Hero, { type Profile } from './components/landing/Hero';
 import Features from './components/landing/Features';
-
+import MarketingNav from './components/marketing/MarketingNav';
+import MarketingFooter from './components/marketing/MarketingFooter';
 import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
-import './App.css'
+import './App.css';
 
 import { detectRegion, getPricingByRegion, formatPrice, type Region } from './utils/pricing';
-import SignupModal from './components/SignupModal';
+import {
+  BUSINESS_TYPE_GROUPS,
+  ENTERPRISE_FEATURES_URL,
+  ENTERPRISE_SIGNUP_URL,
+  LANDING_KEYWORDS,
+  MOBILE_APP_URL,
+} from './data/marketing';
 
 function Landing() {
   const { t } = useTranslation();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile>('merchant');
   useScrollReveal();
 
-  // Re-déclenche le reveal pour les éléments apparus dynamiquement lors du switch de profil
   useEffect(() => {
     const timer = setTimeout(() => {
-      document.querySelectorAll('.reveal:not(.revealed)').forEach(el => {
+      document.querySelectorAll('.reveal:not(.revealed)').forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.top < window.innerHeight + 200) {
           el.classList.add('revealed');
@@ -49,21 +55,8 @@ function Landing() {
     return () => clearTimeout(timer);
   }, [profile]);
 
-  // Détection de région par timezone + switcher manuel
   const [region, setRegion] = useState<Region>(() => detectRegion());
   const pricingData = getPricingByRegion(region);
-
-  // Signup modal
-  const [signupPlan, setSignupPlan] = useState<'starter' | 'pro' | null>(null);
-
-  // Auto-open signup modal if ?signup=starter or ?signup=pro is in the URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const plan = params.get('signup');
-    if (plan === 'starter' || plan === 'pro') {
-      setSignupPlan(plan);
-    }
-  }, []);
 
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
@@ -71,64 +64,90 @@ function Landing() {
     { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
   ];
 
+  const homepageStructuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Stockman',
+      url: 'https://stockman.pro',
+      logo: 'https://stockman.pro/stockman_landing_hero.png',
+      sameAs: ['https://app.stockman.pro'],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Stockman',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'iOS, Android, Web',
+      url: 'https://stockman.pro',
+      offers: [
+        { '@type': 'Offer', category: 'Starter', priceCurrency: 'XOF', price: '2500' },
+        { '@type': 'Offer', category: 'Pro', priceCurrency: 'XOF', price: '4900' },
+        { '@type': 'Offer', category: 'Enterprise', priceCurrency: 'XOF', price: '9900' },
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Comment fonctionne Stockman selon le plan ?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Starter et Pro demarrent sur mobile. Enterprise ajoute un back-office web sur app.stockman.pro pour la gestion avancee.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Pour quels business types Stockman est adapte ?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Stockman couvre le commerce, la restauration et la production legere avec des parcours adaptes a chaque activite.',
+          },
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="landing-page">
       <SEO
-        title={t('hero.title_start') + ' ' + t('hero.title_end')}
-        description={t('hero.subtitle')}
+        title="Stockman - Logiciel de gestion stock, caisse POS et app web Enterprise"
+        description="Stockman relie application mobile terrain et back-office web Enterprise pour commerce, supermarche, restaurant, boulangerie et production legere."
+        url="https://stockman.pro"
+        keywords={LANDING_KEYWORDS}
+        structuredData={homepageStructuredData}
       />
-      <nav className="navbar">
-        <div className="container nav-container">
-          <div className="logo">
-            <span className="text-gradient">Stockman</span>
-          </div>
-          <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
-            <span /><span /><span />
-          </button>
-          <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            <button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Fermer">✕</button>
-            <div className="mobile-menu-header">
-              <span className="text-gradient" style={{ fontSize: '1.3rem', fontWeight: 800 }}>Stockman</span>
-            </div>
-            {/* Desktop-only links */}
-            <a href="#features" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.features')}</a>
-            <a href="https://app.stockman.pro/features" target="_blank" rel="noopener noreferrer" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>Fonctionnalités Enterprise</a>
-            <Link to="/blog" className="nav-link desktop-only" onClick={() => setMenuOpen(false)}>{t('nav.blog')}</Link>
-            {/* Mobile-only sections */}
-            <div className="mobile-menu-section">
-              <span className="mobile-menu-label">{t('nav.features')}</span>
-              <Link to="/dashboard" className="nav-link" onClick={() => setMenuOpen(false)}>🏠 {t('feature_pages.dashboard.title')}</Link>
-              <Link to="/products" className="nav-link" onClick={() => setMenuOpen(false)}>📦 {t('feature_pages.products.title')}</Link>
-              <Link to="/pos" className="nav-link" onClick={() => setMenuOpen(false)}>🧮 {t('feature_pages.pos.title')}</Link>
-              <Link to="/accounting" className="nav-link" onClick={() => setMenuOpen(false)}>📊 {t('feature_pages.accounting.title')}</Link>
-              <Link to="/suppliers" className="nav-link" onClick={() => setMenuOpen(false)}>🚚 {t('feature_pages.suppliers.title')}</Link>
-              <Link to="/orders" className="nav-link" onClick={() => setMenuOpen(false)}>📝 {t('feature_pages.orders.title')}</Link>
-              <Link to="/clients" className="nav-link" onClick={() => setMenuOpen(false)}>👥 {t('feature_pages.clients.title')}</Link>
-              <Link to="/settings" className="nav-link" onClick={() => setMenuOpen(false)}>⚙️ {t('feature_pages.settings.title')}</Link>
-            </div>
-            <div className="mobile-menu-section">
-              <span className="mobile-menu-label">{t('nav.resources')}</span>
-              <a href="#pricing" className="nav-link" onClick={() => setMenuOpen(false)}>💰 {t('pricing.title')}</a>
-              <Link to="/blog" className="nav-link" onClick={() => setMenuOpen(false)}>📰 {t('nav.blog')}</Link>
-              <Link to="/about" className="nav-link" onClick={() => setMenuOpen(false)}>💡 {t('about.seo_title')}</Link>
-              <Link to="/help" className="nav-link" onClick={() => setMenuOpen(false)}>❓ {t('footer.help_center')}</Link>
-            </div>
-            <div className="mobile-menu-section">
-              <span className="mobile-menu-label">{t('footer.legal')}</span>
-              <Link to="/terms" className="nav-link" onClick={() => setMenuOpen(false)}>📜 {t('footer.terms')}</Link>
-              <Link to="/privacy" className="nav-link" onClick={() => setMenuOpen(false)}>🔒 {t('footer.privacy')}</Link>
-            </div>
-            <div className="mobile-menu-section">
-              <LanguageSwitcher />
-            </div>
-            <a href="#contact" className="btn-secondary nav-login" onClick={() => setMenuOpen(false)}>{t('nav.login')}</a>
-            <a href="#contact" className="btn-primary" onClick={() => setMenuOpen(false)}>{t('nav.free_trial')}</a>
-          </div>
-          {menuOpen && <div className="nav-overlay" onClick={() => setMenuOpen(false)} />}
-        </div>
-      </nav>
 
-      <Hero profile={profile} onProfileChange={setProfile} onSignup={(plan) => setSignupPlan(plan)} />
+      <MarketingNav active="home" />
+
+      <Hero profile={profile} onProfileChange={setProfile} />
+
+      <section className="container business-preview reveal">
+        <div className="section-title">
+          <h2>Des parcours clairs selon votre business type</h2>
+          <p className="text-muted">
+            La landing oriente vers le bon usage: mobile pour Starter/Pro, web + mobile pour Enterprise.
+          </p>
+        </div>
+        <div className="enterprise-grid">
+          {BUSINESS_TYPE_GROUPS.map((group) => (
+            <Link key={group.slug} to="/business-types" style={{ textDecoration: 'none' }}>
+              <article className="glass-card enterprise-card business-preview-card">
+                <p className="business-card-eyebrow">{group.title}</p>
+                <h3>{group.seoTitle}</h3>
+                <p>{group.overview}</p>
+                <div className="tag-list">
+                  {group.tags.slice(0, 4).map((tag) => (
+                    <span key={tag} className="tag-pill">{tag}</span>
+                  ))}
+                </div>
+              </article>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <ComparisonTable />
@@ -214,9 +233,12 @@ function Landing() {
 
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
-          <h2>{profile === 'enterprise' ? 'Une solution taillée pour votre ambition' : t('pricing.title')}</h2>
-          <p className="text-muted">{profile === 'enterprise' ? 'Back-office web + application mobile inclus dans chaque licence Enterprise.' : t('pricing.subtitle')}</p>
-          {/* Switcher devise */}
+          <h2>{profile === 'enterprise' ? 'Enterprise : web + mobile terrain' : t('pricing.title')}</h2>
+          <p className="text-muted">
+            {profile === 'enterprise'
+              ? 'Le site explique le plan. L app web montre les modules. Le mobile reste l outil terrain des equipes.'
+              : t('pricing.subtitle')}
+          </p>
           <div className="pricing-currency-switcher">
             <span className="pricing-currency-label">Afficher les prix en :</span>
             <div className="pricing-currency-tabs">
@@ -224,19 +246,19 @@ function Landing() {
                 className={`currency-tab${region === 'africa_xof' || region === 'africa_xaf' ? ' active' : ''}`}
                 onClick={() => setRegion('africa_xof')}
               >
-                📱 FCFA
+                FCFA
               </button>
               <button
                 className={`currency-tab${region === 'europe' ? ' active' : ''}`}
                 onClick={() => setRegion('europe')}
               >
-                💳 EUR €
+                EUR
               </button>
               <button
                 className={`currency-tab${region === 'global' ? ' active' : ''}`}
                 onClick={() => setRegion('global')}
               >
-                💳 USD $
+                USD
               </button>
             </div>
           </div>
@@ -248,12 +270,20 @@ function Landing() {
               <h3>{t('pricing.starter.name')}</h3>
               <div className="price">{formatPrice(pricingData.starter, pricingData.currency)} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
-                <li><span className="check-icon">✓</span> {t('pricing.starter.f1')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.starter.f2')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.starter.f3')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.starter.f4')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.starter.f1')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.starter.f2')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.starter.f3')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.starter.f4')}</li>
               </ul>
-              <button onClick={() => setSignupPlan('starter')} className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>{t('pricing.starter.cta')}</button>
+              <a
+                href={MOBILE_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center', width: '100%' }}
+              >
+                Demarrer sur mobile
+              </a>
             </div>
 
             <div className="pricing-card glass-card popular">
@@ -261,38 +291,56 @@ function Landing() {
               <h3>{t('pricing.business.name')}</h3>
               <div className="price">{formatPrice(pricingData.pro, pricingData.currency)} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
-                <li><span className="check-icon">✓</span> {t('pricing.business.f1')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.business.f2')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.business.f3')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.business.f4')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.business.f5')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.business.f1')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.business.f2')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.business.f3')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.business.f4')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.business.f5')}</li>
               </ul>
-              <button onClick={() => setSignupPlan('pro')} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>{t('pricing.business.cta')}</button>
+              <a
+                href={MOBILE_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{ display: 'block', textAlign: 'center', width: '100%' }}
+              >
+                Continuer sur mobile
+              </a>
             </div>
           </div>
         ) : (
           <div className="pricing-enterprise-redirect">
-            <div className="pricing-card glass-card popular" style={{ maxWidth: 480, margin: '0 auto' }}>
-              <div className="popular-tag">🏢 Enterprise</div>
-              <h3>{t('pricing.enterprise.name')}</h3>
+            <div className="pricing-card glass-card popular" style={{ maxWidth: 520, margin: '0 auto' }}>
+              <div className="popular-tag">Enterprise</div>
+              <h3>Enterprise</h3>
               <div className="price">{formatPrice(pricingData.enterprise, pricingData.currency)} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f1')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f2')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f3')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f4')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f5')}</li>
-                <li><span className="check-icon">✓</span> {t('pricing.enterprise.f6')}</li>
+                <li><span className="check-icon">OK</span> App web back-office</li>
+                <li><span className="check-icon">OK</span> Mobile terrain inclus pour les equipes</li>
+                <li><span className="check-icon">OK</span> Multi-boutiques et staff illimites</li>
+                <li><span className="check-icon">OK</span> Dashboard, POS, CRM et comptabilite web</li>
+                <li><span className="check-icon">OK</span> Analyses avancees par activite</li>
               </ul>
-              <a
-                href="https://app.stockman.pro/features"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-                style={{ display: 'block', textAlign: 'center', marginTop: '1rem' }}
-              >
-                {t('pricing.enterprise.cta_start')}
-              </a>
+              <div className="section-cta-row">
+                <a
+                  href={ENTERPRISE_FEATURES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ display: 'block', textAlign: 'center' }}
+                >
+                  Voir l&apos;app web Enterprise
+                </a>
+                <a
+                  href={ENTERPRISE_SIGNUP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{ display: 'block', textAlign: 'center' }}
+                >
+                  Creer mon compte
+                </a>
+              </div>
             </div>
           </div>
         )}
@@ -307,7 +355,7 @@ function Landing() {
           <div className="section-title">
             <h2>{t('faq.title')}</h2>
           </div>
-          {[1, 2, 3, 4, 5].map(i => {
+          {[1, 2, 3, 4, 5].map((i) => {
             const q = t(`faq.q${i}`);
             const a = t(`faq.a${i}`);
             if (!q || q === `faq.q${i}`) return null;
@@ -321,68 +369,30 @@ function Landing() {
         </div>
 
         <div className="download-banner reveal">
-          <h2>{t('download.title')}</h2>
-          <p>{t('download.subtitle')}</p>
+          <h2>Choisissez votre porte d&apos;entree</h2>
+          <p>
+            Starter et Pro commencent sur mobile. Enterprise ajoute le site web pour la gestion avancee, les equipes
+            et les analyses.
+          </p>
           <div className="download-buttons">
-            <a href="#contact" className="store-btn">
-              <span></span> {t('download.app_store')}
+            <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="store-btn">
+              App mobile
             </a>
-            <a href="#contact" className="store-btn">
-              <span>▶</span> {t('download.google_play')}
+            <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="store-btn">
+              App web Enterprise
             </a>
           </div>
           <div className="trust-badges">
-            <div className="badge">🔒 {t('download.secure')}</div>
-            <div className="badge">💼 {t('download.support')}</div>
-            <div className="badge">🚀 {t('download.updates')}</div>
+            <div className="badge">Mobile terrain</div>
+            <div className="badge">Web Enterprise</div>
+            <div className="badge">Business types couverts</div>
           </div>
         </div>
       </section>
 
-      {signupPlan && <SignupModal plan={signupPlan} onClose={() => setSignupPlan(null)} />}
-
-      <footer id="contact">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col">
-              <div className="logo" style={{ marginBottom: '20px' }}>
-                <span className="text-gradient">Stockman</span>
-              </div>
-              <p className="text-muted">{t('footer.desc')}</p>
-            </div>
-            <div className="footer-col">
-              <h4>{t('footer.product')}</h4>
-              <ul>
-                <li><a href="#features">{t('nav.features')}</a></li>
-                <li><a href="#pricing">{t('pricing.title')}</a></li>
-                <li><a href="#">{t('download.updates')}</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>{t('footer.support')}</h4>
-              <ul>
-                <li><Link to="/help">{t('footer.help_center')}</Link></li>
-                <li><Link to="/help">{t('footer.contact')}</Link></li>
-                <li><a href="#">{t('footer.community')}</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>{t('footer.legal')}</h4>
-              <ul>
-                <li><Link to="/privacy">{t('footer.privacy')}</Link></li>
-                <li><Link to="/terms">{t('footer.terms')}</Link></li>
-                <li><Link to="/delete-account">{t('footer.delete_account')}</Link></li>
-                <li><a href="#">{t('footer.legal_notice')}</a></li>
-              </ul>
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', marginTop: '60px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {t('footer.copyright')}
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
-  )
+  );
 }
 
 function App() {
@@ -397,6 +407,8 @@ function App() {
 
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/enterprise" element={<EnterprisePage />} />
+            <Route path="/business-types" element={<BusinessTypesPage />} />
             <Route path="/admin-leads" element={<AdminLeads />} />
             <Route path="/about" element={<About />} />
             <Route path="/terms" element={<TermsOfService />} />
@@ -405,38 +417,43 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/delete-account" element={<DeleteAccount />} />
-
-            {/* Feature Routes */}
-            <Route path="/dashboard" element={
-              <FeaturePage featureKey="dashboard" icon="🏠" galleryKeys={["kpi", "stats", "charts", "analysis", "history"]} />
-            } />
-            <Route path="/products" element={
-              <FeaturePage featureKey="products" icon="📦" screenshot="/assets/screenshots/products-list.jpg" galleryKeys={["list", "create", "variants", "thresholds"]} />
-            } />
-            <Route path="/pos" element={
-              <FeaturePage featureKey="pos" icon="🧮" screenshot="/assets/screenshots/pos-overview.jpg" galleryKeys={["sale", "receipt"]} />
-            } />
-            <Route path="/suppliers" element={
-              <FeaturePage featureKey="suppliers" icon="🚚" screenshot="/assets/screenshots/suppliers-marketplace.jpg" galleryKeys={["marketplace", "catalog", "order"]} />
-            } />
-            <Route path="/orders" element={
-              <FeaturePage featureKey="orders" icon="📝" screenshot="/assets/screenshots/orders-tracking.jpg" galleryKeys={["tracking"]} />
-            } />
-            <Route path="/accounting" element={
-              <FeaturePage featureKey="accounting" icon="📊" screenshot="/assets/screenshots/accounting-overview.jpg" galleryKeys={["overview", "expenses", "reports"]} />
-            } />
-            <Route path="/clients" element={
-              <FeaturePage featureKey="clients" icon="👥" screenshot="/assets/screenshots/clients-details.jpg" galleryKeys={["details", "campaigns"]} />
-            } />
-            <Route path="/settings" element={
-              <FeaturePage featureKey="settings" icon="⚙️" screenshot="/assets/screenshots/settings-support-security.jpg" galleryKeys={["team", "notifications", "security", "guide"]} />
-            } />
-
+            <Route
+              path="/dashboard"
+              element={<FeaturePage featureKey="dashboard" icon="Dashboard" galleryKeys={["kpi", "stats", "charts", "analysis", "history"]} />}
+            />
+            <Route
+              path="/products"
+              element={<FeaturePage featureKey="products" icon="Produits" screenshot="/assets/screenshots/products-list.jpg" galleryKeys={["list", "create", "variants", "thresholds"]} />}
+            />
+            <Route
+              path="/pos"
+              element={<FeaturePage featureKey="pos" icon="POS" screenshot="/assets/screenshots/pos-overview.jpg" galleryKeys={["sale", "receipt"]} />}
+            />
+            <Route
+              path="/suppliers"
+              element={<FeaturePage featureKey="suppliers" icon="Fournisseurs" screenshot="/assets/screenshots/suppliers-marketplace.jpg" galleryKeys={["marketplace", "catalog", "order"]} />}
+            />
+            <Route
+              path="/orders"
+              element={<FeaturePage featureKey="orders" icon="Commandes" screenshot="/assets/screenshots/orders-tracking.jpg" galleryKeys={["tracking"]} />}
+            />
+            <Route
+              path="/accounting"
+              element={<FeaturePage featureKey="accounting" icon="Comptabilite" screenshot="/assets/screenshots/accounting-overview.jpg" galleryKeys={["overview", "expenses", "reports"]} />}
+            />
+            <Route
+              path="/clients"
+              element={<FeaturePage featureKey="clients" icon="Clients" screenshot="/assets/screenshots/clients-details.jpg" galleryKeys={["details", "campaigns"]} />}
+            />
+            <Route
+              path="/settings"
+              element={<FeaturePage featureKey="settings" icon="Reglages" screenshot="/assets/screenshots/settings-support-security.jpg" galleryKeys={["team", "notifications", "security", "guide"]} />}
+            />
           </Routes>
         </Router>
       </div>
     </HelmetProvider>
-  )
+  );
 }
 
-export default App
+export default App;
