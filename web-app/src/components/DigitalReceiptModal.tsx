@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, Printer, Share2, Download, X } from 'lucide-react';
 import Modal from './Modal';
+import { formatSaleQuantity } from '../utils/measurement';
 
 interface DigitalReceiptModalProps {
     isOpen: boolean;
@@ -48,9 +49,11 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale, businessInf
                             <div key={i} className="flex justify-between items-start text-sm">
                                 <div className="flex-1 pr-4">
                                     <p className="font-bold">{item.product_name || item.product?.name}</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">{item.quantity} x {item.price || item.product?.selling_price} F</p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                        {formatSaleQuantity(item)} x {item.selling_price ?? item.price ?? item.product?.selling_price ?? 0} F
+                                    </p>
                                 </div>
-                                <span className="font-bold">{(item.quantity * (item.price || item.product?.selling_price))} F</span>
+                                <span className="font-bold">{item.total ?? (item.quantity * (item.selling_price ?? item.price ?? item.product?.selling_price ?? 0))} F</span>
                             </div>
                         ))}
                     </div>

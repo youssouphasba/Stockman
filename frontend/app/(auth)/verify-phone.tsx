@@ -65,7 +65,7 @@ export default function VerifyPhoneScreen() {
         setError('');
         setSuccess('');
         try {
-            const result = await authApi.resendOtp();
+            const result = await authApi.resendPhoneOtp();
             setSuccess(result.message);
             // In dev mode, show the OTP fallback if WhatsApp failed
             if (result.otp_fallback) {

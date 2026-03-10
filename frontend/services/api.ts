@@ -97,6 +97,55 @@ type RequestOptions = {
   headers?: Record<string, string>;
 };
 
+const ONLINE_ONLY_MUTATION_PREFIXES = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/verify',
+  '/auth/resend',
+  '/billing',
+  '/subscription/sync',
+  '/ai/',
+];
+
+function isOnlineOnlyMutation(endpoint: string) {
+  return ONLINE_ONLY_MUTATION_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
+}
+
+function detectSyncEntity(endpoint: string): SyncAction['entity'] {
+  if (endpoint.includes('/products')) return 'product';
+  if (endpoint.includes('/suppliers')) return 'supplier';
+  if (endpoint.includes('/orders')) return 'order';
+  if (endpoint.includes('/settings') || endpoint.includes('/stores')) return 'settings';
+  if (endpoint.includes('/sales') || endpoint.includes('/invoices')) return 'sale';
+  if (endpoint.includes('/stock/movement') || endpoint.includes('/tables')) return 'stock';
+  if (endpoint.includes('/customers') || endpoint.includes('/reservations')) return 'customer';
+  if (endpoint.includes('/expenses')) return 'expense';
+  if (endpoint.includes('/alert-rules')) return 'alert_rule';
+  if (endpoint.includes('/notifications')) return 'notification';
+  return 'product';
+}
+
+function buildOfflineMutationResponse<T>(endpoint: string, method: string, body: unknown): T {
+  if (body && typeof body === 'object' && !(body instanceof FormData)) {
+    return {
+      ...(body as Record<string, unknown>),
+      status: 'pending',
+      sync: true,
+      offline_pending: true,
+      offline_endpoint: endpoint,
+      offline_method: method,
+    } as T;
+  }
+  return {
+    status: 'pending',
+    sync: true,
+    offline_pending: true,
+    offline_endpoint: endpoint,
+    offline_method: method,
+  } as T;
+}
+
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {} } = options;
   const online = await isOnline();
@@ -126,7 +175,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   try {
     return await rawRequest<T>(endpoint, options);
   } catch (error) {
-    if (!online) {
+    const offlineNow = !online || !(await isOnline());
+    if (offlineNow) {
       // Don't queue logouts or account deletion for sync - must be live operations
       if (endpoint === '/auth/logout') {
         return { message: 'Déconnexion locale' } as any;
@@ -134,19 +184,14 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       if (endpoint === '/profile') {
         throw new ApiError('Connexion requise pour supprimer le compte', 503);
       }
+      if (body instanceof FormData) {
+        throw new ApiError('Cette action nécessite une connexion pour envoyer un fichier.', 503);
+      }
+      if (isOnlineOnlyMutation(endpoint)) {
+        throw new ApiError('Cette action nécessite une connexion internet active.', 503);
+      }
 
-      // Detect entity type from endpoint for syncAction
-      let entity: SyncAction['entity'] = 'product';
-      if (endpoint.includes('/products')) entity = 'product';
-      else if (endpoint.includes('/suppliers')) entity = 'supplier';
-      else if (endpoint.includes('/orders')) entity = 'order';
-      else if (endpoint.includes('/settings')) entity = 'settings';
-      else if (endpoint.includes('/sales')) entity = 'sale';
-      else if (endpoint.includes('/stock/movement')) entity = 'stock';
-      else if (endpoint.includes('/customers')) entity = 'customer';
-      else if (endpoint.includes('/expenses')) entity = 'expense';
-      else if (endpoint.includes('/alert-rules')) entity = 'alert_rule';
-      else if (endpoint.includes('/notifications')) entity = 'notification';
+      const entity = detectSyncEntity(endpoint);
 
       let type: SyncAction['type'] = 'update';
       if (method === 'POST') type = 'create';
@@ -155,11 +200,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       await syncService.addToQueue({
         type,
         entity,
+        endpoint,
+        method,
         payload: body || { id: endpoint.split('/').pop() }
       });
 
-      // Return a fake successful response to keep UI moving
-      return { status: 'pending', sync: true } as any;
+      return buildOfflineMutationResponse<T>(endpoint, method, body);
     }
     throw error;
   }
@@ -290,7 +336,7 @@ export class AuthError extends ApiError {
 // Auth
 export const auth = {
   login: (email: string, password: string) =>
-    request<{ access_token: string; refresh_token?: string; user: User }>('/auth/login', {
+    request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
@@ -304,9 +350,10 @@ export const auth = {
     business_type?: string,
     how_did_you_hear?: string,
     country_code?: string,
-    plan?: string
+    plan?: string,
+    signup_surface?: 'mobile' | 'web'
   ) =>
-    request<{ access_token: string; refresh_token?: string; user: User }>('/auth/register', {
+    request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: {
         email,
@@ -319,6 +366,7 @@ export const auth = {
         how_did_you_hear,
         country_code,
         plan,
+        signup_surface,
       },
     }),
   verifyPhone: (otp: string) =>
@@ -326,12 +374,27 @@ export const auth = {
       method: 'POST',
       body: { otp },
     }),
+  verifyEmail: (otp: string) =>
+    request<{ message: string; user: User }>('/auth/verify-email', {
+      method: 'POST',
+      body: { otp },
+    }),
+  verificationStatus: () =>
+    request<VerificationStatus>('/auth/verification-status'),
   me: () => request<User>('/auth/me'),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
   changePassword: (oldPassword: string, newPassword: string) =>
     request<{ message: string }>('/auth/change-password', {
       method: 'POST',
       body: { old_password: oldPassword, new_password: newPassword }
+    }),
+  resendPhoneOtp: () =>
+    request<{ message: string; otp_fallback?: string }>('/auth/resend-phone-otp', {
+      method: 'POST',
+    }),
+  resendEmailOtp: () =>
+    request<{ message: string; otp_fallback?: string }>('/auth/resend-email-otp', {
+      method: 'POST',
     }),
   resendOtp: () =>
     request<{ message: string; otp_fallback?: string }>('/auth/resend-otp', {
@@ -683,6 +746,20 @@ export const production = {
 export const stores = {
   list: () => request<Store[]>('/stores'),
   create: (data: StoreCreate) => request<Store>('/stores', { method: 'POST', body: data }),
+  update: (id: string, data: {
+    name?: string;
+    address?: string;
+    currency?: string;
+    receipt_business_name?: string;
+    receipt_footer?: string;
+    invoice_business_name?: string;
+    invoice_business_address?: string;
+    invoice_label?: string;
+    invoice_prefix?: string;
+    invoice_footer?: string;
+    invoice_payment_terms?: string;
+    terminals?: string[];
+  }) => request<Store>(`/stores/${id}`, { method: 'PUT', body: data }),
   setActive: (storeId: string) => request<User>('/auth/active-store', { method: 'PUT', body: { store_id: storeId } }),
 };
 
@@ -1043,6 +1120,14 @@ export const admin = {
   getHealth: () => request<SystemHealth>('/admin/health'),
   getGlobalStats: () => request<GlobalStats>('/admin/stats'),
   getDetailedStats: () => request<DetailedStats>('/admin/stats/detailed'),
+  getOnboardingStats: (days = 30) => request<any>(`/admin/stats/onboarding?days=${days}`),
+  getOtpStats: (days = 30) => request<any>(`/admin/stats/otp?days=${days}`),
+  getEnterpriseSignupStats: (days = 30) => request<any>(`/admin/stats/enterprise-signups?days=${days}`),
+  getConversionStats: () => request<any>('/admin/stats/conversion'),
+  listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any || {}).toString();
+    return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
+  },
 
   // Modules
   listUsers: (skip = 0, limit = 100) => request<User[]>(`/admin/users?skip=${skip}&limit=${limit}`),
@@ -1289,8 +1374,20 @@ export type Store = {
   user_id: string;
   name: string;
   address?: string;
+  currency?: string;
+  receipt_business_name?: string;
+  receipt_footer?: string;
+  invoice_business_name?: string;
+  invoice_business_address?: string;
+  invoice_label?: string;
+  invoice_prefix?: string;
+  invoice_footer?: string;
+  invoice_payment_terms?: string;
   created_at: string;
   terminals?: string[];
+  tax_enabled?: boolean;
+  tax_rate?: number;
+  tax_mode?: 'ttc' | 'ht';
 };
 
 export type StoreCreate = {
@@ -1310,6 +1407,8 @@ export type UserPermissions = {
 };
 
 export type StorePermissions = Record<string, Partial<UserPermissions>>;
+
+export type VerificationChannel = 'phone' | 'email';
 
 export type User = {
   user_id: string;
@@ -1337,8 +1436,26 @@ export type User = {
   business_type?: string;
   how_did_you_hear?: string;
   is_phone_verified?: boolean;
+  is_email_verified?: boolean;
+  required_verification?: VerificationChannel | null;
+  verification_channel?: VerificationChannel | null;
+  signup_surface?: 'mobile' | 'web' | null;
+  verification_completed_at?: string | null;
+  can_access_app?: boolean;
+  can_access_web?: boolean;
   phone?: string;
   country_code?: string;
+};
+
+export type AuthResponse = {
+  access_token: string;
+  refresh_token?: string;
+  user: User;
+};
+
+export type VerificationStatus = {
+  completed: boolean;
+  user: User;
 };
 
 export type ProductVariant = {
@@ -1360,6 +1477,11 @@ export type Product = {
   subcategory?: string;
   quantity: number;
   unit: string;
+  measurement_type?: 'unit' | 'weight' | 'volume';
+  display_unit?: string;
+  pricing_unit?: string;
+  allows_fractional_sale?: boolean;
+  quantity_precision?: number;
   purchase_price: number;
   selling_price: number;
   tax_rate?: number;
@@ -1462,6 +1584,11 @@ export type ProductCreate = {
   subcategory?: string;
   quantity?: number;
   unit?: string;
+  measurement_type?: 'unit' | 'weight' | 'volume';
+  display_unit?: string;
+  pricing_unit?: string;
+  allows_fractional_sale?: boolean;
+  quantity_precision?: number;
   purchase_price?: number;
   selling_price?: number;
   min_stock?: number;
@@ -1665,14 +1792,34 @@ export type ReplenishmentSuggestion = {
 
 // Accounting
 export const accounting = {
-  getStats: (days: number = 30, startDate?: string, endDate?: string) => {
+  getStats: (days?: number, startDate?: string, endDate?: string) => {
     const qs = new URLSearchParams();
-    if (days) qs.set('days', days.toString());
+    if (typeof days === 'number') qs.set('days', days.toString());
     if (startDate) qs.set('start_date', startDate);
     if (endDate) qs.set('end_date', endDate);
     const query = qs.toString();
     return request<AccountingStats>(`/accounting/stats${query ? `?${query}` : ''}`);
   },
+  getSalesHistory: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+    const qs = new URLSearchParams();
+    if (days) qs.set('days', days.toString());
+    if (startDate) qs.set('start_date', startDate);
+    if (endDate) qs.set('end_date', endDate);
+    qs.set('skip', skip.toString());
+    qs.set('limit', limit.toString());
+    return request<PaginatedResponse<AccountingSaleHistoryItem>>(`/accounting/sales-history?${qs.toString()}`);
+  },
+  getInvoices: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+    const qs = new URLSearchParams();
+    if (days) qs.set('days', days.toString());
+    if (startDate) qs.set('start_date', startDate);
+    if (endDate) qs.set('end_date', endDate);
+    qs.set('skip', skip.toString());
+    qs.set('limit', limit.toString());
+    return request<PaginatedResponse<CustomerInvoice>>(`/invoices?${qs.toString()}`);
+  },
+  createInvoiceFromSale: (saleId: string) => request<CustomerInvoice>(`/invoices/from-sale/${saleId}`, { method: 'POST' }),
+  getInvoice: (invoiceId: string) => request<CustomerInvoice>(`/invoices/${invoiceId}`),
 };
 
 export const expenses = {
@@ -1708,7 +1855,27 @@ export type AccountingStats = {
   total_items_sold: number;
   stock_value: number;
   stock_selling_value: number;
-  product_performance: { id: string; name: string; qty_sold: number; revenue: number; cogs: number; loss: number }[];
+  tax_collected?: number;
+  scope_label?: string;
+  summary?: string;
+  recommendations?: string[];
+  gross_margin_pct?: number;
+  net_margin_pct?: number;
+  expense_ratio?: number;
+  loss_ratio?: number;
+  tax_ratio?: number;
+  top_expense_categories?: { category: string; label: string; amount: number; ratio: number }[];
+  product_performance: {
+    id: string;
+    name: string;
+    qty_sold: number;
+    revenue: number;
+    cogs: number;
+    loss: number;
+    gross_profit?: number;
+    net_contribution?: number;
+    margin_pct?: number;
+  }[];
 };
 
 export type InventoryTask = {
@@ -1756,6 +1923,10 @@ export type SaleItem = {
   selling_price: number;
   discount_amount?: number;
   total: number;
+  sold_quantity_input?: number;
+  sold_unit?: string;
+  measurement_type?: 'unit' | 'weight' | 'volume';
+  pricing_unit?: string;
 };
 
 export type Sale = {
@@ -1770,8 +1941,36 @@ export type Sale = {
   created_at: string;
 };
 
+export type AccountingSaleHistoryItem = {
+  sale_id: string;
+  store_id?: string;
+  created_at: string;
+  total_amount: number;
+  discount_amount?: number;
+  payment_method: string;
+  payments?: { method: string; amount: number }[];
+  customer_id?: string;
+  customer_name?: string;
+  status?: string;
+  item_count: number;
+  items: SaleItem[];
+  invoice_id?: string;
+  invoice_number?: string;
+  invoice_label?: string;
+  invoice_issued_at?: string;
+};
+
 export type SaleCreate = {
-  items: { product_id: string; quantity: number; discount_amount?: number }[];
+  items: {
+    product_id: string;
+    quantity: number;
+    discount_amount?: number;
+    price?: number;
+    item_notes?: string;
+    station?: string;
+    sold_quantity_input?: number;
+    sold_unit?: string;
+  }[];
   payment_method: string;
   customer_id?: string;
   discount_amount?: number; // Global discount
@@ -1939,8 +2138,56 @@ export type UserSettings = {
   tax_enabled?: boolean;
   tax_rate?: number;
   tax_mode?: string; // "ttc" | "ht"
+  receipt_business_name?: string;
+  receipt_footer?: string;
+  invoice_business_name?: string;
+  invoice_business_address?: string;
+  invoice_label?: string;
+  invoice_prefix?: string;
+  invoice_footer?: string;
+  invoice_payment_terms?: string;
   billing_contact_name?: string;
   billing_contact_email?: string;
+};
+
+export type CustomerInvoiceItem = {
+  product_id?: string;
+  product_name?: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  tax_rate?: number;
+  tax_amount?: number;
+};
+
+export type CustomerInvoice = {
+  invoice_id: string;
+  invoice_number: string;
+  invoice_label: string;
+  invoice_prefix: string;
+  user_id: string;
+  store_id: string;
+  sale_id: string;
+  customer_id?: string;
+  customer_name?: string;
+  status: string;
+  currency?: string;
+  items: CustomerInvoiceItem[];
+  discount_amount?: number;
+  subtotal_ht?: number;
+  tax_total?: number;
+  total_amount: number;
+  payment_method?: string;
+  payments?: { method: string; amount: number }[];
+  business_name?: string;
+  business_address?: string;
+  footer?: string;
+  payment_terms?: string;
+  notes?: string;
+  sale_created_at?: string;
+  issued_at: string;
+  created_at: string;
 };
 
 export type SupplierInvoice = {

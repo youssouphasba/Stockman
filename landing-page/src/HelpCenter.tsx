@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './App.css';
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP_URL } from './support';
 
 function HelpCenter() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -89,11 +90,11 @@ function HelpCenter() {
 
                     <div style={{ marginTop: '60px', textAlign: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '40px' }}>
                         <h2>{t('help.need_more')}</h2>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '30px', flexWrap: 'wrap' }}>
-                            <a href="mailto:support@stockman.app" className="btn-primary" style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.1)' }}>
+                        <div className="support-action-row">
+                            <a href={`mailto:${SUPPORT_EMAIL}`} className="btn-primary support-action-link" style={{ background: 'rgba(255,255,255,0.1)' }}>
                                 {t('help.email_support')}
                             </a>
-                            <a href="#" className="btn-primary" style={{ textDecoration: 'none' }}>
+                            <a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary support-action-link">
                                 {t('help.whatsapp_chat')}
                             </a>
                         </div>

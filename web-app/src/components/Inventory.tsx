@@ -28,13 +28,34 @@ import {
     TrendingDown
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
-import { products as productsApi, categories as categoriesApi, ai as aiApi, locations as locationsApi, stores as storesApi, stock as stockApi, analytics as analyticsApi, AnalyticsStockHealth } from '../services/api';
+import {
+    products as productsApi,
+    categories as categoriesApi,
+    ai as aiApi,
+    auth,
+    catalog as catalogApi,
+    locations as locationsApi,
+    stores as storesApi,
+    stock as stockApi,
+    analytics as analyticsApi,
+    userFeatures as userFeaturesApi,
+    AnalyticsStockHealth,
+    UserFeatures,
+} from '../services/api';
 import Modal from './Modal';
 import BulkImportModal from './BulkImportModal';
+import TextImportModal from './TextImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
 import BarcodeScanner from './BarcodeScanner';
 import BatchScanModal from './BatchScanModal';
 import StockHealthPanel from './analytics/StockHealthPanel';
+import { getPendingInventorySummary, mergeInventoryOfflineState } from '../services/offlineState';
+import {
+    defaultPrecisionForUnit,
+    formatMeasurementQuantity,
+    inferMeasurementType,
+    normalizeProductMeasurement,
+} from '../utils/measurement';
 
 export default function Inventory() {
     const { t, i18n } = useTranslation();
@@ -48,6 +69,7 @@ export default function Inventory() {
     // Modal & Form State
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isTextImportOpen, setIsTextImportOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isBatchScanOpen, setIsBatchScanOpen] = useState(false);
@@ -60,7 +82,8 @@ export default function Inventory() {
         name: '',
         sku: '',
         quantity: 0,
-        unit: 'pièce',
+        quantity_precision: 1,
+        unit: 'piece',
         purchase_price: 0,
         selling_price: 0,
         min_stock: 0,
@@ -70,6 +93,10 @@ export default function Inventory() {
         product_type: 'standard',
         description: '',
         image: '',
+        measurement_type: 'unit' as 'unit' | 'weight' | 'volume',
+        display_unit: 'piece',
+        pricing_unit: 'piece',
+        allows_fractional_sale: false,
         has_variants: false,
         variants: [] as any[]
     });
@@ -84,9 +111,13 @@ export default function Inventory() {
     const [transferDest, setTransferDest] = useState('');
     const [transferring, setTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [showCreateMenu, setShowCreateMenu] = useState(false);
+    const [catalogImportLoading, setCatalogImportLoading] = useState(false);
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
     const [stockHealthLoading, setStockHealthLoading] = useState(true);
+    const [pendingInventorySummary, setPendingInventorySummary] = useState(() => getPendingInventorySummary());
 
     // AI Replenishment advice
     const [replenishAdvice, setReplenishAdvice] = useState<{ advice: string; priority_count: number } | null>(null);
@@ -102,7 +133,7 @@ export default function Inventory() {
     const [stockMovLoading, setStockMovLoading] = useState(false);
 
     const handleStockMovement = async () => {
-        const qty = parseInt(stockMovQty);
+        const qty = parseFloat(stockMovQty);
         if (isNaN(qty) || qty <= 0) return;
         setStockMovLoading(true);
         try {
@@ -117,6 +148,7 @@ export default function Inventory() {
                     ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
                     : p
             ));
+            setPendingInventorySummary(getPendingInventorySummary());
             loadStockHealth();
             setStockModalOpen(false);
             setStockMovQty('');
@@ -136,11 +168,17 @@ export default function Inventory() {
                 categoriesApi.list(),
                 locationsApi.list()
             ]);
-            setProducts(prodsRes.items || prodsRes);
+            const merged = mergeInventoryOfflineState(
+                prodsRes.items || prodsRes,
+                locationFilter || selectedLocation || '',
+            );
+            setProducts(merged.products);
             setCategoriesList(catsRes);
             setLocationsList(locsRes);
+            setPendingInventorySummary(merged.summary);
         } catch (err) {
             console.error('Error fetching inventory data', err);
+            setPendingInventorySummary(getPendingInventorySummary());
         } finally {
             setLoading(false);
         }
@@ -161,11 +199,11 @@ export default function Inventory() {
     useEffect(() => {
         fetchProducts();
         loadStockHealth();
-        // Load stores + user for transfer feature
-        Promise.all([storesApi.list(), import('../services/api').then(m => m.auth.me())])
-            .then(([storesRes, userRes]) => {
+        Promise.all([storesApi.list(), auth.me(), userFeaturesApi.get()])
+            .then(([storesRes, userRes, featuresRes]) => {
                 setStoreList(storesRes || []);
                 setCurrentUser(userRes);
+                setCurrentFeatures(featuresRes);
             }).catch(() => {});
     }, []);
 
@@ -183,12 +221,14 @@ export default function Inventory() {
     };
 
     const handleOpenAddModal = () => {
+        setShowCreateMenu(false);
         setEditingProduct(null);
         setForm({
             name: '',
             sku: '',
             quantity: 0,
-            unit: 'pièce',
+            quantity_precision: 1,
+            unit: 'piece',
             purchase_price: 0,
             selling_price: 0,
             min_stock: 0,
@@ -198,10 +238,34 @@ export default function Inventory() {
             product_type: 'standard',
             description: '',
             image: '',
+            measurement_type: 'unit',
+            display_unit: 'piece',
+            pricing_unit: 'piece',
+            allows_fractional_sale: false,
             has_variants: false,
             variants: []
         });
         setIsProductModalOpen(true);
+    };
+
+    const handleImportCatalog = async () => {
+        const sector = currentFeatures?.sector;
+        if (!sector) {
+            alert("Aucun type d'activité n'est défini pour ce compte.");
+            return;
+        }
+        setShowCreateMenu(false);
+        setCatalogImportLoading(true);
+        try {
+            const result = await catalogApi.importAll(sector, currentUser?.country_code);
+            alert(`${result.imported || 0} produits ont été importés pour ${currentFeatures?.sector_label || sector}.`);
+            await fetchProducts();
+            await loadStockHealth();
+        } catch (err: any) {
+            alert(err?.message || "Erreur lors de l'import du catalogue métier");
+        } finally {
+            setCatalogImportLoading(false);
+        }
     };
 
     const handleOpenEditModal = (product: any) => {
@@ -210,7 +274,8 @@ export default function Inventory() {
             name: product.name,
             sku: product.sku || '',
             quantity: product.quantity,
-            unit: product.unit || 'pièce',
+            quantity_precision: product.quantity_precision || defaultPrecisionForUnit(product.pricing_unit || product.unit, product.measurement_type),
+            unit: normalizeProductMeasurement(product).unit,
             purchase_price: product.purchase_price,
             selling_price: product.selling_price,
             min_stock: product.min_stock || 0,
@@ -220,6 +285,10 @@ export default function Inventory() {
             product_type: product.product_type || 'standard',
             description: product.description || '',
             image: product.image || '',
+            measurement_type: product.measurement_type || inferMeasurementType(product.unit),
+            display_unit: product.display_unit || product.unit || 'piece',
+            pricing_unit: product.pricing_unit || product.unit || 'piece',
+            allows_fractional_sale: product.allows_fractional_sale ?? inferMeasurementType(product.unit) !== 'unit',
             has_variants: product.has_variants || false,
             variants: product.variants || []
         });
@@ -263,10 +332,27 @@ export default function Inventory() {
         e.preventDefault();
         setFormLoading(true);
         try {
+            const measurement = normalizeProductMeasurement({
+                unit: form.unit,
+                display_unit: form.unit,
+                pricing_unit: form.unit,
+                measurement_type: inferMeasurementType(form.unit),
+                allows_fractional_sale: inferMeasurementType(form.unit) !== 'unit',
+                quantity_precision: Number(form.quantity_precision) || defaultPrecisionForUnit(form.unit),
+            });
+            const payload = {
+                ...form,
+                unit: measurement.unit,
+                measurement_type: measurement.measurement_type,
+                display_unit: measurement.display_unit,
+                pricing_unit: measurement.pricing_unit,
+                allows_fractional_sale: measurement.allows_fractional_sale,
+                quantity_precision: measurement.quantity_precision,
+            };
             if (editingProduct) {
-                await productsApi.update(editingProduct.product_id, form);
+                await productsApi.update(editingProduct.product_id, payload);
             } else {
-                await productsApi.create(form);
+                await productsApi.create(payload);
             }
             setIsProductModalOpen(false);
             fetchProducts();
@@ -373,6 +459,17 @@ export default function Inventory() {
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
                     <p className="text-slate-400">{t('catalog.product_count', { count: filteredProducts.length })}</p>
+                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                        Création disponible : manuel, texte IA, import CSV et catalogue métier
+                    </p>
+                    {pendingInventorySummary.pendingTotal > 0 && (
+                        <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
+                            <AlertCircle size={14} />
+                            <span>
+                                {pendingInventorySummary.pendingProducts} produit(s), {pendingInventorySummary.pendingUpdates} mise(s) à jour et {pendingInventorySummary.pendingStockMovements} mouvement(s) de stock attendent encore la synchronisation.
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {/* Export Dropdown */}
@@ -404,13 +501,71 @@ export default function Inventory() {
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
-                    >
-                        <Upload size={16} />
-                        Importer
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowCreateMenu(v => !v)}
+                            className="btn-primary py-2 px-6 flex items-center gap-2"
+                        >
+                            <Plus size={20} />
+                            Créer / importer
+                            <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showCreateMenu && (
+                            <div className="absolute right-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B] shadow-2xl">
+                                <button
+                                    onClick={handleOpenAddModal}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+                                >
+                                    <Plus size={16} className="text-primary" />
+                                    <div>
+                                        <p className="font-bold">Créer manuellement</p>
+                                        <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowCreateMenu(false);
+                                        setIsTextImportOpen(true);
+                                    }}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+                                >
+                                    <Sparkles size={16} className="text-violet-400" />
+                                    <div>
+                                        <p className="font-bold">Importer depuis un texte</p>
+                                        <p className="text-xs text-slate-400">Colle une liste libre, l’IA structure et crée les produits.</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowCreateMenu(false);
+                                        setIsImportModalOpen(true);
+                                    }}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
+                                >
+                                    <Upload size={16} className="text-emerald-400" />
+                                    <div>
+                                        <p className="font-bold">Importer un CSV</p>
+                                        <p className="text-xs text-slate-400">Import en masse avec mapping intelligent des colonnes.</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={handleImportCatalog}
+                                    disabled={catalogImportLoading || !currentFeatures?.sector}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <Layers size={16} className="text-amber-400" />
+                                    <div>
+                                        <p className="font-bold">
+                                            {catalogImportLoading
+                                                ? 'Import du catalogue…'
+                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du métier'}`}
+                                        </p>
+                                        <p className="text-xs text-slate-400">Précharge un catalogue adapté à ton type d’activité.</p>
+                                    </div>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={() => setIsBatchScanOpen(true)}
                         className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
@@ -425,13 +580,6 @@ export default function Inventory() {
                     >
                         <Sparkles size={16} />
                         {replenishLoading ? 'Analyse...' : 'IA Réappro'}
-                    </button>
-                    <button
-                        onClick={handleOpenAddModal}
-                        className="btn-primary py-2 px-6 flex items-center gap-2"
-                    >
-                        <Plus size={20} />
-                        {t('catalog.add_product')}
                     </button>
                 </div>
             </header>
@@ -534,7 +682,14 @@ export default function Inventory() {
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
-                                                <span className="font-bold">{p.name}</span>
+                                                <span className="font-bold flex items-center gap-2">
+                                                    {p.name}
+                                                    {p.offline_pending && (
+                                                        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
+                                                            Hors ligne
+                                                        </span>
+                                                    )}
+                                                </span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
                                                 {p.location_id && (
                                                     <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
@@ -552,7 +707,7 @@ export default function Inventory() {
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col items-center gap-1">
                                             <span className={`text-lg font-bold ${isOut ? 'text-red-400' : matchesMin ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                {p.quantity}
+                                                {formatMeasurementQuantity(p.quantity, p.display_unit || p.unit)}
                                             </span>
                                             {matchesMin && (
                                                 <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-red-400">
@@ -638,7 +793,7 @@ export default function Inventory() {
                             </div>
                             <div>
                                 <p className="font-bold text-white text-sm">{stockModalProduct.name}</p>
-                                <p className="text-xs text-slate-400">Stock actuel : <span className="font-bold text-white">{stockModalProduct.quantity}</span> {stockModalProduct.unit || 'unité(s)'}</p>
+                                <p className="text-xs text-slate-400">Stock actuel : <span className="font-bold text-white">{formatMeasurementQuantity(stockModalProduct.quantity, stockModalProduct.display_unit || stockModalProduct.unit)}</span></p>
                             </div>
                         </div>
 
@@ -647,20 +802,21 @@ export default function Inventory() {
                             <label className="block text-sm font-medium text-slate-300 mb-2">Quantité *</label>
                             <input
                                 type="number"
-                                min="1"
+                                min="0.001"
+                                step="0.001"
                                 value={stockMovQty}
                                 onChange={e => setStockMovQty(e.target.value)}
-                                placeholder="Ex: 10"
+                                placeholder="Ex: 0.25"
                                 autoFocus
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
-                            {stockMovQty && !isNaN(parseInt(stockMovQty)) && (
+                            {stockMovQty && !isNaN(parseFloat(stockMovQty)) && (
                                 <p className="text-xs mt-1.5 text-slate-400">
                                     Nouveau stock :{' '}
                                     <span className={`font-bold ${stockMovType === 'in' ? 'text-emerald-400' : 'text-orange-400'}`}>
                                         {stockMovType === 'in'
-                                            ? stockModalProduct.quantity + parseInt(stockMovQty)
-                                            : Math.max(0, stockModalProduct.quantity - parseInt(stockMovQty))}
+                                            ? stockModalProduct.quantity + parseFloat(stockMovQty)
+                                            : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
                                     </span> {stockModalProduct.unit || 'unité(s)'}
                                 </p>
                             )}
@@ -681,7 +837,7 @@ export default function Inventory() {
                         {/* Submit */}
                         <button
                             onClick={handleStockMovement}
-                            disabled={stockMovLoading || !stockMovQty || parseInt(stockMovQty) <= 0}
+                            disabled={stockMovLoading || !stockMovQty || parseFloat(stockMovQty) <= 0}
                             className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
                         >
                             {stockMovLoading
@@ -811,6 +967,85 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
+                                    <label className="block text-sm font-medium text-slate-300">Stock initial</label>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        value={form.quantity}
+                                        onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300">Unité de prix / stock</label>
+                                    <select
+                                        value={form.unit}
+                                        onChange={(e) => {
+                                            const nextUnit = e.target.value;
+                                            const nextType = inferMeasurementType(nextUnit);
+                                            setForm({
+                                                ...form,
+                                                unit: nextUnit,
+                                                measurement_type: nextType,
+                                                display_unit: nextUnit,
+                                                pricing_unit: nextUnit,
+                                                allows_fractional_sale: nextType !== 'unit',
+                                                quantity_precision: defaultPrecisionForUnit(nextUnit, nextType),
+                                            });
+                                        }}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
+                                    >
+                                        {['piÃ¨ce', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'BoÃ®te', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
+                                            <option key={unit} value={unit}>{unit}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {form.measurement_type !== 'unit' && (
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300">Pas de vente</label>
+                                        <input
+                                            type="number"
+                                            step="0.001"
+                                            min="0.001"
+                                            value={form.quantity_precision}
+                                            onChange={(e) => setForm({ ...form, quantity_precision: Number(e.target.value) })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2 rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-slate-200">
+                                        Vente fractionnee active. Le stock et le prix restent geres au {form.unit}, mais la caisse pourra vendre en sous-unites compatibles.
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300">Stock minimum</label>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        value={form.min_stock}
+                                        onChange={(e) => setForm({ ...form, min_stock: Number(e.target.value) })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300">Stock maximum</label>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        value={form.max_stock}
+                                        onChange={(e) => setForm({ ...form, max_stock: Number(e.target.value) })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
                                     <label className="block text-sm font-medium text-slate-300">{t('common.purchase_price')}</label>
                                     <input
                                         type="number"
@@ -931,7 +1166,13 @@ export default function Inventory() {
             <BulkImportModal
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
-                onSuccess={fetchProducts}
+                onSuccess={() => { fetchProducts(); loadStockHealth(); }}
+            />
+
+            <TextImportModal
+                isOpen={isTextImportOpen}
+                onClose={() => setIsTextImportOpen(false)}
+                onSuccess={() => { fetchProducts(); loadStockHealth(); }}
             />
 
             <ProductHistoryModal
@@ -988,10 +1229,11 @@ export default function Inventory() {
                                 </label>
                                 <input
                                     type="number"
-                                    min={1}
+                                    min={0.001}
+                                    step="0.001"
                                     max={transferProduct.quantity}
                                     value={transferQty}
-                                    onChange={e => setTransferQty(Math.max(1, parseInt(e.target.value) || 1))}
+                                    onChange={e => setTransferQty(Math.max(0.001, parseFloat(e.target.value) || 0.001))}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                                 />
                             </div>

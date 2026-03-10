@@ -5,6 +5,9 @@ import { analytics, AnalyticsFilterMeta } from '../services/api';
 
 type AnalyticsFiltersState = {
     days: number;
+    useCustomRange: boolean;
+    startDate: string;
+    endDate: string;
     storeId: string;
     categoryId: string;
     supplierId: string;
@@ -32,6 +35,9 @@ const DEFAULT_META: AnalyticsFilterMeta = {
 
 const DEFAULT_FILTERS: AnalyticsFiltersState = {
     days: 30,
+    useCustomRange: false,
+    startDate: '',
+    endDate: '',
     storeId: '',
     categoryId: '',
     supplierId: '',

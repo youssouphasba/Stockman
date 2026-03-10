@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Filter, RotateCcw } from 'lucide-react';
+import { Calendar, Filter, RotateCcw } from 'lucide-react';
 import { useAnalyticsFilters } from '../../contexts/AnalyticsFiltersContext';
 
 export default function GlobalFiltersBar() {
@@ -30,19 +30,49 @@ export default function GlobalFiltersBar() {
 
             <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-end">
                 <div className="flex flex-wrap gap-2">
-                    {(meta.periods || []).map((period) => (
-                        <button
-                            key={period.days}
-                            onClick={() => setFilter('days', period.days)}
-                            className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
-                                filters.days === period.days
-                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                    : 'border border-white/10 bg-white/5 text-slate-400 hover:text-white'
-                            }`}
-                        >
-                            {period.label}
-                        </button>
-                    ))}
+                    {!filters.useCustomRange ? (
+                        (meta.periods || []).map((period) => (
+                            <button
+                                key={period.days}
+                                onClick={() => setFilter('days', period.days)}
+                                className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
+                                    filters.days === period.days
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                        : 'border border-white/10 bg-white/5 text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                {period.label}
+                            </button>
+                        ))
+                    ) : null}
+                    <button
+                        onClick={() => setFilter('useCustomRange', !filters.useCustomRange)}
+                        className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
+                            filters.useCustomRange
+                                ? 'border border-primary/40 bg-primary/15 text-primary'
+                                : 'border border-white/10 bg-white/5 text-slate-400 hover:text-white'
+                        }`}
+                    >
+                        <Calendar size={14} />
+                        Dates
+                    </button>
+                    {filters.useCustomRange ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <input
+                                type="date"
+                                value={filters.startDate}
+                                onChange={(event) => setFilter('startDate', event.target.value)}
+                                className="rounded-2xl border border-white/10 bg-[#111827] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-primary/40"
+                            />
+                            <span className="text-sm text-slate-500">→</span>
+                            <input
+                                type="date"
+                                value={filters.endDate}
+                                onChange={(event) => setFilter('endDate', event.target.value)}
+                                className="rounded-2xl border border-white/10 bg-[#111827] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-primary/40"
+                            />
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">

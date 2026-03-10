@@ -31,6 +31,12 @@ import base64
 from fastapi.staticfiles import StaticFiles
 from collections import defaultdict
 import random
+from measurement_utils import (
+    build_sale_quantity_context,
+    format_quantity,
+    normalize_product_measurement_fields,
+    round_quantity,
+)
 from enterprise_access import (
     ACCOUNT_SHARED_SETTING_FIELDS,
     BILLING_ADMIN_SETTING_FIELDS,
@@ -112,6 +118,7 @@ import_service = ImportService(db)
 catalog_service = CatalogService(db)
 twilio_service = TwilioService()
 notification_service = NotificationService()
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
 # JWT Configuration
 SECRET_KEY = os.environ.get('JWT_SECRET', '')
@@ -434,6 +441,9 @@ async def create_indexes_and_init():
                 await db.users.create_index("email", unique=True)
                 await db.business_accounts.create_index("account_id", unique=True)
                 await db.business_accounts.create_index("owner_user_id")
+                await db.customer_invoices.create_index("invoice_id", unique=True)
+                await db.customer_invoices.create_index([("user_id", 1), ("store_id", 1), ("issued_at", -1)])
+                await db.customer_invoices.create_index([("user_id", 1), ("sale_id", 1)], unique=True)
                 await db.products.create_index([("user_id", 1), ("store_id", 1)])
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
@@ -463,6 +473,9 @@ async def create_indexes_and_init():
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.security_events.create_index("created_at")
+                await db.verification_events.create_index("created_at")
+                await db.verification_events.create_index([("type", 1), ("created_at", -1)])
+                await db.verification_events.create_index([("provider", 1), ("created_at", -1)])
 
                 # Global Catalog indexes
                 await catalog_service.create_indexes()
@@ -615,6 +628,12 @@ class Store(BaseModel):
     currency: Optional[str] = None
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
+    invoice_business_name: Optional[str] = None
+    invoice_business_address: Optional[str] = None
+    invoice_label: Optional[str] = None
+    invoice_prefix: Optional[str] = None
+    invoice_footer: Optional[str] = None
+    invoice_payment_terms: Optional[str] = None
     terminals: Optional[List[str]] = None
     tax_enabled: Optional[bool] = None
     tax_rate: Optional[float] = None
@@ -631,6 +650,12 @@ class StoreUpdate(BaseModel):
     currency: Optional[str] = None
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
+    invoice_business_name: Optional[str] = None
+    invoice_business_address: Optional[str] = None
+    invoice_label: Optional[str] = None
+    invoice_prefix: Optional[str] = None
+    invoice_footer: Optional[str] = None
+    invoice_payment_terms: Optional[str] = None
     terminals: Optional[List[str]] = None
     tax_enabled: Optional[bool] = None
     tax_rate: Optional[float] = None
@@ -645,9 +670,11 @@ class StockTransfer(BaseModel):
 
 class PublicReceiptItem(BaseModel):
     product_name: str
-    quantity: int
+    quantity: float
     selling_price: float
     total: float
+    sold_quantity_input: Optional[float] = None
+    sold_unit: Optional[str] = None
 
 class PublicReceipt(BaseModel):
     sale_id: str
@@ -657,6 +684,7 @@ class PublicReceipt(BaseModel):
     created_at: datetime
     store_name: str
     store_address: Optional[str] = None
+    receipt_footer: Optional[str] = None
 
 # ===================== PUBLIC ENDPOINTS =====================
 
@@ -669,15 +697,18 @@ async def get_public_receipt(sale_id: str):
     
     # Get store info
     store = await db.stores.find_one({"store_id": sale["store_id"]})
-    store_name = store["name"] if store else "Ma Boutique"
+    store_name = (store or {}).get("receipt_business_name") or (store or {}).get("name") or "Ma Boutique"
     store_address = store.get("address") if store else None
+    receipt_footer = store.get("receipt_footer") if store else None
 
     items = [
         PublicReceiptItem(
             product_name=item["product_name"],
             quantity=item["quantity"],
             selling_price=item["selling_price"],
-            total=item["total"]
+            total=item["total"],
+            sold_quantity_input=item.get("sold_quantity_input"),
+            sold_unit=item.get("sold_unit"),
         ) for item in sale["items"]
     ]
 
@@ -688,7 +719,8 @@ async def get_public_receipt(sale_id: str):
         payment_method=sale["payment_method"],
         created_at=sale["created_at"],
         store_name=store_name,
-        store_address=store_address
+        store_address=store_address,
+        receipt_footer=receipt_footer
     )
 
 # ===================== PUBLIC FORMS MODELS =====================
@@ -761,6 +793,7 @@ class UserCreate(BaseModel):
     business_type: Optional[str] = None  # e.g., "Boutique", "Quincaillerie", "Grossiste"
     how_did_you_hear: Optional[str] = None # Referral source
     country_code: Optional[str] = None
+    signup_surface: Optional[str] = None  # "mobile" | "web"
     plan: Optional[str] = None  # "starter", "pro", "enterprise" — choisi sur la landing page
 
     account_roles: List[str] = Field(default_factory=list)
@@ -800,6 +833,13 @@ class User(UserBase):
     business_type: Optional[str] = None
     how_did_you_hear: Optional[str] = None
     is_phone_verified: bool = False
+    is_email_verified: bool = False
+    required_verification: Optional[str] = None
+    verification_channel: Optional[str] = None
+    signup_surface: Optional[str] = None
+    verification_completed_at: Optional[datetime] = None
+    can_access_app: bool = False
+    can_access_web: bool = False
     country_code: Optional[str] = "SN" # Default to Senegal
     language: str = "fr" # User preferred language
 
@@ -847,6 +887,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: User
 
+
+class VerificationStatusResponse(BaseModel):
+    completed: bool
+    user: User
+
 class Category(BaseModel):
     category_id: str = Field(default_factory=lambda: f"cat_{uuid.uuid4().hex[:12]}")
     name: str
@@ -873,7 +918,7 @@ class ProductVariant(BaseModel):
     variant_id: str = Field(default_factory=lambda: f"var_{uuid.uuid4().hex[:12]}")
     name: str  # e.g. "Taille M", "Rouge", "500ml"
     sku: Optional[str] = None
-    quantity: int = 0
+    quantity: float = 0
     purchase_price: Optional[float] = None  # None means use parent price
     selling_price: Optional[float] = None   # None means use parent price
     is_active: bool = True
@@ -897,12 +942,17 @@ class Product(BaseModel):
     sku: Optional[str] = None
     category_id: Optional[str] = None
     subcategory: Optional[str] = None
-    quantity: int = 0
+    quantity: float = 0
     unit: str = "pièce"  # pièce, carton, kg, litre, etc.
+    measurement_type: str = "unit"
+    display_unit: Optional[str] = None
+    pricing_unit: Optional[str] = None
+    allows_fractional_sale: bool = False
+    quantity_precision: float = 1.0
     purchase_price: float = 0.0
     selling_price: float = 0.0
-    min_stock: int = 0
-    max_stock: int = 100
+    min_stock: float = 0
+    max_stock: float = 100
     lead_time_days: int = 3 # Average time to receive stock
     image: Optional[str] = None  # base64
     rfid_tag: Optional[str] = None
@@ -933,12 +983,17 @@ class ProductCreate(BaseModel):
     sku: Optional[str] = None
     category_id: Optional[str] = None
     subcategory: Optional[str] = None
-    quantity: int = 0
+    quantity: float = 0
     unit: str = "pièce"
+    measurement_type: Optional[str] = None
+    display_unit: Optional[str] = None
+    pricing_unit: Optional[str] = None
+    allows_fractional_sale: Optional[bool] = None
+    quantity_precision: Optional[float] = None
     purchase_price: float = 0.0
     selling_price: float = 0.0
-    min_stock: int = 0
-    max_stock: int = 100
+    min_stock: float = 0
+    max_stock: float = 100
     lead_time_days: int = 3
     image: Optional[str] = None
     rfid_tag: Optional[str] = None
@@ -960,12 +1015,17 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = None
     category_id: Optional[str] = None
     subcategory: Optional[str] = None
-    quantity: Optional[int] = None
+    quantity: Optional[float] = None
     unit: Optional[str] = None
+    measurement_type: Optional[str] = None
+    display_unit: Optional[str] = None
+    pricing_unit: Optional[str] = None
+    allows_fractional_sale: Optional[bool] = None
+    quantity_precision: Optional[float] = None
     purchase_price: Optional[float] = None
     selling_price: Optional[float] = None
-    min_stock: Optional[int] = None
-    max_stock: Optional[int] = None
+    min_stock: Optional[float] = None
+    max_stock: Optional[float] = None
     lead_time_days: Optional[int] = None
     image: Optional[str] = None
     rfid_tag: Optional[str] = None
@@ -1048,7 +1108,7 @@ class Batch(BaseModel):
     user_id: str
     store_id: Optional[str] = None
     batch_number: str
-    quantity: int
+    quantity: float
     location_id: Optional[str] = None
     expiry_date: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -1057,7 +1117,7 @@ class Batch(BaseModel):
 class BatchCreate(BaseModel):
     product_id: str
     batch_number: str
-    quantity: int
+    quantity: float
     location_id: Optional[str] = None
     expiry_date: Optional[datetime] = None
 
@@ -1067,16 +1127,16 @@ class InventoryTask(BaseModel):
     store_id: str
     product_id: str
     product_name: str
-    expected_quantity: int
-    actual_quantity: Optional[int] = None
-    discrepancy: Optional[int] = None
+    expected_quantity: float
+    actual_quantity: Optional[float] = None
+    discrepancy: Optional[float] = None
     status: str = "pending"  # "pending", "completed"
     priority: str = "medium"  # "high", "medium", "low"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
 
 class InventoryTaskUpdate(BaseModel):
-    actual_quantity: int
+    actual_quantity: float
 
 class StockMovement(BaseModel):
     movement_id: str = Field(default_factory=lambda: f"mov_{uuid.uuid4().hex[:12]}")
@@ -1085,22 +1145,22 @@ class StockMovement(BaseModel):
     user_id: str
     store_id: Optional[str] = None
     type: str  # "in" or "out"
-    quantity: int
+    quantity: float
     reason: str = ""
     batch_id: Optional[str] = None
-    previous_quantity: int
-    new_quantity: int
+    previous_quantity: float
+    new_quantity: float
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StockMovementCreate(BaseModel):
     product_id: str
     type: str  # "in" or "out"
-    quantity: int
+    quantity: float
     reason: str = ""
     batch_id: Optional[str] = None
 
 class StockAdjustmentRequest(BaseModel):
-    actual_quantity: int
+    actual_quantity: float
     reason: Optional[str] = "Inventaire physique"
 
 class Alert(BaseModel):
@@ -1181,6 +1241,12 @@ class UserSettings(BaseModel):
     # Personnalisation reçu
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
+    invoice_business_name: Optional[str] = None
+    invoice_business_address: Optional[str] = None
+    invoice_label: Optional[str] = None
+    invoice_prefix: Optional[str] = None
+    invoice_footer: Optional[str] = None
+    invoice_payment_terms: Optional[str] = None
     billing_contact_name: Optional[str] = None
     billing_contact_email: Optional[EmailStr] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -1199,7 +1265,7 @@ class PushToken(BaseModel):
 class SaleItem(BaseModel):
     product_id: str
     product_name: str
-    quantity: int
+    quantity: float
     purchase_price: float = 0.0 # Price at the moment of sale for COGS calculation
     selling_price: float
     discount_amount: float = 0.0
@@ -1209,6 +1275,11 @@ class SaleItem(BaseModel):
     station: str = "plat"  # entree | plat | dessert | boisson | autre
     item_notes: Optional[str] = None  # ex: "sans oignons", "saignant"
     ready: bool = False  # marqué prêt par la cuisine
+
+    sold_quantity_input: Optional[float] = None
+    sold_unit: Optional[str] = None
+    measurement_type: Optional[str] = None
+    pricing_unit: Optional[str] = None
 
 class Sale(BaseModel):
     sale_id: str = Field(default_factory=lambda: f"sale_{uuid.uuid4().hex[:12]}")
@@ -1220,6 +1291,7 @@ class Sale(BaseModel):
     payment_method: str = "cash"  # primary method (backward compat)
     payments: List[dict] = Field(default_factory=list)  # [{method, amount}] for split
     customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
     terminal_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     table_id: Optional[str] = None
@@ -1314,6 +1386,15 @@ class AccountingStats(BaseModel):
     stock_value: float = 0.0
     stock_selling_value: float = 0.0
     tax_collected: float = 0.0  # TVA collectée sur la période
+    scope_label: str = ""
+    summary: str = ""
+    recommendations: List[str] = []
+    gross_margin_pct: float = 0.0
+    net_margin_pct: float = 0.0
+    expense_ratio: float = 0.0
+    loss_ratio: float = 0.0
+    tax_ratio: float = 0.0
+    top_expense_categories: List[Dict[str, Any]] = []
     product_performance: List[Dict[str, Any]] = [] # Detailed per-product stats
 
 class DashboardData(BaseModel):
@@ -1336,12 +1417,12 @@ class DashboardData(BaseModel):
 class ReplenishmentSuggestion(BaseModel):
     product_id: str
     product_name: str
-    current_quantity: int
-    min_stock: int
-    max_stock: int
+    current_quantity: float
+    min_stock: float
+    max_stock: float
     daily_velocity: float
     days_until_stock_out: Optional[float] = None
-    suggested_quantity: int
+    suggested_quantity: float
     priority: str  # "critical", "warning", "info"
     supplier_id: Optional[str] = None
     supplier_name: Optional[str] = None
@@ -1559,6 +1640,16 @@ def sanitize_user_doc(user_doc: dict) -> dict:
         user_doc["language"] = "fr"
     if user_doc.get("is_phone_verified") is None:
         user_doc["is_phone_verified"] = False
+    if user_doc.get("is_email_verified") is None:
+        user_doc["is_email_verified"] = False
+    if "required_verification" not in user_doc:
+        user_doc["required_verification"] = None
+    if "verification_channel" not in user_doc:
+        user_doc["verification_channel"] = user_doc.get("required_verification")
+    if "signup_surface" not in user_doc:
+        user_doc["signup_surface"] = None
+    if "verification_completed_at" not in user_doc:
+        user_doc["verification_completed_at"] = None
     if user_doc.get("auth_type") is None:
         user_doc["auth_type"] = "email"
     if user_doc.get("account_roles") is None:
@@ -1590,6 +1681,129 @@ def build_effective_permissions(user_doc: dict) -> Dict[str, str]:
 
 def user_has_operational_access(user_doc: dict) -> bool:
     return shared_user_has_operational_access(user_doc)
+
+
+def generate_otp_code() -> str:
+    return "".join([str(random.randint(0, 9)) for _ in range(6)])
+
+
+def resolve_signup_surface(surface: Optional[str], plan: Optional[str] = None) -> str:
+    if surface in {"mobile", "web"}:
+        return surface
+    return "web" if normalize_plan(plan) == "enterprise" else "mobile"
+
+
+def resolve_required_verification(role: str, plan: Optional[str], signup_surface: Optional[str]) -> Optional[str]:
+    if role == "supplier":
+        return "email"
+    if normalize_plan(plan) == "enterprise" or signup_surface == "web":
+        return "email"
+    return "phone"
+
+
+def verification_provider(channel: Optional[str]) -> str:
+    if channel == "phone":
+        return "twilio"
+    if channel == "email":
+        return "resend"
+    return "none"
+
+
+def is_required_verification_complete(user_doc: dict) -> bool:
+    required = user_doc.get("required_verification")
+    if required == "phone":
+        return bool(user_doc.get("is_phone_verified"))
+    if required == "email":
+        return bool(user_doc.get("is_email_verified"))
+    return True
+
+
+def can_user_access_app(user_doc: dict) -> bool:
+    return is_required_verification_complete(user_doc)
+
+
+def can_user_access_web(user_doc: dict, effective_plan: Optional[str] = None) -> bool:
+    if not is_required_verification_complete(user_doc):
+        return False
+    role = user_doc.get("role")
+    if role in ("admin", "superadmin", "supplier"):
+        return True
+    return normalize_plan(effective_plan or user_doc.get("effective_plan") or user_doc.get("plan")) == "enterprise"
+
+
+async def log_verification_event(
+    event_type: str,
+    user_doc: dict,
+    *,
+    provider: Optional[str] = None,
+    channel: Optional[str] = None,
+    detail: Optional[str] = None,
+    success: Optional[bool] = None,
+) -> None:
+    try:
+        await db.verification_events.insert_one({
+            "event_id": f"verif_{uuid.uuid4().hex[:12]}",
+            "type": event_type,
+            "user_id": user_doc.get("user_id"),
+            "account_id": user_doc.get("account_id"),
+            "plan": normalize_plan(user_doc.get("plan")),
+            "surface": user_doc.get("signup_surface"),
+            "provider": provider or verification_provider(channel or user_doc.get("required_verification")),
+            "channel": channel or user_doc.get("required_verification"),
+            "country_code": user_doc.get("country_code"),
+            "success": success,
+            "detail": detail,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception as event_err:
+        logger.warning(f"Failed to log verification event {event_type}: {event_err}")
+
+
+async def send_email_otp_via_resend(to_email: str, name: Optional[str], otp: str) -> bool:
+    if not RESEND_API_KEY:
+        raise RuntimeError("RESEND_API_KEY not set")
+
+    import httpx as _httpx
+
+    subject = "Votre code de verification Stockman"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <p>Bonjour {name or 'cher client'},</p>
+      <p>Voici votre code de verification Stockman :</p>
+      <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; margin: 16px 0; color: #111827;">{otp}</div>
+      <p>Ce code expire dans 10 minutes.</p>
+      <p>Si vous n'etes pas a l'origine de cette demande, ignorez simplement cet email.</p>
+    </div>
+    """
+
+    async with _httpx.AsyncClient(timeout=20.0) as client:
+        response = await client.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": os.environ.get("RESEND_FROM_EMAIL", "Stockman <contact@stockman.pro>"),
+                "to": [to_email],
+                "subject": subject,
+                "html": html,
+            },
+        )
+        response.raise_for_status()
+    return True
+
+
+async def dispatch_signup_verification_otp(user_doc: dict, otp: str) -> bool:
+    channel = user_doc.get("required_verification")
+    if channel == "phone":
+        phone = user_doc.get("phone")
+        if not phone:
+            raise ValueError("Phone number required for phone verification")
+        return await twilio_service.send_whatsapp_otp(phone, otp)
+    if channel == "email":
+        return await send_email_otp_via_resend(user_doc.get("email"), user_doc.get("name"), otp)
+    return True
 
 
 async def ensure_business_account_for_user_doc(user_doc: dict) -> Optional[dict]:
@@ -1682,6 +1896,13 @@ async def build_user_from_doc(user_doc: dict) -> User:
     source_doc["trial_ends_at"] = (account_doc or {}).get("trial_ends_at") or user_doc.get("trial_ends_at")
     source_doc["business_type"] = (account_doc or {}).get("business_type") or user_doc.get("business_type")
     source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", "XOF")
+    source_doc["is_email_verified"] = bool(user_doc.get("is_email_verified"))
+    source_doc["required_verification"] = user_doc.get("required_verification")
+    source_doc["verification_channel"] = user_doc.get("verification_channel") or user_doc.get("required_verification")
+    source_doc["signup_surface"] = user_doc.get("signup_surface")
+    source_doc["verification_completed_at"] = user_doc.get("verification_completed_at")
+    source_doc["can_access_app"] = can_user_access_app(source_doc)
+    source_doc["can_access_web"] = can_user_access_web(source_doc, effective_plan=access_context["effective_plan"])
     if source_doc["active_store_id"] != user_doc.get("active_store_id"):
         await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": {"active_store_id": source_doc["active_store_id"]}})
     return User(**source_doc)
@@ -2837,6 +3058,229 @@ async def admin_detailed_stats():
         "low_stock_count": low_stock_count,
     }
 
+
+@admin_router.get("/stats/onboarding")
+async def admin_onboarding_stats(days: int = 30):
+    now = datetime.now(timezone.utc)
+    window_days = max(1, min(days, 90))
+    window_start = now - timedelta(days=window_days)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    signup_query = {
+        "role": {"$in": ["shopkeeper", "supplier"]},
+        "created_at": {"$gte": window_start},
+        "$or": [{"parent_user_id": {"$exists": False}}, {"parent_user_id": None}],
+    }
+    signups = await db.users.find(
+        signup_query,
+        {
+            "_id": 0,
+            "user_id": 1,
+            "created_at": 1,
+            "plan": 1,
+            "signup_surface": 1,
+            "country_code": 1,
+            "business_type": 1,
+            "verification_completed_at": 1,
+            "first_login_at": 1,
+        },
+    ).to_list(None)
+
+    plan_breakdown: Dict[str, int] = defaultdict(int)
+    surface_breakdown: Dict[str, int] = defaultdict(int)
+    country_breakdown: Dict[str, int] = defaultdict(int)
+    business_type_breakdown: Dict[str, int] = defaultdict(int)
+    verified_signups = 0
+    first_logins = 0
+    verification_delays: List[float] = []
+
+    for signup in signups:
+        plan_breakdown[normalize_plan(signup.get("plan"))] += 1
+        surface_breakdown[signup.get("signup_surface") or "legacy"] += 1
+        country_breakdown[signup.get("country_code") or "N/A"] += 1
+        business_type_breakdown[signup.get("business_type") or "autre"] += 1
+        if signup.get("verification_completed_at"):
+            verified_signups += 1
+            verification_delays.append(
+                max(0.0, (signup["verification_completed_at"] - signup["created_at"]).total_seconds() / 60.0)
+            )
+        if signup.get("first_login_at"):
+            first_logins += 1
+
+    otp_sent_users = await db.verification_events.distinct(
+        "user_id",
+        {"type": "otp_sent", "created_at": {"$gte": window_start}},
+    )
+    otp_verified_users = await db.verification_events.distinct(
+        "user_id",
+        {"type": "otp_verified", "created_at": {"$gte": window_start}},
+    )
+
+    signups_today = sum(1 for signup in signups if signup.get("created_at") and signup["created_at"] >= today_start)
+
+    return {
+        "window_days": window_days,
+        "signups_today": signups_today,
+        "signups_total": len(signups),
+        "verified_total": verified_signups,
+        "verification_rate": round((verified_signups / len(signups)) * 100, 1) if signups else 0.0,
+        "avg_minutes_to_verify": round(sum(verification_delays) / len(verification_delays), 1) if verification_delays else 0.0,
+        "funnel": {
+            "signup_completed": len(signups),
+            "otp_sent": len([user_id for user_id in otp_sent_users if user_id]),
+            "otp_verified": len([user_id for user_id in otp_verified_users if user_id]),
+            "first_login": first_logins,
+        },
+        "by_plan": dict(plan_breakdown),
+        "by_surface": dict(surface_breakdown),
+        "by_country": dict(country_breakdown),
+        "by_business_type": dict(business_type_breakdown),
+    }
+
+
+@admin_router.get("/stats/otp")
+async def admin_otp_stats(days: int = 30):
+    now = datetime.now(timezone.utc)
+    window_days = max(1, min(days, 90))
+    window_start = now - timedelta(days=window_days)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    events = await db.verification_events.find(
+        {
+            "created_at": {"$gte": window_start},
+            "type": {"$in": ["otp_sent", "otp_send_failed", "otp_verified", "otp_verification_failed", "otp_expired"]},
+        },
+        {"_id": 0},
+    ).to_list(None)
+
+    def build_provider_stats(provider: str) -> Dict[str, Any]:
+        provider_events = [event for event in events if event.get("provider") == provider]
+        sent = sum(1 for event in provider_events if event.get("type") == "otp_sent")
+        send_failed = sum(1 for event in provider_events if event.get("type") == "otp_send_failed")
+        verified = sum(1 for event in provider_events if event.get("type") == "otp_verified")
+        verification_failed = sum(1 for event in provider_events if event.get("type") == "otp_verification_failed")
+        expired = sum(1 for event in provider_events if event.get("type") == "otp_expired")
+        return {
+            "sent": sent,
+            "send_failed": send_failed,
+            "verified": verified,
+            "verification_failed": verification_failed,
+            "expired": expired,
+            "verification_rate": round((verified / sent) * 100, 1) if sent else 0.0,
+        }
+
+    sent_today = sum(1 for event in events if event.get("type") == "otp_sent" and event.get("created_at") and event["created_at"] >= today_start)
+    verified_today = sum(1 for event in events if event.get("type") == "otp_verified" and event.get("created_at") and event["created_at"] >= today_start)
+
+    return {
+        "window_days": window_days,
+        "sent_today": sent_today,
+        "verified_today": verified_today,
+        "providers": {
+            "twilio": build_provider_stats("twilio"),
+            "resend": build_provider_stats("resend"),
+        },
+    }
+
+
+@admin_router.get("/stats/enterprise-signups")
+async def admin_enterprise_signup_stats(days: int = 30):
+    now = datetime.now(timezone.utc)
+    window_days = max(1, min(days, 90))
+    window_start = now - timedelta(days=window_days)
+    day_ago = now - timedelta(days=1)
+    week_ago = now - timedelta(days=7)
+    users = await db.users.find(
+        {
+            "role": "shopkeeper",
+            "plan": "enterprise",
+            "created_at": {"$gte": window_start},
+            "$or": [{"parent_user_id": {"$exists": False}}, {"parent_user_id": None}],
+        },
+        {"_id": 0, "user_id": 1, "created_at": 1, "is_email_verified": 1, "first_login_at": 1, "store_ids": 1},
+    ).to_list(None)
+
+    user_ids = [user["user_id"] for user in users]
+    first_sale_rows = await db.sales.aggregate([
+        {"$match": {"user_id": {"$in": user_ids}, "status": "completed"}},
+        {"$group": {"_id": "$user_id"}},
+    ]).to_list(None) if user_ids else []
+    users_with_sales = {row["_id"] for row in first_sale_rows}
+
+    return {
+        "window_days": window_days,
+        "created": len(users),
+        "verified": sum(1 for user in users if user.get("is_email_verified")),
+        "activated": sum(1 for user in users if user.get("first_login_at")),
+        "with_first_store": sum(1 for user in users if user.get("store_ids")),
+        "with_first_sale": sum(1 for user in users if user.get("user_id") in users_with_sales),
+        "inactive_after_1d": sum(1 for user in users if user.get("created_at") and user["created_at"] <= day_ago and not user.get("first_login_at")),
+        "inactive_after_7d": sum(1 for user in users if user.get("created_at") and user["created_at"] <= week_ago and not user.get("first_login_at")),
+    }
+
+
+@admin_router.get("/stats/conversion")
+async def admin_conversion_stats():
+    now = datetime.now(timezone.utc)
+    week_ahead = now + timedelta(days=7)
+    accounts = await db.business_accounts.find(
+        {},
+        {
+            "_id": 0,
+            "plan": 1,
+            "trial_ends_at": 1,
+            "subscription_provider": 1,
+            "subscription_end": 1,
+            "subscription_status": 1,
+        },
+    ).to_list(None)
+
+    by_plan: Dict[str, int] = defaultdict(int)
+    paying_accounts = 0
+    active_trials = 0
+    expiring_trials = 0
+    for account in accounts:
+        normalized_plan = normalize_plan(account.get("plan"))
+        by_plan[normalized_plan] += 1
+        provider = account.get("subscription_provider") or "none"
+        trial_ends_at = account.get("trial_ends_at")
+        is_paying = provider not in ("none", "", None) or bool(account.get("subscription_end"))
+        if is_paying:
+            paying_accounts += 1
+        elif trial_ends_at and trial_ends_at >= now:
+            active_trials += 1
+            if trial_ends_at <= week_ahead:
+                expiring_trials += 1
+
+    total_accounts = len(accounts)
+    return {
+        "total_accounts": total_accounts,
+        "paying_accounts": paying_accounts,
+        "active_trials": active_trials,
+        "trials_expiring_soon": expiring_trials,
+        "conversion_rate": round((paying_accounts / total_accounts) * 100, 1) if total_accounts else 0.0,
+        "by_plan": dict(by_plan),
+    }
+
+
+@admin_router.get("/verification-events")
+async def admin_verification_events(
+    type: Optional[str] = None,
+    provider: Optional[str] = None,
+    channel: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    query: Dict[str, Any] = {}
+    if type:
+        query["type"] = type
+    if provider:
+        query["provider"] = provider
+    if channel:
+        query["channel"] = channel
+    items = await db.verification_events.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.verification_events.count_documents(query)
+    return {"items": items, "total": total}
+
 @admin_router.get("/stores")
 async def admin_list_stores(skip: int = 0, limit: int = 50):
     """List all stores with owner info and product counts (Optimized)"""
@@ -2891,7 +3335,7 @@ async def admin_toggle_user(user_id: str):
     """Toggle user active/inactive status"""
     user_doc = await db.users.find_one({"user_id": user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
     
     new_status = not user_doc.get("is_active", True)
     await db.users.update_one(
@@ -5408,6 +5852,46 @@ class SupplierInvoice(BaseModel):
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
+class CustomerInvoiceItem(BaseModel):
+    product_id: Optional[str] = None
+    product_name: Optional[str] = None
+    description: str
+    quantity: float
+    unit_price: float
+    line_total: float
+    tax_rate: float = 0.0
+    tax_amount: float = 0.0
+
+
+class CustomerInvoice(BaseModel):
+    invoice_id: str = Field(default_factory=lambda: f"cinv_{uuid.uuid4().hex[:12]}")
+    invoice_number: str
+    invoice_label: str = "Facture"
+    invoice_prefix: str = "FAC"
+    user_id: str
+    store_id: str
+    sale_id: str
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    status: str = "issued"
+    currency: Optional[str] = None
+    items: List[CustomerInvoiceItem]
+    discount_amount: float = 0.0
+    subtotal_ht: float = 0.0
+    tax_total: float = 0.0
+    total_amount: float
+    payment_method: Optional[str] = None
+    payments: List[dict] = Field(default_factory=list)
+    business_name: Optional[str] = None
+    business_address: Optional[str] = None
+    footer: Optional[str] = None
+    payment_terms: Optional[str] = None
+    notes: Optional[str] = None
+    sale_created_at: Optional[datetime] = None
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class SupplierCommunicationLog(BaseModel):
     log_id: str = Field(default_factory=lambda: f"slog_{uuid.uuid4().hex[:12]}")
     user_id: str
@@ -5496,10 +5980,6 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         hashed_password = get_password_hash(user_data.password)
-        
-        # Generate OTP with expiration
-        otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-        otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
 
         # Create Default Store
         store_id = f"store_{uuid.uuid4().hex[:12]}"
@@ -5512,6 +5992,12 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
         initial_plan = user_data.plan if user_data.plan in ("starter", "pro", "enterprise") else "starter"
+        signup_surface = resolve_signup_surface(user_data.signup_surface, initial_plan)
+        required_verification = resolve_required_verification(role, initial_plan, signup_surface)
+        if required_verification == "phone" and not (user_data.phone or "").strip():
+            raise HTTPException(status_code=400, detail="Le numero de telephone est requis pour verifier ce compte.")
+        otp = generate_otp_code()
+        otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
         trial_ends_at = datetime.now(timezone.utc) + timedelta(days=90)  # 3 months free trial
         user_doc = {
             "user_id": user_id,
@@ -5533,9 +6019,17 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "business_type": user_data.business_type,
             "how_did_you_hear": user_data.how_did_you_hear,
             "is_phone_verified": False,
-            "phone_otp": otp,
-            "phone_otp_expiry": otp_expiry,
+            "is_email_verified": False,
+            "required_verification": required_verification,
+            "verification_channel": required_verification,
+            "signup_surface": signup_surface,
+            "verification_completed_at": None,
+            "phone_otp": otp if required_verification == "phone" else None,
+            "phone_otp_expiry": otp_expiry if required_verification == "phone" else None,
             "phone_otp_attempts": 0,
+            "email_otp": otp if required_verification == "email" else None,
+            "email_otp_expiry": otp_expiry if required_verification == "email" else None,
+            "email_otp_attempts": 0,
             "country_code": user_data.country_code or "SN",
             "created_at": datetime.now(timezone.utc)
         }
@@ -5569,7 +6063,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         # Create default settings
         settings = UserSettings(user_id=user_id, account_id=user_doc.get("account_id"))
         await db.user_settings.insert_one(settings.model_dump())
-        await ensure_business_account_for_user_doc(user_doc)
+        account_doc = await ensure_business_account_for_user_doc(user_doc)
+        if account_doc:
+            user_doc["account_id"] = account_doc.get("account_id")
         
         # Create default alert rules
         default_rules = [
@@ -5609,12 +6105,27 @@ async def register(request: Request, user_data: UserCreate, response: Response):
                     {"$set": {"linked_user_id": user_id}}
                 )
 
-        # Send WhatsApp OTP (best-effort, non-blocking for registration)
-        if user_data.phone:
-            try:
-                await twilio_service.send_whatsapp_otp(user_data.phone, otp)
-            except Exception as otp_err:
-                logger.warning(f"Failed to send WhatsApp OTP (non-blocking): {otp_err}")
+        await log_verification_event("signup_completed", user_doc, channel=required_verification, success=True)
+        try:
+            sent = await dispatch_signup_verification_otp(user_doc, otp)
+            await log_verification_event(
+                "otp_sent" if sent else "otp_send_failed",
+                user_doc,
+                provider=verification_provider(required_verification),
+                channel=required_verification,
+                success=bool(sent),
+                detail="register",
+            )
+        except Exception as otp_err:
+            logger.warning(f"Failed to send signup OTP ({required_verification}): {otp_err}")
+            await log_verification_event(
+                "otp_send_failed",
+                user_doc,
+                provider=verification_provider(required_verification),
+                channel=required_verification,
+                success=False,
+                detail=str(otp_err),
+            )
 
         # Create access token
         access_token = create_access_token(data={"sub": user_id})
@@ -5644,7 +6155,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         user = await build_user_from_doc(user_doc)
 
-        return TokenResponse(access_token=access_token, user=user)
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
     except HTTPException:
         raise
     except Exception as e:
@@ -5656,12 +6167,16 @@ async def register(request: Request, user_data: UserCreate, response: Response):
 class VerifyPhoneRequest(BaseModel):
     otp: str
 
+
+class VerifyEmailRequest(BaseModel):
+    otp: str
+
 @api_router.post("/auth/verify-phone")
 @limiter.limit("5/minute")
 async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user: User = Depends(require_auth)):
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
     
     # Security: check attempt limit
     attempts = user_doc.get("phone_otp_attempts", 0)
@@ -5671,12 +6186,28 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
     # Security: check OTP expiration
     otp_expiry = user_doc.get("phone_otp_expiry")
     if otp_expiry and datetime.now(timezone.utc) > otp_expiry:
+        await log_verification_event(
+            "otp_expired",
+            user_doc,
+            provider="twilio",
+            channel="phone",
+            success=False,
+            detail="verify_phone",
+        )
         raise HTTPException(status_code=400, detail="Code expiré. Veuillez demander un nouveau code.")
     
     if user_doc.get("phone_otp") == data.otp:
+        update_payload = {
+            "is_phone_verified": True,
+            "phone_otp": None,
+            "phone_otp_expiry": None,
+            "phone_otp_attempts": 0,
+        }
+        if user_doc.get("required_verification") == "phone":
+            update_payload["verification_completed_at"] = datetime.now(timezone.utc)
         await db.users.update_one(
             {"user_id": current_user.user_id},
-            {"$set": {"is_phone_verified": True, "phone_otp": None, "phone_otp_expiry": None, "phone_otp_attempts": 0}}
+            {"$set": update_payload}
         )
         # Audit trail (L3)
         await db.security_events.insert_one({
@@ -5686,6 +6217,14 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
             "phone": user_doc.get("phone"),
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+        await log_verification_event(
+            "otp_verified",
+            {**user_doc, **update_payload},
+            provider="twilio",
+            channel="phone",
+            success=True,
+            detail="verify_phone",
+        )
         updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
         return {"message": "Téléphone vérifié avec succès", "user": await build_user_from_doc(updated_user)}
     else:
@@ -5693,6 +6232,14 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
         await db.users.update_one(
             {"user_id": current_user.user_id},
             {"$inc": {"phone_otp_attempts": 1}}
+        )
+        await log_verification_event(
+            "otp_verification_failed",
+            user_doc,
+            provider="twilio",
+            channel="phone",
+            success=False,
+            detail="verify_phone",
         )
         raise HTTPException(status_code=400, detail="Code de vérification incorrect")
 
@@ -5741,6 +6288,157 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
             response_data["otp_fallback"] = otp  # Double opt-in pour afficher l'OTP
         return response_data
 
+@api_router.post("/auth/verify-email")
+@limiter.limit("5/minute")
+async def verify_email(request: Request, data: VerifyEmailRequest, current_user: User = Depends(require_auth)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
+
+    attempts = user_doc.get("email_otp_attempts", 0)
+    if attempts >= 5:
+        raise HTTPException(status_code=429, detail="Trop de tentatives. Veuillez demander un nouveau code.")
+
+    otp_expiry = user_doc.get("email_otp_expiry")
+    if otp_expiry and datetime.now(timezone.utc) > otp_expiry:
+        await log_verification_event(
+            "otp_expired",
+            user_doc,
+            provider="resend",
+            channel="email",
+            success=False,
+            detail="verify_email",
+        )
+        raise HTTPException(status_code=400, detail="Code expire. Veuillez demander un nouveau code.")
+
+    if user_doc.get("email_otp") == data.otp:
+        update_payload = {
+            "is_email_verified": True,
+            "email_otp": None,
+            "email_otp_expiry": None,
+            "email_otp_attempts": 0,
+        }
+        if user_doc.get("required_verification") == "email":
+            update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+        await db.users.update_one({"user_id": current_user.user_id}, {"$set": update_payload})
+        await db.security_events.insert_one({
+            "event_id": f"sec_{uuid.uuid4().hex[:12]}",
+            "type": "email_verified",
+            "user_id": current_user.user_id,
+            "email": user_doc.get("email"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        await log_verification_event(
+            "otp_verified",
+            {**user_doc, **update_payload},
+            provider="resend",
+            channel="email",
+            success=True,
+            detail="verify_email",
+        )
+        updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+        return {"message": "Email verifie avec succes", "user": await build_user_from_doc(updated_user)}
+
+    await db.users.update_one({"user_id": current_user.user_id}, {"$inc": {"email_otp_attempts": 1}})
+    await log_verification_event(
+        "otp_verification_failed",
+        user_doc,
+        provider="resend",
+        channel="email",
+        success=False,
+        detail="verify_email",
+    )
+    raise HTTPException(status_code=400, detail="Code de verification incorrect")
+
+
+@api_router.post("/auth/resend-phone-otp")
+@limiter.limit("2/minute")
+async def resend_phone_otp(request: Request, current_user: User = Depends(require_auth)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
+
+    if user_doc.get("is_phone_verified"):
+        raise HTTPException(status_code=400, detail="Telephone deja verifie")
+
+    phone = user_doc.get("phone")
+    if not phone:
+        raise HTTPException(status_code=400, detail="Aucun numero de telephone associe au compte")
+
+    otp = generate_otp_code()
+    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"phone_otp": otp, "phone_otp_expiry": otp_expiry, "phone_otp_attempts": 0}}
+    )
+
+    sent = False
+    try:
+        sent = await twilio_service.send_whatsapp_otp(phone, otp)
+    except Exception as phone_err:
+        logger.error(f"Failed to send OTP via WhatsApp: {phone_err}")
+
+    await log_verification_event(
+        "otp_sent" if sent else "otp_send_failed",
+        user_doc,
+        provider="twilio",
+        channel="phone",
+        success=bool(sent),
+        detail="resend_phone_otp",
+    )
+
+    if sent:
+        return {"message": "Nouveau code envoye par WhatsApp"}
+
+    response_data = {"message": "Le code a ete genere mais l'envoi WhatsApp a echoue. Contactez le support."}
+    if not IS_PROD and os.environ.get("SHOW_OTP_FALLBACK") == "true":
+        response_data["otp_fallback"] = otp
+    return response_data
+
+
+@api_router.post("/auth/resend-email-otp")
+@limiter.limit("2/minute")
+async def resend_email_otp(request: Request, current_user: User = Depends(require_auth)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
+
+    if user_doc.get("is_email_verified"):
+        raise HTTPException(status_code=400, detail="Email deja verifie")
+
+    otp = generate_otp_code()
+    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {"email_otp": otp, "email_otp_expiry": otp_expiry, "email_otp_attempts": 0}}
+    )
+
+    sent = False
+    try:
+        sent = await send_email_otp_via_resend(user_doc.get("email"), user_doc.get("name"), otp)
+    except Exception as email_err:
+        logger.error(f"Failed to send OTP via email: {email_err}")
+
+    await log_verification_event(
+        "otp_sent" if sent else "otp_send_failed",
+        user_doc,
+        provider="resend",
+        channel="email",
+        success=bool(sent),
+        detail="resend_email_otp",
+    )
+
+    response_data = {"message": "Nouveau code envoye par email" if sent else "Le code a ete genere mais l'envoi email a echoue. Contactez le support."}
+    if not sent and not IS_PROD and os.environ.get("SHOW_OTP_FALLBACK") == "true":
+        response_data["otp_fallback"] = otp
+    return response_data
+
+
+@api_router.get("/auth/verification-status", response_model=VerificationStatusResponse)
+async def get_verification_status(current_user: User = Depends(require_auth)):
+    return VerificationStatusResponse(completed=bool(current_user.can_access_app), user=current_user)
+
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def login(request: Request, user_data: UserLogin, response: Response):
@@ -5756,11 +6454,15 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     if not verify_password(user_data.password, user_doc.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
-    # Update last_login
+    # Update last_login / first_login_at
+    login_updates = {"last_login": datetime.now(timezone.utc)}
+    if not user_doc.get("first_login_at"):
+        login_updates["first_login_at"] = login_updates["last_login"]
     await db.users.update_one(
         {"user_id": user_doc["user_id"]},
-        {"$set": {"last_login": datetime.now(timezone.utc)}}
+        {"$set": login_updates}
     )
+    user_doc.update(login_updates)
     
     access_token = create_access_token(data={"sub": user_doc["user_id"]})
     
@@ -6185,6 +6887,10 @@ async def delete_category(category_id: str, user: User = Depends(require_permiss
 
 # ===================== PRODUCT ROUTES =====================
 
+def _product_response(product_doc: dict) -> Product:
+    return Product(**normalize_product_measurement_fields(product_doc))
+
+
 @api_router.get("/products")
 async def get_products(
     user: User = Depends(require_permission("stock", "read")),
@@ -6216,7 +6922,7 @@ async def get_products(
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
 
-    return {"items": [Product(**prod) for prod in products], "total": total}
+    return {"items": [_product_response(prod) for prod in products], "total": total}
 
 @api_router.get("/products/{product_id}", response_model=Product)
 async def get_product(product_id: str, user: User = Depends(require_permission("stock", "read"))):
@@ -6225,7 +6931,7 @@ async def get_product(product_id: str, user: User = Depends(require_permission("
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return Product(**product)
+    return _product_response(product)
 
 @api_router.post("/products", response_model=Product)
 async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
@@ -6240,8 +6946,9 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     if prod_data.production_mode in ("on_demand", "hybrid"):
         prod_data.is_menu_item = True
 
+    product_payload = normalize_product_measurement_fields(prod_data.model_dump())
     product = Product(
-        **prod_data.model_dump(),
+        **product_payload,
         user_id=owner_id,
         store_id=user.active_store_id
     )
@@ -6269,7 +6976,7 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
         country_code=user.country_code or "SN",
     ))
 
-    return product
+    return _product_response(product.model_dump())
 
 @api_router.put("/products/{product_id}", response_model=Product)
 async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_permission("stock", "write"))):
@@ -6292,16 +6999,24 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     if not current_product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
 
+    normalized_update = normalize_product_measurement_fields({**current_product, **update_dict})
+    update_payload = {
+        key: value
+        for key, value in normalized_update.items()
+        if key not in {"_id", "created_at"}
+    }
+    update_payload["updated_at"] = datetime.now(timezone.utc)
+
     result = await db.products.find_one_and_update(
         {"product_id": product_id, "user_id": owner_id},
-        {"$set": update_dict},
+        {"$set": update_payload},
         return_document=True
     )
 
     if result:
         # Log price change if applicable
-        new_purchase = update_dict.get("purchase_price")
-        new_selling = update_dict.get("selling_price")
+        new_purchase = update_payload.get("purchase_price")
+        new_selling = update_payload.get("selling_price")
 
         old_purchase = current_product.get("purchase_price")
         old_selling = current_product.get("selling_price")
@@ -6318,7 +7033,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     result.pop("_id", None)
-    product = Product(**result)
+    product = _product_response(result)
 
     await log_activity(user, "product_updated", "stock", f"Produit '{product.name}' modifié", {"product_id": product_id})
 
@@ -6348,12 +7063,13 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
-    previous_quantity = product["quantity"]
+    product = normalize_product_measurement_fields(product)
+    previous_quantity = float(product["quantity"])
     actual_quantity = adj_data.actual_quantity
     diff = actual_quantity - previous_quantity
     
     if diff == 0:
-        return Product(**product) # No change needed
+        return _product_response(product) # No change needed
     
     # Update product quantity
     await db.products.update_one(
@@ -6386,9 +7102,10 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
 
     # Check for alerts
     product["quantity"] = actual_quantity
-    await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
+    normalized_product = normalize_product_measurement_fields(product)
+    await check_and_create_alerts(Product(**normalized_product), owner_id, store_id=user.active_store_id)
     
-    return Product(**product)
+    return Product(**normalized_product)
 
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
@@ -6417,14 +7134,14 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     
     # Handle Batch Sync
     if mov_data.type == "in":
-        new_quantity = previous_quantity + mov_data.quantity
+        new_quantity = round_quantity(previous_quantity + mov_data.quantity)
         if mov_data.batch_id:
             await db.batches.update_one(
                 {"batch_id": mov_data.batch_id, "user_id": owner_id},
                 {"$inc": {"quantity": mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}}
             )
     else: # OUT
-        new_quantity = max(0, previous_quantity - mov_data.quantity)
+        new_quantity = round_quantity(max(0, previous_quantity - mov_data.quantity))
         
         # FEFO Logic for Outflows
         if mov_data.batch_id:
@@ -6435,7 +7152,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
             )
         else:
             # Automatic FEFO: Take from oldest expiring batches first
-            qty_to_deduct = mov_data.quantity
+            qty_to_deduct = float(mov_data.quantity)
             active_batches = await db.batches.find(
                 {"product_id": mov_data.product_id, "user_id": owner_id, "quantity": {"$gt": 0}},
                 {"_id": 0}
@@ -6445,7 +7162,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
                 if qty_to_deduct <= 0:
                     break
                 
-                deduct = min(b["quantity"], qty_to_deduct)
+                deduct = min(float(b["quantity"]), qty_to_deduct)
                 await db.batches.update_one(
                     {"batch_id": b["batch_id"]},
                     {"$inc": {"quantity": -deduct}, "$set": {"updated_at": datetime.now(timezone.utc)}}
@@ -6478,13 +7195,13 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         user=user,
         action="stock_movement",
         module="stock",
-        description=f"{'Entrée' if mov_data.type == 'in' else 'Sortie'} de {mov_data.quantity} {product.get('unit', 'unités')} pour {product['name']}",
+        description=f"{'Entrée' if mov_data.type == 'in' else 'Sortie'} de {format_quantity(mov_data.quantity, product.get('unit', 'unités'))} pour {product['name']}",
         details={"product_id": mov_data.product_id, "type": mov_data.type, "quantity": mov_data.quantity}
     )
 
     # Check for alerts
     product["quantity"] = new_quantity
-    await check_and_create_alerts(Product(**product), owner_id, store_id=product.get("store_id") or user.active_store_id)
+    await check_and_create_alerts(_product_response(product), owner_id, store_id=product.get("store_id") or user.active_store_id)
 
     return movement
 
@@ -6869,10 +7586,15 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
 
     for item in new_items:
         prod_id = item["product_id"]
-        qty = item.get("quantity", 1)
         product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
         if not product:
             continue
+        product = normalize_product_measurement_fields(product)
+        try:
+            quantity_context = build_sale_quantity_context(product, item)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        qty = quantity_context["quantity"]
         base_unit_price = float(product["selling_price"])
         raw_unit_price = item.get("price")
         if raw_unit_price is not None:
@@ -6892,12 +7614,19 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
             if i["product_id"] == prod_id
             and i.get("item_notes") == item.get("item_notes")
             and round(float(i.get("selling_price", base_unit_price)), 2) == round(effective_unit_price, 2)
+            and (i.get("sold_unit") or product.get("pricing_unit")) == quantity_context["sold_unit"]
         ), None)
         if existing:
-            existing["quantity"] += qty
+            existing["quantity"] = round_quantity(existing.get("quantity", 0) + qty)
             existing["total"] = round(existing["total"] + line_total, 2)
             existing["discount_amount"] = round(existing.get("discount_amount", 0.0) + item_discount, 2)
             existing["tax_rate"] = item_tax_rate
+            existing["sold_quantity_input"] = round_quantity(
+                existing.get("sold_quantity_input", existing.get("quantity", 0)) + quantity_context["sold_quantity_input"]
+            )
+            existing["sold_unit"] = quantity_context["sold_unit"]
+            existing["measurement_type"] = quantity_context["measurement_type"]
+            existing["pricing_unit"] = quantity_context["pricing_unit"]
             existing["ready"] = False
         else:
             sale_items_raw.append({
@@ -6913,6 +7642,10 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
                 "station": item.get("station", "plat"),
                 "item_notes": item.get("item_notes"),
                 "ready": False,
+                "sold_quantity_input": quantity_context["sold_quantity_input"],
+                "sold_unit": quantity_context["sold_unit"],
+                "measurement_type": quantity_context["measurement_type"],
+                "pricing_unit": quantity_context["pricing_unit"],
             })
 
     sale_items_raw = await _enrich_sale_items_with_product_tax(
@@ -7334,6 +8067,197 @@ def _compute_tier(visit_count: int) -> str:
         return "argent"
     return "bronze"
 
+
+def _parse_crm_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+    return None
+
+
+def _days_until_birthday(birthday: Optional[str], now: datetime) -> Optional[int]:
+    if not birthday or len(birthday) != 5:
+        return None
+    try:
+        month = int(birthday[:2])
+        day = int(birthday[3:5])
+        birthday_this_year = now.replace(month=month, day=day, hour=0, minute=0, second=0, microsecond=0)
+        diff = (birthday_this_year - now).days
+        if diff < 0:
+            next_year = birthday_this_year.replace(year=birthday_this_year.year + 1)
+            diff = (next_year - now).days
+        return diff
+    except Exception:
+        return None
+
+
+def _classify_crm_segment(
+    created_at: Optional[datetime],
+    last_purchase_date: Optional[datetime],
+    visit_count: int,
+    total_spent: float,
+    now: datetime,
+) -> str:
+    created_recently = bool(created_at and (now - created_at).days <= 30)
+    inactive_days = (now - last_purchase_date).days if last_purchase_date else None
+
+    if visit_count == 0:
+        return "new" if created_recently else "inactive"
+    if inactive_days is not None and inactive_days > 90:
+        return "inactive"
+    if inactive_days is not None and inactive_days > 30:
+        return "at_risk"
+    if total_spent >= 500000 or visit_count >= 15:
+        return "vip"
+    if visit_count >= 5:
+        return "loyal"
+    if created_recently:
+        return "new"
+    return "occasional"
+
+
+async def _build_crm_customer_rows(owner_id: str, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
+    now = datetime.now(timezone.utc)
+    customers_raw = await db.customers.find({"user_id": owner_id}, {"_id": 0}).to_list(5000)
+    customer_ids = [customer.get("customer_id") for customer in customers_raw if customer.get("customer_id")]
+    stats_map: Dict[str, Dict[str, Any]] = {}
+
+    if customer_ids:
+        sales_pipeline = [
+            {"$match": {
+                "user_id": owner_id,
+                "customer_id": {"$in": customer_ids},
+                "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
+            }},
+            {"$group": {
+                "_id": "$customer_id",
+                "visit_count": {"$sum": 1},
+                "lifetime_revenue": {"$sum": "$total_amount"},
+                "last_purchase_date": {"$max": "$created_at"},
+                "period_visit_count": {
+                    "$sum": {
+                        "$cond": [
+                            {"$and": [
+                                {"$gte": ["$created_at", start_date]},
+                                {"$lte": ["$created_at", end_date]},
+                            ]},
+                            1,
+                            0,
+                        ]
+                    }
+                },
+                "period_revenue": {
+                    "$sum": {
+                        "$cond": [
+                            {"$and": [
+                                {"$gte": ["$created_at", start_date]},
+                                {"$lte": ["$created_at", end_date]},
+                            ]},
+                            "$total_amount",
+                            0,
+                        ]
+                    }
+                },
+            }},
+        ]
+        stats_rows = await db.sales.aggregate(sales_pipeline).to_list(len(customer_ids))
+        stats_map = {row["_id"]: row for row in stats_rows if row.get("_id")}
+
+    rows: List[Dict[str, Any]] = []
+    for customer in customers_raw:
+        customer_id = customer.get("customer_id")
+        stats = stats_map.get(customer_id, {})
+        visit_count = int(stats.get("visit_count") or 0)
+        period_visit_count = int(stats.get("period_visit_count") or 0)
+        period_revenue = float(stats.get("period_revenue") or 0.0)
+        last_purchase_date = _parse_crm_datetime(stats.get("last_purchase_date"))
+        created_at = _parse_crm_datetime(customer.get("created_at"))
+        total_spent = float(customer.get("total_spent") or stats.get("lifetime_revenue") or 0.0)
+        current_debt = float(customer.get("current_debt") or 0.0)
+        average_basket = round(total_spent / visit_count, 2) if visit_count > 0 else 0.0
+        period_average_basket = round(period_revenue / period_visit_count, 2) if period_visit_count > 0 else 0.0
+        inactive_days = (now - last_purchase_date).days if last_purchase_date else None
+        birthday_in_days = _days_until_birthday(customer.get("birthday"), now)
+        segment = _classify_crm_segment(created_at, last_purchase_date, visit_count, total_spent, now)
+
+        rows.append({
+            "customer_id": customer_id,
+            "name": customer.get("name") or "Client",
+            "phone": customer.get("phone"),
+            "email": customer.get("email"),
+            "category": customer.get("category") or "particulier",
+            "created_at": created_at.isoformat() if created_at else None,
+            "last_purchase_date": last_purchase_date.isoformat() if last_purchase_date else None,
+            "visit_count": visit_count,
+            "period_visit_count": period_visit_count,
+            "total_spent": round(total_spent, 2),
+            "period_revenue": round(period_revenue, 2),
+            "average_basket": average_basket,
+            "period_average_basket": period_average_basket,
+            "current_debt": round(current_debt, 2),
+            "loyalty_points": int(customer.get("loyalty_points") or 0),
+            "tier": _compute_tier(visit_count),
+            "segment": segment,
+            "inactive_days": inactive_days,
+            "birthday": customer.get("birthday"),
+            "birthday_in_days": birthday_in_days,
+        })
+
+    return rows
+
+
+def _build_crm_recommendations(
+    active_customers: int,
+    total_customers: int,
+    repeat_rate: float,
+    inactive_customers: int,
+    at_risk_customers: int,
+    debt_customers: int,
+    birthdays_soon: int,
+) -> List[str]:
+    recommendations: List[str] = []
+    inactive_ratio = (inactive_customers / total_customers * 100) if total_customers > 0 else 0.0
+    if inactive_ratio >= 35:
+        recommendations.append("Une part importante de la base est inactive : lancer une relance clients et une offre de retour.")
+    if repeat_rate < 25 and active_customers > 0:
+        recommendations.append("Le taux de reachat reste faible : travailler une mecanique pour provoquer rapidement le second achat.")
+    if at_risk_customers > 0:
+        recommendations.append(f"{at_risk_customers} clients sont a risque : cibler un rappel prioritaire sur les meilleurs historiques d'achat.")
+    if debt_customers > 0:
+        recommendations.append(f"Le portefeuille de dettes reste ouvert chez {debt_customers} clients : suivre les reglements et relances.")
+    if birthdays_soon > 0:
+        recommendations.append(f"{birthdays_soon} anniversaires arrivent sous 7 jours : bonne opportunite de campagne personnalisee.")
+    return recommendations[:4]
+
+
+def _build_crm_segments(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    configs = [
+        ("vip", "VIP", "Clients a forte valeur et a forte depense.", "amber"),
+        ("loyal", "Fideles", "Clients recurrents a entretenir regulierement.", "emerald"),
+        ("occasional", "Occasionnels", "Clients actifs mais encore peu frequents.", "blue"),
+        ("new", "Nouveaux", "Clients recents a activer rapidement.", "violet"),
+        ("at_risk", "A risque", "Clients qui ont decroche et demandent une relance.", "rose"),
+        ("inactive", "Inactifs", "Clients sans achat recent ou jamais transformes.", "slate"),
+    ]
+    segments: List[Dict[str, Any]] = []
+    for segment_id, label, description, accent in configs:
+        matching = [row for row in rows if row.get("segment") == segment_id]
+        matching.sort(key=lambda row: row.get("total_spent", 0), reverse=True)
+        segments.append({
+            "id": segment_id,
+            "label": label,
+            "description": description,
+            "accent": accent,
+            "count": len(matching),
+            "examples": [row.get("name") for row in matching[:3] if row.get("name")],
+        })
+    return segments
+
 @api_router.get("/customers")
 async def get_customers(
     user: User = Depends(require_permission("crm", "read")),
@@ -7383,6 +8307,213 @@ async def get_customers(
         customers.sort(key=lambda x: x.name.lower())
 
     return {"items": customers, "total": total}
+
+
+@api_router.get("/analytics/crm/overview")
+async def get_crm_analytics_overview(
+    user: User = Depends(require_permission("crm", "read")),
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    owner_id = get_owner_id(user)
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"])
+
+    total_customers = len(rows)
+    active_customers = len([row for row in rows if row.get("period_visit_count", 0) > 0])
+    new_customers = len([
+        row for row in rows
+        if (created_at := _parse_crm_datetime(row.get("created_at")))
+        and date_range["start"] <= created_at <= date_range["end"]
+    ])
+    inactive_customers = len([row for row in rows if (row.get("inactive_days") or 9999) > 30])
+    at_risk_customers = len([row for row in rows if row.get("segment") == "at_risk"])
+    vip_customers = len([row for row in rows if row.get("segment") == "vip"])
+    debt_customers = len([row for row in rows if row.get("current_debt", 0) > 0])
+    debt_balance = sum(float(row.get("current_debt") or 0) for row in rows)
+    period_revenue = sum(float(row.get("period_revenue") or 0) for row in rows)
+    period_sales_count = sum(int(row.get("period_visit_count") or 0) for row in rows)
+    average_basket = round(period_revenue / period_sales_count, 2) if period_sales_count > 0 else 0.0
+    repeat_customers = len([row for row in rows if row.get("period_visit_count", 0) >= 2])
+    repeat_rate = round((repeat_customers / active_customers) * 100, 2) if active_customers > 0 else 0.0
+    birthdays_soon = len([row for row in rows if row.get("birthday_in_days") is not None and row.get("birthday_in_days") <= 7])
+
+    summary = (
+        f"{active_customers} clients actifs sur {total_customers}, "
+        f"panier moyen {round(average_basket):,} {user.currency or 'XOF'} et "
+        f"taux de reachat {repeat_rate:.1f}% sur la periode."
+    ).replace(",", " ")
+
+    return {
+        "days": days or 30,
+        "summary": summary,
+        "recommendations": _build_crm_recommendations(
+            active_customers=active_customers,
+            total_customers=total_customers,
+            repeat_rate=repeat_rate,
+            inactive_customers=inactive_customers,
+            at_risk_customers=at_risk_customers,
+            debt_customers=debt_customers,
+            birthdays_soon=birthdays_soon,
+        ),
+        "kpis": {
+            "total_customers": total_customers,
+            "active_customers": active_customers,
+            "new_customers": new_customers,
+            "inactive_customers": inactive_customers,
+            "at_risk_customers": at_risk_customers,
+            "vip_customers": vip_customers,
+            "average_basket": average_basket,
+            "repeat_rate": repeat_rate,
+            "debt_customers": debt_customers,
+            "debt_balance": round(debt_balance, 2),
+            "birthdays_soon": birthdays_soon,
+        },
+        "segments": _build_crm_segments(rows),
+    }
+
+
+@api_router.get("/analytics/crm/kpi-details")
+async def get_crm_kpi_details(
+    metric: str,
+    user: User = Depends(require_permission("crm", "read")),
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    owner_id = get_owner_id(user)
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"])
+
+    base_columns = [
+        {"key": "name", "label": "Client"},
+        {"key": "phone", "label": "Telephone"},
+        {"key": "email", "label": "Email"},
+        {"key": "tier", "label": "Rang"},
+        {"key": "segment", "label": "Segment"},
+        {"key": "visit_count", "label": "Visites"},
+        {"key": "period_visit_count", "label": "Visites periode"},
+        {"key": "total_spent", "label": "Depense totale"},
+        {"key": "period_revenue", "label": "CA periode"},
+        {"key": "average_basket", "label": "Panier moy."},
+        {"key": "current_debt", "label": "Dette"},
+        {"key": "last_purchase_date", "label": "Dernier achat"},
+        {"key": "inactive_days", "label": "Jours inactif"},
+    ]
+
+    if metric == "total_customers":
+        return build_kpi_detail_response(
+            title="Base clients",
+            description="Tous les clients connus du compte.",
+            export_name="crm_base_clients",
+            columns=base_columns,
+            rows=sorted(rows, key=lambda row: row.get("total_spent", 0), reverse=True),
+        )
+
+    if metric == "active_customers":
+        filtered = [row for row in rows if row.get("period_visit_count", 0) > 0]
+        filtered.sort(key=lambda row: row.get("period_revenue", 0), reverse=True)
+        return build_kpi_detail_response(
+            title="Clients actifs",
+            description="Clients ayant achete pendant la periode selectionnee.",
+            export_name="crm_clients_actifs",
+            columns=base_columns,
+            rows=filtered,
+        )
+
+    if metric == "new_customers":
+        filtered = [
+            row for row in rows
+            if (created_at := _parse_crm_datetime(row.get("created_at")))
+            and date_range["start"] <= created_at <= date_range["end"]
+        ]
+        filtered.sort(key=lambda row: row.get("created_at") or "", reverse=True)
+        return build_kpi_detail_response(
+            title="Nouveaux clients",
+            description="Clients crees pendant la periode selectionnee.",
+            export_name="crm_nouveaux_clients",
+            columns=base_columns,
+            rows=filtered,
+        )
+
+    if metric in {"inactive_customers", "at_risk_customers", "vip_customers", "loyal_customers", "occasional_customers"}:
+        segment_map = {
+            "inactive_customers": "inactive",
+            "at_risk_customers": "at_risk",
+            "vip_customers": "vip",
+            "loyal_customers": "loyal",
+            "occasional_customers": "occasional",
+        }
+        descriptions = {
+            "inactive_customers": "Clients sans achat recent ou jamais actives.",
+            "at_risk_customers": "Clients historiquement actifs mais en decrochage.",
+            "vip_customers": "Clients a forte valeur ou forte frequence.",
+            "loyal_customers": "Clients recurrents a entretenir.",
+            "occasional_customers": "Clients encore peu frequents mais actifs.",
+        }
+        labels = {
+            "inactive_customers": "Clients inactifs",
+            "at_risk_customers": "Clients a risque",
+            "vip_customers": "Clients VIP",
+            "loyal_customers": "Clients fideles",
+            "occasional_customers": "Clients occasionnels",
+        }
+        filtered = [row for row in rows if row.get("segment") == segment_map[metric]]
+        filtered.sort(key=lambda row: row.get("total_spent", 0), reverse=True)
+        return build_kpi_detail_response(
+            title=labels[metric],
+            description=descriptions[metric],
+            export_name=f"crm_{segment_map[metric]}",
+            columns=base_columns,
+            rows=filtered,
+        )
+
+    if metric == "average_basket":
+        filtered = [row for row in rows if row.get("period_visit_count", 0) > 0]
+        filtered.sort(key=lambda row: row.get("period_average_basket", 0), reverse=True)
+        return build_kpi_detail_response(
+            title="Panier moyen client",
+            description="Clients actifs tries par panier moyen sur la periode selectionnee.",
+            export_name="crm_panier_moyen",
+            columns=base_columns + [{"key": "period_average_basket", "label": "Panier moy. periode"}],
+            rows=filtered,
+        )
+
+    if metric == "repeat_rate":
+        filtered = [row for row in rows if row.get("period_visit_count", 0) >= 2]
+        filtered.sort(key=lambda row: row.get("period_visit_count", 0), reverse=True)
+        return build_kpi_detail_response(
+            title="Clients en reachat",
+            description="Clients ayant commande au moins deux fois pendant la periode.",
+            export_name="crm_reachat",
+            columns=base_columns,
+            rows=filtered,
+        )
+
+    if metric in {"debt_customers", "debt_balance"}:
+        filtered = [row for row in rows if row.get("current_debt", 0) > 0]
+        filtered.sort(key=lambda row: row.get("current_debt", 0), reverse=True)
+        return build_kpi_detail_response(
+            title="Clients en dette",
+            description="Portefeuille clients avec encours ouverts.",
+            export_name="crm_dettes_clients",
+            columns=base_columns,
+            rows=filtered,
+        )
+
+    if metric == "birthdays_soon":
+        filtered = [row for row in rows if row.get("birthday_in_days") is not None and row.get("birthday_in_days") <= 7]
+        filtered.sort(key=lambda row: row.get("birthday_in_days", 999))
+        return build_kpi_detail_response(
+            title="Anniversaires a venir",
+            description="Clients a celebrer dans les 7 prochains jours.",
+            export_name="crm_anniversaires",
+            columns=base_columns + [{"key": "birthday", "label": "Anniversaire"}, {"key": "birthday_in_days", "label": "Dans"}],
+            rows=filtered,
+        )
+
+    raise HTTPException(status_code=400, detail="KPI CRM non supporte")
 
 class CampaignCreate(BaseModel):
     message: str
@@ -7581,13 +8712,13 @@ async def _get_service_recipe_for_product(store_id: Optional[str], product: dict
     })
 
 
-async def _consume_recipe_ingredients(recipe: dict, multiplier: int, user: User, suppress_errors: bool = True):
+async def _consume_recipe_ingredients(recipe: dict, multiplier: float, user: User, suppress_errors: bool = True):
     for ing in recipe.get("ingredients", []):
         try:
             ing_movement = StockMovementCreate(
                 product_id=ing["product_id"],
                 type="out",
-                quantity=int((ing.get("quantity", 0) or 0) * multiplier),
+                quantity=round_quantity((ing.get("quantity", 0) or 0) * multiplier),
                 reason="stock.reasons.recipe_ingredient"
             )
             await create_stock_movement(ing_movement, user)
@@ -7596,16 +8727,17 @@ async def _consume_recipe_ingredients(recipe: dict, multiplier: int, user: User,
                 raise
 
 
-async def _apply_sale_item_inventory(product: dict, quantity: int, user: User, suppress_errors: bool = True):
-    mode = (product.get("production_mode") or "prepped").lower()
-    recipe = await _get_service_recipe_for_product(user.active_store_id, product)
+async def _apply_sale_item_inventory(product: dict, quantity: float, user: User, suppress_errors: bool = True):
+    normalized_product = normalize_product_measurement_fields(product)
+    mode = (normalized_product.get("production_mode") or "prepped").lower()
+    recipe = await _get_service_recipe_for_product(user.active_store_id, normalized_product)
 
     if mode in ("prepped", "hybrid"):
         try:
             movement_data = StockMovementCreate(
-                product_id=product["product_id"],
+                product_id=normalized_product["product_id"],
                 type="out",
-                quantity=quantity,
+                quantity=round_quantity(quantity),
                 reason="stock.reasons.pos_sale"
             )
             await create_stock_movement(movement_data, user)
@@ -7644,7 +8776,7 @@ def _resolve_product_tax_rate(product: Optional[dict], store_tax_enabled: bool, 
 
 
 def _normalize_sale_item_dict(item: dict) -> dict:
-    quantity = int(item.get("quantity", 0) or 0)
+    quantity = round_quantity(item.get("quantity", 0) or 0)
     selling_price = _round_money(item.get("selling_price", 0.0))
     total = item.get("total")
     if total is None:
@@ -7658,6 +8790,10 @@ def _normalize_sale_item_dict(item: dict) -> dict:
         "tax_rate": max(0.0, float(item.get("tax_rate", 0.0) or 0.0)),
         "tax_amount": _round_money(item.get("tax_amount", 0.0)),
         "purchase_price": _round_money(item.get("purchase_price", 0.0)),
+        "sold_quantity_input": round_quantity(item.get("sold_quantity_input", quantity) or quantity),
+        "sold_unit": item.get("sold_unit"),
+        "measurement_type": item.get("measurement_type"),
+        "pricing_unit": item.get("pricing_unit"),
     }
 
 
@@ -7777,11 +8913,16 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     # 1. Validate and Prepare items
     for item in sale_data.items:
         prod_id = item["product_id"]
-        qty = item["quantity"]
 
         product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouvé")
+
+        try:
+            quantity_context = build_sale_quantity_context(product, item)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        qty = quantity_context["quantity"]
 
         sale_mode = (product.get("production_mode") or "prepped").lower()
         if not is_open_order and sale_mode in ("prepped", "hybrid") and product["quantity"] < qty:
@@ -7814,6 +8955,10 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             "tax_amount": item_tax_amount,
             "station": item.get("station", product.get("kitchen_station", "plat")),
             "item_notes": item.get("item_notes"),
+            "sold_quantity_input": quantity_context["sold_quantity_input"],
+            "sold_unit": quantity_context["sold_unit"],
+            "measurement_type": quantity_context["measurement_type"],
+            "pricing_unit": quantity_context["pricing_unit"],
         })
 
     totals = _compute_sale_totals(
@@ -7849,6 +8994,13 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         payments = sale_data.payments
         primary_method = sale_data.payments[0].get("method", "cash")
 
+    customer_doc = None
+    if sale_data.customer_id:
+        customer_doc = await db.customers.find_one(
+            {"customer_id": sale_data.customer_id, "user_id": owner_id},
+            {"_id": 0, "customer_id": 1, "name": 1},
+        )
+
     # 5. Créer la vente
     sale = Sale(
         user_id=owner_id,
@@ -7859,6 +9011,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         payment_method=primary_method,
         payments=payments,
         customer_id=sale_data.customer_id,
+        customer_name=(customer_doc or {}).get("name"),
         terminal_id=sale_data.terminal_id,
         table_id=sale_data.table_id,
         covers=sale_data.covers,
@@ -7958,8 +9111,7 @@ async def get_expenses(
     limit: int = 50
 ):
     query = {"user_id": get_owner_id(user)}
-    if store_id or user.active_store_id:
-        query["store_id"] = store_id or user.active_store_id
+    query = apply_accessible_store_scope(query, user, store_id)
 
     if start_date or end_date:
         date_filter = {}
@@ -8001,6 +9153,73 @@ async def delete_expense(expense_id: str, user: User = Depends(require_permissio
         raise HTTPException(status_code=404, detail=i18n.t("accounting.expense_not_found", user.language))
     return {"message": i18n.t("accounting.expense_deleted", user.language)}
 
+
+EXPENSE_CATEGORY_LABELS = {
+    "rent": "Loyer",
+    "salary": "Salaires",
+    "transport": "Transport",
+    "water": "Eau / Electricite",
+    "merchandise": "Achat marchandises",
+    "other": "Autres",
+}
+
+
+def format_expense_category_label(category: Optional[str]) -> str:
+    return EXPENSE_CATEGORY_LABELS.get(category or "", category or "Autres")
+
+
+def build_accounting_scope_label(user: User, stores: List[dict]) -> str:
+    active_store_id = user.active_store_id
+    if active_store_id:
+        active_store = next((store for store in stores if store.get("store_id") == active_store_id), None)
+        return f"Magasin actif : {(active_store or {}).get('name') or 'boutique selectionnee'}"
+    if len(stores) > 1:
+        return f"Consolidation sur {len(stores)} boutiques autorisees"
+    if len(stores) == 1:
+        return f"Magasin : {stores[0].get('name') or 'boutique active'}"
+    return "Perimetre comptable du compte"
+
+
+def build_accounting_recommendations(
+    gross_margin_pct: float,
+    net_margin_pct: float,
+    expense_ratio: float,
+    loss_ratio: float,
+    tax_ratio: float,
+    stock_value: float,
+) -> List[str]:
+    recommendations: List[str] = []
+    if net_margin_pct < 0:
+        recommendations.append("La periode finit en negatif : prioriser la reduction des charges et des pertes avant toute expansion.")
+    elif net_margin_pct < 8:
+        recommendations.append("La marge nette reste fine : surveiller les depenses fixes, les remises et les references peu contributives.")
+    if gross_margin_pct < 20:
+        recommendations.append("La marge brute est sous pression : verifier les prix de vente, couts d'achat et references a faible rendement.")
+    if expense_ratio > 25:
+        recommendations.append("Les charges pesent lourd dans le chiffre : revoir les categories de depenses les plus consommatrices.")
+    if loss_ratio > 4:
+        recommendations.append("Les pertes stock sont elevees : analyser les causes et renforcer les controles sur les sorties non vendues.")
+    if stock_value > 0 and gross_margin_pct > 25 and expense_ratio < 20:
+        recommendations.append("Le socle financier est sain : exploiter les meilleures references et accelerer les ventes les plus rentables.")
+    if tax_ratio > 0:
+        recommendations.append("Anticiper le reversement de TVA en suivant de pres la collecte et les justificatifs associes.")
+    return recommendations[:4]
+
+
+def build_accounting_summary(
+    revenue: float,
+    gross_margin_pct: float,
+    net_margin_pct: float,
+    avg_sale: float,
+    currency: str,
+) -> str:
+    revenue_display = f"{round(revenue):,}".replace(",", " ")
+    avg_sale_display = f"{round(avg_sale):,}".replace(",", " ")
+    return (
+        f"CA {revenue_display} {currency}, marge brute {gross_margin_pct:.1f}%, "
+        f"marge nette {net_margin_pct:.1f}% et panier moyen {avg_sale_display} {currency} sur la periode."
+    )
+
 @api_router.get("/accounting/stats", response_model=AccountingStats)
 async def get_accounting_stats(
     days: Optional[int] = 30, 
@@ -8010,35 +9229,18 @@ async def get_accounting_stats(
 ):
     user_id = get_owner_id(user)
     store_id = user.active_store_id
+    stores = await load_accessible_stores(user)
 
     # Date logic — always produce tz-aware datetimes (UTC)
     if start_date_str or end_date_str:
-        now = datetime.now(timezone.utc)
-        try:
-            if start_date_str:
-                if "T" not in start_date_str and " " not in start_date_str:
-                     start_date_str += "T00:00:00"
-                start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-                if start_date.tzinfo is None:
-                    start_date = start_date.replace(tzinfo=timezone.utc)
-            else:
-                start_date = now - timedelta(days=365)
-                
-            if end_date_str:
-                if "T" not in end_date_str and " " not in end_date_str:
-                     end_date_str += "T23:59:59"
-                end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-                if end_date.tzinfo is None:
-                    end_date = end_date.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
-            else:
-                end_date = now
-        except Exception:
-             raise HTTPException(status_code=400, detail="Format de date invalide")
+        date_range = _parse_optional_range(days=None, start_date=start_date_str, end_date=end_date_str)
+        start_date = date_range["start"]
+        end_date = date_range["end"]
         period_label = f"Du {start_date.strftime('%d/%m/%Y')} au {end_date.strftime('%d/%m/%Y')}"
     else:
         start_date = datetime.now(timezone.utc) - timedelta(days=days or 30)
         end_date = datetime.now(timezone.utc)
-        period_label = f"Derniers {days} jours"
+        period_label = f"Derniers {days or 30} jours"
 
     def parse_date_safe(d):
         """Parse date handling both string and datetime, always returns tz-aware or None"""
@@ -8055,7 +9257,7 @@ async def get_accounting_stats(
 
     # 1. Sales Data
     sales_query: dict = {"user_id": user_id}
-    sales_query = apply_store_scope(sales_query, user)
+    sales_query = apply_accessible_store_scope(sales_query, user, store_id)
     sales_query = apply_completed_sales_scope(sales_query)
     
     # Apply date filters directly to the query
@@ -8115,8 +9317,7 @@ async def get_accounting_stats(
 
     # 2. Losses Data
     mv_query: dict = {"user_id": user_id, "type": "out"}
-    if store_id:
-        mv_query["store_id"] = store_id
+    mv_query = apply_accessible_store_scope(mv_query, user, store_id)
     
     # Apply date filters directly to the query
     mv_query["created_at"] = {"$gte": start_date, "$lte": end_date}
@@ -8133,7 +9334,10 @@ async def get_accounting_stats(
     loss_breakdown: Dict[str, float] = {}
 
     prod_ids = list(set([m["product_id"] for m in movements]))
-    products_db = await db.products.find({"product_id": {"$in": prod_ids}}, {"_id": 0}).to_list(len(prod_ids)) if prod_ids else []
+    products_db = await db.products.find(
+        {"product_id": {"$in": prod_ids}, "user_id": user_id},
+        {"_id": 0}
+    ).to_list(len(prod_ids)) if prod_ids else []
     prod_map = {p["product_id"]: p for p in products_db}
 
     for m in movements:
@@ -8153,8 +9357,7 @@ async def get_accounting_stats(
 
     # 3. Expenses Data (NEW)
     exp_query: dict = {"user_id": user_id}
-    if store_id:
-        exp_query["store_id"] = store_id
+    exp_query = apply_accessible_store_scope(exp_query, user, store_id)
     all_expenses_docs = await db.expenses.find(exp_query, {"_id": 0}).to_list(2000)
     
     total_expenses = 0.0
@@ -8168,7 +9371,9 @@ async def get_accounting_stats(
             expenses_breakdown[cat] = expenses_breakdown.get(cat, 0.0) + amount
 
     # 4. Purchase Orders
-    purchase_orders = await db.orders.find({"user_id": user_id, "status": "delivered"}, {"_id": 0}).to_list(2000)
+    purchase_query: dict = {"user_id": user_id, "status": "delivered"}
+    purchase_query = apply_accessible_store_scope(purchase_query, user, store_id)
+    purchase_orders = await db.orders.find(purchase_query, {"_id": 0}).to_list(2000)
     delivered_orders = []
     for o in purchase_orders:
         o_date = parse_date_safe(o.get("updated_at") or o.get("created_at"))
@@ -8178,8 +9383,7 @@ async def get_accounting_stats(
 
     # 5. Stock value (current)
     stock_query: dict = {"user_id": user_id}
-    if store_id:
-        stock_query["store_id"] = store_id
+    stock_query = apply_accessible_store_scope(stock_query, user, store_id)
     active_products = await db.products.find({**stock_query, "is_active": {"$ne": False}}, {"_id": 0}).to_list(2000)
     stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in active_products)
     stock_selling_value = sum(p.get("quantity", 0) * p.get("selling_price", 0) for p in active_products)
@@ -8189,6 +9393,48 @@ async def get_accounting_stats(
     # 2. Net Profit (Sales/Expenses) = Revenue - COGS - Losses - Expenses
     net_profit = gross_profit - total_losses - total_expenses
     avg_sale = revenue / len(sales) if sales else 0.0
+    gross_margin_pct = ((gross_profit / revenue) * 100) if revenue > 0 else 0.0
+    net_margin_pct = ((net_profit / revenue) * 100) if revenue > 0 else 0.0
+    expense_ratio = ((total_expenses / revenue) * 100) if revenue > 0 else 0.0
+    loss_ratio = ((total_losses / revenue) * 100) if revenue > 0 else 0.0
+    tax_ratio = ((tax_collected / revenue) * 100) if revenue > 0 else 0.0
+    scope_label = build_accounting_scope_label(user, stores)
+    recommendations = build_accounting_recommendations(
+        gross_margin_pct=gross_margin_pct,
+        net_margin_pct=net_margin_pct,
+        expense_ratio=expense_ratio,
+        loss_ratio=loss_ratio,
+        tax_ratio=tax_ratio,
+        stock_value=stock_value,
+    )
+    summary = build_accounting_summary(
+        revenue=revenue,
+        gross_margin_pct=gross_margin_pct,
+        net_margin_pct=net_margin_pct,
+        avg_sale=avg_sale,
+        currency=user.currency or "XOF",
+    )
+    top_expense_categories = [
+        {
+            "category": category,
+            "label": format_expense_category_label(category),
+            "amount": round(amount, 2),
+            "ratio": round((amount / total_expenses) * 100, 2) if total_expenses > 0 else 0.0,
+        }
+        for category, amount in sorted(expenses_breakdown.items(), key=lambda item: item[1], reverse=True)
+    ]
+    product_performance = []
+    for perf in perf_map.values():
+        product_gross_profit = perf.get("revenue", 0.0) - perf.get("cogs", 0.0)
+        net_contribution = product_gross_profit - perf.get("loss", 0.0)
+        margin_pct = ((product_gross_profit / perf.get("revenue", 0.0)) * 100) if perf.get("revenue", 0.0) > 0 else 0.0
+        product_performance.append({
+            **perf,
+            "gross_profit": round(product_gross_profit, 2),
+            "net_contribution": round(net_contribution, 2),
+            "margin_pct": round(margin_pct, 2),
+        })
+    product_performance.sort(key=lambda row: row.get("revenue", 0.0), reverse=True)
 
     return AccountingStats(
         revenue=revenue,
@@ -8210,8 +9456,557 @@ async def get_accounting_stats(
         stock_value=round(stock_value, 0),
         stock_selling_value=round(stock_selling_value, 0),
         tax_collected=round(tax_collected, 0),
-        product_performance=list(perf_map.values())
+        scope_label=scope_label,
+        summary=summary,
+        recommendations=recommendations,
+        gross_margin_pct=round(gross_margin_pct, 2),
+        net_margin_pct=round(net_margin_pct, 2),
+        expense_ratio=round(expense_ratio, 2),
+        loss_ratio=round(loss_ratio, 2),
+        tax_ratio=round(tax_ratio, 2),
+        top_expense_categories=top_expense_categories[:5],
+        product_performance=product_performance
     )
+
+
+def _parse_optional_range(
+    days: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> Dict[str, datetime]:
+    if start_date or end_date:
+        try:
+            if start_date:
+                if "T" not in start_date and " " not in start_date:
+                    start_date += "T00:00:00"
+                start_dt = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+                if start_dt.tzinfo is None:
+                    start_dt = start_dt.replace(tzinfo=timezone.utc)
+            else:
+                start_dt = datetime.now(timezone.utc) - timedelta(days=365)
+
+            if end_date:
+                if "T" not in end_date and " " not in end_date:
+                    end_date += "T23:59:59"
+                end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                if end_dt.tzinfo is None:
+                    end_dt = end_dt.replace(tzinfo=timezone.utc)
+            else:
+                end_dt = datetime.now(timezone.utc)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Format de date invalide")
+    else:
+        start_dt = datetime.now(timezone.utc) - timedelta(days=days or 30)
+        end_dt = datetime.now(timezone.utc)
+
+    return {"start": start_dt, "end": end_dt}
+
+
+async def _load_document_profile_for_store(user: User, store_id: Optional[str]) -> Dict[str, Any]:
+    owner_id = get_owner_id(user)
+    settings_doc = await db.user_settings.find_one({"user_id": owner_id}, {"_id": 0})
+    if not settings_doc and user.user_id != owner_id:
+        settings_doc = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0})
+    account_doc = None
+    if user.account_id:
+        account_doc = await db.business_accounts.find_one({"account_id": user.account_id}, {"_id": 0})
+    store_doc = None
+    if store_id:
+        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
+
+    merged = merge_effective_settings(
+        user_id=owner_id,
+        account_id=user.account_id,
+        user_settings=settings_doc,
+        account_doc=account_doc,
+        active_store_doc=store_doc,
+    )
+    store_name = (store_doc or {}).get("name") or "Ma Boutique"
+    store_address = (store_doc or {}).get("address")
+    return {
+        "store": store_doc or {},
+        "currency": (store_doc or {}).get("currency") or (account_doc or {}).get("currency") or user.currency or "XOF",
+        "receipt_business_name": merged.get("receipt_business_name") or store_name,
+        "receipt_footer": merged.get("receipt_footer") or "Merci de votre visite !",
+        "invoice_business_name": merged.get("invoice_business_name") or merged.get("receipt_business_name") or store_name,
+        "invoice_business_address": merged.get("invoice_business_address") or store_address,
+        "invoice_label": merged.get("invoice_label") or "Facture",
+        "invoice_prefix": merged.get("invoice_prefix") or "FAC",
+        "invoice_footer": merged.get("invoice_footer") or merged.get("receipt_footer") or "Merci pour votre confiance.",
+        "invoice_payment_terms": merged.get("invoice_payment_terms"),
+    }
+
+
+async def _build_customer_name_map(owner_id: str, customer_ids: List[str]) -> Dict[str, str]:
+    clean_ids = [customer_id for customer_id in set(customer_ids) if customer_id]
+    if not clean_ids:
+        return {}
+    customers = await db.customers.find(
+        {"user_id": owner_id, "customer_id": {"$in": clean_ids}},
+        {"_id": 0, "customer_id": 1, "name": 1},
+    ).to_list(len(clean_ids))
+    return {customer["customer_id"]: customer.get("name", "") for customer in customers}
+
+
+def _build_invoice_number(prefix: Optional[str], sale_id: str, issued_at: datetime) -> str:
+    clean_prefix = "".join(ch for ch in (prefix or "FAC").upper() if ch.isalnum()) or "FAC"
+    return f"{clean_prefix}-{issued_at.strftime('%Y%m%d')}-{sale_id[-6:].upper()}"
+
+
+async def _create_or_get_invoice_from_sale_doc(sale_doc: dict, user: User) -> CustomerInvoice:
+    owner_id = get_owner_id(user)
+    ensure_scoped_document_access(user, sale_doc, detail="Acces refuse pour cette vente")
+
+    existing = await db.customer_invoices.find_one(
+        {"sale_id": sale_doc["sale_id"], "user_id": owner_id},
+        {"_id": 0},
+    )
+    if existing:
+        return CustomerInvoice(**existing)
+
+    if sale_doc.get("status") == "open":
+        raise HTTPException(status_code=400, detail="Impossible de generer une facture pour une commande ouverte")
+
+    document_profile = await _load_document_profile_for_store(user, sale_doc.get("store_id"))
+    customer_name = sale_doc.get("customer_name")
+    if sale_doc.get("customer_id") and not customer_name:
+        customer_doc = await db.customers.find_one(
+            {"customer_id": sale_doc.get("customer_id"), "user_id": owner_id},
+            {"_id": 0, "name": 1},
+        )
+        customer_name = (customer_doc or {}).get("name")
+
+    issued_at = datetime.now(timezone.utc)
+    invoice_items = [
+        CustomerInvoiceItem(
+            product_id=item.get("product_id"),
+            product_name=item.get("product_name"),
+            description=item.get("product_name") or "Article",
+            quantity=float(item.get("quantity", 0)),
+            unit_price=float(item.get("selling_price", 0.0)),
+            line_total=float(item.get("total", 0.0)),
+            tax_rate=float(item.get("tax_rate", 0.0)),
+            tax_amount=float(item.get("tax_amount", 0.0)),
+        )
+        for item in sale_doc.get("items", [])
+    ]
+
+    invoice = CustomerInvoice(
+        invoice_number=_build_invoice_number(document_profile.get("invoice_prefix"), sale_doc["sale_id"], issued_at),
+        invoice_label=document_profile.get("invoice_label") or "Facture",
+        invoice_prefix=document_profile.get("invoice_prefix") or "FAC",
+        user_id=owner_id,
+        store_id=sale_doc["store_id"],
+        sale_id=sale_doc["sale_id"],
+        customer_id=sale_doc.get("customer_id"),
+        customer_name=customer_name or "Client divers",
+        currency=document_profile.get("currency"),
+        items=invoice_items,
+        discount_amount=float(sale_doc.get("discount_amount", 0.0) or 0.0),
+        subtotal_ht=float(sale_doc.get("subtotal_ht", 0.0) or 0.0),
+        tax_total=float(sale_doc.get("tax_total", 0.0) or 0.0),
+        total_amount=float(sale_doc.get("total_amount", 0.0) or 0.0),
+        payment_method=sale_doc.get("payment_method"),
+        payments=sale_doc.get("payments") or [],
+        business_name=document_profile.get("invoice_business_name"),
+        business_address=document_profile.get("invoice_business_address"),
+        footer=document_profile.get("invoice_footer"),
+        payment_terms=document_profile.get("invoice_payment_terms"),
+        notes=sale_doc.get("notes"),
+        sale_created_at=sale_doc.get("created_at"),
+        issued_at=issued_at,
+    )
+    await db.customer_invoices.insert_one(invoice.model_dump())
+    await log_activity(
+        user=user,
+        action="invoice_created",
+        module="accounting",
+        description=f"Facture {invoice.invoice_number} creee depuis la vente {sale_doc['sale_id']}",
+        details={"invoice_id": invoice.invoice_id, "sale_id": sale_doc["sale_id"]},
+    )
+    return invoice
+
+
+@api_router.get("/accounting/sales-history")
+async def get_accounting_sales_history(
+    user: User = Depends(require_permission("accounting", "read")),
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    store_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+):
+    owner_id = get_owner_id(user)
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    query: Dict[str, Any] = {"user_id": owner_id}
+    query = apply_store_scope(query, user, store_id)
+    query = apply_completed_sales_scope(query)
+    query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+
+    total = await db.sales.count_documents(query)
+    sales_docs = await db.sales.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    customer_map = await _build_customer_name_map(owner_id, [sale.get("customer_id") for sale in sales_docs if sale.get("customer_id")])
+    sale_ids = [sale["sale_id"] for sale in sales_docs]
+    invoice_docs = await db.customer_invoices.find(
+        {"user_id": owner_id, "sale_id": {"$in": sale_ids}},
+        {"_id": 0, "sale_id": 1, "invoice_id": 1, "invoice_number": 1, "invoice_label": 1, "issued_at": 1},
+    ).to_list(len(sale_ids) or 1)
+    invoice_map = {invoice["sale_id"]: invoice for invoice in invoice_docs}
+
+    items = []
+    for sale in sales_docs:
+        linked_invoice = invoice_map.get(sale["sale_id"]) or {}
+        items.append({
+            "sale_id": sale["sale_id"],
+            "store_id": sale.get("store_id"),
+            "created_at": sale.get("created_at"),
+            "total_amount": sale.get("total_amount", 0.0),
+            "discount_amount": sale.get("discount_amount", 0.0),
+            "payment_method": sale.get("payment_method", "cash"),
+            "payments": sale.get("payments") or [],
+            "customer_id": sale.get("customer_id"),
+            "customer_name": sale.get("customer_name") or customer_map.get(sale.get("customer_id")) or "Client divers",
+            "status": sale.get("status", "completed"),
+            "item_count": len(sale.get("items") or []),
+            "items": sale.get("items") or [],
+            "invoice_id": linked_invoice.get("invoice_id"),
+            "invoice_number": linked_invoice.get("invoice_number"),
+            "invoice_label": linked_invoice.get("invoice_label"),
+            "invoice_issued_at": linked_invoice.get("issued_at"),
+        })
+
+    return {"items": items, "total": total}
+
+
+@api_router.get("/invoices")
+async def list_customer_invoices(
+    user: User = Depends(require_permission("accounting", "read")),
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    store_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+):
+    owner_id = get_owner_id(user)
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    query: Dict[str, Any] = {"user_id": owner_id}
+    query = apply_store_scope(query, user, store_id)
+    query["issued_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+
+    total = await db.customer_invoices.count_documents(query)
+    docs = await db.customer_invoices.find(query, {"_id": 0}).sort("issued_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {"items": [CustomerInvoice(**doc) for doc in docs], "total": total}
+
+
+@api_router.get("/invoices/{invoice_id}", response_model=CustomerInvoice)
+async def get_customer_invoice(
+    invoice_id: str,
+    user: User = Depends(require_permission("accounting", "read")),
+):
+    owner_id = get_owner_id(user)
+    doc = await db.customer_invoices.find_one({"invoice_id": invoice_id, "user_id": owner_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Facture introuvable")
+    ensure_scoped_document_access(user, doc, detail="Acces refuse pour cette facture")
+    return CustomerInvoice(**doc)
+
+
+@api_router.post("/invoices/from-sale/{sale_id}", response_model=CustomerInvoice)
+async def create_customer_invoice_from_sale(
+    sale_id: str,
+    user: User = Depends(require_permission("accounting", "write")),
+):
+    owner_id = get_owner_id(user)
+    sale_doc = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
+    if not sale_doc:
+        raise HTTPException(status_code=404, detail="Vente introuvable")
+    return await _create_or_get_invoice_from_sale_doc(sale_doc, user)
+
+
+@api_router.get("/accounting/kpi-details")
+async def get_accounting_kpi_details(
+    metric: str,
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: User = Depends(require_permission("accounting", "read")),
+):
+    owner_id = get_owner_id(user)
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    stores = await load_accessible_stores(user)
+    store_name_map = build_store_name_map(stores)
+    scoped_store_id = user.active_store_id
+    stats = await get_accounting_stats(
+        days=days,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        user=user,
+    )
+
+    def parse_date_safe(value: Any) -> Optional[datetime]:
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            except Exception:
+                return None
+        return None
+
+    if metric in {"revenue", "avg_sale", "tax_collected"}:
+        sales_query: Dict[str, Any] = {"user_id": owner_id}
+        sales_query = apply_accessible_store_scope(sales_query, user, scoped_store_id)
+        sales_query = apply_completed_sales_scope(sales_query)
+        sales_query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+        sales_docs = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(2000)
+        customer_map = await _build_customer_name_map(owner_id, [sale.get("customer_id") for sale in sales_docs if sale.get("customer_id")])
+        rows = []
+        for sale in sales_docs:
+            rows.append({
+                "date": sale.get("created_at"),
+                "sale_id": sale.get("sale_id"),
+                "store_name": store_name_map.get(sale.get("store_id"), "Magasin"),
+                "customer_name": sale.get("customer_name") or customer_map.get(sale.get("customer_id")) or "Client divers",
+                "payment_method": sale.get("payment_method") or "cash",
+                "item_count": len(sale.get("items") or []),
+                "subtotal_ht": round(float(sale.get("subtotal_ht") or 0), 2),
+                "tax_total": round(float(sale.get("tax_total") or 0), 2),
+                "total_amount": round(float(sale.get("total_amount") or 0), 2),
+            })
+        rows.sort(key=lambda row: row["total_amount"], reverse=True)
+        if metric == "tax_collected":
+            rows = [row for row in rows if row["tax_total"] > 0]
+            return build_kpi_detail_response(
+                title="TVA collectee",
+                description="Detail des ventes qui ont genere de la TVA sur la periode selectionnee.",
+                export_name="finance_tva_collectee",
+                columns=[
+                    {"key": "date", "label": "Date"},
+                    {"key": "sale_id", "label": "Vente"},
+                    {"key": "store_name", "label": "Magasin"},
+                    {"key": "customer_name", "label": "Client"},
+                    {"key": "subtotal_ht", "label": "Sous-total HT"},
+                    {"key": "tax_total", "label": "TVA"},
+                    {"key": "total_amount", "label": "Total TTC"},
+                ],
+                rows=rows,
+            )
+        return build_kpi_detail_response(
+            title="Details des ventes" if metric == "revenue" else "Details du panier moyen",
+            description=(
+                "Liste des ventes retenues pour le chiffre d'affaires."
+                if metric == "revenue"
+                else f"Base des ventes utilisees pour calculer le panier moyen ({stats.avg_sale:.0f} {user.currency or 'XOF'})."
+            ),
+            export_name="finance_ventes" if metric == "revenue" else "finance_panier_moyen",
+            columns=[
+                {"key": "date", "label": "Date"},
+                {"key": "sale_id", "label": "Vente"},
+                {"key": "store_name", "label": "Magasin"},
+                {"key": "customer_name", "label": "Client"},
+                {"key": "payment_method", "label": "Paiement"},
+                {"key": "item_count", "label": "Articles"},
+                {"key": "tax_total", "label": "TVA"},
+                {"key": "total_amount", "label": "Total"},
+            ],
+            rows=rows,
+        )
+
+    if metric == "gross_profit":
+        sales_query: Dict[str, Any] = {"user_id": owner_id}
+        sales_query = apply_accessible_store_scope(sales_query, user, scoped_store_id)
+        sales_query = apply_completed_sales_scope(sales_query)
+        sales_query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+        sales_docs = await db.sales.find(sales_query, {"_id": 0}).to_list(3000)
+        perf_map: Dict[str, Dict[str, Any]] = {}
+        for sale in sales_docs:
+            for item in sale.get("items") or []:
+                product_id = item.get("product_id") or f"manual-{item.get('product_name')}"
+                quantity = float(item.get("quantity") or 0)
+                revenue = float(item.get("total") or 0) or (quantity * float(item.get("selling_price") or 0))
+                cogs = float(item.get("purchase_price") or 0) * quantity
+                entry = perf_map.setdefault(product_id, {
+                    "product_name": item.get("product_name") or "Produit",
+                    "quantity": 0.0,
+                    "revenue": 0.0,
+                    "cogs": 0.0,
+                })
+                entry["quantity"] += quantity
+                entry["revenue"] += revenue
+                entry["cogs"] += cogs
+        rows = []
+        for values in perf_map.values():
+            gross_profit = values["revenue"] - values["cogs"]
+            margin_pct = (gross_profit / values["revenue"] * 100) if values["revenue"] > 0 else 0.0
+            rows.append({
+                "product_name": values["product_name"],
+                "quantity": round(values["quantity"], 2),
+                "revenue": round(values["revenue"], 2),
+                "cogs": round(values["cogs"], 2),
+                "gross_profit": round(gross_profit, 2),
+                "margin_pct": round(margin_pct, 2),
+            })
+        rows.sort(key=lambda row: row["gross_profit"], reverse=True)
+        return build_kpi_detail_response(
+            title="Rentabilite produit",
+            description="Contribution des produits a la marge brute sur la periode selectionnee.",
+            export_name="finance_marge_brute",
+            columns=[
+                {"key": "product_name", "label": "Produit"},
+                {"key": "quantity", "label": "Qte vendue"},
+                {"key": "revenue", "label": "CA"},
+                {"key": "cogs", "label": "Cout des ventes"},
+                {"key": "gross_profit", "label": "Marge brute"},
+                {"key": "margin_pct", "label": "Marge %"},
+            ],
+            rows=rows,
+        )
+
+    if metric == "expenses":
+        query: Dict[str, Any] = {"user_id": owner_id}
+        query = apply_accessible_store_scope(query, user, scoped_store_id)
+        query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+        expense_docs = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(2000)
+        rows = [
+            {
+                "date": doc.get("created_at"),
+                "store_name": store_name_map.get(doc.get("store_id"), "Magasin"),
+                "category": format_expense_category_label(doc.get("category")),
+                "description": doc.get("description") or format_expense_category_label(doc.get("category")),
+                "amount": round(float(doc.get("amount") or 0), 2),
+            }
+            for doc in expense_docs
+        ]
+        return build_kpi_detail_response(
+            title="Historique des charges",
+            description="Toutes les depenses prises en compte dans le resultat net.",
+            export_name="finance_depenses",
+            columns=[
+                {"key": "date", "label": "Date"},
+                {"key": "store_name", "label": "Magasin"},
+                {"key": "category", "label": "Categorie"},
+                {"key": "description", "label": "Description"},
+                {"key": "amount", "label": "Montant"},
+            ],
+            rows=rows,
+        )
+
+    if metric == "total_losses":
+        query: Dict[str, Any] = {"user_id": owner_id, "type": "out"}
+        query = apply_accessible_store_scope(query, user, scoped_store_id)
+        query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
+        movement_docs = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(3000)
+        movement_docs = [
+            doc for doc in movement_docs
+            if "vente" not in (doc.get("reason") or "").lower() and "sale" not in (doc.get("reason") or "").lower()
+        ]
+        product_ids = [doc.get("product_id") for doc in movement_docs if doc.get("product_id")]
+        product_docs = await db.products.find(
+            {"user_id": owner_id, "product_id": {"$in": product_ids}},
+            {"_id": 0, "product_id": 1, "name": 1, "purchase_price": 1},
+        ).to_list(len(product_ids) or 1) if product_ids else []
+        product_map = {doc["product_id"]: doc for doc in product_docs}
+        rows = []
+        for doc in movement_docs:
+            product = product_map.get(doc.get("product_id"), {})
+            quantity = float(doc.get("quantity") or 0)
+            unit_cost = float(product.get("purchase_price") or 0)
+            rows.append({
+                "date": doc.get("created_at"),
+                "store_name": store_name_map.get(doc.get("store_id"), "Magasin"),
+                "product_name": product.get("name") or doc.get("product_name") or "Produit",
+                "reason": doc.get("reason") or "Autre",
+                "quantity": round(quantity, 2),
+                "unit_cost": round(unit_cost, 2),
+                "loss_value": round(quantity * unit_cost, 2),
+            })
+        rows.sort(key=lambda row: row["loss_value"], reverse=True)
+        return build_kpi_detail_response(
+            title="Pertes stock",
+            description="Sorties non vendues qui degradent le resultat de la periode.",
+            export_name="finance_pertes_stock",
+            columns=[
+                {"key": "date", "label": "Date"},
+                {"key": "store_name", "label": "Magasin"},
+                {"key": "product_name", "label": "Produit"},
+                {"key": "reason", "label": "Motif"},
+                {"key": "quantity", "label": "Qte"},
+                {"key": "unit_cost", "label": "Cout unitaire"},
+                {"key": "loss_value", "label": "Perte"},
+            ],
+            rows=rows,
+        )
+
+    if metric in {"stock_value", "stock_selling_value"}:
+        query: Dict[str, Any] = {"user_id": owner_id, "is_active": {"$ne": False}}
+        query = apply_accessible_store_scope(query, user, scoped_store_id)
+        products = await db.products.find(query, {"_id": 0}).to_list(3000)
+        rows = []
+        for product in products:
+            quantity = float(product.get("quantity") or 0)
+            purchase_price = float(product.get("purchase_price") or 0)
+            selling_price = float(product.get("selling_price") or 0)
+            rows.append({
+                "product_name": product.get("name") or "Produit",
+                "store_name": store_name_map.get(product.get("store_id"), "Magasin"),
+                "quantity": round(quantity, 2),
+                "unit": product.get("unit") or "piece",
+                "purchase_price": round(purchase_price, 2),
+                "selling_price": round(selling_price, 2),
+                "stock_value": round(quantity * purchase_price, 2),
+                "stock_selling_value": round(quantity * selling_price, 2),
+                "potential_margin": round(quantity * max(selling_price - purchase_price, 0), 2),
+            })
+        sort_key = "stock_value" if metric == "stock_value" else "stock_selling_value"
+        rows.sort(key=lambda row: row[sort_key], reverse=True)
+        return build_kpi_detail_response(
+            title="Valorisation du stock" if metric == "stock_value" else "Potentiel de vente du stock",
+            description=(
+                "Valorisation au cout d'achat des stocks actifs."
+                if metric == "stock_value"
+                else "Projection de valeur si le stock actif est vendu au prix courant."
+            ),
+            export_name="finance_stock_valorise" if metric == "stock_value" else "finance_stock_potentiel",
+            columns=[
+                {"key": "product_name", "label": "Produit"},
+                {"key": "store_name", "label": "Magasin"},
+                {"key": "quantity", "label": "Qte"},
+                {"key": "unit", "label": "Unite"},
+                {"key": "purchase_price", "label": "PA"},
+                {"key": "selling_price", "label": "PV"},
+                {"key": "stock_value", "label": "Valeur cout"},
+                {"key": "stock_selling_value", "label": "Valeur vente"},
+                {"key": "potential_margin", "label": "Marge potentielle"},
+            ],
+            rows=rows,
+        )
+
+    if metric == "net_profit":
+        rows = [
+            {"line": "Chiffre d'affaires", "amount": round(stats.revenue, 2), "ratio": 100.0, "impact": "positif"},
+            {"line": "Cout des ventes", "amount": round(-stats.cogs, 2), "ratio": round((stats.cogs / stats.revenue) * 100, 2) if stats.revenue > 0 else 0.0, "impact": "negatif"},
+            {"line": "Marge brute", "amount": round(stats.gross_profit, 2), "ratio": round(stats.gross_margin_pct, 2), "impact": "positif"},
+            {"line": "Pertes stock", "amount": round(-stats.total_losses, 2), "ratio": round(stats.loss_ratio, 2), "impact": "negatif"},
+            {"line": "Charges", "amount": round(-stats.expenses, 2), "ratio": round(stats.expense_ratio, 2), "impact": "negatif"},
+            {"line": "Resultat net", "amount": round(stats.net_profit, 2), "ratio": round(stats.net_margin_pct, 2), "impact": "positif" if stats.net_profit >= 0 else "negatif"},
+        ]
+        return build_kpi_detail_response(
+            title="Pont de resultat",
+            description="Lecture synthetique du passage du chiffre d'affaires au resultat net.",
+            export_name="finance_resultat_net",
+            columns=[
+                {"key": "line", "label": "Ligne"},
+                {"key": "amount", "label": "Montant"},
+                {"key": "ratio", "label": "Poids % du CA"},
+                {"key": "impact", "label": "Impact"},
+            ],
+            rows=rows,
+        )
+
+    raise HTTPException(status_code=400, detail="KPI finance non supporte")
 
 @api_router.get("/stock/movements")
 async def get_stock_movements(
@@ -8689,13 +10484,259 @@ def build_store_metric_bucket() -> Dict[str, Any]:
         "revenue": 0.0,
         "previous_revenue": 0.0,
         "gross_profit": 0.0,
+        "cogs": 0.0,
         "sale_ids": set(),
         "previous_sale_ids": set(),
         "stock_value": 0.0,
+        "stock_turnover_ratio": 0.0,
         "low_stock_count": 0,
         "out_of_stock_count": 0,
         "dormant_products_count": 0,
         "total_products": 0,
+    }
+
+
+def build_analytics_scope_label(
+    stores: List[dict],
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    category_name_map: Optional[Dict[str, str]] = None,
+    supplier_name_map: Optional[Dict[str, str]] = None,
+) -> str:
+    scope_parts: List[str] = []
+    if store_id:
+        store_name = next((store.get("name") for store in stores if store.get("store_id") == store_id), None)
+        scope_parts.append(f"pour {store_name or 'le magasin sélectionné'}")
+    elif len(stores) > 1:
+        scope_parts.append(f"sur {len(stores)} boutiques autorisées")
+    else:
+        scope_parts.append("sur la boutique active")
+
+    if category_id:
+        category_name = (category_name_map or {}).get(category_id) or "la catégorie sélectionnée"
+        scope_parts.append(f"catégorie {category_name}")
+    if supplier_id:
+        supplier_name = (supplier_name_map or {}).get(supplier_id) or "le fournisseur sélectionné"
+        scope_parts.append(f"fournisseur {supplier_name}")
+    return ", ".join(scope_parts)
+
+
+def build_analytics_recommendations(
+    summary_metrics: Dict[str, Any],
+    revenue_delta: float,
+    gross_profit_delta: float,
+    average_ticket_delta: float,
+    rotation_ratio: float,
+) -> List[str]:
+    recommendations: List[str] = []
+    if summary_metrics.get("out_of_stock_count", 0) > 0:
+        recommendations.append(
+            f"Traiter en priorité les {summary_metrics['out_of_stock_count']} ruptures pour ne pas freiner le chiffre."
+        )
+    if summary_metrics.get("low_stock_count", 0) > 0:
+        recommendations.append(
+            f"Lancer un réassort ciblé sur les {summary_metrics['low_stock_count']} produits sous minimum."
+        )
+    if summary_metrics.get("dormant_products_count", 0) > 0:
+        recommendations.append(
+            f"Animer ou déstocker les {summary_metrics['dormant_products_count']} références dormantes pour libérer de la trésorerie."
+        )
+    if rotation_ratio < 0.35 and summary_metrics.get("stock_value", 0) > 0:
+        recommendations.append(
+            "La rotation du stock reste lente : réduire le surstock et pousser les meilleures références."
+        )
+    elif rotation_ratio > 1:
+        recommendations.append(
+            "La rotation est saine : sécuriser les meilleures ventes pour éviter les ruptures."
+        )
+    if gross_profit_delta < -0.05:
+        recommendations.append("La marge recule : vérifier les remises, coûts d'achat et références peu rentables.")
+    elif average_ticket_delta < -0.05:
+        recommendations.append("Le panier moyen baisse : travailler les ventes additionnelles et les formats premium.")
+    elif revenue_delta > 0.08:
+        recommendations.append("La dynamique est bonne : renforcer les familles qui tirent la croissance pendant cette période.")
+
+    return recommendations[:4]
+
+
+def build_store_name_map(stores: List[dict]) -> Dict[str, str]:
+    return {
+        store.get("store_id"): store.get("name") or "Magasin"
+        for store in stores
+        if store.get("store_id")
+    }
+
+
+def build_current_sales_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
+    current_start = snapshot["current_start"]
+    product_map = snapshot["product_map"]
+    store_name_map = build_store_name_map(snapshot["stores"])
+    rows: List[Dict[str, Any]] = []
+
+    for sale in snapshot["sales_docs"]:
+        sale_date = parse_analytics_datetime(sale.get("created_at"))
+        if not sale_date or sale_date < current_start:
+            continue
+
+        revenue = 0.0
+        gross_profit = 0.0
+        quantity = 0.0
+        product_names: List[str] = []
+
+        for item in sale.get("items") or []:
+            product_id = item.get("product_id")
+            if product_map and product_id and product_id not in product_map:
+                continue
+            if product_map and not product_id:
+                continue
+
+            product_doc = product_map.get(product_id, {})
+            item_quantity = float(item.get("quantity") or 0)
+            item_total = float(item.get("total") or 0)
+            if not item_total:
+                item_total = max(
+                    0.0,
+                    (float(item.get("selling_price") or product_doc.get("selling_price") or 0) * item_quantity)
+                    - float(item.get("discount_amount") or 0),
+                )
+            purchase_price = float(item.get("purchase_price") or product_doc.get("purchase_price") or 0)
+            revenue += item_total
+            gross_profit += item_total - (purchase_price * item_quantity)
+            quantity += item_quantity
+            product_name = item.get("product_name") or product_doc.get("name")
+            if product_name:
+                product_names.append(str(product_name))
+
+        if revenue <= 0 and quantity <= 0:
+            continue
+
+        rows.append({
+            "date": sale.get("created_at"),
+            "sale_id": sale.get("sale_id"),
+            "store_name": store_name_map.get(sale.get("store_id"), "Magasin"),
+            "customer_name": sale.get("customer_name") or "Client divers",
+            "payment_method": sale.get("payment_method") or "-",
+            "item_count": len(sale.get("items") or []),
+            "quantity": round(quantity, 2),
+            "revenue": round(revenue, 2),
+            "gross_profit": round(gross_profit, 2),
+            "products": ", ".join(product_names[:4]),
+        })
+
+    rows.sort(key=lambda row: row["revenue"], reverse=True)
+    return rows
+
+
+def build_product_metric_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
+    store_name_map = build_store_name_map(snapshot["stores"])
+    top_products = snapshot["top_products"]
+    rows: List[Dict[str, Any]] = []
+
+    for product in snapshot["products"]:
+        product_id = product.get("product_id")
+        quantity = float(product.get("quantity") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        stock_value = round(quantity * purchase_price, 2)
+        sales_metrics = top_products.get(product_id, {})
+        sold_quantity = float(sales_metrics.get("quantity") or 0)
+        revenue = float(sales_metrics.get("revenue") or 0)
+        gross_profit = float(sales_metrics.get("gross_profit") or 0)
+        cogs = max(revenue - gross_profit, 0.0)
+        turnover = round(cogs / stock_value, 2) if stock_value > 0 else 0.0
+
+        rows.append({
+            "product_id": product_id,
+            "product_name": product.get("name") or "Produit",
+            "store_name": store_name_map.get(product.get("store_id"), "Magasin"),
+            "category_name": snapshot["category_name_map"].get(product.get("category_id"), "Sans categorie"),
+            "quantity": round(quantity, 2),
+            "unit": product.get("unit") or "piece",
+            "min_stock": int(product.get("min_stock") or 0),
+            "max_stock": int(product.get("max_stock") or 0),
+            "stock_value": stock_value,
+            "sold_quantity": round(sold_quantity, 2),
+            "revenue": round(revenue, 2),
+            "gross_profit": round(gross_profit, 2),
+            "stock_turnover_ratio": turnover,
+        })
+
+    rows.sort(key=lambda row: row["stock_value"], reverse=True)
+    return rows
+
+
+def build_stock_health_lists(snapshot: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    now = snapshot["now"]
+    expiry_cutoff = now + timedelta(days=30)
+    sold_product_ids_30d = snapshot["sold_product_ids_30d"]
+    store_name_map = build_store_name_map(snapshot["stores"])
+    critical_products: List[Dict[str, Any]] = []
+    overstock_products: List[Dict[str, Any]] = []
+    dormant_products: List[Dict[str, Any]] = []
+    expiring_products: List[Dict[str, Any]] = []
+    replenishment_candidates: List[Dict[str, Any]] = []
+
+    for product in snapshot["products"]:
+        quantity = int(product.get("quantity") or 0)
+        min_stock = int(product.get("min_stock") or 0)
+        max_stock = int(product.get("max_stock") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        stock_value = round(quantity * purchase_price, 2)
+        expiry_date = parse_analytics_datetime(product.get("expiry_date"))
+        base_row = {
+            "product_id": product.get("product_id"),
+            "product_name": product.get("name") or "Produit",
+            "store_name": store_name_map.get(product.get("store_id"), "Magasin"),
+            "quantity": quantity,
+            "min_stock": min_stock,
+            "max_stock": max_stock,
+            "stock_value": stock_value,
+            "expiry_date": expiry_date.isoformat() if expiry_date else None,
+        }
+
+        if quantity <= min_stock and min_stock > 0:
+            shortage = max(min_stock - quantity, 0)
+            critical_products.append({**base_row, "shortage": shortage})
+            replenishment_candidates.append({**base_row, "shortage": shortage, "suggested_order": max(shortage, 1)})
+
+        if max_stock > 0 and quantity >= max_stock:
+            overstock_products.append({**base_row, "overstock_units": max(quantity - max_stock, 0)})
+
+        if product.get("product_id") not in sold_product_ids_30d and quantity > 0:
+            dormant_products.append(base_row)
+
+        if expiry_date and quantity > 0 and expiry_date <= expiry_cutoff:
+            expiring_products.append(base_row)
+
+    critical_products.sort(key=lambda item: (item["quantity"] > 0, item["shortage"], item["stock_value"]))
+    overstock_products.sort(key=lambda item: (item["overstock_units"], item["stock_value"]), reverse=True)
+    dormant_products.sort(key=lambda item: item["stock_value"], reverse=True)
+    expiring_products.sort(key=lambda item: item["expiry_date"] or "")
+    replenishment_candidates.sort(key=lambda item: (item["shortage"], item["stock_value"]), reverse=True)
+
+    return {
+        "critical_products": critical_products,
+        "overstock_products": overstock_products,
+        "dormant_products": dormant_products,
+        "expiring_products": expiring_products,
+        "replenishment_candidates": replenishment_candidates,
+    }
+
+
+def build_kpi_detail_response(
+    title: str,
+    description: str,
+    export_name: str,
+    columns: List[Dict[str, str]],
+    rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    return {
+        "title": title,
+        "description": description,
+        "export_name": export_name,
+        "columns": columns,
+        "rows": rows,
+        "total_rows": len(rows),
     }
 
 
@@ -8792,11 +10833,17 @@ async def build_analytics_snapshot(
     top_products: Dict[str, Dict[str, Any]] = {}
     top_categories: Dict[str, Dict[str, Any]] = {}
     per_store_metrics: Dict[str, Dict[str, Any]] = defaultdict(build_store_metric_bucket)
+    supplier_name_map = {
+        supplier.get("supplier_id"): supplier.get("name") or "Fournisseur"
+        for supplier in supplier_docs
+        if supplier.get("supplier_id")
+    }
 
     current_revenue = 0.0
     previous_revenue = 0.0
     current_gross_profit = 0.0
     previous_gross_profit = 0.0
+    current_cogs = 0.0
 
     for sale in sales_docs:
         sale_date = parse_analytics_datetime(sale.get("created_at"))
@@ -8829,6 +10876,7 @@ async def build_analytics_snapshot(
                     - float(item.get("discount_amount") or 0),
                 )
             purchase_price = float(item.get("purchase_price") or product_doc.get("purchase_price") or 0)
+            line_cogs = purchase_price * quantity
             line_gross_profit = line_revenue - (purchase_price * quantity)
 
             if sale_date >= dormant_start and product_id:
@@ -8838,9 +10886,11 @@ async def build_analytics_snapshot(
                 sale_has_line_in_bucket = True
                 current_revenue += line_revenue
                 current_gross_profit += line_gross_profit
+                current_cogs += line_cogs
                 if sale_store_id:
                     per_store_metrics[sale_store_id]["revenue"] += line_revenue
                     per_store_metrics[sale_store_id]["gross_profit"] += line_gross_profit
+                    per_store_metrics[sale_store_id]["cogs"] += line_cogs
 
                 if product_id:
                     product_entry = top_products.setdefault(
@@ -8890,6 +10940,7 @@ async def build_analytics_snapshot(
 
     summary_metrics = {
         "stock_value": 0.0,
+        "stock_turnover_ratio": 0.0,
         "low_stock_count": 0,
         "out_of_stock_count": 0,
         "dormant_products_count": 0,
@@ -8930,19 +10981,35 @@ async def build_analytics_snapshot(
         metric["previous_sales_count"] = len(metric["previous_sale_ids"])
         metric["average_ticket"] = round(metric["revenue"] / metric["sales_count"], 2) if metric["sales_count"] else 0.0
         metric["revenue_delta"] = compute_delta_ratio(metric["revenue"], metric["previous_revenue"])
+        metric["stock_turnover_ratio"] = round(metric["cogs"] / metric["stock_value"], 2) if metric["stock_value"] > 0 else 0.0
 
     current_sales_count = len(current_sale_ids)
     previous_sales_count = len(previous_sale_ids)
     average_ticket = round(current_revenue / current_sales_count, 2) if current_sales_count else 0.0
     previous_average_ticket = round(previous_revenue / previous_sales_count, 2) if previous_sales_count else 0.0
+    summary_metrics["stock_turnover_ratio"] = round(current_cogs / summary_metrics["stock_value"], 2) if summary_metrics["stock_value"] > 0 else 0.0
+    scope_label = build_analytics_scope_label(
+        stores,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+        category_name_map=category_name_map,
+        supplier_name_map=supplier_name_map,
+    )
 
     return {
         "days": normalized_days,
         "currency": user.currency or "XOF",
+        "scope_label": scope_label,
+        "current_start": current_start,
+        "previous_start": previous_start,
+        "now": now,
         "stores": stores,
         "products": products,
         "product_map": product_map,
+        "category_name_map": category_name_map,
         "sold_product_ids_30d": sold_product_ids_30d,
+        "sales_docs": sales_docs,
         "current_revenue": round(current_revenue, 2),
         "previous_revenue": round(previous_revenue, 2),
         "current_gross_profit": round(current_gross_profit, 2),
@@ -9011,12 +11078,21 @@ async def get_executive_overview(
     gross_profit_delta = compute_delta_ratio(snapshot["current_gross_profit"], snapshot["previous_gross_profit"])
     sales_delta = compute_delta_ratio(snapshot["current_sales_count"], snapshot["previous_sales_count"])
     average_ticket_delta = compute_delta_ratio(snapshot["average_ticket"], snapshot["previous_average_ticket"])
+    rotation_ratio = summary_metrics["stock_turnover_ratio"]
 
     trend_label = "progresse" if revenue_delta > 0.03 else "recule" if revenue_delta < -0.03 else "reste stable"
+    rotation_label = "rapide" if rotation_ratio >= 1 else "modérée" if rotation_ratio >= 0.45 else "lente"
     summary = (
-        f"Le chiffre d'affaires {trend_label} de {abs(revenue_delta) * 100:.1f}% sur {snapshot['days']} jours. "
+        f"{snapshot['scope_label'].capitalize()} : le chiffre d'affaires {trend_label} de {abs(revenue_delta) * 100:.1f}% sur {snapshot['days']} jours. "
         f"{summary_metrics['low_stock_count']} produits sont en stock bas et "
-        f"{summary_metrics['dormant_products_count']} sont dormants depuis 30 jours."
+        f"{summary_metrics['dormant_products_count']} sont dormants depuis 30 jours. La rotation du stock reste {rotation_label}."
+    )
+    recommendations = build_analytics_recommendations(
+        summary_metrics,
+        revenue_delta,
+        gross_profit_delta,
+        average_ticket_delta,
+        rotation_ratio,
     )
 
     top_products = sorted(snapshot["top_products"].values(), key=lambda item: item["revenue"], reverse=True)[:5]
@@ -9025,7 +11101,9 @@ async def get_executive_overview(
     return {
         "currency": snapshot["currency"],
         "days": snapshot["days"],
+        "scope_label": snapshot["scope_label"],
         "summary": summary,
+        "recommendations": recommendations,
         "kpis": {
             "revenue": snapshot["current_revenue"],
             "previous_revenue": snapshot["previous_revenue"],
@@ -9040,6 +11118,7 @@ async def get_executive_overview(
             "previous_average_ticket": snapshot["previous_average_ticket"],
             "average_ticket_delta": average_ticket_delta,
             "stock_value": round(summary_metrics["stock_value"], 2),
+            "stock_turnover_ratio": rotation_ratio,
             "low_stock_count": summary_metrics["low_stock_count"],
             "out_of_stock_count": summary_metrics["out_of_stock_count"],
             "dormant_products_count": summary_metrics["dormant_products_count"],
@@ -9085,6 +11164,7 @@ async def get_analytics_store_comparison(
             "previous_sales_count": previous_sales_count,
             "sales_count_delta": compute_delta_ratio(sales_count, previous_sales_count),
             "average_ticket": average_ticket,
+            "stock_turnover_ratio": metrics.get("stock_turnover_ratio", 0.0),
             "stock_value": round(metrics["stock_value"], 2),
             "low_stock_count": metrics["low_stock_count"],
             "out_of_stock_count": metrics["out_of_stock_count"],
@@ -9107,6 +11187,7 @@ async def get_analytics_store_comparison(
             "gross_profit": snapshot["current_gross_profit"],
             "sales_count": snapshot["current_sales_count"],
             "average_ticket": totals_average_ticket,
+            "stock_turnover_ratio": summary_metrics["stock_turnover_ratio"],
             "stock_value": round(summary_metrics["stock_value"], 2),
             "low_stock_count": summary_metrics["low_stock_count"],
             "out_of_stock_count": summary_metrics["out_of_stock_count"],
@@ -9214,6 +11295,7 @@ async def get_stock_health(
         "days": snapshot["days"],
         "kpis": {
             "stock_value": round(summary_metrics["stock_value"], 2),
+            "stock_turnover_ratio": summary_metrics["stock_turnover_ratio"],
             "low_stock_count": summary_metrics["low_stock_count"],
             "out_of_stock_count": summary_metrics["out_of_stock_count"],
             "overstock_count": len(overstock_products),
@@ -9292,6 +11374,193 @@ async def get_stock_abc_analysis(
         },
         "classes": classes,
     }
+
+
+@api_router.get("/analytics/kpi-details")
+async def get_analytics_kpi_details(
+    context: str,
+    metric: str,
+    days: int = 30,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_operational_access),
+):
+    if context == "multi_stores" and not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail="Acces org admin requis")
+
+    snapshot = await build_analytics_snapshot(
+        user,
+        days=days,
+        store_id=store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    scope_label = snapshot.get("scope_label") or "selection courante"
+    product_rows = build_product_metric_rows(snapshot)
+    sales_rows = build_current_sales_rows(snapshot)
+    stock_health_lists = build_stock_health_lists(snapshot)
+
+    if context == "executive":
+        if metric in {"revenue", "gross_profit", "sales_count", "average_ticket"}:
+            return build_kpi_detail_response(
+                title="Details des ventes",
+                description=f"Ventes sur {scope_label} pendant {snapshot['days']} jours.",
+                export_name=f"ventes_{metric}_{snapshot['days']}j",
+                columns=[
+                    {"key": "date", "label": "Date"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "customer_name", "label": "Client"},
+                    {"key": "payment_method", "label": "Paiement"},
+                    {"key": "item_count", "label": "Articles"},
+                    {"key": "quantity", "label": "Qte"},
+                    {"key": "revenue", "label": "CA"},
+                    {"key": "gross_profit", "label": "Marge"},
+                    {"key": "products", "label": "Produits"},
+                ],
+                rows=sales_rows,
+            )
+
+        if metric in {"stock_value", "stock_turnover_ratio", "total_products"}:
+            return build_kpi_detail_response(
+                title="Details stock",
+                description=f"Produits retenus pour {scope_label}.",
+                export_name=f"stock_{metric}_{snapshot['days']}j",
+                columns=[
+                    {"key": "product_name", "label": "Produit"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "category_name", "label": "Categorie"},
+                    {"key": "quantity", "label": "Stock"},
+                    {"key": "unit", "label": "Unite"},
+                    {"key": "stock_value", "label": "Valeur stock"},
+                    {"key": "sold_quantity", "label": "Qte vendue"},
+                    {"key": "revenue", "label": "CA"},
+                    {"key": "stock_turnover_ratio", "label": "Rotation"},
+                ],
+                rows=product_rows,
+            )
+
+        if metric == "low_stock_count":
+            rows = [row for row in product_rows if row["min_stock"] > 0 and row["quantity"] <= row["min_stock"]]
+            return build_kpi_detail_response(
+                title="Produits a stock bas",
+                description=f"Produits sous minimum sur {scope_label}.",
+                export_name=f"stock_bas_{snapshot['days']}j",
+                columns=[
+                    {"key": "product_name", "label": "Produit"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "quantity", "label": "Stock"},
+                    {"key": "min_stock", "label": "Min"},
+                    {"key": "stock_value", "label": "Valeur"},
+                ],
+                rows=rows,
+            )
+
+        if metric == "out_of_stock_count":
+            rows = [row for row in product_rows if row["quantity"] <= 0]
+            return build_kpi_detail_response(
+                title="Produits en rupture",
+                description=f"Produits a zero stock sur {scope_label}.",
+                export_name=f"ruptures_{snapshot['days']}j",
+                columns=[
+                    {"key": "product_name", "label": "Produit"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "category_name", "label": "Categorie"},
+                    {"key": "stock_value", "label": "Valeur stock"},
+                ],
+                rows=rows,
+            )
+
+        if metric == "dormant_products_count":
+            rows = [row for row in product_rows if row["product_id"] not in snapshot["sold_product_ids_30d"] and row["quantity"] > 0]
+            return build_kpi_detail_response(
+                title="Stock dormant",
+                description=f"Produits sans vente recente sur {scope_label}.",
+                export_name=f"stock_dormant_{snapshot['days']}j",
+                columns=[
+                    {"key": "product_name", "label": "Produit"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "quantity", "label": "Stock"},
+                    {"key": "stock_value", "label": "Valeur"},
+                    {"key": "stock_turnover_ratio", "label": "Rotation"},
+                ],
+                rows=rows,
+            )
+
+    if context == "multi_stores":
+        store_rows = []
+        for store in snapshot["stores"]:
+            metrics = snapshot["per_store_metrics"].get(store["store_id"], build_store_metric_bucket())
+            sales_count = metrics.get("sales_count", len(metrics.get("sale_ids", set())))
+            previous_sales_count = metrics.get("previous_sales_count", len(metrics.get("previous_sale_ids", set())))
+            store_rows.append({
+                "store_name": store.get("name") or "Magasin",
+                "address": store.get("address") or "-",
+                "revenue": round(metrics["revenue"], 2),
+                "gross_profit": round(metrics["gross_profit"], 2),
+                "sales_count": sales_count,
+                "average_ticket": round(metrics["revenue"] / sales_count, 2) if sales_count else 0.0,
+                "stock_turnover_ratio": metrics.get("stock_turnover_ratio", 0.0),
+                "stock_value": round(metrics["stock_value"], 2),
+                "low_stock_count": metrics["low_stock_count"],
+                "out_of_stock_count": metrics["out_of_stock_count"],
+                "dormant_products_count": metrics["dormant_products_count"],
+                "sales_count_delta": compute_delta_ratio(sales_count, previous_sales_count),
+            })
+        store_rows.sort(key=lambda row: row["revenue"], reverse=True)
+        return build_kpi_detail_response(
+            title="Comparatif multi-boutiques",
+            description=f"Comparatif des boutiques autorisees sur {snapshot['days']} jours.",
+            export_name=f"multi_boutiques_{metric}_{snapshot['days']}j",
+            columns=[
+                {"key": "store_name", "label": "Boutique"},
+                {"key": "address", "label": "Adresse"},
+                {"key": "revenue", "label": "CA"},
+                {"key": "gross_profit", "label": "Marge"},
+                {"key": "sales_count", "label": "Ventes"},
+                {"key": "average_ticket", "label": "Panier"},
+                {"key": "stock_turnover_ratio", "label": "Rotation"},
+                {"key": "stock_value", "label": "Valeur stock"},
+                {"key": "low_stock_count", "label": "Stock bas"},
+                {"key": "out_of_stock_count", "label": "Ruptures"},
+            ],
+            rows=store_rows,
+        )
+
+    if context == "stock_health":
+        metric_map = {
+            "stock_value": ("Valorisation du stock", product_rows),
+            "stock_turnover_ratio": ("Rotation du stock", product_rows),
+            "replenishment_candidates_count": ("Reappro prioritaires", stock_health_lists["replenishment_candidates"]),
+            "overstock_count": ("Surstocks", stock_health_lists["overstock_products"]),
+            "dormant_products_count": ("Produits dormants", stock_health_lists["dormant_products"]),
+            "expiring_soon_count": ("Peremption proche", stock_health_lists["expiring_products"]),
+            "low_stock_count": ("Produits a stock bas", stock_health_lists["critical_products"]),
+            "out_of_stock_count": ("Produits en rupture", [row for row in product_rows if row["quantity"] <= 0]),
+        }
+        if metric in metric_map:
+            title, rows = metric_map[metric]
+            return build_kpi_detail_response(
+                title=title,
+                description=f"Details stock sur {scope_label}.",
+                export_name=f"stock_health_{metric}_{snapshot['days']}j",
+                columns=[
+                    {"key": "product_name", "label": "Produit"},
+                    {"key": "store_name", "label": "Boutique"},
+                    {"key": "quantity", "label": "Stock"},
+                    {"key": "min_stock", "label": "Min"},
+                    {"key": "max_stock", "label": "Max"},
+                    {"key": "shortage", "label": "Manque"},
+                    {"key": "overstock_units", "label": "Surstock"},
+                    {"key": "suggested_order", "label": "Reappro"},
+                    {"key": "stock_value", "label": "Valeur"},
+                    {"key": "expiry_date", "label": "Peremption"},
+                    {"key": "stock_turnover_ratio", "label": "Rotation"},
+                ],
+                rows=rows,
+            )
+
+    raise HTTPException(status_code=404, detail="KPI non supporte")
 
 @api_router.get("/dashboard")
 async def get_dashboard(user: User = Depends(require_operational_access)):
@@ -13922,7 +16191,7 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
         "expenses", "orders", "promotions", "activity_logs",
         "support_tickets", "user_sessions", "idempotency_keys",
         "security_events", "pending_transactions", "notifications",
-        "order_items", "supplier_products", "supplier_invoices",
+        "order_items", "supplier_products", "supplier_invoices", "customer_invoices",
         "supplier_logs", "inventory_tasks", "price_history",
         "categories", "locations", "tables", "reservations",
         "returns", "credit_notes"

@@ -76,6 +76,11 @@ export default function TabLayout() {
   }, [isFirstVisit]);
 
   useEffect(() => {
+    if (user && user.can_access_app === false) {
+      const target = user.required_verification === 'email' ? '/(auth)/verify-email' : '/(auth)/verify-phone';
+      router.replace(target as any);
+      return;
+    }
     if (user && billingOnly && currentRoute !== 'settings' && currentRoute !== 'subscription') {
       router.replace('/subscription');
     }

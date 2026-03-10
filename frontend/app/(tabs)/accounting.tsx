@@ -24,15 +24,16 @@ import * as Sharing from 'expo-sharing';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import {
     accounting as accountingApi,
-    sales as salesApi,
     customers as customersApi,
     stores as storesApi,
     expenses as expensesApi,
     AccountingStats,
-    Sale,
+    AccountingSaleHistoryItem,
     Customer,
     Store,
     Expense,
+    CustomerInvoice,
+    Sale,
     API_URL,
     getToken,
     ApiError,
@@ -50,6 +51,7 @@ import {
     buildProfessionalInvoiceHtml,
     printAndShare
 } from '../../utils/pdfReports';
+import { mergeAccountingOfflineState } from '../../services/offlineState';
 
 
 const screenWidth = Dimensions.get('window').width;
@@ -74,7 +76,9 @@ export default function AccountingScreen() {
     const insets = useSafeAreaInsets();
     const styles = getStyles(colors, glassStyle);
     const [stats, setStats] = useState<AccountingStats | null>(null);
-    const [recentSales, setRecentSales] = useState<Sale[]>([]);
+    const [recentSales, setRecentSales] = useState<AccountingSaleHistoryItem[]>([]);
+    const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
+    const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -99,6 +103,7 @@ export default function AccountingScreen() {
     const [showAllPerf, setShowAllPerf] = useState(false);
     const [showAllExpenses, setShowAllExpenses] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
+    const [pendingSummary, setPendingSummary] = useState({ pendingInvoices: 0, pendingExpenses: 0, pendingTotal: 0 });
     const [invoiceClient, setInvoiceClient] = useState('');
     const [invoiceItems, setInvoiceItems] = useState([{ desc: '', qty: '1', price: '', tva: '0' }]);
     const [invoiceNote, setInvoiceNote] = useState('');
@@ -106,22 +111,27 @@ export default function AccountingScreen() {
 
     const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
         try {
-            const days = period === 'custom' ? 0 : period;
-            const [statsRes, salesRes, expensesRes] = await Promise.all([
+            const days = period === 'custom' ? undefined : period;
+            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes] = await Promise.all([
                 accountingApi.getStats(days, start, end),
-                salesApi.list(undefined, days, start, end, undefined, 0, 500),
-                expensesApi.list(days, start, end, 0, 500)
+                accountingApi.getSalesHistory(days, start, end, 0, 100),
+                accountingApi.getInvoices(days, start, end, 0, 100),
+                expensesApi.list(days, start, end, 0, 500),
+                storesApi.list(),
             ]);
+            const merged = await mergeAccountingOfflineState({
+                recentSales: Array.isArray(salesRes?.items) ? salesRes.items : [],
+                invoiceHistory: Array.isArray(invoicesRes?.items) ? invoicesRes.items : [],
+                expensesList: Array.isArray(expensesRes?.items) ? expensesRes.items : (expensesRes as any),
+            });
             setStats(statsRes);
-            setRecentSales(salesRes.items ?? salesRes as any);
-            setExpensesList(expensesRes.items ?? expensesRes as any);
-
-            // Fetch current store details
-            if (user?.active_store_id) {
-                const stores = await storesApi.list();
-                const active = stores.find(s => s.store_id === user.active_store_id);
-                if (active) setCurrentStore(active);
-            }
+            setRecentSales(merged.recentSales);
+            setInvoiceHistory(merged.invoiceHistory);
+            setExpensesList(merged.expensesList);
+            setPendingSummary(merged.summary);
+            const active = (storesRes || []).find(s => s.store_id === user?.active_store_id) || null;
+            setCurrentStore(active);
+            setAccessDenied(false);
         } catch (error) {
             if (error instanceof ApiError && error.status === 403) {
                 setAccessDenied(true);
@@ -157,12 +167,110 @@ export default function AccountingScreen() {
         setSelectedPeriod(period);
     };
 
-    const applyCustomDates = () => {
-        if (!startDate || !endDate) return;
-        setAppliedStart(startDate);
-        setAppliedEnd(endDate);
+    const applyCustomDates = (nextStart = startDate, nextEnd = endDate) => {
+        if (!nextStart || !nextEnd) return;
+        setAppliedStart(nextStart);
+        setAppliedEnd(nextEnd);
         setLoading(true);
-        loadData('custom', startDate, endDate);
+        loadData('custom', nextStart, nextEnd);
+    };
+
+    const buildInvoiceStore = (invoice: CustomerInvoice): Store => ({
+        store_id: invoice.store_id,
+        user_id: user?.user_id || '',
+        name: currentStore?.name || invoice.business_name || t('common.my_shop'),
+        address: currentStore?.address || invoice.business_address || '',
+        currency: invoice.currency || currentStore?.currency || user?.currency,
+        receipt_business_name: currentStore?.receipt_business_name,
+        receipt_footer: currentStore?.receipt_footer,
+        invoice_business_name: invoice.business_name || currentStore?.invoice_business_name,
+        invoice_business_address: invoice.business_address || currentStore?.invoice_business_address,
+        invoice_label: invoice.invoice_label || currentStore?.invoice_label,
+        invoice_prefix: invoice.invoice_prefix || currentStore?.invoice_prefix,
+        invoice_footer: invoice.footer || currentStore?.invoice_footer,
+        invoice_payment_terms: invoice.payment_terms || currentStore?.invoice_payment_terms,
+        created_at: currentStore?.created_at || invoice.created_at,
+        terminals: currentStore?.terminals,
+        tax_enabled: currentStore?.tax_enabled,
+        tax_rate: currentStore?.tax_rate,
+        tax_mode: currentStore?.tax_mode,
+    });
+
+    const buildInvoiceItemsHtml = (invoice: CustomerInvoice) => invoice.items.map((item) => `
+        <tr>
+            <td style="padding: 10px 5px; border-bottom: 1px solid #eee;">${item.description || item.product_name || '-'}</td>
+            <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${item.quantity}</td>
+            <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(item.unit_price)}</td>
+            <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">${formatCurrency(item.line_total)}</td>
+        </tr>
+    `).join('');
+
+    const generateStoredInvoicePdf = async (invoice: CustomerInvoice) => {
+        const storeProfile = buildInvoiceStore(invoice);
+        const paymentLabel = invoice.payment_method
+            ? t(PAYMENT_LABELS[invoice.payment_method] || invoice.payment_method, { defaultValue: invoice.payment_method })
+            : undefined;
+
+        const html = buildProfessionalInvoiceHtml({
+            store: storeProfile,
+            title: invoice.invoice_label || 'Facture',
+            ref: invoice.invoice_number,
+            date: formatDate(invoice.issued_at),
+            recipientLabel: t('accounting.recipient_label'),
+            recipientName: invoice.customer_name || t('accounting.client_diverse'),
+            itemsHtml: buildInvoiceItemsHtml(invoice),
+            total: invoice.total_amount,
+            currency: invoice.currency || user?.currency,
+            notes: invoice.notes,
+            paymentMethod: paymentLabel,
+            paymentTerms: invoice.payment_terms,
+            footer: invoice.footer,
+            brandingMode: 'invoice',
+        });
+
+        await printAndShare(html, `${invoice.invoice_prefix || 'FAC'}_${invoice.invoice_number}`);
+    };
+
+    const handleOpenStoredInvoice = async (invoiceId: string, existing?: CustomerInvoice) => {
+        try {
+            const invoice = existing || await accountingApi.getInvoice(invoiceId);
+            await generateStoredInvoicePdf(invoice);
+        } catch (error) {
+            console.error(error);
+            Alert.alert(t('common.error'), t('accounting.invoice_open_error', { defaultValue: "Impossible d'ouvrir la facture." }));
+        }
+    };
+
+    const handleCreateInvoiceFromSale = async (saleId: string) => {
+        setInvoiceBusyId(saleId);
+        try {
+            const invoice = await accountingApi.createInvoiceFromSale(saleId);
+            if ((invoice as any)?.offline_pending) {
+                const merged = await mergeAccountingOfflineState({
+                    recentSales,
+                    invoiceHistory,
+                    expensesList,
+                });
+                setRecentSales(merged.recentSales);
+                setInvoiceHistory(merged.invoiceHistory);
+                setExpensesList(merged.expensesList);
+                setPendingSummary(merged.summary);
+                const pendingInvoice = merged.invoiceHistory.find((entry) => entry.sale_id === saleId && (entry as any).offline_pending);
+                if (pendingInvoice) {
+                    await generateStoredInvoicePdf(pendingInvoice);
+                } else {
+                    Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de creer la facture." }));
+                }
+                return;
+            }
+            await generateStoredInvoicePdf(invoice);
+            await loadData(selectedPeriod, appliedStart, appliedEnd);
+        } catch (error) {
+            console.error(error);
+            Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de creer la facture." }));
+        } finally {
+            setInvoiceBusyId(null);
+        }
     };
 
 
@@ -314,7 +422,7 @@ export default function AccountingScreen() {
 
         const html = buildProfessionalInvoiceHtml({
             store: currentStore,
-            title: t('accounting.invoice_title'),
+            title: currentStore.invoice_label || t('accounting.invoice_title'),
             ref: refNum,
             date: now.toLocaleDateString(i18n.language),
             recipientLabel: t('accounting.recipient_label'),
@@ -323,7 +431,10 @@ export default function AccountingScreen() {
             total: invoiceTotal,
             currency: user?.currency,
             notes: invoiceNote,
-            paymentMethod: t('accounting.payment_cash')
+            paymentMethod: t('accounting.payment_cash'),
+            paymentTerms: currentStore.invoice_payment_terms,
+            footer: currentStore.invoice_footer,
+            brandingMode: 'invoice',
         });
 
         await printAndShare(html, `Facture_${refNum}`);
@@ -474,9 +585,9 @@ export default function AccountingScreen() {
         }
     };
 
-    const generateReceiptPdf = async (sale: Sale) => {
+    const generateReceiptPdf = async (sale: AccountingSaleHistoryItem) => {
         if (!currentStore) return;
-        await generateSalePdf(sale, currentStore, user?.currency);
+        await generateSalePdf(sale as unknown as Sale, currentStore, user?.currency);
     };
 
     const handleShareWhatsApp = () => {
@@ -554,7 +665,7 @@ export default function AccountingScreen() {
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.actionBtn} onPress={openInvoiceModal}>
                                     <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-                                    <Text style={styles.actionBtnText}>{t('accounting.new_invoice')}</Text>
+                                    <Text style={styles.actionBtnText}>{t('accounting.free_invoice', { defaultValue: 'Facture libre' })}</Text>
                                 </TouchableOpacity>
                             </ScrollView>
 
@@ -567,7 +678,7 @@ export default function AccountingScreen() {
                                     onApplyCustomDate={(s, e) => {
                                         setStartDate(s);
                                         setEndDate(e);
-                                        applyCustomDates();
+                                        applyCustomDates(s, e);
                                     }}
                                 />
                             </View>
@@ -641,6 +752,15 @@ export default function AccountingScreen() {
                             )}
                         </View>
 
+                        {pendingSummary.pendingTotal > 0 && (
+                            <View style={[styles.offlineBanner, { borderColor: colors.warning + '35', backgroundColor: colors.warning + '14' }]}>
+                                <Ionicons name="cloud-offline-outline" size={18} color={colors.warning} />
+                                <Text style={[styles.offlineBannerText, { color: colors.warning }]}>
+                                    {pendingSummary.pendingInvoices} facture(s) et {pendingSummary.pendingExpenses} dépense(s) attendent encore la synchronisation. Les totaux ci-dessus restent ceux du dernier cache confirmé.
+                                </Text>
+                            </View>
+                        )}
+
                         {/* Expenses Section */}
                         <View style={[styles.section, { marginTop: 20 }]}>
                             <View style={styles.sectionHeader}>
@@ -662,7 +782,10 @@ export default function AccountingScreen() {
                                         {(showAllExpenses ? expensesList : expensesList.slice(0, 5)).map((exp) => (
                                             <View key={exp.expense_id} style={styles.expenseItem}>
                                                 <View style={styles.expenseInfo}>
-                                                    <Text style={styles.expenseCategory}>{t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}</Text>
+                                                    <Text style={styles.expenseCategory}>
+                                                        {t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}
+                                                        {(exp as any).offline_pending ? `  • ${t('common.pending', { defaultValue: 'En attente' })}` : ''}
+                                                    </Text>
                                                     <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
                                                     {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
                                                 </View>
@@ -939,15 +1062,87 @@ export default function AccountingScreen() {
                                                 <Text style={styles.saleDate}>
                                                     {formatDate(sale.created_at)}
                                                 </Text>
+                                                <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '700' }]} numberOfLines={1}>
+                                                    {sale.customer_name || t('accounting.client_diverse')}
+                                                </Text>
                                                 <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
                                                     {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
                                                 </Text>
                                                 <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} · {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
+                                                {(sale as any).offline_pending_invoice && (
+                                                    <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
+                                                        {t('common.pending', { defaultValue: 'En attente' })} · facture hors ligne
+                                                    </Text>
+                                                )}
                                             </View>
-                                            <Text style={styles.saleTotal}>{sale.total_amount.toLocaleString()} {t('common.currency_default')}</Text>
-                                            <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
-                                                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-                                            </TouchableOpacity>
+                                            <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                                                <Text style={styles.saleTotal}>{formatCurrency(sale.total_amount)}</Text>
+                                                <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                    <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
+                                                        <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                                                    </TouchableOpacity>
+                                                    {sale.invoice_id ? (
+                                                        <TouchableOpacity
+                                                            style={styles.receiptBtn}
+                                                            onPress={() => handleOpenStoredInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
+                                                        >
+                                                            <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                                                        </TouchableOpacity>
+                                                    ) : (
+                                                        <TouchableOpacity
+                                                            style={[styles.receiptBtn, invoiceBusyId === sale.sale_id && { opacity: 0.5 }]}
+                                                            disabled={invoiceBusyId === sale.sale_id}
+                                                            onPress={() => handleCreateInvoiceFromSale(sale.sale_id)}
+                                                        >
+                                                            {invoiceBusyId === sale.sale_id ? (
+                                                                <ActivityIndicator size="small" color={colors.primary} />
+                                                            ) : (
+                                                                <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>{t('accounting.invoice_history', { defaultValue: 'Historique des factures' })}</Text>
+                            {invoiceHistory.length === 0 ? (
+                                <View style={styles.emptyState}>
+                                    <Ionicons name="document-text-outline" size={40} color={colors.textMuted} />
+                                    <Text style={styles.emptyText}>{t('accounting.no_invoices', { defaultValue: 'Aucune facture sur cette periode.' })}</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.tableContainer}>
+                                    {invoiceHistory.slice(0, 10).map((invoice) => (
+                                        <View key={invoice.invoice_id} style={styles.saleRow}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.saleDate}>{invoice.invoice_number}</Text>
+                                                <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '700' }]} numberOfLines={1}>
+                                                    {invoice.customer_name || t('accounting.client_diverse')}
+                                                </Text>
+                                                <Text style={styles.saleMeta}>
+                                                    {(invoice.invoice_label || 'Facture')} · {formatDate(invoice.issued_at)}
+                                                </Text>
+                                                {(invoice as any).offline_pending && (
+                                                    <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
+                                                        {t('common.pending', { defaultValue: 'En attente de synchronisation' })}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                            <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                                                <Text style={styles.saleTotal}>{formatCurrency(invoice.total_amount)}</Text>
+                                                <TouchableOpacity
+                                                    style={styles.receiptBtn}
+                                                    onPress={() => handleOpenStoredInvoice(invoice.invoice_id, invoice)}
+                                                >
+                                                    <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
                                     ))}
                                 </View>
@@ -1216,6 +1411,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
     sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
     sectionSubtitle: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 },
+    offlineBanner: {
+        ...glassStyle,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: Spacing.sm,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
+    },
+    offlineBannerText: {
+        flex: 1,
+        fontSize: FontSize.sm,
+        fontWeight: '600',
+        lineHeight: 20,
+    },
 
     // Performance Table
     perfTable: { paddingTop: Spacing.sm },

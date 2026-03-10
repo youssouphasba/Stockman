@@ -74,7 +74,8 @@ export default function RegisterScreen() {
   const isRestaurantOnboarding = ['restaurant', 'traiteur', 'boulangerie'].includes(businessType);
 
   async function handleRegister() {
-    if (!name.trim() || !email.trim() || !password.trim() || !phone.trim()) {
+    const phoneRequired = selectedRole === 'shopkeeper';
+    if (!name.trim() || !email.trim() || !password.trim() || (phoneRequired && !phone.trim())) {
       setError(t('auth.register.errorFillRequired'));
       return;
     }
@@ -83,8 +84,10 @@ export default function RegisterScreen() {
       return;
     }
     // Combine country dial code + local number
-    const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`;
-    if (password.length < 6) {
+    const fullPhone = phone.trim()
+      ? (phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`)
+      : '';
+    if (password.length < 8) {
       setError(t('auth.register.errorPasswordLength'));
       return;
     }
@@ -99,20 +102,26 @@ export default function RegisterScreen() {
     setError('');
     setLoading(true);
     try {
-      await register(
+      const registeredUser = await register(
         email.trim(),
         password,
         name.trim(),
         selectedRole,
-        fullPhone,
+        fullPhone || undefined,
         selectedCountry.currency,
         businessType,
         howDidYouHear,
         selectedCountry.code,
-        selectedRole === 'shopkeeper' ? selectedPlan : undefined
+        selectedRole === 'shopkeeper' ? 'starter' : undefined,
+        'mobile'
       );
-      // Redirect to verification instead of index
-      router.replace('/(auth)/verify-phone');
+      if (registeredUser.required_verification === 'email' && !registeredUser.can_access_app) {
+        router.replace('/(auth)/verify-email');
+      } else if (registeredUser.required_verification === 'phone' && !registeredUser.can_access_app) {
+        router.replace('/(auth)/verify-phone');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.register.errorRegister'));
     } finally {
@@ -147,7 +156,7 @@ export default function RegisterScreen() {
             <View style={styles.card}>
               <TouchableOpacity
                 style={[styles.roleCard, selectedRole === 'shopkeeper' && styles.roleCardActive]}
-                onPress={() => { setSelectedRole('shopkeeper'); setStep('plan'); }}
+                onPress={() => { setSelectedRole('shopkeeper'); setStep('form'); }}
               >
                 <View style={[styles.roleIcon, { backgroundColor: Colors.primary + '20' }]}>
                   <Ionicons name="storefront-outline" size={32} color={Colors.primary} />
@@ -262,7 +271,7 @@ export default function RegisterScreen() {
             </View>
           ) : (
             <View style={styles.card}>
-              <TouchableOpacity style={styles.backRow} onPress={() => setStep(selectedRole === 'shopkeeper' ? 'plan' : 'role')}>
+              <TouchableOpacity style={styles.backRow} onPress={() => setStep('role')}>
                 <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
                 <Text style={styles.backText}>{t('auth.register.changeProfile')}</Text>
               </TouchableOpacity>

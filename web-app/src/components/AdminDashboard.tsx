@@ -49,6 +49,10 @@ export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState<'overview' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
+    const [onboardingStats, setOnboardingStats] = useState<any>(null);
+    const [otpStats, setOtpStats] = useState<any>(null);
+    const [enterpriseStats, setEnterpriseStats] = useState<any>(null);
+    const [conversionStats, setConversionStats] = useState<any>(null);
     const [users, setUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
     const [disputes, setDisputes] = useState<any[]>([]);
@@ -76,12 +80,20 @@ export default function AdminDashboard() {
     const loadInitialData = async () => {
         setLoading(true);
         try {
-            const [healthRes, statsRes] = await Promise.all([
+            const [healthRes, statsRes, onboardingRes, otpRes, enterpriseRes, conversionRes] = await Promise.all([
                 adminApi.getHealth(),
                 adminApi.getDetailedStats(),
+                adminApi.getOnboardingStats(),
+                adminApi.getOtpStats(),
+                adminApi.getEnterpriseSignupStats(),
+                adminApi.getConversionStats(),
             ]);
             setHealth(healthRes);
             setStats(statsRes);
+            setOnboardingStats(onboardingRes);
+            setOtpStats(otpRes);
+            setEnterpriseStats(enterpriseRes);
+            setConversionStats(conversionRes);
         } catch (err) {
             console.error('Admin data load error', err);
         } finally {
@@ -210,9 +222,9 @@ export default function AdminDashboard() {
                     <p className="text-slate-400 text-sm">Supervision globale du système Stockman.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${health?.status === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                         <Activity size={16} />
-                        {health?.status === 'ok' ? 'Opérationnel' : 'Erreur'}
+                        {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Opérationnel' : 'Erreur'}
                     </div>
                     <button onClick={loadInitialData} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
@@ -300,6 +312,113 @@ export default function AdminDashboard() {
                             ) : (
                                 <p className="text-slate-600 text-sm text-center py-8">Aucune donnée de vente</p>
                             )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard label="OTP envoyes" value={otpStats?.sent_today || 0} icon={Bell} color="bg-indigo-500" sub="Aujourd'hui" />
+                        <StatCard label="OTP verifies" value={otpStats?.verified_today || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Aujourd'hui" />
+                        <StatCard label="Taux verification" value={`${onboardingStats?.verification_rate || 0}%`} icon={TrendingUp} color="bg-sky-500" sub={`${onboardingStats?.verified_total || 0} verifies`} />
+                        <StatCard label="Temps moyen OTP" value={`${onboardingStats?.avg_minutes_to_verify || 0} min`} icon={Clock} color="bg-violet-500" sub={`${onboardingStats?.window_days || 30} jours`} />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Onboarding & conversion</h3>
+                            <div className="grid grid-cols-2 gap-4 mb-5">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Funnel</p>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between text-slate-300"><span>Comptes crees</span><strong className="text-white">{onboardingStats?.funnel?.signup_completed || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>OTP envoyes</span><strong className="text-white">{onboardingStats?.funnel?.otp_sent || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>OTP verifies</span><strong className="text-white">{onboardingStats?.funnel?.otp_verified || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Premiers logins</span><strong className="text-white">{onboardingStats?.funnel?.first_login || 0}</strong></div>
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Conversion</p>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between text-slate-300"><span>Comptes payants</span><strong className="text-white">{conversionStats?.paying_accounts || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Trials actifs</span><strong className="text-white">{conversionStats?.active_trials || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Trials a risque</span><strong className="text-white">{conversionStats?.trials_expiring_soon || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Taux global</span><strong className="text-emerald-400">{conversionStats?.conversion_rate || 0}%</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Par plan</p>
+                                    <div className="space-y-2">
+                                        {Object.entries(onboardingStats?.by_plan || {}).map(([plan, count]) => (
+                                            <div key={plan} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{plan}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Par surface</p>
+                                    <div className="space-y-2">
+                                        {Object.entries(onboardingStats?.by_surface || {}).map(([surface, count]) => (
+                                            <div key={surface} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{surface}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">OTP & Enterprise</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Twilio</p>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between text-slate-300"><span>Envoyes</span><strong className="text-white">{otpStats?.providers?.twilio?.sent || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Echecs envoi</span><strong className="text-white">{otpStats?.providers?.twilio?.send_failed || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Expires</span><strong className="text-white">{otpStats?.providers?.twilio?.expired || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Taux</span><strong className="text-emerald-400">{otpStats?.providers?.twilio?.verification_rate || 0}%</strong></div>
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Resend</p>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between text-slate-300"><span>Envoyes</span><strong className="text-white">{otpStats?.providers?.resend?.sent || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Echecs envoi</span><strong className="text-white">{otpStats?.providers?.resend?.send_failed || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Expires</span><strong className="text-white">{otpStats?.providers?.resend?.expired || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Taux</span><strong className="text-emerald-400">{otpStats?.providers?.resend?.verification_rate || 0}%</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Enterprise crees</p>
+                                    <strong className="text-2xl text-white">{enterpriseStats?.created || 0}</strong>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Email verifies</p>
+                                    <strong className="text-2xl text-white">{enterpriseStats?.verified || 0}</strong>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Premiere vente</p>
+                                    <strong className="text-2xl text-white">{enterpriseStats?.with_first_sale || 0}</strong>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Actives</p>
+                                    <strong className="text-2xl text-white">{enterpriseStats?.activated || 0}</strong>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Inactifs J+1</p>
+                                    <strong className="text-2xl text-amber-400">{enterpriseStats?.inactive_after_1d || 0}</strong>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Inactifs J+7</p>
+                                    <strong className="text-2xl text-rose-400">{enterpriseStats?.inactive_after_7d || 0}</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

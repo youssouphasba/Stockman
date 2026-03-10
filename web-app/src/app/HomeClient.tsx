@@ -31,7 +31,8 @@ import Reservations from "../components/Reservations";
 import KitchenDisplay from "../components/KitchenDisplay";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
-import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures } from "../services/api";
+import VerifyEmailPanel from "../components/VerifyEmailPanel";
+import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures, setToken, removeToken, type AuthResponse } from "../services/api";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
@@ -61,6 +62,7 @@ export default function Home() {
   const isBillingOnly = access.isBillingOnly;
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
   const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats'].includes(activeTab);
+  const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.can_access_web === false;
 
   // Sidebar & Chat state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -126,7 +128,7 @@ export default function Home() {
     setLoading(true);
     try {
       const response = await auth.login(email, password);
-      localStorage.setItem('auth_token', response.access_token);
+      setToken(response.access_token);
       setUser(response.user);
       setIsLogged(true);
       // Load features and settings after successful login
@@ -143,6 +145,7 @@ export default function Home() {
 
   const handleLogout = () => {
     auth.logout();
+    removeToken();
     localStorage.removeItem('user_currency');
     setUser(null);
     setIsLogged(false);
@@ -162,8 +165,24 @@ export default function Home() {
 
   if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
 
+  if (needsEmailVerification) {
+    return (
+      <VerifyEmailPanel
+        user={user}
+        onVerified={(verifiedUser) => {
+          setUser(verifiedUser);
+          userFeatures.get().then(setFeatures).catch(() => { });
+          import('../services/api').then(({ settings: settingsApi }) => {
+            settingsApi.get().then((s: any) => { if (s?.modules) setModules(s.modules); }).catch(() => { });
+          });
+        }}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   // Guard Enterprise : Starter/Pro n'ont pas accès au web
-  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && effectivePlan !== 'enterprise') {
+  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && effectivePlan !== 'enterprise') {
     const currentPlan = effectivePlan === 'pro' ? 'Pro' : 'Starter';
 
     const WEB_MODULES = [
@@ -743,10 +762,13 @@ export default function Home() {
       {showSignup && (
         <EnterpriseSignupModal
           onClose={() => setShowSignup(false)}
-          onSuccess={(registeredEmail) => {
+          onSuccess={(response: AuthResponse) => {
             setShowSignup(false);
-            setEmail(registeredEmail);
+            setToken(response.access_token);
+            setEmail(response.user.email);
             setPassword('');
+            setUser(response.user);
+            setIsLogged(true);
           }}
         />
       )}

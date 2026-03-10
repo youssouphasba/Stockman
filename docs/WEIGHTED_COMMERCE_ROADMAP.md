@@ -1,7 +1,30 @@
 # Roadmap Commerce Pondere
 
 Date de preparation : 2026-03-10
-Statut : planifie, non implemente
+Statut : implemente en v1 pragmatique
+
+## Mise a jour implementation
+
+Le support `commerce pondere` est maintenant branche de bout en bout sur le backend, le mobile et le web pour les cas metiers principaux :
+- produits avec `measurement_type`, `display_unit`, `pricing_unit`, `allows_fractional_sale`, `quantity_precision`
+- creation et edition produit avec configuration de l'unite de vente/stock
+- POS web et mobile avec saisie de quantite ponderee, unites compatibles et raccourcis rapides
+- conversion automatique entre unite saisie et unite de prix
+- lignes de vente, commandes ouvertes et recus qui conservent `sold_quantity_input` et `sold_unit`
+- affichage des quantites stock et des quantites vendues avec le bon format
+
+### Note d'architecture
+
+La v1 implementee conserve l'architecture actuelle basee sur des quantites decimales + helpers de conversion.
+
+Elle ne suit pas encore totalement la recommandation initiale la plus stricte :
+- stockage interne systematique dans la plus petite unite entiere
+- `base_unit` obligatoire sur tous les produits ponderes
+- `price_per_unit` explicite separe de `selling_price`
+
+Autrement dit :
+- le besoin metier `100 kg -> vente 250 g -> stock 99,75 kg` fonctionne maintenant
+- la v2 future pourra encore durcir le modele de donnees si on veut une architecture plus normalisee
 
 Ce document decrit le plan pour ajouter la vraie vente au poids et au volume pour les business types `commerce` :
 - epicerie

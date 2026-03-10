@@ -24,9 +24,10 @@ type AuthState = {
   hasAccountRole: (role: 'billing_admin' | 'org_admin') => boolean;
   hasPermission: (module: string, level?: 'read' | 'write') => boolean;
   hasOperationalAccess: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string) => Promise<void>;
-  verifyPhone: (otp: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
+  verifyPhone: (otp: string) => Promise<User>;
+  verifyEmail: (otp: string) => Promise<User>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
   setPin: (pin: string) => Promise<void>;
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS !== 'web') {
       initPurchases(response.user.user_id).catch(console.warn);
     }
+    return response.user;
   }
 
   async function register(
@@ -134,17 +136,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     businessType?: string,
     referralSource?: string,
     countryCode?: string,
-    plan?: string
+    plan?: string,
+    signupSurface: 'mobile' | 'web' = 'mobile'
   ) {
-    const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan);
+    const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan, signupSurface);
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     setUser(response.user);
+    return response.user;
   }
 
   async function verifyPhone(otp: string) {
     const response = await authApi.verifyPhone(otp);
     setUser(response.user);
+    return response.user;
+  }
+
+  async function verifyEmail(otp: string) {
+    const response = await authApi.verifyEmail(otp);
+    setUser(response.user);
+    return response.user;
   }
 
   async function logout() {
@@ -245,6 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         verifyPhone,
+        verifyEmail,
         logout,
         switchStore,
         isAppLocked,

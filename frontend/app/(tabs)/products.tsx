@@ -71,6 +71,12 @@ import BulkImportModal from '../../components/BulkImportModal';
 import TextImportModal from '../../components/TextImportModal';
 import ProductionView from '../../components/ProductionView';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
+import {
+  defaultPrecisionForUnit,
+  formatMeasurementQuantity,
+  inferMeasurementType,
+  normalizeProductMeasurement,
+} from '../../utils/measurement';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -121,6 +127,7 @@ export default function ProductsScreen() {
   const [formQuantity, setFormQuantity] = useState('0');
   const [formProductType, setFormProductType] = useState('standard');
   const [formUnit, setFormUnit] = useState(t('products.default_unit'));
+  const [formQuantityPrecision, setFormQuantityPrecision] = useState('1');
   const [formPurchasePrice, setFormPurchasePrice] = useState('0');
   const [formSellingPrice, setFormSellingPrice] = useState('0');
   const [formMinStock, setFormMinStock] = useState('0');
@@ -510,6 +517,20 @@ export default function ProductsScreen() {
     return t('products.normal');
   }
 
+  function toUnitChipValue(unit?: string) {
+    const normalized = String(unit || '').trim().toLowerCase();
+    if (normalized === 'kg') return 'Kg';
+    if (normalized === 'ml') return 'mL';
+    if (normalized === 'cl') return 'cL';
+    if (normalized === 'piece' || normalized === 'pièce') return t('products.default_unit');
+    if (normalized === 'l') return 'L';
+    return unit || t('products.default_unit');
+  }
+
+  function isPieceUnitValue(unit?: string) {
+    return normalizeProductMeasurement({ unit }).unit === 'piece';
+  }
+
   function getExpiryWarningColor(expiryDate: string) {
     const now = new Date();
     const expiry = new Date(expiryDate);
@@ -650,6 +671,7 @@ export default function ProductsScreen() {
     setFormSku('');
     setFormQuantity('0');
     setFormUnit(t('products.default_unit'));
+    setFormQuantityPrecision(String(defaultPrecisionForUnit(t('products.default_unit'))));
     setFormPurchasePrice('0');
     setFormSellingPrice('0');
     setFormMinStock('0');
@@ -732,7 +754,8 @@ export default function ProductsScreen() {
     setFormName(product.name);
     setFormSku(product.sku || '');
     setFormQuantity(String(product.quantity));
-    setFormUnit(product.unit);
+    setFormUnit(toUnitChipValue(product.display_unit || product.unit));
+    setFormQuantityPrecision(String(product.quantity_precision || defaultPrecisionForUnit(product.pricing_unit || product.unit, product.measurement_type)));
     setFormPurchasePrice(String(product.purchase_price));
     setFormSellingPrice(String(product.selling_price));
     setFormMinStock(String(product.min_stock));
@@ -757,7 +780,7 @@ export default function ProductsScreen() {
   }
 
   async function handleAdjustStock(product: Product, actualQuantityText: string) {
-    const actualQuantity = parseInt(actualQuantityText);
+    const actualQuantity = parseFloat(actualQuantityText);
     if (isNaN(actualQuantity)) {
       Alert.alert(t('common.error'), t('products.error_invalid_quantity'));
       return;
@@ -815,17 +838,30 @@ export default function ProductsScreen() {
     }
     setFormLoading(true);
     try {
+      const measurement = normalizeProductMeasurement({
+        unit: formUnit,
+        display_unit: formUnit,
+        pricing_unit: formUnit,
+        measurement_type: inferMeasurementType(formUnit),
+        allows_fractional_sale: inferMeasurementType(formUnit) !== 'unit',
+        quantity_precision: parseFloat(formQuantityPrecision) || defaultPrecisionForUnit(formUnit),
+      });
       const data: ProductCreate = {
         name: formName.trim(),
         description: formDescription.trim() || undefined,
         sku: formSku.trim() || undefined,
         product_type: formProductType,
-        quantity: parseInt(formQuantity) || 0,
-        unit: formUnit,
+        quantity: parseFloat(formQuantity) || 0,
+        unit: measurement.unit,
+        measurement_type: measurement.measurement_type,
+        display_unit: measurement.display_unit,
+        pricing_unit: measurement.pricing_unit,
+        allows_fractional_sale: measurement.allows_fractional_sale,
+        quantity_precision: measurement.quantity_precision,
         purchase_price: parseFloat(formPurchasePrice) || 0,
         selling_price: parseFloat(formSellingPrice) || 0,
-        min_stock: parseInt(formMinStock) || 0,
-        max_stock: parseInt(formMaxStock) || 100,
+        min_stock: parseFloat(formMinStock) || 0,
+        max_stock: parseFloat(formMaxStock) || 100,
         category_id: formCategory,
         subcategory: formSubcategory || undefined,
         image: formImage || undefined,
@@ -2250,15 +2286,18 @@ export default function ProductsScreen() {
                       {PRODUCT_UNITS.map(u => (
                         <TouchableOpacity
                           key={u}
-                          onPress={() => setFormUnit(u)}
+                          onPress={() => {
+                            setFormUnit(u);
+                            setFormQuantityPrecision(String(defaultPrecisionForUnit(u)));
+                          }}
                           style={{
                             paddingHorizontal: 12,
                             paddingVertical: 8,
-                            backgroundColor: formUnit === u ? colors.primary : colors.glass,
+                            backgroundColor: String(formUnit).toLowerCase() === String(u).toLowerCase() ? colors.primary : colors.glass,
                             borderRadius: 20,
                             marginRight: 8,
                             borderWidth: 1,
-                            borderColor: formUnit === u ? colors.primary : colors.glassBorder
+                            borderColor: String(formUnit).toLowerCase() === String(u).toLowerCase() ? colors.primary : colors.glassBorder
                           }}
                         >
                           <Text style={{ color: formUnit === u ? '#fff' : colors.text, fontSize: 13 }}>{t(`products.unit_${u.toLowerCase().replace('é', 'e')}`)}</Text>
@@ -2267,6 +2306,28 @@ export default function ProductsScreen() {
                     </ScrollView>
                   </View>
                 </View>
+                {inferMeasurementType(formUnit) !== 'unit' && (
+                  <View style={styles.formRow}>
+                    <View style={styles.formHalf}>
+                      <FormField
+                        label={'Pas de vente'}
+                        value={formQuantityPrecision}
+                        onChangeText={setFormQuantityPrecision}
+                        keyboardType="numeric"
+                        colors={colors}
+                        styles={styles}
+                      />
+                    </View>
+                    <View style={[styles.formHalf, { justifyContent: 'center' }]}>
+                      <Text style={[styles.formLabel, { marginBottom: 6 }]}>Vente fractionnee</Text>
+                      <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.md, padding: 12, borderWidth: 1, borderColor: colors.primary + '25' }}>
+                        <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600', lineHeight: 18 }}>
+                          Prix et stock geres au {formUnit}. Minimum conseille : {formatMeasurementQuantity(parseFloat(formQuantityPrecision) || defaultPrecisionForUnit(formUnit), formUnit)}.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
                 {!isRestaurant && (
                   <View style={{ marginBottom: 16 }}>
                     <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('products.product_type_label')}</Text>

@@ -26,19 +26,23 @@ export default function StockHistory() {
     const [total, setTotal] = useState(0);
     const { filters } = useAnalyticsFilters();
     const limit = 20;
+    const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
+    const periodLabel = hasCustomRange
+        ? `Du ${new Date(filters.startDate).toLocaleDateString('fr-FR')} au ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
+        : `${filters.days} derniers jours`;
 
     useEffect(() => {
         loadMovements();
-    }, [filter, filters.categoryId, filters.days, filters.storeId, filters.supplierId, page]);
+    }, [filter, filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange, page]);
 
     const loadMovements = async () => {
         setLoading(true);
         try {
             const res = await stockApi.getMovements(
                 undefined,
-                filters.days,
-                undefined,
-                undefined,
+                hasCustomRange ? undefined : filters.days,
+                hasCustomRange ? filters.startDate : undefined,
+                hasCustomRange ? filters.endDate : undefined,
                 page * limit,
                 limit,
                 filters.storeId || undefined,
@@ -134,7 +138,7 @@ export default function StockHistory() {
             </header>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
-                <KpiCard icon={Clock} label="Mouvements" value={total.toLocaleString('fr-FR')} hint={`${filters.days} derniers jours`} />
+                <KpiCard icon={Clock} label="Mouvements" value={total.toLocaleString('fr-FR')} hint={periodLabel} />
                 <KpiCard icon={ArrowUpCircle} label="Entrées" value={movementsIn.toLocaleString('fr-FR')} hint="Quantités reçues / ajustées" />
                 <KpiCard icon={ArrowDownCircle} label="Sorties" value={movementsOut.toLocaleString('fr-FR')} hint="Quantités consommées / vendues" />
                 <KpiCard icon={Boxes} label="Produits touchés" value={uniqueProducts.toLocaleString('fr-FR')} hint="Références impliquées" />
@@ -155,7 +159,7 @@ export default function StockHistory() {
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
                         <Calendar size={14} />
-                        {filters.days} derniers jours
+                        {periodLabel}
                     </div>
                 </div>
 

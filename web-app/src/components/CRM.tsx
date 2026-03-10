@@ -28,20 +28,50 @@ import {
     FileText,
     Zap,
     Cake,
+    Calendar,
     ArrowUpDown,
     ShoppingBag,
     X
 } from 'lucide-react';
-import { customers as customersApi, ai as aiApi } from '../services/api';
-import type { User } from '../services/api';
+import {
+    ai as aiApi,
+    crmAnalytics as crmAnalyticsApi,
+    customers as customersApi,
+    type AnalyticsKpiDetail,
+    type CrmAnalyticsOverview,
+    type User,
+} from '../services/api';
 import Modal from './Modal';
 import LoyaltySettingsModal from './LoyaltySettingsModal';
 import CampaignModal from './CampaignModal';
 import { exportCRM } from '../utils/ExportService';
 import { getAccessContext } from '../utils/access';
+import KpiCard from './analytics/KpiCard';
+import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
+import {
+    applyPendingDebtToCustomer,
+    buildPendingDebtEntry,
+    getPendingDebtEntries,
+    mergeCustomersOfflineState,
+} from '../services/offlineState';
 
 type CRMProps = {
     user?: User | null;
+};
+
+const CRM_PERIODS = [
+    { label: '30j', value: 30 },
+    { label: '90j', value: 90 },
+    { label: '1an', value: 365 },
+];
+
+const SEGMENT_STYLES: Record<string, string> = {
+    amber: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+    emerald: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
+    blue: 'border-blue-500/20 bg-blue-500/10 text-blue-300',
+    violet: 'border-violet-500/20 bg-violet-500/10 text-violet-300',
+    rose: 'border-rose-500/20 bg-rose-500/10 text-rose-300',
+    slate: 'border-white/10 bg-white/5 text-slate-300',
 };
 
 export default function CRM({ user }: CRMProps) {
@@ -59,7 +89,7 @@ export default function CRM({ user }: CRMProps) {
     const [isLoyaltyModalOpen, setIsLoyaltyModalOpen] = useState(false);
     const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-    const [detailTab, setDetailTab] = useState<'info' | 'history'>('info');
+    const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases'>('info');
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [customerForm, setCustomerForm] = useState({
@@ -90,6 +120,16 @@ export default function CRM({ user }: CRMProps) {
     const [churnData, setChurnData] = useState<{ at_risk: any[]; total_at_risk: number; summary: string } | null>(null);
     const [showChurn, setShowChurn] = useState(true);
     const [loadingSales, setLoadingSales] = useState(false);
+    const [analyticsPeriod, setAnalyticsPeriod] = useState<number>(90);
+    const [useCustomRange, setUseCustomRange] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [analyticsOverview, setAnalyticsOverview] = useState<CrmAnalyticsOverview | null>(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(false);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
+    const [pendingCrmSummary, setPendingCrmSummary] = useState({ pendingCustomers: 0, pendingDebtChanges: 0, pendingTotal: 0 });
 
     const CATEGORIES = [
         { id: 'particulier', label: 'Particulier', color: 'bg-slate-500/10 text-slate-500' },
@@ -122,17 +162,42 @@ export default function CRM({ user }: CRMProps) {
         loadCustomers();
     }, [sortBy]);
 
+    useEffect(() => {
+        if (!useCustomRange) {
+            loadAnalytics();
+        }
+    }, [analyticsPeriod, useCustomRange]);
+
     const loadCustomers = async () => {
         setLoading(true);
         try {
             const res = await customersApi.list(0, 200, sortBy);
-            setCustomers(res.items || res);
+            const merged = mergeCustomersOfflineState(res.items || res);
+            setCustomers(merged.customers);
+            setPendingCrmSummary(merged.summary);
             // Auto-trigger churn prediction
             aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => { });
         } catch (err) {
             console.error("CRM load error", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadAnalytics = async () => {
+        setAnalyticsLoading(true);
+        try {
+            const res = await crmAnalyticsApi.getOverview(
+                useCustomRange ? undefined : analyticsPeriod,
+                useCustomRange ? startDate : undefined,
+                useCustomRange ? endDate : undefined,
+            );
+            setAnalyticsOverview(res);
+        } catch (err) {
+            console.error("CRM analytics load error", err);
+            setAnalyticsOverview(null);
+        } finally {
+            setAnalyticsLoading(false);
         }
     };
 
@@ -151,6 +216,31 @@ export default function CRM({ user }: CRMProps) {
     const handleExportExcel = () => exportCRM(filteredCustomers, 'F', 'excel');
     const handleExportPDF = () => exportCRM(filteredCustomers, 'F', 'pdf');
 
+    const handleOpenCrmDetail = async (metric: string) => {
+        setDetailOpen(true);
+        setDetailLoading(true);
+        setDetail(null);
+        try {
+            const res = await crmAnalyticsApi.getKpiDetails(
+                metric,
+                useCustomRange ? undefined : analyticsPeriod,
+                useCustomRange ? startDate : undefined,
+                useCustomRange ? endDate : undefined,
+            );
+            setDetail(res);
+        } catch (err) {
+            console.error("CRM KPI detail error", err);
+            setDetail(null);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const handleApplyCustomRange = () => {
+        if (!startDate || !endDate) return;
+        loadAnalytics();
+    };
+
     const handleSaveCustomer = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!customerForm.name) return;
@@ -159,6 +249,7 @@ export default function CRM({ user }: CRMProps) {
             await customersApi.create(customerForm);
             setIsAddModalOpen(false);
             loadCustomers();
+            loadAnalytics();
         } catch (err) {
             console.error("Create customer error", err);
         } finally {
@@ -172,16 +263,22 @@ export default function CRM({ user }: CRMProps) {
         setIsDetailModalOpen(true);
         setLoadingHistory(true);
         setCustomerSales([]);
+        if (String(customer.customer_id || '').startsWith('offline-customer-')) {
+            setDebtHistory([]);
+            setLoadingHistory(false);
+            return;
+        }
         try {
             const [debtsRes, salesRes] = await Promise.all([
                 customersApi.getDebts(customer.customer_id),
                 customersApi.getSales(customer.customer_id)
             ]);
-            setDebtHistory(Array.isArray(debtsRes?.items) ? debtsRes.items : (Array.isArray(debtsRes) ? debtsRes : []));
+            const baseHistory = Array.isArray(debtsRes?.items) ? debtsRes.items : (Array.isArray(debtsRes) ? debtsRes : []);
+            setDebtHistory([...getPendingDebtEntries(customer.customer_id), ...baseHistory]);
             setCustomerSales(salesRes?.sales || []);
         } catch (err) {
             console.error("Error loading customer detail", err);
-            setDebtHistory([]);
+            setDebtHistory(getPendingDebtEntries(customer.customer_id));
         } finally {
             setLoadingHistory(false);
         }
@@ -208,23 +305,38 @@ export default function CRM({ user }: CRMProps) {
         return matchSearch && matchCategory && matchTier;
     });
 
-    // CRM summary stats
-    const avgBasket = customers.length > 0
-        ? customers.reduce((s, c) => s + (c.average_basket || 0), 0) / customers.filter(c => (c.visit_count || 0) > 0).length || 0
-        : 0;
-    const inactiveCount = customers.filter(c => {
-        if (!c.last_purchase_date) return true;
-        const diff = (Date.now() - new Date(c.last_purchase_date).getTime()) / (1000 * 60 * 60 * 24);
-        return diff > 30;
-    }).length;
+    const debtHistoryWithBalance = (() => {
+        let runningBalance = Number(selectedCustomer?.current_debt || 0);
+        return (Array.isArray(debtHistory) ? debtHistory : []).map((entry) => {
+            const amount = Number(entry.amount || 0);
+            const isDebtIncrease = entry.type === 'credit_sale' || (entry.type === 'payment' && amount < 0);
+            const row = {
+                ...entry,
+                isDebtIncrease,
+                balance_after: runningBalance,
+            };
+            runningBalance = isDebtIncrease ? runningBalance - Math.abs(amount) : runningBalance + Math.abs(amount);
+            return row;
+        });
+    })();
 
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-            <header className="flex justify-between items-center mb-10">
+            <header className="flex flex-wrap justify-between items-start gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('crm.title') || 'Gestion Clients (CRM)'}</h1>
                     <p className="text-slate-400">{t('crm.subtitle') || 'Fidélisez votre clientèle et suivez les dettes.'}</p>
                 </div>
+                {pendingCrmSummary.pendingTotal > 0 && (
+                    <div className="max-w-2xl rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <AlertCircle size={14} />
+                            <span>
+                                {pendingCrmSummary.pendingCustomers} client(s) et {pendingCrmSummary.pendingDebtChanges} opÃ©ration(s) de dette sont encore en attente de synchronisation.
+                            </span>
+                        </div>
+                    </div>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={() => setIsCampaignModalOpen(true)}
@@ -319,38 +431,223 @@ export default function CRM({ user }: CRMProps) {
                 </div>
             )}
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="glass-card p-5 flex flex-col gap-2">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Total Clients</span>
-                    <div className="flex items-center justify-between">
-                        <span className="text-3xl font-bold text-white">{customers.length}</span>
-                        <div className="p-3 rounded-xl bg-primary/10 text-primary"><Users size={20} /></div>
+            <div className="mb-8 grid gap-5 xl:grid-cols-[1.2fr,0.8fr]">
+                <div className="glass-card p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">CRM Analytics</p>
+                            <h2 className="mt-2 text-2xl font-black text-white">Vue d'ensemble client</h2>
+                            <p className="mt-2 max-w-3xl text-sm text-slate-400">
+                                {analyticsOverview?.summary || "Suivez l'activation, la retention, les dettes et les clients a relancer sur le compte."}
+                            </p>
+                            <p className="mt-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                                {useCustomRange && startDate && endDate
+                                    ? `Periode personnalisee du ${formatDate(startDate)} au ${formatDate(endDate)}`
+                                    : `Donnees mutualisees a l'echelle du compte • ${analyticsPeriod} jours`}
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {!useCustomRange && CRM_PERIODS.map((period) => (
+                                <button
+                                    key={period.value}
+                                    type="button"
+                                    onClick={() => setAnalyticsPeriod(period.value)}
+                                    className={`rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.18em] transition-all ${analyticsPeriod === period.value
+                                        ? 'border-primary bg-primary text-white'
+                                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-primary/30 hover:text-white'
+                                        }`}
+                                >
+                                    {period.label}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => setUseCustomRange((value) => !value)}
+                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.18em] transition-all ${useCustomRange
+                                    ? 'border-primary/40 bg-primary/15 text-primary'
+                                    : 'border-white/10 bg-white/5 text-slate-400 hover:border-primary/30 hover:text-white'
+                                    }`}
+                            >
+                                <Calendar size={14} />
+                                Dates
+                            </button>
+                            {useCustomRange ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                    />
+                                    <span className="text-sm text-slate-500">→</span>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleApplyCustomRange}
+                                        disabled={!startDate || !endDate}
+                                        className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        Appliquer
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
+
+                    {analyticsLoading && !analyticsOverview ? (
+                        <div className="flex items-center justify-center py-16">
+                            <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+                        </div>
+                    ) : (
+                        <div className="mt-6 grid gap-3 md:grid-cols-2">
+                            {(analyticsOverview?.recommendations?.length
+                                ? analyticsOverview.recommendations
+                                : [
+                                    "Identifiez les clients qui n'ont pas achete recemment pour lancer une relance ciblee.",
+                                    "Surveillez les anniversaires, les dettes ouvertes et les clients a risque pour prioriser les actions commerciales.",
+                                ]
+                            ).map((recommendation, index) => (
+                                <div
+                                    key={`${recommendation}-${index}`}
+                                    className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4"
+                                >
+                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                                        Recommandation {index + 1}
+                                    </p>
+                                    <p className="mt-2 text-sm leading-relaxed text-slate-200">{recommendation}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                <div className="glass-card p-5 flex flex-col gap-2">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Panier Moyen</span>
-                    <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-white">{formatCurrency(avgBasket)}</span>
-                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400"><ShoppingBag size={20} /></div>
-                    </div>
-                </div>
-                <div className="glass-card p-5 flex flex-col gap-2">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Clients en Dette</span>
-                    <div className="flex items-center justify-between">
-                        <span className="text-3xl font-bold text-amber-500">
-                            {(Array.isArray(customers) ? customers : []).filter(c => (c.total_debt || 0) > 0).length}
+
+                <div className="glass-card p-6">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">Segments</p>
+                            <h3 className="mt-2 text-xl font-black text-white">Clientele a cibler</h3>
+                        </div>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                            {analyticsOverview?.segments?.length || 0} groupes
                         </span>
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500"><CreditCard size={20} /></div>
+                    </div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        {(analyticsOverview?.segments || []).map((segment) => {
+                            const metricBySegment: Record<string, string> = {
+                                vip: 'vip_customers',
+                                loyal: 'loyal_customers',
+                                occasional: 'occasional_customers',
+                                new: 'new_customers',
+                                at_risk: 'at_risk_customers',
+                                inactive: 'inactive_customers',
+                            };
+                            const metric = metricBySegment[segment.id];
+                            return (
+                                <button
+                                    key={segment.id}
+                                    type="button"
+                                    onClick={() => metric && handleOpenCrmDetail(metric)}
+                                    className={`rounded-2xl border px-4 py-4 text-left transition hover:border-primary/30 hover:bg-white/[0.06] ${SEGMENT_STYLES[segment.accent] || SEGMENT_STYLES.slate}`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-[0.18em]">{segment.label}</p>
+                                            <p className="mt-2 text-sm leading-relaxed text-slate-100">{segment.description}</p>
+                                        </div>
+                                        <span className="rounded-full border border-current/15 px-2.5 py-1 text-sm font-black">
+                                            {segment.count}
+                                        </span>
+                                    </div>
+                                    {segment.examples.length > 0 ? (
+                                        <p className="mt-3 text-xs text-slate-200/90">
+                                            Exemples : {segment.examples.join(', ')}
+                                        </p>
+                                    ) : (
+                                        <p className="mt-3 text-xs text-slate-300/80">Voir le detail</p>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
-                <div className="glass-card p-5 flex flex-col gap-2">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Inactifs +30j</span>
-                    <div className="flex items-center justify-between">
-                        <span className="text-3xl font-bold text-rose-400">{inactiveCount}</span>
-                        <div className="p-3 rounded-xl bg-rose-500/10 text-rose-400"><AlertCircle size={20} /></div>
-                    </div>
-                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 mb-8">
+                <KpiCard
+                    icon={Users}
+                    label="Base clients"
+                    value={(analyticsOverview?.kpis.total_customers || 0).toLocaleString('fr-FR')}
+                    hint="Tous les clients du compte"
+                    onClick={() => handleOpenCrmDetail('total_customers')}
+                />
+                <KpiCard
+                    icon={TrendingUp}
+                    label="Clients actifs"
+                    value={(analyticsOverview?.kpis.active_customers || 0).toLocaleString('fr-FR')}
+                    hint={`Clients actifs sur ${analyticsPeriod} jours`}
+                    onClick={() => handleOpenCrmDetail('active_customers')}
+                />
+                <KpiCard
+                    icon={UserPlus}
+                    label="Nouveaux clients"
+                    value={(analyticsOverview?.kpis.new_customers || 0).toLocaleString('fr-FR')}
+                    hint={`Crees sur ${analyticsPeriod} jours`}
+                    onClick={() => handleOpenCrmDetail('new_customers')}
+                />
+                <KpiCard
+                    icon={AlertCircle}
+                    label="Clients inactifs"
+                    value={(analyticsOverview?.kpis.inactive_customers || 0).toLocaleString('fr-FR')}
+                    hint="Sans achat recent"
+                    onClick={() => handleOpenCrmDetail('inactive_customers')}
+                />
+                <KpiCard
+                    icon={ShoppingBag}
+                    label="Panier moyen"
+                    value={formatCurrency(analyticsOverview?.kpis.average_basket || 0)}
+                    hint={`Panier moyen sur ${analyticsPeriod} jours`}
+                    onClick={() => handleOpenCrmDetail('average_basket')}
+                />
+                <KpiCard
+                    icon={TrendingUp}
+                    label="Taux de reachat"
+                    value={`${(analyticsOverview?.kpis.repeat_rate || 0).toFixed(1)}%`}
+                    hint="Clients avec 2 achats ou plus"
+                    onClick={() => handleOpenCrmDetail('repeat_rate')}
+                />
+                <KpiCard
+                    icon={CreditCard}
+                    label="Encours clients"
+                    value={formatCurrency(analyticsOverview?.kpis.debt_balance || 0)}
+                    hint={`${(analyticsOverview?.kpis.debt_customers || 0).toLocaleString('fr-FR')} clients en dette`}
+                    onClick={() => handleOpenCrmDetail('debt_balance')}
+                />
+                <KpiCard
+                    icon={Zap}
+                    label="Clients a risque"
+                    value={(analyticsOverview?.kpis.at_risk_customers || 0).toLocaleString('fr-FR')}
+                    hint="Clients a relancer en priorite"
+                    onClick={() => handleOpenCrmDetail('at_risk_customers')}
+                />
+                <KpiCard
+                    icon={Cake}
+                    label="Anniversaires"
+                    value={(analyticsOverview?.kpis.birthdays_soon || 0).toLocaleString('fr-FR')}
+                    hint="Dans les 7 prochains jours"
+                    onClick={() => handleOpenCrmDetail('birthdays_soon')}
+                />
+                <KpiCard
+                    icon={ShieldCheck}
+                    label="Clients VIP"
+                    value={(analyticsOverview?.kpis.vip_customers || 0).toLocaleString('fr-FR')}
+                    hint="Clients a forte valeur"
+                    onClick={() => handleOpenCrmDetail('vip_customers')}
+                />
             </div>
 
             {/* Tier & Sort chips */}
@@ -474,7 +771,14 @@ export default function CRM({ user }: CRMProps) {
                                                         {c.name.charAt(0)}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-white font-bold">{c.name}</span>
+                                                        <span className="text-white font-bold flex items-center gap-2">
+                                                            {c.name}
+                                                            {c.offline_pending && (
+                                                                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
+                                                                    Hors ligne
+                                                                </span>
+                                                            )}
+                                                        </span>
                                                         <span className="text-xs text-slate-500">{c.phone || t('crm.no_phone') || 'Sans mobile'}</span>
                                                     </div>
                                                 </div>
@@ -497,8 +801,8 @@ export default function CRM({ user }: CRMProps) {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <span className={`font-bold ${(c.total_debt || 0) > 0 ? 'text-rose-500' : 'text-slate-400'}`}>
-                                                    {formatCurrency(c.total_debt || 0)}
+                                                <span className={`font-bold ${(c.current_debt || 0) > 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                                    {formatCurrency(c.current_debt || 0)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
@@ -642,8 +946,8 @@ export default function CRM({ user }: CRMProps) {
                                     Dettes
                                 </button>
                                 <button
-                                    onClick={() => setDetailTab('purchases' as any)}
-                                    className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === ('purchases' as any) ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                    onClick={() => setDetailTab('purchases')}
+                                    className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${detailTab === 'purchases' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                                 >
                                     Achats ({customerSales.length})
                                 </button>
@@ -701,11 +1005,18 @@ export default function CRM({ user }: CRMProps) {
                                     </div>
                                     <div className="p-5 bg-rose-500/5 border border-rose-500/20 rounded-3xl space-y-1">
                                         <p className="text-[10px] font-black text-rose-500/50 uppercase">Dette Actuelle</p>
-                                        <p className="text-xl font-black text-rose-500">{formatCurrency(selectedCustomer.total_debt || 0)}</p>
+                                        <p className="text-xl font-black text-rose-500 flex items-center gap-2">
+                                            <span>{formatCurrency(selectedCustomer.current_debt || 0)}</span>
+                                            {selectedCustomer.offline_pending_debt && (
+                                                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
+                                                    En attente
+                                                </span>
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : detailTab === 'history' ? (
                             <div className="animate-in fade-in duration-300 space-y-4">
                                 <div className="flex justify-between items-center mb-2">
                                     <h4 className="text-sm font-black text-white uppercase tracking-widest px-1 border-l-4 border-primary">Dernières Opérations</h4>
@@ -723,15 +1034,23 @@ export default function CRM({ user }: CRMProps) {
                                     </div>
                                 ) : (
                                     <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                                        {(Array.isArray(debtHistory) ? debtHistory : []).map((debt, idx) => (
+                                        {debtHistoryWithBalance.map((rawDebt, idx) => {
+                                            const debt = {
+                                                ...rawDebt,
+                                                is_payment: !rawDebt.isDebtIncrease,
+                                                description: rawDebt.details || (rawDebt.isDebtIncrease ? 'Achat à crédit' : 'Remboursement'),
+                                                remaining: rawDebt.balance_after,
+                                                amount: Math.abs(rawDebt.amount || 0),
+                                            };
+                                            return (
                                             <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center group hover:bg-white/10 transition-all">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${debt.is_payment ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                                        {debt.is_payment ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${debt.isDebtIncrease ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                        {debt.isDebtIncrease ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                                     </div>
                                                     <div>
                                                         <p className="text-xs font-bold text-white">{debt.description || (debt.is_payment ? 'Remboursement' : 'Achat à crédit')}</p>
-                                                        <p className="text-[10px] text-slate-500 font-medium">{formatDate(debt.date)} • {debt.reference || '-'}</p>
+                                                        <p className="text-[10px] text-slate-500 font-medium">{formatDate(debt.date)} • {debt.reference || '-'}{debt.pending ? ' • Hors ligne' : ''}</p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
@@ -741,14 +1060,15 @@ export default function CRM({ user }: CRMProps) {
                                                     <p className="text-[9px] text-slate-600 font-bold uppercase">Solde: {formatCurrency(debt.remaining || 0)}</p>
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
-                        )}
+                        ) : null}
 
                         {/* Purchases tab */}
-                        {detailTab === ('purchases' as any) && (
+                        {detailTab === 'purchases' && (
                             <div className="animate-in fade-in duration-300 space-y-3">
                                 <div className="flex justify-between items-center mb-2">
                                     <h4 className="text-sm font-black text-white uppercase tracking-widest px-1 border-l-4 border-emerald-500">Historique des Achats</h4>
@@ -793,7 +1113,7 @@ export default function CRM({ user }: CRMProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="glass-card p-6 bg-rose-500/5 border-rose-500/10">
                                 <span className="text-rose-400 text-sm font-medium">Encours Actuel</span>
-                                <div className="text-3xl font-bold text-rose-500 mt-1">{formatCurrency(selectedCustomer.total_debt || 0)}</div>
+                                <div className="text-3xl font-bold text-rose-500 mt-1">{formatCurrency(selectedCustomer.current_debt || 0)}</div>
                                 <button
                                     onClick={() => setIsDebtModalOpen(true)}
                                     className="mt-4 w-full py-2 bg-rose-500 text-white rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20"
@@ -895,17 +1215,43 @@ export default function CRM({ user }: CRMProps) {
                                 if (!debtForm.amount || !selectedCustomer) return;
                                 setSaving(true);
                                 try {
-                                    await customersApi.addDebt(selectedCustomer.customer_id, {
-                                        amount: parseFloat(debtForm.amount),
+                                    const rawAmount = parseFloat(debtForm.amount);
+                                    const signedAmount = debtForm.type === 'payment' ? rawAmount : -rawAmount;
+                                    const response = await customersApi.addDebt(selectedCustomer.customer_id, {
+                                        amount: signedAmount,
                                         is_payment: debtForm.type === 'payment',
                                         description: debtForm.reason || undefined,
                                     });
                                     setIsDebtModalOpen(false);
                                     setDebtForm({ amount: '', type: 'addition', reason: '' });
-                                    // Refresh customer details
-                                    const res = await customersApi.getDebts(selectedCustomer.customer_id);
-                                    setDebtHistory(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+                                    if ((response as any)?.offline_pending) {
+                                        setSelectedCustomer(applyPendingDebtToCustomer(selectedCustomer, signedAmount));
+                                        setCustomers((prev) => prev.map((customer) =>
+                                            customer.customer_id === selectedCustomer.customer_id
+                                                ? applyPendingDebtToCustomer(customer, signedAmount)
+                                                : customer,
+                                        ));
+                                        setDebtHistory((prev) => [
+                                            buildPendingDebtEntry(selectedCustomer.customer_id, signedAmount, debtForm.reason || undefined),
+                                            ...prev,
+                                        ]);
+                                        setPendingCrmSummary((prev) => ({
+                                            ...prev,
+                                            pendingDebtChanges: prev.pendingDebtChanges + 1,
+                                            pendingTotal: prev.pendingTotal + 1,
+                                        }));
+                                        return;
+                                    }
+                                    const [updatedCustomer, debtRes] = await Promise.all([
+                                        customersApi.get(selectedCustomer.customer_id),
+                                        customersApi.getDebts(selectedCustomer.customer_id),
+                                    ]);
+                                    const mergedCustomer = mergeCustomersOfflineState([updatedCustomer]).customers[0] || updatedCustomer;
+                                    setSelectedCustomer(mergedCustomer);
+                                    const baseHistory = Array.isArray(debtRes?.items) ? debtRes.items : (Array.isArray(debtRes) ? debtRes : []);
+                                    setDebtHistory([...getPendingDebtEntries(selectedCustomer.customer_id), ...baseHistory]);
                                     loadCustomers();
+                                    loadAnalytics();
                                 } catch (err) {
                                     console.error(err);
                                 } finally {
@@ -920,6 +1266,12 @@ export default function CRM({ user }: CRMProps) {
                     </div>
                 </div>
             </Modal>
+            <AnalyticsKpiDetailsModal
+                open={detailOpen}
+                detail={detail}
+                loading={detailLoading}
+                onClose={() => setDetailOpen(false)}
+            />
         </div>
     );
 }

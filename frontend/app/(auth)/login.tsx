@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { login, isBiometricsEnabled } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -65,11 +66,18 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
     try {
-      await login(email.trim(), password);
+      const loggedInUser = await login(email.trim(), password);
       if (rememberMe) {
         await SecureStore.setItemAsync('user_email', email.trim());
       } else {
         await SecureStore.deleteItemAsync('user_email');
+      }
+      if (loggedInUser.required_verification === 'email' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-email');
+      } else if (loggedInUser.required_verification === 'phone' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-phone');
+      } else {
+        router.replace('/(tabs)');
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.login.errorLogin'));

@@ -11,13 +11,15 @@ import {
     Package,
     Plus,
     RefreshCw,
+    Repeat,
     ShoppingCart,
     Store,
     TrendingUp,
 } from 'lucide-react';
-import { analytics as analyticsApi, AnalyticsStoreComparison, stores as storesApi, User } from '../services/api';
+import { analytics as analyticsApi, AnalyticsKpiDetail, AnalyticsStoreComparison, stores as storesApi, User } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
+import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 
 interface MultiStoreDashboardProps {
     user?: User | null;
@@ -39,24 +41,32 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
     const [newStoreName, setNewStoreName] = useState('');
     const [newStoreAddress, setNewStoreAddress] = useState('');
     const [creating, setCreating] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
+    const [detailOpen, setDetailOpen] = useState(false);
     const { filters } = useAnalyticsFilters();
+    const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
+    const analyticsFilters = {
+        ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
+        store_id: filters.storeId || undefined,
+        category_id: filters.categoryId || undefined,
+        supplier_id: filters.supplierId || undefined,
+    };
+    const periodLabel = hasCustomRange
+        ? `du ${new Date(filters.startDate).toLocaleDateString('fr-FR')} au ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
+        : `sur ${filters.days} jours`;
 
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const statsRes = await analyticsApi.getStoreComparison({
-                days: filters.days,
-                store_id: filters.storeId || undefined,
-                category_id: filters.categoryId || undefined,
-                supplier_id: filters.supplierId || undefined,
-            });
+            const statsRes = await analyticsApi.getStoreComparison(analyticsFilters);
             setStats(statsRes);
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, [filters.categoryId, filters.days, filters.storeId, filters.supplierId]);
+    }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
 
     useEffect(() => {
         load();
@@ -91,6 +101,27 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
 
     const maxRevenue = stats ? Math.max(...stats.stores.map((store) => store.revenue), 1) : 1;
 
+    const openDetail = async (metric: string) => {
+        setDetailOpen(true);
+        setDetailLoading(true);
+        try {
+            const response = await analyticsApi.getKpiDetails('multi_stores', metric, analyticsFilters);
+            setDetail(response);
+        } catch (err) {
+            console.error(err);
+            setDetail({
+                title: 'Detail indisponible',
+                description: "Impossible de charger le detail multi-boutiques.",
+                export_name: 'detail_indisponible',
+                columns: [],
+                rows: [],
+                total_rows: 0,
+            });
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -100,6 +131,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
     }
 
     return (
+        <>
         <div className="p-6 space-y-6 max-w-6xl mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -108,7 +140,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                         Vue Multi-Boutiques
                     </h1>
                     <p className="text-slate-400 text-sm mt-1">
-                        Benchmark consolidé sur {stats?.totals.store_count ?? 0} boutique(s) et {filters.days} jours.
+                        Benchmark consolide sur {stats?.totals.store_count ?? 0} boutique(s) {periodLabel}.
                     </p>
                 </div>
                 <button
@@ -125,49 +157,57 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                     label="Boutiques"
                     value={(stats?.totals.store_count ?? 0).toLocaleString('fr-FR')}
                     hint="Magasins inclus dans le benchmark"
+                    onClick={() => openDetail('store_count')}
                 />
                 <KpiCard
                     icon={TrendingUp}
-                    label="CA consolidé"
+                    label="CA consolide"
                     value={formatCurrency(stats?.totals.revenue ?? 0, stats?.currency || user?.currency)}
-                    hint={`${filters.days} derniers jours`}
+                    hint={hasCustomRange ? periodLabel : `${filters.days} derniers jours`}
                     delta={(stats?.totals.revenue_delta ?? 0) * 100}
+                    onClick={() => openDetail('revenue')}
                 />
                 <KpiCard
                     icon={ShoppingCart}
-                    label="Ventes consolidées"
+                    label="Ventes consolidees"
                     value={(stats?.totals.sales_count ?? 0).toLocaleString('fr-FR')}
-                    hint="Tickets sur la période"
+                    hint="Tickets sur la periode"
+                    onClick={() => openDetail('sales_count')}
                 />
                 <KpiCard
                     icon={Boxes}
-                    label="Stock valorisé"
+                    label="Stock valorise"
                     value={formatCurrency(stats?.totals.stock_value ?? 0, stats?.currency || user?.currency)}
                     hint={`${stats?.totals.total_products ?? 0} produits suivis`}
+                    onClick={() => openDetail('stock_value')}
+                />
+                <KpiCard
+                    icon={Repeat}
+                    label="Rotation stock"
+                    value={`${(stats?.totals.stock_turnover_ratio ?? 0).toFixed(2)}x`}
+                    hint="Sorties / stock valorise"
+                    onClick={() => openDetail('stock_turnover_ratio')}
                 />
                 <KpiCard
                     icon={AlertTriangle}
                     label="Stocks bas"
                     value={(stats?.totals.low_stock_count ?? 0).toLocaleString('fr-FR')}
-                    hint="Produits à traiter"
+                    hint="Produits a traiter"
+                    onClick={() => openDetail('low_stock_count')}
                 />
                 <KpiCard
                     icon={Package}
                     label="Ruptures"
                     value={(stats?.totals.out_of_stock_count ?? 0).toLocaleString('fr-FR')}
-                    hint="Produits à zéro stock"
+                    hint="Produits a zero stock"
+                    onClick={() => openDetail('out_of_stock_count')}
                 />
                 <KpiCard
                     icon={Clock3}
                     label="Stock dormant"
                     value={(stats?.totals.dormant_products_count ?? 0).toLocaleString('fr-FR')}
                     hint="Sans vente depuis 30 jours"
-                />
-                <KpiCard
-                    icon={TrendingUp}
-                    label="Panier moyen"
-                    value={formatCurrency(stats?.totals.average_ticket ?? 0, stats?.currency || user?.currency)}
-                    hint="Consolidé sur les boutiques"
+                    onClick={() => openDetail('dormant_products_count')}
                 />
             </div>
 
@@ -181,7 +221,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                     {(stats?.stores ?? []).length === 0 ? (
                         <div className="py-12 text-center text-slate-500">
                             <Store size={40} className="mx-auto mb-3 opacity-30" />
-                            <p>Aucune boutique trouvée pour cette sélection</p>
+                            <p>Aucune boutique trouvee pour cette selection</p>
                         </div>
                     ) : (
                         (stats?.stores ?? []).map((store) => {
@@ -223,6 +263,10 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                                                 <div className="text-[10px] text-slate-500 uppercase">Stock</div>
                                             </div>
                                             <div className="text-center">
+                                                <div className="font-black text-white">{store.stock_turnover_ratio.toFixed(2)}x</div>
+                                                <div className="text-[10px] text-slate-500 uppercase">Rotation</div>
+                                            </div>
+                                            <div className="text-center">
                                                 <div className="font-black text-white">{store.total_products}</div>
                                                 <div className="text-[10px] text-slate-500 uppercase">Produits</div>
                                             </div>
@@ -258,10 +302,8 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                                         />
                                     </div>
                                     <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                                        <span>Marge brute estimée: {formatCurrency(store.gross_profit, stats?.currency || user?.currency)}</span>
-                                        <span className={store.revenue_delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                                            {store.revenue_delta >= 0 ? '+' : '-'}{Math.abs(store.revenue_delta * 100).toFixed(1)}% vs période précédente
-                                        </span>
+                                        <span>Marge brute estimee: {formatCurrency(store.gross_profit, stats?.currency || user?.currency)}</span>
+                                        <span>Delta ventes: {(store.sales_count_delta * 100).toFixed(1)}%</span>
                                     </div>
                                 </div>
                             );
@@ -271,42 +313,52 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
             </div>
 
             {showNewStore && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                        <h3 className="text-lg font-black text-white mb-4">Nouvelle Boutique</h3>
-                        <div className="space-y-3">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
+                        <h3 className="text-xl font-black text-white">Ajouter une boutique</h3>
+                        <p className="mt-2 text-sm text-slate-400">Creer un nouveau point de vente pour votre organisation.</p>
+                        <div className="mt-5 space-y-3">
                             <input
-                                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
-                                placeholder="Nom de la boutique *"
                                 value={newStoreName}
                                 onChange={(event) => setNewStoreName(event.target.value)}
-                                autoFocus
+                                placeholder="Nom de la boutique"
+                                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-primary/40"
                             />
                             <input
-                                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
-                                placeholder="Adresse (optionnel)"
                                 value={newStoreAddress}
                                 onChange={(event) => setNewStoreAddress(event.target.value)}
+                                placeholder="Adresse (optionnel)"
+                                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-primary/40"
                             />
                         </div>
-                        <div className="flex gap-3 mt-5">
+                        <div className="mt-6 flex justify-end gap-3">
                             <button
-                                onClick={() => { setShowNewStore(false); setNewStoreName(''); setNewStoreAddress(''); }}
-                                className="flex-1 py-2 text-slate-400 hover:text-white font-bold transition-colors"
+                                onClick={() => setShowNewStore(false)}
+                                className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/5"
                             >
                                 Annuler
                             </button>
                             <button
                                 onClick={handleCreateStore}
-                                disabled={!newStoreName.trim() || creating}
-                                className="flex-1 py-2 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                                disabled={creating || !newStoreName.trim()}
+                                className="rounded-2xl bg-primary px-4 py-2 text-sm font-black text-white transition hover:bg-primary/90 disabled:opacity-50"
                             >
-                                {creating ? 'Création...' : 'Créer'}
+                                {creating ? 'Creation...' : 'Creer la boutique'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
         </div>
+        <AnalyticsKpiDetailsModal
+            open={detailOpen}
+            detail={detail}
+            loading={detailLoading}
+            onClose={() => {
+                setDetailOpen(false);
+                setDetail(null);
+            }}
+        />
+        </>
     );
 }

@@ -1,24 +1,86 @@
+import { syncService } from './syncService';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 if (!API_URL && typeof window !== 'undefined') {
     console.error('NEXT_PUBLIC_API_URL environment variable is required');
 }
 const TOKEN_KEY = 'auth_token';
+const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 
 // Simple idempotency key generator for re-submitting critical mutations
 const generateIdempotencyKey = () =>
     Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 // For web, we use standard localStorage
-const getToken = () => typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
-const removeToken = () => localStorage.removeItem(TOKEN_KEY);
+export const getToken = () => typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
+export const removeToken = () => localStorage.removeItem(TOKEN_KEY);
 
 type RequestOptions = {
     method?: string;
     body?: unknown;
     headers?: Record<string, string>;
 };
+
+const ONLINE_ONLY_MUTATION_PREFIXES = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/verify',
+    '/auth/resend',
+    '/billing',
+    '/subscription/sync',
+    '/ai/',
+];
+
+function getOfflineCacheKey(endpoint: string) {
+    return `${OFFLINE_CACHE_PREFIX}${endpoint}`;
+}
+
+function readCachedResponse<T>(endpoint: string): T | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem(getOfflineCacheKey(endpoint));
+        return raw ? JSON.parse(raw) as T : null;
+    } catch {
+        return null;
+    }
+}
+
+function writeCachedResponse(endpoint: string, value: unknown) {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(getOfflineCacheKey(endpoint), JSON.stringify(value));
+    } catch {
+        // ignore cache quota issues
+    }
+}
+
+function isOnlineOnlyMutation(endpoint: string) {
+    return ONLINE_ONLY_MUTATION_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
+}
+
+function buildOfflineMutationResponse<T>(endpoint: string, method: string, body: unknown, requestId: string): T {
+    if (body && typeof body === 'object' && !(body instanceof FormData)) {
+        return {
+            ...(body as Record<string, unknown>),
+            status: 'pending',
+            sync: true,
+            offline_pending: true,
+            offline_endpoint: endpoint,
+            offline_method: method,
+            offline_request_id: requestId,
+        } as T;
+    }
+    return {
+        status: 'pending',
+        sync: true,
+        offline_pending: true,
+        offline_endpoint: endpoint,
+        offline_method: method,
+        offline_request_id: requestId,
+    } as T;
+}
 
 export class ApiError extends Error {
     status: number;
@@ -34,7 +96,7 @@ export class AuthError extends ApiError {
     }
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const token = getToken();
     const { method = 'GET', body, headers = {} } = options;
 
@@ -115,6 +177,51 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return response.json();
 }
 
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const { method = 'GET', body } = options;
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+
+    if (method === 'GET') {
+        if (!online) {
+            const cached = readCachedResponse<T>(endpoint);
+            if (cached) return cached;
+            throw new ApiError('Mode hors ligne : données non disponibles en cache', 503);
+        }
+
+        try {
+            const data = await performRequest<T>(endpoint, options);
+            writeCachedResponse(endpoint, data);
+            return data;
+        } catch (error) {
+            const cached = readCachedResponse<T>(endpoint);
+            if (cached) return cached;
+            throw error;
+        }
+    }
+
+    try {
+        return await performRequest<T>(endpoint, options);
+    } catch (error) {
+        const offlineNow = (typeof navigator !== 'undefined' && !navigator.onLine) || !online;
+        if (!offlineNow) {
+            throw error;
+        }
+        if (body instanceof FormData) {
+            throw new ApiError('Cette action nécessite une connexion pour envoyer un fichier.', 503);
+        }
+        if (isOnlineOnlyMutation(endpoint)) {
+            throw new ApiError('Cette action nécessite une connexion internet active.', 503);
+        }
+
+        const requestId = syncService.queueRequest({
+            endpoint,
+            method,
+            body,
+        });
+        return buildOfflineMutationResponse<T>(endpoint, method, body, requestId);
+    }
+}
+
 // ─── Shared Types ───
 
 export type UserFeatures = {
@@ -137,11 +244,14 @@ export type UserPermissions = {
 
 export type StorePermissions = Record<string, Partial<UserPermissions>>;
 
+export type VerificationChannel = 'phone' | 'email';
+
 export type User = {
     user_id: string;
     name: string;
     email: string;
     store_name?: string;
+    country_code?: string;
     role: string;
     permissions?: UserPermissions;
     effective_permissions?: UserPermissions;
@@ -156,6 +266,14 @@ export type User = {
     business_type?: string;
     active_store_id?: string;
     store_ids?: string[];
+    is_phone_verified?: boolean;
+    is_email_verified?: boolean;
+    required_verification?: VerificationChannel | null;
+    verification_channel?: VerificationChannel | null;
+    signup_surface?: 'mobile' | 'web' | null;
+    verification_completed_at?: string | null;
+    can_access_app?: boolean;
+    can_access_web?: boolean;
 };
 
 export type DashboardLayoutSettings = {
@@ -188,6 +306,12 @@ export type UserSettings = {
     tax_mode?: 'ttc' | 'ht';
     receipt_business_name?: string;
     receipt_footer?: string;
+    invoice_business_name?: string;
+    invoice_business_address?: string;
+    invoice_label?: string;
+    invoice_prefix?: string;
+    invoice_footer?: string;
+    invoice_payment_terms?: string;
     terminals?: string[];
     billing_contact_name?: string;
     billing_contact_email?: string;
@@ -205,6 +329,279 @@ export type UserSettings = {
     };
     dashboard_layout?: DashboardLayoutSettings;
     reminder_rules?: Record<string, any>;
+};
+
+export type Store = {
+    store_id: string;
+    user_id: string;
+    name: string;
+    address?: string;
+    currency?: string;
+    receipt_business_name?: string;
+    receipt_footer?: string;
+    invoice_business_name?: string;
+    invoice_business_address?: string;
+    invoice_label?: string;
+    invoice_prefix?: string;
+    invoice_footer?: string;
+    invoice_payment_terms?: string;
+    terminals?: string[];
+    tax_enabled?: boolean;
+    tax_rate?: number;
+    tax_mode?: 'ttc' | 'ht';
+    created_at: string;
+};
+
+export type AccountingSaleHistoryItem = {
+    sale_id: string;
+    store_id?: string;
+    created_at: string;
+    total_amount: number;
+    discount_amount?: number;
+    payment_method: string;
+    payments?: { method: string; amount: number }[];
+    customer_id?: string;
+    customer_name?: string;
+    status?: string;
+    item_count: number;
+    items: {
+        product_id?: string;
+        product_name?: string;
+        quantity: number;
+        selling_price?: number;
+        total?: number;
+    }[];
+    invoice_id?: string;
+    invoice_number?: string;
+    invoice_label?: string;
+    invoice_issued_at?: string;
+};
+
+export type CustomerInvoiceItem = {
+    product_id?: string;
+    product_name?: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+    tax_rate?: number;
+    tax_amount?: number;
+};
+
+export type CustomerInvoice = {
+    invoice_id: string;
+    invoice_number: string;
+    invoice_label: string;
+    invoice_prefix: string;
+    user_id: string;
+    store_id: string;
+    sale_id: string;
+    customer_id?: string;
+    customer_name?: string;
+    status: string;
+    currency?: string;
+    items: CustomerInvoiceItem[];
+    discount_amount?: number;
+    subtotal_ht?: number;
+    tax_total?: number;
+    total_amount: number;
+    payment_method?: string;
+    payments?: { method: string; amount: number }[];
+    business_name?: string;
+    business_address?: string;
+    footer?: string;
+    payment_terms?: string;
+    notes?: string;
+    sale_created_at?: string;
+    issued_at: string;
+    created_at: string;
+};
+
+export type AccountingTopExpenseCategory = {
+    category: string;
+    label: string;
+    amount: number;
+    ratio: number;
+};
+
+export type AccountingStats = {
+    revenue: number;
+    cogs: number;
+    gross_profit: number;
+    net_profit: number;
+    total_losses: number;
+    expenses: number;
+    expenses_breakdown: Record<string, number>;
+    loss_breakdown: Record<string, number>;
+    sales_count: number;
+    period_label: string;
+    total_purchases: number;
+    purchases_count: number;
+    daily_revenue: { date: string; revenue: number; profit: number }[];
+    payment_breakdown: Record<string, number>;
+    avg_sale: number;
+    total_items_sold: number;
+    stock_value: number;
+    stock_selling_value: number;
+    tax_collected: number;
+    scope_label?: string;
+    summary?: string;
+    recommendations?: string[];
+    gross_margin_pct?: number;
+    net_margin_pct?: number;
+    expense_ratio?: number;
+    loss_ratio?: number;
+    tax_ratio?: number;
+    top_expense_categories?: AccountingTopExpenseCategory[];
+    product_performance: {
+        id: string;
+        name: string;
+        qty_sold: number;
+        revenue: number;
+        cogs: number;
+        loss: number;
+        gross_profit?: number;
+        net_contribution?: number;
+        margin_pct?: number;
+    }[];
+};
+
+export type CrmAnalyticsSegment = {
+    id: string;
+    label: string;
+    description: string;
+    accent: string;
+    count: number;
+    examples: string[];
+};
+
+export type CrmAnalyticsOverview = {
+    days: number;
+    summary: string;
+    recommendations: string[];
+    kpis: {
+        total_customers: number;
+        active_customers: number;
+        new_customers: number;
+        inactive_customers: number;
+        at_risk_customers: number;
+        vip_customers: number;
+        average_basket: number;
+        repeat_rate: number;
+        debt_customers: number;
+        debt_balance: number;
+        birthdays_soon: number;
+    };
+    segments: CrmAnalyticsSegment[];
+};
+
+export type SupplierInvoice = {
+    invoice_id: string;
+    user_id: string;
+    supplier_id: string;
+    order_id?: string;
+    invoice_number: string;
+    amount: number;
+    status: 'paid' | 'unpaid' | 'partial';
+    due_date?: string;
+    file_url?: string;
+    notes?: string;
+    created_at: string;
+};
+
+export type SupplierCommunicationLog = {
+    log_id: string;
+    user_id: string;
+    supplier_id: string;
+    type: 'whatsapp' | 'call' | 'visit' | 'email' | 'other';
+    subject?: string;
+    content: string;
+    created_at: string;
+};
+
+export type SupplierLogCreate = {
+    type: 'whatsapp' | 'call' | 'visit' | 'email' | 'other';
+    subject?: string;
+    content: string;
+};
+
+export type SupplierStats = {
+    total_spent: number;
+    pending_spent: number;
+    orders_count: number;
+    pending_orders: number;
+    avg_delivery_days: number;
+    delivered_count: number;
+};
+
+export type SupplierProfileData = {
+    profile_id: string;
+    user_id: string;
+    company_name: string;
+    description: string;
+    phone: string;
+    address: string;
+    city: string;
+    categories: string[];
+    delivery_zones: string[];
+    min_order_amount: number;
+    average_delivery_days: number;
+    rating_average: number;
+    rating_count: number;
+    is_verified: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CatalogProductData = {
+    catalog_id: string;
+    supplier_user_id: string;
+    name: string;
+    description: string;
+    category: string;
+    subcategory: string;
+    price: number;
+    unit: string;
+    min_order_quantity: number;
+    stock_available: number;
+    available: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type SupplierRatingData = {
+    rating_id: string;
+    supplier_user_id: string;
+    shopkeeper_user_id: string;
+    shopkeeper_name: string;
+    order_id: string;
+    score: number;
+    comment?: string;
+    created_at: string;
+};
+
+export type MarketplaceSupplier = SupplierProfileData & {
+    name?: string;
+    supplier_user_id?: string;
+    category?: string;
+    country_code?: string;
+    city?: string;
+    rating?: number;
+    is_verified?: boolean;
+    logo_url?: string;
+    catalog_count: number;
+};
+
+export type MarketplaceSupplierDetail = {
+    profile: SupplierProfileData;
+    catalog: CatalogProductData[];
+    ratings: SupplierRatingData[];
+};
+
+export type MarketplaceCatalogProduct = CatalogProductData & {
+    supplier_name: string;
+    supplier_city: string;
+    supplier_rating: number;
 };
 
 export type AnalyticsFilterOption = {
@@ -227,6 +624,8 @@ export type AnalyticsFilterMeta = {
 
 export type AnalyticsFilters = {
     days?: number;
+    start_date?: string;
+    end_date?: string;
     store_id?: string;
     category_id?: string;
     supplier_id?: string;
@@ -235,7 +634,9 @@ export type AnalyticsFilters = {
 export type AnalyticsExecutiveOverview = {
     currency: string;
     days: number;
+    scope_label?: string;
     summary: string;
+    recommendations: string[];
     kpis: {
         revenue: number;
         previous_revenue: number;
@@ -250,6 +651,7 @@ export type AnalyticsExecutiveOverview = {
         previous_average_ticket: number;
         average_ticket_delta: number;
         stock_value: number;
+        stock_turnover_ratio: number;
         low_stock_count: number;
         out_of_stock_count: number;
         dormant_products_count: number;
@@ -284,6 +686,7 @@ export type AnalyticsStoreComparisonRow = {
     previous_sales_count: number;
     sales_count_delta: number;
     average_ticket: number;
+    stock_turnover_ratio: number;
     stock_value: number;
     low_stock_count: number;
     out_of_stock_count: number;
@@ -302,6 +705,7 @@ export type AnalyticsStoreComparison = {
         gross_profit: number;
         sales_count: number;
         average_ticket: number;
+        stock_turnover_ratio: number;
         stock_value: number;
         low_stock_count: number;
         out_of_stock_count: number;
@@ -330,6 +734,7 @@ export type AnalyticsStockHealth = {
     days: number;
     kpis: {
         stock_value: number;
+        stock_turnover_ratio: number;
         low_stock_count: number;
         out_of_stock_count: number;
         overstock_count: number;
@@ -376,9 +781,28 @@ export type AnalyticsStockAbc = {
     };
 };
 
-type AuthResponse = {
+export type AnalyticsKpiDetailColumn = {
+    key: string;
+    label: string;
+};
+
+export type AnalyticsKpiDetail = {
+    title: string;
+    description: string;
+    export_name: string;
+    columns: AnalyticsKpiDetailColumn[];
+    rows: Record<string, any>[];
+    total_rows: number;
+};
+
+export type AuthResponse = {
     access_token: string;
     refresh_token?: string;
+    user: User;
+};
+
+export type VerificationStatus = {
+    completed: boolean;
     user: User;
 };
 
@@ -585,7 +1009,17 @@ export const auth = {
     register: (data: {
         email: string; password: string; name: string;
         role: string; phone?: string; business_type?: string; how_did_you_hear?: string;
+        plan?: 'starter' | 'pro' | 'enterprise';
+        currency?: string;
+        country_code?: string;
+        signup_surface?: 'mobile' | 'web';
     }) => request<AuthResponse>('/auth/register', { method: 'POST', body: data }),
+    verifyEmail: (otp: string) =>
+        request<{ message: string; user: User }>('/auth/verify-email', { method: 'POST', body: { otp } }),
+    resendEmailOtp: () =>
+        request<{ message: string; otp_fallback?: string }>('/auth/resend-email-otp', { method: 'POST' }),
+    verificationStatus: () =>
+        request<VerificationStatus>('/auth/verification-status'),
     logout: () => {
         removeToken();
         return Promise.resolve({ message: 'Success' });
@@ -613,6 +1047,11 @@ export const products = {
     },
     importConfirm: (importData: any[], mapping: any) =>
         request<any>('/products/import/confirm', { method: 'POST', body: { importData, mapping } }),
+    importText: (text: string, autoCreate = true) =>
+        request<{ products?: any[]; created?: number; count?: number; auto_created?: boolean }>('/products/import/text', {
+            method: 'POST',
+            body: { text, auto_create: autoCreate },
+        }),
     getPriceHistory: (id: string) => request<any[]>(`/products/${id}/price-history`),
     batchStockUpdate: (codes: string[], increment: number = 1) =>
         request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
@@ -757,6 +1196,8 @@ export const analytics = {
     getExecutiveOverview: (filters: AnalyticsFilters = {}) => {
         const qs = new URLSearchParams();
         if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.start_date) qs.set('start_date', filters.start_date);
+        if (filters.end_date) qs.set('end_date', filters.end_date);
         if (filters.store_id) qs.set('store_id', filters.store_id);
         if (filters.category_id) qs.set('category_id', filters.category_id);
         if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
@@ -765,6 +1206,8 @@ export const analytics = {
     getStoreComparison: (filters: AnalyticsFilters = {}) => {
         const qs = new URLSearchParams();
         if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.start_date) qs.set('start_date', filters.start_date);
+        if (filters.end_date) qs.set('end_date', filters.end_date);
         if (filters.store_id) qs.set('store_id', filters.store_id);
         if (filters.category_id) qs.set('category_id', filters.category_id);
         if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
@@ -773,6 +1216,8 @@ export const analytics = {
     getStockHealth: (filters: AnalyticsFilters = {}) => {
         const qs = new URLSearchParams();
         if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.start_date) qs.set('start_date', filters.start_date);
+        if (filters.end_date) qs.set('end_date', filters.end_date);
         if (filters.store_id) qs.set('store_id', filters.store_id);
         if (filters.category_id) qs.set('category_id', filters.category_id);
         if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
@@ -781,10 +1226,28 @@ export const analytics = {
     getStockAbc: (filters: AnalyticsFilters = {}) => {
         const qs = new URLSearchParams();
         if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.start_date) qs.set('start_date', filters.start_date);
+        if (filters.end_date) qs.set('end_date', filters.end_date);
         if (filters.store_id) qs.set('store_id', filters.store_id);
         if (filters.category_id) qs.set('category_id', filters.category_id);
         if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
         return request<AnalyticsStockAbc>(`/analytics/stock/abc?${qs.toString()}`);
+    },
+    getKpiDetails: (
+        context: 'executive' | 'multi_stores' | 'stock_health',
+        metric: string,
+        filters: AnalyticsFilters = {},
+    ) => {
+        const qs = new URLSearchParams();
+        qs.set('context', context);
+        qs.set('metric', metric);
+        if (filters.days) qs.set('days', filters.days.toString());
+        if (filters.start_date) qs.set('start_date', filters.start_date);
+        if (filters.end_date) qs.set('end_date', filters.end_date);
+        if (filters.store_id) qs.set('store_id', filters.store_id);
+        if (filters.category_id) qs.set('category_id', filters.category_id);
+        if (filters.supplier_id) qs.set('supplier_id', filters.supplier_id);
+        return request<AnalyticsKpiDetail>(`/analytics/kpi-details?${qs.toString()}`);
     },
 };
 
@@ -841,10 +1304,10 @@ export const sales = {
 export const accounting = {
     getStats: (days?: number, startDate?: string, endDate?: string) => {
         const qs = new URLSearchParams();
-        if (days) qs.set('days', days.toString());
+        if (typeof days === 'number') qs.set('days', days.toString());
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
-        return request<any>(`/accounting/stats?${qs.toString()}`);
+        return request<AccountingStats>(`/accounting/stats?${qs.toString()}`);
     },
     getGrandLivre: (days?: number, startDate?: string, endDate?: string) => {
         const qs = new URLSearchParams();
@@ -852,7 +1315,37 @@ export const accounting = {
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
         return request<any>(`/grand-livre?${qs.toString()}`);
-    }
+    },
+    getSalesHistory: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+        const qs = new URLSearchParams();
+        if (days) qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        qs.set('skip', skip.toString());
+        qs.set('limit', limit.toString());
+        return request<{ items: AccountingSaleHistoryItem[]; total: number }>(`/accounting/sales-history?${qs.toString()}`);
+    },
+    getInvoices: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+        const qs = new URLSearchParams();
+        if (days) qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        qs.set('skip', skip.toString());
+        qs.set('limit', limit.toString());
+        return request<{ items: CustomerInvoice[]; total: number }>(`/invoices?${qs.toString()}`);
+    },
+    createInvoiceFromSale: (saleId: string) =>
+        request<CustomerInvoice>(`/invoices/from-sale/${saleId}`, { method: 'POST' }),
+    getInvoice: (invoiceId: string) =>
+        request<CustomerInvoice>(`/invoices/${invoiceId}`),
+    getKpiDetails: (metric: string, days?: number, startDate?: string, endDate?: string) => {
+        const qs = new URLSearchParams();
+        qs.set('metric', metric);
+        if (typeof days === 'number') qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        return request<AnalyticsKpiDetail>(`/accounting/kpi-details?${qs.toString()}`);
+    },
 };
 
 export const expenses = {
@@ -893,7 +1386,31 @@ export const customers = {
     delete: (id: string) => request<any>(`/customers/${id}`, { method: 'DELETE' }),
     getDebts: (id: string) => request<any>(`/customers/${id}/debt-history`),
     addDebt: (id: string, data: { amount: number; is_payment: boolean; description?: string }) =>
-        request<any>(`/customers/${id}/payments`, { method: 'POST', body: data }),
+        request<any>(`/customers/${id}/payments`, {
+            method: 'POST',
+            body: {
+                amount: data.amount,
+                notes: data.description,
+            }
+        }),
+};
+
+export const crmAnalytics = {
+    getOverview: (days?: number, startDate?: string, endDate?: string) => {
+        const qs = new URLSearchParams();
+        if (typeof days === 'number') qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        return request<CrmAnalyticsOverview>(`/analytics/crm/overview?${qs.toString()}`);
+    },
+    getKpiDetails: (metric: string, days?: number, startDate?: string, endDate?: string) => {
+        const qs = new URLSearchParams();
+        qs.set('metric', metric);
+        if (typeof days === 'number') qs.set('days', days.toString());
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        return request<AnalyticsKpiDetail>(`/analytics/crm/kpi-details?${qs.toString()}`);
+    },
 };
 
 export const suppliers = {
@@ -902,12 +1419,19 @@ export const suppliers = {
     create: (data: any) => request<any>('/suppliers', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/suppliers/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/suppliers/${id}`, { method: 'DELETE' }),
+    getStats: (id: string) => request<SupplierStats>(`/suppliers/${id}/stats`),
+    getInvoices: (id: string) => request<SupplierInvoice[]>(`/suppliers/${id}/invoices`),
+    createInvoice: (id: string, data: Partial<SupplierInvoice>) =>
+        request<SupplierInvoice>(`/suppliers/${id}/invoices`, { method: 'POST', body: data }),
+    getLogs: (id: string) => request<SupplierCommunicationLog[]>(`/suppliers/${id}/logs`),
+    createLog: (id: string, data: SupplierLogCreate) =>
+        request<SupplierCommunicationLog>(`/suppliers/${id}/logs`, { method: 'POST', body: data }),
 };
 
 export const supplier_orders = {
     list: (skip = 0, limit = 50) => request<any>(`/orders?skip=${skip}&limit=${limit}`),
     get: (id: string) => request<any>(`/orders/${id}`),
-    create: (data: { supplier_id: string; items: any[]; notes?: string; expected_delivery?: string }) =>
+    create: (data: { supplier_id: string; supplier_user_id?: string; items: any[]; notes?: string; expected_delivery?: string }) =>
         request<any>('/orders', {
             method: 'POST',
             body: data,
@@ -962,9 +1486,9 @@ export const marketplace = {
         if (params?.city) qs.append('city', params.city);
         if (params?.min_rating) qs.append('min_rating', params.min_rating.toString());
         if (params?.verified_only) qs.append('verified_only', 'true');
-        return request<any[]>(`/marketplace/suppliers?${qs.toString()}`);
+        return request<MarketplaceSupplier[]>(`/marketplace/suppliers?${qs.toString()}`);
     },
-    getSupplier: (supplierUserId: string) => request<any>(`/marketplace/suppliers/${supplierUserId}`),
+    getSupplier: (supplierUserId: string) => request<MarketplaceSupplierDetail>(`/marketplace/suppliers/${supplierUserId}`),
     searchProducts: (params?: { q?: string; category?: string; price_min?: number; price_max?: number; min_supplier_rating?: number }) => {
         const qs = new URLSearchParams();
         if (params?.q) qs.append('q', params.q || '');
@@ -972,7 +1496,7 @@ export const marketplace = {
         if (params?.price_min) qs.append('price_min', params.price_min.toString());
         if (params?.price_max) qs.append('price_max', params.price_max.toString());
         if (params?.min_supplier_rating) qs.append('min_supplier_rating', params.min_supplier_rating.toString());
-        return request<any[]>(`/marketplace/search-products?${qs.toString()}`);
+        return request<MarketplaceCatalogProduct[]>(`/marketplace/search-products?${qs.toString()}`);
     }
 };
 
@@ -1063,11 +1587,24 @@ export const subscription = {
 };
 
 export const stores = {
-    list: () => request<any[]>('/stores'),
+    list: () => request<Store[]>('/stores'),
     create: (data: { name: string; address?: string }) =>
-        request<any>('/stores', { method: 'POST', body: data }),
-    update: (id: string, data: { name?: string; address?: string; currency?: string; receipt_business_name?: string; receipt_footer?: string; terminals?: string[] }) =>
-        request<any>(`/stores/${id}`, { method: 'PUT', body: data }),
+        request<Store>('/stores', { method: 'POST', body: data }),
+    update: (id: string, data: {
+        name?: string;
+        address?: string;
+        currency?: string;
+        receipt_business_name?: string;
+        receipt_footer?: string;
+        invoice_business_name?: string;
+        invoice_business_address?: string;
+        invoice_label?: string;
+        invoice_prefix?: string;
+        invoice_footer?: string;
+        invoice_payment_terms?: string;
+        terminals?: string[];
+    }) =>
+        request<Store>(`/stores/${id}`, { method: 'PUT', body: data }),
     setActive: (storeId: string) =>
         request<any>('/auth/active-store', { method: 'PUT', body: { store_id: storeId } }),
     getConsolidatedStats: (days = 30) =>
@@ -1080,6 +1617,14 @@ export const admin = {
     getHealth: () => request<any>('/admin/health'),
     getGlobalStats: () => request<any>('/admin/stats'),
     getDetailedStats: () => request<any>('/admin/stats/detailed'),
+    getOnboardingStats: (days = 30) => request<any>(`/admin/stats/onboarding?days=${days}`),
+    getOtpStats: (days = 30) => request<any>(`/admin/stats/otp?days=${days}`),
+    getEnterpriseSignupStats: (days = 30) => request<any>(`/admin/stats/enterprise-signups?days=${days}`),
+    getConversionStats: () => request<any>('/admin/stats/conversion'),
+    listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
+        const query = new URLSearchParams(params as any || {}).toString();
+        return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
+    },
     listUsers: (skip = 0, limit = 100) => request<any[]>(`/admin/users?skip=${skip}&limit=${limit}`),
     listStores: (skip = 0, limit = 50) => request<any>(`/admin/stores?skip=${skip}&limit=${limit}`),
     listAllProducts: (params: any) => {

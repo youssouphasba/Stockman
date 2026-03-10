@@ -19,20 +19,25 @@ export default function AbcAnalysis() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const { filters } = useAnalyticsFilters();
+    const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
+    const analyticsFilters = {
+        ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
+        store_id: filters.storeId || undefined,
+        category_id: filters.categoryId || undefined,
+        supplier_id: filters.supplierId || undefined,
+    };
+    const periodLabel = hasCustomRange
+        ? `du ${new Date(filters.startDate).toLocaleDateString('fr-FR')} au ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
+        : `sur ${filters.days} jours`;
 
     useEffect(() => {
         loadAbc();
-    }, [filters.categoryId, filters.days, filters.storeId, filters.supplierId]);
+    }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
 
     const loadAbc = async () => {
         setLoading(true);
         try {
-            const response = await analyticsApi.getStockAbc({
-                days: filters.days,
-                store_id: filters.storeId || undefined,
-                category_id: filters.categoryId || undefined,
-                supplier_id: filters.supplierId || undefined,
-            });
+            const response = await analyticsApi.getStockAbc(analyticsFilters);
             setAbcData(response);
         } catch (err) {
             console.error('Error loading ABC analysis', err);
@@ -73,7 +78,7 @@ export default function AbcAnalysis() {
                     Analyse ABC stock & rotation
                 </h1>
                 <p className="text-slate-400 max-w-2xl text-sm leading-relaxed">
-                    Classement dynamique sur {filters.days} jours, filtrable par magasin, catégorie et fournisseur pour piloter les priorités de stock.
+                    {`Classement dynamique ${periodLabel}, filtrable par magasin, catégorie et fournisseur pour piloter les priorités de stock.`}
                 </p>
             </header>
 

@@ -1,218 +1,221 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Plus, Trash2, Download, User, FileText, Send } from 'lucide-react';
-import Modal from './Modal';
+import { Download, Printer, Share2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
+import Modal from './Modal';
+import type { CustomerInvoice } from '../services/api';
 
 interface InvoiceModalProps {
     isOpen: boolean;
     onClose: () => void;
+    invoice: CustomerInvoice | null;
 }
 
-export default function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
+function formatMoney(value: number, currency?: string) {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    return `${safeValue.toLocaleString('fr-FR')} ${currency || 'F'}`;
+}
+
+export default function InvoiceModal({ isOpen, onClose, invoice }: InvoiceModalProps) {
     const { t } = useTranslation();
-    const [clientName, setClientName] = useState('');
-    const [items, setItems] = useState([{ description: '', quantity: 1, price: 0 }]);
-    const [note, setNote] = useState('');
-    const [generating, setGenerating] = useState(false);
 
-    const addItem = () => {
-        setItems([...items, { description: '', quantity: 1, price: 0 }]);
+    if (!invoice) {
+        return null;
+    }
+
+    const handlePrint = () => {
+        window.print();
     };
 
-    const removeItem = (index: number) => {
-        if (items.length <= 1) return;
-        setItems(items.filter((_, i) => i !== index));
-    };
+    const handleDownload = () => {
+        const doc = new jsPDF();
+        const businessName = invoice.business_name || 'Mon commerce';
+        const businessAddress = invoice.business_address || '';
+        const label = invoice.invoice_label || 'Facture';
 
-    const updateItem = (index: number, field: string, value: any) => {
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: value };
-        setItems(newItems);
-    };
-
-    const calculateTotal = () => {
-        return items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    };
-
-    const generatePDF = () => {
-        setGenerating(true);
-        try {
-            const doc = new jsPDF() as any;
-
-            // Professional header
-            doc.setFillColor(59, 130, 246);
-            doc.rect(0, 0, 210, 5, 'F');
-
-            doc.setFontSize(22);
-            doc.setFont('helvetica', 'bold');
-            doc.text('FACTURE', 15, 25);
-
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Référence: INV-${Date.now().toString().slice(-6)}`, 15, 32);
-            doc.text(`Date: ${new Date().toLocaleDateString()}`, 15, 38);
-
-            // Client Info
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text('FACTURÉ À:', 120, 25);
-            doc.setFont('helvetica', 'normal');
-            doc.text(clientName || 'Client Divers', 120, 32);
-
-            // Table of items
-            const TABLE_TOP = 50;
-            const tableBody = items.map(item => [
-                item.description || 'Produit/Service',
-                item.quantity.toString(),
-                `${item.price.toLocaleString()} F`,
-                `${(item.quantity * item.price).toLocaleString()} F`
-            ]);
-
-            autoTable(doc, {
-
-                startY: TABLE_TOP,
-                head: [['Désignation', 'Quantité', 'Prix Unitaire', 'Total']],
-                body: tableBody,
-                theme: 'grid',
-                headStyles: { fillColor: [59, 130, 246] },
-                styles: { fontSize: 9 }
-            });
-
-            const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-
-            // Totals
-            doc.setFont('helvetica', 'bold');
-            doc.text('TOTAL GÉNÉRAL:', 130, finalY);
-            doc.text(`${calculateTotal().toLocaleString()} F`, 180, finalY, { align: 'right' });
-
-            if (note) {
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(100, 116, 139);
-                doc.text('Notes:', 15, finalY + 10);
-                doc.text(note, 15, finalY + 15, { maxWidth: 100 });
-            }
-
-            // Footer
-            doc.setFontSize(8);
-            doc.setTextColor(148, 163, 184);
-            doc.text('Merci de votre confiance !', 105, 280, { align: 'center' });
-            doc.text('Généré via Stockman Intelligence', 105, 285, { align: 'center' });
-
-            doc.save(`Facture_${clientName || 'Client'}_${Date.now()}.pdf`);
-            onClose();
-        } catch (err) {
-            console.error("PDF Invoice Error", err);
-        } finally {
-            setGenerating(false);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label.toUpperCase(), 14, 22);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(businessName, 14, 32);
+        if (businessAddress) {
+            doc.text(businessAddress, 14, 38);
         }
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${t('invoice.reference', { defaultValue: 'Reference' })}: ${invoice.invoice_number}`, 140, 22, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${t('common.date', { defaultValue: 'Date' })}: ${new Date(invoice.issued_at).toLocaleDateString('fr-FR')}`, 140, 28, { align: 'right' });
+        doc.text(`${t('invoice.client', { defaultValue: 'Client' })}: ${invoice.customer_name || t('accounting.client_diverse', { defaultValue: 'Client divers' })}`, 140, 34, { align: 'right' });
+
+        autoTable(doc, {
+            startY: 48,
+            head: [[
+                t('common.description', { defaultValue: 'Description' }),
+                t('common.qty_short', { defaultValue: 'Qte' }),
+                t('common.unit_price', { defaultValue: 'Prix unitaire' }),
+                t('common.total', { defaultValue: 'Total' }),
+            ]],
+            body: invoice.items.map((item) => [
+                item.description,
+                item.quantity.toString(),
+                formatMoney(item.unit_price, invoice.currency),
+                formatMoney(item.line_total, invoice.currency),
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [59, 130, 246] },
+            styles: { fontSize: 9 },
+        });
+
+        const finalY = (doc as any).lastAutoTable?.finalY || 120;
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${t('invoice.subtotal_ht', { defaultValue: 'Sous-total HT' })}: ${formatMoney(invoice.subtotal_ht || 0, invoice.currency)}`, 196, finalY + 10, { align: 'right' });
+        doc.text(`${t('invoice.tax_total', { defaultValue: 'TVA' })}: ${formatMoney(invoice.tax_total || 0, invoice.currency)}`, 196, finalY + 16, { align: 'right' });
+        if ((invoice.discount_amount || 0) > 0) {
+            doc.text(`${t('invoice.discount', { defaultValue: 'Remise' })}: -${formatMoney(invoice.discount_amount || 0, invoice.currency)}`, 196, finalY + 22, { align: 'right' });
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${t('invoice.total', { defaultValue: 'Total' })}: ${formatMoney(invoice.total_amount, invoice.currency)}`, 196, finalY + 32, { align: 'right' });
+
+        let footerY = finalY + 48;
+        doc.setFont('helvetica', 'normal');
+        if (invoice.payment_terms) {
+            doc.text(`${t('invoice.payment_terms', { defaultValue: 'Conditions de paiement' })}: ${invoice.payment_terms}`, 14, footerY, { maxWidth: 180 });
+            footerY += 10;
+        }
+        if (invoice.notes) {
+            doc.text(`${t('common.notes', { defaultValue: 'Notes' })}: ${invoice.notes}`, 14, footerY, { maxWidth: 180 });
+            footerY += 10;
+        }
+        if (invoice.footer) {
+            doc.text(invoice.footer, 14, footerY, { maxWidth: 180 });
+        }
+
+        doc.save(`${invoice.invoice_number}.pdf`);
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title="Générer une Facture"
-            maxWidth="lg"
-        >
-            <div className="py-4 flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Client</label>
-                    <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Nom du client..."
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none focus:border-primary/50"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                    <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Articles / Services</label>
-                        <button onClick={addItem} className="text-primary hover:text-primary/70 transition-colors flex items-center gap-1 font-bold text-xs">
-                            <Plus size={14} /> Ajouter
-                        </button>
+        <Modal isOpen={isOpen} onClose={onClose} title={invoice.invoice_label || 'Facture'} maxWidth="xl">
+            <div className="py-4">
+                <div className="bg-white text-slate-900 p-8 rounded-2xl shadow-inner invoice-print-area">
+                    <div className="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 mb-2">{invoice.invoice_label || 'Facture'}</p>
+                            <h2 className="text-3xl font-black tracking-tight">{invoice.business_name || 'Mon commerce'}</h2>
+                            {invoice.business_address && (
+                                <p className="text-sm text-slate-500 mt-2 max-w-md">{invoice.business_address}</p>
+                            )}
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 mb-2">{t('invoice.reference', { defaultValue: 'Reference' })}</p>
+                            <p className="text-xl font-black">{invoice.invoice_number}</p>
+                            <p className="text-sm text-slate-500 mt-2">{new Date(invoice.issued_at).toLocaleString('fr-FR')}</p>
+                        </div>
                     </div>
 
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        {items.map((item, idx) => (
-                            <div key={idx} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-1 duration-200">
-                                <input
-                                    type="text"
-                                    placeholder="Désignation"
-                                    className="flex-[3] bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary/50"
-                                    value={item.description}
-                                    onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Qté"
-                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary/50"
-                                    value={item.quantity}
-                                    onChange={(e) => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Prix"
-                                    className="flex-[1.5] bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary/50"
-                                    value={item.price}
-                                    onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)}
-                                />
-                                <button onClick={() => removeItem(idx)} className="p-3 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all h-[46px]">
-                                    <Trash2 size={18} />
-                                </button>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-6">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{t('invoice.client', { defaultValue: 'Client' })}</p>
+                        <p className="text-lg font-bold text-slate-900">{invoice.customer_name || t('accounting.client_diverse', { defaultValue: 'Client divers' })}</p>
+                    </div>
+
+                    <div className="space-y-3 mb-8">
+                        {invoice.items.map((item, index) => (
+                            <div key={`${item.description}-${index}`} className="flex items-start justify-between border-b border-slate-100 pb-3">
+                                <div className="pr-4">
+                                    <p className="font-bold">{item.description}</p>
+                                    <p className="text-xs text-slate-500">{item.quantity} x {formatMoney(item.unit_price, invoice.currency)}</p>
+                                </div>
+                                <span className="font-bold">{formatMoney(item.line_total, invoice.currency)}</span>
                             </div>
                         ))}
                     </div>
-                </div>
 
-                <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Note ou Conditions</label>
-                    <textarea
-                        rows={2}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm outline-none focus:border-primary/50"
-                        placeholder="Ex: Paiement sous 15 jours..."
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                    />
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">TOTAL FACTURE</span>
-                        <span className="text-3xl font-black text-white italic tracking-tighter">{calculateTotal().toLocaleString()} F</span>
+                    <div className="ml-auto w-full max-w-sm space-y-2 border-t border-slate-200 pt-4">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">{t('invoice.subtotal_ht', { defaultValue: 'Sous-total HT' })}</span>
+                            <span>{formatMoney(invoice.subtotal_ht || 0, invoice.currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">{t('invoice.tax_total', { defaultValue: 'TVA' })}</span>
+                            <span>{formatMoney(invoice.tax_total || 0, invoice.currency)}</span>
+                        </div>
+                        {(invoice.discount_amount || 0) > 0 && (
+                            <div className="flex justify-between text-sm text-rose-500">
+                                <span>{t('invoice.discount', { defaultValue: 'Remise' })}</span>
+                                <span>-{formatMoney(invoice.discount_amount || 0, invoice.currency)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-lg font-black pt-2">
+                            <span>{t('invoice.total', { defaultValue: 'Total' })}</span>
+                            <span className="text-primary">{formatMoney(invoice.total_amount, invoice.currency)}</span>
+                        </div>
                     </div>
-                    <div className="flex gap-3">
-                        <button onClick={onClose} className="px-6 py-4 rounded-xl border border-white/10 text-slate-400 font-bold hover:bg-white/5 transition-all">
-                            Annuler
-                        </button>
-                        <button
-                            onClick={generatePDF}
-                            disabled={generating}
-                            className="btn-primary px-8 py-4 rounded-xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-2 active:scale-95 transition-all"
-                        >
-                            {generating ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            ) : (
-                                <>
-                                    <Download size={20} />
-                                    Télécharger PDF
-                                </>
+
+                    {(invoice.payment_terms || invoice.notes || invoice.footer) && (
+                        <div className="border-t border-slate-200 pt-6 mt-8 space-y-2 text-sm text-slate-500">
+                            {invoice.payment_terms && (
+                                <p><span className="font-bold text-slate-700">{t('invoice.payment_terms', { defaultValue: 'Conditions de paiement' })}:</span> {invoice.payment_terms}</p>
                             )}
-                        </button>
-                    </div>
+                            {invoice.notes && (
+                                <p><span className="font-bold text-slate-700">{t('common.notes', { defaultValue: 'Notes' })}:</span> {invoice.notes}</p>
+                            )}
+                            {invoice.footer && <p>{invoice.footer}</p>}
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mt-8 no-print">
+                    <button
+                        onClick={handlePrint}
+                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Printer size={18} />
+                        {t('common.print', { defaultValue: 'Imprimer' })}
+                    </button>
+                    <button
+                        onClick={handleDownload}
+                        className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Download size={18} />
+                        PDF
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: invoice.invoice_number,
+                                    text: `${invoice.invoice_label || 'Facture'} ${invoice.invoice_number} - ${formatMoney(invoice.total_amount, invoice.currency)}`,
+                                }).catch(() => { });
+                            }
+                        }}
+                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Share2 size={18} />
+                        {t('common.share', { defaultValue: 'Partager' })}
+                    </button>
                 </div>
             </div>
+
+            <style jsx global>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .invoice-print-area, .invoice-print-area * {
+                        visibility: visible;
+                    }
+                    .invoice-print-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                }
+            `}</style>
         </Modal>
     );
 }

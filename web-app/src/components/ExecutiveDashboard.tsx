@@ -7,13 +7,15 @@ import {
     CircleDollarSign,
     Clock3,
     Package,
+    Repeat,
     ShoppingCart,
     Store,
     TrendingUp,
 } from 'lucide-react';
-import { analytics, AnalyticsExecutiveOverview } from '../services/api';
+import { analytics, AnalyticsExecutiveOverview, AnalyticsKpiDetail } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
+import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 
 interface ExecutiveDashboardProps {
     onNavigate?: (tab: string) => void;
@@ -40,29 +42,37 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
     const [overview, setOverview] = useState<AnalyticsExecutiveOverview | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
+    const analyticsFilters = {
+        ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
+        store_id: filters.storeId || undefined,
+        category_id: filters.categoryId || undefined,
+        supplier_id: filters.supplierId || undefined,
+    };
+    const periodLabel = hasCustomRange
+        ? `Du ${new Date(filters.startDate).toLocaleDateString('fr-FR')} au ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
+        : `${filters.days} derniers jours`;
 
     useEffect(() => {
         const loadOverview = async () => {
             setLoading(true);
             setError(null);
             try {
-                const response = await analytics.getExecutiveOverview({
-                    days: filters.days,
-                    store_id: filters.storeId || undefined,
-                    category_id: filters.categoryId || undefined,
-                    supplier_id: filters.supplierId || undefined,
-                });
+                const response = await analytics.getExecutiveOverview(analyticsFilters);
                 setOverview(response);
             } catch (err) {
                 console.error(err);
-                setError("Impossible de charger le cockpit exécutif.");
+                setError("Impossible de charger le cockpit executif.");
             } finally {
                 setLoading(false);
             }
         };
 
         loadOverview();
-    }, [filters.categoryId, filters.days, filters.storeId, filters.supplierId]);
+    }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
 
     if (loading && !overview) {
         return (
@@ -75,7 +85,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
     if (error || !overview) {
         return (
             <div className="m-6 rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 text-rose-200">
-                {error || 'Aucune donnée analytique disponible.'}
+                {error || 'Aucune donnee analytique disponible.'}
             </div>
         );
     }
@@ -83,12 +93,39 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
     const { kpis } = overview;
     const currency = overview.currency || 'XOF';
 
+    const openDetail = async (metric: string) => {
+        setDetailOpen(true);
+        setDetailLoading(true);
+        try {
+            const response = await analytics.getKpiDetails('executive', metric, analyticsFilters);
+            setDetail(response);
+        } catch (err) {
+            console.error(err);
+            setDetail({
+                title: 'Detail indisponible',
+                description: "Impossible de charger le detail de ce KPI.",
+                export_name: 'detail_indisponible',
+                columns: [],
+                rows: [],
+                total_rows: 0,
+            });
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     return (
+        <>
         <div className="flex-1 overflow-y-auto bg-[#0F172A] px-6 pb-8 pt-6 custom-scrollbar">
             <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                    <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">Cockpit exécutif</p>
-                    <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Vue direction consolidée</h1>
+                    <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">Cockpit executif</p>
+                    <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Vue direction consolidee</h1>
+                    {overview.scope_label ? (
+                        <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                            {overview.scope_label}
+                        </p>
+                    ) : null}
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
                         {overview.summary}
                     </p>
@@ -116,55 +153,78 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     icon={CircleDollarSign}
                     label="Chiffre d'affaires"
                     value={formatCurrency(kpis.revenue, currency)}
-                    hint={`${filters.days} derniers jours`}
+                    hint={periodLabel}
                     delta={toPercent(kpis.revenue_delta)}
+                    onClick={() => openDetail('revenue')}
                 />
                 <KpiCard
                     icon={TrendingUp}
                     label="Marge brute"
                     value={formatCurrency(kpis.gross_profit, currency)}
-                    hint="Basée sur le coût d'achat enregistré"
+                    hint="Basee sur le cout d'achat enregistre"
                     delta={toPercent(kpis.gross_profit_delta)}
+                    onClick={() => openDetail('gross_profit')}
                 />
                 <KpiCard
                     icon={ShoppingCart}
                     label="Panier moyen"
                     value={formatCurrency(kpis.average_ticket, currency)}
-                    hint={`${kpis.sales_count} ventes consolidées`}
+                    hint={`${kpis.sales_count} ventes consolidees • ${periodLabel}`}
                     delta={toPercent(kpis.average_ticket_delta)}
+                    onClick={() => openDetail('average_ticket')}
                 />
                 <KpiCard
                     icon={Boxes}
-                    label="Stock valorisé"
+                    label="Stock valorise"
                     value={formatCurrency(kpis.stock_value, currency)}
                     hint={`${kpis.total_products} produits suivis`}
+                    onClick={() => openDetail('stock_value')}
+                />
+                <KpiCard
+                    icon={Repeat}
+                    label="Rotation du stock"
+                    value={`${kpis.stock_turnover_ratio.toFixed(2)}x`}
+                    hint="Sorties / stock valorise sur la selection"
+                    onClick={() => openDetail('stock_turnover_ratio')}
                 />
                 <KpiCard
                     icon={Package}
-                    label="Produits à stock bas"
+                    label="Produits a stock bas"
                     value={kpis.low_stock_count.toLocaleString('fr-FR')}
-                    hint="Produits à traiter rapidement"
+                    hint="Produits a traiter rapidement"
+                    onClick={() => openDetail('low_stock_count')}
                 />
                 <KpiCard
                     icon={AlertTriangle}
                     label="Ruptures"
                     value={kpis.out_of_stock_count.toLocaleString('fr-FR')}
-                    hint="Produits à zéro stock"
+                    hint="Produits a zero stock"
+                    onClick={() => openDetail('out_of_stock_count')}
                 />
                 <KpiCard
                     icon={Clock3}
                     label="Stock dormant"
                     value={kpis.dormant_products_count.toLocaleString('fr-FR')}
                     hint="Aucune vente depuis 30 jours"
-                />
-                <KpiCard
-                    icon={ShoppingCart}
-                    label="Nombre de ventes"
-                    value={kpis.sales_count.toLocaleString('fr-FR')}
-                    hint="Tickets sur la période"
-                    delta={toPercent(kpis.sales_count_delta)}
+                    onClick={() => openDetail('dormant_products_count')}
                 />
             </div>
+
+            {overview.recommendations?.length ? (
+                <section className="mt-6 rounded-3xl border border-primary/20 bg-primary/5 p-6">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Synthese & recommandations</p>
+                    <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                        {overview.recommendations.map((recommendation, index) => (
+                            <div
+                                key={`${index}-${recommendation}`}
+                                className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
+                            >
+                                {recommendation}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            ) : null}
 
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
                 <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
@@ -178,13 +238,13 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
                         <div className="grid grid-cols-[1.5fr_0.7fr_0.8fr_0.8fr] bg-white/5 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                             <span>Produit</span>
-                            <span className="text-right">Qté</span>
+                            <span className="text-right">Qte</span>
                             <span className="text-right">CA</span>
                             <span className="text-right">Marge</span>
                         </div>
                         {overview.top_products.length === 0 ? (
                             <div className="px-4 py-8 text-center text-sm text-slate-500">
-                                Aucun produit vendu sur la période filtrée.
+                                Aucun produit vendu sur la periode filtree.
                             </div>
                         ) : (
                             overview.top_products.map((product) => (
@@ -203,13 +263,13 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 </section>
 
                 <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Top catégories</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Top categories</p>
                     <h2 className="mt-2 text-xl font-black text-white">Les rayons qui performent</h2>
 
                     <div className="mt-6 space-y-4">
                         {overview.top_categories.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-500">
-                                Aucune catégorie vendue sur cette sélection.
+                                Aucune categorie vendue sur cette selection.
                             </div>
                         ) : (
                             overview.top_categories.map((category, index) => {
@@ -220,7 +280,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                                         <div className="mb-2 flex items-center justify-between gap-4">
                                             <div>
                                                 <p className="font-black text-white">{category.name}</p>
-                                                <p className="text-xs text-slate-500">{category.quantity.toLocaleString('fr-FR')} unités</p>
+                                                <p className="text-xs text-slate-500">{category.quantity.toLocaleString('fr-FR')} unites</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-black text-emerald-400">{formatCurrency(category.revenue, currency)}</p>
@@ -241,5 +301,15 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 </section>
             </div>
         </div>
+        <AnalyticsKpiDetailsModal
+            open={detailOpen}
+            detail={detail}
+            loading={detailLoading}
+            onClose={() => {
+                setDetailOpen(false);
+                setDetail(null);
+            }}
+        />
+        </>
     );
 }

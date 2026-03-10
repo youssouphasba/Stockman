@@ -19,7 +19,8 @@ import {
     Trash2,
     MapPin,
     Mail,
-    Eye
+    Eye,
+    FileText
 } from 'lucide-react';
 import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
 import type { User as AppUser } from '../services/api';
@@ -46,6 +47,12 @@ export default function Settings({ user }: SettingsProps) {
     const [billingContactEmail, setBillingContactEmail] = useState('');
     const [receiptName, setReceiptName] = useState('');
     const [receiptFooter, setReceiptFooter] = useState('');
+    const [invoiceName, setInvoiceName] = useState('');
+    const [invoiceAddress, setInvoiceAddress] = useState('');
+    const [invoiceLabel, setInvoiceLabel] = useState('');
+    const [invoicePrefix, setInvoicePrefix] = useState('');
+    const [invoiceFooter, setInvoiceFooter] = useState('');
+    const [invoicePaymentTerms, setInvoicePaymentTerms] = useState('');
     const [terminals, setTerminals] = useState<string[]>([]);
     const [newTerminal, setNewTerminal] = useState('');
     const [locations, setLocations] = useState<any[]>([]);
@@ -86,6 +93,12 @@ export default function Settings({ user }: SettingsProps) {
             setBillingContactEmail(res?.billing_contact_email || '');
             setReceiptName(res?.receipt_business_name || '');
             setReceiptFooter(res?.receipt_footer || '');
+            setInvoiceName(res?.invoice_business_name || '');
+            setInvoiceAddress(res?.invoice_business_address || '');
+            setInvoiceLabel(res?.invoice_label || 'Facture');
+            setInvoicePrefix(res?.invoice_prefix || 'FAC');
+            setInvoiceFooter(res?.invoice_footer || '');
+            setInvoicePaymentTerms(res?.invoice_payment_terms || '');
             setTerminals(res?.terminals || []);
             setLocations(locs || []);
             setStoreList(storesRes || []);
@@ -109,6 +122,12 @@ export default function Settings({ user }: SettingsProps) {
             'tax_mode',
             'receipt_business_name',
             'receipt_footer',
+            'invoice_business_name',
+            'invoice_business_address',
+            'invoice_label',
+            'invoice_prefix',
+            'invoice_footer',
+            'invoice_payment_terms',
             'terminals',
         ]);
 
@@ -339,6 +358,91 @@ export default function Settings({ user }: SettingsProps) {
                                 <Save size={16} /> Enregistrer
                             </button>
                         </div>
+                    </div>
+                    )}
+
+                    {canManageOrgSettings && (
+                    <div className="glass-card p-8">
+                        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                            <FileText size={24} className="text-primary" />
+                            Personnalisation des factures
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Nom sur la facture</label>
+                                <input
+                                    type="text"
+                                    value={invoiceName}
+                                    onChange={e => setInvoiceName(e.target.value)}
+                                    placeholder="Ex: Stockman Market SARL"
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Type de facture</label>
+                                <input
+                                    type="text"
+                                    value={invoiceLabel}
+                                    onChange={e => setInvoiceLabel(e.target.value)}
+                                    placeholder="Ex: Facture"
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Prefixe</label>
+                                <input
+                                    type="text"
+                                    value={invoicePrefix}
+                                    onChange={e => setInvoicePrefix(e.target.value)}
+                                    placeholder="FAC"
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Conditions de paiement</label>
+                                <input
+                                    type="text"
+                                    value={invoicePaymentTerms}
+                                    onChange={e => setInvoicePaymentTerms(e.target.value)}
+                                    placeholder="Ex: Paiement a reception"
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="md:col-span-2 flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Adresse de facturation</label>
+                                <input
+                                    type="text"
+                                    value={invoiceAddress}
+                                    onChange={e => setInvoiceAddress(e.target.value)}
+                                    placeholder="Ex: Dakar, Rue 10 x Blaise Diagne"
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="md:col-span-2 flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Pied de facture</label>
+                                <input
+                                    type="text"
+                                    value={invoiceFooter}
+                                    onChange={e => setInvoiceFooter(e.target.value)}
+                                    placeholder="Ex: Merci pour votre confiance."
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleUpdateSettings({
+                                invoice_business_name: invoiceName,
+                                invoice_business_address: invoiceAddress,
+                                invoice_label: invoiceLabel,
+                                invoice_prefix: invoicePrefix,
+                                invoice_footer: invoiceFooter,
+                                invoice_payment_terms: invoicePaymentTerms,
+                            })}
+                            disabled={saving}
+                            className="btn-primary mt-6 px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={16} /> Enregistrer
+                        </button>
                     </div>
                     )}
 
@@ -603,6 +707,66 @@ export default function Settings({ user }: SettingsProps) {
                                                             className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
                                                         />
                                                     </div>
+                                                    <div>
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Nom sur la facture</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_business_name || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_business_name: e.target.value }))}
+                                                            placeholder="Ex: Boutique Centre-Ville"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Type de facture</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_label || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_label: e.target.value }))}
+                                                            placeholder="Ex: Facture"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Prefixe</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_prefix || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_prefix: e.target.value }))}
+                                                            placeholder="FAC"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Conditions de paiement</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_payment_terms || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_payment_terms: e.target.value }))}
+                                                            placeholder="Ex: Paiement a reception"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Adresse de facturation</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_business_address || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_business_address: e.target.value }))}
+                                                            placeholder="Ex: Dakar, Rue 10 x Blaise Diagne"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <label className="text-xs text-slate-400 font-bold mb-1 block">Pied de facture</label>
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={store.invoice_footer || ''}
+                                                            onChange={e => setEditingStore((s: any) => ({ ...s, invoice_footer: e.target.value }))}
+                                                            placeholder="Ex: Merci pour votre confiance."
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                                        />
+                                                    </div>
                                                     <div className="md:col-span-2">
                                                         <label className="text-xs text-slate-400 font-bold mb-1 block">Caisses / Terminaux</label>
                                                         <div className="space-y-1 mb-2">
@@ -661,6 +825,12 @@ export default function Settings({ user }: SettingsProps) {
                                                                 currency: editingStore.currency || undefined,
                                                                 receipt_business_name: editingStore.receipt_business_name || undefined,
                                                                 receipt_footer: editingStore.receipt_footer || undefined,
+                                                                invoice_business_name: editingStore.invoice_business_name || undefined,
+                                                                invoice_business_address: editingStore.invoice_business_address || undefined,
+                                                                invoice_label: editingStore.invoice_label || undefined,
+                                                                invoice_prefix: editingStore.invoice_prefix || undefined,
+                                                                invoice_footer: editingStore.invoice_footer || undefined,
+                                                                invoice_payment_terms: editingStore.invoice_payment_terms || undefined,
                                                                 terminals: editingStore.terminals ?? store.terminals ?? undefined,
                                                             });
                                                             setStoreList(prev => prev.map(s => s.store_id === store.store_id ? { ...s, ...updated } : s));

@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { Sale, OrderFull, Store, Product } from '../services/api';
 import { formatCurrency } from './format';
 import i18n from '../services/i18n';
+import { formatSaleQuantity } from './measurement';
 
 type ReportSection = {
   title: string;
@@ -139,7 +140,7 @@ export async function generateSalePdf(sale: Sale, store: Store, currency?: strin
         <div>${item.product_name}</div>
         ${hasDiscount ? `<div style="font-size: 10px; color: #666;">${i18n.t('pos.discount')} : -${formatCurrency(item.discount_amount!, currency)}</div>` : ''}
       </td>
-      <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${item.quantity}</td>
+      <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:center">${formatSaleQuantity(item)}</td>
       <td style="padding: 10px 5px; border-bottom: 1px solid #eee; text-align:right">
         ${hasDiscount ? `<div style="text-decoration: line-through; font-size: 10px; color: #999;">${formatCurrency(item.selling_price, currency)}</div>` : ''}
         <div>${formatCurrency(hasDiscount ? (subtotal - item.discount_amount!) / item.quantity : item.selling_price, currency)}</div>
@@ -162,7 +163,9 @@ export async function generateSalePdf(sale: Sale, store: Store, currency?: strin
     itemsHtml,
     total: sale.total_amount,
     currency,
-    paymentMethod: sale.payment_method
+    paymentMethod: sale.payment_method,
+    footer: store.receipt_footer,
+    brandingMode: 'receipt'
   });
 
   await printAndShare(html, `Recu_${ref}`);
@@ -191,7 +194,9 @@ export async function generatePurchaseOrderPdf(order: OrderFull, store: Store, c
     itemsHtml,
     total: order.total_amount,
     currency,
-    notes: order.notes
+    notes: order.notes,
+    paymentTerms: store.invoice_payment_terms,
+    footer: store.invoice_footer
   });
 
   await printAndShare(html, `Commande_${ref}`);
@@ -209,10 +214,25 @@ export type InvoiceData = {
   currency?: string;
   paymentMethod?: string;
   notes?: string;
+  footer?: string;
+  paymentTerms?: string;
+  brandingMode?: 'invoice' | 'receipt';
 };
 
 export function buildProfessionalInvoiceHtml(data: InvoiceData) {
   const primaryColor = '#6C63FF';
+  const brandingMode = data.brandingMode || 'invoice';
+  const businessName = brandingMode === 'receipt'
+    ? (data.store.receipt_business_name || data.store.name)
+    : (data.store.invoice_business_name || data.store.receipt_business_name || data.store.name);
+  const businessAddress = brandingMode === 'receipt'
+    ? (data.store.address || '')
+    : (data.store.invoice_business_address || data.store.address || '');
+  const footer = data.footer || (
+    brandingMode === 'receipt'
+      ? data.store.receipt_footer
+      : data.store.invoice_footer || data.store.receipt_footer
+  );
   return `
     <html>
     <head>
@@ -248,8 +268,8 @@ export function buildProfessionalInvoiceHtml(data: InvoiceData) {
     <body>
       <div class="header">
         <div class="company-info">
-          <h1>${data.store.name}</h1>
-          <p>${data.store.address || ''}</p>
+          <h1>${businessName}</h1>
+          <p>${businessAddress}</p>
         </div>
         <div class="invoice-details">
           <h2>${data.title}</h2>
@@ -285,9 +305,11 @@ export function buildProfessionalInvoiceHtml(data: InvoiceData) {
         </div>
       </div>
 
+      ${data.paymentTerms ? `<div class="notes">${i18n.t('invoice.payment_terms', { defaultValue: 'Conditions de paiement' })}: ${data.paymentTerms}</div>` : ''}
       ${data.notes ? `<div class="notes">${i18n.t('common.notes') || 'Notes'}: ${data.notes}</div>` : ''}
 
       <div class="footer">
+        ${footer ? `<div>${footer}</div>` : ''}
         ${i18n.t('common.generated_by_stockman_at', {
     date: new Date().toLocaleDateString(i18n.language),
     time: new Date().toLocaleTimeString(i18n.language)

@@ -7,7 +7,6 @@ import {
     TrendingUp,
     TrendingDown,
     DollarSign,
-    PieChart as PieChartIcon,
     Plus,
     Trash2,
     Filter,
@@ -19,7 +18,11 @@ import {
     X,
     Package,
     BarChart2,
-    Receipt
+    Receipt,
+    FileClock,
+    Files,
+    ShoppingCart,
+    AlertTriangle,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -32,10 +35,19 @@ import {
     BarChart,
     Bar
 } from 'recharts';
-import { accounting as accountingApi, expenses as expensesApi, ai as aiApi } from '../services/api';
-import StatCard from './StatCard';
+import {
+    accounting as accountingApi,
+    expenses as expensesApi,
+    ai as aiApi,
+    type AccountingSaleHistoryItem,
+    type AccountingStats,
+    type AnalyticsKpiDetail,
+    type CustomerInvoice,
+} from '../services/api';
 import AccountingReportModal from './AccountingReportModal';
 import InvoiceModal from './InvoiceModal';
+import KpiCard from './analytics/KpiCard';
+import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 
 const PERIODS = [
     { label: '7j', value: 7 },
@@ -56,7 +68,7 @@ const EXPENSE_CATEGORIES = [
 export default function Accounting() {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<AccountingStats | null>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState(30);
@@ -69,7 +81,7 @@ export default function Accounting() {
     // Modals
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<CustomerInvoice | null>(null);
 
     // Expense form
     const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -81,7 +93,13 @@ export default function Accounting() {
     const [isExpenseFilterOpen, setIsExpenseFilterOpen] = useState(false);
 
     // Tab for right panel
-    const [rightTab, setRightTab] = useState<'profitability' | 'payments' | 'losses' | 'products'>('profitability');
+    const [rightTab, setRightTab] = useState<'profitability' | 'payments' | 'losses' | 'products' | 'sales' | 'invoices'>('profitability');
+    const [salesHistory, setSalesHistory] = useState<AccountingSaleHistoryItem[]>([]);
+    const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
+    const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
 
     // AI P&L analysis
     const [aiAnalysis, setAiAnalysis] = useState('');
@@ -99,16 +117,24 @@ export default function Accounting() {
     const loadData = async (sd?: string, ed?: string) => {
         setLoading(true);
         try {
-            const [statsRes, expensesRes] = await Promise.all([
+            const [statsRes, expensesRes, salesHistoryRes, invoicesRes] = await Promise.all([
                 sd || ed
                     ? accountingApi.getStats(undefined, sd, ed)
                     : accountingApi.getStats(period),
                 sd || ed
                     ? expensesApi.list(undefined, sd, ed)
-                    : expensesApi.list(period)
+                    : expensesApi.list(period),
+                sd || ed
+                    ? accountingApi.getSalesHistory(undefined, sd, ed, 0, 30)
+                    : accountingApi.getSalesHistory(period, undefined, undefined, 0, 30),
+                sd || ed
+                    ? accountingApi.getInvoices(undefined, sd, ed, 0, 30)
+                    : accountingApi.getInvoices(period, undefined, undefined, 0, 30),
             ]);
             setStats(statsRes);
             setExpenses(Array.isArray(expensesRes?.items) ? expensesRes.items : (Array.isArray(expensesRes) ? expensesRes : []));
+            setSalesHistory(Array.isArray(salesHistoryRes?.items) ? salesHistoryRes.items : []);
+            setInvoiceHistory(Array.isArray(invoicesRes?.items) ? invoicesRes.items : []);
             // Auto-load AI analysis after data
             aiApi.plAnalysis(i18n.language, period).then(res => setAiAnalysis(res.analysis)).catch(() => {});
         } catch (err) {
@@ -189,6 +215,61 @@ export default function Accounting() {
         }
     };
 
+    const handleOpenInvoice = async (invoiceId: string, invoice?: CustomerInvoice) => {
+        if (invoice) {
+            setSelectedInvoice(invoice);
+            return;
+        }
+        try {
+            const loaded = await accountingApi.getInvoice(invoiceId);
+            setSelectedInvoice(loaded);
+        } catch (err) {
+            console.error('Invoice load error', err);
+        }
+    };
+
+    const handleCreateInvoiceFromSale = async (saleId: string) => {
+        setInvoiceBusyId(saleId);
+        try {
+            const invoice = await accountingApi.createInvoiceFromSale(saleId);
+            setSelectedInvoice(invoice);
+            setRightTab('invoices');
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
+        } catch (err) {
+            console.error('Invoice creation error', err);
+        } finally {
+            setInvoiceBusyId(null);
+        }
+    };
+
+    const formatPercent = (value?: number) => `${(value || 0).toFixed(1)}%`;
+
+    const handleOpenFinanceDetail = async (metric: string) => {
+        setDetailOpen(true);
+        setDetailLoading(true);
+        try {
+            const response = await accountingApi.getKpiDetails(
+                metric,
+                useCustomRange ? undefined : period,
+                useCustomRange ? startDate : undefined,
+                useCustomRange ? endDate : undefined,
+            );
+            setDetail(response);
+        } catch (err) {
+            console.error('Accounting KPI detail error', err);
+            setDetail({
+                title: 'Detail indisponible',
+                description: "Impossible de charger le detail de ce KPI.",
+                export_name: 'finance_detail_indisponible',
+                columns: [],
+                rows: [],
+                total_rows: 0,
+            });
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     if (loading && !stats) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -197,17 +278,19 @@ export default function Accounting() {
         );
     }
 
+    if (!stats) return null;
+
     // Chart data — backend returns daily_revenue array; filter out items with missing date
-    const chartData = (stats?.daily_revenue || []).filter((d: any) => d?.date != null);
+    const chartData = stats.daily_revenue.filter((d: any) => d?.date != null);
 
     // Product performance — top 8 by revenue
-    const topProducts = (stats?.product_performance || [])
+    const topProducts = stats.product_performance
         .filter((p: any) => p.revenue > 0)
         .sort((a: any, b: any) => b.revenue - a.revenue)
         .slice(0, 8);
 
-    const marginPct = stats?.revenue > 0 ? ((stats.gross_profit / stats.revenue) * 100) : 0;
-    const netMarginPct = stats?.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
+    const marginPct = stats.revenue > 0 ? ((stats.gross_profit / stats.revenue) * 100) : 0;
+    const netMarginPct = stats.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
 
     const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
 
@@ -282,10 +365,10 @@ export default function Accounting() {
                         <FileText size={18} className="text-primary" /> Rapports PDF
                     </button>
                     <button
-                        onClick={() => setShowInvoiceModal(true)}
+                        onClick={() => setRightTab('invoices')}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
-                        <Download size={18} className="text-primary" /> Facture
+                        <Files size={18} className="text-primary" /> Historique factures
                     </button>
                     <button
                         onClick={handleOpenAddExpense}
@@ -334,68 +417,154 @@ export default function Accounting() {
                 </div>
             )}
 
+            {stats && (
+                <section className="mb-8 rounded-3xl border border-primary/20 bg-primary/5 p-6">
+                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancee</p>
+                            <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilite et pilotage</h2>
+                            {stats.scope_label ? (
+                                <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                                    {stats.scope_label}
+                                </p>
+                            ) : null}
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+                                {stats.summary || 'Lecture consolidee du chiffre, des marges, des charges et de la TVA sur la selection active.'}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { label: 'Marge brute', value: formatPercent(stats.gross_margin_pct) },
+                                { label: 'Marge nette', value: formatPercent(stats.net_margin_pct) },
+                                { label: 'Poids des charges', value: formatPercent(stats.expense_ratio) },
+                                { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio) },
+                            ].map((item) => (
+                                <div key={item.label} className="rounded-2xl border border-white/10 bg-[#111827]/85 px-4 py-4">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                                    <p className="mt-3 text-2xl font-black text-white">{item.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {stats.recommendations && stats.recommendations.length > 0 ? (
+                        <div className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                            {stats.recommendations.map((recommendation, index) => (
+                                <div
+                                    key={`${index}-${recommendation}`}
+                                    className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
+                                >
+                                    {recommendation}
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                    {stats.top_expense_categories && stats.top_expense_categories.length > 0 ? (
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Postes de charges dominants</p>
+                            <div className="mt-4 space-y-3">
+                                {stats.top_expense_categories.slice(0, 3).map((expense) => (
+                                    <div key={expense.category} className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="font-bold text-white">{expense.label}</p>
+                                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{expense.ratio.toFixed(1)}% des charges</p>
+                                            </div>
+                                            <p className="text-sm font-black text-white">{formatCurrency(expense.amount)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+                </section>
+            )}
+
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard
-                    label="Chiffre d'Affaires"
-                    value={formatCurrency(stats?.revenue || 0)}
-                    trend={{ value: `${stats?.sales_count || 0} ventes`, isUp: true }}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
+                <KpiCard
                     icon={DollarSign}
-                    color="bg-emerald-500"
+                    label="Chiffre d'affaires"
+                    value={formatCurrency(stats.revenue || 0)}
+                    hint={`${stats?.sales_count || 0} ventes consolidees`}
+                    onClick={() => handleOpenFinanceDetail('revenue')}
                 />
-                <StatCard
-                    label="Marge Brute"
-                    value={formatCurrency(stats?.gross_profit || 0)}
-                    trend={{ value: `${marginPct.toFixed(1)}%`, isUp: marginPct > 20 }}
+                <KpiCard
                     icon={TrendingUp}
-                    color="bg-amber-500"
+                    label="Marge brute"
+                    value={formatCurrency(stats?.gross_profit || 0)}
+                    hint={`${marginPct.toFixed(1)}% du chiffre`}
+                    onClick={() => handleOpenFinanceDetail('gross_profit')}
                 />
-                <StatCard
-                    label="Dépenses"
-                    value={formatCurrency(stats?.expenses || 0)}
-                    trend={{ value: "Charges", isUp: false }}
+                <KpiCard
+                    label="Charges"
                     icon={Wallet}
-                    color="bg-rose-500"
+                    value={formatCurrency(stats.expenses || 0)}
+                    hint={`${formatPercent(stats?.expense_ratio)} du chiffre`}
+                    onClick={() => handleOpenFinanceDetail('expenses')}
                 />
-                <StatCard
-                    label="Bénéfice Net"
+                <KpiCard
+                    label="Resultat net"
+                    icon={TrendingDown}
                     value={formatCurrency(stats?.net_profit || 0)}
-                    trend={{ value: `${netMarginPct.toFixed(1)}% marge nette`, isUp: (stats?.net_profit || 0) > 0 }}
-                    icon={PieChartIcon}
-                    color="bg-sky-500"
+                    hint={`${netMarginPct.toFixed(1)}% de marge nette`}
+                    onClick={() => handleOpenFinanceDetail('net_profit')}
                 />
-                {(stats as any)?.tax_collected > 0 && (
-                    <StatCard
-                        label="TVA Collectée"
-                        value={formatCurrency((stats as any)?.tax_collected || 0)}
-                        trend={{ value: 'TVA sur la période', isUp: true }}
+                <KpiCard
+                    label="Panier moyen"
+                    icon={ShoppingCart}
+                    value={formatCurrency(stats?.avg_sale || 0)}
+                    hint="Base des tickets de la periode"
+                    onClick={() => handleOpenFinanceDetail('avg_sale')}
+                />
+                <KpiCard
+                    label="Pertes stock"
+                    icon={AlertTriangle}
+                    value={formatCurrency(stats.total_losses || 0)}
+                    hint={`${formatPercent(stats?.loss_ratio)} du chiffre`}
+                    onClick={() => handleOpenFinanceDetail('total_losses')}
+                />
+                {(stats?.tax_collected || 0) > 0 && (
+                    <KpiCard
                         icon={Receipt}
-                        color="bg-amber-500"
+                        label="TVA collectee"
+                        value={formatCurrency(stats?.tax_collected || 0)}
+                        hint={`${formatPercent(stats?.tax_ratio)} du chiffre`}
+                        onClick={() => handleOpenFinanceDetail('tax_collected')}
                     />
                 )}
             </div>
 
             {/* Stock value row */}
-            {(stats?.stock_value > 0 || stats?.stock_selling_value > 0) && (
+            {(stats.stock_value > 0 || stats.stock_selling_value > 0) && (
                 <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="glass-card p-4 flex items-center gap-4">
+                    <button
+                        type="button"
+                        onClick={() => handleOpenFinanceDetail('stock_value')}
+                        className="glass-card p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-all"
+                    >
                         <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
                             <Package size={20} className="text-violet-400" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Valeur Stock (Coût)</p>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Valeur Stock (Cout)</p>
                             <p className="text-white font-black text-xl">{formatCurrency(stats.stock_value)}</p>
+                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le detail</p>
                         </div>
-                    </div>
-                    <div className="glass-card p-4 flex items-center gap-4">
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleOpenFinanceDetail('stock_selling_value')}
+                        className="glass-card p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-all"
+                    >
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
                             <BarChart2 size={20} className="text-emerald-400" />
                         </div>
                         <div>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Valeur Stock (Vente)</p>
                             <p className="text-white font-black text-xl">{formatCurrency(stats.stock_selling_value)}</p>
+                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le detail</p>
                         </div>
-                    </div>
+                    </button>
                 </div>
             )}
 
@@ -458,7 +627,9 @@ export default function Accounting() {
                             </h3>
                             <div className="space-y-3">
                                 {topProducts.map((p: any, i: number) => {
-                                    const margin = p.revenue > 0 ? ((p.revenue - p.cogs) / p.revenue) * 100 : 0;
+                                    const margin = typeof p.margin_pct === 'number'
+                                        ? p.margin_pct
+                                        : (p.revenue > 0 ? ((p.revenue - p.cogs) / p.revenue) * 100 : 0);
                                     return (
                                         <div key={p.id} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-all">
                                             <span className="text-[10px] font-black text-slate-600 w-5 text-right">#{i + 1}</span>
@@ -559,6 +730,8 @@ export default function Accounting() {
                             { key: 'payments', label: 'Paiements' },
                             { key: 'losses', label: 'Pertes' },
                             { key: 'products', label: 'Charges' },
+                            { key: 'sales', label: 'Ventes' },
+                            { key: 'invoices', label: 'Factures' },
                         ] as const).map(tab => (
                             <button key={tab.key} onClick={() => setRightTab(tab.key)}
                                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${rightTab === tab.key ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'}`}>
@@ -585,10 +758,10 @@ export default function Accounting() {
                             </div>
                             <div className="w-full space-y-3">
                                 {[
-                                    { label: 'Chiffre d\'affaires', value: stats?.revenue || 0, color: 'bg-emerald-500', pct: 100 },
-                                    { label: 'Coût des ventes', value: stats?.cogs || 0, color: 'bg-blue-500', pct: stats?.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
-                                    { label: 'Charges fixes', value: stats?.expenses || 0, color: 'bg-rose-500', pct: stats?.revenue > 0 ? (stats.expenses / stats.revenue) * 100 : 0 },
-                                    { label: 'Pertes stock', value: stats?.total_losses || 0, color: 'bg-orange-500', pct: stats?.revenue > 0 ? (stats.total_losses / stats.revenue) * 100 : 0 },
+                                    { label: 'Chiffre d\'affaires', value: stats.revenue || 0, color: 'bg-emerald-500', pct: 100 },
+                                    { label: 'Coût des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
+                                    { label: 'Charges fixes', value: stats.expenses || 0, color: 'bg-rose-500', pct: stats.revenue > 0 ? (stats.expenses / stats.revenue) * 100 : 0 },
+                                    { label: 'Pertes stock', value: stats.total_losses || 0, color: 'bg-orange-500', pct: stats.revenue > 0 ? (stats.total_losses / stats.revenue) * 100 : 0 },
                                 ].map(row => (
                                     <div key={row.label} className="bg-white/5 rounded-xl p-3 border border-white/5">
                                         <div className="flex justify-between items-center mb-1.5">
@@ -630,10 +803,10 @@ export default function Accounting() {
                                             </div>
                                             <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                                 <div className={`h-full rounded-full ${method === 'cash' ? 'bg-emerald-500' : method === 'credit' ? 'bg-indigo-500' : 'bg-amber-500'}`}
-                                                    style={{ width: `${stats?.revenue > 0 ? (amount / stats.revenue) * 100 : 0}%` }} />
+                                                    style={{ width: `${stats.revenue > 0 ? (amount / stats.revenue) * 100 : 0}%` }} />
                                             </div>
                                             <p className="text-[10px] text-slate-600 mt-1 text-right">
-                                                {stats?.revenue > 0 ? ((amount / stats.revenue) * 100).toFixed(1) : 0}%
+                                                {stats.revenue > 0 ? ((amount / stats.revenue) * 100).toFixed(1) : 0}%
                                             </p>
                                         </div>
                                     ))
@@ -659,7 +832,7 @@ export default function Accounting() {
                                         </div>
                                     ))
                                 )}
-                                {stats?.total_losses > 0 && (
+                                {stats.total_losses > 0 && (
                                     <div className="pt-3 border-t border-white/5 flex justify-between">
                                         <span className="text-xs font-bold text-slate-500">Total pertes</span>
                                         <span className="text-sm font-black text-rose-400">-{formatCurrency(stats.total_losses)}</span>
@@ -674,14 +847,14 @@ export default function Accounting() {
                         <div className="glass-card p-6">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Répartition des Charges</h3>
                             <div className="space-y-3">
-                                {Object.keys(stats?.expenses_breakdown || {}).length === 0 ? (
+                                {Object.keys(stats.expenses_breakdown || {}).length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune dépense sur cette période.</p>
                                 ) : (
-                                    Object.entries(stats?.expenses_breakdown || {})
+                                    Object.entries(stats.expenses_breakdown || {})
                                         .sort(([, a]: any, [, b]: any) => b - a)
                                         .map(([cat, amount]: [string, any]) => {
                                             const label = EXPENSE_CATEGORIES.find(c => c.value === cat)?.label || cat;
-                                            const pct = (stats?.expenses || 0) > 0 ? (amount / stats.expenses) * 100 : 0;
+                                            const pct = (stats.expenses || 0) > 0 ? (amount / stats.expenses) * 100 : 0;
                                             return (
                                                 <div key={cat} className="p-3 bg-white/5 rounded-xl border border-white/5">
                                                     <div className="flex justify-between items-center mb-1.5">
@@ -699,12 +872,112 @@ export default function Accounting() {
                             </div>
                         </div>
                     )}
+                    {rightTab === 'sales' && (
+                        <div className="glass-card p-6">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <FileClock size={16} className="text-primary" /> Historique des ventes
+                            </h3>
+                            <div className="space-y-3">
+                                {salesHistory.length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
+                                ) : (
+                                    salesHistory.map((sale) => (
+                                        <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                        {formatDate(sale.created_at)} · {sale.item_count} article(s)
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 mt-2 truncate">
+                                                        {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-white font-black">{formatCurrency(sale.total_amount)}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                        {sale.payment_method?.replace('_', ' ')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 mt-4">
+                                                {sale.invoice_id ? (
+                                                    <button
+                                                        onClick={() => handleOpenInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
+                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
+                                                    >
+                                                        Voir {sale.invoice_label || 'facture'}
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
+                                                        disabled={invoiceBusyId === sale.sale_id}
+                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                    >
+                                                        {invoiceBusyId === sale.sale_id ? 'Creation...' : 'Creer facture'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {rightTab === 'invoices' && (
+                        <div className="glass-card p-6">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <Files size={16} className="text-primary" /> Historique des factures
+                            </h3>
+                            <div className="space-y-3">
+                                {invoiceHistory.length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune facture sur cette periode.</p>
+                                ) : (
+                                    invoiceHistory.map((invoice) => (
+                                        <div key={invoice.invoice_id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-white font-bold truncate">{invoice.invoice_number}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                        {(invoice.invoice_label || 'Facture').toUpperCase()} · {formatDate(invoice.issued_at)}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 mt-2 truncate">{invoice.customer_name || 'Client divers'}</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-white font-black">{formatCurrency(invoice.total_amount)}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">{invoice.status}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 mt-4">
+                                                <button
+                                                    onClick={() => handleOpenInvoice(invoice.invoice_id, invoice)}
+                                                    className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
+                                                >
+                                                    Ouvrir
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Modals */}
             <AccountingReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} stats={stats} expenses={expenses} period={period} startDate={startDate} endDate={endDate} />
-            <InvoiceModal isOpen={showInvoiceModal} onClose={() => setShowInvoiceModal(false)} />
+            <InvoiceModal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} invoice={selectedInvoice} />
+            <AnalyticsKpiDetailsModal
+                open={detailOpen}
+                detail={detail}
+                loading={detailLoading}
+                onClose={() => {
+                    setDetailOpen(false);
+                    setDetail(null);
+                }}
+            />
 
             {/* Expense Add/Edit Modal */}
             {showExpenseModal && (

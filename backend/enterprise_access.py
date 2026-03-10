@@ -23,6 +23,12 @@ STORE_SCOPED_SETTING_FIELDS: Set[str] = {
     "terminals",
     "receipt_business_name",
     "receipt_footer",
+    "invoice_business_name",
+    "invoice_business_address",
+    "invoice_label",
+    "invoice_prefix",
+    "invoice_footer",
+    "invoice_payment_terms",
     "tax_enabled",
     "tax_rate",
     "tax_mode",
@@ -267,6 +273,24 @@ def merge_effective_settings(
     receipt_footer = store_settings.get("receipt_footer")
     if receipt_footer is None:
         receipt_footer = user_settings.get("receipt_footer")
+    invoice_business_name = store_settings.get("invoice_business_name")
+    if invoice_business_name is None:
+        invoice_business_name = user_settings.get("invoice_business_name")
+    invoice_business_address = store_settings.get("invoice_business_address")
+    if invoice_business_address is None:
+        invoice_business_address = user_settings.get("invoice_business_address")
+    invoice_label = store_settings.get("invoice_label")
+    if invoice_label is None:
+        invoice_label = user_settings.get("invoice_label")
+    invoice_prefix = store_settings.get("invoice_prefix")
+    if invoice_prefix is None:
+        invoice_prefix = user_settings.get("invoice_prefix")
+    invoice_footer = store_settings.get("invoice_footer")
+    if invoice_footer is None:
+        invoice_footer = user_settings.get("invoice_footer")
+    invoice_payment_terms = store_settings.get("invoice_payment_terms")
+    if invoice_payment_terms is None:
+        invoice_payment_terms = user_settings.get("invoice_payment_terms")
     tax_enabled = store_settings.get("tax_enabled")
     if tax_enabled is None:
         tax_enabled = user_settings.get("tax_enabled", False)
@@ -296,6 +320,12 @@ def merge_effective_settings(
         "tax_mode": tax_mode or "ttc",
         "receipt_business_name": receipt_business_name,
         "receipt_footer": receipt_footer,
+        "invoice_business_name": invoice_business_name,
+        "invoice_business_address": invoice_business_address,
+        "invoice_label": invoice_label,
+        "invoice_prefix": invoice_prefix,
+        "invoice_footer": invoice_footer,
+        "invoice_payment_terms": invoice_payment_terms,
         "billing_contact_name": (account_doc or {}).get("billing_contact_name"),
         "billing_contact_email": (account_doc or {}).get("billing_contact_email"),
         "created_at": user_settings.get("created_at") or datetime.now(timezone.utc),

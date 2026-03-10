@@ -43,6 +43,16 @@ import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatUserCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import { isRestaurantBusiness } from '../../utils/business';
+import {
+    buildSaleMeasurementPayload,
+    formatMeasurementQuantity,
+    formatSaleQuantity,
+    getAllowedSaleUnits,
+    getInputStep,
+    getQuickMeasurementPresets,
+    isWeightedProduct,
+    normalizeProductMeasurement,
+} from '../../utils/measurement';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
@@ -55,6 +65,10 @@ export type CartItem = {
     cartKey: string;
     product: Product;
     quantity: number;
+    sold_quantity_input?: number;
+    sold_unit?: string;
+    measurement_type?: 'unit' | 'weight' | 'volume';
+    pricing_unit?: string;
     discountType?: 'percentage' | 'fixed';
     discountValue?: number;
     item_notes?: string;
@@ -100,6 +114,11 @@ export default function POSScreen() {
     const [showCalculator, setShowCalculator] = useState(false);
     const [showDiscountModal, setShowDiscountModal] = useState(false);
     const [selectedCartItem, setSelectedCartItem] = useState<CartItem | null>(null);
+    const [showWeightedModal, setShowWeightedModal] = useState(false);
+    const [weightedDraftProduct, setWeightedDraftProduct] = useState<Product | null>(null);
+    const [weightedEditingCartKey, setWeightedEditingCartKey] = useState<string | null>(null);
+    const [weightedQuantityInput, setWeightedQuantityInput] = useState('1');
+    const [weightedUnit, setWeightedUnit] = useState('g');
 
     // Quick Customer Creation
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -290,6 +309,23 @@ export default function POSScreen() {
         }));
     };
 
+    const closeWeightedModal = () => {
+        setShowWeightedModal(false);
+        setWeightedDraftProduct(null);
+        setWeightedEditingCartKey(null);
+        setWeightedQuantityInput('1');
+        setWeightedUnit('g');
+    };
+
+    const openWeightedModal = (product: Product, existingItem?: CartItem) => {
+        const normalizedProduct = normalizeProductMeasurement(product);
+        setWeightedDraftProduct({ ...product, ...normalizedProduct });
+        setWeightedEditingCartKey(existingItem?.cartKey || null);
+        setWeightedQuantityInput(String(existingItem?.sold_quantity_input ?? existingItem?.quantity ?? 1));
+        setWeightedUnit(existingItem?.sold_unit || normalizedProduct.pricing_unit || normalizedProduct.unit || 'g');
+        setShowWeightedModal(true);
+    };
+
     const loadOpenTableOrder = useCallback(async (table: any) => {
         if (!table?.table_id) {
             setOpenOrderId(null);
@@ -313,12 +349,16 @@ export default function POSScreen() {
                             selling_price: itemPrice,
                             tax_rate: item.tax_rate ?? prod.tax_rate,
                             kitchen_station: item.station ?? prod.kitchen_station,
+                            pricing_unit: item.pricing_unit ?? prod.pricing_unit,
+                            measurement_type: item.measurement_type ?? prod.measurement_type,
                         } : {
                             product_id: item.product_id,
                             name: item.product_name || 'Article',
                             selling_price: itemPrice,
                             tax_rate: item.tax_rate,
                             quantity: item.quantity ?? 0,
+                            pricing_unit: item.pricing_unit,
+                            measurement_type: item.measurement_type,
                             unit: 'Pièce',
                             purchase_price: 0,
                             min_stock: 0,
@@ -328,6 +368,10 @@ export default function POSScreen() {
                             kitchen_station: item.station || 'plat',
                         } as Product,
                         quantity: item.quantity || 1,
+                        sold_quantity_input: item.sold_quantity_input ?? item.quantity ?? 1,
+                        sold_unit: item.sold_unit,
+                        measurement_type: item.measurement_type,
+                        pricing_unit: item.pricing_unit,
                         item_notes: item.item_notes || undefined,
                         persisted: true,
                     };
@@ -344,7 +388,82 @@ export default function POSScreen() {
         }
     }, [productList]);
 
+    const confirmWeightedSelection = () => {
+        if (!weightedDraftProduct) return;
+
+        const inputQty = parseFloat(String(weightedQuantityInput).replace(',', '.'));
+        if (!inputQty || inputQty <= 0) {
+            Alert.alert(t('common.error'), 'Saisissez une quantité valide.');
+            return;
+        }
+
+        try {
+            const product = normalizeProductMeasurement(weightedDraftProduct);
+            const measurementPayload = buildSaleMeasurementPayload(product, inputQty, weightedUnit);
+            const currentQtyInCart = cart
+                .filter(item => item.product.product_id === product.product_id && !item.persisted && item.cartKey !== weightedEditingCartKey)
+                .reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+            if (requiresFinishedStock(product) && currentQtyInCart + measurementPayload.quantity > product.quantity) {
+                Alert.alert(
+                    t('pos.insufficient_stock'),
+                    t('pos.not_enough_stock_detail', {
+                        qty: formatMeasurementQuantity(product.quantity, product.display_unit || product.unit),
+                        unit: '',
+                        name: product.name,
+                    }),
+                );
+                return;
+            }
+
+            updateActiveSession(session => {
+                if (weightedEditingCartKey) {
+                    return {
+                        ...session,
+                        cart: session.cart.map(item =>
+                            item.cartKey === weightedEditingCartKey
+                                ? {
+                                    ...item,
+                                    quantity: measurementPayload.quantity,
+                                    sold_quantity_input: measurementPayload.sold_quantity_input,
+                                    sold_unit: measurementPayload.sold_unit,
+                                    measurement_type: measurementPayload.measurement_type,
+                                    pricing_unit: measurementPayload.pricing_unit,
+                                }
+                                : item,
+                        ),
+                    };
+                }
+
+                return {
+                    ...session,
+                    cart: [
+                        ...session.cart,
+                        {
+                            cartKey: `draft_${product.product_id}_${Date.now()}`,
+                            product: { ...product, ...measurementPayload },
+                            quantity: measurementPayload.quantity,
+                            sold_quantity_input: measurementPayload.sold_quantity_input,
+                            sold_unit: measurementPayload.sold_unit,
+                            measurement_type: measurementPayload.measurement_type,
+                            pricing_unit: measurementPayload.pricing_unit,
+                            persisted: false,
+                        },
+                    ],
+                };
+            });
+
+            closeWeightedModal();
+        } catch (error: any) {
+            Alert.alert(t('common.error'), error?.message || 'Impossible d\'ajouter cette quantité.');
+        }
+    };
+
     const addToCart = (product: Product) => {
+        if (isWeightedProduct(product)) {
+            openWeightedModal(product);
+            return;
+        }
         const existing = cart.find(item => item.product.product_id === product.product_id && !item.persisted);
         const currentQtyInCart = existing ? existing.quantity : 0;
 
@@ -389,6 +508,10 @@ export default function POSScreen() {
         if (!item) return;
         if (item.persisted) {
             Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
+            return;
+        }
+        if (isWeightedProduct(item.product) || item.sold_unit) {
+            openWeightedModal(item.product, item);
             return;
         }
 
@@ -529,6 +652,8 @@ export default function POSScreen() {
                     price: Math.round(unitPrice * 100) / 100,
                     discount_amount: Math.round(discount_amount * 100) / 100,
                     item_notes: item.item_notes || undefined,
+                    sold_quantity_input: item.sold_quantity_input,
+                    sold_unit: item.sold_unit,
                 };
             });
 
@@ -673,6 +798,8 @@ export default function POSScreen() {
                     discount_amount: Math.round(discountAmount * 100) / 100,
                     station: item.product.kitchen_station || undefined,
                     item_notes: item.item_notes || undefined,
+                    sold_quantity_input: item.sold_quantity_input,
+                    sold_unit: item.sold_unit,
                 };
             });
 
@@ -1034,7 +1161,9 @@ export default function POSScreen() {
                                     >
                                         <View style={[styles.stockBadge, { backgroundColor: requiresFinishedStock(product) ? (product.quantity === 0 ? colors.danger : colors.success) : colors.info }]}>
                                             <Text style={styles.stockText}>
-                                                {requiresFinishedStock(product) ? product.quantity : 'CMD'}
+                                                {requiresFinishedStock(product)
+                                                    ? formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)
+                                                    : 'CMD'}
                                             </Text>
                                         </View>
                                         <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
@@ -1050,7 +1179,10 @@ export default function POSScreen() {
                                                 </Text>
                                             </>
                                         )}
-                                        <Text style={styles.productPrice}>{formatUserCurrency(product.selling_price, user)}</Text>
+                                        <Text style={styles.productPrice}>
+                                            {formatUserCurrency(product.selling_price, user)}
+                                            {isWeightedProduct(product) ? ` / ${formatMeasurementQuantity(1, product.pricing_unit || product.unit).split(' ')[1]}` : ''}
+                                        </Text>
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
@@ -1129,6 +1261,17 @@ export default function POSScreen() {
                                                 }}
                                             >
                                                 <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
+                                                {(isWeightedProduct(item.product) || item.sold_unit) && (
+                                                    <Text style={styles.cartMetaText}>
+                                                        {formatSaleQuantity({
+                                                            quantity: item.quantity,
+                                                            sold_quantity_input: item.sold_quantity_input,
+                                                            sold_unit: item.sold_unit,
+                                                            pricing_unit: item.pricing_unit,
+                                                            unit: item.product.unit,
+                                                        })} x {formatUserCurrency(item.product.selling_price, user)}/{formatMeasurementQuantity(1, item.pricing_unit || item.product.unit).split(' ')[1]}
+                                                    </Text>
+                                                )}
                                                 {restaurantMode && (
                                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                                                         <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(item.product) + '20' }]}>
@@ -1159,13 +1302,35 @@ export default function POSScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                             <View style={styles.qtyContainer}>
-                                                <TouchableOpacity onPress={() => updateQuantity(item.cartKey, -1)}>
-                                                    <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
-                                                </TouchableOpacity>
-                                                <Text style={styles.qtyText}>{item.quantity}</Text>
-                                                <TouchableOpacity onPress={() => updateQuantity(item.cartKey, 1)}>
-                                                    <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                                                </TouchableOpacity>
+                                                {(isWeightedProduct(item.product) || item.sold_unit) ? (
+                                                    <TouchableOpacity
+                                                        onPress={() => updateQuantity(item.cartKey, 1)}
+                                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                                                    >
+                                                        <Text style={styles.qtyText}>
+                                                            {formatSaleQuantity({
+                                                                quantity: item.quantity,
+                                                                sold_quantity_input: item.sold_quantity_input,
+                                                                sold_unit: item.sold_unit,
+                                                                pricing_unit: item.pricing_unit,
+                                                                unit: item.product.unit,
+                                                            })}
+                                                        </Text>
+                                                        {!item.persisted && (
+                                                            <Ionicons name="create-outline" size={18} color={colors.primary} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                ) : (
+                                                    <>
+                                                        <TouchableOpacity onPress={() => updateQuantity(item.cartKey, -1)}>
+                                                            <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
+                                                        </TouchableOpacity>
+                                                        <Text style={styles.qtyText}>{item.quantity}</Text>
+                                                        <TouchableOpacity onPress={() => updateQuantity(item.cartKey, 1)}>
+                                                            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+                                                        </TouchableOpacity>
+                                                    </>
+                                                )}
                                             </View>
                                             <TouchableOpacity onPress={() => removeFromCart(item.cartKey)} style={{ marginLeft: 8 }}>
                                                 <Ionicons name="trash-outline" size={20} color={colors.danger} />
@@ -1204,6 +1369,95 @@ export default function POSScreen() {
                     onApply={(type, val) => applyDiscount(selectedCartItem.cartKey, type, val)}
                 />
             )}
+
+            <Modal visible={showWeightedModal} animationType="slide" transparent onRequestClose={closeWeightedModal}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Quantite a vendre</Text>
+                            <TouchableOpacity onPress={closeWeightedModal}>
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        {weightedDraftProduct && (
+                            <>
+                                <Text style={[styles.formLabel, { marginBottom: 4 }]}>{weightedDraftProduct.name}</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
+                                    Prix: {formatUserCurrency(weightedDraftProduct.selling_price, user)} / {formatMeasurementQuantity(1, weightedDraftProduct.pricing_unit || weightedDraftProduct.unit).split(' ')[1]} - Stock: {formatMeasurementQuantity(weightedDraftProduct.quantity, weightedDraftProduct.display_unit || weightedDraftProduct.unit)}
+                                </Text>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.formLabel}>Quantite</Text>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        value={weightedQuantityInput}
+                                        onChangeText={setWeightedQuantityInput}
+                                        keyboardType="numeric"
+                                        placeholder="250"
+                                    />
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.formLabel}>Unite</Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        {getAllowedSaleUnits(weightedDraftProduct).map(unit => (
+                                            <TouchableOpacity
+                                                key={unit}
+                                                onPress={() => setWeightedUnit(unit)}
+                                                style={{
+                                                    paddingHorizontal: 12,
+                                                    paddingVertical: 8,
+                                                    backgroundColor: weightedUnit === unit ? colors.primary : colors.glass,
+                                                    borderRadius: 20,
+                                                    marginRight: 8,
+                                                    borderWidth: 1,
+                                                    borderColor: weightedUnit === unit ? colors.primary : colors.glassBorder,
+                                                }}
+                                            >
+                                                <Text style={{ color: weightedUnit === unit ? '#fff' : colors.text, fontWeight: '600' }}>
+                                                    {formatMeasurementQuantity(1, unit).split(' ')[1]}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                                    {getQuickMeasurementPresets(weightedDraftProduct).map(preset => (
+                                        <TouchableOpacity
+                                            key={`${preset.unit}_${preset.quantity}`}
+                                            onPress={() => {
+                                                setWeightedQuantityInput(String(preset.quantity));
+                                                setWeightedUnit(preset.unit);
+                                            }}
+                                            style={{
+                                                paddingHorizontal: 12,
+                                                paddingVertical: 8,
+                                                borderRadius: 16,
+                                                backgroundColor: colors.primary + '15',
+                                                borderWidth: 1,
+                                                borderColor: colors.primary + '35',
+                                            }}
+                                        >
+                                            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{preset.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 16 }}>
+                                    Pas conseille: {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
+                                </Text>
+
+                                <TouchableOpacity style={styles.createBtn} onPress={confirmWeightedSelection}>
+                                    <Text style={styles.createBtnText}>
+                                        {weightedEditingCartKey ? 'Mettre a jour la ligne' : 'Ajouter au panier'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
 
             <DigitalReceiptModal
                 visible={showReceiptModal}

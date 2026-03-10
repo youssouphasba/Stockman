@@ -44,6 +44,16 @@ import LineDiscountModal from './LineDiscountModal';
 import { syncService } from '../services/syncService';
 import { WifiOff, HelpCircle } from 'lucide-react';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import {
+    buildSaleMeasurementPayload,
+    formatMeasurementQuantity,
+    formatSaleQuantity,
+    getAllowedSaleUnits,
+    getInputStep,
+    getQuickMeasurementPresets,
+    isWeightedProduct,
+    normalizeProductMeasurement,
+} from '../utils/measurement';
 
 const createCartKey = (prefix: 'draft' | 'persisted' = 'draft') =>
     `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -79,6 +89,11 @@ export default function POS() {
     const [showChangeCalc, setShowChangeCalc] = useState(false);
     const [showLineDiscount, setShowLineDiscount] = useState(false);
     const [selectedCartItemId, setSelectedCartItemId] = useState<string | null>(null);
+    const [showWeightedModal, setShowWeightedModal] = useState(false);
+    const [weightedDraftProduct, setWeightedDraftProduct] = useState<any | null>(null);
+    const [weightedEditingCartKey, setWeightedEditingCartKey] = useState<string | null>(null);
+    const [weightedQuantityInput, setWeightedQuantityInput] = useState('1');
+    const [weightedUnit, setWeightedUnit] = useState('g');
 
     // Restaurant mode
     const [restaurantMode, setRestaurantMode] = useState(false);
@@ -198,7 +213,84 @@ export default function POS() {
         return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
     }, [cart, allProducts]);
 
+    const closeWeightedModal = () => {
+        setShowWeightedModal(false);
+        setWeightedDraftProduct(null);
+        setWeightedEditingCartKey(null);
+        setWeightedQuantityInput('1');
+        setWeightedUnit('g');
+    };
+
+    const openWeightedModal = (product: any, existingItem?: any) => {
+        const normalizedProduct = normalizeProductMeasurement(product);
+        setWeightedDraftProduct({ ...product, ...normalizedProduct });
+        setWeightedEditingCartKey(existingItem?.cart_key || null);
+        setWeightedQuantityInput(String(existingItem?.sold_quantity_input ?? existingItem?.quantity ?? 1));
+        setWeightedUnit(existingItem?.sold_unit || normalizedProduct.pricing_unit || normalizedProduct.unit || 'g');
+        setShowWeightedModal(true);
+    };
+
+    const confirmWeightedSelection = () => {
+        if (!weightedDraftProduct) return;
+        const inputQty = parseFloat(String(weightedQuantityInput).replace(',', '.'));
+        if (!inputQty || inputQty <= 0) {
+            setError('Saisissez une quantité valide.');
+            return;
+        }
+
+        try {
+            const product = normalizeProductMeasurement(weightedDraftProduct);
+            const measurementPayload = buildSaleMeasurementPayload(product, inputQty, weightedUnit);
+            const currentQtyInCart = cart
+                .filter(item => item.product_id === product.product_id && !item.persisted && item.cart_key !== weightedEditingCartKey)
+                .reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+            if (requiresFinishedStock(product) && currentQtyInCart + measurementPayload.quantity > product.quantity) {
+                setError(`Stock insuffisant pour ${product.name}`);
+                return;
+            }
+
+            setCart(current => {
+                if (weightedEditingCartKey) {
+                    return current.map(item => item.cart_key === weightedEditingCartKey
+                        ? {
+                            ...item,
+                            quantity: measurementPayload.quantity,
+                            sold_quantity_input: measurementPayload.sold_quantity_input,
+                            sold_unit: measurementPayload.sold_unit,
+                            measurement_type: measurementPayload.measurement_type,
+                            pricing_unit: measurementPayload.pricing_unit,
+                        }
+                        : item,
+                    );
+                }
+                return [
+                    ...current,
+                    {
+                        ...product,
+                        cart_key: createCartKey('draft'),
+                        quantity: measurementPayload.quantity,
+                        sold_quantity_input: measurementPayload.sold_quantity_input,
+                        sold_unit: measurementPayload.sold_unit,
+                        measurement_type: measurementPayload.measurement_type,
+                        pricing_unit: measurementPayload.pricing_unit,
+                        item_notes: '',
+                        persisted: false,
+                    },
+                ];
+            });
+            setError(null);
+            closeWeightedModal();
+        } catch (err: any) {
+            setError(err?.message || 'Impossible d\'ajouter cette quantité');
+        }
+    };
+
     const addToCart = (product: any) => {
+        if (isWeightedProduct(product)) {
+            openWeightedModal(product);
+            return;
+        }
         if (requiresFinishedStock(product) && product.quantity <= 0) return;
         setCart(current => {
             const existing = current.find(item => item.product_id === product.product_id && !item.persisted);
@@ -248,6 +340,8 @@ export default function POS() {
             discount_amount: Math.round(discountAmount * 100) / 100,
             item_notes: item.item_notes || undefined,
             station: item.station || undefined,
+            sold_quantity_input: item.sold_quantity_input,
+            sold_unit: item.sold_unit,
         };
     };
 
@@ -468,6 +562,12 @@ export default function POS() {
                             selling_price: itemPrice,
                             tax_rate: item.tax_rate ?? prod?.tax_rate,
                             quantity: item.quantity,
+                            sold_quantity_input: item.sold_quantity_input ?? item.quantity,
+                            sold_unit: item.sold_unit,
+                            pricing_unit: item.pricing_unit ?? prod?.pricing_unit,
+                            measurement_type: item.measurement_type ?? prod?.measurement_type,
+                            unit: prod?.unit,
+                            display_unit: prod?.display_unit ?? prod?.unit,
                             image: prod?.image,
                             item_notes: item.item_notes || '',
                             station: item.station || prod?.kitchen_station,
@@ -605,7 +705,10 @@ export default function POS() {
                                     </div>
                                 )}
                                 <div className="flex justify-between items-end mt-auto">
-                                    <span className="text-primary font-black text-base">{formatCurrency(p.selling_price)}</span>
+                                    <span className="text-primary font-black text-base">
+                                        {formatCurrency(p.selling_price)}
+                                        {isWeightedProduct(p) ? ` / ${formatMeasurementQuantity(1, p.pricing_unit || p.unit).split(' ')[1]}` : ''}
+                                    </span>
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(requiresFinishedStock(p) && p.quantity < 5) ? 'bg-rose-500/20 text-rose-400' : restaurantMode && !requiresFinishedStock(p) ? 'bg-sky-500/20 text-sky-300' : 'bg-white/5 text-slate-500'}`}>
                                         {requiresFinishedStock(p) ? `${p.quantity} ${t('pos.menu_stock_label', 'en stock')}` : t('pos.made_to_order_stock_label', 'à la commande')}
                                     </span>
@@ -681,8 +784,16 @@ export default function POS() {
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <p className="text-white font-bold text-sm leading-tight">{item.name}</p>
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-primary font-black text-xs">{formatCurrency(item.selling_price)}</p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="text-primary font-black text-xs">
+                                                    {formatCurrency(item.selling_price)}
+                                                    {(isWeightedProduct(item) || item.sold_unit) ? ` / ${formatMeasurementQuantity(1, item.pricing_unit || item.unit).split(' ')[1]}` : ''}
+                                                </p>
+                                                {(isWeightedProduct(item) || item.sold_unit) && (
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                        {formatSaleQuantity(item)}
+                                                    </p>
+                                                )}
                                                 {item._base_price && item._base_price !== item.selling_price && (
                                                     <p className="text-slate-500 line-through text-[10px]">{formatCurrency(item._base_price)}</p>
                                                 )}
@@ -717,13 +828,26 @@ export default function POS() {
                                         />
                                     )}
                                     <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
-                                        <button onClick={() => removeFromCart(item.cart_key)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
-                                            <Minus size={14} />
-                                        </button>
-                                        <span className="text-white font-black text-sm">{item.quantity}</span>
-                                        <button onClick={() => addToCart(item)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
-                                            <Plus size={14} />
-                                        </button>
+                                        {(isWeightedProduct(item) || item.sold_unit) ? (
+                                            <button
+                                                onClick={() => !item.persisted && openWeightedModal(item, item)}
+                                                disabled={item.persisted}
+                                                className="w-full flex items-center justify-center gap-2 p-2 text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                <span className="text-white font-black text-sm">{formatSaleQuantity(item)}</span>
+                                                {!item.persisted && <Tag size={14} />}
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => removeFromCart(item.cart_key)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
+                                                    <Minus size={14} />
+                                                </button>
+                                                <span className="text-white font-black text-sm">{item.quantity}</span>
+                                                <button onClick={() => addToCart(allProducts.find(p => p.product_id === item.product_id) || item)} disabled={item.persisted} className="p-2 hover:bg-white/5 rounded-lg text-white disabled:opacity-30 disabled:cursor-not-allowed">
+                                                    <Plus size={14} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))
@@ -1081,6 +1205,88 @@ export default function POS() {
                     setSelectedCustomer(cust);
                 }}
             />
+
+            {showWeightedModal && weightedDraftProduct && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#101826] p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                                <p className="text-white font-black text-lg">Quantite a vendre</p>
+                                <p className="text-slate-400 text-sm">{weightedDraftProduct.name}</p>
+                                <p className="text-slate-500 text-xs mt-1">
+                                    Prix: {formatCurrency(weightedDraftProduct.selling_price)} / {formatMeasurementQuantity(1, weightedDraftProduct.pricing_unit || weightedDraftProduct.unit).split(' ')[1]}
+                                    {' '}· Stock: {formatMeasurementQuantity(weightedDraftProduct.quantity, weightedDraftProduct.display_unit || weightedDraftProduct.unit)}
+                                </p>
+                            </div>
+                            <button onClick={closeWeightedModal} className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Quantite</label>
+                                <input
+                                    type="number"
+                                    min="0.001"
+                                    step={String(getInputStep(weightedDraftProduct, weightedUnit))}
+                                    value={weightedQuantityInput}
+                                    onChange={(e) => setWeightedQuantityInput(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white outline-none focus:border-primary/50"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Unite</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {getAllowedSaleUnits(weightedDraftProduct).map(unit => (
+                                        <button
+                                            key={unit}
+                                            onClick={() => setWeightedUnit(unit)}
+                                            className={`px-4 py-2 rounded-2xl text-sm font-black border transition-all ${weightedUnit === unit ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/20'}`}
+                                        >
+                                            {formatMeasurementQuantity(1, unit).split(' ')[1]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {getQuickMeasurementPresets(weightedDraftProduct).map(preset => (
+                                <button
+                                    key={`${preset.unit}_${preset.quantity}`}
+                                    onClick={() => {
+                                        setWeightedQuantityInput(String(preset.quantity));
+                                        setWeightedUnit(preset.unit);
+                                    }}
+                                    className="px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
+                                >
+                                    {preset.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <p className="text-slate-500 text-xs mb-6">
+                            Pas conseille: {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={closeWeightedModal}
+                                className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 font-bold"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={confirmWeightedSelection}
+                                className="flex-1 py-3 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20"
+                            >
+                                {weightedEditingCartKey ? 'Mettre a jour' : 'Ajouter au panier'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <DigitalReceiptModal
                 isOpen={isReceiptOpen}

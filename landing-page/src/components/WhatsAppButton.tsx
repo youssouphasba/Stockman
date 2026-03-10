@@ -1,15 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import '../App.css';
+import { SUPPORT_WHATSAPP_URL } from '../support';
 
 const WhatsAppButton = () => {
     const { t } = useTranslation();
-    // Replace with your actual number
-    const phoneNumber = import.meta.env.VITE_SUPPORT_WHATSAPP || "22500000000";
     const message = encodeURIComponent(t('whatsapp.message'));
 
     return (
         <a
-            href={`https://wa.me/${phoneNumber}?text=${message}`}
+            href={`${SUPPORT_WHATSAPP_URL}?text=${message}`}
             className="whatsapp-float"
             target="_blank"
             rel="noopener noreferrer"

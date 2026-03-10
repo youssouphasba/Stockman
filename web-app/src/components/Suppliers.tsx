@@ -58,6 +58,17 @@ export default function Suppliers() {
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [marketplaceSuppliers, setMarketplaceSuppliers] = useState<any[]>([]);
     const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [supplierStats, setSupplierStats] = useState<any | null>(null);
+    const [supplierInvoices, setSupplierInvoices] = useState<any[]>([]);
+    const [supplierLogs, setSupplierLogs] = useState<any[]>([]);
+    const [marketplaceSupplierDetail, setMarketplaceSupplierDetail] = useState<any | null>(null);
+    const [supplierDetailLoading, setSupplierDetailLoading] = useState(false);
+    const [showLogModal, setShowLogModal] = useState(false);
+    const [logForm, setLogForm] = useState({ type: 'other', subject: '', content: '' });
+    const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+    const [benchmarkProduct, setBenchmarkProduct] = useState<any | null>(null);
+    const [benchmarkResults, setBenchmarkResults] = useState<any[]>([]);
+    const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
 
     // UI States
     const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -78,6 +89,7 @@ export default function Suppliers() {
     // New Order Form
     const [orderForm, setOrderForm] = useState({
         supplier_id: '',
+        supplier_user_id: '',
         items: [] as any[],
         notes: '',
         expected_delivery: ''
@@ -144,7 +156,16 @@ export default function Suppliers() {
                 setSuggestions(res);
             } else if (activeTab === 'marketplace') {
                 const res = await marketplaceApi.searchSuppliers();
-                setMarketplaceSuppliers(res);
+                const normalized = (Array.isArray(res) ? res : []).map((supplier: any) => ({
+                    ...supplier,
+                    name: supplier.company_name || supplier.name,
+                    supplier_user_id: supplier.user_id || supplier.supplier_user_id,
+                    category: supplier.categories?.[0] || supplier.category || '',
+                    rating: supplier.rating_average ?? supplier.rating ?? 0,
+                    country_code: supplier.country_code || '',
+                    city: supplier.city || '',
+                }));
+                setMarketplaceSuppliers(normalized);
             }
         } catch (err) {
             console.error(`Error loading ${activeTab} data`, err);
@@ -168,6 +189,127 @@ export default function Suppliers() {
         }
     }, [showOrderModal]);
 
+    const resetOrderForm = () => {
+        setOrderForm({
+            supplier_id: '',
+            supplier_user_id: '',
+            items: [],
+            notes: '',
+            expected_delivery: ''
+        });
+        setMarketplaceSupplierDetail(null);
+    };
+
+    const openManualOrderDraft = (supplier?: any, presetItems: any[] = []) => {
+        setMarketplaceSupplierDetail(null);
+        setOrderForm({
+            supplier_id: supplier?.supplier_id || '',
+            supplier_user_id: '',
+            items: presetItems,
+            notes: '',
+            expected_delivery: ''
+        });
+        setShowOrderModal(true);
+    };
+
+    const openMarketplaceOrderDraft = async (supplier: any, presetItem?: any) => {
+        const supplierUserId = supplier?.supplier_user_id || supplier?.user_id;
+        setOrderForm({
+            supplier_id: '',
+            supplier_user_id: supplierUserId || '',
+            items: presetItem ? [presetItem] : [],
+            notes: '',
+            expected_delivery: ''
+        });
+        setShowOrderModal(true);
+        if (!supplierUserId) return;
+        try {
+            const detail = await marketplaceApi.getSupplier(supplierUserId);
+            setMarketplaceSupplierDetail(detail);
+        } catch (err) {
+            console.error("Marketplace supplier detail error", err);
+        }
+    };
+
+    const openBenchmarkForProduct = async (product: any) => {
+        setBenchmarkProduct(product);
+        setShowBenchmarkModal(true);
+        setBenchmarkLoading(true);
+        try {
+            const results = await marketplaceApi.searchProducts({
+                q: product?.name || '',
+                category: product?.category || undefined,
+            });
+            const normalized = (Array.isArray(results) ? results : [])
+                .sort((a, b) => (a.price || 0) - (b.price || 0))
+                .slice(0, 20);
+            setBenchmarkResults(normalized);
+        } catch (err) {
+            console.error("Marketplace benchmark error", err);
+            setBenchmarkResults([]);
+        } finally {
+            setBenchmarkLoading(false);
+        }
+    };
+
+    const openSupplierDetails = async (supplier: any, kind: 'manual' | 'marketplace') => {
+        const normalizedSupplier = {
+            ...supplier,
+            kind,
+            name: supplier?.name || supplier?.company_name,
+            supplier_user_id: supplier?.supplier_user_id || supplier?.user_id,
+        };
+        setSelectedSupplier(normalizedSupplier);
+        setSupplierTab('perf');
+        setShowSupplierDetails(true);
+        setSupplierDetailLoading(true);
+        setSupplierStats(null);
+        setSupplierInvoices([]);
+        setSupplierLogs([]);
+        setMarketplaceSupplierDetail(null);
+        try {
+            if (kind === 'manual') {
+                const [stats, invoices, logs] = await Promise.all([
+                    suppliersApi.getStats(normalizedSupplier.supplier_id),
+                    suppliersApi.getInvoices(normalizedSupplier.supplier_id),
+                    suppliersApi.getLogs(normalizedSupplier.supplier_id),
+                ]);
+                setSupplierStats(stats);
+                setSupplierInvoices(Array.isArray(invoices) ? invoices : []);
+                setSupplierLogs(Array.isArray(logs) ? logs : []);
+            } else if (normalizedSupplier.supplier_user_id) {
+                const detail = await marketplaceApi.getSupplier(normalizedSupplier.supplier_user_id);
+                setMarketplaceSupplierDetail(detail);
+            }
+        } catch (err) {
+            console.error("Supplier detail error", err);
+        } finally {
+            setSupplierDetailLoading(false);
+        }
+    };
+
+    const handleCreateSupplierLog = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedSupplier?.supplier_id || !logForm.content.trim()) return;
+        setSubmitting(true);
+        try {
+            const created = await suppliersApi.createLog(selectedSupplier.supplier_id, {
+                type: logForm.type as any,
+                subject: logForm.subject || undefined,
+                content: logForm.content,
+            });
+            setSupplierLogs((current) => [created, ...current]);
+            setLogForm({ type: 'other', subject: '', content: '' });
+            setShowLogModal(false);
+            setSuccess("Note fournisseur ajoutée.");
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error("Supplier log create error", err);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleCreateSupplier = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -190,10 +332,20 @@ export default function Suppliers() {
         if (orderForm.items.length === 0) return;
         setSubmitting(true);
         try {
-            await ordersApi.create(orderForm);
+            await ordersApi.create({
+                supplier_id: orderForm.supplier_id || '',
+                supplier_user_id: orderForm.supplier_user_id || undefined,
+                notes: orderForm.notes || undefined,
+                expected_delivery: orderForm.expected_delivery || undefined,
+                items: orderForm.items.map((item) => ({
+                    product_id: item.product_id,
+                    quantity: Number(item.quantity) || 0,
+                    unit_price: Number(item.unit_price) || 0,
+                })),
+            });
             setSuccess("Bon de commande créé avec succès !");
             setShowOrderModal(false);
-            setOrderForm({ supplier_id: '', items: [], notes: '', expected_delivery: '' });
+            resetOrderForm();
             loadData();
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -222,7 +374,10 @@ export default function Suppliers() {
         if (partialItems.length === 0) return;
         setSubmitting(true);
         try {
-            await ordersApi.receivePartial(orderId, partialItems);
+            await ordersApi.receivePartial(orderId, partialItems.map((item) => ({
+                item_id: item.item_id,
+                received_quantity: item.received_quantity,
+            })));
             setSuccess("Réception partielle enregistrée. Le stock a été mis à jour.");
             loadData();
             const updated = await ordersApi.get(orderId);
@@ -254,8 +409,27 @@ export default function Suppliers() {
     );
 
     const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter(s =>
-        s.name?.toLowerCase().includes(search.toLowerCase()) ||
-        s.city?.toLowerCase().includes(search.toLowerCase())
+        (s.name || s.company_name || '')?.toLowerCase().includes(search.toLowerCase()) ||
+        (s.city || '')?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const isMarketplaceOrder = Boolean(orderForm.supplier_user_id && !orderForm.supplier_id);
+    const marketplaceOrderSupplier = isMarketplaceOrder
+        ? marketplaceSuppliers.find((supplier: any) => (supplier.supplier_user_id || supplier.user_id) === orderForm.supplier_user_id)
+            || (marketplaceSupplierDetail?.profile ? {
+                ...marketplaceSupplierDetail.profile,
+                name: marketplaceSupplierDetail.profile.company_name,
+                supplier_user_id: marketplaceSupplierDetail.profile.user_id,
+                category: marketplaceSupplierDetail.profile.categories?.[0] || '',
+                rating: marketplaceSupplierDetail.profile.rating_average || 0,
+            } : null)
+        : null;
+    const orderProductOptions = isMarketplaceOrder
+        ? (marketplaceSupplierDetail?.catalog || [])
+        : allProducts;
+    const orderTotal = orderForm.items.reduce(
+        (sum, item) => sum + ((Number(item.unit_price) || 0) * (Number(item.quantity) || 0)),
+        0
     );
 
     return (
@@ -277,7 +451,10 @@ export default function Suppliers() {
                     )}
                     {activeTab === 'orders' && (
                         <button
-                            onClick={() => setShowOrderModal(true)}
+                            onClick={() => {
+                                resetOrderForm();
+                                setShowOrderModal(true);
+                            }}
                             className="btn-primary flex items-center gap-2"
                         >
                             <Plus size={18} />
@@ -367,7 +544,7 @@ export default function Suppliers() {
                                                 {contextMenuSupplierId === s.supplier_id && (
                                                     <div className="absolute top-full right-0 mt-1 w-40 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
                                                         <button
-                                                            onClick={() => { setSelectedSupplier(s); setShowSupplierModal(false); setShowSupplierDetails(true); setContextMenuSupplierId(null); }}
+                                                            onClick={() => { openSupplierDetails(s, 'manual'); setContextMenuSupplierId(null); }}
                                                             className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
                                                         >
                                                             Voir les détails
@@ -406,16 +583,13 @@ export default function Suppliers() {
 
                                         <div className="pt-4 border-t border-white/5 flex gap-2">
                                             <button
-                                                onClick={() => { setSelectedSupplier(s); setShowSupplierDetails(true); }}
+                                                onClick={() => openSupplierDetails(s, 'manual')}
                                                 className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 text-sm font-bold hover:bg-white/10 transition-colors"
                                             >
                                                 Détails
                                             </button>
                                             <button
-                                                onClick={() => {
-                                                    setOrderForm({ ...orderForm, supplier_id: s.supplier_id });
-                                                    setShowOrderModal(true);
-                                                }}
+                                                onClick={() => openManualOrderDraft(s)}
                                                 className="flex-1 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors"
                                             >
                                                 Commander
@@ -566,17 +740,12 @@ export default function Suppliers() {
                                             <button
                                                 onClick={() => {
                                                     const supplier = manualSuppliers.find(ms => ms.name === s.supplier_name);
-                                                    setOrderForm({
-                                                        ...orderForm,
-                                                        supplier_id: supplier?.supplier_id || '',
-                                                        items: [{
-                                                            product_id: s.product_id,
-                                                            name: s.product_name,
-                                                            quantity: s.suggested_quantity,
-                                                            price: 0 // Will be filled by user
-                                                        }]
-                                                    });
-                                                    setShowOrderModal(true);
+                                                    openManualOrderDraft(supplier, [{
+                                                        product_id: s.product_id,
+                                                        name: s.product_name,
+                                                        quantity: s.suggested_quantity,
+                                                        unit_price: 0
+                                                    }]);
                                                 }}
                                                 className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
                                             >
@@ -686,11 +855,16 @@ export default function Suppliers() {
                                                 </div>
                                             </div>
 
-                                            <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                                                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Catalogue</span>
+                                            <div className="pt-3 border-t border-white/5 flex items-center gap-2">
                                                 <button
-                                                    onClick={() => { setSelectedSupplier(s); setShowSupplierDetails(true); }}
-                                                    className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all"
+                                                    onClick={() => openMarketplaceOrderDraft(s)}
+                                                    className="flex-1 rounded-lg bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary hover:text-white"
+                                                >
+                                                    Commander
+                                                </button>
+                                                <button
+                                                    onClick={() => openSupplierDetails(s, 'marketplace')}
+                                                    className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all"
                                                 >
                                                     <ChevronRightIcon size={16} />
                                                 </button>
@@ -790,15 +964,28 @@ export default function Suppliers() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-400 mb-1">Fournisseur</label>
-                                    <select
-                                        required
-                                        value={orderForm.supplier_id}
-                                        onChange={e => setOrderForm({ ...orderForm, supplier_id: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
-                                    >
-                                        <option value="" className="bg-slate-800">Sélectionner...</option>
-                                        {manualSuppliers.map(s => <option key={s.supplier_id} value={s.supplier_id} className="bg-slate-800">{s.name}</option>)}
-                                    </select>
+                                    {isMarketplaceOrder && marketplaceOrderSupplier ? (
+                                        <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3">
+                                            <div className="text-sm font-bold text-white">
+                                                {marketplaceOrderSupplier.name || marketplaceOrderSupplier.company_name}
+                                            </div>
+                                            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                                                <span>{marketplaceOrderSupplier.city || 'Marketplace'}</span>
+                                                <span>Catalogue: {(marketplaceSupplierDetail?.catalog || []).length} produits</span>
+                                                <span>Note: {(marketplaceOrderSupplier.rating || 0).toFixed(1)}/5</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            required
+                                            value={orderForm.supplier_id}
+                                            onChange={e => setOrderForm({ ...orderForm, supplier_id: e.target.value, supplier_user_id: '' })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                                        >
+                                            <option value="" className="bg-slate-800">Sélectionner...</option>
+                                            {manualSuppliers.map(s => <option key={s.supplier_id} value={s.supplier_id} className="bg-slate-800">{s.name}</option>)}
+                                        </select>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-400 mb-1">Livraison Prévue</label>
@@ -821,22 +1008,30 @@ export default function Suppliers() {
                                             onChange={(e) => {
                                                 const prodId = e.target.value;
                                                 if (!prodId) return;
-                                                const product = allProducts.find(p => p.product_id === prodId);
+                                                const product = isMarketplaceOrder
+                                                    ? orderProductOptions.find((p: any) => p.catalog_id === prodId)
+                                                    : orderProductOptions.find((p: any) => p.product_id === prodId);
                                                 if (product) {
                                                     const existing = orderForm.items.find(i => i.product_id === prodId);
+                                                    const nextQuantity = isMarketplaceOrder
+                                                        ? Number(product.min_order_quantity) || 1
+                                                        : 1;
+                                                    const unitPrice = isMarketplaceOrder
+                                                        ? Number(product.price) || 0
+                                                        : Number(product.cost_price) || 0;
                                                     if (existing) {
                                                         setOrderForm({
                                                             ...orderForm,
-                                                            items: orderForm.items.map(i => i.product_id === prodId ? { ...i, quantity: i.quantity + 1 } : i)
+                                                            items: orderForm.items.map(i => i.product_id === prodId ? { ...i, quantity: i.quantity + nextQuantity } : i)
                                                         });
                                                     } else {
                                                         setOrderForm({
                                                             ...orderForm,
                                                             items: [...orderForm.items, {
-                                                                product_id: product.product_id,
+                                                                product_id: isMarketplaceOrder ? product.catalog_id : product.product_id,
                                                                 name: product.name,
-                                                                quantity: 1,
-                                                                price: product.cost_price || 0
+                                                                quantity: nextQuantity,
+                                                                unit_price: unitPrice
                                                             }]
                                                         });
                                                     }
@@ -845,11 +1040,23 @@ export default function Suppliers() {
                                             }}
                                         >
                                             <option value="">Ajouter un produit...</option>
-                                            {allProducts.map(p => <option key={p.product_id} value={p.product_id}>{p.name}</option>)}
+                                            {orderProductOptions.map((p: any) => (
+                                                <option
+                                                    key={isMarketplaceOrder ? p.catalog_id : p.product_id}
+                                                    value={isMarketplaceOrder ? p.catalog_id : p.product_id}
+                                                >
+                                                    {p.name}
+                                                    {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unité'}` : ''}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="col-span-6 flex items-end">
-                                        <p className="text-xs text-slate-500 italic">Sélectionnez un produit pour l'ajouter à la liste.</p>
+                                        <p className="text-xs text-slate-500 italic">
+                                            {isMarketplaceOrder
+                                                ? "Le catalogue du fournisseur sélectionné est utilisé pour préparer la commande et comparer les prix."
+                                                : "Sélectionnez un produit interne pour l'ajouter à la liste."}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -871,10 +1078,10 @@ export default function Suppliers() {
                                             <div className="w-24">
                                                 <input
                                                     type="number"
-                                                    value={item.price}
+                                                    value={item.unit_price}
                                                     onChange={e => setOrderForm({
                                                         ...orderForm,
-                                                        items: orderForm.items.map((it, i) => i === idx ? { ...it, price: parseInt(e.target.value) || 0 } : it)
+                                                        items: orderForm.items.map((it, i) => i === idx ? { ...it, unit_price: parseInt(e.target.value) || 0 } : it)
                                                     })}
                                                     className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-right"
                                                 />
@@ -895,7 +1102,7 @@ export default function Suppliers() {
 
                             <div className="flex justify-between items-center pt-4 border-t border-white/10">
                                 <div className="text-slate-400">
-                                    Total: <span className="text-white font-bold">{orderForm.items.reduce((sum, i) => sum + (i.price * i.quantity), 0).toLocaleString()} F</span>
+                                    Total: <span className="text-white font-bold">{orderTotal.toLocaleString()} F</span>
                                 </div>
                                 <div className="flex gap-3">
                                     <button type="button" onClick={() => setShowOrderModal(false)} className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:text-white transition-all">Annuler</button>
@@ -1001,7 +1208,7 @@ export default function Suppliers() {
                                                     <td className="px-4 py-3 font-bold text-white">{item.product_name}</td>
                                                     <td className="px-4 py-3 text-center text-slate-400">{item.quantity}</td>
                                                     <td className="px-4 py-3 text-center text-emerald-400 font-bold">{item.received_quantity || 0}</td>
-                                                    <td className="px-4 py-3 text-right text-white ">{item.price.toLocaleString()} F</td>
+                                                    <td className="px-4 py-3 text-right text-white ">{Number(item.unit_price || 0).toLocaleString()} F</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1038,8 +1245,8 @@ export default function Suppliers() {
                                                             onChange={(e) => {
                                                                 const val = parseInt(e.target.value) || 0;
                                                                 setPartialItems(prev => {
-                                                                    const filter = prev.filter(p => p.product_id !== item.product_id);
-                                                                    if (val > 0) return [...filter, { product_id: item.product_id, quantity: val }];
+                                                                    const filter = prev.filter(p => p.item_id !== item.item_id);
+                                                                    if (val > 0) return [...filter, { item_id: item.item_id, received_quantity: val }];
                                                                     return filter;
                                                                 });
                                                             }}
@@ -1106,17 +1313,171 @@ export default function Suppliers() {
                                 onClick={() => setSupplierTab('logs')}
                                 className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'logs' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
-                                Journal de Bord
+                                {selectedSupplier.kind === 'marketplace' ? 'Catalogue' : 'Journal de Bord'}
                             </button>
                             <button
                                 onClick={() => setSupplierTab('invoices')}
                                 className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'invoices' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
-                                Factures
+                                {selectedSupplier.kind === 'marketplace' ? 'Avis' : 'Factures'}
                             </button>
                         </div>
 
-                        {supplierTab === 'perf' ? (
+                        {supplierDetailLoading ? (
+                            <div className="py-16 flex justify-center">
+                                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                            </div>
+                        ) : supplierTab === 'perf' && selectedSupplier.kind === 'marketplace' ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Note moyenne</p>
+                                        <p className="text-2xl font-black text-white">{Number(marketplaceSupplierDetail?.profile?.rating_average || 0).toFixed(1)}/5</p>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Avis</p>
+                                        <p className="text-2xl font-black text-white">{marketplaceSupplierDetail?.profile?.rating_count || 0}</p>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Catalogue</p>
+                                        <p className="text-2xl font-black text-white">{(marketplaceSupplierDetail?.catalog || []).length}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
+                                    <p className="text-white font-bold">{marketplaceSupplierDetail?.profile?.company_name || selectedSupplier.name}</p>
+                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail?.profile?.description || "Ce fournisseur n'a pas encore ajouté de description détaillée."}</p>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.city || '-'}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierDetail?.profile?.min_order_amount || 0)}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.average_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail?.profile?.delivery_zones || []).join(', ') || 'Non renseignées'}</span></div>
+                                </div>
+                            </div>
+                        ) : supplierTab === 'perf' && selectedSupplier.kind !== 'marketplace' ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Commandes</p><p className="text-2xl font-black text-white">{supplierStats?.orders_count || 0}</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Total livré</p><p className="text-xl font-black text-white">{formatCurrency(supplierStats?.total_spent || 0)}</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">En attente</p><p className="text-xl font-black text-amber-400">{formatCurrency(supplierStats?.pending_spent || 0)}</p></div>
+                                    <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl"><p className="text-[10px] font-black text-emerald-500/50 uppercase">Taux de service</p><p className="text-xl font-black text-emerald-400">{supplierStats?.orders_count ? Math.round(((supplierStats?.delivered_count || 0) / supplierStats.orders_count) * 100) : 0}%</p></div>
+                                </div>
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes livrées</span><span className="text-white font-bold">{supplierStats?.delivered_count || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats?.pending_orders || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseigné'}</span></div>
+                                </div>
+                            </div>
+                        ) : supplierTab === 'logs' && selectedSupplier.kind === 'marketplace' ? (
+                            <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                                {(marketplaceSupplierDetail?.catalog || []).length === 0 ? (
+                                    <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <PackageIcon size={40} className="mx-auto text-slate-700 mb-3" />
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Catalogue vide pour le moment</p>
+                                    </div>
+                                ) : (marketplaceSupplierDetail?.catalog || []).map((product: any) => (
+                                    <div key={product.catalog_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm font-bold text-white">{product.name}</p>
+                                                <p className="text-xs text-slate-400 mt-1">{product.description || product.category || 'Produit marketplace'}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-black text-primary">{formatCurrency(product.price || 0)}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">{product.unit || 'unité'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase">
+                                            <span>Min: {product.min_order_quantity || 1}</span>
+                                            <span>Stock: {product.stock_available || 0}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => openMarketplaceOrderDraft(selectedSupplier, { product_id: product.catalog_id, name: product.name, quantity: product.min_order_quantity || 1, unit_price: product.price || 0 })} className="flex-1 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">Commander</button>
+                                            <button onClick={() => openBenchmarkForProduct(product)} className="flex-1 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all">Benchmark</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : supplierTab === 'logs' && selectedSupplier.kind !== 'marketplace' ? (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des échanges</label>
+                                    <button onClick={() => { setLogForm({ type: 'other', subject: '', content: '' }); setShowLogModal(true); }} className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline">
+                                        <Plus size={12} /> Ajouter une note
+                                    </button>
+                                </div>
+                                {supplierLogs.length === 0 ? (
+                                    <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <History size={40} className="mx-auto text-slate-700 mb-3" />
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucune note fournisseur</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                                        {supplierLogs.map((log: any) => (
+                                            <div key={log.log_id} className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-start gap-4">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500">
+                                                    {log.type === 'call' ? <Phone size={14} /> : log.type === 'email' ? <Mail size={14} /> : log.type === 'visit' ? <MapPinIcon size={14} /> : <MessageSquare size={14} />}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-white leading-relaxed font-bold">{log.subject || log.content}</p>
+                                                    {log.subject && <p className="text-xs text-slate-400 leading-relaxed">{log.content}</p>}
+                                                    <p className="text-[10px] text-slate-600 font-bold uppercase">{new Date(log.created_at).toLocaleDateString()} • {log.type}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : supplierTab === 'invoices' && selectedSupplier.kind === 'marketplace' ? (
+                            <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                                {(marketplaceSupplierDetail?.ratings || []).length === 0 ? (
+                                    <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <StarIcon size={40} className="mx-auto text-slate-700 mb-3" />
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publié</p>
+                                    </div>
+                                ) : (marketplaceSupplierDetail?.ratings || []).map((rating: any) => (
+                                    <div key={rating.rating_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-2">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm font-bold text-white">{rating.shopkeeper_name || 'Client marketplace'}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">{new Date(rating.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1 bg-amber-500/10 text-amber-400 px-2 py-1 rounded-lg text-xs font-bold">
+                                                <StarIcon size={12} fill="currentColor" />
+                                                {rating.score}/5
+                                            </div>
+                                        </div>
+                                        {rating.comment && <p className="text-sm text-slate-300 leading-relaxed">{rating.comment}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : supplierTab === 'invoices' && selectedSupplier.kind !== 'marketplace' ? (
+                            <div className="overflow-hidden bg-white/5 rounded-2xl border border-white/5">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="bg-white/10 text-slate-500 font-bold">
+                                        <tr>
+                                            <th className="px-4 py-3">Numéro</th>
+                                            <th className="px-4 py-3">Date</th>
+                                            <th className="px-4 py-3 text-right">Montant</th>
+                                            <th className="px-4 py-3 text-center">Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {supplierInvoices.length === 0 ? (
+                                            <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Aucune facture fournisseur</td></tr>
+                                        ) : supplierInvoices.map((invoice: any) => (
+                                            <tr key={invoice.invoice_id} className="hover:bg-white/5">
+                                                <td className="px-4 py-3 font-mono text-white">{invoice.invoice_number}</td>
+                                                <td className="px-4 py-3 text-slate-400">{new Date(invoice.created_at).toLocaleDateString()}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-white">{formatCurrency(invoice.amount || 0)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${invoice.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : invoice.status === 'partial' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>{invoice.status}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : supplierTab === 'perf' ? (
                             <div className="animate-in fade-in duration-300 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl space-y-1">
@@ -1206,8 +1567,16 @@ export default function Suppliers() {
                         )}
 
                         <div className="flex gap-4 pt-6 border-t border-white/10">
+                            {selectedSupplier.kind === 'marketplace' && (
+                                <button
+                                    onClick={() => openMarketplaceOrderDraft(selectedSupplier)}
+                                    className="flex-1 py-4 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm uppercase tracking-wider"
+                                >
+                                    <ClipboardList size={18} /> Commander
+                                </button>
+                            )}
                             <button
-                                onClick={() => handleWhatsApp(selectedSupplier.phone)}
+                                onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierDetail?.profile?.phone)}
                                 className="flex-1 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm uppercase tracking-wider"
                             >
                                 <MessageSquare size={18} /> WhatsApp
@@ -1221,6 +1590,119 @@ export default function Suppliers() {
                         </div>
                     </div>
                 )}
+            </Modal>
+            <Modal
+                isOpen={showLogModal}
+                onClose={() => setShowLogModal(false)}
+                title="Ajouter une note fournisseur"
+            >
+                <form onSubmit={handleCreateSupplierLog} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">Type</label>
+                        <select
+                            value={logForm.type}
+                            onChange={(e) => setLogForm({ ...logForm, type: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                        >
+                            <option value="other" className="bg-slate-800">Note</option>
+                            <option value="call" className="bg-slate-800">Appel</option>
+                            <option value="email" className="bg-slate-800">Email</option>
+                            <option value="whatsapp" className="bg-slate-800">WhatsApp</option>
+                            <option value="visit" className="bg-slate-800">Visite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">Objet</label>
+                        <input
+                            type="text"
+                            value={logForm.subject}
+                            onChange={(e) => setLogForm({ ...logForm, subject: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">Contenu</label>
+                        <textarea
+                            required
+                            rows={4}
+                            value={logForm.content}
+                            onChange={(e) => setLogForm({ ...logForm, content: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setShowLogModal(false)} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
+                            Annuler
+                        </button>
+                        <button type="submit" disabled={submitting} className="flex-1 btn-primary py-3 font-bold">
+                            {submitting ? '...' : 'Enregistrer'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+            <Modal
+                isOpen={showBenchmarkModal}
+                onClose={() => setShowBenchmarkModal(false)}
+                title={benchmarkProduct ? `Benchmark • ${benchmarkProduct.name}` : 'Benchmark produit'}
+                maxWidth="xl"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-400">
+                        Comparez les offres disponibles pour ce produit, puis préparez directement une commande vers le fournisseur le plus intéressant.
+                    </p>
+                    {benchmarkLoading ? (
+                        <div className="py-16 flex justify-center">
+                            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                        </div>
+                    ) : benchmarkResults.length === 0 ? (
+                        <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                            <SearchIcon size={40} className="mx-auto text-slate-700 mb-3" />
+                            <p className="text-sm text-slate-500 font-bold uppercase">Aucun résultat comparable trouvé</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                            {benchmarkResults.map((result: any, index: number) => (
+                                <div key={`${result.catalog_id}-${index}`} className={`border rounded-2xl p-4 ${index === 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/5 bg-white/5'}`}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-bold text-white">{result.supplier_name}</p>
+                                                {index === 0 && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase">Meilleur prix</span>}
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-1">{result.name}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase mt-1">{result.supplier_city || 'Marketplace'} • note {(result.supplier_rating || 0).toFixed(1)}/5</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-black text-primary">{formatCurrency(result.price || 0)}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">{result.unit || 'unité'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setShowBenchmarkModal(false);
+                                                openMarketplaceOrderDraft({
+                                                    supplier_user_id: result.supplier_user_id,
+                                                    name: result.supplier_name,
+                                                    city: result.supplier_city,
+                                                    rating: result.supplier_rating,
+                                                }, {
+                                                    product_id: result.catalog_id,
+                                                    name: result.name,
+                                                    quantity: result.min_order_quantity || 1,
+                                                    unit_price: result.price || 0,
+                                                });
+                                            }}
+                                            className="flex-1 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                        >
+                                            Commander
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );

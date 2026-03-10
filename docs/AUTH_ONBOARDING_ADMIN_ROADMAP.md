@@ -1,7 +1,7 @@
 # Roadmap Inscription, Verification et Suivi Admin
 
 Date de preparation : 2026-03-10
-Statut : planifie, non implemente
+Statut : plan 1 implemente, plan 2 implemente en V1, plan 3 conserve en backlog
 
 Ce document fige les 3 plans valides pour une implementation ulterieure autour de l'inscription, de la verification OTP, de l'activation et du suivi admin.
 
@@ -101,13 +101,16 @@ Dimensions minimales :
 Fichiers cibles :
 - `frontend/app/(auth)/register.tsx`
 - `frontend/app/(auth)/verify-phone.tsx`
+- `frontend/app/(auth)/verify-email.tsx`
 - `frontend/contexts/AuthContext.tsx`
 - `frontend/services/api.ts`
 
 Travaux :
 - aligner le mot de passe minimal sur `8`
 - garder le telephone obligatoire pour `starter/pro`
+- supprimer le choix de plan au signup mobile et demarrer le commercant en `starter` par defaut
 - router vers `verify-phone` si `required_verification = phone`
+- router vers `verify-email` si `required_verification = email`
 - renommer les appels OTP telephone pour correspondre aux nouveaux endpoints
 - empecher l'acces plein a l'app tant que la verification requise n'est pas terminee
 
@@ -143,6 +146,12 @@ Cas a tester :
 Le flux d'inscription et de verification est unifie, coherent entre backend, mobile et web, et suit officiellement la regle :
 - mobile = verification telephone
 - enterprise web = verification email
+
+Etat reel :
+- backend implemente
+- mobile aligne
+- web Enterprise aligne
+- comptes legacy preserves sans retro-blocage de verification
 
 ---
 
@@ -263,6 +272,11 @@ Le dashboard doit permettre de repondre en moins de 2 minutes a ces questions :
 ### Critere de fin
 
 Le dashboard admin devient un outil de suivi acquisition -> verification -> activation -> conversion, pas seulement un backoffice de supervision.
+
+Etat reel :
+- endpoints backend implementes
+- vue d'ensemble admin enrichie avec onboarding / OTP / Enterprise / conversion
+- V2 possible plus tard si on veut des onglets admin dedies plutot que des blocs dans `overview`
 
 ---
 

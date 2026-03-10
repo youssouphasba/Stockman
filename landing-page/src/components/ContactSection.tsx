@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../config';
 import '../App.css';
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP_URL } from '../support';
 
 const ContactSection = () => {
     const { t } = useTranslation();
@@ -38,6 +39,24 @@ const ContactSection = () => {
                 <div className="section-title">
                     <h2>{t('contact.title')}</h2>
                     <p className="text-muted">{t('contact.subtitle')}</p>
+                    <div className="contact-action-row">
+                        <a
+                            href={`mailto:${SUPPORT_EMAIL}`}
+                            className="btn-secondary"
+                            style={{ textDecoration: 'none' }}
+                        >
+                            {SUPPORT_EMAIL}
+                        </a>
+                        <a
+                            href={SUPPORT_WHATSAPP_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-secondary"
+                            style={{ textDecoration: 'none' }}
+                        >
+                            WhatsApp
+                        </a>
+                    </div>
                 </div>
 
                 {status === 'success' ? (

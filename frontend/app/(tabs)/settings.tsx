@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures } from '../../services/api';
+import { settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
 import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -56,6 +56,17 @@ export default function SettingsScreen() {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [billingContactName, setBillingContactName] = useState('');
   const [billingContactEmail, setBillingContactEmail] = useState('');
+  const [currentStore, setCurrentStore] = useState<Store | null>(null);
+  const [storeName, setStoreName] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [receiptName, setReceiptName] = useState('');
+  const [receiptFooter, setReceiptFooter] = useState('');
+  const [invoiceName, setInvoiceName] = useState('');
+  const [invoiceAddress, setInvoiceAddress] = useState('');
+  const [invoiceLabel, setInvoiceLabel] = useState('Facture');
+  const [invoicePrefix, setInvoicePrefix] = useState('FAC');
+  const [invoiceFooter, setInvoiceFooter] = useState('');
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState('');
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
   // Sector state removed — sector is set at registration
 
@@ -87,19 +98,32 @@ export default function SettingsScreen() {
 
   const loadSettings = useCallback(async () => {
     try {
-      const [result, features] = await Promise.all([
+      const [result, _features, storesList] = await Promise.all([
         settingsApi.get(),
         userFeatures.get().catch(() => null),
+        storesApi.list().catch(() => []),
       ]);
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
       setBillingContactEmail(result?.billing_contact_email || '');
+      const activeStore = (storesList || []).find((store) => store.store_id === user?.active_store_id) || null;
+      setCurrentStore(activeStore);
+      setStoreName(activeStore?.name || '');
+      setStoreAddress(activeStore?.address || '');
+      setReceiptName(activeStore?.receipt_business_name || result?.receipt_business_name || '');
+      setReceiptFooter(activeStore?.receipt_footer || result?.receipt_footer || '');
+      setInvoiceName(activeStore?.invoice_business_name || result?.invoice_business_name || '');
+      setInvoiceAddress(activeStore?.invoice_business_address || result?.invoice_business_address || '');
+      setInvoiceLabel(activeStore?.invoice_label || result?.invoice_label || 'Facture');
+      setInvoicePrefix(activeStore?.invoice_prefix || result?.invoice_prefix || 'FAC');
+      setInvoiceFooter(activeStore?.invoice_footer || result?.invoice_footer || '');
+      setInvoicePaymentTerms(activeStore?.invoice_payment_terms || result?.invoice_payment_terms || '');
     } catch {
       // ignore
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.active_store_id]);
 
   const handleSubmitDispute = async () => {
     if (!disputeSubject.trim() || !disputeDesc.trim()) {
@@ -322,99 +346,231 @@ export default function SettingsScreen() {
         </View>
         )}
 
+        {isOrgAdmin && currentStore && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Boutique active</Text>
+          <Text style={styles.settingDesc}>Mettez a jour le nom, l adresse et les documents de la boutique actuellement selectionnee.</Text>
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
+            <TextInput
+              style={styles.input}
+              value={storeName}
+              onChangeText={setStoreName}
+              placeholder="Nom de la boutique"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={storeAddress}
+              onChangeText={setStoreAddress}
+              placeholder="Adresse"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>Recu</Text>
+          <View style={{ gap: Spacing.sm }}>
+            <TextInput
+              style={styles.input}
+              value={receiptName}
+              onChangeText={setReceiptName}
+              placeholder="Nom sur le recu"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={receiptFooter}
+              onChangeText={setReceiptFooter}
+              placeholder="Pied de recu"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>Factures</Text>
+          <View style={{ gap: Spacing.sm }}>
+            <TextInput
+              style={styles.input}
+              value={invoiceName}
+              onChangeText={setInvoiceName}
+              placeholder="Nom sur la facture"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={invoiceAddress}
+              onChangeText={setInvoiceAddress}
+              placeholder="Adresse de facturation"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={invoiceLabel}
+              onChangeText={setInvoiceLabel}
+              placeholder="Type de facture"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={invoicePrefix}
+              onChangeText={setInvoicePrefix}
+              placeholder="Prefixe"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={invoicePaymentTerms}
+              onChangeText={setInvoicePaymentTerms}
+              placeholder="Conditions de paiement"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={invoiceFooter}
+              onChangeText={setInvoiceFooter}
+              placeholder="Pied de facture"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={async () => {
+              try {
+                const updatedStore = await storesApi.update(currentStore.store_id, {
+                  name: storeName,
+                  address: storeAddress,
+                  receipt_business_name: receiptName,
+                  receipt_footer: receiptFooter,
+                  invoice_business_name: invoiceName,
+                  invoice_business_address: invoiceAddress,
+                  invoice_label: invoiceLabel,
+                  invoice_prefix: invoicePrefix,
+                  invoice_footer: invoiceFooter,
+                  invoice_payment_terms: invoicePaymentTerms,
+                });
+                setCurrentStore(updatedStore);
+                setStoreName(updatedStore.name || '');
+                setStoreAddress(updatedStore.address || '');
+                setReceiptName(updatedStore.receipt_business_name || '');
+                setReceiptFooter(updatedStore.receipt_footer || '');
+                setInvoiceName(updatedStore.invoice_business_name || '');
+                setInvoiceAddress(updatedStore.invoice_business_address || '');
+                setInvoiceLabel(updatedStore.invoice_label || 'Facture');
+                setInvoicePrefix(updatedStore.invoice_prefix || 'FAC');
+                setInvoiceFooter(updatedStore.invoice_footer || '');
+                setInvoicePaymentTerms(updatedStore.invoice_payment_terms || '');
+                setSettingsData((prev) => prev ? ({
+                  ...prev,
+                  receipt_business_name: updatedStore.receipt_business_name,
+                  receipt_footer: updatedStore.receipt_footer,
+                  invoice_business_name: updatedStore.invoice_business_name,
+                  invoice_business_address: updatedStore.invoice_business_address,
+                  invoice_label: updatedStore.invoice_label,
+                  invoice_prefix: updatedStore.invoice_prefix,
+                  invoice_footer: updatedStore.invoice_footer,
+                  invoice_payment_terms: updatedStore.invoice_payment_terms,
+                }) : prev);
+              } catch {
+                Alert.alert(t('common.error'), 'Impossible de mettre a jour la boutique active.');
+              }
+            }}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer la boutique et les documents
+            </Text>
+          </TouchableOpacity>
+        </View>
+        )}
+
+        {isOrgAdmin && !currentStore && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Boutique active</Text>
+          <Text style={styles.settingDesc}>Aucune boutique active n est selectionnee pour personnaliser les documents.</Text>
+        </View>
+        )}
+
         {/* TVA / Taxes */}
         {isOrgAdmin && (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.tax_title')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.tax')}</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.tax_enabled')}</Text>
               <Text style={styles.settingDesc}>{t('settings.tax_enabled_desc')}</Text>
             </View>
             <Switch
-              value={settingsData?.tax_enabled ?? false}
-              onValueChange={async (val) => {
+              value={!!settingsData?.tax_enabled}
+              onValueChange={async (value) => {
                 try {
-                  const updated = await settingsApi.update({ tax_enabled: val });
+                  const updated = await settingsApi.update({ tax_enabled: value } as any);
                   setSettingsData(updated);
-                } catch {}
+                } catch {
+                  // ignore
+                }
               }}
               trackColor={{ false: colors.divider, true: colors.primary + '60' }}
               thumbColor={settingsData?.tax_enabled ? colors.primary : colors.textMuted}
             />
           </View>
-
-          {settingsData?.tax_enabled && (
-            <>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>{t('settings.tax_rate')}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <TextInput
-                    style={{
-                      backgroundColor: colors.bgLight,
-                      color: colors.text,
-                      borderRadius: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      fontSize: 16,
-                      fontWeight: '700',
-                      width: 70,
-                      textAlign: 'center',
-                      borderWidth: 1,
-                      borderColor: colors.divider,
-                    }}
-                    keyboardType="numeric"
-                    value={String(settingsData?.tax_rate ?? 0)}
-                    onChangeText={(val) => {
-                      const num = parseFloat(val) || 0;
-                      setSettingsData((s: any) => s ? { ...s, tax_rate: num } : s);
-                    }}
-                    onBlur={async () => {
-                      try {
-                        await settingsApi.update({ tax_rate: settingsData?.tax_rate ?? 0 });
-                      } catch {}
-                    }}
-                  />
-                  <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>%</Text>
-                </View>
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>{t('settings.tax_mode')}</Text>
-                  <Text style={styles.settingDesc}>{t('settings.tax_mode_desc')}</Text>
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: Spacing.md, paddingBottom: Spacing.md }}>
-                {(['ttc', 'ht'] as const).map(mode => (
-                  <TouchableOpacity
-                    key={mode}
-                    onPress={async () => {
-                      try {
-                        const updated = await settingsApi.update({ tax_mode: mode });
-                        setSettingsData(updated);
-                      } catch {}
-                    }}
-                    style={{
+          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm }]}>
+            <Text style={styles.settingLabel}>{t('settings.tax_rate')}</Text>
+            <TextInput
+              style={styles.input}
+              value={String(settingsData?.tax_rate ?? '')}
+              onChangeText={async (value) => {
+                setSettingsData((prev) => prev ? { ...prev, tax_rate: Number(value) || 0 } : prev);
+              }}
+              keyboardType="numeric"
+              placeholder="18"
+              placeholderTextColor={colors.textMuted}
+            />
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['ttc', 'ht'] as const).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.syncButton,
+                    {
                       flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 10,
-                      borderWidth: 1.5,
-                      alignItems: 'center',
-                      backgroundColor: (settingsData as any)?.tax_mode === mode ? colors.primary + '20' : 'transparent',
-                      borderColor: (settingsData as any)?.tax_mode === mode ? colors.primary : colors.divider,
-                    }}
-                  >
-                    <Text style={{ fontWeight: '700', color: (settingsData as any)?.tax_mode === mode ? colors.primary : colors.textMuted }}>
-                      {mode === 'ttc' ? t('settings.tax_mode_ttc') : t('settings.tax_mode_ht')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
+                      backgroundColor: settingsData?.tax_mode === mode ? colors.primary + '20' : 'transparent',
+                      borderColor: settingsData?.tax_mode === mode ? colors.primary : colors.divider,
+                    }
+                  ]}
+                  onPress={async () => {
+                    try {
+                      const updated = await settingsApi.update({ tax_mode: mode } as any);
+                      setSettingsData(updated);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  <Text style={{ color: settingsData?.tax_mode === mode ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {mode.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
+              onPress={async () => {
+                try {
+                  const updated = await settingsApi.update({
+                    tax_rate: settingsData?.tax_rate ?? 0,
+                  } as any);
+                  setSettingsData(updated);
+                } catch {
+                  // ignore
+                }
+              }}
+            >
+              <Ionicons name="save-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                {t('common.save')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
         )}
 

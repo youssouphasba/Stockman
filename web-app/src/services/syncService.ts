@@ -1,12 +1,15 @@
 'use client';
 
-import { sales as salesApi } from './api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const TOKEN_KEY = 'auth_token';
+const OFFLINE_REQUESTS_KEY = 'stockman_offline_requests';
+const LEGACY_OFFLINE_SALES_KEY = 'stockman_offline_sales';
 
-const OFFLINE_SALES_KEY = 'stockman_offline_sales';
-
-export interface QueuedSale {
+export interface QueuedRequest {
     id: string;
-    data: any;
+    endpoint: string;
+    method: string;
+    body?: any;
     timestamp: number;
 }
 
@@ -15,32 +18,64 @@ class SyncService {
 
     constructor() {
         if (typeof window !== 'undefined') {
+            this.migrateLegacySalesQueue();
             window.addEventListener('online', () => this.sync());
+            if (navigator.onLine) {
+                setTimeout(() => {
+                    this.sync();
+                }, 0);
+            }
         }
     }
 
-    /**
-     * Queue a sale for background sync
-     */
-    queueSale(saleData: any) {
-        const queue = this.getQueue();
-        const newSale: QueuedSale = {
-            id: crypto.randomUUID(),
-            data: saleData,
-            timestamp: Date.now()
-        };
-        queue.push(newSale);
-        localStorage.setItem(OFFLINE_SALES_KEY, JSON.stringify(queue));
-        console.log('Sale queued offline:', newSale.id);
-        return newSale.id;
+    private migrateLegacySalesQueue() {
+        try {
+            const legacyRaw = localStorage.getItem(LEGACY_OFFLINE_SALES_KEY);
+            if (!legacyRaw) return;
+            const legacy = JSON.parse(legacyRaw);
+            if (!Array.isArray(legacy) || legacy.length === 0) {
+                localStorage.removeItem(LEGACY_OFFLINE_SALES_KEY);
+                return;
+            }
+
+            const current = this.getQueue();
+            const migrated = legacy.map((sale: any) => ({
+                id: sale.id || crypto.randomUUID(),
+                endpoint: '/sales',
+                method: 'POST',
+                body: sale.data,
+                timestamp: sale.timestamp || Date.now(),
+            }));
+            localStorage.setItem(OFFLINE_REQUESTS_KEY, JSON.stringify([...current, ...migrated]));
+            localStorage.removeItem(LEGACY_OFFLINE_SALES_KEY);
+        } catch {
+            // ignore migration issues
+        }
     }
 
-    /**
-     * Get the current queue of offline sales
-     */
-    getQueue(): QueuedSale[] {
+    queueRequest(request: Omit<QueuedRequest, 'id' | 'timestamp'>) {
+        const queue = this.getQueue();
+        const queued: QueuedRequest = {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            ...request,
+        };
+        queue.push(queued);
+        localStorage.setItem(OFFLINE_REQUESTS_KEY, JSON.stringify(queue));
+        return queued.id;
+    }
+
+    queueSale(saleData: any) {
+        return this.queueRequest({
+            endpoint: '/sales',
+            method: 'POST',
+            body: saleData,
+        });
+    }
+
+    getQueue(): QueuedRequest[] {
         if (typeof window === 'undefined') return [];
-        const stored = localStorage.getItem(OFFLINE_SALES_KEY);
+        const stored = localStorage.getItem(OFFLINE_REQUESTS_KEY);
         try {
             return stored ? JSON.parse(stored) : [];
         } catch {
@@ -48,38 +83,46 @@ class SyncService {
         }
     }
 
-    /**
-     * Start the synchronization process
-     */
+    private async send(request: QueuedRequest) {
+        const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+        const response = await fetch(`${API_URL}/api${request.endpoint}`, {
+            method: request.method,
+            credentials: 'include',
+            headers: {
+                ...(request.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: request.body
+                ? (request.body instanceof FormData ? request.body : JSON.stringify(request.body))
+                : undefined,
+        });
+
+        if (!response.ok) {
+            const error = await response.text().catch(() => 'Erreur de synchronisation');
+            throw new Error(error || 'Erreur de synchronisation');
+        }
+    }
+
     async sync() {
-        if (this.isSyncing || !navigator.onLine) return;
+        if (this.isSyncing || typeof navigator === 'undefined' || !navigator.onLine) return;
 
         const queue = this.getQueue();
         if (queue.length === 0) return;
 
         this.isSyncing = true;
-        console.log(`Starting sync for ${queue.length} sales...`);
+        const failed: QueuedRequest[] = [];
 
-        const failed: QueuedSale[] = [];
-
-        for (const sale of queue) {
+        for (const request of queue) {
             try {
-                await salesApi.create(sale.data);
-                console.log(`Successfully synced sale ${sale.id}`);
+                await this.send(request);
             } catch (err) {
-                console.error(`Failed to sync sale ${sale.id}`, err);
-                failed.push(sale);
+                console.error(`Failed to sync request ${request.id}`, err);
+                failed.push(request);
             }
         }
 
-        localStorage.setItem(OFFLINE_SALES_KEY, JSON.stringify(failed));
+        localStorage.setItem(OFFLINE_REQUESTS_KEY, JSON.stringify(failed));
         this.isSyncing = false;
-
-        if (failed.length === 0) {
-            console.log('Synchronization complete.');
-        } else {
-            console.warn(`Synchronization finished with ${failed.length} failures.`);
-        }
     }
 }
 
