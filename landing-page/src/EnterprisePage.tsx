@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
+import { useScrollReveal } from './hooks/useScrollReveal';
 import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
@@ -53,6 +54,8 @@ const structuredData = [
 ];
 
 export default function EnterprisePage() {
+  useScrollReveal();
+
   return (
     <div className="landing-page">
       <SEO
@@ -66,8 +69,8 @@ export default function EnterprisePage() {
       <MarketingNav active="enterprise" />
 
       <section className="hero reveal">
-        <div className="container hero-container">
-          <div className="hero-content">
+        <div className="container enterprise-hero-layout">
+          <div className="hero-content enterprise-hero-copy">
             <div className="hero-badge-row">
               <span className="badge-premium">Enterprise visible, accessible et actionnable</span>
             </div>
@@ -94,15 +97,38 @@ export default function EnterprisePage() {
               <span>•</span>
               <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile terrain</a>
             </div>
+
+            <div className="metric-strip">
+              <div className="mini-kpi">
+                <strong>Web + mobile</strong>
+                <span>Direction sur le web, equipes sur mobile</span>
+              </div>
+              <div className="mini-kpi">
+                <strong>Multi-boutiques</strong>
+                <span>Permissions et pilotage par boutique</span>
+              </div>
+              <div className="mini-kpi">
+                <strong>Business types</strong>
+                <span>Commerce, restauration et production</span>
+              </div>
+            </div>
           </div>
 
-          <div className="hero-image-container">
+          <div className="enterprise-hero-side">
             <div className="hero-image-placeholder glass-card enterprise-mockup">
               <img
                 src="/assets/screenshots/stockman-enterprise-preview.png"
                 alt="Back-office web Stockman Enterprise"
                 className="hero-image"
               />
+            </div>
+            <div className="glass-card hero-side-card">
+              <p className="business-card-eyebrow">Ce que voit un compte Enterprise</p>
+              <ul className="business-type-list">
+                <li>Vue multi-boutiques et comparaison des points de vente</li>
+                <li>CRM, comptabilite, analytics et equipe sur le web</li>
+                <li>Staff terrain relie au meme backend sur mobile</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -117,7 +143,7 @@ export default function EnterprisePage() {
         </div>
         <div className="enterprise-grid">
           {ENTERPRISE_HIGHLIGHTS.map((item) => (
-            <article key={item.title} className="glass-card enterprise-card">
+            <article key={item.title} className="glass-card enterprise-card interactive-card">
               <h3>{item.title}</h3>
               <p>{item.description}</p>
             </article>
@@ -135,7 +161,7 @@ export default function EnterprisePage() {
         </div>
         <div className="enterprise-grid">
           {BUSINESS_TYPE_GROUPS.map((group) => (
-            <article key={group.slug} className="glass-card enterprise-card">
+            <article key={group.slug} className="glass-card enterprise-card interactive-card">
               <p className="business-card-eyebrow">{group.title}</p>
               <h3>{group.seoTitle}</h3>
               <p>{group.overview}</p>

@@ -518,6 +518,10 @@ ul {
   color: var(--text-muted);
 }
 
+.text-muted {
+  color: var(--text-muted);
+}
+
 /* ====== Newsletter ====== */
 .newsletter-section {
   padding: var(--spacing-xl) 0;

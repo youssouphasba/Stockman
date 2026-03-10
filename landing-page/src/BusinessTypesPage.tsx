@@ -1,6 +1,7 @@
 import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
+import { useScrollReveal } from './hooks/useScrollReveal';
 import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
@@ -28,6 +29,8 @@ const structuredData = [
 ];
 
 export default function BusinessTypesPage() {
+  useScrollReveal();
+
   return (
     <div className="landing-page">
       <SEO
@@ -53,16 +56,17 @@ export default function BusinessTypesPage() {
 
       <section className="container business-types-grid reveal">
         {BUSINESS_TYPE_GROUPS.map((group) => (
-          <article key={group.slug} className="glass-card business-type-card">
+          <article key={group.slug} className="glass-card business-type-card interactive-card">
             <div className="business-type-header">
               <p className="business-card-eyebrow">{group.title}</p>
               <h2>{group.seoTitle}</h2>
+              <p className="business-type-plan">{group.recommendedPlan}</p>
             </div>
 
             <p className="text-muted">{group.seoDescription}</p>
 
             <div className="business-type-block">
-              <h3>Cas d'usage</h3>
+              <h3>Cas d&apos;usage</h3>
               <ul className="business-type-list">
                 {group.useCases.map((item) => (
                   <li key={item}>{item}</li>
@@ -78,11 +82,6 @@ export default function BusinessTypesPage() {
                 ))}
               </div>
             </div>
-
-            <div className="business-type-block">
-              <h3>Plan recommande</h3>
-              <p className="text-muted">{group.recommendedPlan}</p>
-            </div>
           </article>
         ))}
       </section>
@@ -93,10 +92,10 @@ export default function BusinessTypesPage() {
             <h2>Quel chemin pour quel besoin ?</h2>
           </div>
           <div className="enterprise-grid">
-            <article className="enterprise-card">
+            <article className="enterprise-card interactive-card">
               <h3>Starter / Pro</h3>
               <p>
-                Le commerçant demarre sur mobile. Il telecharge l&apos;app, cree son compte, puis passe a Pro
+                Le commercant demarre sur mobile. Il telecharge l&apos;app, cree son compte, puis passe a Pro
                 lorsqu&apos;il ajoute des boutiques, du staff ou des besoins d&apos;equipe.
               </p>
               <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
@@ -104,7 +103,7 @@ export default function BusinessTypesPage() {
               </a>
             </article>
 
-            <article className="enterprise-card">
+            <article className="enterprise-card interactive-card">
               <h3>Enterprise</h3>
               <p>
                 L&apos;entreprise passe par la landing pour comprendre le modele, puis par l&apos;app web pour voir

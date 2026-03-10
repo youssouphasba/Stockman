@@ -1415,15 +1415,61 @@ footer {
   gap: 1.25rem;
 }
 
+.enterprise-hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.enterprise-hero-copy {
+  max-width: none;
+}
+
+.enterprise-hero-side {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-side-card {
+  background: linear-gradient(160deg, rgba(0, 122, 255, 0.14), rgba(255, 255, 255, 0.04));
+}
+
 .enterprise-card,
 .business-type-card {
   padding: 1.5rem;
+}
+
+.interactive-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.interactive-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08), transparent 50%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.interactive-card:hover::after {
+  opacity: 1;
 }
 
 .enterprise-card h3,
 .business-type-card h2,
 .business-type-card h3 {
   margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.enterprise-card p,
+.business-type-card p,
+.business-type-card li {
+  color: var(--text-muted);
 }
 
 .business-card-eyebrow {
@@ -1465,6 +1511,33 @@ footer {
   justify-content: flex-start;
 }
 
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.35rem;
+}
+
+.mini-kpi {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 0.95rem 1rem;
+}
+
+.mini-kpi strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.mini-kpi span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .enterprise-flow-card {
   padding: 2rem;
 }
@@ -1492,6 +1565,18 @@ footer {
   margin-bottom: 1rem;
 }
 
+.business-type-plan {
+  display: inline-flex;
+  margin-top: 0.2rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.12);
+  border: 1px solid rgba(0, 122, 255, 0.25);
+  color: var(--primary) !important;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .business-type-block + .business-type-block {
   margin-top: 1.25rem;
 }
@@ -1512,6 +1597,11 @@ footer {
 }
 
 @media (max-width: 768px) {
+  .enterprise-hero-layout,
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
   .section-cta-row,
   .enterprise-inline-links {
     justify-content: flex-start;
