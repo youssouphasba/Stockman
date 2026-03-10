@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   ENTERPRISE_FEATURES_URL,
   LANDING_BUSINESS_TYPES_PATH,
@@ -14,30 +13,28 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
-  const { t } = useTranslation();
-
   return (
     <header className="hero reveal">
       <div className="container hero-container">
         <div className="hero-content">
           <div className="profile-selector">
-            <p className="profile-selector-label">Je suis...</p>
+            <p className="profile-selector-label">Choisissez votre parcours</p>
             <div className="profile-selector-options">
               <button
                 className={`profile-option${profile === 'merchant' ? ' active' : ''}`}
                 onClick={() => onProfileChange('merchant')}
               >
-                <span className="profile-icon">Boutique</span>
-                <strong>Commercant</strong>
-                <span>Je gere ma boutique depuis le telephone.</span>
+                <span className="profile-chip">Mobile</span>
+                <strong>Je gere une boutique</strong>
+                <span>Pour les commerces qui veulent aller vite au quotidien.</span>
               </button>
               <button
                 className={`profile-option${profile === 'enterprise' ? ' active' : ''}`}
                 onClick={() => onProfileChange('enterprise')}
               >
-                <span className="profile-icon">Enterprise</span>
-                <strong>Entreprise</strong>
-                <span>Je pilote plusieurs equipes, boutiques ou activites.</span>
+                <span className="profile-chip">Web + mobile</span>
+                <strong>Je pilote une entreprise</strong>
+                <span>Pour les equipes, les boutiques multiples et le pilotage avance.</span>
               </button>
             </div>
           </div>
@@ -45,30 +42,37 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
           <div key={profile}>
             {profile === 'merchant' ? (
               <>
-                <h1>{t('hero.title_start')} <span className="text-gradient">{t('hero.title_end')}</span></h1>
-                <p>{t('hero.subtitle')}</p>
+                <h1>
+                  Gerez votre boutique
+                  <br />
+                  <span className="text-gradient">plus simplement</span>
+                </h1>
+                <p>
+                  Stock, ventes, caisse et suivi quotidien dans une application mobile pensee
+                  pour les commerces qui veulent gagner du temps.
+                </p>
                 <div className="hero-btns">
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                    Demarrer sur mobile
+                    Telecharger l&apos;app
                   </a>
-                  <a href="#pricing" className="btn-secondary">{t('hero.see_pricing')}</a>
+                  <a href="#pricing" className="btn-secondary">Voir les plans</a>
                 </div>
                 <div className="enterprise-inline-links">
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile</a>
                   <span>•</span>
-                  <a href={LANDING_BUSINESS_TYPES_PATH}>Voir les business types</a>
+                  <a href={LANDING_BUSINESS_TYPES_PATH}>Secteurs couverts</a>
                 </div>
               </>
             ) : (
               <>
                 <h1>
-                  Le back-office web <span className="text-gradient">Enterprise</span>
+                  Donnez a votre entreprise
                   <br />
-                  pour piloter votre activite
+                  un <span className="text-gradient">vrai poste de pilotage</span>
                 </h1>
                 <p>
-                  Stockman combine application web Enterprise et mobile terrain pour la gestion
-                  multi-boutiques, l&apos;equipe, la comptabilite, le CRM et les analyses avancees.
+                  L&apos;app web Enterprise vous aide a suivre vos boutiques, vos equipes,
+                  votre stock, votre CRM et votre comptabilite pendant que le terrain reste sur mobile.
                 </p>
                 <div className="hero-btns">
                   <a href="/enterprise" className="btn-primary">Decouvrir Enterprise</a>
@@ -79,7 +83,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                 <div className="enterprise-inline-links">
                   <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer">Modules Enterprise</a>
                   <span>•</span>
-                  <a href={LANDING_BUSINESS_TYPES_PATH}>Business types</a>
+                  <a href={LANDING_BUSINESS_TYPES_PATH}>Secteurs couverts</a>
                 </div>
               </>
             )}

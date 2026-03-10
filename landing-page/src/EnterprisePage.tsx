@@ -72,7 +72,7 @@ export default function EnterprisePage() {
         <div className="container enterprise-hero-layout">
           <div className="hero-content enterprise-hero-copy">
             <div className="hero-badge-row">
-              <span className="badge-premium">Enterprise visible, accessible et actionnable</span>
+              <span className="badge-premium">Pour les entreprises structurees</span>
             </div>
             <h1>
               L&apos;application web <span className="text-gradient">Enterprise</span>
@@ -136,9 +136,9 @@ export default function EnterprisePage() {
 
       <section className="container enterprise-highlights reveal">
         <div className="section-title">
-          <h2>Pourquoi separer site public et app web ?</h2>
+          <h2>Ce que Enterprise vous apporte au quotidien</h2>
           <p className="text-muted">
-            La landing explique, oriente et convertit. L&apos;app web prouve le produit et sert l&apos;usage Enterprise.
+            Vos equipes travaillent vite sur mobile. Vous gardez une vision complete de l&apos;activite depuis le web.
           </p>
         </div>
         <div className="enterprise-grid">
@@ -153,17 +153,20 @@ export default function EnterprisePage() {
 
       <section className="container business-preview reveal">
         <div className="section-title">
-          <h2>Business types pris en charge</h2>
+          <h2>Une solution adaptee a votre activite</h2>
           <p className="text-muted">
-            La visibilite SEO ne doit pas reposer sur le mot "Stockman" seul. Elle doit aussi capter les requetes
-            metier par activite.
+            Que vous geriez un commerce, un restaurant ou une activite de production, Stockman s&apos;adapte a votre facon de travailler.
           </p>
         </div>
         <div className="enterprise-grid">
           {BUSINESS_TYPE_GROUPS.map((group) => (
             <article key={group.slug} className="glass-card enterprise-card interactive-card">
               <p className="business-card-eyebrow">{group.title}</p>
-              <h3>{group.seoTitle}</h3>
+              <h3>
+                {group.title === 'Commerce' && 'Supervisez vos boutiques avec plus de precision'}
+                {group.title === 'Restauration' && 'Coordonnez le terrain, la salle et le pilotage'}
+                {group.title === 'Production' && 'Gardez la main sur vos stocks et votre fabrication'}
+              </h3>
               <p>{group.overview}</p>
               <div className="tag-list">
                 {group.tags.map((tag) => (
@@ -184,25 +187,25 @@ export default function EnterprisePage() {
       <section className="container enterprise-funnel reveal">
         <div className="glass-card enterprise-flow-card">
           <div className="section-title">
-            <h2>Parcours recommande</h2>
-            <p className="text-muted">Un parcours lisible pour l&apos;utilisateur et bon pour le SEO.</p>
+            <h2>Comment demarrer avec Enterprise ?</h2>
+            <p className="text-muted">En quelques etapes, vous voyez le produit, puis vous creez votre espace.</p>
           </div>
           <div className="enterprise-flow">
             <div>
-              <strong>1. stockman.pro</strong>
-              <p>Le visiteur comprend le produit, le business type et le bon plan.</p>
+              <strong>1. Decouvrez la solution</strong>
+              <p>Consultez les cas d&apos;usage, les activites couvertes et le plan adapte a votre entreprise.</p>
             </div>
             <div>
-              <strong>2. /enterprise</strong>
-              <p>Il valide que le web sert la direction et que le mobile reste l&apos;outil terrain.</p>
+              <strong>2. Comprenez le mode Enterprise</strong>
+              <p>Voyez comment le web sert la direction pendant que les equipes utilisent le mobile sur le terrain.</p>
             </div>
             <div>
-              <strong>3. app.stockman.pro/features</strong>
-              <p>Il voit les modules concrets du back-office web.</p>
+              <strong>3. Explorez l&apos;app web</strong>
+              <p>Parcourez les modules concrets du back-office: stock, caisse, CRM, comptabilite et equipe.</p>
             </div>
             <div>
-              <strong>4. app.stockman.pro</strong>
-              <p>Il cree son compte Enterprise ou se connecte a l&apos;application.</p>
+              <strong>4. Creez votre espace</strong>
+              <p>Demarrez votre compte Enterprise ou connectez-vous directement a l&apos;application web.</p>
             </div>
           </div>
         </div>

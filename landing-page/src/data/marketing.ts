@@ -70,24 +70,24 @@ export const BUSINESS_TYPE_GROUPS: BusinessTypeGroup[] = [
 
 export const ENTERPRISE_HIGHLIGHTS = [
   {
-    title: "Back-office web complet",
+    title: "Pilotez votre activite au meme endroit",
     description:
-      "Dashboard, POS, CRM, comptabilite, stock, alertes et equipe dans une interface pensee pour les entreprises.",
+      "Retrouvez ventes, stock, CRM, comptabilite, alertes et equipe dans une interface web claire et centralisee.",
   },
   {
-    title: "Multi-boutiques reel",
+    title: "Gardez le controle sur chaque boutique",
     description:
-      "Comparez vos points de vente, transferez du stock et donnez a chaque employe les bons acces par boutique.",
+      "Comparez vos points de vente, transferez du stock et donnez a chaque employe les bons acces selon sa boutique.",
   },
   {
-    title: "Mobile terrain relie au web",
+    title: "Vos equipes restent rapides sur le terrain",
     description:
-      "Les equipes travaillent sur mobile pendant que la direction pilote l'activite et les analyses depuis le web.",
+      "Les equipes encaissent et travaillent sur mobile pendant que vous suivez l'activite et les analyses depuis le web.",
   },
   {
-    title: "Business types pris en charge",
+    title: "Une solution adaptee a votre metier",
     description:
-      "Commerce, restauration et production legere avec un parcours et des modules adaptes a chaque activite.",
+      "Commerce, restauration et production legere avec des modules et un parcours adaptes a chaque activite.",
   },
 ];
 

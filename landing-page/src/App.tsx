@@ -126,9 +126,9 @@ function Landing() {
 
       <section className="container business-preview reveal">
         <div className="section-title">
-          <h2>Des parcours clairs selon votre business type</h2>
+          <h2>Choisissez l&apos;experience qui correspond a votre activite</h2>
           <p className="text-muted">
-            La landing oriente vers le bon usage: mobile pour Starter/Pro, web + mobile pour Enterprise.
+            Commerce, restauration ou production legere: decouvrez le bon parcours et les bons outils selon votre facon de travailler.
           </p>
         </div>
         <div className="enterprise-grid">
@@ -136,7 +136,11 @@ function Landing() {
             <Link key={group.slug} to="/business-types" style={{ textDecoration: 'none' }}>
               <article className="glass-card enterprise-card business-preview-card">
                 <p className="business-card-eyebrow">{group.title}</p>
-                <h3>{group.seoTitle}</h3>
+                <h3>
+                  {group.title === 'Commerce' && 'Pour vos boutiques et points de vente'}
+                  {group.title === 'Restauration' && 'Pour votre service et votre cuisine'}
+                  {group.title === 'Production' && 'Pour votre atelier et votre fabrication'}
+                </h3>
                 <p>{group.overview}</p>
                 <div className="tag-list">
                   {group.tags.slice(0, 4).map((tag) => (
@@ -182,29 +186,29 @@ function Landing() {
 
       <section className="how-it-works container reveal reveal-right">
         <div className="section-title">
-          <h2>{t('how_it_works.title')}</h2>
-          <p className="text-muted">{t('how_it_works.subtitle')}</p>
+          <h2>Commencez simplement</h2>
+          <p className="text-muted">Créez votre compte, ajoutez vos produits et commencez à vendre rapidement.</p>
         </div>
         <div className="steps-grid">
           <div className="step-card glass-card">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>{t('how_it_works.step1.title')}</h3>
-              <p>{t('how_it_works.step1.desc')}</p>
+              <h3>Créez votre compte</h3>
+              <p>Installez l&apos;application et configurez votre boutique en quelques minutes.</p>
             </div>
           </div>
           <div className="step-card glass-card">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h3>{t('how_it_works.step2.title')}</h3>
-              <p>{t('how_it_works.step2.desc')}</p>
+              <h3>Ajoutez vos produits</h3>
+              <p>Importez votre stock ou scannez vos articles pour être prêt à vendre rapidement.</p>
             </div>
           </div>
           <div className="step-card glass-card">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h3>{t('how_it_works.step3.title')}</h3>
-              <p>{t('how_it_works.step3.desc')}</p>
+              <h3>Vendez et suivez</h3>
+              <p>Encaissez vos premières ventes et gardez une vue claire sur votre activité.</p>
             </div>
           </div>
         </div>
@@ -233,10 +237,10 @@ function Landing() {
 
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
-          <h2>{profile === 'enterprise' ? 'Enterprise : web + mobile terrain' : t('pricing.title')}</h2>
+          <h2>{profile === 'enterprise' ? 'Enterprise pour piloter, mobile pour executer' : t('pricing.title')}</h2>
           <p className="text-muted">
             {profile === 'enterprise'
-              ? 'Le site explique le plan. L app web montre les modules. Le mobile reste l outil terrain des equipes.'
+              ? 'Enterprise ajoute un back-office web complet, tout en gardant l application mobile pour les equipes sur le terrain.'
               : t('pricing.subtitle')}
           </p>
           <div className="pricing-currency-switcher">
@@ -369,10 +373,10 @@ function Landing() {
         </div>
 
         <div className="download-banner reveal">
-          <h2>Choisissez votre porte d&apos;entree</h2>
+          <h2>Demarrez par le bon point d&apos;entree</h2>
           <p>
-            Starter et Pro commencent sur mobile. Enterprise ajoute le site web pour la gestion avancee, les equipes
-            et les analyses.
+            Commencez sur mobile pour gerer votre boutique au quotidien, ou passez par Enterprise si vous avez besoin
+            d&apos;un poste de pilotage web pour votre organisation.
           </p>
           <div className="download-buttons">
             <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="store-btn">

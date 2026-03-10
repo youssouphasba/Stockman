@@ -361,9 +361,17 @@
   background: rgba(0, 122, 255, 0.1);
 }
 
-.profile-icon {
-  font-size: 1.3rem;
-  margin-bottom: 0.2rem;
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
 }
 
 .profile-option strong {

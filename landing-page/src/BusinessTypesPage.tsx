@@ -45,11 +45,10 @@ export default function BusinessTypesPage() {
 
       <section className="container page-hero reveal">
         <div className="section-title">
-          <span className="badge-premium">Business types & parcours metier</span>
+          <span className="badge-premium">Choisissez votre activite</span>
           <h1>Des parcours adaptes a chaque type de business</h1>
           <p className="text-muted">
-            Stockman ne doit pas se presenter comme un produit generique. Pour etre compris et bien reference,
-            il faut relier chaque besoin a un secteur et a un parcours clair.
+            Retrouvez en un coup d&apos;oeil les activites couvertes, les cas d&apos;usage et le parcours recommande selon votre metier.
           </p>
         </div>
       </section>
@@ -89,14 +88,13 @@ export default function BusinessTypesPage() {
       <section className="container reveal">
         <div className="glass-card enterprise-flow-card">
           <div className="section-title">
-            <h2>Quel chemin pour quel besoin ?</h2>
+            <h2>Choisissez le parcours qui vous correspond</h2>
           </div>
           <div className="enterprise-grid">
             <article className="enterprise-card interactive-card">
               <h3>Starter / Pro</h3>
               <p>
-                Le commercant demarre sur mobile. Il telecharge l&apos;app, cree son compte, puis passe a Pro
-                lorsqu&apos;il ajoute des boutiques, du staff ou des besoins d&apos;equipe.
+                Vous gerez votre boutique depuis votre telephone avec un demarrage simple, rapide et centre sur l&apos;operationnel.
               </p>
               <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
                 Ouvrir l&apos;app mobile
@@ -106,8 +104,7 @@ export default function BusinessTypesPage() {
             <article className="enterprise-card interactive-card">
               <h3>Enterprise</h3>
               <p>
-                L&apos;entreprise passe par la landing pour comprendre le modele, puis par l&apos;app web pour voir
-                les modules detaillees et creer son compte.
+                Vous avez besoin de pilotage avance, de plusieurs boutiques ou d&apos;une equipe: Enterprise ajoute le web a votre organisation.
               </p>
               <div className="section-cta-row section-cta-row--left">
                 <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
