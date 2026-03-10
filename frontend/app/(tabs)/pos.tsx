@@ -141,6 +141,7 @@ export default function POSScreen() {
     const [selectedTerminal, setSelectedTerminal] = useState<string | null>(null);
     const [showTerminalModal, setShowTerminalModal] = useState(false);
     const terminalSelectedRef = useRef(false);
+    const previousStoreIdRef = useRef<string | undefined>(undefined);
 
     // Restaurant mode
     const [restaurantMode, setRestaurantMode] = useState(false);
@@ -233,7 +234,35 @@ export default function POSScreen() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user?.active_store_id, user?.plan]);
+
+    useEffect(() => {
+        const nextStoreId = user?.active_store_id;
+        if (!nextStoreId) return;
+
+        const storeChanged = !!previousStoreIdRef.current && previousStoreIdRef.current !== nextStoreId;
+        previousStoreIdRef.current = nextStoreId;
+
+        if (storeChanged) {
+            // Reset POS state so one boutique cannot keep the draft/cart context of another.
+            setSessions([{ id: '1', cart: [], selectedCustomer: null, name: 'Client 1' }]);
+            setActiveSessionId('1');
+            setBasketSuggestions([]);
+            setCurrentStore(null);
+            setSelectedTable(null);
+            setOpenOrderId(null);
+            setLoadingTableOrder(false);
+            setCovers(1);
+            setTipPercent(0);
+            setServiceChargePercent(0);
+            setOrderNotes('');
+            setSelectedTerminal(null);
+            setShowTerminalModal(false);
+            terminalSelectedRef.current = false;
+        }
+
+        loadData();
+    }, [loadData, user?.active_store_id]);
 
     useFocusEffect(
         useCallback(() => {

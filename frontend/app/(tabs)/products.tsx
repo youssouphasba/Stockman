@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -184,6 +184,7 @@ export default function ProductsScreen() {
   const [showTextImportModal, setShowTextImportModal] = useState(false);
   const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
+  const previousStoreIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (formSku.length >= 8 && !editingProduct && isConnected) {
@@ -296,6 +297,33 @@ export default function ProductsScreen() {
       setRefreshing(false);
     }
   }, [isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
+
+  useEffect(() => {
+    const nextStoreId = user?.active_store_id;
+    if (!nextStoreId) return;
+
+    const storeChanged = !!previousStoreIdRef.current && previousStoreIdRef.current !== nextStoreId;
+    previousStoreIdRef.current = nextStoreId;
+
+    if (storeChanged) {
+      setAccessDenied(false);
+      setSelectedProduct(null);
+      setShowHistoryModal(false);
+      setSelectedProductIds(new Set());
+      setCurrentStore(null);
+      setProductList([]);
+      setForecastData(null);
+
+      // Category ids are store-scoped; reset them before reloading the new store.
+      if (selectedCategory !== null) {
+        setSelectedCategory(null);
+        return;
+      }
+    }
+
+    setLoading(true);
+    loadData();
+  }, [loadData, selectedCategory, user?.active_store_id]);
 
   // Load user sector for catalog import
   useEffect(() => {

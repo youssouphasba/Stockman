@@ -1,44 +1,90 @@
-const CACHE_NAME = 'stockman-cache-v1';
+const CACHE_NAME = 'stockman-cache-v3';
 const ASSETS_TO_CACHE = [
-    '/',
     '/manifest.json',
-    // Removed index.html and icon.png as they don't exist in public/
 ];
+
+async function networkFirst(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (error) {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        throw error;
+    }
+}
+
+async function staleWhileRevalidate(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+    const networkPromise = fetch(request)
+        .then((response) => {
+            if (response && response.ok) {
+                cache.put(request, response.clone());
+            }
+            return response;
+        })
+        .catch(() => cached);
+
+    return cached || networkPromise;
+}
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE);
-        })
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
     );
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
+        Promise.all([
+            caches.keys().then((cacheNames) => Promise.all(
                 cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-            );
-        })
+            )),
+            self.clients.claim(),
+        ])
     );
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
 self.addEventListener('fetch', (event) => {
-    // Only handle GET requests
     if (event.request.method !== 'GET') return;
 
-    // Avoid caching API calls with a simple strategy for now (Network First)
-    if (event.request.url.includes('/api/')) {
-        event.respondWith(
-            fetch(event.request).catch(() => caches.match(event.request))
-        );
+    const url = new URL(event.request.url);
+
+    if (url.origin !== self.location.origin) {
         return;
     }
 
-    // Cache First strategy for static assets
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
-    );
+    if (event.request.mode === 'navigate') {
+        event.respondWith(networkFirst(event.request));
+        return;
+    }
+
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(networkFirst(event.request));
+        return;
+    }
+
+    if (url.pathname.startsWith('/locales/')) {
+        event.respondWith(networkFirst(event.request));
+        return;
+    }
+
+    if (url.pathname.startsWith('/_next/static/') || /\.(?:css|js|png|jpg|jpeg|svg|ico|woff2?)$/i.test(url.pathname)) {
+        event.respondWith(staleWhileRevalidate(event.request));
+        return;
+    }
+
+    event.respondWith(networkFirst(event.request));
 });

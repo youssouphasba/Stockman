@@ -37,6 +37,7 @@ import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
 import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
+import { BUSINESS_TYPE_GROUPS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -345,7 +346,29 @@ export default function Home() {
               Le plan <strong className="text-white">Enterprise</strong> débloque l'application web complète de Stockman —
               12 modules puissants pour piloter votre commerce ou votre restaurant depuis n'importe quel ordinateur, tablette ou écran.
             </p>
+            <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left mb-8">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">Starter et Pro restent sur mobile</p>
+              <p className="text-sm text-slate-300 leading-6">
+                Continuez a gerer vos boutiques depuis l'application mobile. Passez a Enterprise lorsque vous avez besoin du back-office web, des analyses avancees et du pilotage multi-boutiques.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                {BUSINESS_TYPE_GROUPS.map((group) => (
+                  <div key={group.title} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <p className="text-xs font-black text-white mb-1">{group.title}</p>
+                    <p className="text-[11px] text-slate-500 leading-5">{group.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a
+                href={MOBILE_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-sm"
+              >
+                <Package size={16} /> Ouvrir l'app mobile
+              </a>
               <a
                 href="/pricing"
                 target="_blank"
@@ -429,7 +452,7 @@ export default function Home() {
                 </div>
               </div>
               {/* Rows */}
-              {COMPARE.map((row, i) => (
+              {PLAN_COMPARISON_ROWS.map((row, i) => (
                 <div key={row.feature} className={`grid grid-cols-4 border-b border-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
                   <div className="p-3.5 text-xs text-slate-300 flex items-center">{row.feature}</div>
                   <div className="p-3.5 flex items-center justify-center">{renderCell(row.starter)}</div>
@@ -590,11 +613,25 @@ export default function Home() {
 
             <div className="flex flex-col gap-4">
               <h2 className="text-4xl font-extrabold text-white leading-tight">
-                Votre activite, <br />
+                Stockman pour le terrain, <br />
                 <span className="text-secondary">maîtrisé et optimisé.</span>
               </h2>
               <p className="text-xl text-muted leading-relaxed max-w-lg">
-                La puissance de la gestion, du stock et du service, maintenant disponible sur grand ecran pour un pilotage complet.
+                Starter et Pro se gerent sur mobile. Enterprise ajoute le back-office web pour les commerces, restaurants, boulangeries, grossistes et activites de production.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">Business types pris en charge</p>
+              <div className="flex flex-wrap gap-2">
+                {BUSINESS_TYPE_GROUPS.flatMap((group) => group.tags).map((tag) => (
+                  <span key={tag} className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-slate-300">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-slate-400 leading-6 mt-4">
+                L'application mobile couvre le terrain au quotidien. Le web sert au back-office Enterprise, aux analyses avancees et a la gestion multi-boutiques.
               </p>
             </div>
 
@@ -686,12 +723,17 @@ export default function Home() {
                 )}
               </button>
               <div className="text-center">
-                <span className="text-sm text-muted">{t('auth.login.noAccount')}{' '}
+                <span className="text-sm text-muted">Besoin d&apos;un compte web Enterprise ?{' '}
                   <button
                     onClick={() => setShowSignup(true)}
                     className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
-                  >{t('auth.login.signUp')}</button>
+                  >Creer mon compte Enterprise</button>
                 </span>
+                <div className="mt-3 flex items-center justify-center gap-3 text-xs">
+                  <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">Comparer les plans</a>
+                  <span className="text-white/10">|</span>
+                  <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">Ouvrir l'app mobile</a>
+                </div>
               </div>
             </div>
           </div>
