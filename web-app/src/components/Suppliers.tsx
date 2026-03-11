@@ -35,9 +35,11 @@ import {
 } from 'lucide-react';
 import { generateOrderPDF } from '../utils/OrderPDFGenerator';
 import Modal from './Modal';
+import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import {
     marketplace as marketplaceApi,
     suppliers as suppliersApi,
+    supplierProducts as supplierProductsApi,
     supplier_orders as ordersApi,
     replenishment as replenishmentApi,
     products as productsApi
@@ -61,6 +63,8 @@ export default function Suppliers() {
     const [supplierStats, setSupplierStats] = useState<any | null>(null);
     const [supplierInvoices, setSupplierInvoices] = useState<any[]>([]);
     const [supplierLogs, setSupplierLogs] = useState<any[]>([]);
+    const [linkedProducts, setLinkedProducts] = useState<any[]>([]);
+    const [supplierOrderHistory, setSupplierOrderHistory] = useState<any[]>([]);
     const [marketplaceSupplierDetail, setMarketplaceSupplierDetail] = useState<any | null>(null);
     const [supplierDetailLoading, setSupplierDetailLoading] = useState(false);
     const [showLogModal, setShowLogModal] = useState(false);
@@ -96,10 +100,15 @@ export default function Suppliers() {
     });
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [showOrderDetails, setShowOrderDetails] = useState(false);
+    const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+    const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
     const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
     const [showSupplierDetails, setShowSupplierDetails] = useState(false);
     const [supplierTab, setSupplierTab] = useState<'perf' | 'logs' | 'invoices'>('perf');
     const [partialItems, setPartialItems] = useState<any[]>([]);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkPrice, setLinkPrice] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [contextMenuSupplierId, setContextMenuSupplierId] = useState<string | null>(null);
     const [regionFilter, setRegionFilter] = useState('');
     const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
@@ -266,15 +275,21 @@ export default function Suppliers() {
         setSupplierStats(null);
         setSupplierInvoices([]);
         setSupplierLogs([]);
+        setLinkedProducts([]);
+        setSupplierOrderHistory([]);
         setMarketplaceSupplierDetail(null);
         try {
             if (kind === 'manual') {
-                const [stats, invoices, logs] = await Promise.all([
+                const [products, stats, ordersHistory, invoices, logs] = await Promise.all([
+                    suppliersApi.getProducts(normalizedSupplier.supplier_id),
                     suppliersApi.getStats(normalizedSupplier.supplier_id),
+                    ordersApi.list(undefined, normalizedSupplier.supplier_id).then((response) => response.items || response || []),
                     suppliersApi.getInvoices(normalizedSupplier.supplier_id),
                     suppliersApi.getLogs(normalizedSupplier.supplier_id),
                 ]);
+                setLinkedProducts(Array.isArray(products) ? products : []);
                 setSupplierStats(stats);
+                setSupplierOrderHistory(Array.isArray(ordersHistory) ? ordersHistory : []);
                 setSupplierInvoices(Array.isArray(invoices) ? invoices : []);
                 setSupplierLogs(Array.isArray(logs) ? logs : []);
             } else if (normalizedSupplier.supplier_user_id) {
@@ -285,6 +300,21 @@ export default function Suppliers() {
             console.error("Supplier detail error", err);
         } finally {
             setSupplierDetailLoading(false);
+        }
+    };
+
+    const openOrderDetails = async (orderId: string) => {
+        setShowOrderDetails(true);
+        setSelectedOrder(null);
+        setOrderDetailLoading(true);
+        try {
+            const detail = await ordersApi.get(orderId);
+            setSelectedOrder(detail);
+        } catch (err) {
+            console.error("Order detail error", err);
+            setShowOrderDetails(false);
+        } finally {
+            setOrderDetailLoading(false);
         }
     };
 
@@ -388,6 +418,58 @@ export default function Suppliers() {
             console.error("Error receiving partial", err);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const openLinkProduct = async () => {
+        if (!selectedSupplier?.supplier_id) return;
+        setShowLinkModal(true);
+        setSelectedProductId(null);
+        setLinkPrice('');
+        try {
+            const res = await productsApi.list(undefined, 0, 500);
+            const products = res.items || res || [];
+            const linkedIds = linkedProducts.map((link) => link.product_id);
+            setAllProducts(products.filter((product: any) => !linkedIds.includes(product.product_id)));
+        } catch (err) {
+            console.error("Link product load error", err);
+            setAllProducts([]);
+        }
+    };
+
+    const handleLinkProduct = async () => {
+        if (!selectedSupplier?.supplier_id || !selectedProductId) return;
+        setSubmitting(true);
+        try {
+            await supplierProductsApi.link({
+                supplier_id: selectedSupplier.supplier_id,
+                product_id: selectedProductId,
+                supplier_price: Number(linkPrice) || 0,
+            });
+            const refreshedProducts = await suppliersApi.getProducts(selectedSupplier.supplier_id);
+            setLinkedProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
+            setShowLinkModal(false);
+            setSelectedProductId(null);
+            setLinkPrice('');
+            setSuccess("Produit lie au fournisseur.");
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error("Link supplier product error", err);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleUnlinkProduct = async (linkId: string) => {
+        if (!selectedSupplier?.supplier_id) return;
+        try {
+            await supplierProductsApi.unlink(linkId);
+            const refreshedProducts = await suppliersApi.getProducts(selectedSupplier.supplier_id);
+            setLinkedProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
+            setSuccess("Produit delie du fournisseur.");
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error("Unlink supplier product error", err);
         }
     };
 
@@ -630,7 +712,7 @@ export default function Suppliers() {
                                         {orders.map((o) => (
                                             <tr
                                                 key={o.order_id}
-                                                onClick={() => { setSelectedOrder(o); setShowOrderDetails(true); }}
+                                                onClick={() => openOrderDetails(o.order_id)}
                                                 className="hover:bg-white/5 transition-colors group cursor-pointer"
                                             >
                                                 <td className="px-6 py-4">
@@ -1122,23 +1204,26 @@ export default function Suppliers() {
             )}
 
             {/* Modal: Order Details */}
-            {selectedOrder && showOrderDetails && (
+            {showOrderDetails && (
                 <div className="fixed inset-0 z-50 flex items-center justify-end p-0 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-[#0F172A] border-l border-white/10 h-full w-full max-w-2xl shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
                         <div className="p-8 border-b border-white/10 flex justify-between items-center">
                             <div>
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    Bon de Commande #{selectedOrder.order_id.substring(0, 8)}
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(selectedOrder.status)}`}>
-                                        {selectedOrder.status.replace('_', ' ').toUpperCase()}
-                                    </span>
+                                    {selectedOrder ? `Bon de Commande #${selectedOrder.order_id.substring(0, 8)}` : 'Chargement du bon'}
+                                    {selectedOrder && (
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(selectedOrder.status)}`}>
+                                            {selectedOrder.status.replace('_', ' ').toUpperCase()}
+                                        </span>
+                                    )}
                                 </h2>
-                                <p className="text-slate-500 mt-1">Fournisseur : <span className="text-white">{selectedOrder.supplier_name}</span></p>
+                                <p className="text-slate-500 mt-1">Fournisseur : <span className="text-white">{selectedOrder?.supplier_name || '...'}</span></p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => generateOrderPDF(selectedOrder)}
-                                    className="p-2 text-primary hover:text-white bg-primary/10 rounded-xl transition-all"
+                                    onClick={() => selectedOrder && generateOrderPDF(selectedOrder)}
+                                    disabled={!selectedOrder}
+                                    className="p-2 text-primary hover:text-white bg-primary/10 rounded-xl transition-all disabled:opacity-40"
                                     title="Télécharger PDF"
                                 >
                                     <FileText size={20} />
@@ -1150,6 +1235,12 @@ export default function Suppliers() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+                            {orderDetailLoading || !selectedOrder ? (
+                                <div className="flex items-center justify-center py-24">
+                                    <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                </div>
+                            ) : (
+                                <>
                             {/* Actions based on status */}
                             <div className="flex gap-3">
                                 {selectedOrder.status === 'pending' && (
@@ -1170,7 +1261,7 @@ export default function Suppliers() {
                                 )}
                                 {(['shipped', 'partially_delivered'].includes(selectedOrder.status)) && (
                                     <button
-                                        onClick={() => handleUpdateOrderStatus(selectedOrder.order_id, 'delivered')}
+                                        onClick={() => selectedOrder.is_connected ? setDeliveryOrderId(selectedOrder.order_id) : handleUpdateOrderStatus(selectedOrder.order_id, 'delivered')}
                                         className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                                     >
                                         <PackageIcon size={20} /> Réception Finale (Total)
@@ -1203,14 +1294,17 @@ export default function Suppliers() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {selectedOrder.items?.map((item: any, idx: number) => (
-                                                <tr key={idx}>
-                                                    <td className="px-4 py-3 font-bold text-white">{item.product_name}</td>
-                                                    <td className="px-4 py-3 text-center text-slate-400">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-center text-emerald-400 font-bold">{item.received_quantity || 0}</td>
-                                                    <td className="px-4 py-3 text-right text-white ">{Number(item.unit_price || 0).toLocaleString()} F</td>
-                                                </tr>
-                                            ))}
+                                            {selectedOrder.items?.map((item: any, idx: number) => {
+                                                const receivedQuantity = selectedOrder.received_items?.[item.item_id] ?? item.received_quantity ?? 0;
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td className="px-4 py-3 font-bold text-white">{item.product_name}</td>
+                                                        <td className="px-4 py-3 text-center text-slate-400">{item.quantity}</td>
+                                                        <td className="px-4 py-3 text-center text-emerald-400 font-bold">{receivedQuantity}</td>
+                                                        <td className="px-4 py-3 text-right text-white ">{Number(item.unit_price || 0).toLocaleString()} F</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1230,7 +1324,8 @@ export default function Suppliers() {
 
                                     <div className="space-y-3">
                                         {selectedOrder.items?.map((item: any, idx: number) => {
-                                            const remaining = item.quantity - (item.received_quantity || 0);
+                                            const receivedQuantity = selectedOrder.received_items?.[item.item_id] ?? item.received_quantity ?? 0;
+                                            const remaining = item.quantity - receivedQuantity;
                                             if (remaining <= 0) return null;
                                             return (
                                                 <div key={idx} className="flex items-center justify-between gap-4 bg-white/5 p-3 rounded-lg">
@@ -1289,6 +1384,8 @@ export default function Suppliers() {
                                     )}
                                 </div>
                             </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1365,6 +1462,103 @@ export default function Suppliers() {
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats?.pending_orders || 0}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseigné'}</span></div>
+                                </div>
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Produits lies</p>
+                                            <p className="text-sm text-slate-400 mt-1">Reliez votre catalogue a ce fournisseur pour commander plus vite et benchmarker les prix.</p>
+                                        </div>
+                                        <button
+                                            onClick={openLinkProduct}
+                                            className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                        >
+                                            <Plus size={14} className="inline mr-1" /> Lier un produit
+                                        </button>
+                                    </div>
+                                    {linkedProducts.length === 0 ? (
+                                        <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                            <PackageIcon size={32} className="mx-auto text-slate-700 mb-3" />
+                                            <p className="text-sm text-slate-500 font-bold uppercase">Aucun produit lie</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                                            {linkedProducts.map((link: any) => (
+                                                <div key={link.link_id} className="bg-slate-950/30 border border-white/5 p-4 rounded-2xl space-y-3">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{link.product?.name || 'Produit'}</p>
+                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                Stock: {link.product?.quantity ?? 0} {link.product?.unit || 'unite'}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-primary">{formatCurrency(link.supplier_price || 0)}</p>
+                                                            <p className="text-[10px] text-slate-500 uppercase">Prix fournisseur</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => openBenchmarkForProduct(link.product)}
+                                                            className="flex-1 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all"
+                                                        >
+                                                            Benchmark
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUnlinkProduct(link.link_id)}
+                                                            className="flex-1 py-2 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition-all"
+                                                        >
+                                                            Delier
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Historique commandes</p>
+                                            <p className="text-sm text-slate-400 mt-1">Ouvrez les derniers bons de commande depuis la fiche fournisseur.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setActiveTab('orders')}
+                                            className="px-4 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all"
+                                        >
+                                            Voir tout
+                                        </button>
+                                    </div>
+                                    {supplierOrderHistory.length === 0 ? (
+                                        <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                            <ClipboardList size={32} className="mx-auto text-slate-700 mb-3" />
+                                            <p className="text-sm text-slate-500 font-bold uppercase">Aucune commande pour ce fournisseur</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {supplierOrderHistory.slice(0, 5).map((order: any) => (
+                                                <button
+                                                    key={order.order_id}
+                                                    onClick={() => openOrderDetails(order.order_id)}
+                                                    className="w-full text-left bg-slate-950/30 border border-white/5 p-4 rounded-2xl hover:bg-white/5 transition-all"
+                                                >
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">#{order.order_id.substring(0, 8)}</p>
+                                                            <p className="text-xs text-slate-500 mt-1">{new Date(order.created_at).toLocaleDateString()}</p>
+                                                        </div>
+                                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(order.status)}`}>
+                                                            {order.status.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-3 flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400">{order.items_count || order.items?.length || 0} articles</span>
+                                                        <span className="text-white font-bold">{formatCurrency(order.total_amount || 0)}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : supplierTab === 'logs' && selectedSupplier.kind === 'marketplace' ? (
@@ -1640,6 +1834,66 @@ export default function Suppliers() {
                     </div>
                 </form>
             </Modal>
+            <Modal
+                isOpen={showLinkModal}
+                onClose={() => !submitting && setShowLinkModal(false)}
+                title="Lier un produit au fournisseur"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">Produit interne</label>
+                        <select
+                            value={selectedProductId || ''}
+                            onChange={(e) => setSelectedProductId(e.target.value || null)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                        >
+                            <option value="" className="bg-slate-800">Choisir un produit</option>
+                            {allProducts.map((product: any) => (
+                                <option key={product.product_id} value={product.product_id} className="bg-slate-800">
+                                    {product.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">Prix fournisseur</label>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={linkPrice}
+                            onChange={(e) => setLinkPrice(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
+                            placeholder="0"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setShowLinkModal(false)} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
+                            Annuler
+                        </button>
+                        <button type="button" onClick={handleLinkProduct} disabled={submitting || !selectedProductId} className="flex-1 btn-primary py-3 font-bold disabled:opacity-50">
+                            {submitting ? '...' : 'Lier le produit'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+            <DeliveryConfirmationModal
+                isOpen={Boolean(deliveryOrderId)}
+                orderId={deliveryOrderId}
+                onClose={() => setDeliveryOrderId(null)}
+                onConfirmed={async () => {
+                    if (deliveryOrderId) {
+                        try {
+                            const updated = await ordersApi.get(deliveryOrderId);
+                            setSelectedOrder(updated);
+                        } catch (err) {
+                            console.error('Delivery detail refresh error', err);
+                        }
+                    }
+                    setDeliveryOrderId(null);
+                    loadData();
+                }}
+            />
             <Modal
                 isOpen={showBenchmarkModal}
                 onClose={() => setShowBenchmarkModal(false)}

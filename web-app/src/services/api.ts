@@ -534,6 +534,25 @@ export type SupplierStats = {
     delivered_count: number;
 };
 
+export type SupplierProduct = {
+    link_id: string;
+    supplier_id: string;
+    product_id: string;
+    supplier_price: number;
+    user_id?: string;
+    created_at?: string;
+};
+
+export type SupplierProductCreate = {
+    supplier_id: string;
+    product_id: string;
+    supplier_price: number;
+};
+
+export type SupplierProductLink = SupplierProduct & {
+    product: any;
+};
+
 export type SupplierProfileData = {
     profile_id: string;
     user_id: string;
@@ -602,6 +621,64 @@ export type MarketplaceCatalogProduct = CatalogProductData & {
     supplier_name: string;
     supplier_city: string;
     supplier_rating: number;
+};
+
+export type Order = {
+    order_id: string;
+    user_id: string;
+    supplier_id: string;
+    supplier_user_id?: string;
+    is_connected: boolean;
+    status: string;
+    total_amount: number;
+    notes?: string;
+    expected_delivery?: string;
+    received_items?: Record<string, number>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type OrderWithDetails = Order & {
+    supplier_name: string;
+    items_count: number;
+    items_preview?: string[];
+};
+
+export type OrderItem = {
+    item_id: string;
+    order_id: string;
+    product_id: string;
+    product_name?: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    product?: any;
+    mapped_product_id?: string;
+};
+
+export type OrderFull = Order & {
+    supplier: any;
+    items: OrderItem[];
+};
+
+export type MatchSuggestion = {
+    catalog_id: string;
+    catalog_name: string;
+    catalog_category: string;
+    catalog_subcategory: string;
+    quantity: number;
+    unit_price: number;
+    matched_product_id: string | null;
+    matched_product_name: string | null;
+    confidence: number;
+    reason: string;
+    source: 'mapping' | 'gemini' | 'error' | 'none' | 'empty_inventory';
+};
+
+export type DeliveryMappingItem = {
+    catalog_id: string;
+    product_id?: string;
+    create_new?: boolean;
 };
 
 export type AnalyticsFilterOption = {
@@ -1419,6 +1496,7 @@ export const suppliers = {
     create: (data: any) => request<any>('/suppliers', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/suppliers/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/suppliers/${id}`, { method: 'DELETE' }),
+    getProducts: (id: string) => request<SupplierProductLink[]>(`/suppliers/${id}/products`),
     getStats: (id: string) => request<SupplierStats>(`/suppliers/${id}/stats`),
     getInvoices: (id: string) => request<SupplierInvoice[]>(`/suppliers/${id}/invoices`),
     createInvoice: (id: string, data: Partial<SupplierInvoice>) =>
@@ -1428,9 +1506,25 @@ export const suppliers = {
         request<SupplierCommunicationLog>(`/suppliers/${id}/logs`, { method: 'POST', body: data }),
 };
 
+export const supplierProducts = {
+    link: (data: SupplierProductCreate) =>
+        request<SupplierProduct>('/supplier-products', { method: 'POST', body: data }),
+    unlink: (linkId: string) =>
+        request<{ message: string }>(`/supplier-products/${linkId}`, { method: 'DELETE' }),
+};
+
 export const supplier_orders = {
-    list: (skip = 0, limit = 50) => request<any>(`/orders?skip=${skip}&limit=${limit}`),
-    get: (id: string) => request<any>(`/orders/${id}`),
+    list: (status?: string, supplierId?: string, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+        const qs = new URLSearchParams();
+        if (status) qs.set('status', status);
+        if (supplierId) qs.set('supplier_id', supplierId);
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        qs.set('skip', skip.toString());
+        qs.set('limit', limit.toString());
+        return request<any>(`/orders?${qs.toString()}`);
+    },
+    get: (id: string) => request<OrderFull>(`/orders/${id}`),
     create: (data: { supplier_id: string; supplier_user_id?: string; items: any[]; notes?: string; expected_delivery?: string }) =>
         request<any>('/orders', {
             method: 'POST',
@@ -1447,6 +1541,13 @@ export const supplier_orders = {
             body: { items, notes },
             headers: { 'X-Idempotency-Key': generateIdempotencyKey() }
         }),
+    getFilterSuppliers: () => request<any[]>('/orders/filter-suppliers'),
+    suggestMatches: (orderId: string) =>
+        request<{ suggestions: MatchSuggestion[] }>(`/orders/${orderId}/suggest-matches`, { method: 'POST' }),
+    confirmDelivery: (orderId: string, mappings: DeliveryMappingItem[]) =>
+        request<{ message: string; results: any[] }>(`/orders/${orderId}/confirm-delivery`, { method: 'POST', body: { mappings } }),
+    mapProduct: (catalogId: string, productId: string) =>
+        request<{ message: string }>('/orders/map-product', { method: 'POST', body: { catalog_id: catalogId, product_id: productId } }),
 };
 
 export const replenishment = {

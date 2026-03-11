@@ -726,13 +726,13 @@ export default function OrdersScreen() {
 
             {/* Status filter */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              {['all', 'pending', 'confirmed', 'shipping', 'received', 'cancelled'].map((f) => (
+              {['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'].map((f) => (
                 <TouchableOpacity
                   key={f}
-                  style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
-                  onPress={() => setStatusFilter(f as any)}
+                  style={[styles.filterChip, (f === 'all' ? statusFilter === null : statusFilter === f) && styles.filterChipActive]}
+                  onPress={() => setStatusFilter(f === 'all' ? null : (f as any))}
                 >
-                  <Text style={[styles.filterText, statusFilter === f && styles.filterTextActive]}>
+                  <Text style={[styles.filterText, (f === 'all' ? statusFilter === null : statusFilter === f) && styles.filterTextActive]}>
                     {t(`orders.${f}`)}
                   </Text>
                 </TouchableOpacity>
