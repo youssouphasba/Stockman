@@ -29,6 +29,7 @@ import ProductionView from "../components/ProductionView";
 import TableManagement from "../components/TableManagement";
 import Reservations from "../components/Reservations";
 import KitchenDisplay from "../components/KitchenDisplay";
+import ReportsLibrary from "../components/ReportsLibrary";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
@@ -55,14 +56,23 @@ export default function Home() {
 
   const [showSignup, setShowSignup] = useState(false);
   const effectivePlan = user?.effective_plan || user?.plan;
+  const subscriptionPlan = user?.subscription_plan || user?.plan || effectivePlan;
+  const subscriptionAccessPhase = user?.subscription_access_phase || 'active';
+  const requiresPaymentAttention = Boolean(user?.requires_payment_attention);
   const access = getAccessContext(user);
   const isOrgAdmin = access.isOrgAdmin;
   const isBillingAdmin = access.isBillingAdmin;
   const hasOperationalAccess = access.hasOperationalAccess;
   const isBillingOnly = access.isBillingOnly;
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
-  const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats'].includes(activeTab);
+  const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab);
   const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.can_access_web === false;
+  const isSubscriptionRecoveryMode =
+    isLogged &&
+    user?.role !== 'admin' &&
+    user?.role !== 'superadmin' &&
+    user?.role !== 'supplier' &&
+    ['restricted', 'read_only'].includes(subscriptionAccessPhase);
 
   // Sidebar & Chat state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -178,6 +188,66 @@ export default function Home() {
         }}
         onLogout={handleLogout}
       />
+    );
+  }
+
+  if (isSubscriptionRecoveryMode) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-3xl glass-card p-8 md:p-10 border border-amber-500/20">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <AlertIcon size={28} />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-amber-400 font-black">Acces limite</p>
+              <h1 className="text-3xl font-black text-white tracking-tight">
+                Votre abonnement {subscriptionPlan === 'enterprise' ? 'Enterprise' : subscriptionPlan === 'pro' ? 'Pro' : 'Starter'} demande une regularisation
+              </h1>
+            </div>
+          </div>
+          <p className="text-slate-300 leading-relaxed text-sm md:text-base mb-6">
+            Vos donnees restent conservees et vous pouvez toujours regulariser votre abonnement sans perdre votre travail.
+            Le back-office complet est temporairement limite tant que le paiement n&apos;est pas remis en ordre.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Phase</p>
+              <p className="text-white font-bold capitalize">{subscriptionAccessPhase}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Fin de grace</p>
+              <p className="text-white font-bold">{user?.grace_until ? new Date(user.grace_until).toLocaleDateString('fr-FR') : '—'}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Lecture seule</p>
+              <p className="text-white font-bold">{user?.read_only_after ? new Date(user.read_only_after).toLocaleDateString('fr-FR') : '—'}</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-8">
+            <p className="text-sm text-slate-300 mb-2">Ce que vous pouvez encore faire maintenant</p>
+            <ul className="text-sm text-slate-400 space-y-2">
+              <li>Consulter votre abonnement et relancer le paiement</li>
+              <li>Conserver vos donnees et votre rattachement a l&apos;entreprise</li>
+              <li>Contacter le support ou un responsable facturation si besoin</li>
+            </ul>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => setActiveTab('subscription')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white font-black tracking-tight hover:scale-[1.01] transition-transform"
+            >
+              <Zap size={18} /> Regulariser l&apos;abonnement
+            </button>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-slate-200 font-black tracking-tight hover:bg-white/10"
+            >
+              <LogOut size={18} /> Se deconnecter
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -574,6 +644,7 @@ export default function Home() {
               {activeTab === 'inventory' && <Inventory />}
               {activeTab === 'orders' && <Orders />}
               {activeTab === 'accounting' && <Accounting />}
+              {activeTab === 'reports' && <ReportsLibrary user={user} features={features} />}
               {activeTab === 'crm' && <CRM user={user} />}
               {activeTab === 'staff' && <Staff />}
               {activeTab === 'suppliers' && <Suppliers />}

@@ -9,6 +9,7 @@ import {
   ENTERPRISE_HIGHLIGHTS,
   ENTERPRISE_PRICING_URL,
   ENTERPRISE_SIGNUP_URL,
+  LANDING_DEMO_PATH,
   LANDING_KEYWORDS,
   MOBILE_APP_URL,
 } from './data/marketing';
@@ -82,18 +83,20 @@ export default function EnterprisePage() {
             <p>
               Stockman Enterprise donne a la direction un vrai back-office web, pendant que les equipes continuent
               a travailler sur mobile. C&apos;est le bon modele pour les comptes multi-boutiques, multi-equipes
-              et les activites qui ont besoin d&apos;analyses avancees.
+              et les activites qui ont besoin d&apos;analyses avancees sur ordinateur.
             </p>
             <div className="hero-btns">
               <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
                 Voir l&apos;app web Enterprise
               </a>
-              <a href={ENTERPRISE_SIGNUP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                Creer mon compte Enterprise
-              </a>
+              <Link to={`${LANDING_DEMO_PATH}?type=enterprise`} className="btn-secondary">
+                Tester la demo Enterprise
+              </Link>
             </div>
             <div className="enterprise-inline-links">
               <a href={ENTERPRISE_PRICING_URL} target="_blank" rel="noopener noreferrer">Tarifs Enterprise</a>
+              <span>•</span>
+              <a href={ENTERPRISE_SIGNUP_URL} target="_blank" rel="noopener noreferrer">Creer mon compte Enterprise</a>
               <span>•</span>
               <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile terrain</a>
             </div>
@@ -101,7 +104,7 @@ export default function EnterprisePage() {
             <div className="metric-strip">
               <div className="mini-kpi">
                 <strong>Web + mobile</strong>
-                <span>Direction sur le web, equipes sur mobile</span>
+                <span>Direction sur ordinateur, equipes sur mobile</span>
               </div>
               <div className="mini-kpi">
                 <strong>Multi-boutiques</strong>

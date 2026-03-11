@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 import stripe as stripe_lib
+from services.pricing import resolve_plan_amount
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,10 @@ STRIPE_PRICES = {
     "pro":        os.environ.get("STRIPE_PRICE_PRO",        "price_1T5o4YGpkYa46RHLP4AFu7sv"),
     "enterprise": os.environ.get("STRIPE_PRICE_ENTERPRISE", "price_1T5o7MGpkYa46RHLOFg7dpzs"),
 }
+try:
+    STRIPE_PRICE_MAP = json.loads(os.environ.get("STRIPE_PRICE_MAP_JSON", "{}"))
+except json.JSONDecodeError:
+    STRIPE_PRICE_MAP = {}
 
 # RevenueCat webhook secret
 REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
@@ -32,14 +37,6 @@ REVENUECAT_WEBHOOK_SECRET = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
 # Devises gérées par Flutterwave Mobile Money (Afrique de l'Ouest/Centre)
 FLUTTERWAVE_CURRENCIES = {"XOF", "XAF", "GNF", "CDF"}
 
-# Pricing (per month, after 3-month free trial)
-# XOF/XAF = FCFA Flutterwave | EUR in cents for Stripe
-PRICES = {
-    "starter":    {"XOF": 2500,  "XAF": 2500,  "GNF": 25000, "EUR": 699},
-    "pro":        {"XOF": 4900,  "XAF": 4900,  "GNF": 49000, "EUR": 999},
-    "enterprise": {"XOF": 9900,  "XAF": 9900,  "GNF": 99000, "EUR": 1499},
-    "premium":    {"XOF": 4900,  "XAF": 4900,  "GNF": 49000, "EUR": 999},  # rétrocompat
-}
 PLAN_LABELS = {
     "starter":    "Stockman Starter - 1 mois",
     "pro":        "Stockman Pro - 1 mois",
@@ -53,10 +50,14 @@ PLAN_LABELS = {
 async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
     """Initialize a Flutterwave Standard payment link for Mobile Money."""
     transaction_id = f"stk_{uuid.uuid4().hex[:16]}"
-
-    user_currency = user.get("currency", "XOF")
-    plan_prices = PRICES.get(plan, PRICES["pro"])
-    amount = plan_prices.get(user_currency) or plan_prices["XOF"]
+    normalized_plan = "pro" if plan == "premium" else plan
+    resolved = resolve_plan_amount(
+        normalized_plan,
+        user.get("currency"),
+        country_code=user.get("country_code"),
+    )
+    user_currency = resolved["currency"]
+    amount = str(resolved["amount"])
 
     payload = {
         "tx_ref": transaction_id,
@@ -64,7 +65,7 @@ async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
         "currency": user_currency,
         "redirect_url": f"{BASE_URL}/api/payment/success",
         "payment_options": "mobilemoneyssenegal,mobilemoneyghana,mobilemoneyfranco,card",
-        "meta": {"user_id": user["user_id"], "plan": plan},
+        "meta": {"user_id": user["user_id"], "plan": normalized_plan},
         "customer": {
             "email": user.get("email", "noreply@stockman.app"),
             "phonenumber": user.get("phone", ""),
@@ -72,7 +73,7 @@ async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
         },
         "customizations": {
             "title": "Stockman",
-            "description": PLAN_LABELS.get(plan, "Stockman - 1 mois"),
+            "description": PLAN_LABELS.get(normalized_plan, "Stockman - 1 mois"),
             "logo": "https://stockman.app/logo.png",
         },
     }
@@ -116,7 +117,19 @@ async def verify_flutterwave_transaction(transaction_id: str) -> dict:
 async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
     """Create a Stripe Checkout session for a recurring monthly subscription."""
     stripe_lib.api_key = STRIPE_SECRET_KEY
-    price_id = STRIPE_PRICES.get(plan, STRIPE_PRICES["enterprise"])
+    normalized_plan = "pro" if plan == "premium" else plan
+    resolved = resolve_plan_amount(
+        normalized_plan,
+        user.get("currency"),
+        country_code=user.get("country_code"),
+    )
+    currency = resolved["currency"]
+    plan_map = STRIPE_PRICE_MAP.get(normalized_plan, {}) if isinstance(STRIPE_PRICE_MAP, dict) else {}
+    price_id = None
+    if isinstance(plan_map, dict):
+        price_id = plan_map.get(currency) or plan_map.get(currency.lower())
+    if not price_id:
+        price_id = STRIPE_PRICES.get(normalized_plan, STRIPE_PRICES["enterprise"])
 
     def _create():
         return stripe_lib.checkout.Session.create(
@@ -126,8 +139,8 @@ async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
             success_url=f"{BASE_URL}/api/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/api/payment/cancel",
             customer_email=user.get("email") or None,
-            metadata={"user_id": user["user_id"], "plan": plan},
-            subscription_data={"metadata": {"user_id": user["user_id"], "plan": plan}},
+            metadata={"user_id": user["user_id"], "plan": normalized_plan, "currency": currency},
+            subscription_data={"metadata": {"user_id": user["user_id"], "plan": normalized_plan, "currency": currency}},
         )
 
     session = await asyncio.to_thread(_create)

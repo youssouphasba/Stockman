@@ -15,6 +15,7 @@ import {
     Truck,
     AlertCircle,
     BarChart3,
+    FileText,
     History as HistoryIcon,
     ShieldCheck,
     MessageCircle,
@@ -131,6 +132,7 @@ export default function Sidebar({
         { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'production', icon: Factory, label: 'Recettes', roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
+        { id: 'reports', icon: FileText, label: 'Rapports', roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
             id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true,
@@ -173,6 +175,7 @@ export default function Sidebar({
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
+        { id: 'reports', icon: FileText, label: 'Rapports', roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         {
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
@@ -207,6 +210,7 @@ export default function Sidebar({
         crm: 'crm',
         orders: 'orders',
         accounting: 'accounting',
+        reports: 'accounting',
         suppliers_group: 'suppliers',
         suppliers: 'suppliers',
         inventory: 'stock_management',

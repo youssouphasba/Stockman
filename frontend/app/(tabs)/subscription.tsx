@@ -15,9 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { subscription, SubscriptionData } from '../../services/api';
+import { profile, subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
+import { COUNTRIES, Country } from '../../constants/countries';
 
 type PlanKey = 'starter' | 'pro' | 'enterprise';
 
@@ -78,12 +79,18 @@ export default function SubscriptionScreen() {
     const [payLoading, setPayLoading] = useState(false);
     const [data, setData] = useState<SubscriptionData | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
+    const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
+    const [savingBillingCountry, setSavingBillingCountry] = useState(false);
 
-    const userCurrency = user?.currency || 'XOF';
-    const useMobileMoney = ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
+    const userCurrency = data?.currency || user?.currency || 'XOF';
+    const useMobileMoney = data?.use_mobile_money ?? ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
     const isNative = Platform.OS !== 'web';
 
     useEffect(() => { fetchSubscription(); }, []);
+
+    useEffect(() => {
+        setSelectedCountryCode(data?.country_code || user?.country_code || 'SN');
+    }, [data?.country_code, user?.country_code]);
 
     const fetchSubscription = async () => {
         try {
@@ -98,15 +105,17 @@ export default function SubscriptionScreen() {
     };
 
     const handleRevenueCatPurchase = async (plan: PlanKey) => {
+        if (plan === 'enterprise') {
+            Alert.alert(t('common.info'), t('subscription.enterprise_contact_desc') || 'Le plan Enterprise se gere sur le web.');
+            return;
+        }
         if (!isPurchasesAvailable()) {
             Alert.alert(t('common.info'), t('subscription.iap_not_available'));
             return;
         }
         try {
             setPayLoading(true);
-            const result = plan === 'pro'
-                ? await purchasePro()
-                : await purchaseStarter();
+            const result = plan === 'pro' ? await purchasePro() : await purchaseStarter();
             if (result.success) {
                 await subscription.sync();
                 fetchSubscription();
@@ -139,6 +148,25 @@ export default function SubscriptionScreen() {
 
     const handleEnterpriseContact = async () => {
         await WebBrowser.openBrowserAsync('https://app.stockman.pro/features');
+    };
+
+    const handleBillingCountryUpdate = async (country: Country) => {
+        try {
+            setSavingBillingCountry(true);
+            await profile.updateProfile({
+                country_code: country.code,
+                currency: country.currency,
+            });
+            await fetchSubscription();
+            Alert.alert(t('common.success'), t('subscription.billing_country_updated') || 'Pays de facturation mis a jour.');
+        } catch (error: any) {
+            Alert.alert(
+                t('common.error'),
+                error?.message || t('subscription.billing_country_update_error') || 'Impossible de modifier le pays de facturation.',
+            );
+        } finally {
+            setSavingBillingCountry(false);
+        }
     };
 
     const handleRestorePurchases = async () => {
@@ -176,11 +204,13 @@ export default function SubscriptionScreen() {
     const isActive = data?.status === 'active';
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
+    const accessPhase = data?.subscription_access_phase || 'active';
     const activePlanConfig = PLANS.find(p => p.key === currentPlan);
     const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan)!;
-    const selectedPrice = useMobileMoney
-        ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}`
-        : selectedPlanConfig.priceEUR;
+    const selectedCountry = COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0];
+    const selectedPrice = data?.effective_prices?.[selectedPlan]?.display_price || (
+        useMobileMoney ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}` : selectedPlanConfig.priceEUR
+    );
 
     const headerGradient: [string, string] = activePlanConfig
         ? activePlanConfig.gradient
@@ -212,13 +242,68 @@ export default function SubscriptionScreen() {
             </LinearGradient>
 
             <View style={styles.content}>
+                {accessPhase !== 'active' && (
+                    <View style={[styles.card, styles.attentionCard]}>
+                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
+                        <Text style={styles.cardSubtitle}>
+                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement dès que possible.
+                        </Text>
+                        {data?.grace_until ? (
+                            <Text style={styles.helperText}>Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}</Text>
+                        ) : null}
+                        {data?.read_only_after ? (
+                            <Text style={styles.helperText}>Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}</Text>
+                        ) : null}
+                    </View>
+                )}
+
+                <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>{t('subscription.billing_country_title') || 'Pays et devise'}</Text>
+                    <Text style={styles.cardSubtitle}>
+                        {data?.can_change_billing_country
+                            ? (t('subscription.billing_country_help') || 'Choisissez votre pays avant le premier paiement pour afficher les bons prix et utiliser le bon canal de paiement.')
+                            : (t('subscription.billing_country_locked') || 'Le pays et la devise de facturation sont maintenant verrouilles apres votre premier paiement.')}
+                    </Text>
+                    <View style={styles.pickerWrapper}>
+                        <Ionicons name="globe-outline" size={18} color="#94A3B8" />
+                        <Text style={styles.pickerLabel}>{selectedCountry.flag}</Text>
+                        <Text style={styles.pickerValue}>{selectedCountry.name} ({selectedCountry.currency})</Text>
+                    </View>
+                    <View style={styles.countryList}>
+                        {COUNTRIES.map((country) => {
+                            const isSelected = selectedCountryCode === country.code;
+                            return (
+                                <TouchableOpacity
+                                    key={country.code}
+                                    style={[styles.countryChip, isSelected && styles.countryChipSelected]}
+                                    onPress={() => {
+                                        setSelectedCountryCode(country.code);
+                                        if (data?.can_change_billing_country) {
+                                            void handleBillingCountryUpdate(country);
+                                        }
+                                    }}
+                                    disabled={savingBillingCountry || !data?.can_change_billing_country}
+                                >
+                                    <Text style={styles.countryChipText}>{country.flag} {country.name} · {country.currency}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                    {savingBillingCountry && (
+                        <View style={styles.inlineLoading}>
+                            <ActivityIndicator size="small" color="#3B82F6" />
+                            <Text style={styles.inlineLoadingText}>{t('common.saving') || 'Enregistrement...'}</Text>
+                        </View>
+                    )}
+                </View>
+
                 {/* Plan Cards */}
                 {(!isActive || isFreeTrial) && (
                     <View style={styles.planCards}>
                         {PLANS.map(plan => {
-                            const price = useMobileMoney
-                                    ? `${plan.priceXOF} ${t('common.currency_default')}`
-                                    : plan.priceEUR;
+                            const price = data?.effective_prices?.[plan.key]?.display_price || (
+                                useMobileMoney ? `${plan.priceXOF} ${t('common.currency_default')}` : plan.priceEUR
+                            );
                             const isSelected = selectedPlan === plan.key;
                             return (
                                 <TouchableOpacity
@@ -402,7 +487,44 @@ const styles = StyleSheet.create({
         backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
     },
+    attentionCard: {
+        backgroundColor: '#FEF3C7',
+        borderWidth: 1,
+        borderColor: '#F59E0B',
+    },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
+    cardSubtitle: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 12 },
+    helperText: { fontSize: 12, color: '#92400E', marginTop: 6 },
+    pickerWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0F172A',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#1E293B',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        marginBottom: 12,
+        gap: 10,
+    },
+    pickerLabel: { color: 'white', fontSize: 18 },
+    pickerValue: { color: 'white', fontSize: 14, flex: 1 },
+    countryList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    countryChip: {
+        borderWidth: 1,
+        borderColor: '#1E293B',
+        backgroundColor: '#0F172A',
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 999,
+    },
+    countryChipSelected: {
+        borderColor: '#3B82F6',
+        backgroundColor: '#DBEAFE',
+    },
+    countryChipText: { color: '#CBD5E1', fontSize: 12, fontWeight: '600' },
+    inlineLoading: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    inlineLoadingText: { color: '#6B7280', fontSize: 13 },
 
     // Payment
     payButton: {

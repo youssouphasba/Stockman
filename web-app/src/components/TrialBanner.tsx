@@ -25,6 +25,9 @@ interface Props {
 export default function TrialBanner({ onNavigateToSubscription, userRole }: Props) {
     const [remainingDays, setRemainingDays] = useState<number | null>(null);
     const [isTrial, setIsTrial] = useState(false);
+    const [accessPhase, setAccessPhase] = useState<'active' | 'grace' | 'restricted' | 'read_only'>('active');
+    const [graceUntil, setGraceUntil] = useState<string | null>(null);
+    const [requiresPaymentAttention, setRequiresPaymentAttention] = useState(false);
 
     useEffect(() => {
         if (userRole === 'supplier') return;
@@ -32,18 +35,33 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
             .then((data: any) => {
                 setIsTrial(data.is_trial);
                 setRemainingDays(data.remaining_days);
+                setAccessPhase(data.subscription_access_phase || 'active');
+                setGraceUntil(data.grace_until || null);
+                setRequiresPaymentAttention(Boolean(data.requires_payment_attention));
             })
             .catch(() => {});
     }, [userRole]);
 
-    if (userRole === 'supplier' || !isTrial || remainingDays === null || remainingDays <= 0) return null;
+    if (userRole === 'supplier') return null;
 
-    const variant = getVariant(remainingDays);
+    if (!requiresPaymentAttention && (!isTrial || remainingDays === null || remainingDays <= 0)) return null;
+
+    const variant = accessPhase === 'grace'
+        ? getVariant(remainingDays || 7)
+        : accessPhase === 'restricted' || accessPhase === 'read_only'
+            ? 'danger'
+            : getVariant(remainingDays || 7);
     const { bg, border, text, Icon } = VARIANTS[variant];
 
-    const label = remainingDays === 1
-        ? "Dernier jour d'essai gratuit — Activez votre plan pour continuer"
-        : `${remainingDays} jours d'essai gratuit restants`;
+    const label = accessPhase === 'grace'
+        ? `Paiement a regulariser avant le ${graceUntil ? new Date(graceUntil).toLocaleDateString('fr-FR') : 'plus tard'}`
+        : accessPhase === 'restricted'
+            ? "Acces web limite — regularisez l'abonnement pour retrouver tous les modules"
+            : accessPhase === 'read_only'
+                ? "Compte en lecture seule — regularisez l'abonnement pour reprendre"
+                : remainingDays === 1
+                    ? "Dernier jour d'essai gratuit — Activez votre plan pour continuer"
+                    : `${remainingDays} jours d'essai gratuit restants`;
 
     return (
         <button

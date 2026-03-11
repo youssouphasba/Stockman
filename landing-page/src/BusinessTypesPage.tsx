@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
@@ -6,6 +7,7 @@ import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
   ENTERPRISE_SIGNUP_URL,
+  LANDING_DEMO_PATH,
   LANDING_KEYWORDS,
   MOBILE_APP_URL,
 } from './data/marketing';
@@ -96,9 +98,14 @@ export default function BusinessTypesPage() {
               <p>
                 Vous gerez votre boutique depuis votre telephone avec un demarrage simple, rapide et centre sur l&apos;operationnel.
               </p>
-              <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                Ouvrir l&apos;app mobile
-              </a>
+              <div className="section-cta-row section-cta-row--left">
+                <Link to={`${LANDING_DEMO_PATH}?type=commerce`} className="btn-secondary">
+                  Tester la demo mobile
+                </Link>
+                <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                  Ouvrir l&apos;app mobile
+                </a>
+              </div>
             </article>
 
             <article className="enterprise-card interactive-card">
@@ -107,6 +114,9 @@ export default function BusinessTypesPage() {
                 Vous avez besoin de pilotage avance, de plusieurs boutiques ou d&apos;une equipe: Enterprise ajoute le web a votre organisation.
               </p>
               <div className="section-cta-row section-cta-row--left">
+                <Link to={`${LANDING_DEMO_PATH}?type=enterprise`} className="btn-secondary">
+                  Tester la demo Enterprise
+                </Link>
                 <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
                   Voir l&apos;app web
                 </a>

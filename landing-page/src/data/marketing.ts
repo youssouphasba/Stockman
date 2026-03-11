@@ -5,6 +5,7 @@ export const ENTERPRISE_PRICING_URL = `${APP_WEB_URL}/pricing`;
 export const ENTERPRISE_SIGNUP_URL = `${APP_WEB_URL}/?signup=true`;
 export const APP_LOGIN_URL = APP_WEB_URL;
 export const LANDING_BUSINESS_TYPES_PATH = "/business-types";
+export const LANDING_DEMO_PATH = "/demo";
 
 export type BusinessTypeGroup = {
   slug: string;

@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import os
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Set
 
 
 PERMISSION_MODULES = ("pos", "stock", "accounting", "crm", "suppliers", "staff")
 VALID_PERMISSION_LEVELS = {"none", "read", "write"}
+NOTIFICATION_CONTACT_KEYS = ("default", "stock", "procurement", "finance", "crm", "operations", "billing")
+NOTIFICATION_CHANNELS = ("in_app", "push", "email")
+NOTIFICATION_SEVERITY_LEVELS = ("info", "warning", "critical")
+SUBSCRIPTION_ACCESS_PHASES = ("active", "grace", "restricted", "read_only")
 USER_SELF_SETTING_FIELDS: Set[str] = {
     "language",
     "push_notifications",
+    "notification_preferences",
     "simple_mode",
     "mobile_preferences",
     "web_preferences",
@@ -21,6 +27,7 @@ ORG_ADMIN_SETTING_FIELDS: Set[str] = {
 }
 STORE_SCOPED_SETTING_FIELDS: Set[str] = {
     "terminals",
+    "store_notification_contacts",
     "receipt_business_name",
     "receipt_footer",
     "invoice_business_name",
@@ -33,7 +40,7 @@ STORE_SCOPED_SETTING_FIELDS: Set[str] = {
     "tax_rate",
     "tax_mode",
 }
-ACCOUNT_SHARED_SETTING_FIELDS: Set[str] = {"modules"}
+ACCOUNT_SHARED_SETTING_FIELDS: Set[str] = {"modules", "notification_contacts"}
 BILLING_ADMIN_SETTING_FIELDS: Set[str] = {"billing_contact_name", "billing_contact_email"}
 ALL_ALLOWED_SETTING_FIELDS: Set[str] = (
     USER_SELF_SETTING_FIELDS
@@ -79,10 +86,86 @@ def default_dashboard_layout() -> Dict[str, bool]:
     }
 
 
+def default_notification_contacts() -> Dict[str, List[str]]:
+    return {key: [] for key in NOTIFICATION_CONTACT_KEYS}
+
+
+def default_notification_preferences() -> Dict[str, Any]:
+    return {
+        "in_app": True,
+        "push": True,
+        "email": False,
+        "minimum_severity_for_push": "warning",
+        "minimum_severity_for_email": "critical",
+    }
+
+
+def _normalize_email_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        candidates = [part.strip().lower() for part in value.replace(";", ",").split(",")]
+    elif isinstance(value, list):
+        candidates = [str(part).strip().lower() for part in value]
+    else:
+        candidates = []
+
+    emails: List[str] = []
+    for candidate in candidates:
+        if not candidate or "@" not in candidate:
+            continue
+        local_part, _, domain = candidate.partition("@")
+        if not local_part or "." not in domain:
+            continue
+        if candidate not in emails:
+            emails.append(candidate)
+    return emails
+
+
+def normalize_notification_contacts(value: Any) -> Dict[str, List[str]]:
+    normalized = default_notification_contacts()
+    if not isinstance(value, dict):
+        return normalized
+
+    for key in NOTIFICATION_CONTACT_KEYS:
+        normalized[key] = _normalize_email_list(value.get(key))
+    return normalized
+
+
+def normalize_notification_preferences(value: Any, push_enabled: bool = True) -> Dict[str, Any]:
+    normalized = default_notification_preferences()
+    normalized["push"] = push_enabled
+    if not isinstance(value, dict):
+        return normalized
+
+    for key in ("in_app", "push", "email"):
+        if key in value:
+            normalized[key] = bool(value.get(key))
+
+    for key in ("minimum_severity_for_push", "minimum_severity_for_email"):
+        severity = value.get(key)
+        if severity in NOTIFICATION_SEVERITY_LEVELS:
+            normalized[key] = severity
+    return normalized
+
+
 def normalize_plan(plan: Optional[str]) -> str:
     if plan == "premium":
         return "enterprise"
     return plan or "starter"
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return default
+
+
+PAID_SUBSCRIPTION_GRACE_DAYS = _int_env("PAID_SUBSCRIPTION_GRACE_DAYS", 7)
+TRIAL_SUBSCRIPTION_GRACE_DAYS = _int_env("TRIAL_SUBSCRIPTION_GRACE_DAYS", 3)
+SUBSCRIPTION_READ_ONLY_AFTER_DAYS = _int_env("SUBSCRIPTION_READ_ONLY_AFTER_DAYS", 30)
 
 
 def normalize_account_roles(user_doc: dict) -> List[str]:
@@ -197,18 +280,84 @@ def user_has_operational_access(
     )
 
 
+def compute_subscription_access_policy(source_doc: Optional[dict]) -> Dict[str, Any]:
+    source = source_doc or {}
+    now = datetime.now(timezone.utc)
+    status = source.get("subscription_status") or "active"
+    provider = source.get("subscription_provider") or "none"
+    subscription_end = source.get("subscription_end")
+    trial_ends_at = source.get("trial_ends_at")
+    manual_grace_until = source.get("manual_access_grace_until")
+    manual_read_only_enabled = bool(source.get("manual_read_only_enabled"))
+
+    is_paying = provider not in ("none", "", None) or bool(subscription_end)
+    anchor = subscription_end or trial_ends_at
+    if anchor and not anchor.tzinfo:
+        anchor = anchor.replace(tzinfo=timezone.utc)
+    if manual_grace_until and not manual_grace_until.tzinfo:
+        manual_grace_until = manual_grace_until.replace(tzinfo=timezone.utc)
+
+    phase = "active"
+    grace_until = None
+    read_only_after = None
+
+    if anchor and anchor < now:
+        grace_days = PAID_SUBSCRIPTION_GRACE_DAYS if is_paying else TRIAL_SUBSCRIPTION_GRACE_DAYS
+        grace_until = anchor + timedelta(days=grace_days)
+        if manual_grace_until and manual_grace_until > grace_until:
+            grace_until = manual_grace_until
+        read_only_after = grace_until + timedelta(days=SUBSCRIPTION_READ_ONLY_AFTER_DAYS)
+        if now <= grace_until:
+            phase = "grace"
+        elif manual_read_only_enabled:
+            phase = "read_only"
+        elif now <= read_only_after:
+            phase = "restricted"
+        else:
+            phase = "restricted"
+    elif manual_grace_until and manual_grace_until > now:
+        phase = "grace"
+        grace_until = manual_grace_until
+        read_only_after = grace_until + timedelta(days=SUBSCRIPTION_READ_ONLY_AFTER_DAYS)
+    elif manual_read_only_enabled:
+        phase = "read_only"
+
+    return {
+        "subscription_access_phase": phase,
+        "grace_until": grace_until,
+        "read_only_after": read_only_after,
+        "manual_read_only_enabled": manual_read_only_enabled,
+        "requires_payment_attention": phase != "active" or status in {"expired", "cancelled"},
+        "can_write_data": phase in {"active", "grace", "restricted"},
+        "can_use_advanced_features": phase in {"active", "grace"},
+        "is_paying": is_paying,
+        "status": status,
+        "provider": provider,
+    }
+
+
 def build_effective_access_context(user_doc: dict, account_doc: Optional[dict] = None) -> Dict[str, Any]:
     allowed_store_ids = resolve_allowed_store_ids(user_doc, account_doc)
     active_store_id = resolve_active_store_id(user_doc, allowed_store_ids)
     account_roles = normalize_account_roles(user_doc)
     effective_permissions = build_effective_permissions(user_doc, account_doc=account_doc, active_store_id=active_store_id)
-    effective_plan = normalize_plan((account_doc or {}).get("plan") or user_doc.get("plan"))
+    subscribed_plan = normalize_plan((account_doc or {}).get("plan") or user_doc.get("plan"))
     effective_status = (account_doc or {}).get("subscription_status") or user_doc.get("subscription_status", "active")
+    access_policy = compute_subscription_access_policy(account_doc or user_doc)
+    effective_plan = subscribed_plan if access_policy["can_use_advanced_features"] else "starter"
     return {
         "account_roles": account_roles,
         "effective_permissions": effective_permissions,
         "effective_plan": effective_plan,
+        "subscribed_plan": subscribed_plan,
         "effective_subscription_status": effective_status,
+        "subscription_access_phase": access_policy["subscription_access_phase"],
+        "grace_until": access_policy["grace_until"],
+        "read_only_after": access_policy["read_only_after"],
+        "manual_read_only_enabled": access_policy["manual_read_only_enabled"],
+        "requires_payment_attention": access_policy["requires_payment_attention"],
+        "can_write_data": access_policy["can_write_data"],
+        "can_use_advanced_features": access_policy["can_use_advanced_features"],
         "store_ids": allowed_store_ids,
         "active_store_id": active_store_id,
         "store_permissions": normalize_store_permissions(user_doc.get("store_permissions")),
@@ -222,6 +371,11 @@ def build_effective_access_context(user_doc: dict, account_doc: Optional[dict] =
 
 def seed_business_account(owner_doc: dict, owner_settings: Optional[dict] = None) -> Dict[str, Any]:
     owner_id = owner_doc.get("parent_user_id") or owner_doc.get("user_id")
+    owner_email = owner_doc.get("email")
+    notification_contacts = default_notification_contacts()
+    if owner_email:
+        notification_contacts["default"] = [owner_email]
+        notification_contacts["billing"] = [owner_email]
     return {
         "account_id": owner_doc.get("account_id") or f"acct_{owner_id}",
         "owner_user_id": owner_id,
@@ -234,7 +388,11 @@ def seed_business_account(owner_doc: dict, owner_settings: Optional[dict] = None
         "subscription_end": owner_doc.get("subscription_end"),
         "trial_ends_at": owner_doc.get("trial_ends_at"),
         "currency": owner_doc.get("currency", "XOF"),
+        "country_code": owner_doc.get("country_code", "SN"),
         "modules": (owner_settings or {}).get("modules") or default_modules(),
+        "notification_contacts": normalize_notification_contacts(
+            (owner_settings or {}).get("notification_contacts") or notification_contacts
+        ),
         "billing_contact_name": owner_doc.get("name"),
         "billing_contact_email": owner_doc.get("email"),
         "created_at": datetime.now(timezone.utc),
@@ -262,8 +420,20 @@ def merge_effective_settings(
         web_preferences["dashboard_layout"] = user_settings.get("dashboard_layout") or default_dashboard_layout()
 
     modules = (account_doc or {}).get("modules") or user_settings.get("modules") or default_modules()
+    notification_preferences = normalize_notification_preferences(
+        user_settings.get("notification_preferences"),
+        push_enabled=user_settings.get("push_notifications", True),
+    )
+    notification_contacts = normalize_notification_contacts((account_doc or {}).get("notification_contacts"))
+    billing_contact_email = (account_doc or {}).get("billing_contact_email")
+    if billing_contact_email:
+        if billing_contact_email not in notification_contacts["billing"]:
+            notification_contacts["billing"].append(billing_contact_email)
+        if not notification_contacts["default"]:
+            notification_contacts["default"].append(billing_contact_email)
 
     store_settings = active_store_doc or {}
+    store_notification_contacts = normalize_notification_contacts(store_settings.get("store_notification_contacts"))
     terminals = store_settings.get("terminals")
     if terminals is None:
         terminals = user_settings.get("terminals") or []
@@ -313,6 +483,9 @@ def merge_effective_settings(
         "web_preferences": web_preferences,
         "language": user_settings.get("language", "fr"),
         "push_notifications": user_settings.get("push_notifications", True),
+        "notification_preferences": notification_preferences,
+        "notification_contacts": notification_contacts,
+        "store_notification_contacts": store_notification_contacts,
         "dashboard_layout": web_preferences.get("dashboard_layout") or default_dashboard_layout(),
         "terminals": terminals,
         "tax_enabled": bool(tax_enabled),

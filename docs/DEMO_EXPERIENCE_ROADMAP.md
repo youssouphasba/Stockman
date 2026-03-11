@@ -285,6 +285,214 @@ Faire en deux temps :
 1. `lecture seule partagee`
 2. puis `sandbox clonable`
 
+Pour une cible de forte charge, la sandbox clonable doit devenir le vrai modele
+de reference pour la demo interactive.
+
+## Capacite cible
+
+### Question produit
+
+Peut-on permettre a `1000` personnes de faire une demo interactive en meme temps ?
+
+### Reponse
+
+Oui, mais pas avec :
+
+- un seul compte demo partage
+- un clonage lourd complet non optimise pour chaque prospect
+
+La bonne cible est :
+
+- `lecture seule partagee` pour les visiteurs
+- `sandbox interactive isolee par utilisateur`
+- architecture optimisee pour supporter `1000` sessions demo actives
+
+## Architecture scalable recommandee
+
+## Modele cible
+
+Chaque utilisateur de demo interactive obtient :
+
+- un `demo_account_id`
+- un univers de demo choisi
+- un jeu de donnees pre-rempli
+- une date d'expiration
+- un marquage fort `is_demo`
+
+La separation doit etre logique et nette, meme si les donnees restent dans la
+meme base principale avec des flags et scopes forts.
+
+## Ce qu'il faut eviter
+
+- cloner naivement toutes les collections sans index ni TTL
+- recalculer tous les analytics a froid pour chaque prospect
+- partager le meme sandbox interactif entre plusieurs utilisateurs
+- laisser les demos vivre indefiniment
+
+## Strategie recommandee pour tenir 1000 demos
+
+### 1. Templates demo maitres
+
+Creer quelques templates maitres :
+
+- `commerce_demo_template`
+- `restaurant_demo_template`
+- `supplier_demo_template`
+- `enterprise_demo_template`
+
+Ces templates ne sont jamais utilises directement par les prospects.
+
+Ils servent uniquement de source de clonage.
+
+### 2. Clonage rapide par session
+
+Au lancement de la demo interactive :
+
+- on cree un `account demo`
+- on copie les donnees du template choisi
+- on remappe les IDs necessaires
+- on affecte un `demo_session_id`
+- on fixe un `expires_at`
+
+### 3. TTL et nettoyage automatique
+
+Chaque session demo interactive doit avoir :
+
+- `expires_at`
+- nettoyage automatique
+- suppression ou reset planifie
+
+Objectif :
+
+- pas d'accumulation illimitee
+- pas de pollution des donnees
+- retour rapide a un etat propre
+
+### 4. Analytics precomputees ou legeres
+
+Pour tenir la charge :
+
+- pre-remplir les datasets demo avec analytics deja coherentes
+- recalculer seulement ce qui est necessaire
+- eviter de lancer des agregations lourdes pour chaque session si ce n'est pas
+  indispensable
+
+### 5. Integrations coupees
+
+Les demos interactives ne doivent jamais toucher :
+
+- paiements reels
+- OTP reels
+- emails reels
+- notifications push reelles
+- webhooks reels
+- integrateurs tiers reels
+
+### 6. Limites et quotas demo
+
+Pour 1000 utilisateurs simultanes, il faut aussi cadrer :
+
+- duree max de session
+- nombre max de boutiques demo
+- taille max des imports demo
+- nombre max de creations massives
+
+Le but n'est pas de brider l'essai produit, mais d'eviter qu'un prospect
+transforme la demo en environnement quasi permanent.
+
+## Modele technique recommande
+
+## Option A. Copie complete par sandbox
+
+### Avantages
+
+- simple a comprendre
+- isolation forte
+- comportement proche de la vraie production
+
+### Inconvenients
+
+- plus couteux en stockage
+- clonage plus lent
+- charge plus forte a 1000 sessions
+
+## Option B. Template + overlays/session
+
+### Principe
+
+- dataset de base lecture seule
+- modifications utilisateur stockees comme deltas ou overlays
+- lecture fusionnee base + changements de session
+
+### Avantages
+
+- beaucoup plus scalable
+- plus economique
+- plus rapide a creer
+
+### Inconvenients
+
+- plus complexe a developper
+- plus de logique applicative
+
+## Recommandation technique
+
+Pour Stockman, la meilleure trajectoire est :
+
+1. `v1` simple : copie complete par sandbox pour lancer la fonctionnalite
+2. `v2` scalable : passage progressif a un modele plus optimise si la demande
+   demo explose
+
+Autrement dit :
+
+- oui, on peut viser 1000 utilisateurs
+- mais on commence plus simple
+- puis on optimise si le volume demo devient reel
+
+## Regles d'isolation obligatoires
+
+Chaque session demo interactive doit etre bornee par :
+
+- `account_id`
+- `demo_session_id`
+- `is_demo = true`
+- `demo_template`
+- `expires_at`
+
+Et toutes les lectures/ecritures doivent respecter ce scope.
+
+## Impacts backend
+
+Il faudra ajouter :
+
+- generation de sessions demo
+- clonage de datasets
+- expiration automatique
+- reset manuel
+- outils admin demo
+- garde-fous sur tous les services sensibles
+
+## Impacts web et mobile
+
+Le web et le mobile devront :
+
+- afficher clairement le badge `Demo`
+- connaitre la date d'expiration
+- proposer un bouton `Reinitialiser`
+- proposer un bouton `Convertir plus tard` seulement si on le veut
+
+## Impacts admin
+
+L'admin demo doit permettre de :
+
+- voir le nombre de sessions actives
+- voir l'univers choisi
+- voir les comptes demo expires
+- reset une session
+- supprimer une session
+- recreer les templates
+- monitorer la charge
+
 ## Reset et nettoyage
 
 Le mode demo doit pouvoir etre remis a zero.
@@ -295,6 +503,20 @@ Le mode demo doit pouvoir etre remis a zero.
 - reset manuel par bouton admin
 - expiration automatique des sessions demo
 - recreation depuis seed
+
+### Durees retenues
+
+- `demo mobile` (`Epicerie ou boutique`, `Restaurant`) : `24h`
+- `demo Enterprise` : `48h`
+
+### Extensions admin
+
+Le dashboard admin doit pouvoir :
+
+- prolonger une demo mobile de `24h`
+- prolonger une demo Enterprise de `48h`
+- reset une session
+- supprimer une session
 
 ### Important
 
@@ -345,18 +567,97 @@ Les recus / factures doivent afficher un marquage demo discret mais clair.
 
 Depuis `stockman.pro` :
 
-- `Voir une demo`
-- `Essayer l'app web`
-- `Tester le mode commerce`
-- `Tester le mode restaurant`
+- `Tester en mode Demo`
 
 Depuis `app.stockman.pro` :
 
-- `Essayer la demo Enterprise`
+- `Tester en mode Demo`
 
 Depuis mobile :
 
 - `Utiliser des donnees de demo`
+
+## Parcours utilisateur recommande
+
+Avant de lancer une demo interactive, l'utilisateur doit saisir au minimum :
+
+- `email`
+
+### But de l'email obligatoire
+
+- qualification commerciale minimale
+- relance apres expiration de la demo
+- proposition de conversion vers un vrai compte
+- support si la session demo pose probleme
+- suivi admin des usages demo
+
+### Regle produit
+
+- `demo visiteur lecture seule` : peut rester sans email
+- `demo interactive` : email obligatoire avant creation de la session
+
+## Separation des parcours tres tot
+
+Le choix entre `mobile` et `Entreprise` doit etre visible des le debut.
+
+Le parcours ne doit pas donner l'impression qu'il s'agit de la meme offre avec
+simplement plus de donnees.
+
+Il faut montrer tres tot la difference entre :
+
+- `outil terrain mobile`
+- `pilotage Enterprise web`
+
+Apres clic sur `Tester en mode Demo`, l'utilisateur choisit son business type :
+
+- `Epicerie ou boutique`
+- `Restaurant`
+- `Entreprise`
+
+### Regle de routage
+
+- `Epicerie ou boutique` -> demo `mobile` commerce
+- `Restaurant` -> demo `mobile` restaurant
+- `Entreprise` -> demo `web Enterprise` complete
+
+### Formulation recommandee
+
+Le choix `Entreprise` doit etre explicite, par exemple :
+
+- `Entreprise (supermarche, multi-boutiques, logistique, distribution)`
+
+Les choix mobile doivent etre explicites aussi :
+
+- `Epicerie ou boutique (demo mobile)`
+- `Restaurant (demo mobile)`
+- `Entreprise (demo web Enterprise)`
+
+### Positionnement
+
+Les demos `mobile` montrent surtout :
+
+- la caisse
+- le stock
+- le CRM simple
+- les operations terrain
+
+La demo `Entreprise` montre surtout :
+
+- le plan Enterprise complet
+- le multi-boutiques
+- les analytics
+- le procurement
+- les settings avances
+- les rapports
+
+### Message commercial recommande
+
+Le parcours `Entreprise` doit etre mis en avant tres tot avec un message du type :
+
+- `Vous gerez plusieurs boutiques ou avez besoin d'analyses avancees ? Testez la demo Enterprise.`
+
+Le but est d'eviter qu'une vraie entreprise choisisse trop vite une demo mobile
+qui ne montre pas la bonne valeur du produit.
 
 ## Indications visuelles
 
@@ -364,6 +665,7 @@ Toujours afficher :
 
 - badge `Demo`
 - environnement courant
+- temps restant avant expiration
 - bouton `Reinitialiser la demo` si approprie
 - message clair sur les limites
 
@@ -433,6 +735,56 @@ Il faut un petit outil admin demo pour :
 - invalider une demo
 - activer ou couper certains modules demo
 
+## Monitoring admin recommande
+
+Le dashboard admin doit avoir une section `Demo` permettant de suivre :
+
+- demos actives
+- demos expirees
+- demos creees aujourd'hui
+- repartition par type :
+  - `Epicerie ou boutique`
+  - `Restaurant`
+  - `Entreprise`
+- repartition par surface :
+  - `mobile`
+  - `web`
+- duree moyenne d'utilisation
+- resets
+- prolongations
+- echec de creation de session
+- echec de nettoyage
+
+### Table admin demo
+
+Colonnes recommandees :
+
+- `demo_session_id`
+- `demo_type`
+- `surface`
+- `template`
+- `email`
+- `started_at`
+- `expires_at`
+- `remaining_time`
+- `status`
+- `session_owner` si disponible
+
+### Actions admin demo
+
+- `Prolonger`
+- `Reset`
+- `Supprimer`
+- `Voir les details`
+
+### Alertes admin demo
+
+- pic anormal de demos actives
+- sessions expirees non nettoyees
+- echec de clonage template
+- echec du nettoyage automatique
+- surcharge sur un univers demo
+
 ## Roadmap recommandee
 
 ## Phase 1. Lecture seule marketing
@@ -442,11 +794,13 @@ Il faut un petit outil admin demo pour :
 - badge demo
 - CTA clairs
 
-## Phase 2. Demo interactive partagee
+## Phase 2. Demo interactive v1
 
-- compte demo interactive
-- actions principales autorisees
-- reset quotidien
+- sandboxes interactives dediees
+- un compte demo par utilisateur
+- clonage simple depuis template
+- expiration `24h` mobile / `48h` Enterprise
+- reset manuel et automatique
 
 ## Phase 3. Demo guidee
 
@@ -454,25 +808,39 @@ Il faut un petit outil admin demo pour :
 - parcours par business type
 - aide integree
 
-## Phase 4. Sandboxes individuelles
+## Phase 4. Sandboxes individuelles optimisees
 
-- clonage d'un template demo
-- expiration automatique
-- reset a la demande
+- optimisation du clonage
+- reduction du poids des datasets
+- monitoring de charge
+- preparation a une forte concurrence simultanee
 
 ## Phase 5. Admin demo
 
 - back-office reset
 - seeds
 - suivi des usages
+- monitoring des sessions demo
 
 ## Priorites recommandees
 
 1. demo web enterprise lecture seule
-2. demo commerce interactive
-3. demo restaurant interactive
+2. sandboxes interactives commerce dediees
+3. sandboxes interactives restaurant dediees
 4. demo guidee
-5. sandboxes individuelles
+5. optimisation pour forte concurrence simultanee
+
+## Objectif de capacite
+
+La cible `1000` demos interactives simultanees est atteignable si :
+
+- les demos interactives sont isolees
+- les templates sont bien prepares
+- les integrations reelles sont neutralisees
+- les sessions expirent automatiquement
+- les analytics demo ne sont pas recalcules de maniere trop lourde
+
+Il ne faut pas viser cette capacite avec un simple compte demo partage.
 
 ## Questions a figer plus tard
 

@@ -1,7 +1,27 @@
 # Web Enterprise Roadmap
 
 Date de preparation : 2026-03-11
-Statut : planifie, partiellement implemente sur certains modules
+Statut : partiellement implemente
+
+## Etat
+
+Deja en place :
+
+- cockpit executif web
+- comparaison multi-boutiques
+- stock sante / ABC / historique
+- finance avancee v1
+- CRM avance v1
+- procurement enterprise v1
+- bibliotheque de rapports v1
+
+Reste pour les prochaines etapes :
+
+- centre de notifications/actions
+- recherche globale
+- vues enregistrees
+- audit log global
+- multi-boutiques encore plus reactif sans reload brutal
 
 Ce document regroupe les evolutions recommandees pour que le web soit au moins au
 niveau du mobile, puis clairement au-dessus comme vrai back-office entreprise.

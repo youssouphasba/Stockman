@@ -317,6 +317,215 @@
   margin: 0;
 }
 
+/* Demo selector */
+.demo-intro-card,
+.demo-email-form,
+.demo-footer-card {
+  padding: 1.5rem;
+}
+
+.demo-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.demo-step {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.demo-step-number {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), #0ea5e9);
+}
+
+.demo-step p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+}
+
+.demo-enterprise-callout {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1rem;
+}
+
+.demo-enterprise-callout p {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+}
+
+.demo-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.demo-email-copy h2 {
+  margin: 0 0 0.5rem;
+}
+
+.demo-email-copy p {
+  margin: 0;
+}
+
+.demo-email-controls {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.demo-email-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.8rem;
+  color: var(--text);
+  padding: 0.95rem 1rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.demo-email-input:focus {
+  border-color: var(--primary);
+}
+
+.demo-success-panel {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 1rem;
+}
+
+.demo-success-panel h3 {
+  margin: 0 0 0.4rem;
+}
+
+.demo-success-panel p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}
+
+.demo-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.demo-option-card {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.demo-option-card.selected {
+  border-color: rgba(14, 165, 233, 0.65);
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.35);
+}
+
+.demo-option-media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+
+.demo-option-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.demo-option-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+.demo-option-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.demo-option-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(14, 165, 233, 0.12);
+  color: #9adfff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.demo-option-pill-soft {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-muted);
+}
+
+.demo-option-body h2 {
+  margin: 0;
+}
+
+.demo-option-highlight {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(249, 115, 22, 0.18));
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  color: #ffd59a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.demo-option-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.demo-option-block h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 980px) {
+  .demo-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .demo-email-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* ── Profile Selector ── */
 .profile-selector {
   margin-bottom: 2rem;

@@ -5,11 +5,12 @@ import {
   APP_LOGIN_URL,
   ENTERPRISE_FEATURES_URL,
   LANDING_BUSINESS_TYPES_PATH,
+  LANDING_DEMO_PATH,
   MOBILE_APP_URL,
 } from '../../data/marketing';
 
 type MarketingNavProps = {
-  active?: 'home' | 'enterprise' | 'business-types';
+  active?: 'home' | 'enterprise' | 'business-types' | 'demo';
 };
 
 export default function MarketingNav({ active }: MarketingNavProps) {
@@ -62,6 +63,13 @@ export default function MarketingNav({ active }: MarketingNavProps) {
           >
             Enterprise
           </Link>
+          <Link
+            to={LANDING_DEMO_PATH}
+            className={`nav-link desktop-only${active === 'demo' ? ' nav-link-active' : ''}`}
+            onClick={closeMenu}
+          >
+            Demo
+          </Link>
           <a
             href={ENTERPRISE_FEATURES_URL}
             target="_blank"
@@ -78,6 +86,7 @@ export default function MarketingNav({ active }: MarketingNavProps) {
             <Link to="/" className="nav-link" onClick={closeMenu}>Accueil</Link>
             <Link to="/enterprise" className="nav-link" onClick={closeMenu}>Enterprise</Link>
             <Link to={LANDING_BUSINESS_TYPES_PATH} className="nav-link" onClick={closeMenu}>Business types</Link>
+            <Link to={LANDING_DEMO_PATH} className="nav-link" onClick={closeMenu}>Demo</Link>
           </div>
 
           <div className="mobile-menu-section">

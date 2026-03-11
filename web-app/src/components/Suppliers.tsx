@@ -38,6 +38,7 @@ import Modal from './Modal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import {
     marketplace as marketplaceApi,
+    procurementAnalytics,
     suppliers as suppliersApi,
     supplierProducts as supplierProductsApi,
     supplier_orders as ordersApi,
@@ -45,7 +46,7 @@ import {
     products as productsApi
 } from '../services/api';
 
-type TabType = 'manual' | 'orders' | 'replenishment' | 'marketplace';
+type TabType = 'manual' | 'orders' | 'replenishment' | 'marketplace' | 'insights';
 
 export default function Suppliers() {
     const { t } = useTranslation();
@@ -65,6 +66,7 @@ export default function Suppliers() {
     const [supplierLogs, setSupplierLogs] = useState<any[]>([]);
     const [linkedProducts, setLinkedProducts] = useState<any[]>([]);
     const [supplierOrderHistory, setSupplierOrderHistory] = useState<any[]>([]);
+    const [supplierPriceHistory, setSupplierPriceHistory] = useState<any[]>([]);
     const [marketplaceSupplierDetail, setMarketplaceSupplierDetail] = useState<any | null>(null);
     const [supplierDetailLoading, setSupplierDetailLoading] = useState(false);
     const [showLogModal, setShowLogModal] = useState(false);
@@ -73,6 +75,8 @@ export default function Suppliers() {
     const [benchmarkProduct, setBenchmarkProduct] = useState<any | null>(null);
     const [benchmarkResults, setBenchmarkResults] = useState<any[]>([]);
     const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
+    const [procurementOverview, setProcurementOverview] = useState<any | null>(null);
+    const [procurementDays, setProcurementDays] = useState(90);
 
     // UI States
     const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -116,7 +120,7 @@ export default function Suppliers() {
 
     useEffect(() => {
         loadData();
-    }, [activeTab]);
+    }, [activeTab, procurementDays]);
 
     const handleWhatsApp = (phone?: string) => {
         if (!phone) return;
@@ -151,6 +155,74 @@ export default function Suppliers() {
         }
     };
 
+    const getScoreStyle = (label?: string) => {
+        switch (label) {
+            case 'fiable':
+                return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            case 'a_surveiller':
+                return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'risque':
+                return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+            default:
+                return 'bg-white/5 text-slate-300 border-white/10';
+        }
+    };
+
+    const downloadCsv = (filename: string, headers: string[], rows: Array<Array<string | number>>) => {
+        const escapeCell = (value: string | number) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const csv = [headers, ...rows]
+            .map((row) => row.map(escapeCell).join(','))
+            .join('\n');
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
+    const exportProcurementRanking = () => {
+        if (!procurementOverview?.supplier_ranking?.length) return;
+        downloadCsv(
+            `procurement-ranking-${procurementOverview.days}j.csv`,
+            [
+                'Fournisseur',
+                'Type',
+                'Score',
+                'Statut',
+                'Depense livree',
+                'Commandes',
+                'Commandes ouvertes',
+                'Boutiques',
+                'Delai moyen (jours)',
+                'Taux a l heure (%)',
+                'Taux livraison complete (%)',
+                'Taux livraison partielle (%)',
+                'Taux annulation (%)',
+                'Variance prix (%)',
+            ],
+            procurementOverview.supplier_ranking.map((supplier: any) => [
+                supplier.supplier_name,
+                supplier.kind,
+                supplier.score,
+                supplier.score_label,
+                supplier.total_spend,
+                supplier.orders_count,
+                supplier.open_orders,
+                supplier.stores_count,
+                supplier.avg_lead_time_days,
+                supplier.on_time_rate,
+                supplier.full_delivery_rate,
+                supplier.partial_delivery_rate,
+                supplier.cancel_rate,
+                supplier.price_variance_pct,
+            ]),
+        );
+    };
+
     const loadData = async () => {
         setLoading(true);
         try {
@@ -175,6 +247,9 @@ export default function Suppliers() {
                     city: supplier.city || '',
                 }));
                 setMarketplaceSuppliers(normalized);
+            } else if (activeTab === 'insights') {
+                const res = await procurementAnalytics.getOverview(procurementDays);
+                setProcurementOverview(res);
             }
         } catch (err) {
             console.error(`Error loading ${activeTab} data`, err);
@@ -277,21 +352,24 @@ export default function Suppliers() {
         setSupplierLogs([]);
         setLinkedProducts([]);
         setSupplierOrderHistory([]);
+        setSupplierPriceHistory([]);
         setMarketplaceSupplierDetail(null);
         try {
             if (kind === 'manual') {
-                const [products, stats, ordersHistory, invoices, logs] = await Promise.all([
+                const [products, stats, ordersHistory, invoices, logs, priceHistory] = await Promise.all([
                     suppliersApi.getProducts(normalizedSupplier.supplier_id),
                     suppliersApi.getStats(normalizedSupplier.supplier_id),
                     ordersApi.list(undefined, normalizedSupplier.supplier_id).then((response) => response.items || response || []),
                     suppliersApi.getInvoices(normalizedSupplier.supplier_id),
                     suppliersApi.getLogs(normalizedSupplier.supplier_id),
+                    suppliersApi.getPriceHistory(normalizedSupplier.supplier_id),
                 ]);
                 setLinkedProducts(Array.isArray(products) ? products : []);
                 setSupplierStats(stats);
                 setSupplierOrderHistory(Array.isArray(ordersHistory) ? ordersHistory : []);
                 setSupplierInvoices(Array.isArray(invoices) ? invoices : []);
                 setSupplierLogs(Array.isArray(logs) ? logs : []);
+                setSupplierPriceHistory(Array.isArray(priceHistory) ? priceHistory : []);
             } else if (normalizedSupplier.supplier_user_id) {
                 const detail = await marketplaceApi.getSupplier(normalizedSupplier.supplier_user_id);
                 setMarketplaceSupplierDetail(detail);
@@ -543,6 +621,15 @@ export default function Suppliers() {
                             Nouvelle Commande
                         </button>
                     )}
+                    {activeTab === 'insights' && procurementOverview?.supplier_ranking?.length > 0 && (
+                        <button
+                            onClick={exportProcurementRanking}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <Download size={18} />
+                            Export Excel
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -559,6 +646,7 @@ export default function Suppliers() {
                     { id: 'manual', label: 'Mes Fournisseurs', icon: StoreIcon },
                     { id: 'orders', label: 'Bons de Commande', icon: ClipboardList },
                     { id: 'replenishment', label: 'Réapprovisionnement', icon: RefreshCcw },
+                    { id: 'insights', label: 'Pilotage', icon: TrendingUp },
                     { id: 'marketplace', label: 'Marketplace', icon: GlobeIcon },
                 ].map((tab) => (
                     <button
@@ -837,6 +925,317 @@ export default function Suppliers() {
                                     </div>
                                 ))}
                             </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'insights' && (
+                    <div className="space-y-6">
+                        <div className="glass-card p-6 space-y-5">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Procurement enterprise</p>
+                                    <h3 className="text-2xl font-black text-white mt-2">Pilotage achats multi-boutiques</h3>
+                                    <p className="text-sm text-slate-400 mt-2">
+                                        Consolidez les besoins, comparez les fournisseurs et detectez les opportunites d'achat groupe sans bloquer les responsables de boutique.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {[30, 90, 365].map((days) => (
+                                        <button
+                                            key={days}
+                                            onClick={() => setProcurementDays(days)}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${procurementDays === days
+                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {days} jours
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {!loading && procurementOverview && (
+                                <div className="flex flex-wrap items-center gap-3 text-xs">
+                                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                                        Perimetre : {procurementOverview.scope_label}
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                                        Workflow approbation : {procurementOverview.approval.workflow_enabled ? 'optionnel actif' : 'non bloque'}
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                        {procurementOverview.approval.pending_orders} demande(s) en attente
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {[1, 2, 3, 4, 5, 6].map((index) => (
+                                    <div key={index} className="h-32 glass-card animate-pulse" />
+                                ))}
+                            </div>
+                        ) : !procurementOverview ? (
+                            <div className="glass-card p-12 text-center text-slate-500">
+                                <TrendingUp size={56} className="mx-auto mb-4 opacity-10" />
+                                <p className="text-xl">Aucune donnee d'approvisionnement disponible.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Depense livree</p>
+                                        <p className="text-2xl font-black text-white mt-2">{formatCurrency(procurementOverview.kpis.total_spend || 0)}</p>
+                                        <p className="text-xs text-slate-400 mt-2">Sur {procurementOverview.days} jours.</p>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Fournisseurs suivis</p>
+                                        <p className="text-2xl font-black text-white mt-2">{procurementOverview.kpis.suppliers_count || 0}</p>
+                                        <p className="text-xs text-slate-400 mt-2">Actifs sur le perimetre selectionne.</p>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Score moyen</p>
+                                        <p className="text-2xl font-black text-white mt-2">{procurementOverview.kpis.average_supplier_score || 0}/100</p>
+                                        <p className="text-xs text-slate-400 mt-2">Fiabilite moyenne des fournisseurs.</p>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Commandes ouvertes</p>
+                                        <p className="text-2xl font-black text-amber-400 mt-2">{procurementOverview.kpis.open_orders || 0}</p>
+                                        <p className="text-xs text-slate-400 mt-2">A suivre par les boutiques.</p>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Opportunites groupees</p>
+                                        <p className="text-2xl font-black text-primary mt-2">{procurementOverview.kpis.group_opportunities || 0}</p>
+                                        <p className="text-xs text-slate-400 mt-2">Consolidation possible sans fusion imposee.</p>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <p className="text-[10px] font-black uppercase text-slate-500">Besoins locaux</p>
+                                        <p className="text-2xl font-black text-rose-400 mt-2">{procurementOverview.kpis.local_replenishment_items || 0}</p>
+                                        <p className="text-xs text-slate-400 mt-2">Suggestions d'appro par boutique.</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                    <div className="xl:col-span-2 glass-card p-6 space-y-4">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Classement fournisseurs</p>
+                                                <p className="text-sm text-slate-400 mt-1">Comparez fiabilite, delais, prix et charge multi-boutiques.</p>
+                                            </div>
+                                            <button
+                                                onClick={exportProcurementRanking}
+                                                className="px-4 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all flex items-center gap-2"
+                                            >
+                                                <Download size={14} />
+                                                Exporter
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {procurementOverview.supplier_ranking.length === 0 ? (
+                                                <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                                    <StoreIcon size={32} className="mx-auto text-slate-700 mb-3" />
+                                                    <p className="text-sm text-slate-500 font-bold uppercase">Aucun fournisseur a classer</p>
+                                                </div>
+                                            ) : procurementOverview.supplier_ranking.map((supplier: any) => (
+                                                <div key={supplier.supplier_key} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-4">
+                                                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                                        <div>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="text-sm font-black text-white">{supplier.supplier_name}</p>
+                                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getScoreStyle(supplier.score_label)}`}>
+                                                                    {supplier.score_label?.replace('_', ' ') || 'neutre'}
+                                                                </span>
+                                                                <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-white/5 text-slate-300 border-white/10">
+                                                                    {supplier.kind === 'marketplace' ? 'Marketplace' : 'Manuel'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-400 mt-2">
+                                                                {supplier.orders_count} commande(s), {supplier.stores_count} boutique(s), {supplier.open_orders} ouverte(s)
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-2xl font-black text-white">{supplier.score}/100</p>
+                                                            <p className="text-xs text-slate-400 mt-1">{formatCurrency(supplier.total_spend || 0)} livres</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Delai moyen</p>
+                                                            <p className="text-white font-bold mt-1">{supplier.avg_lead_time_days || 0} j</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">A l heure</p>
+                                                            <p className="text-emerald-400 font-bold mt-1">{Math.round(supplier.on_time_rate || 0)}%</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Livraison complete</p>
+                                                            <p className="text-white font-bold mt-1">{Math.round(supplier.full_delivery_rate || 0)}%</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Livraison partielle</p>
+                                                            <p className="text-amber-400 font-bold mt-1">{Math.round(supplier.partial_delivery_rate || 0)}%</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Variance prix</p>
+                                                            <p className={`font-bold mt-1 ${(supplier.price_variance_pct || 0) > 8 ? 'text-rose-400' : 'text-white'}`}>
+                                                                {Math.round(supplier.price_variance_pct || 0)}%
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {supplier.recent_incidents?.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {supplier.recent_incidents.map((incident: string, index: number) => (
+                                                                <span
+                                                                    key={`${supplier.supplier_key}-${index}`}
+                                                                    className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px]"
+                                                                >
+                                                                    {incident}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="glass-card p-6 space-y-4">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Synthese IA</p>
+                                                <p className="text-sm text-slate-400 mt-1">Recommandations calcules sur la selection en cours.</p>
+                                            </div>
+                                            {procurementOverview.recommendations.length === 0 ? (
+                                                <p className="text-sm text-slate-400">Aucun signal critique detecte. Les boutiques peuvent continuer leurs achats normalement.</p>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {procurementOverview.recommendations.map((recommendation: string, index: number) => (
+                                                        <div key={index} className="p-4 rounded-2xl bg-primary/5 border border-primary/10 text-sm text-slate-200 flex gap-3">
+                                                            <Zap size={16} className="text-primary mt-0.5 shrink-0" />
+                                                            <span>{recommendation}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="glass-card p-6 space-y-4">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Boutiques</p>
+                                                <p className="text-sm text-slate-400 mt-1">Vue consolidee, sans perturber les responsables locaux.</p>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {procurementOverview.store_summaries.length === 0 ? (
+                                                    <p className="text-sm text-slate-500">Aucune boutique active sur ce perimetre.</p>
+                                                ) : procurementOverview.store_summaries.map((store: any) => (
+                                                    <div key={store.store_id} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-2">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-sm font-bold text-white">{store.store_name}</p>
+                                                            <span className="text-xs text-slate-400">{store.active_suppliers} fournisseur(s)</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                                            <div>
+                                                                <p className="text-slate-500 uppercase font-black text-[10px]">Depense</p>
+                                                                <p className="text-white font-bold mt-1">{formatCurrency(store.spent || 0)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-slate-500 uppercase font-black text-[10px]">Ouvertes</p>
+                                                                <p className="text-amber-400 font-bold mt-1">{store.open_orders || 0}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-slate-500 uppercase font-black text-[10px]">A reappro</p>
+                                                                <p className="text-rose-400 font-bold mt-1">{store.critical_replenishments || 0}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    <div className="glass-card p-6 space-y-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Suggestions locales</p>
+                                            <p className="text-sm text-slate-400 mt-1">Aides a l'appro par boutique, jamais forcees.</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {procurementOverview.local_suggestions.length === 0 ? (
+                                                <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                                    <CheckCircle size={32} className="mx-auto text-emerald-500/50 mb-3" />
+                                                    <p className="text-sm text-slate-500 font-bold uppercase">Aucun besoin local critique</p>
+                                                </div>
+                                            ) : procurementOverview.local_suggestions.map((suggestion: any) => (
+                                                <div key={`${suggestion.store_id}-${suggestion.product_id}`} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-3">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{suggestion.product_name}</p>
+                                                            <p className="text-xs text-slate-400 mt-1">{suggestion.store_name} · {suggestion.supplier_name}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-primary">{formatCurrency(suggestion.estimated_total || 0)}</p>
+                                                            <p className="text-[10px] text-slate-500 uppercase">Budget estime</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Actuel</p>
+                                                            <p className="text-white font-bold mt-1">{suggestion.current_quantity}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Min</p>
+                                                            <p className="text-white font-bold mt-1">{suggestion.min_stock}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">A commander</p>
+                                                            <p className="text-emerald-400 font-bold mt-1">{suggestion.suggested_quantity}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="glass-card p-6 space-y-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Opportunites d'achat groupe</p>
+                                            <p className="text-sm text-slate-400 mt-1">Suggestions consolidees pour gagner du volume, sans imposer une commande centrale.</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {procurementOverview.group_opportunities.length === 0 ? (
+                                                <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                                    <Truck size={32} className="mx-auto text-slate-700 mb-3" />
+                                                    <p className="text-sm text-slate-500 font-bold uppercase">Aucune opportunite groupee detectee</p>
+                                                </div>
+                                            ) : procurementOverview.group_opportunities.map((opportunity: any) => (
+                                                <div key={`${opportunity.supplier_id || 'marketplace'}-${opportunity.supplier_name}`} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-3">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{opportunity.supplier_name}</p>
+                                                            <p className="text-xs text-slate-400 mt-1">{opportunity.stores_count} boutique(s) impliquee(s)</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-primary">{formatCurrency(opportunity.total_estimated_amount || 0)}</p>
+                                                            <p className="text-[10px] text-slate-500 uppercase">Total estime</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {opportunity.stores.map((store: any) => (
+                                                            <div key={`${opportunity.supplier_name}-${store.store_id}`} className="flex items-center justify-between gap-3 text-xs bg-white/5 rounded-xl px-3 py-2">
+                                                                <span className="text-slate-300">{store.store_name}</span>
+                                                                <span className="text-slate-400">{store.items_count} article(s)</span>
+                                                                <span className="text-white font-bold">{formatCurrency(store.estimated_total || 0)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 )}
@@ -1462,6 +1861,144 @@ export default function Suppliers() {
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats?.pending_orders || 0}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseigné'}</span></div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                    <div className="p-5 bg-primary/5 border border-primary/20 rounded-3xl">
+                                        <p className="text-[10px] font-black text-primary/60 uppercase">Score fournisseur</p>
+                                        <p className="text-xl font-black text-white">{supplierStats?.score || 0}/100</p>
+                                        <span className={`inline-flex mt-3 px-2 py-1 rounded-full text-[10px] font-bold border ${getScoreStyle(supplierStats?.score_label)}`}>
+                                            {supplierStats?.score_label?.replace('_', ' ') || 'non classe'}
+                                        </span>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">A l'heure</p>
+                                        <p className="text-xl font-black text-emerald-400">{Math.round(supplierStats?.on_time_rate || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Livraison complete: {Math.round(supplierStats?.full_delivery_rate || 0)}%</p>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Livraison partielle</p>
+                                        <p className="text-xl font-black text-amber-400">{Math.round(supplierStats?.partial_delivery_rate || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Annulation: {Math.round(supplierStats?.cancel_rate || 0)}%</p>
+                                    </div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Variance prix</p>
+                                        <p className={`text-xl font-black ${(supplierStats?.price_variance_pct || 0) > 8 ? 'text-rose-400' : 'text-white'}`}>{Math.round(supplierStats?.price_variance_pct || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Panier moyen: {formatCurrency(supplierStats?.average_order_value || 0)}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                    <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Incidents recents</p>
+                                            <p className="text-sm text-slate-400 mt-1">Retards, annulations ou livraisons partielles detectes sur ce fournisseur.</p>
+                                        </div>
+                                        {supplierStats?.recent_incidents?.length ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {supplierStats.recent_incidents.map((incident: string, index: number) => (
+                                                    <span key={index} className="px-3 py-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                                                        {incident}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="py-8 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                                <CheckCircle size={28} className="mx-auto text-emerald-500/50 mb-3" />
+                                                <p className="text-sm text-slate-500 font-bold uppercase">Aucun incident recent</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Repartition par boutique</p>
+                                            <p className="text-sm text-slate-400 mt-1">Pour piloter sans casser l'autonomie des responsables locaux.</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {supplierStats?.store_breakdown?.length ? supplierStats.store_breakdown.map((store: any) => (
+                                                <div key={store.store_id || store.store_name} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <p className="text-sm font-bold text-white">{store.store_name}</p>
+                                                        <span className="text-xs text-slate-400">{store.orders_count} commande(s)</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-2 text-xs mt-3">
+                                                        <div>
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Depense</p>
+                                                            <p className="text-white font-bold mt-1">{formatCurrency(store.total_spent || 0)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Ouvertes</p>
+                                                            <p className="text-amber-400 font-bold mt-1">{store.open_orders || 0}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Livrees</p>
+                                                            <p className="text-emerald-400 font-bold mt-1">{store.delivered_orders || 0}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <p className="text-sm text-slate-500">Aucune ventilation par boutique disponible.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Historique de prix</p>
+                                        <p className="text-sm text-slate-400 mt-1">Suivez les variations recentes et comparez avec les autres fournisseurs lies.</p>
+                                    </div>
+                                    {supplierPriceHistory.length === 0 ? (
+                                        <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
+                                            <History size={32} className="mx-auto text-slate-700 mb-3" />
+                                            <p className="text-sm text-slate-500 font-bold uppercase">Pas encore d'historique de prix exploitable</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                                            {supplierPriceHistory.map((item: any) => (
+                                                <div key={item.product_id} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-3">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{item.product_name}</p>
+                                                            <p className="text-xs text-slate-500 mt-1">Derniere commande: {item.last_ordered_at ? formatDate(item.last_ordered_at) : 'jamais'}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-primary">{formatCurrency(item.current_supplier_price || 0)}</p>
+                                                            <p className="text-[10px] text-slate-500 uppercase">Prix actuel</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Dernier prix</p>
+                                                            <p className="text-white font-bold mt-1">{formatCurrency(item.last_order_price || 0)}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Moy. 30j</p>
+                                                            <p className="text-white font-bold mt-1">{formatCurrency(item.average_price_30d || 0)}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Moy. 90j</p>
+                                                            <p className="text-white font-bold mt-1">{formatCurrency(item.average_price_90d || 0)}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Min/Max 90j</p>
+                                                            <p className="text-white font-bold mt-1">{formatCurrency(item.min_price_90d || 0)} / {formatCurrency(item.max_price_90d || 0)}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-xl p-3">
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Variation</p>
+                                                            <p className={`font-bold mt-1 ${(item.latest_change_pct || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{Math.round(item.latest_change_pct || 0)}%</p>
+                                                        </div>
+                                                    </div>
+                                                    {item.competitor_prices?.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {item.competitor_prices.slice(0, 4).map((competitor: any, index: number) => (
+                                                                <span key={`${item.product_id}-${index}`} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                                                                    {competitor.supplier_name}: {formatCurrency(competitor.supplier_price || 0)}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
                                     <div className="flex items-center justify-between gap-4">

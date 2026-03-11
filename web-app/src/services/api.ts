@@ -260,8 +260,15 @@ export type User = {
     store_permissions?: StorePermissions;
     plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
     effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+    subscription_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
     subscription_status?: 'active' | 'expired' | 'cancelled';
     effective_subscription_status?: 'active' | 'expired' | 'cancelled';
+    subscription_access_phase?: 'active' | 'grace' | 'restricted' | 'read_only';
+    grace_until?: string | null;
+    read_only_after?: string | null;
+    requires_payment_attention?: boolean;
+    can_write_data?: boolean;
+    can_use_advanced_features?: boolean;
     currency?: string;
     business_type?: string;
     active_store_id?: string;
@@ -274,6 +281,54 @@ export type User = {
     verification_completed_at?: string | null;
     can_access_app?: boolean;
     can_access_web?: boolean;
+};
+
+export type PricingPlanQuote = {
+    plan: 'starter' | 'pro' | 'enterprise';
+    currency: string;
+    display_currency: string;
+    amount: string;
+    display_price: string;
+    provider: 'flutterwave' | 'stripe';
+};
+
+export type PricingPublicResponse = {
+    country_code: string;
+    requested_currency?: string | null;
+    currency: string;
+    display_currency: string;
+    pricing_region: string;
+    recommended_checkout_provider: 'flutterwave' | 'stripe';
+    use_mobile_money: boolean;
+    can_change_billing_country: boolean;
+    fallback_used?: boolean;
+    plans: Record<'starter' | 'pro' | 'enterprise', PricingPlanQuote>;
+};
+
+export type SubscriptionData = {
+    plan: 'trial' | 'starter' | 'pro' | 'enterprise';
+    effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+    status: 'active' | 'expired' | 'cancelled';
+    subscription_access_phase?: 'active' | 'grace' | 'restricted' | 'read_only';
+    grace_until?: string | null;
+    read_only_after?: string | null;
+    requires_payment_attention?: boolean;
+    can_write_data?: boolean;
+    can_use_advanced_features?: boolean;
+    trial_ends_at?: string;
+    subscription_end?: string;
+    subscription_provider: 'none' | 'revenuecat' | 'flutterwave' | 'stripe' | '';
+    remaining_days: number;
+    is_trial: boolean;
+    country_code: string;
+    currency: string;
+    pricing_region: string;
+    effective_prices: Record<'starter' | 'pro' | 'enterprise', PricingPlanQuote>;
+    recommended_checkout_provider: 'flutterwave' | 'stripe';
+    can_change_billing_country: boolean;
+    billing_contact_name?: string;
+    billing_contact_email?: string;
+    use_mobile_money?: boolean;
 };
 
 export type DashboardLayoutSettings = {
@@ -292,6 +347,56 @@ export type DashboardLayoutSettings = {
     show_profitability: boolean;
 };
 
+export type NotificationChannel = 'in_app' | 'push' | 'email';
+export type NotificationSeverity = 'info' | 'warning' | 'critical';
+
+export type NotificationContactMap = {
+    default: string[];
+    stock: string[];
+    procurement: string[];
+    finance: string[];
+    crm: string[];
+    operations: string[];
+    billing: string[];
+};
+
+export type NotificationPreferences = {
+    in_app: boolean;
+    push: boolean;
+    email: boolean;
+    minimum_severity_for_push: NotificationSeverity;
+    minimum_severity_for_email: NotificationSeverity;
+};
+
+export type AlertRule = {
+    rule_id: string;
+    user_id: string;
+    account_id?: string;
+    type: string;
+    scope: 'account' | 'store';
+    store_id?: string | null;
+    enabled: boolean;
+    threshold_percentage?: number | null;
+    notification_channels: NotificationChannel[];
+    recipient_keys: (keyof NotificationContactMap)[];
+    recipient_emails: string[];
+    minimum_severity?: NotificationSeverity | null;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type AlertRuleCreate = {
+    type: string;
+    scope?: 'account' | 'store';
+    store_id?: string | null;
+    enabled?: boolean;
+    threshold_percentage?: number | null;
+    notification_channels?: NotificationChannel[];
+    recipient_keys?: (keyof NotificationContactMap)[];
+    recipient_emails?: string[];
+    minimum_severity?: NotificationSeverity | null;
+};
+
 export type UserSettings = {
     user_id?: string;
     account_id?: string;
@@ -301,6 +406,9 @@ export type UserSettings = {
     modules: Record<string, boolean>;
     simple_mode: boolean;
     push_notifications?: boolean;
+    notification_preferences?: NotificationPreferences;
+    notification_contacts?: NotificationContactMap;
+    store_notification_contacts?: NotificationContactMap;
     tax_enabled?: boolean;
     tax_rate?: number;
     tax_mode?: 'ttc' | 'ht';
@@ -337,6 +445,7 @@ export type Store = {
     name: string;
     address?: string;
     currency?: string;
+    store_notification_contacts?: NotificationContactMap;
     receipt_business_name?: string;
     receipt_footer?: string;
     invoice_business_name?: string;
@@ -532,6 +641,137 @@ export type SupplierStats = {
     pending_orders: number;
     avg_delivery_days: number;
     delivered_count: number;
+    partially_delivered_count?: number;
+    cancelled_count?: number;
+    on_time_rate?: number;
+    full_delivery_rate?: number;
+    partial_delivery_rate?: number;
+    cancel_rate?: number;
+    price_variance_pct?: number;
+    average_order_value?: number;
+    order_frequency_days?: number;
+    score?: number;
+    score_label?: 'fiable' | 'a_surveiller' | 'risque';
+    recent_incidents?: string[];
+    store_breakdown?: {
+        store_id?: string;
+        store_name: string;
+        orders_count: number;
+        open_orders: number;
+        delivered_orders: number;
+        total_spent: number;
+    }[];
+};
+
+export type SupplierPriceHistoryPoint = {
+    order_id: string;
+    store_id?: string;
+    store_name: string;
+    date?: string | null;
+    unit_price: number;
+    quantity: number;
+    total_price: number;
+};
+
+export type SupplierCompetitorPrice = {
+    supplier_id?: string;
+    supplier_name: string;
+    supplier_price: number;
+    is_preferred?: boolean;
+};
+
+export type SupplierPriceHistoryItem = {
+    product_id: string;
+    product_name: string;
+    unit: string;
+    current_supplier_price: number;
+    last_order_price: number;
+    average_price_30d?: number | null;
+    average_price_90d?: number | null;
+    min_price_90d?: number | null;
+    max_price_90d?: number | null;
+    latest_change_pct: number;
+    last_ordered_at?: string | null;
+    points: SupplierPriceHistoryPoint[];
+    competitor_prices: SupplierCompetitorPrice[];
+};
+
+export type ProcurementOverview = {
+    days: number;
+    scope_label: string;
+    recommendations: string[];
+    approval: {
+        workflow_enabled: boolean;
+        pending_orders: number;
+    };
+    kpis: {
+        total_spend: number;
+        open_orders: number;
+        suppliers_count: number;
+        average_supplier_score: number;
+        group_opportunities: number;
+        local_replenishment_items: number;
+    };
+    supplier_ranking: {
+        supplier_key: string;
+        supplier_id?: string;
+        supplier_name: string;
+        kind: 'manual' | 'marketplace';
+        stores_count: number;
+        orders_count: number;
+        open_orders: number;
+        total_spend: number;
+        avg_order_value: number;
+        avg_lead_time_days: number;
+        on_time_rate: number;
+        full_delivery_rate: number;
+        partial_delivery_rate: number;
+        cancel_rate: number;
+        price_variance_pct: number;
+        score: number;
+        score_label: 'fiable' | 'a_surveiller' | 'risque';
+        recent_incidents: string[];
+    }[];
+    store_summaries: {
+        store_id: string;
+        store_name: string;
+        spent: number;
+        open_orders: number;
+        critical_replenishments: number;
+        active_suppliers: number;
+    }[];
+    group_opportunities: {
+        supplier_id?: string;
+        supplier_name: string;
+        stores_count: number;
+        total_estimated_amount: number;
+        total_recommended_quantity: number;
+        stores: {
+            store_id?: string;
+            store_name: string;
+            items_count: number;
+            estimated_total: number;
+            items: {
+                product_id: string;
+                product_name: string;
+                suggested_quantity: number;
+                estimated_total: number;
+            }[];
+        }[];
+    }[];
+    local_suggestions: {
+        store_id: string;
+        store_name: string;
+        product_id: string;
+        product_name: string;
+        supplier_id?: string;
+        supplier_name: string;
+        current_quantity: number;
+        min_stock: number;
+        suggested_quantity: number;
+        supplier_price: number;
+        estimated_total: number;
+    }[];
 };
 
 export type SupplierProduct = {
@@ -586,6 +826,18 @@ export type CatalogProductData = {
     available: boolean;
     created_at: string;
     updated_at: string;
+};
+
+export type CatalogProductCreate = {
+    name: string;
+    description?: string;
+    category?: string;
+    subcategory?: string;
+    price?: number;
+    unit?: string;
+    min_order_quantity?: number;
+    stock_available?: number;
+    available?: boolean;
 };
 
 export type SupplierRatingData = {
@@ -659,6 +911,36 @@ export type OrderItem = {
 export type OrderFull = Order & {
     supplier: any;
     items: OrderItem[];
+};
+
+export type SupplierOrderData = Order & {
+    shopkeeper_name: string;
+    shopkeeper_user_id: string;
+    items_count: number;
+    items: OrderItem[];
+    items_preview?: string[];
+};
+
+export type SupplierDashboardData = {
+    catalog_products: number;
+    orders_by_status: Record<string, number>;
+    total_orders: number;
+    total_revenue: number;
+    rating_average: number;
+    rating_count: number;
+    recent_orders: Order[];
+    pending_action: number;
+    revenue_this_month: number;
+    avg_order_value: number;
+    active_clients: number;
+    top_products: { name: string; total_qty: number }[];
+};
+
+export type SupplierClientData = {
+    id: string;
+    name: string;
+    latest_order_at?: string;
+    total_orders: number;
 };
 
 export type MatchSuggestion = {
@@ -1081,7 +1363,7 @@ export const auth = {
             body: { email, password },
         }),
     me: () => request<User>('/auth/me'),
-    updateProfile: (data: { name?: string; currency?: string; business_type?: string }) =>
+    updateProfile: (data: { name?: string; currency?: string; country_code?: string; business_type?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
     register: (data: {
         email: string; password: string; name: string;
@@ -1393,20 +1675,22 @@ export const accounting = {
         if (endDate) qs.set('end_date', endDate);
         return request<any>(`/grand-livre?${qs.toString()}`);
     },
-    getSalesHistory: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+    getSalesHistory: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50, storeId?: string) => {
         const qs = new URLSearchParams();
         if (days) qs.set('days', days.toString());
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
+        if (storeId) qs.set('store_id', storeId);
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<{ items: AccountingSaleHistoryItem[]; total: number }>(`/accounting/sales-history?${qs.toString()}`);
     },
-    getInvoices: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
+    getInvoices: (days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50, storeId?: string) => {
         const qs = new URLSearchParams();
         if (days) qs.set('days', days.toString());
         if (startDate) qs.set('start_date', startDate);
         if (endDate) qs.set('end_date', endDate);
+        if (storeId) qs.set('store_id', storeId);
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<{ items: CustomerInvoice[]; total: number }>(`/invoices?${qs.toString()}`);
@@ -1498,12 +1782,17 @@ export const suppliers = {
     delete: (id: string) => request<any>(`/suppliers/${id}`, { method: 'DELETE' }),
     getProducts: (id: string) => request<SupplierProductLink[]>(`/suppliers/${id}/products`),
     getStats: (id: string) => request<SupplierStats>(`/suppliers/${id}/stats`),
+    getPriceHistory: (id: string) => request<SupplierPriceHistoryItem[]>(`/suppliers/${id}/price-history`),
     getInvoices: (id: string) => request<SupplierInvoice[]>(`/suppliers/${id}/invoices`),
     createInvoice: (id: string, data: Partial<SupplierInvoice>) =>
         request<SupplierInvoice>(`/suppliers/${id}/invoices`, { method: 'POST', body: data }),
     getLogs: (id: string) => request<SupplierCommunicationLog[]>(`/suppliers/${id}/logs`),
     createLog: (id: string, data: SupplierLogCreate) =>
         request<SupplierCommunicationLog>(`/suppliers/${id}/logs`, { method: 'POST', body: data }),
+};
+
+export const procurementAnalytics = {
+    getOverview: (days = 90) => request<ProcurementOverview>(`/analytics/procurement/overview?days=${days}`),
 };
 
 export const supplierProducts = {
@@ -1674,15 +1963,25 @@ export const subUsers = {
 };
 
 export const alertRules = {
-    list: () => request<any[]>('/alert-rules'),
-    create: (data: any) => request<any>('/alert-rules', { method: 'POST', body: data }),
-    update: (id: string, data: any) => request<any>(`/alert-rules/${id}`, { method: 'PUT', body: data }),
+    list: () => request<AlertRule[]>('/alert-rules'),
+    create: (data: AlertRuleCreate) => request<AlertRule>('/alert-rules', { method: 'POST', body: data }),
+    update: (id: string, data: AlertRuleCreate) => request<AlertRule>(`/alert-rules/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/alert-rules/${id}`, { method: 'DELETE' }),
 };
 
+export const pricing = {
+    getPublic: (countryCode?: string, currency?: string) => {
+        const qs = new URLSearchParams();
+        if (countryCode) qs.set('country_code', countryCode);
+        if (currency) qs.set('currency', currency);
+        const suffix = qs.toString() ? `?${qs.toString()}` : '';
+        return request<PricingPublicResponse>(`/pricing/public${suffix}`);
+    },
+};
+
 export const subscription = {
-    getDetails: () => request<any>('/subscription/me'),
-    sync: () => request<any>('/subscription/sync', { method: 'POST' }),
+    getDetails: () => request<SubscriptionData>('/subscription/me'),
+    sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
     checkout: (plan: string) => request<{ payment_url: string; transaction_id: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
     stripeCheckout: (plan: string) => request<{ checkout_url: string; session_id: string }>(`/billing/stripe-checkout?plan=${plan}`, { method: 'POST' }),
 };
@@ -1695,6 +1994,7 @@ export const stores = {
         name?: string;
         address?: string;
         currency?: string;
+        store_notification_contacts?: NotificationContactMap;
         receipt_business_name?: string;
         receipt_footer?: string;
         invoice_business_name?: string;
@@ -1722,6 +2022,19 @@ export const admin = {
     getOtpStats: (days = 30) => request<any>(`/admin/stats/otp?days=${days}`),
     getEnterpriseSignupStats: (days = 30) => request<any>(`/admin/stats/enterprise-signups?days=${days}`),
     getConversionStats: () => request<any>('/admin/stats/conversion'),
+    getSubscriptionsOverview: (days = 30) => request<any>(`/admin/subscriptions/overview?days=${days}`),
+    listSubscriptionAccounts: (params?: { search?: string; status?: string; plan?: string; provider?: string; country_code?: string; skip?: number; limit?: number }) => {
+        const query = new URLSearchParams(params as any || {}).toString();
+        return request<{ items: any[]; total: number }>(`/admin/subscriptions/accounts${query ? `?${query}` : ''}`);
+    },
+    listSubscriptionEvents: (params?: { provider?: string; event_type?: string; source?: string; account_id?: string; status?: string; skip?: number; limit?: number }) => {
+        const query = new URLSearchParams(params as any || {}).toString();
+        return request<{ items: any[]; total: number }>(`/admin/subscriptions/events${query ? `?${query}` : ''}`);
+    },
+    getSubscriptionAlerts: () => request<any>('/admin/subscriptions/alerts'),
+    grantSubscriptionGrace: (accountId: string, days = 7, note?: string) => request<any>(`/admin/subscriptions/${accountId}/grace?days=${days}`, { method: 'POST', body: { note } }),
+    enableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=true`, { method: 'POST', body: { note } }),
+    disableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=false`, { method: 'POST', body: { note } }),
     listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
         const query = new URLSearchParams(params as any || {}).toString();
         return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
@@ -1798,23 +2111,53 @@ export const chat = {
     getUnreadCount: () => request<{ unread: number }>('/conversations/unread-count'),
 };
 
+export const supplierProfile = {
+    get: () => request<SupplierProfileData>('/supplier/profile'),
+    create: (data: {
+        company_name: string;
+        description?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        categories?: string[];
+        delivery_zones?: string[];
+        min_order_amount?: number;
+        average_delivery_days?: number;
+    }) => request<SupplierProfileData>('/supplier/profile', { method: 'POST', body: data }),
+    update: (data: {
+        company_name: string;
+        description?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        categories?: string[];
+        delivery_zones?: string[];
+        min_order_amount?: number;
+        average_delivery_days?: number;
+    }) => request<SupplierProfileData>('/supplier/profile', { method: 'PUT', body: data }),
+};
+
 export const supplierDashboard = {
-    get: () => request<any>('/supplier/dashboard'),
+    get: () => request<SupplierDashboardData>('/supplier/dashboard'),
+    getRatings: () => request<SupplierRatingData[]>('/supplier/ratings'),
 };
 
 export const supplierOrders = {
-    list: (status?: string, skip = 0, limit = 50) => {
+    list: (status?: string, shopkeeperUserId?: string, startDate?: string, endDate?: string) => {
         const qs = new URLSearchParams();
         if (status) qs.set('status', status);
-        qs.set('skip', skip.toString());
-        qs.set('limit', limit.toString());
-        return request<any>(`/supplier/orders?${qs.toString()}`);
+        if (shopkeeperUserId) qs.set('shopkeeper_user_id', shopkeeperUserId);
+        if (startDate) qs.set('start_date', startDate);
+        if (endDate) qs.set('end_date', endDate);
+        return request<SupplierOrderData[]>(`/supplier/orders?${qs.toString()}`);
     },
+    getClients: () => request<SupplierClientData[]>('/supplier/clients'),
     updateStatus: (id: string, status: string) => request<any>(`/supplier/orders/${id}/status`, { method: 'PUT', body: { status } }),
 };
 
 export const supplierCatalog = {
-    list: (skip = 0, limit = 50) => request<any>(`/supplier/catalog?skip=${skip}&limit=${limit}`),
-    update: (id: string, data: any) => request<any>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
-    delete: (id: string) => request<any>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
+    list: () => request<CatalogProductData[]>('/supplier/catalog'),
+    create: (data: CatalogProductCreate) => request<CatalogProductData>('/supplier/catalog', { method: 'POST', body: data }),
+    update: (id: string, data: CatalogProductCreate) => request<CatalogProductData>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
 };

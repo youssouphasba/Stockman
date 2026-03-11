@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  experimental: {
+    externalDir: true,
+  },
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
 import { auth, type AuthResponse } from '../services/api';
+import { COUNTRIES } from '../../../frontend/constants/countries';
 
 const SECTORS = [
   { key: 'epicerie', label: 'Epicerie', icon: '🛒' },
@@ -26,22 +27,6 @@ const SECTORS = [
   { key: 'forge', label: 'Forge', icon: '⚒️' },
   { key: 'artisanat', label: 'Artisanat', icon: '🧶' },
   { key: 'autre', label: 'Autre', icon: '🔀' },
-] as const;
-
-const COUNTRIES = [
-  { name: 'Senegal', code: 'SN', flag: '🇸🇳', dialCode: '+221', currency: 'XOF' },
-  { name: "Cote d'Ivoire", code: 'CI', flag: '🇨🇮', dialCode: '+225', currency: 'XOF' },
-  { name: 'Mali', code: 'ML', flag: '🇲🇱', dialCode: '+223', currency: 'XOF' },
-  { name: 'Burkina Faso', code: 'BF', flag: '🇧🇫', dialCode: '+226', currency: 'XOF' },
-  { name: 'Guinee', code: 'GN', flag: '🇬🇳', dialCode: '+224', currency: 'GNF' },
-  { name: 'Niger', code: 'NE', flag: '🇳🇪', dialCode: '+227', currency: 'XOF' },
-  { name: 'Benin', code: 'BJ', flag: '🇧🇯', dialCode: '+229', currency: 'XOF' },
-  { name: 'Togo', code: 'TG', flag: '🇹🇬', dialCode: '+228', currency: 'XOF' },
-  { name: 'Cameroun', code: 'CM', flag: '🇨🇲', dialCode: '+237', currency: 'XAF' },
-  { name: 'France', code: 'FR', flag: '🇫🇷', dialCode: '+33', currency: 'EUR' },
-  { name: 'Belgique', code: 'BE', flag: '🇧🇪', dialCode: '+32', currency: 'EUR' },
-  { name: 'Canada', code: 'CA', flag: '🇨🇦', dialCode: '+1', currency: 'CAD' },
-  { name: 'Etats-Unis', code: 'US', flag: '🇺🇸', dialCode: '+1', currency: 'USD' },
 ] as const;
 
 type Props = {

@@ -39,6 +39,34 @@ import LanguagePickerModal from '../../components/LanguagePickerModal';
 
 // Sector selection removed — defined at registration
 
+const DEFAULT_NOTIFICATION_CONTACTS = {
+  default: [] as string[],
+  stock: [] as string[],
+  procurement: [] as string[],
+  finance: [] as string[],
+  crm: [] as string[],
+  operations: [] as string[],
+  billing: [] as string[],
+};
+
+const DEFAULT_NOTIFICATION_PREFERENCES = {
+  in_app: true,
+  push: true,
+  email: false,
+  minimum_severity_for_push: 'warning' as 'info' | 'warning' | 'critical',
+  minimum_severity_for_email: 'critical' as 'info' | 'warning' | 'critical',
+};
+
+const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; label: string; placeholder: string }[] = [
+  { key: 'default', label: 'Par defaut', placeholder: 'direction@entreprise.com' },
+  { key: 'stock', label: 'Stock', placeholder: 'stock@entreprise.com' },
+  { key: 'procurement', label: 'Appro', placeholder: 'appro@entreprise.com' },
+  { key: 'finance', label: 'Finance', placeholder: 'finance@entreprise.com' },
+  { key: 'crm', label: 'CRM', placeholder: 'crm@entreprise.com' },
+  { key: 'operations', label: 'Operations', placeholder: 'ops@entreprise.com' },
+  { key: 'billing', label: 'Facturation', placeholder: 'billing@entreprise.com' },
+];
+
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -56,6 +84,9 @@ export default function SettingsScreen() {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [billingContactName, setBillingContactName] = useState('');
   const [billingContactEmail, setBillingContactEmail] = useState('');
+  const [notificationContacts, setNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
+  const [storeNotificationContacts, setStoreNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
+  const [notificationPreferences, setNotificationPreferences] = useState(DEFAULT_NOTIFICATION_PREFERENCES);
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [storeName, setStoreName] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
@@ -106,6 +137,9 @@ export default function SettingsScreen() {
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
       setBillingContactEmail(result?.billing_contact_email || '');
+      setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(result?.notification_contacts || {}) });
+      setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(result?.store_notification_contacts || {}) });
+      setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(result?.notification_preferences || {}) });
       const activeStore = (storesList || []).find((store) => store.store_id === user?.active_store_id) || null;
       setCurrentStore(activeStore);
       setStoreName(activeStore?.name || '');
@@ -174,6 +208,22 @@ export default function SettingsScreen() {
     try {
       const updated = await settingsApi.update({ push_notifications: !settingsData.push_notifications });
       setSettingsData(updated);
+      setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
+    } catch {
+      // ignore
+    }
+  }
+
+  async function toggleManagerZone() {
+    if (!settingsData) return;
+    try {
+      const updated = await settingsApi.update({
+        mobile_preferences: {
+          ...(settingsData.mobile_preferences || {}),
+          show_manager_zone: !(settingsData.mobile_preferences?.show_manager_zone ?? true),
+        },
+      } as any);
+      setSettingsData(updated);
     } catch {
       // ignore
     }
@@ -186,6 +236,95 @@ export default function SettingsScreen() {
       setSettingsData(updated);
     } catch {
       // ignore
+    }
+  }
+
+  function updateNotificationGroup(
+    setter: React.Dispatch<React.SetStateAction<typeof DEFAULT_NOTIFICATION_CONTACTS>>,
+    key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS,
+    value: string,
+  ) {
+    const emails = value.split(',').map((email) => email.trim()).filter(Boolean);
+    setter((current) => ({ ...current, [key]: emails }));
+  }
+
+  async function saveNotificationPreferences() {
+    try {
+      const updated = await settingsApi.update({
+        push_notifications: notificationPreferences.push,
+        notification_preferences: notificationPreferences,
+      } as any);
+      setSettingsData(updated);
+      setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible de mettre a jour vos notifications.');
+    }
+  }
+
+  async function saveNotificationContacts() {
+    try {
+      const updated = await settingsApi.update({
+        notification_contacts: notificationContacts,
+      } as any);
+      setSettingsData(updated);
+      setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.notification_contacts || {}) });
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible de mettre a jour les emails de notification.');
+    }
+  }
+
+  async function saveStoreNotificationContacts() {
+    try {
+      const updated = await settingsApi.update({
+        store_notification_contacts: storeNotificationContacts,
+      } as any);
+      setSettingsData(updated);
+      setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.store_notification_contacts || {}) });
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible de mettre a jour les emails de la boutique.');
+    }
+  }
+
+  async function saveActiveStoreSettings() {
+    if (!currentStore) return;
+    try {
+      const updatedStore = await storesApi.update(currentStore.store_id, {
+        name: storeName,
+        address: storeAddress,
+        receipt_business_name: receiptName,
+        receipt_footer: receiptFooter,
+        invoice_business_name: invoiceName,
+        invoice_business_address: invoiceAddress,
+        invoice_label: invoiceLabel,
+        invoice_prefix: invoicePrefix,
+        invoice_footer: invoiceFooter,
+        invoice_payment_terms: invoicePaymentTerms,
+      });
+      setCurrentStore(updatedStore);
+      setStoreName(updatedStore.name || '');
+      setStoreAddress(updatedStore.address || '');
+      setReceiptName(updatedStore.receipt_business_name || '');
+      setReceiptFooter(updatedStore.receipt_footer || '');
+      setInvoiceName(updatedStore.invoice_business_name || '');
+      setInvoiceAddress(updatedStore.invoice_business_address || '');
+      setInvoiceLabel(updatedStore.invoice_label || 'Facture');
+      setInvoicePrefix(updatedStore.invoice_prefix || 'FAC');
+      setInvoiceFooter(updatedStore.invoice_footer || '');
+      setInvoicePaymentTerms(updatedStore.invoice_payment_terms || '');
+      setSettingsData((prev) => prev ? ({
+        ...prev,
+        receipt_business_name: updatedStore.receipt_business_name,
+        receipt_footer: updatedStore.receipt_footer,
+        invoice_business_name: updatedStore.invoice_business_name,
+        invoice_business_address: updatedStore.invoice_business_address,
+        invoice_label: updatedStore.invoice_label,
+        invoice_prefix: updatedStore.invoice_prefix,
+        invoice_footer: updatedStore.invoice_footer,
+        invoice_payment_terms: updatedStore.invoice_payment_terms,
+      }) : prev);
+      Alert.alert(t('common.success'), 'Boutique mise a jour.');
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible de mettre a jour la boutique active.');
     }
   }
 
@@ -254,6 +393,31 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Portee des reglages</Text>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Mon profil</Text>
+              <Text style={styles.settingDesc}>Langue, mode simple, notifications et securite personnelle.</Text>
+            </View>
+            <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+          </View>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Ma boutique</Text>
+              <Text style={styles.settingDesc}>{currentStore?.name || 'Aucune boutique active'} - identite, recu et facture du point de vente actif.</Text>
+            </View>
+            <Ionicons name="storefront-outline" size={24} color={colors.info} />
+          </View>
+          <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Compte entreprise</Text>
+              <Text style={styles.settingDesc}>Facturation, modules et regles avancees. Le web reste la surface complete.</Text>
+            </View>
+            <Ionicons name="business-outline" size={24} color={colors.warning} />
+          </View>
+        </View>
+
         {/* App settings */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
@@ -297,6 +461,21 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {(isOrgAdmin || isBillingAdmin) && (
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>Zone manager</Text>
+                <Text style={styles.settingDesc}>Affiche ou masque les reglages avances de gestion sur mobile.</Text>
+              </View>
+              <Switch
+                value={settingsData?.mobile_preferences?.show_manager_zone ?? true}
+                onValueChange={toggleManagerZone}
+                trackColor={{ false: colors.divider, true: colors.primary + '60' }}
+                thumbColor={(settingsData?.mobile_preferences?.show_manager_zone ?? true) ? colors.primary : colors.textMuted}
+              />
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomWidth: 0 }]}
             onPress={() => setShowLanguageModal(true)}
@@ -306,6 +485,111 @@ export default function SettingsScreen() {
               <Text style={styles.settingDesc}>{i18n.language.toUpperCase()}</Text>
             </View>
             <Ionicons name="language-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Mes notifications</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
+            Choisissez comment vous souhaitez recevoir les alertes importantes sur votre profil.
+          </Text>
+
+          {[
+            { key: 'in_app', label: 'Dans l application', desc: 'Toujours visibles dans le centre d alertes.' },
+            { key: 'push', label: 'Push mobile', desc: 'Notification push sur votre appareil.' },
+            { key: 'email', label: 'Email', desc: 'Copie email sur votre adresse utilisateur.' },
+          ].map((item, index, array) => (
+            <View
+              key={item.key}
+              style={[
+                styles.settingRow,
+                index === array.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>{item.label}</Text>
+                <Text style={styles.settingDesc}>{item.desc}</Text>
+              </View>
+              <Switch
+                value={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences])}
+                onValueChange={(value) =>
+                  setNotificationPreferences((current) => ({
+                    ...current,
+                    [item.key]: value,
+                  }))
+                }
+                trackColor={{ false: colors.divider, true: colors.primary + '60' }}
+                thumbColor={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences]) ? colors.primary : colors.textMuted}
+              />
+            </View>
+          ))}
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
+            <Text style={styles.settingLabel}>Severite minimale pour les push</Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['info', 'warning', 'critical'] as const).map((severity) => (
+                <TouchableOpacity
+                  key={severity}
+                  style={[
+                    styles.syncButton,
+                    {
+                      flex: 1,
+                      backgroundColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary + '20' : 'transparent',
+                      borderColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.divider,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNotificationPreferences((current) => ({
+                      ...current,
+                      minimum_severity_for_push: severity,
+                    }))
+                  }
+                >
+                  <Text style={{ color: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
+            <Text style={styles.settingLabel}>Severite minimale pour les emails</Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['info', 'warning', 'critical'] as const).map((severity) => (
+                <TouchableOpacity
+                  key={severity}
+                  style={[
+                    styles.syncButton,
+                    {
+                      flex: 1,
+                      backgroundColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary + '20' : 'transparent',
+                      borderColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.divider,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNotificationPreferences((current) => ({
+                      ...current,
+                      minimum_severity_for_email: severity,
+                    }))
+                  }
+                >
+                  <Text style={{ color: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={saveNotificationPreferences}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer mes notifications
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -348,8 +632,8 @@ export default function SettingsScreen() {
 
         {isOrgAdmin && currentStore && (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Boutique active</Text>
-          <Text style={styles.settingDesc}>Mettez a jour le nom, l adresse et les documents de la boutique actuellement selectionnee.</Text>
+          <Text style={styles.sectionTitle}>Ma boutique</Text>
+          <Text style={styles.settingDesc}>Mettez a jour le nom et l adresse de la boutique actuellement selectionnee.</Text>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
             <TextInput
@@ -368,7 +652,24 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>Recu</Text>
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={saveActiveStoreSettings}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer ma boutique
+            </Text>
+          </TouchableOpacity>
+        </View>
+        )}
+
+        {isOrgAdmin && currentStore && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Documents de la boutique</Text>
+          <Text style={styles.settingDesc}>Recu et facture de la boutique active. Les regles avancees restent mieux gerees sur le web.</Text>
+
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.sm, marginBottom: Spacing.sm }]}>Recu</Text>
           <View style={{ gap: Spacing.sm }}>
             <TextInput
               style={styles.input}
@@ -434,50 +735,11 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
-            onPress={async () => {
-              try {
-                const updatedStore = await storesApi.update(currentStore.store_id, {
-                  name: storeName,
-                  address: storeAddress,
-                  receipt_business_name: receiptName,
-                  receipt_footer: receiptFooter,
-                  invoice_business_name: invoiceName,
-                  invoice_business_address: invoiceAddress,
-                  invoice_label: invoiceLabel,
-                  invoice_prefix: invoicePrefix,
-                  invoice_footer: invoiceFooter,
-                  invoice_payment_terms: invoicePaymentTerms,
-                });
-                setCurrentStore(updatedStore);
-                setStoreName(updatedStore.name || '');
-                setStoreAddress(updatedStore.address || '');
-                setReceiptName(updatedStore.receipt_business_name || '');
-                setReceiptFooter(updatedStore.receipt_footer || '');
-                setInvoiceName(updatedStore.invoice_business_name || '');
-                setInvoiceAddress(updatedStore.invoice_business_address || '');
-                setInvoiceLabel(updatedStore.invoice_label || 'Facture');
-                setInvoicePrefix(updatedStore.invoice_prefix || 'FAC');
-                setInvoiceFooter(updatedStore.invoice_footer || '');
-                setInvoicePaymentTerms(updatedStore.invoice_payment_terms || '');
-                setSettingsData((prev) => prev ? ({
-                  ...prev,
-                  receipt_business_name: updatedStore.receipt_business_name,
-                  receipt_footer: updatedStore.receipt_footer,
-                  invoice_business_name: updatedStore.invoice_business_name,
-                  invoice_business_address: updatedStore.invoice_business_address,
-                  invoice_label: updatedStore.invoice_label,
-                  invoice_prefix: updatedStore.invoice_prefix,
-                  invoice_footer: updatedStore.invoice_footer,
-                  invoice_payment_terms: updatedStore.invoice_payment_terms,
-                }) : prev);
-              } catch {
-                Alert.alert(t('common.error'), 'Impossible de mettre a jour la boutique active.');
-              }
-            }}
+            onPress={saveActiveStoreSettings}
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer la boutique et les documents
+              Enregistrer les documents
             </Text>
           </TouchableOpacity>
         </View>
@@ -487,6 +749,76 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Boutique active</Text>
           <Text style={styles.settingDesc}>Aucune boutique active n est selectionnee pour personnaliser les documents.</Text>
+        </View>
+        )}
+
+        {isOrgAdmin && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Emails de notification du compte</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
+            Utilises pour router les alertes entreprise par equipe ou par domaine.
+          </Text>
+          <View style={{ gap: Spacing.sm }}>
+            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+              <View key={field.key} style={{ gap: 6 }}>
+                <Text style={styles.settingLabel}>{field.label}</Text>
+                <Text style={styles.settingDesc}>Exemple: {field.placeholder}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={(notificationContacts[field.key] || []).join(', ')}
+                  onChangeText={(value) => updateNotificationGroup(setNotificationContacts, field.key, value)}
+                  placeholder="email1@entreprise.com, email2@entreprise.com"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={saveNotificationContacts}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer les emails du compte
+            </Text>
+          </TouchableOpacity>
+        </View>
+        )}
+
+        {isOrgAdmin && currentStore && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Emails de la boutique active</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
+            Surcharges locales pour {currentStore.name || 'la boutique active'} quand une alerte ne doit pas remonter a tout le compte.
+          </Text>
+          <View style={{ gap: Spacing.sm }}>
+            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+              <View key={field.key} style={{ gap: 6 }}>
+                <Text style={styles.settingLabel}>{field.label}</Text>
+                <Text style={styles.settingDesc}>Exemple: {field.placeholder}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={(storeNotificationContacts[field.key] || []).join(', ')}
+                  onChangeText={(value) => updateNotificationGroup(setStoreNotificationContacts, field.key, value)}
+                  placeholder="email1@boutique.com, email2@boutique.com"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={saveStoreNotificationContacts}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer les emails de la boutique
+            </Text>
+          </TouchableOpacity>
         </View>
         )}
 

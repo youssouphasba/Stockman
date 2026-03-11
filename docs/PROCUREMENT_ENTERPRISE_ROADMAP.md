@@ -1,5 +1,25 @@
 # Procurement Enterprise Roadmap
 
+## Etat
+
+`V1 partiellement implemente`
+
+Deja en place dans le code :
+
+- score fournisseur sur le web
+- historique des prix d'achat par fournisseur
+- suggestions locales par boutique
+- vue consolidee multi-boutiques achats
+- opportunites d'achat groupe
+- socle de workflow d'approbation non bloquant
+
+Reste pour les prochaines phases :
+
+- vraies regles configurables d'approbation
+- suggestions plus fines par saisonnalite et couverture
+- achats groupes convertis en workflow assiste
+- vues et exports encore plus detaillees
+
 ## Objectif
 
 Faire du web Enterprise le centre de pilotage de l'approvisionnement, sans bloquer

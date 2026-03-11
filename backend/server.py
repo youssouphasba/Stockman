@@ -21,6 +21,7 @@ import csv
 import io
 import asyncio
 import base64
+from decimal import Decimal, InvalidOperation
 from PIL import Image
 from starlette.responses import StreamingResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -40,17 +41,25 @@ from measurement_utils import (
 from enterprise_access import (
     ACCOUNT_SHARED_SETTING_FIELDS,
     BILLING_ADMIN_SETTING_FIELDS,
+    NOTIFICATION_CONTACT_KEYS,
+    NOTIFICATION_CHANNELS,
+    NOTIFICATION_SEVERITY_LEVELS,
     ORG_ADMIN_SETTING_FIELDS,
     PERMISSION_MODULES,
     STORE_SCOPED_SETTING_FIELDS,
     USER_SELF_SETTING_FIELDS,
     build_effective_access_context,
+    compute_subscription_access_policy,
     build_effective_permissions as compute_effective_permissions,
     default_dashboard_layout as shared_default_dashboard_layout,
     default_modules as shared_default_modules,
+    default_notification_contacts as shared_default_notification_contacts,
+    default_notification_preferences as shared_default_notification_preferences,
     is_billing_admin_doc as shared_is_billing_admin_doc,
     is_org_admin_doc as shared_is_org_admin_doc,
     merge_effective_settings,
+    normalize_notification_contacts,
+    normalize_notification_preferences,
     normalize_account_roles as shared_normalize_account_roles,
     normalize_plan as shared_normalize_plan,
     normalize_store_permissions,
@@ -59,6 +68,13 @@ from enterprise_access import (
     seed_business_account,
     user_can_access_store,
     user_has_operational_access as shared_user_has_operational_access,
+)
+from services.pricing import (
+    DEFAULT_COUNTRY_CODE,
+    DEFAULT_CURRENCY,
+    build_pricing_payload,
+    has_locked_billing_country,
+    resolve_plan_amount,
 )
 
 # Configure logging
@@ -441,6 +457,10 @@ async def create_indexes_and_init():
                 await db.users.create_index("email", unique=True)
                 await db.business_accounts.create_index("account_id", unique=True)
                 await db.business_accounts.create_index("owner_user_id")
+                await db.subscription_events.create_index("event_id", unique=True)
+                await db.subscription_events.create_index([("created_at", -1)])
+                await db.subscription_events.create_index([("account_id", 1), ("created_at", -1)])
+                await db.subscription_events.create_index([("provider", 1), ("created_at", -1)])
                 await db.customer_invoices.create_index("invoice_id", unique=True)
                 await db.customer_invoices.create_index([("user_id", 1), ("store_id", 1), ("issued_at", -1)])
                 await db.customer_invoices.create_index([("user_id", 1), ("sale_id", 1)], unique=True)
@@ -458,6 +478,7 @@ async def create_indexes_and_init():
                 await db.orders.create_index([("user_id", 1), ("supplier_id", 1), ("created_at", -1)])
                 await db.order_items.create_index("order_id")
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
+                await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
                 
                 # Performance indexes (Phase 42 - Optimization)
                 await db.stores.create_index("created_at")
@@ -635,6 +656,7 @@ class Store(BaseModel):
     invoice_footer: Optional[str] = None
     invoice_payment_terms: Optional[str] = None
     terminals: Optional[List[str]] = None
+    store_notification_contacts: Optional[Dict[str, List[str]]] = None
     tax_enabled: Optional[bool] = None
     tax_rate: Optional[float] = None
     tax_mode: Optional[str] = None
@@ -657,6 +679,7 @@ class StoreUpdate(BaseModel):
     invoice_footer: Optional[str] = None
     invoice_payment_terms: Optional[str] = None
     terminals: Optional[List[str]] = None
+    store_notification_contacts: Optional[Dict[str, List[str]]] = None
     tax_enabled: Optional[bool] = None
     tax_rate: Optional[float] = None
     tax_mode: Optional[str] = None
@@ -820,7 +843,15 @@ class User(UserBase):
     store_permissions: Dict[str, Dict[str, str]] = {}
     effective_permissions: Dict[str, str] = {}
     effective_plan: str = "starter"
+    subscription_plan: str = "starter"
     effective_subscription_status: str = "active"
+    subscription_access_phase: str = "active"
+    grace_until: Optional[datetime] = None
+    read_only_after: Optional[datetime] = None
+    manual_read_only_enabled: bool = False
+    requires_payment_attention: bool = False
+    can_write_data: bool = True
+    can_use_advanced_features: bool = True
     active_store_id: Optional[str] = None # The store currently being managed
     store_ids: List[str] = [] # List of stores this user has access to
     plan: str = "starter" # "starter", "pro", "enterprise" (legacy: "premium")
@@ -854,8 +885,12 @@ class BusinessAccount(BaseModel):
     subscription_provider_id: Optional[str] = None
     subscription_end: Optional[datetime] = None
     trial_ends_at: Optional[datetime] = None
+    manual_access_grace_until: Optional[datetime] = None
+    manual_read_only_enabled: bool = False
     currency: str = "XOF"
+    country_code: str = DEFAULT_COUNTRY_CODE
     modules: Dict[str, bool] = Field(default_factory=default_modules)
+    notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
     billing_contact_name: Optional[str] = None
     billing_contact_email: Optional[EmailStr] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -874,6 +909,7 @@ class UserUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     currency: Optional[str] = None
+    country_code: Optional[str] = None
     business_type: Optional[str] = None
 
 
@@ -1180,17 +1216,29 @@ class Alert(BaseModel):
 class AlertRule(BaseModel):
     rule_id: str = Field(default_factory=lambda: f"rule_{uuid.uuid4().hex[:12]}")
     user_id: str
+    account_id: Optional[str] = None
     type: str  # "low_stock", "out_of_stock", "overstock", "slow_moving"
+    scope: str = "account"  # "account" | "store"
+    store_id: Optional[str] = None
     enabled: bool = True
     threshold_percentage: Optional[int] = None  # e.g., 20% of max
     notification_channels: List[str] = ["in_app"]  # "in_app", "push", "email", "sms"
+    recipient_keys: List[str] = Field(default_factory=lambda: ["default"])
+    recipient_emails: List[str] = Field(default_factory=list)
+    minimum_severity: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class AlertRuleCreate(BaseModel):
     type: str
+    scope: str = "account"
+    store_id: Optional[str] = None
     enabled: bool = True
     threshold_percentage: Optional[int] = None
     notification_channels: List[str] = ["in_app"]
+    recipient_keys: List[str] = Field(default_factory=lambda: ["default"])
+    recipient_emails: List[str] = Field(default_factory=list)
+    minimum_severity: Optional[str] = None
 
 class LoyaltySettings(BaseModel):
     is_active: bool = True
@@ -1231,6 +1279,9 @@ class UserSettings(BaseModel):
     })
     language: str = "fr"
     push_notifications: bool = True
+    notification_preferences: Dict[str, Any] = Field(default_factory=shared_default_notification_preferences)
+    notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
+    store_notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
     dashboard_layout: Dict[str, bool] = Field(default_factory=default_dashboard_layout)
     # Multi-caisse
     terminals: List[str] = Field(default_factory=list)
@@ -1575,6 +1626,9 @@ class AdminMessageCreate(BaseModel):
     type: str = "broadcast"
     target: str = "all"
 
+class SubscriptionAdminActionRequest(BaseModel):
+    note: Optional[str] = None
+
 # ===================== SECURITY MODELS =====================
 
 class SecurityEvent(BaseModel):
@@ -1719,16 +1773,26 @@ def is_required_verification_complete(user_doc: dict) -> bool:
 
 
 def can_user_access_app(user_doc: dict) -> bool:
-    return is_required_verification_complete(user_doc)
+    if not is_required_verification_complete(user_doc):
+        return False
+    policy = compute_subscription_access_policy(user_doc)
+    return policy["subscription_access_phase"] in {"active", "grace", "restricted", "read_only"}
 
 
 def can_user_access_web(user_doc: dict, effective_plan: Optional[str] = None) -> bool:
     if not is_required_verification_complete(user_doc):
         return False
+    policy = compute_subscription_access_policy(user_doc)
     role = user_doc.get("role")
     if role in ("admin", "superadmin", "supplier"):
         return True
-    return normalize_plan(effective_plan or user_doc.get("effective_plan") or user_doc.get("plan")) == "enterprise"
+    normalized_plan = normalize_plan(effective_plan or user_doc.get("effective_plan") or user_doc.get("plan"))
+    if normalized_plan == "enterprise":
+        return True
+    return (
+        normalize_plan(user_doc.get("subscription_plan") or user_doc.get("plan")) == "enterprise"
+        and policy["subscription_access_phase"] in {"restricted", "read_only"}
+    )
 
 
 async def log_verification_event(
@@ -1836,9 +1900,23 @@ async def ensure_business_account_for_user_doc(user_doc: dict) -> Optional[dict]
             updates["business_type"] = owner_doc.get("business_type")
         if not account_doc.get("store_ids") and owner_doc.get("store_ids"):
             updates["store_ids"] = owner_doc.get("store_ids")
+        if not account_doc.get("country_code"):
+            updates["country_code"] = owner_doc.get("country_code", DEFAULT_COUNTRY_CODE)
         if not account_doc.get("modules"):
             owner_settings = await db.user_settings.find_one({"user_id": owner_id}, {"_id": 0}) or {}
             updates["modules"] = owner_settings.get("modules") or default_modules()
+        if not account_doc.get("notification_contacts"):
+            owner_settings = await db.user_settings.find_one({"user_id": owner_id}, {"_id": 0}) or {}
+            seeded_contacts = owner_settings.get("notification_contacts") or shared_default_notification_contacts()
+            if owner_doc.get("email"):
+                seeded_contacts = dict(seeded_contacts)
+                seeded_contacts.setdefault("default", [])
+                seeded_contacts.setdefault("billing", [])
+                if owner_doc["email"] not in seeded_contacts["default"]:
+                    seeded_contacts["default"] = [*seeded_contacts["default"], owner_doc["email"]]
+                if owner_doc["email"] not in seeded_contacts["billing"]:
+                    seeded_contacts["billing"] = [*seeded_contacts["billing"], owner_doc["email"]]
+            updates["notification_contacts"] = normalize_notification_contacts(seeded_contacts)
         if not account_doc.get("billing_contact_name") and owner_doc.get("name"):
             updates["billing_contact_name"] = owner_doc.get("name")
         if not account_doc.get("billing_contact_email") and owner_doc.get("email"):
@@ -1867,7 +1945,7 @@ async def update_business_account_for_owner(owner_id: str, updates: Dict[str, An
     await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": payload})
     legacy_updates = {k: v for k, v in updates.items() if k in {
         "plan", "subscription_status", "subscription_provider", "subscription_provider_id",
-        "subscription_end", "trial_ends_at", "business_type", "currency"
+        "subscription_end", "trial_ends_at", "business_type", "currency", "country_code"
     }}
     if legacy_updates:
         await db.users.update_one({"user_id": target_owner_id}, {"$set": legacy_updates})
@@ -1889,13 +1967,22 @@ async def build_user_from_doc(user_doc: dict) -> User:
     source_doc["effective_plan"] = access_context["effective_plan"]
     source_doc["effective_subscription_status"] = access_context["effective_subscription_status"]
     source_doc["plan"] = access_context["effective_plan"]
+    source_doc["subscription_plan"] = access_context["subscribed_plan"]
     source_doc["subscription_status"] = access_context["effective_subscription_status"]
+    source_doc["subscription_access_phase"] = access_context["subscription_access_phase"]
+    source_doc["grace_until"] = access_context["grace_until"]
+    source_doc["read_only_after"] = access_context["read_only_after"]
+    source_doc["manual_read_only_enabled"] = access_context["manual_read_only_enabled"]
+    source_doc["requires_payment_attention"] = access_context["requires_payment_attention"]
+    source_doc["can_write_data"] = access_context["can_write_data"]
+    source_doc["can_use_advanced_features"] = access_context["can_use_advanced_features"]
     source_doc["subscription_provider"] = (account_doc or {}).get("subscription_provider") or user_doc.get("subscription_provider", "none")
     source_doc["subscription_provider_id"] = (account_doc or {}).get("subscription_provider_id") or user_doc.get("subscription_provider_id")
     source_doc["subscription_end"] = (account_doc or {}).get("subscription_end") or user_doc.get("subscription_end")
     source_doc["trial_ends_at"] = (account_doc or {}).get("trial_ends_at") or user_doc.get("trial_ends_at")
     source_doc["business_type"] = (account_doc or {}).get("business_type") or user_doc.get("business_type")
-    source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", "XOF")
+    source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", DEFAULT_CURRENCY)
+    source_doc["country_code"] = (account_doc or {}).get("country_code") or user_doc.get("country_code", DEFAULT_COUNTRY_CODE)
     source_doc["is_email_verified"] = bool(user_doc.get("is_email_verified"))
     source_doc["required_verification"] = user_doc.get("required_verification")
     source_doc["verification_channel"] = user_doc.get("verification_channel") or user_doc.get("required_verification")
@@ -1960,7 +2047,16 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
 
 def require_permission(module: str, level: str = "read"):
     async def permission_checker(user: User = Depends(require_auth)):
-        if user.role == "superadmin" or "org_admin" in (user.account_roles or []):
+        if user.role == "superadmin":
+            return user
+
+        if level == "write" and not user.can_write_data:
+            raise HTTPException(
+                status_code=403,
+                detail="Ce compte est en lecture seule. Regularisez l'abonnement pour reprendre les modifications.",
+            )
+
+        if "org_admin" in (user.account_roles or []):
             return user
         
         user_perms = user.effective_permissions or user.permissions or {}
@@ -2000,6 +2096,36 @@ def has_operational_access_user(user: User) -> bool:
         return True
     user_perms = user.effective_permissions or user.permissions or {}
     return any(user_perms.get(module) in ("read", "write") for module in PERMISSION_MODULES)
+
+
+def ensure_subscription_write_allowed(
+    user: User,
+    detail: str = "Ce compte est en lecture seule. Regularisez l'abonnement pour reprendre les modifications.",
+) -> None:
+    if user.role == "superadmin":
+        return
+    if not user.can_write_data:
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def ensure_subscription_advanced_allowed(
+    user: User,
+    detail: str = "Cette action n'est plus disponible dans l'etat actuel de l'abonnement.",
+) -> None:
+    if user.role == "superadmin":
+        return
+    if not user.can_use_advanced_features:
+        raise HTTPException(status_code=403, detail=detail)
+
+
+async def require_write_access(user: User = Depends(require_auth)) -> User:
+    ensure_subscription_write_allowed(user)
+    return user
+
+
+async def require_advanced_access(user: User = Depends(require_auth)) -> User:
+    ensure_subscription_advanced_allowed(user)
+    return user
 
 
 def ensure_user_store_access(user: User, store_id: Optional[str], detail: str = "Accès refusé pour ce magasin") -> None:
@@ -2061,6 +2187,9 @@ async def require_org_admin(user: User = Depends(require_auth)) -> User:
 
 def require_procurement_access(level: str = "read"):
     async def procurement_checker(user: User = Depends(require_auth)) -> User:
+        if level == "write":
+            ensure_subscription_write_allowed(user)
+
         if is_org_admin_user(user):
             return user
 
@@ -2079,6 +2208,112 @@ async def require_superadmin(user: User = Depends(require_auth)) -> User:
     if user.role != "superadmin":
         raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
     return user
+
+
+def _iso_or_none(value: Any) -> Optional[str]:
+    if isinstance(value, datetime):
+        aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return aware.isoformat()
+    return None
+
+
+def _decimal_or_zero(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal("0")
+
+
+async def _build_subscription_event_context(
+    owner_user_id: Optional[str] = None,
+    account_id: Optional[str] = None,
+) -> tuple[Optional[dict], Optional[dict]]:
+    owner_doc = None
+    account_doc = None
+    if owner_user_id:
+        owner_doc = await db.users.find_one({"user_id": owner_user_id}, {"_id": 0})
+        if owner_doc:
+            account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    elif account_id:
+        account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+        if account_doc:
+            owner_user_id = account_doc.get("owner_user_id")
+            if owner_user_id:
+                owner_doc = await db.users.find_one({"user_id": owner_user_id}, {"_id": 0})
+    return owner_doc, account_doc
+
+
+async def log_subscription_event(
+    *,
+    event_type: str,
+    provider: str,
+    source: str,
+    owner_user_id: Optional[str] = None,
+    account_id: Optional[str] = None,
+    plan: Optional[str] = None,
+    status: Optional[str] = None,
+    amount: Optional[Any] = None,
+    currency: Optional[str] = None,
+    country_code: Optional[str] = None,
+    provider_reference: Optional[str] = None,
+    message: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    try:
+        owner_doc, account_doc = await _build_subscription_event_context(owner_user_id, account_id)
+        source_doc = account_doc or owner_doc or {}
+        normalized_plan = normalize_plan(plan or source_doc.get("plan"))
+        resolved_currency = (currency or source_doc.get("currency") or DEFAULT_CURRENCY).upper()
+        resolved_country = (country_code or source_doc.get("country_code") or DEFAULT_COUNTRY_CODE).upper()
+        resolved_amount = amount
+        if resolved_amount is None and normalized_plan:
+            try:
+                pricing = resolve_plan_amount(normalized_plan, resolved_currency, country_code=resolved_country)
+                resolved_amount = pricing.get("amount")
+                resolved_currency = pricing.get("currency", resolved_currency)
+            except Exception:
+                resolved_amount = None
+
+        await db.subscription_events.insert_one({
+            "event_id": f"subevt_{uuid.uuid4().hex[:12]}",
+            "event_type": event_type,
+            "provider": provider,
+            "source": source,
+            "account_id": account_id or (account_doc or {}).get("account_id"),
+            "owner_user_id": owner_user_id or (owner_doc or {}).get("user_id") or (account_doc or {}).get("owner_user_id"),
+            "plan": normalized_plan,
+            "status": status or source_doc.get("subscription_status") or "unknown",
+            "amount": str(resolved_amount) if resolved_amount is not None else None,
+            "currency": resolved_currency,
+            "country_code": resolved_country,
+            "provider_reference": provider_reference,
+            "message": message,
+            "metadata": metadata or {},
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception as exc:
+        logger.warning("Could not log subscription event %s/%s: %s", provider, event_type, exc)
+
+
+def _is_paying_account(account: dict) -> bool:
+    provider = account.get("subscription_provider") or "none"
+    return provider not in ("none", "", None) or bool(account.get("subscription_end"))
+
+
+def _account_display_name(account: dict, owner: Optional[dict]) -> str:
+    for value in (
+        account.get("invoice_business_name"),
+        account.get("receipt_business_name"),
+        account.get("billing_contact_name"),
+        account.get("business_name"),
+        (owner or {}).get("store_name"),
+        (owner or {}).get("name"),
+        (owner or {}).get("email"),
+        account.get("account_id"),
+    ):
+        if value:
+            return str(value)
+    return "Compte sans nom"
 
 @api_router.get("/public/leads")
 async def get_leads(admin: User = Depends(require_superadmin)):
@@ -2109,13 +2344,35 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
         user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
         user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
         user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
-    user_currency = user_doc.get("currency", "XOF")
+        user_doc["country_code"] = account_doc.get("country_code", user_doc.get("country_code"))
+    pricing_payload = build_pricing_payload(
+        country_code=user_doc.get("country_code") or DEFAULT_COUNTRY_CODE,
+        currency=user_doc.get("currency") or DEFAULT_CURRENCY,
+        locked=has_locked_billing_country(account_doc or user_doc),
+    )
+    if pricing_payload["recommended_checkout_provider"] != "flutterwave":
+        raise HTTPException(status_code=400, detail="Ce compte doit utiliser le paiement par carte pour cette devise.")
+    user_doc["currency"] = pricing_payload["currency"]
+    user_doc["country_code"] = pricing_payload["country_code"]
+    user_currency = user_doc.get("currency", DEFAULT_CURRENCY)
     if user_currency not in FLUTTERWAVE_CURRENCIES:
         raise HTTPException(status_code=400, detail=f"Flutterwave Mobile Money ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
     try:
         session = await create_flutterwave_session(user_doc, plan)
     except Exception as e:
         logger.error(f"Flutterwave session error for {owner_id}: {e}")
+        await log_subscription_event(
+            event_type="checkout_failed",
+            provider="flutterwave",
+            source="web",
+            owner_user_id=owner_id,
+            account_id=(account_doc or {}).get("account_id"),
+            plan=plan,
+            status="failed",
+            currency=user_doc.get("currency"),
+            country_code=user_doc.get("country_code"),
+            message=str(e),
+        )
         raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
     await db.pending_transactions.insert_one({
         "transaction_id": session["transaction_id"],
@@ -2124,6 +2381,19 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
         "plan": plan,
         "created_at": datetime.now(timezone.utc),
     })
+    await log_subscription_event(
+        event_type="checkout_initiated",
+        provider="flutterwave",
+        source="web",
+        owner_user_id=owner_id,
+        account_id=(account_doc or {}).get("account_id"),
+        plan=plan,
+        status="pending",
+        currency=user_doc.get("currency"),
+        country_code=user_doc.get("country_code"),
+        provider_reference=session["transaction_id"],
+        message="Checkout Flutterwave initié",
+    )
     return {"payment_url": session["payment_url"], "transaction_id": session["transaction_id"]}
 
 
@@ -2146,11 +2416,46 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
         user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
         user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
         user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
+        user_doc["country_code"] = account_doc.get("country_code", user_doc.get("country_code"))
+    pricing_payload = build_pricing_payload(
+        country_code=user_doc.get("country_code") or DEFAULT_COUNTRY_CODE,
+        currency=user_doc.get("currency") or DEFAULT_CURRENCY,
+        locked=has_locked_billing_country(account_doc or user_doc),
+    )
+    if pricing_payload["recommended_checkout_provider"] != "stripe":
+        raise HTTPException(status_code=400, detail="Ce compte doit utiliser Mobile Money pour cette devise.")
+    user_doc["currency"] = pricing_payload["currency"]
+    user_doc["country_code"] = pricing_payload["country_code"]
     try:
         session = await create_stripe_session(user_doc, plan)
     except Exception as e:
         logger.error(f"Stripe session error for {owner_id}: {e}")
+        await log_subscription_event(
+            event_type="checkout_failed",
+            provider="stripe",
+            source="web",
+            owner_user_id=owner_id,
+            account_id=(account_doc or {}).get("account_id"),
+            plan=plan,
+            status="failed",
+            currency=user_doc.get("currency"),
+            country_code=user_doc.get("country_code"),
+            message=str(e),
+        )
         raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
+    await log_subscription_event(
+        event_type="checkout_initiated",
+        provider="stripe",
+        source="web",
+        owner_user_id=owner_id,
+        account_id=(account_doc or {}).get("account_id"),
+        plan=plan,
+        status="pending",
+        currency=user_doc.get("currency"),
+        country_code=user_doc.get("country_code"),
+        provider_reference=session["session_id"],
+        message="Checkout Stripe initié",
+    )
     return {"checkout_url": session["checkout_url"], "session_id": session["session_id"]}
 
 
@@ -2163,6 +2468,13 @@ async def stripe_webhook(request: Request):
         event = verify_stripe_event(payload, sig_header)
     except Exception as e:
         logger.warning(f"Stripe webhook signature error: {e}")
+        await log_subscription_event(
+            event_type="webhook_invalid_signature",
+            provider="stripe",
+            source="web",
+            status="failed",
+            message=str(e),
+        )
         raise HTTPException(status_code=400, detail="Signature invalide")
 
     event_type = event["type"]
@@ -2181,6 +2493,17 @@ async def stripe_webhook(request: Request):
                 }}
             )
             logger.info(f"Stripe checkout completed: user={user_id} sub={obj.get('subscription')}")
+            await log_subscription_event(
+                event_type="checkout_completed",
+                provider="stripe",
+                source="web",
+                owner_user_id=user_id,
+                plan=normalize_plan(metadata.get("plan")),
+                status="pending_activation",
+                currency=metadata.get("currency"),
+                provider_reference=obj.get("subscription") or obj.get("id"),
+                message="Stripe checkout complété",
+            )
 
     elif event_type == "invoice.paid":
         # Recurring payment succeeded — activate/renew subscription
@@ -2212,6 +2535,18 @@ async def stripe_webhook(request: Request):
                 },
             )
             logger.info(f"Stripe invoice.paid: user={user_doc['user_id']} plan={plan} end={sub_end}")
+            await log_subscription_event(
+                event_type="payment_succeeded",
+                provider="stripe",
+                source="web",
+                owner_user_id=user_doc["user_id"],
+                plan=plan,
+                status="active",
+                currency=metadata.get("currency"),
+                provider_reference=sub_id or obj.get("id"),
+                message="Paiement Stripe confirmé",
+                metadata={"subscription_end": _iso_or_none(sub_end)},
+            )
 
     elif event_type == "customer.subscription.deleted":
         # Subscription cancelled or expired
@@ -2224,9 +2559,19 @@ async def stripe_webhook(request: Request):
         if user_doc:
             await update_business_account_for_owner(
                 user_doc["user_id"],
-                {"subscription_status": "expired", "plan": "starter"},
+                {"subscription_status": "expired"},
             )
             logger.info(f"Stripe subscription deleted: user={user_doc['user_id']}")
+            await log_subscription_event(
+                event_type="subscription_deleted",
+                provider="stripe",
+                source="web",
+                owner_user_id=user_doc["user_id"],
+                plan=normalize_plan((await db.business_accounts.find_one({"owner_user_id": user_doc["user_id"]}, {"plan": 1}) or {}).get("plan") or "starter"),
+                status="expired",
+                provider_reference=sub_id or customer_id,
+                message="Abonnement Stripe supprimé ou expiré",
+            )
 
     elif event_type == "customer.subscription.updated":
         # Plan change or status update
@@ -2243,6 +2588,15 @@ async def stripe_webhook(request: Request):
                 {"subscription_status": "expired"},
             )
             logger.info(f"Stripe subscription {status}: user={user_doc['user_id']}")
+            await log_subscription_event(
+                event_type="payment_issue",
+                provider="stripe",
+                source="web",
+                owner_user_id=user_doc["user_id"],
+                status="expired",
+                provider_reference=sub_id or customer_id,
+                message=f"Abonnement Stripe en état {status}",
+            )
 
     return {"received": True}
 
@@ -2254,6 +2608,13 @@ async def flutterwave_webhook(request: Request):
     verif_hash = request.headers.get("verif-hash", "")
     if FLW_HASH and verif_hash != FLW_HASH:
         logger.warning(f"Flutterwave webhook: invalid verif-hash")
+        await log_subscription_event(
+            event_type="webhook_invalid_signature",
+            provider="flutterwave",
+            source="web",
+            status="failed",
+            message="verif-hash invalide",
+        )
         raise HTTPException(status_code=400, detail="Signature invalide")
 
     try:
@@ -2270,6 +2631,14 @@ async def flutterwave_webhook(request: Request):
 
     if tx_data.get("status") != "successful":
         logger.warning(f"Flutterwave webhook: non-successful status={tx_data.get('status')}")
+        await log_subscription_event(
+            event_type="payment_failed",
+            provider="flutterwave",
+            source="web",
+            status="failed",
+            provider_reference=str(tx_data.get("id") or tx_data.get("tx_ref") or ""),
+            message=f"Statut Flutterwave non réussi: {tx_data.get('status')}",
+        )
         return {"status": "ignored"}
 
     transaction_id = tx_data.get("tx_ref", "")
@@ -2283,11 +2652,28 @@ async def flutterwave_webhook(request: Request):
         verified_data = verified_data[0] if verified_data else {}
     if verified_data.get("status") != "successful":
         logger.warning(f"Flutterwave verify failed: txn={transaction_id} result={result}")
+        await log_subscription_event(
+            event_type="payment_failed",
+            provider="flutterwave",
+            source="web",
+            status="failed",
+            provider_reference=transaction_id,
+            message="Double vérification Flutterwave non concluante",
+            metadata={"verification_status": verified_data.get("status")},
+        )
         return {"status": "ignored"}
 
     pending = await db.pending_transactions.find_one({"transaction_id": transaction_id})
     if not pending:
         logger.warning(f"Flutterwave webhook: pending txn not found {transaction_id}")
+        await log_subscription_event(
+            event_type="payment_unmatched",
+            provider="flutterwave",
+            source="web",
+            status="warning",
+            provider_reference=transaction_id,
+            message="Transaction confirmée sans pending_transaction",
+        )
         return {"status": "not_found"}
 
     plan = pending["plan"]
@@ -2301,6 +2687,19 @@ async def flutterwave_webhook(request: Request):
             "subscription_provider_id": str(tx_data.get("id", "")),
             "subscription_end": subscription_end,
         },
+    )
+    await log_subscription_event(
+        event_type="payment_succeeded",
+        provider="flutterwave",
+        source="web",
+        owner_user_id=pending["user_id"],
+        account_id=pending.get("account_id"),
+        plan=plan,
+        status="active",
+        currency=tx_data.get("currency"),
+        provider_reference=str(tx_data.get("id") or transaction_id),
+        message="Paiement Flutterwave confirmé",
+        metadata={"subscription_end": _iso_or_none(subscription_end)},
     )
 
     # Notify user to refresh app data (I5)
@@ -2566,6 +2965,7 @@ async def list_sub_users(user: User = Depends(require_auth)):
 
 @api_router.post("/sub-users", response_model=User)
 async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(require_auth)):
+    ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
@@ -2634,6 +3034,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
 
 @api_router.put("/sub-users/{sub_user_id}", response_model=User)
 async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User = Depends(require_auth)):
+    ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
@@ -2676,6 +3077,7 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
 
 @api_router.delete("/sub-users/{sub_user_id}")
 async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
+    ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
@@ -3029,15 +3431,17 @@ async def admin_detailed_stats():
     country_data = await db.users.aggregate(country_pipeline).to_list(100)
     users_by_country = {r["_id"] or "Unknown": r["count"] for r in country_data}
 
-    # Users by plan
+    # Accounts by plan (source of truth = business_accounts)
     plan_pipeline = [{"$group": {"_id": "$plan", "count": {"$sum": 1}}}]
-    plan_data = await db.users.aggregate(plan_pipeline).to_list(10)
-    users_by_plan = {r["_id"] or "starter": r["count"] for r in plan_data}
+    plan_data = await db.business_accounts.aggregate(plan_pipeline).to_list(10)
+    users_by_plan = {normalize_plan(r["_id"]) or "starter": r["count"] for r in plan_data}
 
     # Trials expiring in next 7 days
     in_7_days = now + timedelta(days=7)
-    trials_expiring_soon = await db.users.count_documents({
-        "trial_ends_at": {"$gte": now, "$lte": in_7_days}
+    trials_expiring_soon = await db.business_accounts.count_documents({
+        "trial_ends_at": {"$gte": now, "$lte": in_7_days},
+        "subscription_provider": {"$in": ["none", None, ""]},
+        "subscription_status": "active",
     })
 
     # New signups today
@@ -3259,6 +3663,436 @@ async def admin_conversion_stats():
         "trials_expiring_soon": expiring_trials,
         "conversion_rate": round((paying_accounts / total_accounts) * 100, 1) if total_accounts else 0.0,
         "by_plan": dict(by_plan),
+    }
+
+
+@admin_router.get("/subscriptions/overview")
+async def admin_subscriptions_overview(days: int = 30):
+    now = datetime.now(timezone.utc)
+    window_days = max(1, min(days, 90))
+    week_ahead = now + timedelta(days=7)
+    three_days_ahead = now + timedelta(days=3)
+    window_start = now - timedelta(days=window_days)
+
+    accounts = await db.business_accounts.find(
+        {},
+        {
+            "_id": 0,
+            "account_id": 1,
+            "plan": 1,
+            "subscription_status": 1,
+            "subscription_provider": 1,
+            "subscription_provider_id": 1,
+            "subscription_end": 1,
+            "trial_ends_at": 1,
+            "manual_access_grace_until": 1,
+            "manual_read_only_enabled": 1,
+            "country_code": 1,
+            "currency": 1,
+        },
+    ).to_list(None)
+
+    by_plan: Dict[str, int] = defaultdict(int)
+    by_provider: Dict[str, int] = defaultdict(int)
+    by_currency: Dict[str, int] = defaultdict(int)
+    mrr_by_currency: Dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+
+    active_paid_accounts = 0
+    active_trials = 0
+    trials_expiring_3d = 0
+    trials_expiring_7d = 0
+    subscriptions_expiring_soon = 0
+    expired_accounts = 0
+    cancelled_accounts = 0
+
+    for account in accounts:
+        normalized_plan = normalize_plan(account.get("plan"))
+        by_plan[normalized_plan] += 1
+        provider = (account.get("subscription_provider") or "none").lower()
+        by_provider[provider] += 1
+        if account.get("currency"):
+            by_currency[(account.get("currency") or DEFAULT_CURRENCY).upper()] += 1
+
+        is_paying = _is_paying_account(account)
+        status = account.get("subscription_status") or "active"
+        sub_end = account.get("subscription_end")
+        trial_ends_at = account.get("trial_ends_at")
+
+        if is_paying and status == "active":
+            active_paid_accounts += 1
+            resolved = resolve_plan_amount(
+                normalized_plan,
+                account.get("currency"),
+                country_code=account.get("country_code"),
+            )
+            mrr_by_currency[resolved["currency"]] += _decimal_or_zero(resolved["amount"])
+            if sub_end:
+                sub_end_aware = sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)
+                if sub_end_aware >= now and sub_end_aware <= week_ahead:
+                    subscriptions_expiring_soon += 1
+        elif trial_ends_at and status == "active":
+            trial_end_aware = trial_ends_at if trial_ends_at.tzinfo else trial_ends_at.replace(tzinfo=timezone.utc)
+            if trial_end_aware >= now:
+                active_trials += 1
+                if trial_end_aware <= three_days_ahead:
+                    trials_expiring_3d += 1
+                if trial_end_aware <= week_ahead:
+                    trials_expiring_7d += 1
+
+        if status == "expired":
+            expired_accounts += 1
+        if status == "cancelled":
+            cancelled_accounts += 1
+
+    payment_events = await db.subscription_events.find(
+        {"created_at": {"$gte": window_start}, "event_type": "payment_succeeded"},
+        {"_id": 0, "provider": 1, "source": 1, "currency": 1, "amount": 1},
+    ).to_list(None)
+
+    payments_by_provider: Dict[str, int] = defaultdict(int)
+    payments_by_source: Dict[str, int] = defaultdict(int)
+    payment_volume_by_currency: Dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    for event in payment_events:
+        payments_by_provider[(event.get("provider") or "unknown").lower()] += 1
+        payments_by_source[(event.get("source") or "unknown").lower()] += 1
+        currency = (event.get("currency") or DEFAULT_CURRENCY).upper()
+        payment_volume_by_currency[currency] += _decimal_or_zero(event.get("amount"))
+
+    return {
+        "window_days": window_days,
+        "total_accounts": len(accounts),
+        "active_paid_accounts": active_paid_accounts,
+        "active_trials": active_trials,
+        "trials_expiring_3d": trials_expiring_3d,
+        "trials_expiring_7d": trials_expiring_7d,
+        "subscriptions_expiring_soon": subscriptions_expiring_soon,
+        "expired_accounts": expired_accounts,
+        "cancelled_accounts": cancelled_accounts,
+        "by_plan": dict(by_plan),
+        "by_provider": dict(by_provider),
+        "by_currency": dict(by_currency),
+        "mrr_estimate": [{"currency": currency, "amount": str(amount)} for currency, amount in mrr_by_currency.items()],
+        "payments_count_30d": len(payment_events),
+        "payments_by_provider_30d": dict(payments_by_provider),
+        "payments_by_source_30d": dict(payments_by_source),
+        "payment_volume_30d": [{"currency": currency, "amount": str(amount)} for currency, amount in payment_volume_by_currency.items()],
+    }
+
+
+@admin_router.get("/subscriptions/accounts")
+async def admin_subscription_accounts(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    plan: Optional[str] = None,
+    provider: Optional[str] = None,
+    country_code: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+):
+    limit = max(1, min(limit, 200))
+    query: Dict[str, Any] = {}
+    if status:
+        query["subscription_status"] = status
+    if plan:
+        query["plan"] = normalize_plan(plan)
+    if provider:
+        query["subscription_provider"] = provider
+    if country_code:
+        query["country_code"] = country_code.upper()
+
+    items = await db.business_accounts.find(
+        query,
+        {
+            "_id": 0,
+            "account_id": 1,
+            "owner_user_id": 1,
+            "plan": 1,
+            "subscription_status": 1,
+            "subscription_provider": 1,
+            "subscription_provider_id": 1,
+            "subscription_end": 1,
+            "trial_ends_at": 1,
+            "country_code": 1,
+            "currency": 1,
+            "billing_contact_name": 1,
+            "billing_contact_email": 1,
+            "business_type": 1,
+            "invoice_business_name": 1,
+            "receipt_business_name": 1,
+            "created_at": 1,
+        },
+    ).sort("created_at", -1).to_list(None)
+
+    owner_ids = [item.get("owner_user_id") for item in items if item.get("owner_user_id")]
+    owners = await db.users.find(
+        {"user_id": {"$in": owner_ids}},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "store_name": 1},
+    ).to_list(None) if owner_ids else []
+    owners_by_id = {owner["user_id"]: owner for owner in owners}
+
+    store_counts_rows = await db.stores.aggregate([
+        {"$match": {"user_id": {"$in": owner_ids}}},
+        {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+    ]).to_list(None) if owner_ids else []
+    store_counts = {row["_id"]: row["count"] for row in store_counts_rows}
+
+    user_counts_rows = await db.users.aggregate([
+        {"$match": {"account_id": {"$in": [item.get("account_id") for item in items if item.get("account_id")]}}},
+        {"$group": {"_id": "$account_id", "count": {"$sum": 1}}},
+    ]).to_list(None) if items else []
+    user_counts = {row["_id"]: row["count"] for row in user_counts_rows}
+
+    account_ids = [item.get("account_id") for item in items if item.get("account_id")]
+    last_payment_rows = await db.subscription_events.aggregate([
+        {"$match": {"account_id": {"$in": account_ids}, "event_type": "payment_succeeded"}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {"_id": "$account_id", "event": {"$first": "$$ROOT"}}},
+    ]).to_list(None) if account_ids else []
+    last_payment_by_account = {row["_id"]: row["event"] for row in last_payment_rows}
+
+    filtered: List[Dict[str, Any]] = []
+    search_lower = (search or "").strip().lower()
+    for item in items:
+        owner = owners_by_id.get(item.get("owner_user_id"))
+        display_name = _account_display_name(item, owner)
+        if search_lower and not any(
+            search_lower in str(value).lower()
+            for value in (
+                display_name,
+                item.get("account_id"),
+                (owner or {}).get("name"),
+                (owner or {}).get("email"),
+                item.get("billing_contact_email"),
+                item.get("currency"),
+                item.get("country_code"),
+            )
+            if value
+        ):
+            continue
+        last_payment = last_payment_by_account.get(item.get("account_id"), {})
+        policy = compute_subscription_access_policy(item)
+        filtered.append({
+            "account_id": item.get("account_id"),
+            "display_name": display_name,
+            "owner_user_id": item.get("owner_user_id"),
+            "owner_name": (owner or {}).get("name"),
+            "owner_email": (owner or {}).get("email"),
+            "billing_contact_name": item.get("billing_contact_name"),
+            "billing_contact_email": item.get("billing_contact_email"),
+            "plan": normalize_plan(item.get("plan")),
+            "subscription_status": item.get("subscription_status", "active"),
+            "subscription_provider": item.get("subscription_provider", "none"),
+            "subscription_provider_id": item.get("subscription_provider_id"),
+            "subscription_access_phase": policy["subscription_access_phase"],
+            "manual_access_grace_until": item.get("manual_access_grace_until"),
+            "manual_read_only_enabled": bool(item.get("manual_read_only_enabled")),
+            "subscription_end": item.get("subscription_end"),
+            "trial_ends_at": item.get("trial_ends_at"),
+            "country_code": item.get("country_code") or DEFAULT_COUNTRY_CODE,
+            "currency": item.get("currency") or DEFAULT_CURRENCY,
+            "business_type": item.get("business_type"),
+            "stores_count": store_counts.get(item.get("owner_user_id"), 0),
+            "users_count": user_counts.get(item.get("account_id"), 0),
+            "last_payment_at": last_payment.get("created_at"),
+            "last_payment_amount": last_payment.get("amount"),
+            "last_payment_currency": last_payment.get("currency"),
+            "last_payment_provider": last_payment.get("provider"),
+            "created_at": item.get("created_at"),
+        })
+
+    total = len(filtered)
+    paged_items = filtered[skip:skip + limit]
+    return {"items": paged_items, "total": total}
+
+
+@admin_router.get("/subscriptions/events")
+async def admin_subscription_events(
+    provider: Optional[str] = None,
+    event_type: Optional[str] = None,
+    source: Optional[str] = None,
+    account_id: Optional[str] = None,
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    limit = max(1, min(limit, 200))
+    query: Dict[str, Any] = {}
+    if provider:
+        query["provider"] = provider
+    if event_type:
+        query["event_type"] = event_type
+    if source:
+        query["source"] = source
+    if account_id:
+        query["account_id"] = account_id
+    if status:
+        query["status"] = status
+
+    items = await db.subscription_events.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.subscription_events.count_documents(query)
+    return {"items": items, "total": total}
+
+
+@admin_router.get("/subscriptions/alerts")
+async def admin_subscription_alerts():
+    now = datetime.now(timezone.utc)
+    three_days_ahead = now + timedelta(days=3)
+    seven_days_ago = now - timedelta(days=7)
+
+    trials_expiring_soon = await db.business_accounts.count_documents({
+        "trial_ends_at": {"$gte": now, "$lte": three_days_ahead},
+        "subscription_provider": {"$in": ["none", None, ""]},
+        "subscription_status": "active",
+    })
+    missing_subscription_end = await db.business_accounts.count_documents({
+        "subscription_status": "active",
+        "subscription_provider": {"$nin": ["none", None, ""]},
+        "subscription_end": None,
+    })
+    missing_provider_reference = await db.business_accounts.count_documents({
+        "subscription_status": "active",
+        "subscription_provider": {"$nin": ["none", None, ""]},
+        "subscription_provider_id": {"$in": [None, ""]},
+    })
+    expired_nonstarter = await db.business_accounts.count_documents({
+        "subscription_status": "expired",
+        "plan": {"$in": ["pro", "enterprise"]},
+    })
+    failure_rows = await db.subscription_events.aggregate([
+        {"$match": {"created_at": {"$gte": seven_days_ago}, "event_type": {"$in": [
+            "checkout_failed", "payment_failed", "webhook_invalid_signature", "payment_issue", "payment_unmatched"
+        ]}}},
+        {"$group": {"_id": "$provider", "count": {"$sum": 1}}},
+    ]).to_list(None)
+
+    alerts: List[Dict[str, Any]] = []
+    if trials_expiring_soon:
+        alerts.append({
+            "severity": "warning",
+            "code": "trials_expiring_soon",
+            "title": "Trials proches de l'expiration",
+            "count": trials_expiring_soon,
+            "message": "Des comptes d'essai expirent dans les 3 prochains jours.",
+        })
+    if missing_subscription_end:
+        alerts.append({
+            "severity": "critical",
+            "code": "missing_subscription_end",
+            "count": missing_subscription_end,
+            "title": "Abonnements actifs sans date de fin",
+            "message": "Des comptes payants actifs n'ont pas de subscription_end renseigné.",
+        })
+    if missing_provider_reference:
+        alerts.append({
+            "severity": "warning",
+            "code": "missing_provider_reference",
+            "count": missing_provider_reference,
+            "title": "Référence provider manquante",
+            "message": "Des comptes payants actifs n'ont pas de subscription_provider_id.",
+        })
+    if expired_nonstarter:
+        alerts.append({
+            "severity": "warning",
+            "code": "expired_nonstarter",
+            "count": expired_nonstarter,
+            "title": "Plans expirés encore supérieurs à Starter",
+            "message": "Des comptes expirés conservent encore un plan Pro ou Enterprise.",
+        })
+    for row in failure_rows:
+        alerts.append({
+            "severity": "warning",
+            "code": f"provider_failures_{row['_id'] or 'unknown'}",
+            "count": row["count"],
+            "title": f"Incidents récents {str(row['_id'] or 'provider').capitalize()}",
+            "message": "Des échecs ou anomalies de paiement ont été détectés sur les 7 derniers jours.",
+            "provider": row["_id"] or "unknown",
+        })
+
+    critical_count = sum(1 for alert in alerts if alert["severity"] == "critical")
+    warning_count = sum(1 for alert in alerts if alert["severity"] == "warning")
+    return {
+        "summary": {
+            "critical": critical_count,
+            "warning": warning_count,
+            "total": len(alerts),
+        },
+        "items": alerts,
+    }
+
+
+@admin_router.post("/subscriptions/{account_id}/grace")
+async def admin_grant_subscription_grace(account_id: str, days: int = 7, data: Optional[SubscriptionAdminActionRequest] = Body(None)):
+    days = max(1, min(days, 90))
+    account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    note = (data.note.strip() if data and data.note else "")
+    now = datetime.now(timezone.utc)
+    current_manual = account_doc.get("manual_access_grace_until")
+    if current_manual and not current_manual.tzinfo:
+        current_manual = current_manual.replace(tzinfo=timezone.utc)
+    base = current_manual if current_manual and current_manual > now else now
+    manual_access_grace_until = base + timedelta(days=days)
+    await db.business_accounts.update_one(
+        {"account_id": account_id},
+        {"$set": {"manual_access_grace_until": manual_access_grace_until, "updated_at": now}},
+    )
+    await log_subscription_event(
+        event_type="manual_grace_granted",
+        provider="admin",
+        source="admin",
+        account_id=account_id,
+        owner_user_id=account_doc.get("owner_user_id"),
+        plan=normalize_plan(account_doc.get("plan")),
+        status=account_doc.get("subscription_status", "active"),
+        currency=account_doc.get("currency"),
+        country_code=account_doc.get("country_code"),
+        provider_reference=account_id,
+        message=f"Grace manuelle accordee pour {days} jours{f' - Note: {note}' if note else ''}",
+        metadata={"manual_access_grace_until": _iso_or_none(manual_access_grace_until), "note": note or None, "days": days},
+    )
+    policy = compute_subscription_access_policy({**account_doc, "manual_access_grace_until": manual_access_grace_until})
+    return {
+        "account_id": account_id,
+        "manual_access_grace_until": manual_access_grace_until,
+        "subscription_access_phase": policy["subscription_access_phase"],
+        "note": note or None,
+        "message": f"Grace prolongée de {days} jours",
+    }
+
+
+@admin_router.post("/subscriptions/{account_id}/read-only")
+async def admin_set_subscription_read_only(account_id: str, enabled: bool = True, data: Optional[SubscriptionAdminActionRequest] = Body(None)):
+    account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    note = (data.note.strip() if data and data.note else "")
+    now = datetime.now(timezone.utc)
+    await db.business_accounts.update_one(
+        {"account_id": account_id},
+        {"$set": {"manual_read_only_enabled": enabled, "updated_at": now}},
+    )
+    await log_subscription_event(
+        event_type="manual_read_only_enabled" if enabled else "manual_read_only_disabled",
+        provider="admin",
+        source="admin",
+        account_id=account_id,
+        owner_user_id=account_doc.get("owner_user_id"),
+        plan=normalize_plan(account_doc.get("plan")),
+        status=account_doc.get("subscription_status", "active"),
+        currency=account_doc.get("currency"),
+        country_code=account_doc.get("country_code"),
+        provider_reference=account_id,
+        message=(f"Lecture seule activee par admin{f' - Note: {note}' if note else ''}" if enabled else f"Lecture seule retiree par admin{f' - Note: {note}' if note else ''}"),
+        metadata={"note": note or None, "enabled": enabled},
+    )
+    policy = compute_subscription_access_policy({**account_doc, "manual_read_only_enabled": enabled})
+    return {
+        "account_id": account_id,
+        "manual_read_only_enabled": enabled,
+        "subscription_access_phase": policy["subscription_access_phase"],
+        "note": note or None,
+        "message": "Lecture seule activée" if enabled else "Lecture seule retirée",
     }
 
 
@@ -5403,6 +6237,7 @@ async def check_ai_anomalies_loop():
     for u in users:
         user_id = u["user_id"]
         store_id = u["active_store_id"]
+        account_id = u.get("account_id")
         anomalies = await detect_anomalies_internal(user_id, store_id)
         
         for anomaly in anomalies:
@@ -5424,9 +6259,13 @@ async def check_ai_anomalies_loop():
                     severity=anomaly["severity"]
                 )
                 await db.alerts.insert_one(alert.model_dump())
-                # Push notification for critical/warning anomalies
-                if anomaly["severity"] in ["critical", "warning"]:
-                    await notification_service.notify_user(db, user_id, f"🚨 AI: {alert.title}", alert.message, caller_owner_id=user_id)
+                await dispatch_alert_channels(
+                    user_id,
+                    account_id,
+                    store_id,
+                    alert,
+                    data={"screen": "alerts", "filter": "anomalies"},
+                )
     
     logger.info("Global AI anomaly detection check completed")
 
@@ -5448,7 +6287,7 @@ async def check_alerts_loop():
         # Plan check: only pro/enterprise users get push notifications
         owner = await db.users.find_one(
             {"user_id": owner_id},
-            {"plan": 1, "push_notifications": 1}
+            {"plan": 1, "push_notifications": 1, "account_id": 1}
         )
         if not owner or owner.get("plan") not in ("pro", "enterprise"):
             continue
@@ -5476,15 +6315,12 @@ async def check_alerts_loop():
             severity="warning" if product["quantity"] > 0 else "critical",
         )
         await db.alerts.insert_one(alert.model_dump())
-
-        # Push notification with navigation data
-        await notification_service.notify_user(
-            db,
+        await dispatch_alert_channels(
             owner_id,
-            "📦 Stock Bas",
-            f"{product['name']} : {product['quantity']} restant(s)",
+            owner.get("account_id"),
+            product.get("store_id"),
+            alert,
             data={"screen": "products", "filter": "low_stock"},
-            caller_owner_id=owner_id
         )
 
     # 2. Expiry alerts (within 7 days)
@@ -5555,6 +6391,7 @@ async def create_customer_payment(
     payment_data: CustomerPaymentCreate, 
     user: User = Depends(require_permission("crm", "write"))
 ):
+    ensure_subscription_write_allowed(user)
     # Verify customer exists
     owner_id = get_owner_id(user)
     customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
@@ -5726,6 +6563,11 @@ class Order(BaseModel):
     notes: Optional[str] = None
     expected_delivery: Optional[datetime] = None
     received_items: Dict[str, int] = {}  # item_id -> quantity received so far
+    approval_required: bool = False
+    approval_status: str = "not_required"
+    approval_reason: Optional[str] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -6069,9 +6911,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         # Create default alert rules
         default_rules = [
-            AlertRule(user_id=user_id, type="low_stock", enabled=True, threshold_percentage=20),
-            AlertRule(user_id=user_id, type="out_of_stock", enabled=True),
-            AlertRule(user_id=user_id, type="overstock", enabled=True, threshold_percentage=90),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, recipient_keys=["stock"]),
         ]
         for rule in default_rules:
             await db.alert_rules.insert_one(rule.model_dump())
@@ -6591,12 +7433,22 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
 
 @api_router.put("/auth/profile")
 async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)):
-    """Update user profile fields (name, currency)"""
+    """Update user profile fields (name, currency, country)."""
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
         return {"message": "Aucune modification"}
+    if any(key in update for key in {"currency", "country_code"}):
+        owner_id = get_owner_id(user)
+        owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+        account_doc = await ensure_business_account_for_user_doc(owner_doc) if owner_doc else None
+        source = account_doc or owner_doc
+        if has_locked_billing_country(source):
+            raise HTTPException(
+                status_code=400,
+                detail="La devise et le pays de facturation ne peuvent plus etre modifies apres le premier paiement.",
+            )
     await db.users.update_one({"user_id": user.user_id}, {"$set": update})
-    shared_update = {k: v for k, v in update.items() if k in {"currency", "business_type"}}
+    shared_update = {k: v for k, v in update.items() if k in {"currency", "country_code", "business_type"}}
     if shared_update and (user.role == "superadmin" or "org_admin" in (user.account_roles or []) or "billing_admin" in (user.account_roles or [])):
         await update_business_account_for_owner(get_owner_id(user), shared_update)
     return {"message": "Profil mis à jour"}
@@ -6659,6 +7511,7 @@ async def get_stores(user: User = Depends(require_auth)):
 
 @api_router.post("/stores", response_model=Store)
 async def create_store(store_data: StoreCreate, user: User = Depends(require_auth)):
+    ensure_subscription_advanced_allowed(user, detail="La gestion des boutiques est indisponible tant que le compte n'est pas regularise.")
     if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent créer des boutiques")
     STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
@@ -6718,6 +7571,7 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
 
 @api_router.put("/stores/{store_id}", response_model=Store)
 async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), user: User = Depends(require_auth)):
+    ensure_subscription_advanced_allowed(user, detail="La gestion des boutiques est indisponible tant que le compte n'est pas regularise.")
     if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent modifier les boutiques")
     owner_id = get_owner_id(user)
@@ -7438,6 +8292,7 @@ async def delete_reservation(reservation_id: str, user: User = Depends(get_curre
 
 @api_router.post("/sales/{sale_id}/send-kitchen")
 async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
+    ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
     if not sale:
@@ -7825,6 +8680,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
 @api_router.post("/sales/{sale_id}/serve")
 async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
     """Marquer une commande comme servie (plats livrés à la table). Disparaît du KDS, table reste occupée."""
+    ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
     if not sale:
@@ -7839,6 +8695,7 @@ async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
 @api_router.put("/kitchen/{sale_id}/items/{item_idx}/ready")
 async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depends(get_current_user)):
     """Marquer un article d'une commande comme prêt en cuisine."""
+    ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
     if not sale:
@@ -8549,6 +9406,7 @@ async def get_customer_birthdays(user: User = Depends(require_permission("crm", 
 @api_router.post("/customers/campaign")
 async def create_campaign(data: CampaignCreate, user: User = Depends(require_permission("crm", "write"))):
     """Log a marketing campaign"""
+    ensure_subscription_advanced_allowed(user, detail="Les campagnes CRM sont indisponibles tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
     campaign = {
         "campaign_id": f"camp_{uuid.uuid4().hex[:12]}",
@@ -8897,6 +9755,7 @@ async def _enrich_sale_items_with_product_tax(
 
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permission("pos", "write"))):
+    ensure_subscription_write_allowed(user)
     user_id = user.user_id
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
@@ -9076,6 +9935,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
 
 @api_router.post("/expenses", response_model=Expense)
 async def create_expense(expense_data: ExpenseCreate, user: User = Depends(require_permission("accounting", "write"))):
+    ensure_subscription_advanced_allowed(user, detail="Les ecritures comptables manuelles sont indisponibles tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
     expense = Expense(
         user_id=owner_id,
@@ -9136,6 +9996,7 @@ async def get_expenses(
 
 @api_router.put("/expenses/{expense_id}", response_model=Expense)
 async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: User = Depends(require_permission("accounting", "write"))):
+    ensure_subscription_advanced_allowed(user, detail="Les ecritures comptables manuelles sont indisponibles tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
     update = {k: v for k, v in expense_data.model_dump().items() if v is not None}
     if "date" in update:
@@ -9148,6 +10009,7 @@ async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: Use
 
 @api_router.delete("/expenses/{expense_id}")
 async def delete_expense(expense_id: str, user: User = Depends(require_permission("accounting", "write"))):
+    ensure_subscription_advanced_allowed(user, detail="Les ecritures comptables manuelles sont indisponibles tant que le compte n'est pas regularise.")
     result = await db.expenses.delete_one({"expense_id": expense_id, "user_id": get_owner_id(user)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=i18n.t("accounting.expense_not_found", user.language))
@@ -9718,6 +10580,7 @@ async def create_customer_invoice_from_sale(
     sale_id: str,
     user: User = Depends(require_permission("accounting", "write")),
 ):
+    ensure_subscription_advanced_allowed(user, detail="La creation de facture est indisponible tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
     sale_doc = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
     if not sale_doc:
@@ -10086,14 +10949,256 @@ async def get_stock_movements(
 
 # ===================== ALERT ROUTES =====================
 
+ALERT_RULE_TYPE_ALIASES: Dict[str, str] = {
+    "dormant_product": "slow_moving",
+}
+ALERT_RULE_DEFAULT_RECIPIENTS: Dict[str, List[str]] = {
+    "low_stock": ["default", "stock"],
+    "out_of_stock": ["default", "stock"],
+    "overstock": ["stock"],
+    "slow_moving": ["stock"],
+    "late_delivery": ["default", "procurement"],
+    "expense_spike": ["default", "finance"],
+    "debt_recovery": ["default", "crm", "finance"],
+}
+SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
+
+
+def normalize_email_list(value: Any) -> List[str]:
+    return normalize_notification_contacts({"default": value}).get("default", [])
+
+
+def normalize_alert_rule_type(rule_type: str) -> str:
+    return ALERT_RULE_TYPE_ALIASES.get(rule_type, rule_type)
+
+
+def resolve_alert_rule_types(rule_type: str) -> List[str]:
+    normalized = normalize_alert_rule_type(rule_type)
+    candidates = [normalized]
+    for raw_type, alias in ALERT_RULE_TYPE_ALIASES.items():
+        if alias == normalized and raw_type not in candidates:
+            candidates.append(raw_type)
+    return candidates
+
+
+def normalize_alert_rule_payload(rule_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    normalized_type = normalize_alert_rule_type(rule_type)
+    scope = payload.get("scope") if payload.get("scope") in {"account", "store"} else "account"
+    channels = [channel for channel in (payload.get("notification_channels") or ["in_app"]) if channel in NOTIFICATION_CHANNELS]
+    if "in_app" not in channels:
+        channels.insert(0, "in_app")
+    recipient_keys = [
+        key
+        for key in dict.fromkeys(payload.get("recipient_keys") or ALERT_RULE_DEFAULT_RECIPIENTS.get(normalized_type, ["default"]))
+        if key in NOTIFICATION_CONTACT_KEYS
+    ]
+    minimum_severity = payload.get("minimum_severity")
+    if minimum_severity not in NOTIFICATION_SEVERITY_LEVELS:
+        minimum_severity = None
+
+    threshold = payload.get("threshold_percentage")
+    if threshold is not None:
+        try:
+            threshold = int(threshold)
+        except (TypeError, ValueError):
+            threshold = None
+
+    return {
+        **payload,
+        "type": normalized_type,
+        "scope": scope,
+        "store_id": payload.get("store_id") if scope == "store" else None,
+        "threshold_percentage": threshold,
+        "notification_channels": channels,
+        "recipient_keys": recipient_keys or ["default"],
+        "recipient_emails": normalize_email_list(payload.get("recipient_emails")),
+        "minimum_severity": minimum_severity,
+    }
+
+
+def normalize_alert_rule_document(rule_doc: Dict[str, Any], user_id: str, account_id: Optional[str]) -> Dict[str, Any]:
+    payload = normalize_alert_rule_payload(rule_doc.get("type", "low_stock"), dict(rule_doc))
+    payload["user_id"] = user_id
+    payload["account_id"] = rule_doc.get("account_id") or account_id
+    payload["created_at"] = rule_doc.get("created_at") or datetime.now(timezone.utc)
+    payload["updated_at"] = rule_doc.get("updated_at") or payload["created_at"]
+    return payload
+
+
+def severity_matches(minimum_severity: Optional[str], severity: str) -> bool:
+    if not minimum_severity:
+        return True
+    return SEVERITY_RANK.get(severity, 0) >= SEVERITY_RANK.get(minimum_severity, 0)
+
+
+async def resolve_alert_dispatch_rule(
+    owner_id: str,
+    account_id: Optional[str],
+    store_id: Optional[str],
+    alert_type: str,
+    severity: str,
+) -> Dict[str, Any]:
+    rule_types = resolve_alert_rule_types(alert_type)
+    docs = await db.alert_rules.find(
+        {"user_id": owner_id, "enabled": True, "type": {"$in": rule_types}},
+        {"_id": 0},
+    ).to_list(50)
+
+    candidates: List[Dict[str, Any]] = []
+    for doc in docs:
+        normalized = normalize_alert_rule_document(doc, owner_id, account_id)
+        if normalized["scope"] == "store" and normalized.get("store_id") != store_id:
+            continue
+        if not severity_matches(normalized.get("minimum_severity"), severity):
+            continue
+        candidates.append(normalized)
+
+    if candidates:
+        candidates.sort(
+            key=lambda rule: (
+                1 if rule.get("scope") == "store" and rule.get("store_id") == store_id else 0,
+                rule.get("updated_at") or rule.get("created_at") or datetime.now(timezone.utc),
+            ),
+            reverse=True,
+        )
+        return candidates[0]
+
+    normalized_type = normalize_alert_rule_type(alert_type)
+    return normalize_alert_rule_document(
+        {
+            "type": normalized_type,
+            "scope": "store" if store_id else "account",
+            "store_id": store_id if store_id else None,
+            "enabled": True,
+            "notification_channels": ["in_app", "push"] if severity in {"warning", "critical"} else ["in_app"],
+            "recipient_keys": ALERT_RULE_DEFAULT_RECIPIENTS.get(normalized_type, ["default"]),
+            "recipient_emails": [],
+            "minimum_severity": None,
+        },
+        owner_id,
+        account_id,
+    )
+
+
+def resolve_notification_recipients(
+    account_doc: Optional[dict],
+    store_doc: Optional[dict],
+    rule: Dict[str, Any],
+) -> List[str]:
+    account_contacts = normalize_notification_contacts((account_doc or {}).get("notification_contacts"))
+    store_contacts = normalize_notification_contacts((store_doc or {}).get("store_notification_contacts"))
+    billing_contact_email = (account_doc or {}).get("billing_contact_email")
+    if billing_contact_email and billing_contact_email not in account_contacts["billing"]:
+        account_contacts["billing"].append(billing_contact_email)
+    if billing_contact_email and not account_contacts["default"]:
+        account_contacts["default"].append(billing_contact_email)
+
+    recipients: List[str] = []
+    for key in rule.get("recipient_keys") or ["default"]:
+        for email in store_contacts.get(key, []):
+            if email not in recipients:
+                recipients.append(email)
+        for email in account_contacts.get(key, []):
+            if email not in recipients:
+                recipients.append(email)
+
+    for email in normalize_email_list(rule.get("recipient_emails")):
+        if email not in recipients:
+            recipients.append(email)
+
+    return recipients
+
+
+async def user_allows_push_notifications(user_id: str, severity: str) -> bool:
+    settings_doc = await db.user_settings.find_one(
+        {"user_id": user_id},
+        {"_id": 0, "push_notifications": 1, "notification_preferences": 1},
+    ) or {}
+    preferences = normalize_notification_preferences(
+        settings_doc.get("notification_preferences"),
+        push_enabled=settings_doc.get("push_notifications", True),
+    )
+    if not preferences.get("push", settings_doc.get("push_notifications", True)):
+        return False
+    minimum = preferences.get("minimum_severity_for_push")
+    return severity_matches(minimum, severity)
+
+
+def build_notification_email_html(
+    title: str,
+    message: str,
+    severity: str,
+    store_name: Optional[str] = None,
+) -> str:
+    severity_label = {
+        "critical": "Critique",
+        "warning": "Attention",
+        "info": "Information",
+    }.get(severity, "Information")
+    store_line = f"<p style='margin:0 0 8px;color:#64748b;'>Boutique : <strong>{store_name}</strong></p>" if store_name else ""
+    return f"""
+    <div style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;padding:24px;">
+      <div style="max-width:640px;margin:0 auto;background:#111827;border:1px solid #1f2937;border-radius:16px;padding:24px;">
+        <p style="margin:0 0 12px;color:#38bdf8;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Stockman Notifications</p>
+        <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;color:#f8fafc;">{title}</h1>
+        <p style="margin:0 0 8px;color:#cbd5e1;">Niveau : <strong>{severity_label}</strong></p>
+        {store_line}
+        <p style="margin:16px 0 0;color:#cbd5e1;line-height:1.7;">{message}</p>
+      </div>
+    </div>
+    """
+
+
+async def dispatch_alert_channels(
+    owner_id: str,
+    account_id: Optional[str],
+    store_id: Optional[str],
+    alert: Alert,
+    data: Optional[Dict[str, Any]] = None,
+):
+    rule = await resolve_alert_dispatch_rule(owner_id, account_id, store_id, alert.type, alert.severity)
+    channels = rule.get("notification_channels") or ["in_app"]
+
+    if "push" in channels and await user_allows_push_notifications(owner_id, alert.severity):
+        await notification_service.notify_user(
+            db,
+            owner_id,
+            alert.title,
+            alert.message,
+            data=data,
+            caller_owner_id=owner_id,
+        )
+
+    if "email" in channels:
+        account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0}) if account_id else None
+        store_doc = None
+        if store_id:
+            store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
+        recipients = resolve_notification_recipients(account_doc, store_doc, rule)
+        if recipients:
+            store_name = (store_doc or {}).get("name")
+            await notification_service.send_email_notification(
+                recipients,
+                f"[Stockman] {alert.title}",
+                build_notification_email_html(alert.title, alert.message, alert.severity, store_name=store_name),
+                text_body=alert.message,
+            )
+
 async def check_and_create_alerts(product: Product, user_id: str, store_id: Optional[str] = None):
     """Check product status and create/resolve alerts based on rules"""
     # Use provided store_id, fall back to product's store_id
     effective_store_id = store_id or product.store_id
+    owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1}) or {}
+    account_id = owner_doc.get("account_id")
 
-    rules = await db.alert_rules.find({"user_id": user_id, "enabled": True}, {"_id": 0}).to_list(100)
+    rules = [
+        normalize_alert_rule_document(rule, user_id, account_id)
+        for rule in await db.alert_rules.find({"user_id": user_id, "enabled": True}, {"_id": 0}).to_list(100)
+    ]
 
     for rule in rules:
+        if rule["scope"] == "store" and rule.get("store_id") != effective_store_id:
+            continue
         alert = None
         should_resolve = False
 
@@ -10180,10 +11285,18 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     {"$set": {"is_dismissed": True}}
                 )
                 await db.alerts.insert_one(alert.model_dump())
-                await notification_service.notify_user(db, user_id, alert.title, alert.message, caller_owner_id=user_id)
+                await dispatch_alert_channels(
+                    user_id,
+                    account_id,
+                    effective_store_id,
+                    alert,
+                    data={"screen": "products", "filter": alert.type},
+                )
 
 async def check_slow_moving(user_id: str):
     """Check for products with no 'out' movement in the last 30 days"""
+    owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1}) or {}
+    account_id = owner_doc.get("account_id")
     rules = await db.alert_rules.find({"user_id": user_id, "type": "slow_moving", "enabled": True}, {"_id": 0}).to_list(1)
     if not rules:
         return
@@ -10210,6 +11323,7 @@ async def check_slow_moving(user_id: str):
             if not existing:
                 alert = Alert(
                     user_id=user_id,
+                    store_id=product.get("store_id"),
                     product_id=product["product_id"],
                     type="slow_moving",
                     title="reminders.dormant_products_label",
@@ -10217,7 +11331,13 @@ async def check_slow_moving(user_id: str):
                     severity="info"
                 )
                 await db.alerts.insert_one(alert.model_dump())
-                await notification_service.notify_user(db, user_id, alert.title, alert.message, caller_owner_id=user_id)
+                await dispatch_alert_channels(
+                    user_id,
+                    account_id,
+                    product.get("store_id"),
+                    alert,
+                    data={"screen": "products", "filter": "slow_moving"},
+                )
 
 @api_router.get("/alerts")
 async def get_alerts(
@@ -10268,26 +11388,43 @@ async def clear_dismissed_alerts(user: User = Depends(require_permission("stock"
 
 @api_router.get("/alert-rules", response_model=List[AlertRule])
 async def get_alert_rules(user: User = Depends(require_permission("stock", "read"))):
-    rules = await db.alert_rules.find({"user_id": get_owner_id(user)}, {"_id": 0}).to_list(100)
-    return [AlertRule(**rule) for rule in rules]
+    owner_id = get_owner_id(user)
+    rules = await db.alert_rules.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
+    return [AlertRule(**normalize_alert_rule_document(rule, owner_id, user.account_id)) for rule in rules]
 
 @api_router.post("/alert-rules", response_model=AlertRule)
 async def create_alert_rule(rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
-    rule = AlertRule(**rule_data.model_dump(), user_id=get_owner_id(user))
+    owner_id = get_owner_id(user)
+    payload = normalize_alert_rule_payload(rule_data.type, rule_data.model_dump())
+    if payload["scope"] == "store":
+        target_store_id = payload.get("store_id") or user.active_store_id
+        if not target_store_id:
+            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette règle")
+        ensure_user_store_access(user, target_store_id)
+        payload["store_id"] = target_store_id
+    rule = AlertRule(**payload, user_id=owner_id, account_id=user.account_id)
     await db.alert_rules.insert_one(rule.model_dump())
     return rule
 
 @api_router.put("/alert-rules/{rule_id}", response_model=AlertRule)
 async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    payload = normalize_alert_rule_payload(rule_data.type, rule_data.model_dump())
+    if payload["scope"] == "store":
+        target_store_id = payload.get("store_id") or user.active_store_id
+        if not target_store_id:
+            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette rÃ¨gle")
+        ensure_user_store_access(user, target_store_id)
+        payload["store_id"] = target_store_id
     result = await db.alert_rules.find_one_and_update(
-        {"rule_id": rule_id, "user_id": get_owner_id(user)},
-        {"$set": rule_data.model_dump()},
+        {"rule_id": rule_id, "user_id": owner_id},
+        {"$set": {**payload, "account_id": user.account_id, "updated_at": datetime.now(timezone.utc)}},
         return_document=True
     )
     if not result:
         raise HTTPException(status_code=404, detail="Règle non trouvée")
     result.pop("_id", None)
-    return AlertRule(**result)
+    return AlertRule(**normalize_alert_rule_document(result, owner_id, user.account_id))
 
 @api_router.delete("/alert-rules/{rule_id}")
 async def delete_alert_rule(rule_id: str, user: User = Depends(require_permission("stock", "write"))):
@@ -10347,8 +11484,11 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
     if sections["account"]:
         if not is_org_admin_user(user):
             raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier les modules partagés")
-        account_updates["modules"] = settings_update.pop("modules") or default_modules()
-        user_updates["modules"] = account_updates["modules"]
+        if "modules" in settings_update:
+            account_updates["modules"] = settings_update.pop("modules") or default_modules()
+            user_updates["modules"] = account_updates["modules"]
+        if "notification_contacts" in settings_update:
+            account_updates["notification_contacts"] = normalize_notification_contacts(settings_update.pop("notification_contacts"))
 
     if sections["billing"]:
         if not is_billing_admin_user(user):
@@ -10368,7 +11508,10 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
             raise HTTPException(status_code=400, detail="Aucun magasin actif")
         for key in STORE_SCOPED_SETTING_FIELDS:
             if key in settings_update:
-                store_updates[key] = settings_update.pop(key)
+                value = settings_update.pop(key)
+                if key == "store_notification_contacts":
+                    value = normalize_notification_contacts(value)
+                store_updates[key] = value
 
     if "simple_mode" in settings_update:
         mobile_preferences = dict(settings_update.get("mobile_preferences") or {})
@@ -10395,6 +11538,26 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
             web_preferences["dashboard_layout"] = current.web_preferences.get("dashboard_layout", current.dashboard_layout)
         user_updates["web_preferences"] = web_preferences
         user_updates["dashboard_layout"] = web_preferences.get("dashboard_layout") or default_dashboard_layout()
+
+    if "push_notifications" in settings_update:
+        notification_preferences = normalize_notification_preferences(
+            settings_update.get("notification_preferences"),
+            push_enabled=bool(settings_update["push_notifications"]),
+        )
+        notification_preferences["push"] = bool(settings_update["push_notifications"])
+        settings_update["notification_preferences"] = notification_preferences
+
+    if "notification_preferences" in settings_update:
+        push_enabled = settings_update.get("push_notifications")
+        if push_enabled is None:
+            current = await load_effective_settings_for_user(user)
+            push_enabled = current.push_notifications
+        notification_preferences = normalize_notification_preferences(
+            settings_update.pop("notification_preferences"),
+            push_enabled=bool(push_enabled),
+        )
+        user_updates["notification_preferences"] = notification_preferences
+        user_updates["push_notifications"] = bool(notification_preferences.get("push", push_enabled))
 
     allowed_user_keys = USER_SELF_SETTING_FIELDS | ORG_ADMIN_SETTING_FIELDS
     user_updates.update({key: value for key, value in settings_update.items() if key in allowed_user_keys})
@@ -11830,9 +12993,205 @@ async def get_supplier_products(supplier_id: str, user: User = Depends(require_p
             })
     return result
 
+
+def _safe_rate(part: int, total: int) -> float:
+    return round((part / total) * 100, 1) if total else 0.0
+
+
+def _compute_supplier_score(
+    on_time_rate: float,
+    full_delivery_rate: float,
+    partial_delivery_rate: float,
+    cancel_rate: float,
+    price_variance_pct: float,
+    avg_delivery_days: float,
+) -> Dict[str, Any]:
+    score = (
+        on_time_rate * 0.35
+        + full_delivery_rate * 0.25
+        + max(0.0, 100.0 - (partial_delivery_rate * 1.5)) * 0.10
+        + max(0.0, 100.0 - (cancel_rate * 2.0)) * 0.15
+        + max(0.0, 100.0 - min(price_variance_pct, 100.0)) * 0.10
+        + max(0.0, 100.0 - min(avg_delivery_days * 5.0, 100.0)) * 0.05
+    )
+    rounded = round(score, 1)
+    if rounded >= 80:
+        label = "fiable"
+    elif rounded >= 60:
+        label = "a_surveiller"
+    else:
+        label = "risque"
+    return {"score": rounded, "score_label": label}
+
+
+def _compute_supplier_price_variance(order_items: List[dict]) -> float:
+    by_product: Dict[str, List[float]] = defaultdict(list)
+    for item in order_items:
+        product_id = item.get("product_id")
+        unit_price = float(item.get("unit_price") or 0)
+        if product_id and unit_price > 0:
+            by_product[product_id].append(unit_price)
+
+    variances: List[float] = []
+    for prices in by_product.values():
+        if len(prices) < 2:
+            continue
+        average_price = sum(prices) / len(prices)
+        if average_price <= 0:
+            continue
+        variances.append(((max(prices) - min(prices)) / average_price) * 100)
+
+    return round(sum(variances) / len(variances), 1) if variances else 0.0
+
+
+def _build_supplier_recent_incidents(
+    late_count: int,
+    partial_count: int,
+    cancelled_count: int,
+    price_variance_pct: float,
+) -> List[str]:
+    incidents: List[str] = []
+    if late_count:
+        incidents.append(f"{late_count} retard(s) de livraison recent(s)")
+    if partial_count:
+        incidents.append(f"{partial_count} livraison(s) partielle(s)")
+    if cancelled_count:
+        incidents.append(f"{cancelled_count} commande(s) annulee(s)")
+    if price_variance_pct >= 12:
+        incidents.append(f"Variation de prix elevee ({price_variance_pct:.1f}%)")
+    return incidents
+
+
+async def _build_supplier_stats_payload(
+    supplier_id: str,
+    owner_id: str,
+    user: User,
+) -> Dict[str, Any]:
+    orders_query = {"supplier_id": supplier_id, "user_id": owner_id}
+    orders_query = apply_store_scope(orders_query, user)
+    orders = await db.orders.find(orders_query, {"_id": 0}).to_list(1000)
+    order_ids = [order["order_id"] for order in orders]
+    order_items = (
+        await db.order_items.find({"order_id": {"$in": order_ids}}, {"_id": 0}).to_list(5000)
+        if order_ids
+        else []
+    )
+
+    stores = await load_accessible_stores(user)
+    store_name_map = {store["store_id"]: store.get("name", "Boutique") for store in stores if store.get("store_id")}
+
+    delivered_statuses = {"delivered", "partially_delivered"}
+    open_statuses = {"pending", "confirmed", "shipped"}
+
+    total_spent = sum(float(order.get("total_amount") or 0) for order in orders if order.get("status") in delivered_statuses)
+    pending_spent = sum(float(order.get("total_amount") or 0) for order in orders if order.get("status") in open_statuses)
+
+    delivered_orders = [order for order in orders if order.get("status") == "delivered"]
+    partially_delivered_orders = [order for order in orders if order.get("status") == "partially_delivered"]
+    pending_orders = [order for order in orders if order.get("status") in open_statuses]
+    cancelled_orders = [order for order in orders if order.get("status") == "cancelled"]
+
+    delays: List[float] = []
+    late_count = 0
+    on_time_count = 0
+    completed_for_timeliness = 0
+    ordered_dates: List[datetime] = []
+    store_breakdown: Dict[str, Dict[str, Any]] = {}
+
+    for order in orders:
+        created_at = parse_analytics_datetime(order.get("created_at"))
+        updated_at = parse_analytics_datetime(order.get("updated_at"))
+        expected_delivery = parse_analytics_datetime(order.get("expected_delivery"))
+        if created_at:
+            ordered_dates.append(created_at)
+        if created_at and updated_at and order.get("status") in delivered_statuses:
+            delays.append(max((updated_at - created_at).days, 0))
+        if expected_delivery and updated_at and order.get("status") in delivered_statuses:
+            completed_for_timeliness += 1
+            if updated_at <= expected_delivery:
+                on_time_count += 1
+            else:
+                late_count += 1
+
+        store_id = order.get("store_id") or "no_store"
+        bucket = store_breakdown.setdefault(
+            store_id,
+            {
+                "store_id": order.get("store_id"),
+                "store_name": store_name_map.get(order.get("store_id"), "Boutique non affectee"),
+                "orders_count": 0,
+                "open_orders": 0,
+                "delivered_orders": 0,
+                "total_spent": 0.0,
+            },
+        )
+        bucket["orders_count"] += 1
+        if order.get("status") in delivered_statuses:
+            bucket["delivered_orders"] += 1
+            bucket["total_spent"] += float(order.get("total_amount") or 0)
+        elif order.get("status") in open_statuses:
+            bucket["open_orders"] += 1
+
+    ordered_dates.sort()
+    order_frequency_days = 0.0
+    if len(ordered_dates) >= 2:
+        gaps = [
+            max((ordered_dates[index] - ordered_dates[index - 1]).days, 0)
+            for index in range(1, len(ordered_dates))
+        ]
+        if gaps:
+            order_frequency_days = round(sum(gaps) / len(gaps), 1)
+
+    avg_delivery_days = round(sum(delays) / len(delays), 1) if delays else 0.0
+    on_time_rate = _safe_rate(on_time_count, completed_for_timeliness)
+    full_delivery_rate = _safe_rate(len(delivered_orders), len(orders))
+    partial_delivery_rate = _safe_rate(len(partially_delivered_orders), len(orders))
+    cancel_rate = _safe_rate(len(cancelled_orders), len(orders))
+    price_variance_pct = _compute_supplier_price_variance(order_items)
+    average_order_value = round(sum(float(order.get("total_amount") or 0) for order in orders) / len(orders), 2) if orders else 0.0
+    score_payload = _compute_supplier_score(
+        on_time_rate=on_time_rate,
+        full_delivery_rate=full_delivery_rate,
+        partial_delivery_rate=partial_delivery_rate,
+        cancel_rate=cancel_rate,
+        price_variance_pct=price_variance_pct,
+        avg_delivery_days=avg_delivery_days,
+    )
+
+    return {
+        "total_spent": round(total_spent, 2),
+        "pending_spent": round(pending_spent, 2),
+        "orders_count": len(orders),
+        "pending_orders": len(pending_orders),
+        "avg_delivery_days": avg_delivery_days,
+        "delivered_count": len(delivered_orders),
+        "partially_delivered_count": len(partially_delivered_orders),
+        "cancelled_count": len(cancelled_orders),
+        "on_time_rate": on_time_rate,
+        "full_delivery_rate": full_delivery_rate,
+        "partial_delivery_rate": partial_delivery_rate,
+        "cancel_rate": cancel_rate,
+        "price_variance_pct": price_variance_pct,
+        "average_order_value": average_order_value,
+        "order_frequency_days": order_frequency_days,
+        "recent_incidents": _build_supplier_recent_incidents(
+            late_count=late_count,
+            partial_count=len(partially_delivered_orders),
+            cancelled_count=len(cancelled_orders),
+            price_variance_pct=price_variance_pct,
+        ),
+        "store_breakdown": list(store_breakdown.values()),
+        **score_payload,
+    }
+
 @api_router.get("/suppliers/{supplier_id}/stats")
 async def get_supplier_stats(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
+    return await _build_supplier_stats_payload(supplier_id, owner_id, user)
     
     # Verify supplier
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
@@ -11879,6 +13238,151 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_perm
         "avg_delivery_days": round(avg_delivery_days, 1),
         "delivered_count": len(delivered_orders)
     }
+
+@api_router.get("/suppliers/{supplier_id}/price-history")
+async def get_supplier_price_history(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
+    owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
+
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
+
+    linked_products = await db.supplier_products.find(
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        {"_id": 0},
+    ).to_list(1000)
+    product_ids = [link.get("product_id") for link in linked_products if link.get("product_id")]
+    products = (
+        await db.products.find(
+            {"user_id": owner_id, "product_id": {"$in": product_ids}},
+            {"_id": 0, "product_id": 1, "name": 1, "purchase_price": 1, "unit": 1},
+        ).to_list(1000)
+        if product_ids
+        else []
+    )
+    product_map = {product["product_id"]: product for product in products}
+
+    orders_query = {"supplier_id": supplier_id, "user_id": owner_id}
+    orders_query = apply_store_scope(orders_query, user)
+    orders = await db.orders.find(orders_query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    order_map = {order["order_id"]: order for order in orders}
+    order_items = (
+        await db.order_items.find(
+            {"order_id": {"$in": list(order_map.keys())}, "product_id": {"$in": product_ids}},
+            {"_id": 0},
+        ).to_list(5000)
+        if order_map and product_ids
+        else []
+    )
+
+    stores = await load_accessible_stores(user)
+    store_name_map = {store["store_id"]: store.get("name", "Boutique") for store in stores if store.get("store_id")}
+
+    other_links = (
+        await db.supplier_products.find(
+            {
+                "user_id": owner_id,
+                "product_id": {"$in": product_ids},
+                "supplier_id": {"$ne": supplier_id},
+            },
+            {"_id": 0},
+        ).to_list(2000)
+        if product_ids
+        else []
+    )
+    other_supplier_ids = list({link.get("supplier_id") for link in other_links if link.get("supplier_id")})
+    other_suppliers = (
+        await db.suppliers.find(
+            {"user_id": owner_id, "supplier_id": {"$in": other_supplier_ids}},
+            {"_id": 0, "supplier_id": 1, "name": 1},
+        ).to_list(500)
+        if other_supplier_ids
+        else []
+    )
+    other_supplier_map = {item["supplier_id"]: item.get("name", "Fournisseur") for item in other_suppliers}
+
+    history_by_product: Dict[str, List[dict]] = defaultdict(list)
+    for item in order_items:
+        order = order_map.get(item.get("order_id"))
+        if not order:
+            continue
+        created_at = parse_analytics_datetime(order.get("created_at"))
+        history_by_product[item["product_id"]].append(
+            {
+                "order_id": item.get("order_id"),
+                "store_id": order.get("store_id"),
+                "store_name": store_name_map.get(order.get("store_id"), "Boutique non affectee"),
+                "date": created_at.isoformat() if created_at else None,
+                "unit_price": float(item.get("unit_price") or 0),
+                "quantity": float(item.get("quantity") or 0),
+                "total_price": float(item.get("total_price") or 0),
+            }
+        )
+
+    response: List[dict] = []
+    now = datetime.now(timezone.utc)
+    for link in linked_products:
+        product_id = link.get("product_id")
+        if not product_id:
+            continue
+        product = product_map.get(product_id, {})
+        points = sorted(
+            history_by_product.get(product_id, []),
+            key=lambda point: point.get("date") or "",
+            reverse=True,
+        )
+        prices_30d: List[float] = []
+        prices_90d: List[float] = []
+        for point in points:
+            point_dt = parse_analytics_datetime(point.get("date"))
+            if not point_dt:
+                continue
+            if point_dt >= now - timedelta(days=90):
+                prices_90d.append(point["unit_price"])
+            if point_dt >= now - timedelta(days=30):
+                prices_30d.append(point["unit_price"])
+
+        current_supplier_price = float(link.get("supplier_price") or 0)
+        last_order_price = points[0]["unit_price"] if points else current_supplier_price
+        previous_price = points[1]["unit_price"] if len(points) > 1 else current_supplier_price
+        latest_change_pct = 0.0
+        if previous_price:
+            latest_change_pct = round(((last_order_price - previous_price) / previous_price) * 100, 1)
+
+        competitor_prices = [
+            {
+                "supplier_id": other_link.get("supplier_id"),
+                "supplier_name": other_supplier_map.get(other_link.get("supplier_id"), "Fournisseur"),
+                "supplier_price": float(other_link.get("supplier_price") or 0),
+                "is_preferred": bool(other_link.get("is_preferred")),
+            }
+            for other_link in other_links
+            if other_link.get("product_id") == product_id
+        ]
+        competitor_prices.sort(key=lambda item: item["supplier_price"] or 0)
+
+        response.append(
+            {
+                "product_id": product_id,
+                "product_name": product.get("name", "Produit"),
+                "unit": product.get("unit") or "piece",
+                "current_supplier_price": current_supplier_price,
+                "last_order_price": last_order_price,
+                "average_price_30d": round(sum(prices_30d) / len(prices_30d), 2) if prices_30d else None,
+                "average_price_90d": round(sum(prices_90d) / len(prices_90d), 2) if prices_90d else None,
+                "min_price_90d": round(min(prices_90d), 2) if prices_90d else None,
+                "max_price_90d": round(max(prices_90d), 2) if prices_90d else None,
+                "latest_change_pct": latest_change_pct,
+                "last_ordered_at": points[0].get("date") if points else None,
+                "points": points[:12],
+                "competitor_prices": competitor_prices,
+            }
+        )
+
+    response.sort(key=lambda item: item.get("last_ordered_at") or "", reverse=True)
+    return response
+
 
 @api_router.get("/suppliers/{supplier_id}/invoices", response_model=List[SupplierInvoice])
 async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
@@ -13503,6 +15007,8 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
 async def check_late_deliveries_internal(user_id: str):
     """Check orders with expected_delivery in the past and not yet delivered"""
     now = datetime.now(timezone.utc)
+    owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1}) or {}
+    account_id = owner_doc.get("account_id")
     late_orders = await db.orders.find({
         "user_id": user_id,
         "expected_delivery": {"$lt": now},
@@ -13526,13 +15032,20 @@ async def check_late_deliveries_internal(user_id: str):
         if not existing:
             alert = Alert(
                 user_id=user_id,
+                store_id=order.get("store_id"),
                 type="late_delivery",
                 title="reminders.late_deliveries_label",
                 message=f"Commande {order['order_id']} ({supplier_name}) aurait dû être livrée le {str(order['expected_delivery'])[:10]}",
                 severity="warning"
             )
             await db.alerts.insert_one(alert.model_dump())
-            await notification_service.notify_user(db, user_id, alert.title, alert.message, caller_owner_id=user_id)
+            await dispatch_alert_channels(
+                user_id,
+                account_id,
+                order.get("store_id"),
+                alert,
+                data={"screen": "orders", "filter": "late_delivery"},
+            )
 
 @api_router.post("/check-late-deliveries")
 async def check_late_deliveries(user: User = Depends(require_auth)):
@@ -14359,6 +15872,310 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
         "created_count": len(created_orders),
         "order_ids": created_orders
     }
+
+@api_router.get("/analytics/procurement/overview")
+async def get_procurement_overview(
+    days: int = 90,
+    user: User = Depends(require_procurement_access("read")),
+):
+    owner_id = get_owner_id(user)
+    normalized_days = normalize_analytics_days(days)
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=normalized_days)
+
+    stores = await load_accessible_stores(user)
+    store_name_map = {store["store_id"]: store.get("name", "Boutique") for store in stores if store.get("store_id")}
+    scope_label = build_analytics_scope_label(stores)
+
+    orders_query: Dict[str, Any] = {"user_id": owner_id, "created_at": {"$gte": cutoff}}
+    orders_query = apply_accessible_store_scope(orders_query, user)
+    orders = await db.orders.find(orders_query, {"_id": 0}).to_list(4000)
+    order_ids = [order["order_id"] for order in orders]
+    order_items = (
+        await db.order_items.find({"order_id": {"$in": order_ids}}, {"_id": 0}).to_list(12000)
+        if order_ids
+        else []
+    )
+    order_items_by_order: Dict[str, List[dict]] = defaultdict(list)
+    for item in order_items:
+        order_items_by_order[item["order_id"]].append(item)
+
+    manual_suppliers = await db.suppliers.find({"user_id": owner_id}, {"_id": 0, "supplier_id": 1, "name": 1}).to_list(2000)
+    manual_supplier_map = {supplier["supplier_id"]: supplier.get("name", "Fournisseur") for supplier in manual_suppliers}
+
+    marketplace_ids = list({order.get("supplier_user_id") for order in orders if order.get("is_connected") and order.get("supplier_user_id")})
+    supplier_profiles = (
+        await db.supplier_profiles.find({"user_id": {"$in": marketplace_ids}}, {"_id": 0, "user_id": 1, "company_name": 1}).to_list(500)
+        if marketplace_ids
+        else []
+    )
+    marketplace_supplier_map = {profile["user_id"]: profile.get("company_name", "Fournisseur marketplace") for profile in supplier_profiles}
+
+    supplier_metrics: Dict[str, Dict[str, Any]] = {}
+    total_spend = 0.0
+    open_orders_count = 0
+    delivered_statuses = {"delivered", "partially_delivered"}
+    open_statuses = {"pending", "confirmed", "shipped"}
+
+    for order in orders:
+        is_connected = bool(order.get("is_connected") and order.get("supplier_user_id"))
+        supplier_key = f"mp:{order.get('supplier_user_id')}" if is_connected else f"manual:{order.get('supplier_id')}"
+        supplier_name = (
+            marketplace_supplier_map.get(order.get("supplier_user_id"), "Fournisseur marketplace")
+            if is_connected
+            else manual_supplier_map.get(order.get("supplier_id"), "Fournisseur")
+        )
+        metric = supplier_metrics.setdefault(
+            supplier_key,
+            {
+                "supplier_key": supplier_key,
+                "supplier_id": order.get("supplier_user_id") if is_connected else order.get("supplier_id"),
+                "supplier_name": supplier_name,
+                "kind": "marketplace" if is_connected else "manual",
+                "orders": [],
+                "items": [],
+                "stores": set(),
+            },
+        )
+        metric["orders"].append(order)
+        metric["items"].extend(order_items_by_order.get(order["order_id"], []))
+        if order.get("store_id"):
+            metric["stores"].add(order["store_id"])
+
+        if order.get("status") in delivered_statuses:
+            total_spend += float(order.get("total_amount") or 0)
+        elif order.get("status") in open_statuses:
+            open_orders_count += 1
+
+    supplier_ranking: List[dict] = []
+    for metric in supplier_metrics.values():
+        orders_bucket = metric["orders"]
+        items_bucket = metric["items"]
+        delivered_orders = [order for order in orders_bucket if order.get("status") == "delivered"]
+        partial_orders = [order for order in orders_bucket if order.get("status") == "partially_delivered"]
+        cancelled_orders = [order for order in orders_bucket if order.get("status") == "cancelled"]
+        timeliness_total = 0
+        on_time_count = 0
+        late_count = 0
+        delays: List[int] = []
+        for order in orders_bucket:
+            created_at = parse_analytics_datetime(order.get("created_at"))
+            updated_at = parse_analytics_datetime(order.get("updated_at"))
+            expected_delivery = parse_analytics_datetime(order.get("expected_delivery"))
+            if created_at and updated_at and order.get("status") in delivered_statuses:
+                delays.append(max((updated_at - created_at).days, 0))
+            if expected_delivery and updated_at and order.get("status") in delivered_statuses:
+                timeliness_total += 1
+                if updated_at <= expected_delivery:
+                    on_time_count += 1
+                else:
+                    late_count += 1
+
+        avg_lead_time_days = round(sum(delays) / len(delays), 1) if delays else 0.0
+        on_time_rate = _safe_rate(on_time_count, timeliness_total)
+        full_delivery_rate = _safe_rate(len(delivered_orders), len(orders_bucket))
+        partial_delivery_rate = _safe_rate(len(partial_orders), len(orders_bucket))
+        cancel_rate = _safe_rate(len(cancelled_orders), len(orders_bucket))
+        price_variance_pct = _compute_supplier_price_variance(items_bucket)
+        score_payload = _compute_supplier_score(
+            on_time_rate=on_time_rate,
+            full_delivery_rate=full_delivery_rate,
+            partial_delivery_rate=partial_delivery_rate,
+            cancel_rate=cancel_rate,
+            price_variance_pct=price_variance_pct,
+            avg_delivery_days=avg_lead_time_days,
+        )
+        supplier_ranking.append(
+            {
+                "supplier_key": metric["supplier_key"],
+                "supplier_id": metric["supplier_id"],
+                "supplier_name": metric["supplier_name"],
+                "kind": metric["kind"],
+                "stores_count": len(metric["stores"]),
+                "orders_count": len(orders_bucket),
+                "open_orders": len([order for order in orders_bucket if order.get("status") in open_statuses]),
+                "total_spent": round(sum(float(order.get("total_amount") or 0) for order in orders_bucket if order.get("status") in delivered_statuses), 2),
+                "avg_order_value": round(sum(float(order.get("total_amount") or 0) for order in orders_bucket) / len(orders_bucket), 2) if orders_bucket else 0.0,
+                "avg_lead_time_days": avg_lead_time_days,
+                "on_time_rate": on_time_rate,
+                "full_delivery_rate": full_delivery_rate,
+                "partial_delivery_rate": partial_delivery_rate,
+                "cancel_rate": cancel_rate,
+                "price_variance_pct": price_variance_pct,
+                "recent_incidents": _build_supplier_recent_incidents(late_count, len(partial_orders), len(cancelled_orders), price_variance_pct),
+                **score_payload,
+            }
+        )
+    supplier_ranking.sort(key=lambda item: (-item["score"], -item["total_spent"]))
+
+    products_query: Dict[str, Any] = {"user_id": owner_id, "is_active": True, "min_stock": {"$gt": 0}}
+    products_query = apply_accessible_store_scope(products_query, user)
+    products = await db.products.find(products_query, {"_id": 0}).to_list(4000)
+    supplier_links = await db.supplier_products.find({"user_id": owner_id}, {"_id": 0}).to_list(4000)
+    links_by_product: Dict[str, List[dict]] = defaultdict(list)
+    for link in supplier_links:
+        if link.get("product_id"):
+            links_by_product[link["product_id"]].append(link)
+    for product_id in links_by_product:
+        links_by_product[product_id].sort(key=lambda link: (not bool(link.get("is_preferred")), float(link.get("supplier_price") or 0)))
+
+    open_order_product_keys = {
+        f"{order.get('store_id')}::{item.get('product_id')}"
+        for order in orders
+        if order.get("status") in open_statuses
+        for item in order_items_by_order.get(order["order_id"], [])
+    }
+
+    store_summaries: Dict[str, Dict[str, Any]] = {
+        store["store_id"]: {
+            "store_id": store["store_id"],
+            "store_name": store.get("name", "Boutique"),
+            "spent": 0.0,
+            "open_orders": 0,
+            "critical_replenishments": 0,
+            "active_suppliers": set(),
+        }
+        for store in stores
+        if store.get("store_id")
+    }
+    for order in orders:
+        store_id = order.get("store_id")
+        if not store_id or store_id not in store_summaries:
+            continue
+        if order.get("status") in delivered_statuses:
+            store_summaries[store_id]["spent"] += float(order.get("total_amount") or 0)
+        elif order.get("status") in open_statuses:
+            store_summaries[store_id]["open_orders"] += 1
+        if order.get("is_connected") and order.get("supplier_user_id"):
+            store_summaries[store_id]["active_suppliers"].add(f"mp:{order['supplier_user_id']}")
+        elif order.get("supplier_id"):
+            store_summaries[store_id]["active_suppliers"].add(f"manual:{order['supplier_id']}")
+
+    local_suggestions: List[dict] = []
+    for product in products:
+        store_id = product.get("store_id")
+        if not store_id or store_id not in store_summaries:
+            continue
+        quantity = float(product.get("quantity") or 0)
+        min_stock = float(product.get("min_stock") or 0)
+        if min_stock <= 0 or quantity > min_stock:
+            continue
+        if f"{store_id}::{product.get('product_id')}" in open_order_product_keys:
+            continue
+        product_links = links_by_product.get(product.get("product_id"), [])
+        if not product_links:
+            continue
+        preferred_link = product_links[0]
+        suggested_quantity = round_quantity(
+            max((min_stock * 2) - quantity, max(min_stock - quantity, 1)),
+            float(product.get("quantity_precision") or 1.0),
+        )
+        estimated_total = round(float(preferred_link.get("supplier_price") or 0) * suggested_quantity, 2)
+        suggestion = {
+            "store_id": store_id,
+            "store_name": store_summaries[store_id]["store_name"],
+            "product_id": product.get("product_id"),
+            "product_name": product.get("name", "Produit"),
+            "supplier_id": preferred_link.get("supplier_id"),
+            "supplier_name": manual_supplier_map.get(preferred_link.get("supplier_id"), "Fournisseur"),
+            "current_quantity": quantity,
+            "min_stock": min_stock,
+            "suggested_quantity": suggested_quantity,
+            "supplier_price": float(preferred_link.get("supplier_price") or 0),
+            "estimated_total": estimated_total,
+        }
+        local_suggestions.append(suggestion)
+        store_summaries[store_id]["critical_replenishments"] += 1
+        if preferred_link.get("supplier_id"):
+            store_summaries[store_id]["active_suppliers"].add(f"manual:{preferred_link['supplier_id']}")
+
+    grouped_suggestions: Dict[str, Dict[str, Any]] = {}
+    for suggestion in local_suggestions:
+        supplier_id = suggestion.get("supplier_id")
+        if not supplier_id:
+            continue
+        bucket = grouped_suggestions.setdefault(
+            supplier_id,
+            {
+                "supplier_id": supplier_id,
+                "supplier_name": suggestion["supplier_name"],
+                "stores": defaultdict(lambda: {"store_id": None, "store_name": None, "items": [], "estimated_total": 0.0}),
+                "total_estimated_amount": 0.0,
+                "total_recommended_quantity": 0.0,
+            },
+        )
+        store_bucket = bucket["stores"][suggestion["store_id"]]
+        store_bucket["store_id"] = suggestion["store_id"]
+        store_bucket["store_name"] = suggestion["store_name"]
+        store_bucket["items"].append(suggestion)
+        store_bucket["estimated_total"] += suggestion["estimated_total"]
+        bucket["total_estimated_amount"] += suggestion["estimated_total"]
+        bucket["total_recommended_quantity"] += suggestion["suggested_quantity"]
+
+    group_opportunities = [
+        {
+            "supplier_id": supplier_id,
+            "supplier_name": payload["supplier_name"],
+            "stores_count": len(payload["stores"]),
+            "total_estimated_amount": round(payload["total_estimated_amount"], 2),
+            "total_recommended_quantity": round(payload["total_recommended_quantity"], 2),
+            "stores": [
+                {
+                    "store_id": store_payload["store_id"],
+                    "store_name": store_payload["store_name"],
+                    "items_count": len(store_payload["items"]),
+                    "estimated_total": round(store_payload["estimated_total"], 2),
+                    "items": store_payload["items"][:5],
+                }
+                for store_payload in payload["stores"].values()
+            ],
+        }
+        for supplier_id, payload in grouped_suggestions.items()
+        if len(payload["stores"]) > 1
+    ]
+    group_opportunities.sort(key=lambda item: (-item["stores_count"], -item["total_estimated_amount"]))
+
+    recommendations: List[str] = []
+    if group_opportunities:
+        recommendations.append(f"{len(group_opportunities)} opportunite(s) d'achat groupe ont ete detectees entre plusieurs boutiques.")
+    if supplier_ranking and supplier_ranking[0]["score"] < 70:
+        recommendations.append("Aucun fournisseur n'atteint un score vraiment confortable : surveiller delais et stabilite des prix.")
+    low_scored_suppliers = [supplier for supplier in supplier_ranking if supplier["score"] < 60]
+    if low_scored_suppliers:
+        recommendations.append(f"{len(low_scored_suppliers)} fournisseur(s) sont classes a risque et meritent un benchmark ou une renegociation.")
+
+    return {
+        "days": normalized_days,
+        "scope_label": scope_label,
+        "recommendations": recommendations,
+        "approval": {
+            "workflow_enabled": any(bool(order.get("approval_required")) for order in orders),
+            "pending_orders": len([
+                order for order in orders
+                if order.get("approval_required") and order.get("approval_status") == "pending"
+            ]),
+        },
+        "kpis": {
+            "total_spend": round(total_spend, 2),
+            "open_orders": open_orders_count,
+            "suppliers_count": len(supplier_ranking),
+            "average_supplier_score": round(sum(supplier["score"] for supplier in supplier_ranking) / len(supplier_ranking), 1) if supplier_ranking else 0.0,
+            "group_opportunities": len(group_opportunities),
+            "local_replenishment_items": len(local_suggestions),
+        },
+        "supplier_ranking": supplier_ranking[:12],
+        "store_summaries": [
+            {
+                **payload,
+                "spent": round(payload["spent"], 2),
+                "active_suppliers": len(payload["active_suppliers"]),
+            }
+            for payload in store_summaries.values()
+        ],
+        "group_opportunities": group_opportunities[:8],
+        "local_suggestions": local_suggestions[:20],
+    }
+
 
 class BatchStockUpdate(BaseModel):
     codes: List[str]
@@ -16123,6 +17940,8 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
     source = account_doc or owner_doc
+    access_policy = compute_subscription_access_policy(source)
+    effective_plan = normalize_plan(source.get("plan", "starter")) if access_policy["can_use_advanced_features"] else "starter"
 
     # Calculate remaining days
     remaining_days = 0
@@ -16133,10 +17952,23 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         delta = source["trial_ends_at"].replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
         remaining_days = max(0, delta.days)
 
-    currency = source.get("currency", owner_doc.get("currency", "XOF"))
+    country_code = source.get("country_code") or owner_doc.get("country_code") or DEFAULT_COUNTRY_CODE
+    currency = source.get("currency", owner_doc.get("currency", DEFAULT_CURRENCY))
+    pricing_payload = build_pricing_payload(
+        country_code=country_code,
+        currency=currency,
+        locked=has_locked_billing_country(source),
+    )
     return {
         "plan": normalize_plan(source.get("plan", "starter")),
+        "effective_plan": effective_plan,
         "status": source.get("subscription_status", "active"),
+        "subscription_access_phase": access_policy["subscription_access_phase"],
+        "grace_until": access_policy["grace_until"],
+        "read_only_after": access_policy["read_only_after"],
+        "requires_payment_attention": access_policy["requires_payment_attention"],
+        "can_write_data": access_policy["can_write_data"],
+        "can_use_advanced_features": access_policy["can_use_advanced_features"],
         "trial_ends_at": source.get("trial_ends_at"),
         "subscription_end": source.get("subscription_end"),
         "subscription_provider": source.get("subscription_provider", "none"),
@@ -16144,9 +17976,18 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         "billing_contact_email": source.get("billing_contact_email"),
         "remaining_days": remaining_days,
         "is_trial": bool(source.get("trial_ends_at") and remaining_days > 0),
-        "currency": currency,
-        "use_mobile_money": currency in ("XOF", "XAF", "GNF", "CDF"),
+        "country_code": country_code,
+        "currency": pricing_payload["currency"],
+        "pricing_region": pricing_payload["pricing_region"],
+        "effective_prices": pricing_payload["plans"],
+        "recommended_checkout_provider": pricing_payload["recommended_checkout_provider"],
+        "can_change_billing_country": pricing_payload["can_change_billing_country"],
+        "use_mobile_money": pricing_payload["use_mobile_money"],
     }
+
+@api_router.get("/pricing/public")
+async def get_public_pricing(country_code: Optional[str] = None, currency: Optional[str] = None):
+    return build_pricing_payload(country_code=country_code, currency=currency, locked=False)
 
 @api_router.delete("/profile")
 async def delete_account(confirmation: PasswordConfirmation, user: User = Depends(require_auth)):
@@ -16229,6 +18070,13 @@ async def revenuecat_webhook(request: Request):
     """Handle RevenueCat server-to-server notifications."""
     auth_header = request.headers.get("Authorization", "")
     if not verify_revenuecat_webhook(auth_header):
+        await log_subscription_event(
+            event_type="webhook_invalid_signature",
+            provider="revenuecat",
+            source="mobile",
+            status="failed",
+            message="Authorization RevenueCat invalide",
+        )
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     body = await request.json()
@@ -16269,18 +18117,50 @@ async def revenuecat_webhook(request: Request):
             },
         )
         logger.info(f"RevenueCat {event_type} → plan={plan} user={app_user_id}")
+        await log_subscription_event(
+            event_type="payment_succeeded",
+            provider="revenuecat",
+            source="mobile",
+            owner_user_id=app_user_id,
+            plan=plan,
+            status="active",
+            provider_reference=product_id or event.get("transaction_id"),
+            message=f"RevenueCat {event_type}",
+            metadata={"subscription_end": _iso_or_none(sub_end), "product_id": product_id},
+        )
     elif event_type in deactivate_events:
         await update_business_account_for_owner(
             app_user_id,
-            {"plan": "starter", "subscription_status": "expired"},
+            {"subscription_status": "expired"},
         )
         logger.info(f"RevenueCat {event_type} - expired user {app_user_id}")
+        await log_subscription_event(
+            event_type="subscription_expired",
+            provider="revenuecat",
+            source="mobile",
+            owner_user_id=app_user_id,
+            plan=plan,
+            status="expired",
+            provider_reference=product_id or event.get("transaction_id"),
+            message=f"RevenueCat {event_type}",
+            metadata={"product_id": product_id},
+        )
     elif event_type in cancel_events:
         await update_business_account_for_owner(
             app_user_id,
             {"subscription_status": "cancelled"},
         )
         logger.info(f"RevenueCat CANCELLATION for user {app_user_id}")
+        await log_subscription_event(
+            event_type="subscription_cancelled",
+            provider="revenuecat",
+            source="mobile",
+            owner_user_id=app_user_id,
+            status="cancelled",
+            provider_reference=product_id or event.get("transaction_id"),
+            message="RevenueCat cancellation",
+            metadata={"product_id": product_id},
+        )
 
     return {"status": "ok"}
 
@@ -16298,9 +18178,17 @@ async def sync_subscription(user: User = Depends(require_auth)):
     if sub_end and current_plan in ("pro", "enterprise"):
         sub_end_aware = sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)
         if sub_end_aware < datetime.now(timezone.utc):
-            await update_business_account_for_owner(owner_id, {"plan": "starter", "subscription_status": "expired"})
-            return {"plan": "starter", "status": "expired"}
-    return {"plan": current_plan, "status": source.get("subscription_status", "active")}
+            await update_business_account_for_owner(owner_id, {"subscription_status": "expired"})
+            source["subscription_status"] = "expired"
+    access_policy = compute_subscription_access_policy(source)
+    effective_plan = current_plan if access_policy["can_use_advanced_features"] else "starter"
+    return {
+        "plan": current_plan,
+        "effective_plan": effective_plan,
+        "status": source.get("subscription_status", "active"),
+        "subscription_access_phase": access_policy["subscription_access_phase"],
+        "requires_payment_attention": access_policy["requires_payment_attention"],
+    }
 
 @api_router.get("/payment/success")
 async def payment_success():

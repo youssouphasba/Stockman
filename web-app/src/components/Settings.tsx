@@ -23,7 +23,7 @@ import {
     FileText
 } from 'lucide-react';
 import { settings as settingsApi, auth as authApi, locations as locationsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
-import type { User as AppUser } from '../services/api';
+import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
 
@@ -31,6 +31,42 @@ import { getAccessContext } from '../utils/access';
 type SettingsProps = {
     user?: AppUser | null;
 };
+
+const DEFAULT_NOTIFICATION_CONTACTS: NotificationContactMap = {
+    default: [],
+    stock: [],
+    procurement: [],
+    finance: [],
+    crm: [],
+    operations: [],
+    billing: [],
+};
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+    in_app: true,
+    push: true,
+    email: false,
+    minimum_severity_for_push: 'warning',
+    minimum_severity_for_email: 'critical',
+};
+
+const NOTIFICATION_CONTACT_FIELDS: { key: keyof NotificationContactMap; label: string; description: string }[] = [
+    { key: 'default', label: 'Destinataires par défaut', description: 'Utilisés si une règle ne cible pas un groupe plus précis.' },
+    { key: 'stock', label: 'Stock', description: 'Ruptures, stock bas, surstock et dormance produits.' },
+    { key: 'procurement', label: 'Approvisionnement', description: 'Retards fournisseurs, commandes et livraisons.' },
+    { key: 'finance', label: 'Finance', description: 'Dépenses, écarts, documents et alertes sensibles pour la trésorerie.' },
+    { key: 'crm', label: 'CRM', description: 'Dettes clients, relances et alertes relation client.' },
+    { key: 'operations', label: 'Opérations', description: 'Anomalies, synthèses IA et incidents transverses.' },
+    { key: 'billing', label: 'Facturation', description: 'Contact abonnement et sujets contractuels du compte.' },
+];
+
+function ScopeBadge({ label }: { label: string }) {
+    return (
+        <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-primary">
+            {label}
+        </span>
+    );
+}
 
 export default function Settings({ user }: SettingsProps) {
     const { t, i18n } = useTranslation();
@@ -45,6 +81,9 @@ export default function Settings({ user }: SettingsProps) {
     const [currency, setCurrency] = useState('XOF');
     const [billingContactName, setBillingContactName] = useState('');
     const [billingContactEmail, setBillingContactEmail] = useState('');
+    const [notificationContacts, setNotificationContacts] = useState<NotificationContactMap>(DEFAULT_NOTIFICATION_CONTACTS);
+    const [storeNotificationContacts, setStoreNotificationContacts] = useState<NotificationContactMap>(DEFAULT_NOTIFICATION_CONTACTS);
+    const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
     const [receiptName, setReceiptName] = useState('');
     const [receiptFooter, setReceiptFooter] = useState('');
     const [invoiceName, setInvoiceName] = useState('');
@@ -62,6 +101,7 @@ export default function Settings({ user }: SettingsProps) {
     const [editingStore, setEditingStore] = useState<any>(null);
     const [storeSaving, setStoreSaving] = useState(false);
     const [sector, setSector] = useState('');
+    const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
 
     const CURRENCIES = [
         { code: 'XOF', label: 'XOF — CFA BCEAO (Sénégal, Mali, CI…)' },
@@ -91,6 +131,9 @@ export default function Settings({ user }: SettingsProps) {
             setCurrency(res?.currency || 'XOF');
             setBillingContactName(res?.billing_contact_name || '');
             setBillingContactEmail(res?.billing_contact_email || '');
+            setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(res?.notification_contacts || {}) });
+            setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(res?.store_notification_contacts || {}) });
+            setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(res?.notification_preferences || {}) });
             setReceiptName(res?.receipt_business_name || '');
             setReceiptFooter(res?.receipt_footer || '');
             setInvoiceName(res?.invoice_business_name || '');
@@ -115,8 +158,10 @@ export default function Settings({ user }: SettingsProps) {
         const billingKeys = new Set(['billing_contact_name', 'billing_contact_email']);
         const orgKeys = new Set([
             'modules',
+            'notification_contacts',
             'loyalty',
             'reminder_rules',
+            'store_notification_contacts',
             'tax_enabled',
             'tax_rate',
             'tax_mode',
@@ -158,6 +203,39 @@ export default function Settings({ user }: SettingsProps) {
         handleUpdateSettings({ language: lng });
     };
 
+    const updateNotificationGroup = (
+        setter: React.Dispatch<React.SetStateAction<NotificationContactMap>>,
+        key: keyof NotificationContactMap,
+        value: string,
+    ) => {
+        const emails = value
+            .split(',')
+            .map((email) => email.trim())
+            .filter(Boolean);
+        setter((current) => ({ ...current, [key]: emails }));
+    };
+
+    const saveNotificationContacts = async () => {
+        const updated = await settingsApi.update({ notification_contacts: notificationContacts });
+        setSettings(updated);
+        setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.notification_contacts || {}) });
+    };
+
+    const saveStoreNotificationContacts = async () => {
+        const updated = await settingsApi.update({ store_notification_contacts: storeNotificationContacts });
+        setSettings(updated);
+        setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.store_notification_contacts || {}) });
+    };
+
+    const saveNotificationPreferences = async () => {
+        const updated = await settingsApi.update({
+            push_notifications: notificationPreferences.push,
+            notification_preferences: notificationPreferences,
+        });
+        setSettings(updated);
+        setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
+    };
+
     if (loading && !settings) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -180,14 +258,67 @@ export default function Settings({ user }: SettingsProps) {
                 )}
             </header>
 
+            <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Utilisateur</p>
+                            <h2 className="mt-2 text-lg font-black text-white">Preferences personnelles</h2>
+                        </div>
+                        <ScopeBadge label="User" />
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">
+                        Langue, profil, devise et securite personnelle.
+                    </p>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Entreprise</p>
+                            <h2 className="mt-2 text-lg font-black text-white">Regles globales du compte</h2>
+                        </div>
+                        <ScopeBadge label="Compte" />
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">
+                        Facturation, modules, TVA, rappels et documents par defaut de l organisation.
+                    </p>
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                        {canManageOrgSettings ? 'Edition avancee disponible ici' : 'Consultation selon vos droits'}
+                    </p>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Boutique active</p>
+                            <h2 className="mt-2 text-lg font-black text-white">{activeStore?.name || 'Aucune boutique active'}</h2>
+                        </div>
+                        <ScopeBadge label="Boutique" />
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">
+                        Nom, adresse, recu, facture et terminaux de la boutique selectionnee.
+                    </p>
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                        {storeList.length.toLocaleString('fr-FR')} boutique{storeList.length > 1 ? 's' : ''} reliee{storeList.length > 1 ? 's' : ''}
+                    </p>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl">
                 <div className="lg:col-span-2 space-y-8">
                     {/* User Profile */}
                     <div className="glass-card p-8">
-                        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                            <User size={24} className="text-primary" />
-                            Profil Utilisateur
-                        </h3>
+                        <div className="mb-8 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <User size={24} className="text-primary" />
+                                    Profil Utilisateur
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-500">Ces champs vous suivent partout sans modifier les regles du compte.</p>
+                            </div>
+                            <ScopeBadge label="User" />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm text-slate-400">Nom complet</label>
@@ -219,12 +350,94 @@ export default function Settings({ user }: SettingsProps) {
                         </button>
                     </div>
 
+                    <div className="glass-card p-8">
+                        <div className="mb-8 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <Bell size={24} className="text-primary" />
+                                    Mes notifications
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-500">Choisissez vos canaux personnels et le niveau minimum qui merite un push ou un email.</p>
+                            </div>
+                            <ScopeBadge label="User" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            {([
+                                { key: 'in_app', label: 'In-app', desc: 'Toujours visible dans le centre de notifications.' },
+                                { key: 'push', label: 'Push mobile', desc: 'Pour les alertes terrain qui doivent vous sortir de l’écran.' },
+                                { key: 'email', label: 'Email perso', desc: 'Pour recevoir aussi un recap direct dans votre boite.' },
+                            ] as const).map((item) => {
+                                const enabled = notificationPreferences[item.key];
+                                return (
+                                    <button
+                                        key={item.key}
+                                        type="button"
+                                        onClick={() => setNotificationPreferences((current) => ({ ...current, [item.key]: !enabled }))}
+                                        className={`rounded-2xl border p-4 text-left transition-all ${
+                                            enabled ? 'border-primary/40 bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300'
+                                        }`}
+                                    >
+                                        <p className="text-sm font-black uppercase tracking-[0.16em]">{item.label}</p>
+                                        <p className="mt-2 text-xs leading-5 text-slate-400">{item.desc}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Severite minimum pour push</label>
+                                <select
+                                    value={notificationPreferences.minimum_severity_for_push}
+                                    onChange={(e) => setNotificationPreferences((current) => ({
+                                        ...current,
+                                        minimum_severity_for_push: e.target.value as NotificationPreferences['minimum_severity_for_push'],
+                                    }))}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-primary/50"
+                                >
+                                    <option value="info">Information</option>
+                                    <option value="warning">Attention</option>
+                                    <option value="critical">Critique</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm text-slate-400">Severite minimum pour email</label>
+                                <select
+                                    value={notificationPreferences.minimum_severity_for_email}
+                                    onChange={(e) => setNotificationPreferences((current) => ({
+                                        ...current,
+                                        minimum_severity_for_email: e.target.value as NotificationPreferences['minimum_severity_for_email'],
+                                    }))}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-primary/50"
+                                >
+                                    <option value="info">Information</option>
+                                    <option value="warning">Attention</option>
+                                    <option value="critical">Critique</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={saveNotificationPreferences}
+                            disabled={saving}
+                            className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Enregistrement...' : 'Enregistrer mes notifications'}
+                        </button>
+                    </div>
+
                     {canManageBilling && (
                     <div className="glass-card p-8">
-                        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                            <Mail size={24} className="text-primary" />
-                            Contact de facturation
-                        </h3>
+                        <div className="mb-8 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <Mail size={24} className="text-primary" />
+                                    Contact de facturation
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-500">Canal officiel pour l abonnement, les paiements et les echanges contractuels.</p>
+                            </div>
+                            <ScopeBadge label="Compte" />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm text-slate-400">Nom du contact</label>
@@ -323,6 +536,45 @@ export default function Settings({ user }: SettingsProps) {
                         </div>
                     </div>
                     {/* Receipt Customization */}
+                    {canManageOrgSettings && activeStore && (
+                    <div className="glass-card p-8">
+                        <div className="mb-8 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <Store size={24} className="text-primary" />
+                                    Emails de la boutique active
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-500">Ajoutez des destinataires propres a {activeStore.name}. Ils se combinent avec les emails du compte pour cette boutique.</p>
+                            </div>
+                            <ScopeBadge label="Boutique" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-5">
+                            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+                                <div key={field.key} className="flex flex-col gap-2">
+                                    <label className="text-sm font-semibold text-white">{field.label}</label>
+                                    <p className="text-xs text-slate-500">{field.description}</p>
+                                    <textarea
+                                        value={(storeNotificationContacts[field.key] || []).join(', ')}
+                                        onChange={(e) => updateNotificationGroup(setStoreNotificationContacts, field.key, e.target.value)}
+                                        rows={2}
+                                        className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all resize-none"
+                                        placeholder="ex: boutique-plateau@entreprise.com"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={saveStoreNotificationContacts}
+                            disabled={saving}
+                            className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Enregistrement...' : 'Enregistrer la boutique active'}
+                        </button>
+                    </div>
+                    )}
+
                     {canManageOrgSettings && (
                     <div className="glass-card p-8">
                         <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
@@ -358,6 +610,45 @@ export default function Settings({ user }: SettingsProps) {
                                 <Save size={16} /> Enregistrer
                             </button>
                         </div>
+                    </div>
+                    )}
+
+                    {canManageOrgSettings && (
+                    <div className="glass-card p-8">
+                        <div className="mb-8 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <Bell size={24} className="text-primary" />
+                                    Emails de notification de l entreprise
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-500">Definissez qui doit recevoir les alertes selon le sujet. Utilisez des adresses separees par des virgules.</p>
+                            </div>
+                            <ScopeBadge label="Compte" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-5">
+                            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+                                <div key={field.key} className="flex flex-col gap-2">
+                                    <label className="text-sm font-semibold text-white">{field.label}</label>
+                                    <p className="text-xs text-slate-500">{field.description}</p>
+                                    <textarea
+                                        value={(notificationContacts[field.key] || []).join(', ')}
+                                        onChange={(e) => updateNotificationGroup(setNotificationContacts, field.key, e.target.value)}
+                                        rows={2}
+                                        className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:border-primary/50 outline-none transition-all resize-none"
+                                        placeholder="ex: responsable@entreprise.com, stock@entreprise.com"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={saveNotificationContacts}
+                            disabled={saving}
+                            className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Enregistrement...' : 'Enregistrer les destinataires'}
+                        </button>
                     </div>
                     )}
 

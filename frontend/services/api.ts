@@ -750,6 +750,15 @@ export const stores = {
     name?: string;
     address?: string;
     currency?: string;
+    store_notification_contacts?: {
+      default: string[];
+      stock: string[];
+      procurement: string[];
+      finance: string[];
+      crm: string[];
+      operations: string[];
+      billing: string[];
+    };
     receipt_business_name?: string;
     receipt_footer?: string;
     invoice_business_name?: string;
@@ -1375,6 +1384,15 @@ export type Store = {
   name: string;
   address?: string;
   currency?: string;
+  store_notification_contacts?: {
+    default: string[];
+    stock: string[];
+    procurement: string[];
+    finance: string[];
+    crm: string[];
+    operations: string[];
+    billing: string[];
+  };
   receipt_business_name?: string;
   receipt_footer?: string;
   invoice_business_name?: string;
@@ -1429,8 +1447,15 @@ export type User = {
   store_ids?: string[];
   plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+  subscription_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   subscription_status?: 'active' | 'expired' | 'cancelled';
   effective_subscription_status?: 'active' | 'expired' | 'cancelled';
+  subscription_access_phase?: 'active' | 'grace' | 'restricted' | 'read_only';
+  grace_until?: string | null;
+  read_only_after?: string | null;
+  requires_payment_attention?: boolean;
+  can_write_data?: boolean;
+  can_use_advanced_features?: boolean;
   trial_ends_at?: string;
   currency?: string;
   business_type?: string;
@@ -1451,6 +1476,28 @@ export type AuthResponse = {
   access_token: string;
   refresh_token?: string;
   user: User;
+};
+
+export type PricingPlanQuote = {
+  plan: 'starter' | 'pro' | 'enterprise';
+  currency: string;
+  display_currency: string;
+  amount: string;
+  display_price: string;
+  provider: 'flutterwave' | 'stripe';
+};
+
+export type PricingPublicResponse = {
+  country_code: string;
+  requested_currency?: string | null;
+  currency: string;
+  display_currency: string;
+  pricing_region: string;
+  recommended_checkout_provider: 'flutterwave' | 'stripe';
+  use_mobile_money: boolean;
+  can_change_billing_country: boolean;
+  fallback_used?: boolean;
+  plans: Record<'starter' | 'pro' | 'enterprise', PricingPlanQuote>;
 };
 
 export type VerificationStatus = {
@@ -2097,6 +2144,31 @@ export type UserSettings = {
   reminder_rules?: ReminderRuleSettings;
   modules: Record<string, boolean>;
   simple_mode: boolean;
+  notification_preferences?: {
+    in_app: boolean;
+    push: boolean;
+    email: boolean;
+    minimum_severity_for_push: 'info' | 'warning' | 'critical';
+    minimum_severity_for_email: 'info' | 'warning' | 'critical';
+  };
+  notification_contacts?: {
+    default: string[];
+    stock: string[];
+    procurement: string[];
+    finance: string[];
+    crm: string[];
+    operations: string[];
+    billing: string[];
+  };
+  store_notification_contacts?: {
+    default: string[];
+    stock: string[];
+    procurement: string[];
+    finance: string[];
+    crm: string[];
+    operations: string[];
+    billing: string[];
+  };
   mobile_preferences?: {
     simple_mode: boolean;
     show_manager_zone?: boolean;
@@ -2422,18 +2494,30 @@ export type SalesForecastResponse = {
 export type AlertRule = {
   rule_id: string;
   user_id: string;
+  account_id?: string;
   type: string;
+  scope: 'account' | 'store';
+  store_id?: string | null;
   enabled: boolean;
   threshold_percentage?: number | null;
-  notification_channels: string[];
+  notification_channels: ('in_app' | 'push' | 'email')[];
+  recipient_keys: ('default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing')[];
+  recipient_emails: string[];
+  minimum_severity?: 'info' | 'warning' | 'critical' | null;
   created_at: string;
+  updated_at?: string;
 };
 
 export type AlertRuleCreate = {
   type: string;
+  scope?: 'account' | 'store';
+  store_id?: string | null;
   enabled?: boolean;
   threshold_percentage?: number | null;
-  notification_channels?: string[];
+  notification_channels?: ('in_app' | 'push' | 'email')[];
+  recipient_keys?: ('default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing')[];
+  recipient_emails?: string[];
+  minimum_severity?: 'info' | 'warning' | 'critical' | null;
 };
 
 // =================== DATA EXPLORER Types ===================
@@ -2562,12 +2646,28 @@ export type MarketplaceCatalogProduct = CatalogProductData & {
 
 export type SubscriptionData = {
   plan: 'trial' | 'starter' | 'pro' | 'enterprise';
+  effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   status: 'active' | 'expired' | 'cancelled';
+  subscription_access_phase?: 'active' | 'grace' | 'restricted' | 'read_only';
+  grace_until?: string | null;
+  read_only_after?: string | null;
+  requires_payment_attention?: boolean;
+  can_write_data?: boolean;
+  can_use_advanced_features?: boolean;
   trial_ends_at: string;
   subscription_end?: string;
-  subscription_provider: 'none' | 'revenuecat' | 'flutterwave' | '';
+  subscription_provider: 'none' | 'revenuecat' | 'flutterwave' | 'stripe' | '';
   remaining_days: number;
   is_trial: boolean;
+  country_code: string;
+  currency: string;
+  pricing_region: string;
+  effective_prices: Record<'starter' | 'pro' | 'enterprise', PricingPlanQuote>;
+  recommended_checkout_provider: 'flutterwave' | 'stripe';
+  can_change_billing_country: boolean;
+  billing_contact_name?: string;
+  billing_contact_email?: string;
+  use_mobile_money?: boolean;
 };
 
 export const profile = {
@@ -2578,8 +2678,18 @@ export const profile = {
     method: 'DELETE',
     body: { password },
   }),
-  updateProfile: (data: { name?: string; currency?: string; business_type?: string }) =>
+  updateProfile: (data: { name?: string; currency?: string; country_code?: string; business_type?: string }) =>
     request<any>('/auth/profile', { method: 'PUT', body: data }),
+};
+
+export const pricing = {
+  getPublic: (countryCode?: string, currency?: string) => {
+    const qs = new URLSearchParams();
+    if (countryCode) qs.set('country_code', countryCode);
+    if (currency) qs.set('currency', currency);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<PricingPublicResponse>(`/pricing/public${suffix}`);
+  },
 };
 
 export const subscription = {

@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ENTERPRISE_FEATURES_URL,
   LANDING_BUSINESS_TYPES_PATH,
+  LANDING_DEMO_PATH,
   MOBILE_APP_URL,
 } from '../../data/marketing';
 
@@ -34,7 +35,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
               >
                 <span className="profile-chip">Web + mobile</span>
                 <strong>Je pilote une entreprise</strong>
-                <span>Pour les equipes, les boutiques multiples et le pilotage avance.</span>
+                <span>Pour les entreprises qui veulent piloter sur ordinateur avec un vrai back-office web.</span>
               </button>
             </div>
           </div>
@@ -55,7 +56,7 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
                     Telecharger l&apos;app
                   </a>
-                  <a href="#pricing" className="btn-secondary">Voir les plans</a>
+                  <a href={LANDING_DEMO_PATH} className="btn-secondary">Tester en mode Demo</a>
                 </div>
                 <div className="enterprise-inline-links">
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile</a>
@@ -72,12 +73,12 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
                 </h1>
                 <p>
                   L&apos;app web Enterprise vous aide a suivre vos boutiques, vos equipes,
-                  votre stock, votre CRM et votre comptabilite pendant que le terrain reste sur mobile.
+                  votre stock, votre CRM et votre comptabilite sur ordinateur, pendant que le terrain reste sur mobile.
                 </p>
                 <div className="hero-btns">
                   <a href="/enterprise" className="btn-primary">Decouvrir Enterprise</a>
-                  <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                    Voir l&apos;app web
+                  <a href={`${LANDING_DEMO_PATH}?type=enterprise`} className="btn-secondary">
+                    Tester en mode Demo
                   </a>
                 </div>
                 <div className="enterprise-inline-links">

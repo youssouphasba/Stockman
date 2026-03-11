@@ -12,6 +12,7 @@ import About from './About';
 import DeleteAccount from './DeleteAccount';
 import EnterprisePage from './EnterprisePage';
 import BusinessTypesPage from './BusinessTypesPage';
+import DemoSelectorPage from './DemoSelectorPage';
 
 import ComparisonTable from './components/ComparisonTable';
 import CookieBanner from './components/CookieBanner';
@@ -29,7 +30,8 @@ import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css';
 
-import { detectRegion, getPricingByRegion, formatPrice, type Region } from './utils/pricing';
+import { detectBrowserCountryCode, fetchPublicPricing, type PublicPricingResponse } from './utils/pricing';
+import { COUNTRIES } from '../../frontend/constants/countries';
 import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
@@ -55,8 +57,26 @@ function Landing() {
     return () => clearTimeout(timer);
   }, [profile]);
 
-  const [region, setRegion] = useState<Region>(() => detectRegion());
-  const pricingData = getPricingByRegion(region);
+  const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
+  const [pricingData, setPricingData] = useState<PublicPricingResponse | null>(null);
+
+  useEffect(() => {
+    setSelectedCountryCode(detectBrowserCountryCode());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const data = await fetchPublicPricing(selectedCountryCode);
+      if (!cancelled) {
+        setPricingData(data);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCountryCode]);
 
   const testimonials = [
     { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
@@ -80,11 +100,6 @@ function Landing() {
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'iOS, Android, Web',
       url: 'https://stockman.pro',
-      offers: [
-        { '@type': 'Offer', category: 'Starter', priceCurrency: 'XOF', price: '2500' },
-        { '@type': 'Offer', category: 'Pro', priceCurrency: 'XOF', price: '4900' },
-        { '@type': 'Offer', category: 'Enterprise', priceCurrency: 'XOF', price: '9900' },
-      ],
     },
     {
       '@context': 'https://schema.org',
@@ -244,26 +259,20 @@ function Landing() {
               : t('pricing.subtitle')}
           </p>
           <div className="pricing-currency-switcher">
-            <span className="pricing-currency-label">Afficher les prix en :</span>
-            <div className="pricing-currency-tabs">
-              <button
-                className={`currency-tab${region === 'africa_xof' || region === 'africa_xaf' ? ' active' : ''}`}
-                onClick={() => setRegion('africa_xof')}
+            <span className="pricing-currency-label">Afficher les prix pour :</span>
+            <div className="pricing-currency-tabs" style={{ minWidth: 280 }}>
+              <select
+                value={selectedCountryCode}
+                onChange={(e) => setSelectedCountryCode(e.target.value)}
+                className="currency-tab"
+                style={{ width: '100%', textAlign: 'left' }}
               >
-                FCFA
-              </button>
-              <button
-                className={`currency-tab${region === 'europe' ? ' active' : ''}`}
-                onClick={() => setRegion('europe')}
-              >
-                EUR
-              </button>
-              <button
-                className={`currency-tab${region === 'global' ? ' active' : ''}`}
-                onClick={() => setRegion('global')}
-              >
-                USD
-              </button>
+                {COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.flag} {country.name} ({country.currency})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -272,7 +281,7 @@ function Landing() {
           <div className="pricing-grid pricing-grid--mobile">
             <div className="pricing-card glass-card">
               <h3>{t('pricing.starter.name')}</h3>
-              <div className="price">{formatPrice(pricingData.starter, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <div className="price">{pricingData?.plans.starter.display_price || '2 500 FCFA'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">OK</span> {t('pricing.starter.f1')}</li>
                 <li><span className="check-icon">OK</span> {t('pricing.starter.f2')}</li>
@@ -293,7 +302,7 @@ function Landing() {
             <div className="pricing-card glass-card popular">
               <div className="popular-tag">{t('pricing.popular')}</div>
               <h3>{t('pricing.business.name')}</h3>
-              <div className="price">{formatPrice(pricingData.pro, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <div className="price">{pricingData?.plans.pro.display_price || '4 900 FCFA'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">OK</span> {t('pricing.business.f1')}</li>
                 <li><span className="check-icon">OK</span> {t('pricing.business.f2')}</li>
@@ -317,7 +326,7 @@ function Landing() {
             <div className="pricing-card glass-card popular" style={{ maxWidth: 520, margin: '0 auto' }}>
               <div className="popular-tag">Enterprise</div>
               <h3>Enterprise</h3>
-              <div className="price">{formatPrice(pricingData.enterprise, pricingData.currency)} <span>{t('pricing.month')}</span></div>
+              <div className="price">{pricingData?.plans.enterprise.display_price || '9 900 FCFA'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">OK</span> App web back-office</li>
                 <li><span className="check-icon">OK</span> Mobile terrain inclus pour les equipes</li>
@@ -411,6 +420,7 @@ function App() {
 
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/demo" element={<DemoSelectorPage />} />
             <Route path="/enterprise" element={<EnterprisePage />} />
             <Route path="/business-types" element={<BusinessTypesPage />} />
             <Route path="/admin-leads" element={<AdminLeads />} />

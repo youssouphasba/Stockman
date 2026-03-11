@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,17 +24,69 @@ import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { useTranslation } from 'react-i18next';
 import { getDateLocale } from '../../utils/date';
+import { useAuth } from '../../contexts/AuthContext';
 
-const RULE_TYPE_CONFIG: Record<string, { labelKey: string; descKey: string; hasThreshold: boolean }> = {
-  low_stock: { labelKey: 'alerts.config.low_stock.label', descKey: 'alerts.config.low_stock.desc', hasThreshold: true },
-  out_of_stock: { labelKey: 'alerts.config.out_of_stock.label', descKey: 'alerts.config.out_of_stock.desc', hasThreshold: false },
-  overstock: { labelKey: 'alerts.config.overstock.label', descKey: 'alerts.config.overstock.desc', hasThreshold: true },
-  slow_moving: { labelKey: 'alerts.config.slow_moving.label', descKey: 'alerts.config.slow_moving.desc', hasThreshold: false },
+type RuleScope = 'account' | 'store';
+type ContactGroupKey = 'default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing';
+type SeverityLevel = 'info' | 'warning' | 'critical';
+
+const RULE_TEMPLATES: Record<string, { label: string; description: string; hasThreshold: boolean; defaultThreshold?: number; defaultRecipients: ContactGroupKey[]; defaultChannels: ('in_app' | 'push' | 'email')[]; defaultSeverity: SeverityLevel | null }> = {
+  low_stock: { label: 'Stock bas', description: 'Alerte quand un produit passe sous son stock minimum.', hasThreshold: true, defaultThreshold: 20, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push'], defaultSeverity: 'warning' },
+  out_of_stock: { label: 'Rupture de stock', description: 'Alerte immediate lorsqu un produit tombe a zero.', hasThreshold: false, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'critical' },
+  overstock: { label: 'Surstock', description: 'Signale les produits surstockes pour mieux piloter les achats.', hasThreshold: true, defaultThreshold: 80, defaultRecipients: ['stock'], defaultChannels: ['in_app'], defaultSeverity: 'info' },
+  slow_moving: { label: 'Produits dormants', description: 'Alerte sur les references qui ne tournent plus.', hasThreshold: false, defaultRecipients: ['stock'], defaultChannels: ['in_app', 'email'], defaultSeverity: 'info' },
+  late_delivery: { label: 'Retards fournisseurs', description: 'Previent quand une commande n est pas livree a la date attendue.', hasThreshold: false, defaultRecipients: ['default', 'procurement'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'warning' },
 };
+
+const CONTACT_GROUPS: { key: ContactGroupKey; label: string }[] = [
+  { key: 'default', label: 'Par defaut' },
+  { key: 'stock', label: 'Stock' },
+  { key: 'procurement', label: 'Appro' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'crm', label: 'CRM' },
+  { key: 'operations', label: 'Operations' },
+  { key: 'billing', label: 'Facturation' },
+];
+
+const SEVERITY_OPTIONS: { value: SeverityLevel; label: string }[] = [
+  { value: 'info', label: 'Info' },
+  { value: 'warning', label: 'Alerte' },
+  { value: 'critical', label: 'Critique' },
+];
+
+const CHANNEL_OPTIONS: { value: 'push' | 'email'; label: string }[] = [
+  { value: 'push', label: 'Push' },
+  { value: 'email', label: 'Email' },
+];
+
+function buildRuleKey(type: string, scope: RuleScope, storeId?: string | null) {
+  return `${scope}:${storeId || 'global'}:${type}`;
+}
+
+function buildDraftRule(type: string, scope: RuleScope, storeId?: string | null): AlertRule {
+  const template = RULE_TEMPLATES[type];
+  const now = new Date().toISOString();
+  return {
+    rule_id: `draft:${buildRuleKey(type, scope, storeId)}`,
+    user_id: '',
+    type,
+    scope,
+    store_id: scope === 'store' ? (storeId || null) : null,
+    enabled: false,
+    threshold_percentage: template.hasThreshold ? template.defaultThreshold ?? 20 : null,
+    notification_channels: ['in_app', ...template.defaultChannels.filter((channel) => channel !== 'in_app')],
+    recipient_keys: template.defaultRecipients,
+    recipient_emails: [],
+    minimum_severity: template.defaultSeverity,
+    created_at: now,
+    updated_at: now,
+  } as AlertRule;
+}
 
 export default function AlertsScreen() {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
 
@@ -95,6 +147,9 @@ export default function AlertsScreen() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [rulesLoading, setRulesLoading] = useState(false);
+  const [activeRuleScope, setActiveRuleScope] = useState<RuleScope>('account');
+  const [ruleDrafts, setRuleDrafts] = useState<Record<string, AlertRule>>({});
+  const [savingRuleKey, setSavingRuleKey] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -153,34 +208,65 @@ export default function AlertsScreen() {
     }
   }
 
-  async function toggleRule(rule: AlertRule) {
+  function updateDraft(baseRule: AlertRule, updater: (rule: AlertRule) => AlertRule) {
+    const key = buildRuleKey(baseRule.type, baseRule.scope as RuleScope, baseRule.store_id);
+    setRuleDrafts((current) => ({ ...current, [key]: updater(current[key] || baseRule) }));
+  }
+
+  function resetDraft(baseRule: AlertRule) {
+    const key = buildRuleKey(baseRule.type, baseRule.scope as RuleScope, baseRule.store_id);
+    setRuleDrafts((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  async function persistRule(rule: AlertRule) {
+    const key = buildRuleKey(rule.type, rule.scope as RuleScope, rule.store_id);
+    setSavingRuleKey(key);
     try {
-      const updated = await alertRulesApi.update(rule.rule_id, {
+      const payload = {
         type: rule.type,
-        enabled: !rule.enabled,
-        threshold_percentage: rule.threshold_percentage,
-        notification_channels: rule.notification_channels,
+        scope: rule.scope,
+        store_id: rule.scope === 'store' ? (rule.store_id || user?.active_store_id || undefined) : undefined,
+        enabled: rule.enabled,
+        threshold_percentage: rule.threshold_percentage ?? undefined,
+        notification_channels: Array.from(new Set(['in_app', ...(rule.notification_channels || []).filter((channel) => channel !== 'in_app')])) as ('in_app' | 'push' | 'email')[],
+        recipient_keys: rule.recipient_keys || ['default'],
+        recipient_emails: rule.recipient_emails || [],
+        minimum_severity: rule.minimum_severity || undefined,
+      };
+      if (rule.scope === 'store' && !payload.store_id) {
+        throw new Error('Aucune boutique active selectionnee pour cette regle.');
+      }
+      const updated = rule.rule_id.startsWith('draft:')
+        ? await alertRulesApi.create(payload)
+        : await alertRulesApi.update(rule.rule_id, payload);
+      setRules((prev) => {
+        const other = prev.filter((item) => buildRuleKey(item.type, item.scope as RuleScope, item.store_id) !== key);
+        return [...other, updated];
       });
-      setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
+      resetDraft(rule);
     } catch {
-      Alert.alert(t('common.error'), t('alerts.error_rule_update'));
+      Alert.alert(t('common.error'), 'Impossible de sauvegarder cette regle.');
+    } finally {
+      setSavingRuleKey(null);
     }
   }
 
-  async function updateThreshold(rule: AlertRule, value: string) {
-    const threshold = parseInt(value) || 0;
-    try {
-      const updated = await alertRulesApi.update(rule.rule_id, {
-        type: rule.type,
-        enabled: rule.enabled,
-        threshold_percentage: threshold,
-        notification_channels: rule.notification_channels,
-      });
-      setRules((prev) => prev.map((r) => (r.rule_id === rule.rule_id ? updated : r)));
-    } catch {
-      Alert.alert(t('common.error'), t('alerts.error_threshold_update'));
-    }
-  }
+  const visibleRules = useMemo(() => {
+    const activeStoreId = user?.active_store_id || null;
+    return Object.keys(RULE_TEMPLATES).map((type) => {
+      const persisted = rules.find((rule) =>
+        rule.type === type
+        && rule.scope === activeRuleScope
+        && (activeRuleScope === 'account' || rule.store_id === activeStoreId)
+      );
+      const base = persisted || buildDraftRule(type, activeRuleScope, activeRuleScope === 'store' ? activeStoreId : null);
+      return ruleDrafts[buildRuleKey(base.type, base.scope as RuleScope, base.store_id)] || base;
+    });
+  }, [activeRuleScope, ruleDrafts, rules, user?.active_store_id]);
 
   function formatDate(dateStr: string) {
     const date = new Date(dateStr);
@@ -376,42 +462,52 @@ export default function AlertsScreen() {
               <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
             ) : (
               <ScrollView style={styles.modalScroll}>
-                {rules.length === 0 ? (
-                  <Text style={styles.rulesEmptyText}>{t('alerts.no_rules')}</Text>
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
+                  <TouchableOpacity
+                    style={[styles.scopeChip, activeRuleScope === 'account' && styles.scopeChipActive]}
+                    onPress={() => setActiveRuleScope('account')}
+                  >
+                    <Text style={[styles.scopeChipText, activeRuleScope === 'account' && styles.scopeChipTextActive]}>Compte</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.scopeChip, activeRuleScope === 'store' && styles.scopeChipActive]}
+                    onPress={() => setActiveRuleScope('store')}
+                  >
+                    <Text style={[styles.scopeChipText, activeRuleScope === 'store' && styles.scopeChipTextActive]}>Boutique active</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {activeRuleScope === 'store' && !user?.active_store_id ? (
+                  <View style={[styles.ruleCard, { borderColor: colors.warning + '40' }]}>
+                    <Text style={styles.ruleDesc}>Selectionnez d abord une boutique active pour creer des regles locales.</Text>
+                  </View>
                 ) : (
-                  rules.map((rule) => {
-                    const config = RULE_TYPE_CONFIG[rule.type];
+                  visibleRules.map((rule) => {
+                    const config = RULE_TEMPLATES[rule.type];
+                    const currentKey = buildRuleKey(rule.type, rule.scope as RuleScope, rule.store_id);
+                    const hasDraft = Boolean(ruleDrafts[currentKey]);
                     return (
-                      <View key={rule.rule_id} style={styles.ruleCard}>
+                      <View key={currentKey} style={styles.ruleCard}>
                         <View style={styles.ruleHeader}>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.ruleTitle}>{config ? t(config.labelKey) : rule.type}</Text>
-                            <Text style={styles.ruleDesc}>{config ? t(config.descKey) : ''}</Text>
+                            <Text style={styles.ruleTitle}>{config?.label || rule.type}</Text>
+                            <Text style={styles.ruleDesc}>{config?.description || ''}</Text>
                           </View>
                           <Switch
                             value={rule.enabled}
-                            onValueChange={() => toggleRule(rule)}
+                            onValueChange={() => updateDraft(rule, (current) => ({ ...current, enabled: !current.enabled }))}
                             trackColor={{ false: colors.glass, true: colors.primary + '60' }}
                             thumbColor={rule.enabled ? colors.primary : colors.textMuted}
                           />
                         </View>
 
-                        {config?.hasThreshold && rule.enabled && (
+                        {config?.hasThreshold && (
                           <View style={styles.thresholdRow}>
-                            <Text style={styles.thresholdLabel}>{t('alerts.threshold')}</Text>
+                            <Text style={styles.thresholdLabel}>Seuil</Text>
                             <TextInput
                               style={styles.thresholdInput}
                               value={String(rule.threshold_percentage ?? 0)}
-                              onChangeText={(v) => {
-                                setRules((prev) =>
-                                  prev.map((r) =>
-                                    r.rule_id === rule.rule_id
-                                      ? { ...r, threshold_percentage: parseInt(v) || 0 }
-                                      : r
-                                  )
-                                );
-                              }}
-                              onBlur={() => updateThreshold(rule, String(rule.threshold_percentage ?? 0))}
+                              onChangeText={(v) => updateDraft(rule, (current) => ({ ...current, threshold_percentage: parseInt(v, 10) || 0 }))}
                               keyboardType="numeric"
                               placeholderTextColor={colors.textMuted}
                             />
@@ -420,19 +516,110 @@ export default function AlertsScreen() {
                         )}
 
                         <View style={styles.channelsRow}>
-                          <Text style={styles.channelLabel}>{t('alerts.channels')}</Text>
-                          {rule.notification_channels.map((ch) => (
-                            <View key={ch} style={styles.channelBadge}>
-                              <Ionicons
-                                name={ch === 'push' ? 'phone-portrait-outline' : ch === 'email' ? 'mail-outline' : 'notifications-outline'}
-                                size={12}
-                                color={colors.primaryLight}
-                              />
-                              <Text style={styles.channelText}>
-                                {ch === 'in_app' ? t('common.app') : ch === 'push' ? 'Push' : ch === 'email' ? 'Email' : ch}
+                          <Text style={styles.channelLabel}>Canaux</Text>
+                          <View style={styles.channelBadge}>
+                            <Ionicons name="notifications-outline" size={12} color={colors.primaryLight} />
+                            <Text style={styles.channelText}>App</Text>
+                          </View>
+                          {CHANNEL_OPTIONS.map((channel) => {
+                            const enabled = rule.notification_channels.includes(channel.value);
+                            return (
+                              <TouchableOpacity
+                                key={channel.value}
+                                style={[styles.channelBadge, !enabled && { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.divider }]}
+                                onPress={() => updateDraft(rule, (current) => ({
+                                  ...current,
+                                  notification_channels: enabled
+                                    ? current.notification_channels.filter((item) => item !== channel.value)
+                                    : [...current.notification_channels, channel.value],
+                                }))}
+                              >
+                                <Ionicons
+                                  name={channel.value === 'push' ? 'phone-portrait-outline' : 'mail-outline'}
+                                  size={12}
+                                  color={enabled ? colors.primaryLight : colors.textMuted}
+                                />
+                                <Text style={[styles.channelText, !enabled && { color: colors.textMuted }]}>{channel.label}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        <View style={[styles.channelsRow, { marginTop: Spacing.sm, alignItems: 'flex-start' }]}>
+                          <Text style={styles.channelLabel}>Groupes</Text>
+                          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
+                            {CONTACT_GROUPS.map((group) => {
+                              const enabled = (rule.recipient_keys || []).includes(group.key);
+                              return (
+                                <TouchableOpacity
+                                  key={group.key}
+                                  style={[styles.scopeChip, enabled && styles.scopeChipActive]}
+                                  onPress={() => updateDraft(rule, (current) => ({
+                                    ...current,
+                                    recipient_keys: enabled
+                                      ? (current.recipient_keys || []).filter((item) => item !== group.key)
+                                      : [...(current.recipient_keys || []), group.key],
+                                  }))}
+                                >
+                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{group.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+
+                        <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>
+                          <Text style={styles.thresholdLabel}>Emails additionnels</Text>
+                          <TextInput
+                            style={[styles.inputInline, { minHeight: 46 }]}
+                            value={(rule.recipient_emails || []).join(', ')}
+                            onChangeText={(value) => updateDraft(rule, (current) => ({
+                              ...current,
+                              recipient_emails: value.split(',').map((item) => item.trim()).filter(Boolean),
+                            }))}
+                            placeholder="stock@entreprise.com, direction@entreprise.com"
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            placeholderTextColor={colors.textMuted}
+                          />
+                        </View>
+
+                        <View style={[styles.channelsRow, { marginTop: Spacing.sm, alignItems: 'flex-start' }]}>
+                          <Text style={styles.channelLabel}>Severite</Text>
+                          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
+                            {SEVERITY_OPTIONS.map((severity) => {
+                              const enabled = rule.minimum_severity === severity.value;
+                              return (
+                                <TouchableOpacity
+                                  key={severity.value}
+                                  style={[styles.scopeChip, enabled && styles.scopeChipActive]}
+                                  onPress={() => updateDraft(rule, (current) => ({ ...current, minimum_severity: enabled ? null : severity.value }))}
+                                >
+                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{severity.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+
+                        <View style={[styles.channelsRow, { marginTop: Spacing.md, justifyContent: 'space-between' }]}>
+                          <Text style={styles.ruleDesc}>{hasDraft ? 'Modifications non enregistrees' : 'Regle synchronisee'}</Text>
+                          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                            {hasDraft && (
+                              <TouchableOpacity style={styles.resetButton} onPress={() => resetDraft(rule)}>
+                                <Text style={styles.resetButtonText}>Annuler</Text>
+                              </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                              style={[styles.saveButton, savingRuleKey === currentKey && { opacity: 0.6 }]}
+                              onPress={() => persistRule(rule)}
+                              disabled={savingRuleKey === currentKey}
+                            >
+                              <Text style={styles.saveButtonText}>
+                                {savingRuleKey === currentKey ? '...' : rule.rule_id.startsWith('draft:') ? 'Creer' : 'Enregistrer'}
                               </Text>
-                            </View>
-                          ))}
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       </View>
                     );
@@ -573,6 +760,26 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   modalTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
   modalScroll: { maxHeight: 500 },
   rulesEmptyText: { fontSize: FontSize.sm, color: colors.textMuted, textAlign: 'center', paddingVertical: Spacing.xl },
+  scopeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.glass,
+  },
+  scopeChipActive: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+  },
+  scopeChipText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  scopeChipTextActive: {
+    color: colors.primary,
+  },
   // Rule card
   ruleCard: { ...glassStyle, padding: Spacing.md, marginBottom: Spacing.sm },
   ruleHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
@@ -583,11 +790,44 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   thresholdLabel: { fontSize: FontSize.sm, color: colors.textSecondary },
   thresholdInput: { width: 60, backgroundColor: colors.inputBg, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.divider, color: colors.text, fontSize: FontSize.md, padding: Spacing.sm, textAlign: 'center' },
   thresholdUnit: { fontSize: FontSize.sm, color: colors.textSecondary },
+  inputInline: {
+    backgroundColor: colors.inputBg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    color: colors.text,
+    fontSize: FontSize.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
   // Channels
   channelsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, flexWrap: 'wrap' },
   channelLabel: { fontSize: FontSize.xs, color: colors.textMuted },
   channelBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: colors.primary + '15', paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm },
   channelText: { fontSize: FontSize.xs, color: colors.primaryLight },
+  resetButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  resetButtonText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  saveButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: colors.primary,
+  },
+  saveButtonText: {
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    color: colors.bgDark,
+  },
   // AI Anomaly Detection
   anomalyBtn: {
     flexDirection: 'row',

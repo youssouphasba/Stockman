@@ -1,118 +1,115 @@
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { API_URL } from '../config';
 
-export type Region = 'africa_xof' | 'africa_xaf' | 'europe' | 'global';
+export type PricingPlanQuote = {
+    plan: 'starter' | 'pro' | 'enterprise';
+    currency: string;
+    display_currency: string;
+    amount: string;
+    display_price: string;
+    provider: 'flutterwave' | 'stripe';
+};
 
-export interface RegionPricing {
-    region: Region;
-    currency: string;   // affichage label
-    symbol: string;     // symbole court
-    starter: string;    // montant formaté
-    pro: string;
-    enterprise: string;
-}
+export type PublicPricingResponse = {
+    country_code: string;
+    requested_currency?: string | null;
+    currency: string;
+    display_currency: string;
+    pricing_region: string;
+    recommended_checkout_provider: 'flutterwave' | 'stripe';
+    use_mobile_money: boolean;
+    can_change_billing_country: boolean;
+    fallback_used?: boolean;
+    plans: Record<'starter' | 'pro' | 'enterprise', PricingPlanQuote>;
+};
 
-// ─── Prix par région ─────────────────────────────────────────────────────────
-
-export const REGION_PRICING: Record<Region, RegionPricing> = {
-    africa_xof: {
-        region: 'africa_xof',
-        currency: 'FCFA',
-        symbol: 'FCFA',
-        starter: '2 500',
-        pro: '4 900',
-        enterprise: '9 900',
-    },
-    africa_xaf: {
-        region: 'africa_xaf',
-        currency: 'FCFA',
-        symbol: 'FCFA',
-        starter: '2 500',
-        pro: '4 900',
-        enterprise: '9 900',
-    },
-    europe: {
-        region: 'europe',
-        currency: 'EUR',
-        symbol: '€',
-        starter: '6,99',
-        pro: '9,99',
-        enterprise: '14,99',
-    },
-    global: {
-        region: 'global',
-        currency: 'USD',
-        symbol: '$',
-        starter: '6.99',
-        pro: '9.99',
-        enterprise: '14.99',
+const DEFAULT_FALLBACK: PublicPricingResponse = {
+    country_code: 'SN',
+    currency: 'XOF',
+    display_currency: 'FCFA',
+    pricing_region: 'fcfa',
+    recommended_checkout_provider: 'flutterwave',
+    use_mobile_money: true,
+    can_change_billing_country: true,
+    plans: {
+        starter: { plan: 'starter', currency: 'XOF', display_currency: 'FCFA', amount: '2500', display_price: '2 500 FCFA', provider: 'flutterwave' },
+        pro: { plan: 'pro', currency: 'XOF', display_currency: 'FCFA', amount: '4900', display_price: '4 900 FCFA', provider: 'flutterwave' },
+        enterprise: { plan: 'enterprise', currency: 'XOF', display_currency: 'FCFA', amount: '9900', display_price: '9 900 FCFA', provider: 'flutterwave' },
     },
 };
 
-// ─── Timezones africaines ─────────────────────────────────────────────────────
-
-// Zone UEMOA — franc CFA ouest-africain (XOF)
-const XOF_TIMEZONES = new Set([
-    'Africa/Dakar',        // Sénégal
-    'Africa/Abidjan',      // Côte d'Ivoire
-    'Africa/Bamako',       // Mali
-    'Africa/Ouagadougou',  // Burkina Faso
-    'Africa/Niamey',       // Niger
-    'Africa/Lome',         // Togo
-    'Africa/Cotonou',      // Bénin
-    'Africa/Bissau',       // Guinée-Bissau
-]);
-
-// Zone CEMAC — franc CFA d'Afrique centrale (XAF)
-const XAF_TIMEZONES = new Set([
-    'Africa/Douala',       // Cameroun
-    'Africa/Libreville',   // Gabon
-    'Africa/Brazzaville',  // Congo
-    'Africa/Kinshasa',     // Congo RDC
-    'Africa/Bangui',       // Centrafrique
-    'Africa/Ndjamena',     // Tchad
-    'Africa/Malabo',       // Guinée Équatoriale
-    'Africa/Conakry',      // Guinée (GNF)
-    'Africa/Freetown',     // Sierra Leone
-    'Africa/Monrovia',     // Liberia
-]);
-
-// ─── Détection ────────────────────────────────────────────────────────────────
-
-export function detectRegion(): Region {
-    try {
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-        if (XOF_TIMEZONES.has(tz)) return 'africa_xof';
-        if (XAF_TIMEZONES.has(tz)) return 'africa_xaf';
-
-        // Reste de l'Afrique → XOF par défaut (marché cible Stockman)
-        if (tz.startsWith('Africa/')) return 'africa_xof';
-
-        // Europe
-        if (tz.startsWith('Europe/')) return 'europe';
-
-        // Tout le reste (Amérique, Asie, Océanie...)
-        return 'global';
-    } catch {
-        // Fallback sur la langue du navigateur (uniquement si Intl échoue)
-        const lang = (navigator.language || '').split('-')[0].toLowerCase();
-        // Langues exclusivement africaines → FCFA
-        if (['wo', 'ff', 'ha', 'yo', 'ig', 'sw'].includes(lang)) return 'africa_xof';
-        // Toutes les grandes langues européennes → EUR
-        if (['fr', 'de', 'it', 'es', 'pl', 'ro', 'nl', 'pt', 'sv', 'da', 'fi', 'el'].includes(lang)) return 'europe';
-        return 'global';
+function buildLocalFallback(countryCode: string): PublicPricingResponse {
+    const normalized = countryCode.toUpperCase();
+    const europeCountries = new Set(['FR', 'BE', 'DE', 'IT', 'ES', 'PT', 'NL', 'LU', 'IE']);
+    if (europeCountries.has(normalized)) {
+        return {
+            ...DEFAULT_FALLBACK,
+            country_code: normalized,
+            currency: 'EUR',
+            display_currency: 'EUR',
+            pricing_region: 'europe',
+            recommended_checkout_provider: 'stripe',
+            use_mobile_money: false,
+            plans: {
+                starter: { plan: 'starter', currency: 'EUR', display_currency: 'EUR', amount: '6.99', display_price: '6,99 €', provider: 'stripe' },
+                pro: { plan: 'pro', currency: 'EUR', display_currency: 'EUR', amount: '9.99', display_price: '9,99 €', provider: 'stripe' },
+                enterprise: { plan: 'enterprise', currency: 'EUR', display_currency: 'EUR', amount: '14.99', display_price: '14,99 €', provider: 'stripe' },
+            },
+        };
     }
+    return { ...DEFAULT_FALLBACK, country_code: normalized || 'SN' };
 }
 
-export function getPricingByRegion(region: Region): RegionPricing {
-    return REGION_PRICING[region];
+export function detectBrowserCountryCode(): string {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || navigator.language || '';
+    const localeMatch = locale.match(/[-_]([A-Z]{2})$/i);
+    if (localeMatch?.[1]) {
+        return localeMatch[1].toUpperCase();
+    }
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const timezoneCountryMap: Record<string, string> = {
+        'Africa/Dakar': 'SN',
+        'Africa/Abidjan': 'CI',
+        'Africa/Bamako': 'ML',
+        'Africa/Ouagadougou': 'BF',
+        'Africa/Lome': 'TG',
+        'Africa/Cotonou': 'BJ',
+        'Africa/Niamey': 'NE',
+        'Africa/Douala': 'CM',
+        'Africa/Conakry': 'GN',
+        'Europe/Paris': 'FR',
+        'Europe/Brussels': 'BE',
+        'Europe/Berlin': 'DE',
+        'Asia/Kolkata': 'IN',
+        'America/New_York': 'US',
+    };
+    if (timezoneCountryMap[timezone]) {
+        return timezoneCountryMap[timezone];
+    }
+    if (timezone.startsWith('Europe/')) return 'FR';
+    if (timezone.startsWith('Africa/')) return 'SN';
+    return 'SN';
 }
 
-// ─── Formatage ────────────────────────────────────────────────────────────────
+export async function fetchPublicPricing(countryCode: string, currency?: string): Promise<PublicPricingResponse> {
+    if (!API_URL) {
+        return buildLocalFallback(countryCode);
+    }
 
-export function formatPrice(amount: string, currency: string): string {
-    if (currency === 'FCFA') return `${amount} FCFA`;
-    if (currency === 'EUR') return `${amount} €`;
-    if (currency === 'USD') return `$${amount}`;
-    return `${amount} ${currency}`;
+    const params = new URLSearchParams();
+    params.set('country_code', countryCode);
+    if (currency) {
+        params.set('currency', currency);
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/pricing/public?${params.toString()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.warn('Pricing fallback used:', error);
+        return buildLocalFallback(countryCode);
+    }
 }

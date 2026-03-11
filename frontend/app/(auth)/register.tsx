@@ -1,58 +1,61 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Modal,
-  FlatList,
+  View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import { ApiError } from '../../services/api';
-import { COUNTRIES, Country } from '../../constants/countries';
-
 import { useTranslation } from 'react-i18next';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { ApiError } from '../../services/api';
+import { COUNTRIES, Country } from '../../constants/countries';
+import { BorderRadius, Colors, FontSize, Spacing } from '../../constants/theme';
+
+type SignupStep = 'role' | 'form';
+type SignupRole = 'shopkeeper' | 'supplier';
+
 const SECTORS = [
-  { key: 'epicerie',      label: 'Épicerie',          icon: '🛒' },
-  { key: 'supermarche',   label: 'Supermarché',        icon: '🏪' },
-  { key: 'pharmacie',     label: 'Pharmacie',          icon: '💊' },
-  { key: 'vetements',     label: 'Vêtements',          icon: '👗' },
-  { key: 'cosmetiques',   label: 'Cosmétiques',        icon: '💄' },
-  { key: 'electronique',  label: 'Électronique',       icon: '📱' },
-  { key: 'quincaillerie', label: 'Quincaillerie',      icon: '🔧' },
-  { key: 'automobile',    label: 'Auto / Garage',      icon: '🚗' },
-  { key: 'grossiste',     label: 'Grossiste',          icon: '📦' },
-  { key: 'papeterie',     label: 'Papeterie',          icon: '📎' },
-  { key: 'restaurant',    label: 'Restaurant',         icon: '🍽️', production: true },
-  { key: 'boulangerie',   label: 'Boulangerie',        icon: '🥖', production: true },
-  { key: 'traiteur',      label: 'Traiteur',           icon: '🍰', production: true },
-  { key: 'boissons',      label: 'Boissons',           icon: '🧃', production: true },
-  { key: 'couture',       label: 'Couture',            icon: '🧵', production: true },
-  { key: 'savonnerie',    label: 'Savonnerie',         icon: '🧼', production: true },
-  { key: 'menuiserie',    label: 'Menuiserie',         icon: '🪑', production: true },
-  { key: 'imprimerie',    label: 'Imprimerie',         icon: '🖨️', production: true },
-  { key: 'forge',         label: 'Forge',              icon: '⚒️', production: true },
-  { key: 'artisanat',     label: 'Artisanat',          icon: '🧶', production: true },
-  { key: 'autre',         label: 'Autre',              icon: '🔀' },
-];
+  { key: 'epicerie', label: 'Epicerie', icon: 'cart-outline' },
+  { key: 'supermarche', label: 'Supermarche', icon: 'storefront-outline' },
+  { key: 'pharmacie', label: 'Pharmacie', icon: 'medical-outline' },
+  { key: 'vetements', label: 'Vetements', icon: 'shirt-outline' },
+  { key: 'cosmetiques', label: 'Cosmetiques', icon: 'sparkles-outline' },
+  { key: 'electronique', label: 'Electronique', icon: 'phone-portrait-outline' },
+  { key: 'quincaillerie', label: 'Quincaillerie', icon: 'hammer-outline' },
+  { key: 'automobile', label: 'Auto / Garage', icon: 'car-outline' },
+  { key: 'grossiste', label: 'Grossiste', icon: 'cube-outline' },
+  { key: 'papeterie', label: 'Papeterie', icon: 'document-text-outline' },
+  { key: 'restaurant', label: 'Restaurant', icon: 'restaurant-outline' },
+  { key: 'boulangerie', label: 'Boulangerie', icon: 'cafe-outline' },
+  { key: 'traiteur', label: 'Traiteur', icon: 'fast-food-outline' },
+  { key: 'boissons', label: 'Boissons', icon: 'wine-outline' },
+  { key: 'couture', label: 'Couture', icon: 'cut-outline' },
+  { key: 'savonnerie', label: 'Savonnerie', icon: 'flask-outline' },
+  { key: 'menuiserie', label: 'Menuiserie', icon: 'construct-outline' },
+  { key: 'imprimerie', label: 'Imprimerie', icon: 'print-outline' },
+  { key: 'forge', label: 'Forge', icon: 'build-outline' },
+  { key: 'artisanat', label: 'Artisanat', icon: 'color-palette-outline' },
+  { key: 'autre', label: 'Autre', icon: 'apps-outline' },
+] as const;
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { register } = useAuth();
   const router = useRouter();
-  const [step, setStep] = useState<'role' | 'plan' | 'form'>('role');
-  const [selectedRole, setSelectedRole] = useState<'shopkeeper' | 'supplier'>('shopkeeper');
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro'>('starter');
+
+  const [step, setStep] = useState<SignupStep>('role');
+  const [selectedRole, setSelectedRole] = useState<SignupRole>('shopkeeper');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -63,15 +66,32 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]); // Default Sénégal
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [showCountryModal, setShowCountryModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
+  const [countrySearch, setCountrySearch] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [showSectorModal, setShowSectorModal] = useState(false);
+  const [sectorSearch, setSectorSearch] = useState('');
   const [howDidYouHear, setHowDidYouHear] = useState('');
-  const selectedSectorConfig = SECTORS.find(s => s.key === businessType);
-  const isRestaurantOnboarding = ['restaurant', 'traiteur', 'boulangerie'].includes(businessType);
+
+  const filteredCountries = useMemo(() => {
+    const query = countrySearch.trim().toLowerCase();
+    if (!query) return COUNTRIES;
+    return COUNTRIES.filter((country) =>
+      country.name.toLowerCase().includes(query) ||
+      country.code.toLowerCase().includes(query) ||
+      country.currency.toLowerCase().includes(query) ||
+      country.dialCode.toLowerCase().includes(query),
+    );
+  }, [countrySearch]);
+
+  const filteredSectors = useMemo(() => {
+    const query = sectorSearch.trim().toLowerCase();
+    if (!query) return SECTORS;
+    return SECTORS.filter((sector) => sector.label.toLowerCase().includes(query));
+  }, [sectorSearch]);
+
+  const selectedSector = SECTORS.find((sector) => sector.key === businessType);
 
   async function handleRegister() {
     const phoneRequired = selectedRole === 'shopkeeper';
@@ -80,13 +100,14 @@ export default function RegisterScreen() {
       return;
     }
     if (!businessType) {
-      setError(t('auth.register.errorSelectSector') || 'Veuillez sélectionner votre secteur d\'activité.');
+      setError(t('auth.register.errorSelectSector') || "Veuillez selectionner votre secteur d'activite.");
       return;
     }
-    // Combine country dial code + local number
+
     const fullPhone = phone.trim()
       ? (phone.trim().startsWith('+') ? phone.trim() : `${selectedCountry.dialCode}${phone.trim()}`)
       : '';
+
     if (password.length < 8) {
       setError(t('auth.register.errorPasswordLength'));
       return;
@@ -99,6 +120,7 @@ export default function RegisterScreen() {
       setError(t('auth.register.errorTerms'));
       return;
     }
+
     setError('');
     setLoading(true);
     try {
@@ -113,8 +135,9 @@ export default function RegisterScreen() {
         howDidYouHear,
         selectedCountry.code,
         selectedRole === 'shopkeeper' ? 'starter' : undefined,
-        'mobile'
+        'mobile',
       );
+
       if (registeredUser.required_verification === 'email' && !registeredUser.can_access_app) {
         router.replace('/(auth)/verify-email');
       } else if (registeredUser.required_verification === 'phone' && !registeredUser.can_access_app) {
@@ -131,24 +154,19 @@ export default function RegisterScreen() {
 
   return (
     <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <View style={styles.iconCircle}>
               <Ionicons name="person-add" size={36} color={Colors.primary} />
             </View>
-            <Text style={styles.title}>
-              {step === 'plan' ? t('auth.register.choosePlan') : t('auth.register.title')}
-            </Text>
+            <Text style={styles.title}>{t('auth.register.title')}</Text>
             <Text style={styles.subtitle}>
               {step === 'role'
                 ? t('auth.register.chooseProfile')
-                : step === 'plan'
-                  ? t('auth.register.choosePlanSubtitle')
-                  : selectedRole === 'shopkeeper' ? t('auth.register.shopkeeperAccount') : t('auth.register.supplierAccount')}
+                : selectedRole === 'shopkeeper'
+                  ? t('auth.register.shopkeeperAccount')
+                  : t('auth.register.supplierAccount')}
             </Text>
           </View>
 
@@ -156,10 +174,13 @@ export default function RegisterScreen() {
             <View style={styles.card}>
               <TouchableOpacity
                 style={[styles.roleCard, selectedRole === 'shopkeeper' && styles.roleCardActive]}
-                onPress={() => { setSelectedRole('shopkeeper'); setStep('form'); }}
+                onPress={() => {
+                  setSelectedRole('shopkeeper');
+                  setStep('form');
+                }}
               >
-                <View style={[styles.roleIcon, { backgroundColor: Colors.primary + '20' }]}>
-                  <Ionicons name="storefront-outline" size={32} color={Colors.primary} />
+                <View style={[styles.roleIcon, { backgroundColor: `${Colors.primary}20` }]}>
+                  <Ionicons name="storefront-outline" size={30} color={Colors.primary} />
                 </View>
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleTitle}>{t('auth.register.shopkeeper')}</Text>
@@ -170,94 +191,19 @@ export default function RegisterScreen() {
 
               <TouchableOpacity
                 style={[styles.roleCard, selectedRole === 'supplier' && styles.roleCardActive]}
-                onPress={() => { setSelectedRole('supplier'); setStep('form'); }}
+                onPress={() => {
+                  setSelectedRole('supplier');
+                  setStep('form');
+                }}
               >
-                <View style={[styles.roleIcon, { backgroundColor: Colors.secondary + '20' }]}>
-                  <Ionicons name="cube-outline" size={32} color={Colors.secondary} />
+                <View style={[styles.roleIcon, { backgroundColor: `${Colors.secondary}20` }]}>
+                  <Ionicons name="cube-outline" size={30} color={Colors.secondary} />
                 </View>
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleTitle}>{t('auth.register.supplier')}</Text>
                   <Text style={styles.roleDesc}>{t('auth.register.supplierDesc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={Colors.textMuted} />
-              </TouchableOpacity>
-
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
-                <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity>
-                    <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
-                  </TouchableOpacity>
-                </Link>
-              </View>
-            </View>
-          ) : step === 'plan' ? (
-            <View style={styles.card}>
-              <TouchableOpacity style={styles.backRow} onPress={() => setStep('role')}>
-                <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
-                <Text style={styles.backText}>{t('auth.register.backToRole')}</Text>
-              </TouchableOpacity>
-
-              {/* Starter */}
-              <TouchableOpacity
-                style={[styles.planCard, selectedPlan === 'starter' && styles.planCardActive]}
-                onPress={() => setSelectedPlan('starter')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.planCardHeader}>
-                  <View style={[styles.planIcon, { backgroundColor: '#3B82F620' }]}>
-                    <Ionicons name="storefront-outline" size={26} color="#3B82F6" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.planName}>{t('subscription.plan_starter')}</Text>
-                    <Text style={styles.planPrice}>1 000 XOF / 3,99 € {t('subscription.per_month')}</Text>
-                  </View>
-                  {selectedPlan === 'starter' && <Ionicons name="checkmark-circle" size={24} color="#10B981" />}
-                </View>
-                <View style={styles.planFeatures}>
-                  <Text style={styles.planFeature}>🏪 1 {t('subscription.features.stores')}</Text>
-                  <Text style={styles.planFeature}>👤 1 {t('subscription.features.users')}</Text>
-                  <Text style={styles.planFeature}>📱 {t('subscription.mobile_only', 'Application mobile')}</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Pro */}
-              <TouchableOpacity
-                style={[styles.planCard, selectedPlan === 'pro' && styles.planCardActive]}
-                onPress={() => setSelectedPlan('pro')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>{t('subscription.popular')}</Text>
-                </View>
-                <View style={styles.planCardHeader}>
-                  <View style={[styles.planIcon, { backgroundColor: '#F59E0B20' }]}>
-                    <Ionicons name="rocket-outline" size={26} color="#F59E0B" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.planName}>{t('subscription.plan_pro')}</Text>
-                    <Text style={styles.planPrice}>2 500 XOF / 7,99 € {t('subscription.per_month')}</Text>
-                  </View>
-                  {selectedPlan === 'pro' && <Ionicons name="checkmark-circle" size={24} color="#10B981" />}
-                </View>
-                <View style={styles.planFeatures}>
-                  <Text style={styles.planFeature}>🏪 2 {t('subscription.features.stores')}</Text>
-                  <Text style={styles.planFeature}>👥 5 {t('subscription.features.users')}</Text>
-                  <Text style={styles.planFeature}>📱 {t('subscription.mobile_only', 'Application mobile')}</Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.trialNote}>
-                <Ionicons name="gift-outline" size={16} color={Colors.primaryLight} />
-                <Text style={styles.trialNoteText}>{t('auth.register.trialNote')}</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => setStep('form')}
-              >
-                <Text style={styles.buttonText}>{t('auth.register.continueToPlan')}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
               </TouchableOpacity>
 
               <View style={styles.footer}>
@@ -283,10 +229,8 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.name')}</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+              <Field label={t('auth.register.name')}>
+                <InputWrapper icon="person-outline">
                   <TextInput
                     style={styles.input}
                     placeholder={t('auth.register.namePlaceholder')}
@@ -295,27 +239,22 @@ export default function RegisterScreen() {
                     onChangeText={setName}
                     autoComplete="name"
                   />
-                </View>
-              </View>
+                </InputWrapper>
+              </Field>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.countryCurrency')}</Text>
-                <TouchableOpacity
-                  style={styles.countrySelector}
-                  onPress={() => setShowCountryModal(true)}
-                >
-                  <Text style={styles.flagText}>{selectedCountry.flag}</Text>
-                  <Text style={styles.countryNameText}>{selectedCountry.name}</Text>
-                  <View style={styles.currencyBadge}>
-                    <Text style={styles.currencyText}>{selectedCountry.currency}</Text>
+              <Field label={t('auth.register.countryCurrency')}>
+                <TouchableOpacity style={styles.selector} onPress={() => setShowCountryModal(true)}>
+                  <Text style={styles.selectorFlag}>{selectedCountry.flag}</Text>
+                  <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{selectedCountry.currency}</Text>
                   </View>
                   <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
                 </TouchableOpacity>
-              </View>
+              </Field>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.phone')}</Text>
-                <View style={styles.inputWrapper}>
+              <Field label={t('auth.register.phone')}>
+                <InputWrapper>
                   <View style={styles.dialCodeBox}>
                     <Text style={styles.dialCodeText}>{selectedCountry.dialCode}</Text>
                   </View>
@@ -324,143 +263,24 @@ export default function RegisterScreen() {
                     placeholder={t('auth.register.phonePlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={phone}
-                    onChangeText={(val) => {
-                      if (val.startsWith('+')) {
-                        const dialCode = selectedCountry.dialCode;
-                        if (val.startsWith(dialCode)) {
-                          setPhone(val.replace(dialCode, '').trim());
-                          return;
-                        }
+                    onChangeText={(value) => {
+                      if (value.startsWith('+') && value.startsWith(selectedCountry.dialCode)) {
+                        setPhone(value.replace(selectedCountry.dialCode, '').trim());
+                        return;
                       }
-                      setPhone(val);
+                      setPhone(value);
                     }}
                     keyboardType="phone-pad"
                     autoComplete="tel"
                   />
-                </View>
-              </View>
+                </InputWrapper>
+              </Field>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.businessType', "Secteur d'activité")}</Text>
-                <TouchableOpacity
-                  style={[styles.inputWrapper, { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm }]}
-                  onPress={() => setShowSectorModal(true)}
-                >
-                  <Ionicons name="business-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
-                  {businessType ? (
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.input, { color: Colors.text }]}>
-                        {SECTORS.find(s => s.key === businessType)?.icon} {SECTORS.find(s => s.key === businessType)?.label}
-                      </Text>
-                      {SECTORS.find(s => s.key === businessType) && (SECTORS.find(s => s.key === businessType) as any).production && (
-                        <Text style={{ fontSize: 11, color: '#F59E0B', marginTop: 2 }}>🏭 Module Production activé</Text>
-                      )}
-                      {SECTORS.find(s => s.key === businessType) && (SECTORS.find(s => s.key === businessType) as any).projects && (
-                        <Text style={{ fontSize: 11, color: '#60A5FA', marginTop: 2 }}>🏗️ Module Chantiers activé</Text>
-                      )}
-                    </View>
-                  ) : (
-                    <Text style={[styles.input, { color: Colors.textMuted }]}>
-                      {t('auth.register.businessTypePlaceholder', 'Choisir un secteur...')}
-                    </Text>
-                  )}
-                  <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
-                </TouchableOpacity>
-              </View>
-
-              {selectedSectorConfig && (
-                <View style={[styles.sectorInsightCard, isRestaurantOnboarding && styles.sectorInsightCardRestaurant]}>
-                  <View style={styles.sectorInsightHeader}>
-                    <Text style={styles.sectorInsightEmoji}>{selectedSectorConfig.icon}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.sectorInsightTitle}>
-                        {isRestaurantOnboarding
-                          ? t('auth.register.restaurantOnboardingTitle', 'Parcours restaurant active')
-                          : t('auth.register.sectorOnboardingTitle', 'Interface adaptee a votre secteur')}
-                      </Text>
-                      <Text style={styles.sectorInsightSubtitle}>
-                        {isRestaurantOnboarding
-                          ? t('auth.register.restaurantOnboardingSubtitle', 'Votre espace sera configure autour du menu, des tables, des reservations, de la cuisine et de la caisse.')
-                          : t('auth.register.sectorOnboardingSubtitle', 'Les guides, modules et conseils de demarrage seront ajustes selon votre activite.')}
-                      </Text>
-                    </View>
-                  </View>
-                  {isRestaurantOnboarding ? (
-                    <View style={styles.sectorInsightList}>
-                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem1', '- Creation de la carte et liaison des recettes')}</Text>
-                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem2', '- Workflow table -> cuisine -> service -> paiement')}</Text>
-                      <Text style={styles.sectorInsightItem}>{t('auth.register.restaurantOnboardingItem3', '- Guides et FAQ dedies au fonctionnement restaurant')}</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.sectorInsightItem}>
-                      {t('auth.register.sectorOnboardingHint', 'Vous pourrez ajuster vos modules et vos parametres plus tard.')}
-                    </Text>
-                  )}
-                </View>
-              )}
-
-              {/* Sector picker modal */}
-              <Modal visible={showSectorModal} transparent animationType="slide">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
-                  <View style={{ backgroundColor: Colors.bgDark || '#1E293B', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <Text style={{ color: Colors.text, fontSize: 18, fontWeight: '700' }}>
-                        {t('auth.register.businessType', "Secteur d'activité")}
-                      </Text>
-                      <TouchableOpacity onPress={() => setShowSectorModal(false)}>
-                        <Ionicons name="close" size={24} color={Colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                    <FlatList
-                      data={SECTORS}
-                      numColumns={3}
-                      keyExtractor={item => item.key}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={{
-                            flex: 1, margin: 4, padding: 10, borderRadius: 12, alignItems: 'center',
-                            borderWidth: 1,
-                            borderColor: businessType === item.key ? Colors.primary : 'rgba(255,255,255,0.1)',
-                            backgroundColor: businessType === item.key ? Colors.primary + '25' : 'rgba(255,255,255,0.05)',
-                          }}
-                          onPress={() => { setBusinessType(item.key); setShowSectorModal(false); }}
-                        >
-                          <Text style={{ fontSize: 22 }}>{item.icon}</Text>
-                          <Text style={{ color: Colors.text, fontSize: 10, fontWeight: '600', textAlign: 'center', marginTop: 4 }}>{item.label}</Text>
-                          {(item as any).production && (
-                            <Text style={{ color: '#F59E0B', fontSize: 8, fontWeight: '700', marginTop: 2 }}>🏭 Production</Text>
-                          )}
-                          {(item as any).projects && (
-                            <Text style={{ color: '#60A5FA', fontSize: 8, fontWeight: '700', marginTop: 2 }}>🏗️ Chantiers</Text>
-                          )}
-                        </TouchableOpacity>
-                      )}
-                    />
-                  </View>
-                </View>
-              </Modal>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.howDidYouHear')}</Text>
-                <View style={[styles.inputWrapper, { paddingHorizontal: Spacing.md }]}>
-                  <Ionicons name="megaphone-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+              <Field label={t('auth.register.email')}>
+                <InputWrapper icon="mail-outline">
                   <TextInput
                     style={styles.input}
-                    placeholder={t('auth.register.howDidYouHearPlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={howDidYouHear}
-                    onChangeText={setHowDidYouHear}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.email')}</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.login.emailPlaceholder')}
+                    placeholder={t('auth.register.emailPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={email}
                     onChangeText={setEmail}
@@ -468,35 +288,28 @@ export default function RegisterScreen() {
                     autoCapitalize="none"
                     autoComplete="email"
                   />
-                </View>
-              </View>
+                </InputWrapper>
+              </Field>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.password')}</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+              <Field label={t('auth.register.password')}>
+                <InputWrapper icon="lock-closed-outline">
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, styles.inputPassword]}
                     placeholder={t('auth.register.passwordPlaceholder')}
                     placeholderTextColor={Colors.textMuted}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    autoComplete="new-password"
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={Colors.textMuted}
-                    />
+                  <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeButton}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.textMuted} />
                   </TouchableOpacity>
-                </View>
-              </View>
+                </InputWrapper>
+              </Field>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.register.confirmPassword')}</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+              <Field label={t('auth.register.confirmPassword')}>
+                <InputWrapper icon="shield-checkmark-outline">
                   <TextInput
                     style={styles.input}
                     placeholder={t('auth.register.confirmPasswordPlaceholder')}
@@ -504,59 +317,74 @@ export default function RegisterScreen() {
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showPassword}
+                    autoComplete="new-password"
                   />
-                </View>
-              </View>
+                </InputWrapper>
+              </Field>
 
-              <View style={{ marginTop: Spacing.md, gap: Spacing.sm }}>
-                <TouchableOpacity
-                  style={styles.legalRow}
-                  onPress={() => setAcceptedTerms(!acceptedTerms)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.checkbox, acceptedTerms && styles.checkboxActive]}>
-                    {acceptedTerms && <Ionicons name="checkmark" size={12} color="#fff" />}
+              <Field label={t('auth.register.businessType') || "Secteur d'activite"}>
+                <TouchableOpacity style={styles.selector} onPress={() => setShowSectorModal(true)}>
+                  <View style={styles.selectorLeft}>
+                    <Ionicons
+                      name={(selectedSector?.icon || 'briefcase-outline') as keyof typeof Ionicons.glyphMap}
+                      size={18}
+                      color={Colors.primaryLight}
+                    />
+                    <Text style={styles.selectorValue}>
+                      {selectedSector?.label || (t('auth.register.selectBusinessType') || 'Choisissez un secteur')}
+                    </Text>
                   </View>
-                  <Text style={styles.legalText}>
-                    {t('auth.register.acceptTerms')}{' '}
-                    <Link href="/terms" asChild>
-                      <TouchableOpacity style={{ marginBottom: -3 }}>
-                        <Text style={styles.legalLinkSmall}>CGU</Text>
-                      </TouchableOpacity>
-                    </Link>
-                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
                 </TouchableOpacity>
+              </Field>
 
-                <TouchableOpacity
-                  style={styles.legalRow}
-                  onPress={() => setAcceptedPrivacy(!acceptedPrivacy)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.checkbox, acceptedPrivacy && styles.checkboxActive]}>
-                    {acceptedPrivacy && <Ionicons name="checkmark" size={12} color="#fff" />}
-                  </View>
-                  <Text style={styles.legalText}>
-                    {t('auth.register.acceptPrivacy')}{' '}
-                    <Link href="/privacy" asChild>
-                      <TouchableOpacity style={{ marginBottom: -3 }}>
-                        <Text style={styles.legalLinkSmall}>Politique de Confidentialité</Text>
-                      </TouchableOpacity>
-                    </Link>
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <Field label={t('auth.register.howDidYouHear') || 'Comment avez-vous connu Stockman ?'} optional>
+                <InputWrapper icon="megaphone-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('auth.register.howDidYouHearPlaceholder') || 'Ex: Facebook, ami, client, Google'}
+                    placeholderTextColor={Colors.textMuted}
+                    value={howDidYouHear}
+                    onChangeText={setHowDidYouHear}
+                  />
+                </InputWrapper>
+              </Field>
 
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleRegister}
-                disabled={loading}
-              >
+              <TouchableOpacity style={styles.checkRow} onPress={() => setAcceptedTerms((prev) => !prev)}>
+                <Ionicons
+                  name={acceptedTerms ? 'checkbox-outline' : 'square-outline'}
+                  size={22}
+                  color={acceptedTerms ? Colors.primaryLight : Colors.textMuted}
+                />
+                <Text style={styles.checkText}>{t('auth.register.acceptTerms')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.checkRow} onPress={() => setAcceptedPrivacy((prev) => !prev)}>
+                <Ionicons
+                  name={acceptedPrivacy ? 'checkbox-outline' : 'square-outline'}
+                  size={22}
+                  color={acceptedPrivacy ? Colors.primaryLight : Colors.textMuted}
+                />
+                <Text style={styles.checkText}>{t('auth.register.acceptPrivacy')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>{t('auth.register.createAccount')}</Text>
+                  <>
+                    <Text style={styles.buttonText}>{t('auth.register.createAccount')}</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                  </>
                 )}
               </TouchableOpacity>
+
+              {selectedRole === 'shopkeeper' && (
+                <View style={styles.infoBox}>
+                  <Ionicons name="gift-outline" size={16} color={Colors.primaryLight} />
+                  <Text style={styles.infoText}>{t('auth.register.trialNote')}</Text>
+                </View>
+              )}
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
@@ -571,464 +399,290 @@ export default function RegisterScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal
+      <SelectionModal
         visible={showCountryModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCountryModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('auth.register.selectCountry')}</Text>
-              <TouchableOpacity onPress={() => setShowCountryModal(false)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.searchWrapper}>
-              <Ionicons name="search" size={18} color={Colors.textMuted} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('auth.register.searchCountry')}
-                placeholderTextColor={Colors.textMuted}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                }}
-                value={searchQuery}
-              />
-            </View>
-            <FlatList
-              data={searchQuery
-                ? COUNTRIES.filter(c =>
-                  c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  c.dialCode.includes(searchQuery)
-                )
-                : COUNTRIES
-              }
-              keyExtractor={(item) => item.code}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.countryItem}
-                  onPress={() => {
-                    setSelectedCountry(item);
-                    setShowCountryModal(false);
-                  }}
-                >
-                  <Text style={styles.countryItemFlag}>{item.flag}</Text>
-                  <Text style={styles.countryItemName}>{item.name}</Text>
-                  <Text style={styles.countryItemDial}>{item.dialCode}</Text>
-                </TouchableOpacity>
-              )}
+        title={t('auth.register.countryCurrency')}
+        placeholder={t('common.search') || 'Rechercher'}
+        query={countrySearch}
+        onQueryChange={setCountrySearch}
+        onClose={() => setShowCountryModal(false)}
+        data={filteredCountries}
+        keyExtractor={(item) => item.code}
+        renderItem={(item) => (
+          <TouchableOpacity
+            style={styles.modalItem}
+            onPress={() => {
+              setSelectedCountry(item);
+              setShowCountryModal(false);
+              setCountrySearch('');
+            }}
+          >
+            <Text style={styles.modalItemTitle}>{item.flag} {item.name}</Text>
+            <Text style={styles.modalItemMeta}>{item.dialCode} · {item.currency}</Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      <SelectionModal
+        visible={showSectorModal}
+        title={t('auth.register.businessType') || "Secteur d'activite"}
+        placeholder={t('common.search') || 'Rechercher'}
+        query={sectorSearch}
+        onQueryChange={setSectorSearch}
+        onClose={() => setShowSectorModal(false)}
+        data={filteredSectors}
+        keyExtractor={(item) => item.key}
+        renderItem={(item) => (
+          <TouchableOpacity
+            style={styles.modalItem}
+            onPress={() => {
+              setBusinessType(item.key);
+              setShowSectorModal(false);
+              setSectorSearch('');
+            }}
+          >
+            <Text style={styles.modalItemTitle}>{item.label}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    </LinearGradient>
+  );
+}
+
+function Field({ label, optional = false, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>
+        {label}
+        {optional ? <Text style={styles.optionalText}> (optionnel)</Text> : null}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function InputWrapper({
+  icon,
+  children,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.inputWrapper}>
+      {icon ? <Ionicons name={icon} size={20} color={Colors.textMuted} style={styles.inputIcon} /> : null}
+      {children}
+    </View>
+  );
+}
+
+function SelectionModal<T>({
+  visible,
+  title,
+  placeholder,
+  query,
+  onQueryChange,
+  onClose,
+  data,
+  keyExtractor,
+  renderItem,
+}: {
+  visible: boolean;
+  title: string;
+  placeholder: string;
+  query: string;
+  onQueryChange: (value: string) => void;
+  onClose: () => void;
+  data: readonly T[];
+  keyExtractor: (item: T) => string;
+  renderItem: (item: T) => React.ReactElement;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={22} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              value={query}
+              onChangeText={onQueryChange}
+              placeholder={placeholder}
+              placeholderTextColor={Colors.textMuted}
             />
           </View>
+
+          <FlatList
+            data={data}
+            keyExtractor={keyExtractor}
+            renderItem={({ item }) => renderItem(item)}
+            keyboardShouldPersistTaps="handled"
+          />
         </View>
-      </Modal>
-    </LinearGradient>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
+  scroll: { padding: Spacing.lg, paddingTop: 72, paddingBottom: 40 },
+  header: { alignItems: 'center', marginBottom: Spacing.lg },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 14,
   },
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-  },
+  title: { fontSize: 28, fontWeight: '800', color: Colors.text, textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: FontSize.md, color: Colors.textMuted, textAlign: 'center', lineHeight: 22 },
   card: {
-    ...GlassStyle,
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  errorText: {
-    color: Colors.danger,
-    fontSize: FontSize.sm,
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: Spacing.md,
-  },
-  label: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.inputBg,
-    borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  inputIcon: {
-    paddingLeft: Spacing.md,
-  },
-  input: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: FontSize.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  eyeBtn: {
-    padding: Spacing.md,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: Colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: Spacing.lg,
-  },
-  footerText: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-  },
-  footerLink: {
-    color: Colors.primaryLight,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  // Role selection
   roleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.inputBg,
-    marginBottom: Spacing.md,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    marginBottom: 14,
   },
-  roleCardActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
-  },
-  roleIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  roleCardActive: { borderColor: Colors.primaryLight, backgroundColor: 'rgba(59,130,246,0.1)' },
+  roleIcon: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   roleInfo: { flex: 1 },
-  roleTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  roleDesc: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  backRow: {
+  roleTitle: { fontSize: 18, fontWeight: '700', color: Colors.text, marginBottom: 4 },
+  roleDesc: { fontSize: FontSize.sm, color: Colors.textMuted, lineHeight: 18 },
+  backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  backText: { color: Colors.primaryLight, fontWeight: '700', marginLeft: 6 },
+  errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.35)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
   },
-  backText: {
-    color: Colors.primaryLight,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  legalRow: {
+  errorText: { color: Colors.danger, marginLeft: 8, flex: 1, fontSize: FontSize.sm },
+  inputGroup: { marginBottom: 16 },
+  label: { color: Colors.text, fontSize: FontSize.sm, fontWeight: '700', marginBottom: 8 },
+  optionalText: { color: Colors.textMuted, fontWeight: '500' },
+  inputWrapper: {
+    minHeight: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 14,
   },
-  legalText: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.xs,
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, color: Colors.text, fontSize: FontSize.md, paddingVertical: 14 },
+  inputPassword: { paddingRight: 36 },
+  eyeButton: { paddingLeft: 8 },
+  selector: {
+    minHeight: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
   },
-  legalLinkSmall: {
-    color: Colors.primaryLight,
-    fontWeight: '600',
-    fontSize: FontSize.xs,
+  selectorLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
+  selectorFlag: { fontSize: 22, marginRight: 10 },
+  selectorValue: { flex: 1, color: Colors.text, fontSize: FontSize.md },
+  badge: {
+    backgroundColor: `${Colors.primary}20`,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 10,
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: Colors.divider,
+  badgeText: { color: Colors.primaryLight, fontSize: 12, fontWeight: '700' },
+  dialCodeBox: {
+    paddingRight: 10,
+    marginRight: 10,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.1)',
+  },
+  dialCodeText: { color: Colors.text, fontWeight: '700' },
+  inputWithPrefix: { flex: 1, color: Colors.text, fontSize: FontSize.md, paddingVertical: 14 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  checkText: { color: Colors.textMuted, marginLeft: 10, flex: 1, lineHeight: 20 },
+  button: {
+    marginTop: 8,
+    minHeight: 54,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    flexDirection: 'row',
   },
-  checkboxActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  countrySelector: {
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: '#fff', fontWeight: '800', fontSize: FontSize.md },
+  infoBox: {
+    marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    backgroundColor: `${Colors.primary}12`,
+    borderRadius: 12,
+    padding: 12,
   },
-  flagText: { fontSize: 24 },
-  countryNameText: {
+  infoText: { color: Colors.primaryLight, fontSize: FontSize.sm, marginLeft: 8, flex: 1, lineHeight: 18 },
+  footer: { marginTop: 20, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
+  footerText: { color: Colors.textMuted },
+  footerLink: { color: Colors.primaryLight, fontWeight: '700' },
+  modalOverlay: {
     flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  currencyBadge: {
-    backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  currencyText: {
-    color: Colors.primaryLight,
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-  },
-  dialCodeBox: {
-    paddingLeft: Spacing.md,
-    paddingRight: Spacing.xs,
-    borderRightWidth: 1,
-    borderRightColor: Colors.divider,
-  },
-  dialCodeText: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.md,
-    fontWeight: '600',
-  },
-  inputWithPrefix: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: FontSize.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(2,6,23,0.72)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    height: '70%',
-    padding: Spacing.lg,
-    ...GlassStyle,
-    backgroundColor: Colors.bgDark, // Overwrite glass color for opacity but keep other glass styles
+  modalCard: {
+    maxHeight: '80%',
+    backgroundColor: Colors.bgDark,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 16,
   },
-  modalHeader: {
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  modalTitle: { color: Colors.text, fontSize: 18, fontWeight: '800' },
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  modalTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  closeButton: {
-    padding: Spacing.xs,
-  },
-  countryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
+  searchInput: { flex: 1, color: Colors.text, paddingVertical: 12, marginLeft: 8 },
+  modalItem: {
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-    gap: Spacing.md,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  countryItemFlag: { fontSize: 24 },
-  countryItemName: {
-    flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  countryItemDial: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-  },
-  searchInput: {
-    flex: 1,
-    color: Colors.text,
-    paddingVertical: Spacing.sm,
-    marginLeft: Spacing.sm,
-    fontSize: FontSize.md,
-  },
-  sectorInsightCard: {
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  sectorInsightCardRestaurant: {
-    borderColor: 'rgba(245,158,11,0.4)',
-    backgroundColor: 'rgba(245,158,11,0.08)',
-  },
-  sectorInsightHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
-  sectorInsightEmoji: {
-    fontSize: 22,
-    marginTop: 2,
-  },
-  sectorInsightTitle: {
-    color: Colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  sectorInsightSubtitle: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  sectorInsightList: {
-    gap: 6,
-  },
-  sectorInsightItem: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    lineHeight: 20,
-  },
-  // Plan selection
-  planCard: {
-    borderWidth: 2,
-    borderColor: Colors.divider,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    backgroundColor: Colors.inputBg,
-    position: 'relative',
-  },
-  planCardActive: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16,185,129,0.07)',
-  },
-  planCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  planIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  planName: {
-    color: Colors.text,
-    fontWeight: '700',
-    fontSize: FontSize.lg,
-  },
-  planPrice: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    marginTop: 2,
-  },
-  planFeatures: {
-    gap: 4,
-    paddingLeft: 4,
-  },
-  planFeature: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -10,
-    right: 12,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 10,
-    zIndex: 1,
-  },
-  popularText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  trialNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    justifyContent: 'center',
-    marginVertical: Spacing.md,
-  },
-  trialNoteText: {
-    color: Colors.primaryLight,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
+  modalItemTitle: { color: Colors.text, fontSize: FontSize.md, fontWeight: '700' },
+  modalItemMeta: { color: Colors.textMuted, fontSize: FontSize.sm, marginTop: 4 },
 });

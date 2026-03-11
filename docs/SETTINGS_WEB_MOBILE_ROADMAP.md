@@ -1,7 +1,24 @@
 # Settings Web Mobile Roadmap
 
 Date de preparation : 2026-03-11
-Statut : planifie, non implemente comme chantier global
+Statut : partiellement implemente
+
+Etat au 2026-03-11 :
+
+- le backend porte deja une hierarchie utile `account / store / user` via
+  `BusinessAccount`, `stores` et `user_settings`, avec `effective settings`
+- le web commence a mieux rendre cette hierarchie visible dans `Settings`
+- le mobile expose maintenant plus clairement la separation
+  `profil / boutique / compte entreprise`
+- la `zone manager` mobile est pilotable depuis les preferences
+
+Reste a faire :
+
+- finir la refonte globale des centres `Entreprise / Boutiques / POS /
+  Recus & Factures / Notifications / Integrations`
+- ajouter l'audit des changements sensibles
+- aligner encore mieux l'effet des preferences web sur les dashboards et centres
+  analytiques
 
 Ce document fige l'organisation cible des parametres `web` et `mobile` afin de
 garder :

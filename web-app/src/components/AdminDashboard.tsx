@@ -5,7 +5,7 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package,
-    BarChart2, Zap, Bell, ChevronDown, X
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle
 } from 'lucide-react';
 import { admin as adminApi } from '../services/api';
 
@@ -45,14 +45,81 @@ const PLAN_COLORS: Record<string, string> = {
     trial: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
 };
 
+function formatAdminMoney(amount: any, currency?: string) {
+    if (amount === null || amount === undefined || amount === '') return '—';
+    const numeric = Number(amount);
+    if (!Number.isFinite(numeric)) return `${amount} ${currency || ''}`.trim();
+    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
+    return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
+}
+
+function formatAdminDate(value?: string | Date | null) {
+    if (!value) return '—';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function formatAccessPhaseLabel(phase?: string | null) {
+    switch (phase) {
+        case 'active':
+            return 'Actif';
+        case 'grace':
+            return 'Grace';
+        case 'restricted':
+            return 'Restreint';
+        case 'read_only':
+            return 'Lecture seule';
+        default:
+            return phase || 'â€”';
+    }
+}
+
+function formatSubscriptionEventType(eventType?: string | null) {
+    switch (eventType) {
+        case 'manual_grace_granted':
+            return 'Grace manuelle accordee';
+        case 'manual_read_only_enabled':
+            return 'Lecture seule activee';
+        case 'manual_read_only_disabled':
+            return 'Lecture seule retiree';
+        case 'checkout_created':
+            return 'Checkout cree';
+        case 'payment_succeeded':
+            return 'Paiement reussi';
+        case 'payment_failed':
+            return 'Paiement echoue';
+        case 'subscription_renewed':
+            return 'Abonnement renouvele';
+        case 'subscription_expired':
+            return 'Abonnement expire';
+        case 'subscription_cancelled':
+            return 'Abonnement annule';
+        default:
+            return eventType || 'â€”';
+    }
+}
+
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
     const [otpStats, setOtpStats] = useState<any>(null);
     const [enterpriseStats, setEnterpriseStats] = useState<any>(null);
     const [conversionStats, setConversionStats] = useState<any>(null);
+    const [subscriptionOverview, setSubscriptionOverview] = useState<any>(null);
+    const [subscriptionAccounts, setSubscriptionAccounts] = useState<any[]>([]);
+    const [subscriptionAccountsTotal, setSubscriptionAccountsTotal] = useState(0);
+    const [subscriptionEvents, setSubscriptionEvents] = useState<any[]>([]);
+    const [subscriptionAlerts, setSubscriptionAlerts] = useState<any>(null);
     const [users, setUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
     const [disputes, setDisputes] = useState<any[]>([]);
@@ -68,6 +135,11 @@ export default function AdminDashboard() {
     const [replyContent, setReplyContent] = useState('');
     const [replying, setReplying] = useState(false);
     const [userSearch, setUserSearch] = useState('');
+    const [subscriptionSearch, setSubscriptionSearch] = useState('');
+    const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState<'all' | 'active' | 'expired' | 'cancelled'>('all');
+    const [subscriptionProviderFilter, setSubscriptionProviderFilter] = useState<'all' | 'stripe' | 'flutterwave' | 'revenuecat' | 'none'>('all');
+    const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
+    const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
 
@@ -107,6 +179,66 @@ export default function AdminDashboard() {
         finally { setRefreshing(false); }
     };
 
+    const handleGrantGrace = async (accountId: string, days = 7) => {
+        const noteInput = window.prompt(`Note interne optionnelle pour ${days} jours de grace`, '');
+        if (noteInput === null) return;
+        const actionKey = `${accountId}:${days}`;
+        setGrantingGraceAction(actionKey);
+        try {
+            await adminApi.grantSubscriptionGrace(accountId, days, noteInput.trim() || undefined);
+            await loadSubscriptions();
+            showToast(`Grace de ${days} jours accordee.`);
+        } catch {
+            showToast("Impossible d'accorder la grace.", 'error');
+        } finally {
+            setGrantingGraceAction(null);
+        }
+    };
+
+    const handleToggleReadOnly = async (accountId: string, enabled: boolean) => {
+        const noteInput = window.prompt(
+            enabled
+                ? 'Note interne optionnelle pour passer ce compte en lecture seule'
+                : 'Note interne optionnelle pour retirer la lecture seule',
+            '',
+        );
+        if (noteInput === null) return;
+        setTogglingReadOnlyAccountId(accountId);
+        try {
+            if (enabled) {
+                await adminApi.enableSubscriptionReadOnly(accountId, noteInput.trim() || undefined);
+                showToast('Compte passe en lecture seule.');
+            } else {
+                await adminApi.disableSubscriptionReadOnly(accountId, noteInput.trim() || undefined);
+                showToast('Lecture seule retiree.');
+            }
+            await loadSubscriptions();
+        } catch {
+            showToast("Impossible de modifier l'etat lecture seule.", 'error');
+        } finally {
+            setTogglingReadOnlyAccountId(null);
+        }
+    };
+
+    const loadSubscriptions = async () => {
+        setRefreshing(true);
+        try {
+            const [overviewRes, accountsRes, eventsRes, alertsRes] = await Promise.all([
+                adminApi.getSubscriptionsOverview(),
+                adminApi.listSubscriptionAccounts({ limit: 80 }),
+                adminApi.listSubscriptionEvents({ limit: 40 }),
+                adminApi.getSubscriptionAlerts(),
+            ]);
+            setSubscriptionOverview(overviewRes);
+            setSubscriptionAccounts(accountsRes?.items || []);
+            setSubscriptionAccountsTotal(accountsRes?.total || 0);
+            setSubscriptionEvents(eventsRes?.items || []);
+            setSubscriptionAlerts(alertsRes);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     const loadStores = async () => {
         setRefreshing(true);
         try {
@@ -142,6 +274,7 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => {
+        if (activeSection === 'subscriptions') loadSubscriptions();
         if (activeSection === 'users') loadUsers();
         if (activeSection === 'stores') loadStores();
         if (activeSection === 'disputes') loadDisputes();
@@ -194,6 +327,37 @@ export default function AdminDashboard() {
         return disputes.filter(d => disputeFilter === 'open' ? d.status === 'open' : d.status !== 'open');
     }, [disputes, disputeFilter]);
 
+    const filteredSubscriptionAccounts = useMemo(() => {
+        return subscriptionAccounts.filter(account => {
+            const matchesSearch = !subscriptionSearch.trim() || [
+                account.display_name,
+                account.account_id,
+                account.owner_name,
+                account.owner_email,
+                account.billing_contact_email,
+                account.currency,
+                account.country_code,
+            ].some(value => String(value || '').toLowerCase().includes(subscriptionSearch.toLowerCase()));
+            const matchesStatus = subscriptionStatusFilter === 'all' || account.subscription_status === subscriptionStatusFilter;
+            const matchesProvider = subscriptionProviderFilter === 'all' || account.subscription_provider === subscriptionProviderFilter;
+            return matchesSearch && matchesStatus && matchesProvider;
+        });
+    }, [subscriptionAccounts, subscriptionProviderFilter, subscriptionSearch, subscriptionStatusFilter]);
+
+    const filteredSubscriptionEvents = useMemo(() => {
+        return subscriptionEvents.filter(event => {
+            const matchesProvider = subscriptionProviderFilter === 'all' || event.provider === subscriptionProviderFilter;
+            const matchesSearch = !subscriptionSearch.trim() || [
+                event.account_id,
+                event.owner_user_id,
+                event.provider_reference,
+                event.message,
+                event.event_type,
+            ].some(value => String(value || '').toLowerCase().includes(subscriptionSearch.toLowerCase()));
+            return matchesProvider && matchesSearch;
+        });
+    }, [subscriptionEvents, subscriptionProviderFilter, subscriptionSearch]);
+
     if (loading) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -204,6 +368,7 @@ export default function AdminDashboard() {
 
     const tabs = [
         { id: 'overview', icon: TrendingUp, label: 'Vue d\'ensemble' },
+        { id: 'subscriptions', icon: CreditCard, label: 'Abonnements' },
         { id: 'users', icon: Users, label: 'Utilisateurs' },
         { id: 'stores', icon: Store, label: 'Boutiques' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
@@ -226,7 +391,15 @@ export default function AdminDashboard() {
                         <Activity size={16} />
                         {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Opérationnel' : 'Erreur'}
                     </div>
-                    <button onClick={loadInitialData} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
+                    <button onClick={() => {
+                        if (activeSection === 'subscriptions') loadSubscriptions();
+                        else if (activeSection === 'users') loadUsers();
+                        else if (activeSection === 'stores') loadStores();
+                        else if (activeSection === 'disputes') loadDisputes();
+                        else if (activeSection === 'security') loadSecurity();
+                        else if (activeSection === 'support') loadTickets();
+                        else loadInitialData();
+                    }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
                     </button>
                 </div>
@@ -425,6 +598,272 @@ export default function AdminDashboard() {
             )}
 
             {/* ── USERS ── */}
+            {activeSection === 'subscriptions' && (
+                <div className="space-y-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard label="Comptes payants" value={subscriptionOverview?.active_paid_accounts || 0} icon={Wallet} color="bg-emerald-500" sub="Actifs" />
+                        <StatCard label="Trials actifs" value={subscriptionOverview?.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview?.trials_expiring_3d || 0} expirent sous 3 jours`} />
+                        <StatCard label="Abonnements a risque" value={subscriptionOverview?.subscriptions_expiring_soon || 0} icon={AlertTriangle} color="bg-rose-500" sub="Expirent sous 7 jours" />
+                        <StatCard label="Paiements 30j" value={subscriptionOverview?.payments_count_30d || 0} icon={CreditCard} color="bg-blue-500" sub="Tous providers" />
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard
+                            label="MRR estime"
+                            value={subscriptionOverview?.mrr_estimate?.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0]?.amount, subscriptionOverview.mrr_estimate[0]?.currency) : '—'}
+                            icon={TrendingUp}
+                            color="bg-primary"
+                            sub={subscriptionOverview?.mrr_estimate?.length > 1 ? `+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
+                        />
+                        <StatCard label="Annules" value={subscriptionOverview?.cancelled_accounts || 0} icon={X} color="bg-slate-500" />
+                        <StatCard label="Expires" value={subscriptionOverview?.expired_accounts || 0} icon={Clock} color="bg-rose-500" />
+                        <StatCard label="Alertes" value={subscriptionAlerts?.summary?.total || 0} icon={Bell} color={(subscriptionAlerts?.summary?.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts?.summary?.critical || 0} critiques`} />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <div className="glass-card p-6 xl:col-span-1">
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Repartition</h3>
+                            <div className="space-y-5">
+                                <div>
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Par plan</p>
+                                    <div className="space-y-2">
+                                        {Object.entries(subscriptionOverview?.by_plan || {}).map(([plan, count]) => (
+                                            <div key={plan} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{plan}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Par provider</p>
+                                    <div className="space-y-2">
+                                        {Object.entries(subscriptionOverview?.by_provider || {}).map(([provider, count]) => (
+                                            <div key={provider} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{provider}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Volumes 30 jours</p>
+                                    <div className="space-y-2">
+                                        {(subscriptionOverview?.payment_volume_30d || []).length > 0 ? (
+                                            subscriptionOverview.payment_volume_30d.map((row: any) => (
+                                                <div key={row.currency} className="flex items-center justify-between text-sm">
+                                                    <span className="text-slate-300">{row.currency}</span>
+                                                    <strong className="text-white">{formatAdminMoney(row.amount, row.currency)}</strong>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-500">Aucun paiement confirme sur la fenetre.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6 xl:col-span-1">
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Alertes et anomalies</h3>
+                            <div className="space-y-3">
+                                {(subscriptionAlerts?.items || []).length > 0 ? (
+                                    subscriptionAlerts.items.map((alert: any) => (
+                                        <div key={alert.code} className={`rounded-2xl border p-4 ${alert.severity === 'critical' ? 'border-rose-500/30 bg-rose-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
+                                            <div className="flex items-center justify-between gap-3 mb-2">
+                                                <p className="text-sm font-black text-white">{alert.title}</p>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${alert.severity === 'critical' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                                                    {alert.count}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-300 leading-relaxed">{alert.message}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+                                        Aucune anomalie majeure detectee pour le moment.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6 xl:col-span-1">
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Evenements recents</h3>
+                            <div className="space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
+                                {filteredSubscriptionEvents.length > 0 ? (
+                                    filteredSubscriptionEvents.map((event: any) => (
+                                        <div key={event.event_id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                            <div className="flex items-start justify-between gap-3 mb-2">
+                                                <div>
+                                                    <p className="text-sm font-black text-white">{formatSubscriptionEventType(event.event_type)}</p>
+                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} · {event.source}</p>
+                                                </div>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${event.status === 'failed' ? 'bg-rose-500/20 text-rose-300' : event.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-slate-300'}`}>
+                                                    {event.status || '—'}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1 text-xs text-slate-300">
+                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '—'}</p>
+                                                <p><span className="text-slate-500">Plan :</span> {event.plan || '—'}</p>
+                                                <p><span className="text-slate-500">Montant :</span> {formatAdminMoney(event.amount, event.currency)}</p>
+                                                <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '—'}</p>
+                                                <p><span className="text-slate-500">Date :</span> {formatAdminDate(event.created_at)}</p>
+                                            </div>
+                                            {event.message && <p className="text-xs text-slate-400 mt-3">{event.message}</p>}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500">Aucun evenement disponible.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">
+                                    Comptes abonnes {refreshing ? '' : `(${filteredSubscriptionAccounts.length}/${subscriptionAccountsTotal})`}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">Source de verite : business_accounts</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                                <div className="relative w-full sm:w-72">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                                    <input
+                                        type="text"
+                                        value={subscriptionSearch}
+                                        onChange={e => setSubscriptionSearch(e.target.value)}
+                                        placeholder="Compte, email, devise, pays..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all"
+                                    />
+                                </div>
+                                <select
+                                    value={subscriptionStatusFilter}
+                                    onChange={e => setSubscriptionStatusFilter(e.target.value as any)}
+                                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                                >
+                                    <option value="all">Tous statuts</option>
+                                    <option value="active">Actifs</option>
+                                    <option value="expired">Expires</option>
+                                    <option value="cancelled">Annules</option>
+                                </select>
+                                <select
+                                    value={subscriptionProviderFilter}
+                                    onChange={e => setSubscriptionProviderFilter(e.target.value as any)}
+                                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                                >
+                                    <option value="all">Tous providers</option>
+                                    <option value="stripe">Stripe</option>
+                                    <option value="flutterwave">Flutterwave</option>
+                                    <option value="revenuecat">RevenueCat</option>
+                                    <option value="none">Aucun</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                        <th className="px-6 py-4">Compte</th>
+                                        <th className="px-6 py-4">Plan</th>
+                                        <th className="px-6 py-4">Provider</th>
+                                        <th className="px-6 py-4">Pays / Devise</th>
+                                        <th className="px-6 py-4">Echeance</th>
+                                        <th className="px-6 py-4">Dernier paiement</th>
+                                        <th className="px-6 py-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 text-sm">
+                                    {filteredSubscriptionAccounts.map(account => (
+                                        <tr key={account.account_id} className="hover:bg-white/5 transition-all">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-white font-bold">{account.display_name}</p>
+                                                    <p className="text-[11px] text-slate-500">{account.account_id}</p>
+                                                    <p className="text-[11px] text-slate-500">{account.owner_email || account.billing_contact_email || '—'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-2">
+                                                    <span className={`w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${PLAN_COLORS[account.plan] || PLAN_COLORS.starter}`}>
+                                                        {account.plan}
+                                                    </span>
+                                                    <span className={`w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${account.subscription_status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : account.subscription_status === 'cancelled' ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' : 'bg-rose-500/10 text-rose-300 border-rose-500/20'}`}>
+                                                        {account.subscription_status}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-slate-300">
+                                                    <p className="font-semibold capitalize">{account.subscription_provider || 'none'}</p>
+                                                    <p className="text-[11px] text-slate-500">{account.subscription_provider_id || 'Sans reference'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-300">
+                                                <p>{account.country_code || '—'} / {account.currency || '—'}</p>
+                                                <p className="text-[11px] text-slate-500">{account.stores_count || 0} boutiques · {account.users_count || 0} utilisateurs</p>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-300">
+                                                <p>{formatAccessPhaseLabel(account.subscription_access_phase || 'active')}</p>
+                                                <p>{formatAdminDate(account.subscription_end || account.trial_ends_at)}</p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    {account.manual_access_grace_until ? `Grace manuelle jusque ${formatAdminDate(account.manual_access_grace_until)}` : (account.subscription_end ? 'Abonnement payant' : 'Trial / aucun paiement')}
+                                                </p>
+                                                {account.manual_read_only_enabled && (
+                                                    <p className="mt-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase border bg-rose-500/10 text-rose-300 border-rose-500/20">
+                                                        Lecture seule manuelle
+                                                    </p>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-300">
+                                                <p>{formatAdminMoney(account.last_payment_amount, account.last_payment_currency)}</p>
+                                                <p className="text-[11px] text-slate-500">{formatAdminDate(account.last_payment_at)}</p>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {[7, 14, 30].map(days => {
+                                                        const actionKey = `${account.account_id}:${days}`;
+                                                        return (
+                                                            <button
+                                                                key={days}
+                                                                onClick={() => void handleGrantGrace(account.account_id, days)}
+                                                                disabled={grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
+                                                                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
+                                                            >
+                                                                {grantingGraceAction === actionKey ? '...' : `${days}j`}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    <button
+                                                        onClick={() => void handleToggleReadOnly(account.account_id, !account.manual_read_only_enabled)}
+                                                        disabled={togglingReadOnlyAccountId === account.account_id || grantingGraceAction !== null}
+                                                        className={`px-3 py-2 rounded-xl border text-xs font-bold disabled:opacity-40 ${
+                                                            account.manual_read_only_enabled
+                                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                                                                : 'bg-rose-500/10 border-rose-500/20 text-rose-300 hover:bg-rose-500/20'
+                                                        }`}
+                                                    >
+                                                        {togglingReadOnlyAccountId === account.account_id
+                                                            ? '...'
+                                                            : account.manual_read_only_enabled
+                                                                ? 'Retirer lecture seule'
+                                                                : 'Passer en lecture seule'}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredSubscriptionAccounts.length === 0 && (
+                                        <tr><td colSpan={7} className="px-6 py-16 text-center text-slate-600">Aucun compte ne correspond aux filtres.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {activeSection === 'users' && (
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/5">
