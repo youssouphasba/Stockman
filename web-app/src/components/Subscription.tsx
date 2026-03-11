@@ -18,7 +18,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { auth as authApi, settings as settingsApi, subscription as subApi, type SubscriptionData } from '../services/api';
-import { COUNTRIES } from '../../../frontend/constants/countries';
+import { COUNTRIES } from '../../../shared/countries';
 
 type PlanId = 'starter' | 'pro' | 'enterprise';
 

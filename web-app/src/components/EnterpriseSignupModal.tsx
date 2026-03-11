@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
 import { auth, type AuthResponse } from '../services/api';
-import { COUNTRIES } from '../../../frontend/constants/countries';
+import { COUNTRIES } from '../../../shared/countries';
 
 const SECTORS = [
   { key: 'epicerie', label: 'Epicerie', icon: '🛒' },

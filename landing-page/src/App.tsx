@@ -31,7 +31,7 @@ import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css';
 
 import { detectBrowserCountryCode, fetchPublicPricing, type PublicPricingResponse } from './utils/pricing';
-import { COUNTRIES } from '../../frontend/constants/countries';
+import { COUNTRIES } from '../../shared/countries';
 import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
