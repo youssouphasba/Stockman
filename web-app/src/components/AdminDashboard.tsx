@@ -107,8 +107,43 @@ function formatSubscriptionEventType(eventType?: string | null) {
     }
 }
 
+function formatDemoTypeLabel(demoType?: string | null) {
+    switch (demoType) {
+        case 'retail':
+            return 'Commerce';
+        case 'restaurant':
+            return 'Restaurant';
+        case 'enterprise':
+            return 'Enterprise';
+        default:
+            return demoType || '—';
+    }
+}
+
+function formatDemoSessionStatus(status?: string | null) {
+    switch (status) {
+        case 'active':
+            return 'Active';
+        case 'expired':
+            return 'Expiree';
+        case 'cleaned':
+            return 'Nettoyee';
+        default:
+            return status || '—';
+    }
+}
+
+function formatRemainingDuration(seconds?: number | null) {
+    if (seconds === null || seconds === undefined) return '—';
+    if (seconds <= 0) return 'Expiree';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours <= 0) return `${minutes} min`;
+    return `${hours}h ${minutes}m`;
+}
+
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -120,6 +155,9 @@ export default function AdminDashboard() {
     const [subscriptionAccountsTotal, setSubscriptionAccountsTotal] = useState(0);
     const [subscriptionEvents, setSubscriptionEvents] = useState<any[]>([]);
     const [subscriptionAlerts, setSubscriptionAlerts] = useState<any>(null);
+    const [demoOverview, setDemoOverview] = useState<any>(null);
+    const [demoSessions, setDemoSessions] = useState<any[]>([]);
+    const [demoSessionsTotal, setDemoSessionsTotal] = useState(0);
     const [users, setUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
     const [disputes, setDisputes] = useState<any[]>([]);
@@ -138,6 +176,10 @@ export default function AdminDashboard() {
     const [subscriptionSearch, setSubscriptionSearch] = useState('');
     const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState<'all' | 'active' | 'expired' | 'cancelled'>('all');
     const [subscriptionProviderFilter, setSubscriptionProviderFilter] = useState<'all' | 'stripe' | 'flutterwave' | 'revenuecat' | 'none'>('all');
+    const [demoSearch, setDemoSearch] = useState('');
+    const [demoStatusFilter, setDemoStatusFilter] = useState<'all' | 'active' | 'expired' | 'cleaned'>('all');
+    const [demoTypeFilter, setDemoTypeFilter] = useState<'all' | 'retail' | 'restaurant' | 'enterprise'>('all');
+    const [demoSurfaceFilter, setDemoSurfaceFilter] = useState<'all' | 'mobile' | 'web'>('all');
     const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -239,6 +281,21 @@ export default function AdminDashboard() {
         }
     };
 
+    const loadDemos = async () => {
+        setRefreshing(true);
+        try {
+            const [overviewRes, sessionsRes] = await Promise.all([
+                adminApi.getDemoSessionsOverview(),
+                adminApi.listDemoSessions({ limit: 200 }),
+            ]);
+            setDemoOverview(overviewRes);
+            setDemoSessions(sessionsRes?.items || []);
+            setDemoSessionsTotal(sessionsRes?.total || 0);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     const loadStores = async () => {
         setRefreshing(true);
         try {
@@ -275,6 +332,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (activeSection === 'subscriptions') loadSubscriptions();
+        if (activeSection === 'demos') loadDemos();
         if (activeSection === 'users') loadUsers();
         if (activeSection === 'stores') loadStores();
         if (activeSection === 'disputes') loadDisputes();
@@ -358,6 +416,21 @@ export default function AdminDashboard() {
         });
     }, [subscriptionEvents, subscriptionProviderFilter, subscriptionSearch]);
 
+    const filteredDemoSessions = useMemo(() => {
+        return demoSessions.filter((session) => {
+            const matchesSearch = !demoSearch.trim() || [
+                session.demo_session_id,
+                session.contact_email,
+                session.account_id,
+                session.owner_user_id,
+            ].some((value) => String(value || '').toLowerCase().includes(demoSearch.toLowerCase()));
+            const matchesStatus = demoStatusFilter === 'all' || session.status === demoStatusFilter;
+            const matchesType = demoTypeFilter === 'all' || session.demo_type === demoTypeFilter;
+            const matchesSurface = demoSurfaceFilter === 'all' || session.surface === demoSurfaceFilter;
+            return matchesSearch && matchesStatus && matchesType && matchesSurface;
+        });
+    }, [demoSearch, demoSessions, demoStatusFilter, demoSurfaceFilter, demoTypeFilter]);
+
     if (loading) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -369,6 +442,7 @@ export default function AdminDashboard() {
     const tabs = [
         { id: 'overview', icon: TrendingUp, label: 'Vue d\'ensemble' },
         { id: 'subscriptions', icon: CreditCard, label: 'Abonnements' },
+        { id: 'demos', icon: Clock, label: 'Demos' },
         { id: 'users', icon: Users, label: 'Utilisateurs' },
         { id: 'stores', icon: Store, label: 'Boutiques' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
@@ -393,6 +467,7 @@ export default function AdminDashboard() {
                     </div>
                     <button onClick={() => {
                         if (activeSection === 'subscriptions') loadSubscriptions();
+                        else if (activeSection === 'demos') loadDemos();
                         else if (activeSection === 'users') loadUsers();
                         else if (activeSection === 'stores') loadStores();
                         else if (activeSection === 'disputes') loadDisputes();
@@ -1043,6 +1118,168 @@ export default function AdminDashboard() {
                                 <p className="font-black uppercase tracking-widest text-xs">Aucun litige {disputeFilter !== 'all' ? `(${disputeFilter})` : ''}</p>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── DEMOS ── */}
+            {activeSection === 'demos' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard label="Sessions actives" value={demoOverview?.active_sessions || 0} icon={Clock} color="bg-sky-500" sub={`${demoOverview?.expiring_24h || 0} expirent <24h`} />
+                        <StatCard label="Expirees" value={demoOverview?.expired_sessions || 0} icon={AlertTriangle} color="bg-amber-500" sub={`${demoOverview?.stale_expired_uncleaned || 0} a nettoyer`} />
+                        <StatCard label="Nettoyees" value={demoOverview?.cleaned_sessions || 0} icon={Trash2} color="bg-emerald-500" sub={`${demoOverview?.created_in_window || 0} creees / ${demoOverview?.window_days || 30}j`} />
+                        <StatCard label="Creees aujourd'hui" value={demoOverview?.created_today || 0} icon={Zap} color="bg-primary" sub={`${demoSessionsTotal || 0} sessions total`} />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Par type</h3>
+                            <div className="space-y-3">
+                                {Object.entries(demoOverview?.by_type || {}).map(([type, count]: [string, any]) => (
+                                    <div key={type} className="flex items-center justify-between text-sm">
+                                        <span className="text-slate-400">{formatDemoTypeLabel(type)}</span>
+                                        <span className="text-white font-black">{count}</span>
+                                    </div>
+                                ))}
+                                {!Object.keys(demoOverview?.by_type || {}).length && (
+                                    <p className="text-slate-600 text-sm">Aucune session demo.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Par surface</h3>
+                            <div className="space-y-3">
+                                {Object.entries(demoOverview?.by_surface || {}).map(([surface, count]: [string, any]) => (
+                                    <div key={surface} className="flex items-center justify-between text-sm">
+                                        <span className="text-slate-400 capitalize">{surface}</span>
+                                        <span className="text-white font-black">{count}</span>
+                                    </div>
+                                ))}
+                                {!Object.keys(demoOverview?.by_surface || {}).length && (
+                                    <p className="text-slate-600 text-sm">Aucune repartition disponible.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Par statut</h3>
+                            <div className="space-y-3">
+                                {Object.entries(demoOverview?.by_status || {}).map(([status, count]: [string, any]) => (
+                                    <div key={status} className="flex items-center justify-between text-sm">
+                                        <span className="text-slate-400">{formatDemoSessionStatus(status)}</span>
+                                        <span className="text-white font-black">{count}</span>
+                                    </div>
+                                ))}
+                                {!Object.keys(demoOverview?.by_status || {}).length && (
+                                    <p className="text-slate-600 text-sm">Aucune repartition disponible.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-5 flex flex-col xl:flex-row gap-3 xl:items-center">
+                        <div className="relative flex-1">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <input
+                                value={demoSearch}
+                                onChange={(e) => setDemoSearch(e.target.value)}
+                                placeholder="Rechercher une session, un email, un compte..."
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm focus:outline-none focus:border-primary/40"
+                            />
+                        </div>
+                        <select value={demoStatusFilter} onChange={(e) => setDemoStatusFilter(e.target.value as any)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white">
+                            <option value="all">Tous statuts</option>
+                            <option value="active">Actives</option>
+                            <option value="expired">Expirees</option>
+                            <option value="cleaned">Nettoyees</option>
+                        </select>
+                        <select value={demoTypeFilter} onChange={(e) => setDemoTypeFilter(e.target.value as any)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white">
+                            <option value="all">Tous types</option>
+                            <option value="retail">Commerce</option>
+                            <option value="restaurant">Restaurant</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                        <select value={demoSurfaceFilter} onChange={(e) => setDemoSurfaceFilter(e.target.value as any)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white">
+                            <option value="all">Toutes surfaces</option>
+                            <option value="mobile">Mobile</option>
+                            <option value="web">Web</option>
+                        </select>
+                    </div>
+
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Sessions demo ({filteredDemoSessions.length})</h3>
+                                <p className="text-xs text-slate-500 mt-1">Vue admin sur le type, la surface, l'expiration et le nettoyage.</p>
+                            </div>
+                            <button onClick={loadDemos} className="p-2 text-slate-400 hover:text-white transition-all">
+                                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-white/[0.02] text-slate-500 text-[11px] uppercase tracking-widest">
+                                    <tr>
+                                        <th className="px-6 py-4">Session</th>
+                                        <th className="px-6 py-4">Type</th>
+                                        <th className="px-6 py-4">Surface</th>
+                                        <th className="px-6 py-4">Contact</th>
+                                        <th className="px-6 py-4">Statut</th>
+                                        <th className="px-6 py-4">Debut</th>
+                                        <th className="px-6 py-4">Expiration</th>
+                                        <th className="px-6 py-4">Restant</th>
+                                        <th className="px-6 py-4">Nettoyage</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {filteredDemoSessions.length > 0 ? filteredDemoSessions.map((session: any) => (
+                                        <tr key={session.demo_session_id} className="hover:bg-white/[0.03]">
+                                            <td className="px-6 py-4">
+                                                <div className="text-white font-semibold text-sm">{session.demo_session_id}</div>
+                                                <div className="text-slate-500 text-xs">{session.account_id || '—'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-300 text-sm">{formatDemoTypeLabel(session.demo_type)}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-slate-300 text-xs capitalize">
+                                                    {session.surface || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-white text-sm">{session.contact_email || '—'}</div>
+                                                <div className="text-slate-500 text-xs">{session.country_code || '—'} · {session.currency || '—'}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full border text-xs font-bold ${
+                                                    session.status === 'active'
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                                        : session.status === 'expired'
+                                                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                                                            : 'bg-slate-500/10 border-slate-500/20 text-slate-300'
+                                                }`}>
+                                                    {formatDemoSessionStatus(session.status)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-400 text-sm">{formatAdminDate(session.started_at || session.created_at)}</td>
+                                            <td className="px-6 py-4 text-slate-400 text-sm">{formatAdminDate(session.expires_at)}</td>
+                                            <td className="px-6 py-4 text-slate-300 text-sm">{formatRemainingDuration(session.remaining_seconds)}</td>
+                                            <td className="px-6 py-4 text-slate-400 text-sm">
+                                                {session.status === 'cleaned'
+                                                    ? `${session.cleanup_items_deleted || 0} docs`
+                                                    : 'En attente'}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={9} className="px-6 py-12 text-center text-slate-600 text-sm">
+                                                Aucune session demo ne correspond aux filtres.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

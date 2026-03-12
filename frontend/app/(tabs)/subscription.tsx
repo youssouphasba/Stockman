@@ -70,6 +70,19 @@ const PLANS: PlanConfig[] = [
     },
 ];
 
+function formatDemoTypeLabel(demoType?: string | null) {
+    switch (demoType) {
+        case 'retail':
+            return 'Commerce';
+        case 'restaurant':
+            return 'Restaurant';
+        case 'enterprise':
+            return 'Enterprise';
+        default:
+            return 'Demo';
+    }
+}
+
 export default function SubscriptionScreen() {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
@@ -254,6 +267,21 @@ export default function SubscriptionScreen() {
                         {data?.read_only_after ? (
                             <Text style={styles.helperText}>Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}</Text>
                         ) : null}
+                    </View>
+                )}
+
+                {data?.is_demo && (
+                    <View style={[styles.card, styles.demoCard]}>
+                        <View style={styles.demoHeader}>
+                            <Ionicons name="time-outline" size={22} color="#38BDF8" />
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Session demo active</Text>
+                        </View>
+                        <Text style={styles.cardSubtitle}>
+                            Type: {formatDemoTypeLabel(data.demo_type)} · Surface: {data.demo_surface || 'mobile'}
+                        </Text>
+                        <Text style={styles.helperText}>
+                            Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '—'}
+                        </Text>
                     </View>
                 )}
 
@@ -491,6 +519,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEF3C7',
         borderWidth: 1,
         borderColor: '#F59E0B',
+    },
+    demoCard: {
+        backgroundColor: '#E0F2FE',
+        borderWidth: 1,
+        borderColor: '#38BDF8',
+    },
+    demoHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 10,
     },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
     cardSubtitle: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 12 },

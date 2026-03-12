@@ -22,9 +22,25 @@ interface Props {
     userRole?: string;
 }
 
+function formatDemoTypeLabel(demoType?: string | null) {
+    switch (demoType) {
+        case 'retail':
+            return 'Commerce';
+        case 'restaurant':
+            return 'Restaurant';
+        case 'enterprise':
+            return 'Enterprise';
+        default:
+            return 'Demo';
+    }
+}
+
 export default function TrialBanner({ onNavigateToSubscription, userRole }: Props) {
     const [remainingDays, setRemainingDays] = useState<number | null>(null);
     const [isTrial, setIsTrial] = useState(false);
+    const [isDemo, setIsDemo] = useState(false);
+    const [demoType, setDemoType] = useState<string | null>(null);
+    const [demoExpiresAt, setDemoExpiresAt] = useState<string | null>(null);
     const [accessPhase, setAccessPhase] = useState<'active' | 'grace' | 'restricted' | 'read_only'>('active');
     const [graceUntil, setGraceUntil] = useState<string | null>(null);
     const [requiresPaymentAttention, setRequiresPaymentAttention] = useState(false);
@@ -35,6 +51,9 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
             .then((data: any) => {
                 setIsTrial(data.is_trial);
                 setRemainingDays(data.remaining_days);
+                setIsDemo(Boolean(data.is_demo));
+                setDemoType(data.demo_type || null);
+                setDemoExpiresAt(data.demo_expires_at || null);
                 setAccessPhase(data.subscription_access_phase || 'active');
                 setGraceUntil(data.grace_until || null);
                 setRequiresPaymentAttention(Boolean(data.requires_payment_attention));
@@ -43,6 +62,26 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
     }, [userRole]);
 
     if (userRole === 'supplier') return null;
+
+    if (isDemo && demoExpiresAt) {
+        const expiresAt = new Date(demoExpiresAt);
+        const diffMs = expiresAt.getTime() - Date.now();
+        const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        const variant = getVariant(diffDays);
+        const { bg, border, text, Icon } = VARIANTS[variant];
+        const label = `Demo ${formatDemoTypeLabel(demoType)} active jusqu'au ${expiresAt.toLocaleString('fr-FR')}`;
+
+        return (
+            <button
+                onClick={onNavigateToSubscription}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border-b ${bg} ${border} ${text} hover:opacity-90 transition-opacity`}
+            >
+                <Icon size={15} className="shrink-0" />
+                <span>{label}</span>
+                <ChevronRight size={14} className="opacity-60 shrink-0" />
+            </button>
+        );
+    }
 
     if (!requiresPaymentAttention && (!isTrial || remainingDays === null || remainingDays <= 0)) return null;
 

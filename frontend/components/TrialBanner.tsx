@@ -26,6 +26,9 @@ export default function TrialBanner() {
     const { user } = useAuth();
     const [remainingDays, setRemainingDays] = useState<number | null>(null);
     const [isTrial, setIsTrial] = useState(false);
+    const [isDemo, setIsDemo] = useState(false);
+    const [demoType, setDemoType] = useState<string | null>(null);
+    const [demoExpiresAt, setDemoExpiresAt] = useState<string | null>(null);
 
     // Les comptes fournisseurs sont gratuits — pas de bandeau trial
     const isSupplier = user?.role === 'supplier';
@@ -37,10 +40,43 @@ export default function TrialBanner() {
                 if (data) {
                     setIsTrial(!!data.is_trial);
                     setRemainingDays(data.remaining_days ?? null);
+                    setIsDemo(Boolean(data.is_demo));
+                    setDemoType(data.demo_type || null);
+                    setDemoExpiresAt(data.demo_expires_at || null);
                 }
             })
             .catch(() => { });
     }, [isSupplier]);
+
+    if (isSupplier) return null;
+
+    if (isDemo && demoExpiresAt) {
+        const expiresAt = new Date(demoExpiresAt);
+        const diffDays = Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        const variant = getVariant(diffDays);
+        const { bg, text, icon } = VARIANT_STYLES[variant];
+        const demoLabel = demoType === 'retail'
+            ? 'Commerce'
+            : demoType === 'restaurant'
+                ? 'Restaurant'
+                : demoType === 'enterprise'
+                    ? 'Enterprise'
+                    : 'Demo';
+
+        return (
+            <TouchableOpacity
+                style={[styles.banner, { backgroundColor: bg }]}
+                onPress={() => router.push('/subscription')}
+                activeOpacity={0.85}
+            >
+                <Ionicons name={icon as any} size={16} color={text} />
+                <Text style={[styles.label, { color: text }]}>
+                    {`Demo ${demoLabel} active jusqu'au ${expiresAt.toLocaleString('fr-FR')}`}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={text} style={{ opacity: 0.7 }} />
+            </TouchableOpacity>
+        );
+    }
 
     if (isSupplier || !isTrial || remainingDays === null || remainingDays <= 0) return null;
 

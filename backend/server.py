@@ -76,6 +76,13 @@ from services.pricing import (
     has_locked_billing_country,
     resolve_plan_amount,
 )
+from services.demo_service import (
+    cleanup_expired_demo_sessions,
+    create_demo_session as create_demo_session_data,
+    expire_demo_session,
+    get_demo_definition,
+    normalize_demo_type,
+)
 
 # Configure logging
 print("---------------- SERVER STARTING ----------------")
@@ -484,13 +491,35 @@ async def create_indexes_and_init():
                 await db.stores.create_index("created_at")
                 await db.categories.create_index("user_id")
                 await db.products.create_index("category_id")
+                await db.stores.create_index("demo_session_id")
+                await db.categories.create_index("demo_session_id")
+                await db.products.create_index("demo_session_id")
                 await db.customers.create_index([("user_id", 1), ("created_at", -1)])
                 await db.customers.create_index([("name", "text"), ("phone", "text")]) # Text search index
+                await db.customers.create_index("demo_session_id")
+                await db.customer_payments.create_index("demo_session_id")
+                await db.sales.create_index("demo_session_id")
+                await db.customer_invoices.create_index("demo_session_id")
+                await db.suppliers.create_index("demo_session_id")
+                await db.supplier_products.create_index("demo_session_id")
+                await db.orders.create_index("demo_session_id")
+                await db.order_items.create_index("demo_session_id")
+                await db.expenses.create_index("demo_session_id")
+                await db.stock_movements.create_index("demo_session_id")
+                await db.tables.create_index("demo_session_id")
+                await db.reservations.create_index("demo_session_id")
+                await db.user_settings.create_index("demo_session_id")
                 await db.activity_logs.create_index([("owner_id", 1), ("created_at", -1)])
                 
                 # I12 - Session and Security indexes
                 await db.user_sessions.create_index("session_token")
                 await db.user_sessions.create_index("user_id")
+                await db.users.create_index([("is_demo", 1), ("demo_expires_at", 1)])
+                await db.users.create_index("demo_session_id")
+                await db.business_accounts.create_index([("is_demo", 1), ("demo_expires_at", 1)])
+                await db.demo_sessions.create_index("demo_session_id", unique=True)
+                await db.demo_sessions.create_index([("status", 1), ("expires_at", 1)])
+                await db.demo_sessions.create_index([("contact_email", 1), ("demo_type", 1), ("status", 1)])
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.security_events.create_index("created_at")
@@ -631,7 +660,14 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                         {"$set": {f"trial_reminder_{days_left}d_sent": True}}
                     )
 
+        async def cleanup_demo_sessions_loop():
+            result = await cleanup_expired_demo_sessions(db)
+            cleaned_count = result.get("cleaned_sessions", 0)
+            if cleaned_count:
+                logger.info("Cleaned %s expired demo session(s)", cleaned_count)
+
         asyncio.create_task(supervised_loop("subscriptions", check_expired_subscriptions, 86400))
+        asyncio.create_task(supervised_loop("demo_cleanup", cleanup_demo_sessions_loop, 1800))
 
     except Exception as e:
         logger.error(f"Error in startup: {e}")
@@ -873,6 +909,11 @@ class User(UserBase):
     can_access_web: bool = False
     country_code: Optional[str] = "SN" # Default to Senegal
     language: str = "fr" # User preferred language
+    is_demo: bool = False
+    demo_session_id: Optional[str] = None
+    demo_type: Optional[str] = None
+    demo_surface: Optional[str] = None
+    demo_expires_at: Optional[datetime] = None
 
 class BusinessAccount(BaseModel):
     account_id: str = Field(default_factory=lambda: f"acct_{uuid.uuid4().hex[:12]}")
@@ -893,6 +934,11 @@ class BusinessAccount(BaseModel):
     notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
     billing_contact_name: Optional[str] = None
     billing_contact_email: Optional[EmailStr] = None
+    is_demo: bool = False
+    demo_session_id: Optional[str] = None
+    demo_type: Optional[str] = None
+    demo_surface: Optional[str] = None
+    demo_expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -922,6 +968,30 @@ class TokenResponse(BaseModel):
     refresh_token: Optional[str] = None  # inclus dans le body pour mobile (SecureStore)
     token_type: str = "bearer"
     user: User
+
+
+class DemoSessionCreate(BaseModel):
+    email: EmailStr
+    demo_type: str
+    country_code: Optional[str] = None
+    currency: Optional[str] = None
+
+
+class DemoSessionInfo(BaseModel):
+    demo_session_id: str
+    demo_type: str
+    label: str
+    surface: str
+    expires_at: datetime
+    contact_email: EmailStr
+    status: str
+    country_code: str
+    currency: str
+    pricing_region: str
+
+
+class DemoSessionResponse(TokenResponse):
+    demo_session: DemoSessionInfo
 
 
 class VerificationStatusResponse(BaseModel):
@@ -1710,6 +1780,16 @@ def sanitize_user_doc(user_doc: dict) -> dict:
         user_doc["account_roles"] = []
     if user_doc.get("account_id") is None:
         user_doc["account_id"] = None
+    if user_doc.get("is_demo") is None:
+        user_doc["is_demo"] = False
+    if "demo_session_id" not in user_doc:
+        user_doc["demo_session_id"] = None
+    if "demo_type" not in user_doc:
+        user_doc["demo_type"] = None
+    if "demo_surface" not in user_doc:
+        user_doc["demo_surface"] = None
+    if "demo_expires_at" not in user_doc:
+        user_doc["demo_expires_at"] = None
     return user_doc
 
 
@@ -1983,6 +2063,11 @@ async def build_user_from_doc(user_doc: dict) -> User:
     source_doc["business_type"] = (account_doc or {}).get("business_type") or user_doc.get("business_type")
     source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", DEFAULT_CURRENCY)
     source_doc["country_code"] = (account_doc or {}).get("country_code") or user_doc.get("country_code", DEFAULT_COUNTRY_CODE)
+    source_doc["is_demo"] = bool((account_doc or {}).get("is_demo") or user_doc.get("is_demo"))
+    source_doc["demo_session_id"] = (account_doc or {}).get("demo_session_id") or user_doc.get("demo_session_id")
+    source_doc["demo_type"] = (account_doc or {}).get("demo_type") or user_doc.get("demo_type")
+    source_doc["demo_surface"] = (account_doc or {}).get("demo_surface") or user_doc.get("demo_surface")
+    source_doc["demo_expires_at"] = (account_doc or {}).get("demo_expires_at") or user_doc.get("demo_expires_at")
     source_doc["is_email_verified"] = bool(user_doc.get("is_email_verified"))
     source_doc["required_verification"] = user_doc.get("required_verification")
     source_doc["verification_channel"] = user_doc.get("verification_channel") or user_doc.get("required_verification")
@@ -1996,6 +2081,22 @@ async def build_user_from_doc(user_doc: dict) -> User:
 
 # Security scheme for Swagger UI
 api_security = HTTPBearer(auto_error=False)
+
+def is_demo_session_expired(user_doc: dict) -> bool:
+    if not user_doc.get("is_demo"):
+        return False
+    expires_at = user_doc.get("demo_expires_at")
+    if not expires_at:
+        return False
+    if isinstance(expires_at, str):
+        try:
+            expires_at = datetime.fromisoformat(expires_at)
+        except ValueError:
+            return False
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at <= datetime.now(timezone.utc)
+
 
 async def get_current_user(request: Request) -> Optional[User]:
 
@@ -2017,6 +2118,10 @@ async def get_current_user(request: Request) -> Optional[User]:
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if not user_doc:
+            return None
+        if is_demo_session_expired(user_doc):
+            if user_doc.get("demo_session_id"):
+                await expire_demo_session(db, user_doc["demo_session_id"])
             return None
 
         user = await build_user_from_doc(user_doc)
@@ -2330,6 +2435,8 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
     """Crée une session de paiement Flutterwave (Mobile Money, Afrique)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
+    if user.is_demo:
+        raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
     if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
@@ -2402,6 +2509,8 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
     """Crée une session Stripe Checkout (carte bancaire, EUR)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
+    if user.is_demo:
+        raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
     if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
@@ -4017,6 +4126,169 @@ async def admin_subscription_alerts():
             "total": len(alerts),
         },
         "items": alerts,
+    }
+
+
+def _normalize_admin_datetime(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def _derive_demo_session_status(session_doc: Dict[str, Any], now: datetime) -> str:
+    raw_status = (session_doc.get("status") or "active").lower()
+    if raw_status == "cleaned":
+        return "cleaned"
+    expires_at = _normalize_admin_datetime(session_doc.get("expires_at"))
+    if expires_at and expires_at <= now:
+        return "expired"
+    return "active"
+
+
+@admin_router.get("/demo-sessions/overview")
+async def admin_demo_sessions_overview(days: int = 30):
+    now = datetime.now(timezone.utc)
+    window_days = max(1, min(days, 90))
+    day_ahead = now + timedelta(days=1)
+    window_start = now - timedelta(days=window_days)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    sessions = await db.demo_sessions.find(
+        {},
+        {
+            "_id": 0,
+            "demo_session_id": 1,
+            "status": 1,
+            "demo_type": 1,
+            "surface": 1,
+            "created_at": 1,
+            "started_at": 1,
+            "last_accessed_at": 1,
+            "expires_at": 1,
+        },
+    ).to_list(None)
+
+    by_type: Dict[str, int] = defaultdict(int)
+    by_surface: Dict[str, int] = defaultdict(int)
+    by_status: Dict[str, int] = defaultdict(int)
+
+    active_sessions = 0
+    expired_sessions = 0
+    cleaned_sessions = 0
+    created_today = 0
+    created_in_window = 0
+    expiring_24h = 0
+    active_last_window = 0
+    stale_expired_uncleaned = 0
+
+    for session in sessions:
+        session_type = normalize_demo_type(session.get("demo_type"))
+        surface = session.get("surface") or get_demo_definition(session_type)["surface"]
+        created_at = _normalize_admin_datetime(session.get("started_at") or session.get("created_at"))
+        last_accessed_at = _normalize_admin_datetime(session.get("last_accessed_at"))
+        expires_at = _normalize_admin_datetime(session.get("expires_at"))
+        derived_status = _derive_demo_session_status(session, now)
+
+        by_type[session_type] += 1
+        by_surface[surface] += 1
+        by_status[derived_status] += 1
+
+        if derived_status == "active":
+            active_sessions += 1
+            if last_accessed_at and last_accessed_at >= window_start:
+                active_last_window += 1
+            if expires_at and expires_at <= day_ahead:
+                expiring_24h += 1
+        elif derived_status == "expired":
+            expired_sessions += 1
+            stale_expired_uncleaned += 1
+        else:
+            cleaned_sessions += 1
+
+        if created_at and created_at >= today_start:
+            created_today += 1
+        if created_at and created_at >= window_start:
+            created_in_window += 1
+
+    return {
+        "window_days": window_days,
+        "total_sessions": len(sessions),
+        "active_sessions": active_sessions,
+        "expired_sessions": expired_sessions,
+        "cleaned_sessions": cleaned_sessions,
+        "created_today": created_today,
+        "created_in_window": created_in_window,
+        "expiring_24h": expiring_24h,
+        "active_last_window": active_last_window,
+        "stale_expired_uncleaned": stale_expired_uncleaned,
+        "by_type": dict(by_type),
+        "by_surface": dict(by_surface),
+        "by_status": dict(by_status),
+    }
+
+
+@admin_router.get("/demo-sessions")
+async def admin_demo_sessions(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    demo_type: Optional[str] = None,
+    surface: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+):
+    limit = max(1, min(limit, 200))
+    now = datetime.now(timezone.utc)
+    normalized_status = (status or "").strip().lower() or None
+    normalized_type = normalize_demo_type(demo_type) if demo_type else None
+    normalized_surface = (surface or "").strip().lower() or None
+
+    query: Dict[str, Any] = {}
+    if normalized_type:
+        query["demo_type"] = normalized_type
+    if normalized_surface:
+        query["surface"] = normalized_surface
+    if search:
+        query["$or"] = [
+            {"demo_session_id": {"$regex": safe_regex(search), "$options": "i"}},
+            {"contact_email": {"$regex": safe_regex(search), "$options": "i"}},
+            {"account_id": {"$regex": safe_regex(search), "$options": "i"}},
+            {"owner_user_id": {"$regex": safe_regex(search), "$options": "i"}},
+        ]
+
+    rows = await db.demo_sessions.find(query, {"_id": 0}).sort("created_at", -1).to_list(None)
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        derived_status = _derive_demo_session_status(row, now)
+        if normalized_status and derived_status != normalized_status:
+            continue
+
+        row_type = normalize_demo_type(row.get("demo_type"))
+        expires_at = _normalize_admin_datetime(row.get("expires_at"))
+        cleanup_counts = row.get("cleanup_counts") or {}
+        remaining_seconds = int((expires_at - now).total_seconds()) if expires_at else None
+
+        items.append({
+            **row,
+            "demo_type": row_type,
+            "surface": row.get("surface") or get_demo_definition(row_type)["surface"],
+            "status": derived_status,
+            "remaining_seconds": remaining_seconds,
+            "is_expired": bool(expires_at and expires_at <= now),
+            "cleanup_items_deleted": sum(int(value or 0) for value in cleanup_counts.values()),
+        })
+
+    total = len(items)
+    return {
+        "items": items[skip: skip + limit],
+        "total": total,
     }
 
 
@@ -7401,6 +7673,10 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    if is_demo_session_expired(user_doc):
+        if user_doc.get("demo_session_id"):
+            await expire_demo_session(db, user_doc["demo_session_id"])
+        raise HTTPException(status_code=401, detail="Cette session demo a expire. Relancez une nouvelle demo.")
 
     # Access token
     new_access = create_access_token(data={"sub": user_id})
@@ -18010,11 +18286,103 @@ async def get_subscription_info(user: User = Depends(require_auth)):
         "recommended_checkout_provider": pricing_payload["recommended_checkout_provider"],
         "can_change_billing_country": pricing_payload["can_change_billing_country"],
         "use_mobile_money": pricing_payload["use_mobile_money"],
+        "is_demo": bool(source.get("is_demo") or owner_doc.get("is_demo")),
+        "demo_session_id": source.get("demo_session_id") or owner_doc.get("demo_session_id"),
+        "demo_type": source.get("demo_type") or owner_doc.get("demo_type"),
+        "demo_surface": source.get("demo_surface") or owner_doc.get("demo_surface"),
+        "demo_expires_at": source.get("demo_expires_at") or owner_doc.get("demo_expires_at"),
     }
 
 @api_router.get("/pricing/public")
 async def get_public_pricing(country_code: Optional[str] = None, currency: Optional[str] = None):
     return build_pricing_payload(country_code=country_code, currency=currency, locked=False)
+
+
+@api_router.post("/demo/session", response_model=DemoSessionResponse)
+@limiter.limit("10/hour")
+async def create_demo_session_endpoint(
+    request: Request,
+    response: Response,
+    payload: DemoSessionCreate,
+):
+    normalized_type = normalize_demo_type(payload.demo_type)
+    password_hash = get_password_hash(uuid.uuid4().hex)
+    demo_payload = await create_demo_session_data(
+        db,
+        demo_type=normalized_type,
+        contact_email=payload.email,
+        password_hash=password_hash,
+        country_code=payload.country_code,
+        currency=payload.currency,
+    )
+    owner_user = await build_user_from_doc(demo_payload["owner_user"])
+    access_token = create_access_token(data={"sub": owner_user.user_id})
+    refresh_token = create_refresh_token(owner_user.user_id)
+    response.set_cookie(
+        key="session_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/"
+    )
+    session_doc = demo_payload["session"]
+    await db.demo_sessions.update_one(
+        {"demo_session_id": session_doc["demo_session_id"]},
+        {"$set": {"last_accessed_at": datetime.now(timezone.utc)}},
+    )
+    return DemoSessionResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=owner_user,
+        demo_session=DemoSessionInfo(
+            demo_session_id=session_doc["demo_session_id"],
+            demo_type=session_doc["demo_type"],
+            label=session_doc.get("label") or get_demo_definition(session_doc["demo_type"])["label"],
+            surface=session_doc["surface"],
+            expires_at=session_doc["expires_at"],
+            contact_email=session_doc["contact_email"],
+            status=session_doc["status"],
+            country_code=session_doc["country_code"],
+            currency=session_doc["currency"],
+            pricing_region=session_doc.get("pricing_region") or "WAEMU",
+        ),
+    )
+
+
+@api_router.get("/demo/session/me", response_model=DemoSessionInfo)
+async def get_current_demo_session(user: User = Depends(require_auth)):
+    if not user.is_demo or not user.demo_session_id:
+        raise HTTPException(status_code=404, detail="Aucune session demo active")
+    session_doc = await db.demo_sessions.find_one({"demo_session_id": user.demo_session_id}, {"_id": 0})
+    if not session_doc:
+        raise HTTPException(status_code=404, detail="Session demo introuvable")
+    await db.demo_sessions.update_one(
+        {"demo_session_id": user.demo_session_id},
+        {"$set": {"last_accessed_at": datetime.now(timezone.utc)}},
+    )
+    return DemoSessionInfo(
+        demo_session_id=session_doc["demo_session_id"],
+        demo_type=session_doc["demo_type"],
+        label=session_doc.get("label") or get_demo_definition(session_doc["demo_type"])["label"],
+        surface=session_doc["surface"],
+        expires_at=session_doc["expires_at"],
+        contact_email=session_doc["contact_email"],
+        status=session_doc["status"],
+        country_code=session_doc["country_code"],
+        currency=session_doc["currency"],
+        pricing_region=session_doc.get("pricing_region") or "WAEMU",
+    )
 
 @api_router.delete("/profile")
 async def delete_account(confirmation: PasswordConfirmation, user: User = Depends(require_auth)):

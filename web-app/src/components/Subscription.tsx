@@ -62,6 +62,19 @@ const PLAN_META: Record<PlanId, { icon: typeof Smartphone; color: string; bg: st
     },
 };
 
+function formatDemoTypeLabel(demoType?: string | null) {
+    switch (demoType) {
+        case 'retail':
+            return 'Commerce';
+        case 'restaurant':
+            return 'Restaurant';
+        case 'enterprise':
+            return 'Enterprise';
+        default:
+            return 'Demo';
+    }
+}
+
 export default function Subscription() {
     const [subDetails, setSubDetails] = useState<SubscriptionData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -217,6 +230,24 @@ export default function Subscription() {
                     </div>
                 </div>
             </div>
+
+            {subDetails?.is_demo && (
+                <div className="mb-12 rounded-3xl border border-sky-500/20 bg-sky-500/10 p-6">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-300 flex items-center justify-center">
+                            <Clock size={22} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white mb-2">Session demo active</h3>
+                            <p className="text-sm text-slate-300 leading-relaxed">
+                                Type: <strong className="text-white">{formatDemoTypeLabel(subDetails.demo_type)}</strong>
+                                {' · '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>
+                                {' · '}Expiration: <strong className="text-white">{subDetails.demo_expires_at ? new Date(subDetails.demo_expires_at).toLocaleString('fr-FR') : '—'}</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {accessPhase !== 'active' && (
                 <div className="mb-12 rounded-3xl border border-amber-500/20 bg-amber-500/10 p-6">

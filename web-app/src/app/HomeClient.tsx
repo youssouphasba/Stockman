@@ -33,13 +33,13 @@ import ReportsLibrary from "../components/ReportsLibrary";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
-import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures, setToken, removeToken, type AuthResponse } from "../services/api";
+import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures, setToken, setRefreshToken, removeToken, type AuthResponse } from "../services/api";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
 import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
-import { BUSINESS_TYPE_GROUPS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
+import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 
 export default function Home() {
   const { t, ready } = useTranslation();
@@ -79,13 +79,59 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
+  const hydrateAuthenticatedUser = useCallback((userData: any) => {
+    setUser(userData);
+    setIsLogged(true);
+    if (userData?.currency) {
+      localStorage.setItem('user_currency', userData.currency);
+    }
+    import('../services/api').then(({ settings: settingsApi }) => {
+      settingsApi.get().then((s: any) => {
+        if (s?.currency) localStorage.setItem('user_currency', s.currency);
+        if (s?.modules) setModules(s.modules);
+      }).catch(() => { });
+    });
+    userFeatures.get().then(setFeatures).catch(() => { });
+  }, []);
+
+  const loadUser = useCallback(async () => {
+    try {
+      const userData = await auth.me();
+      hydrateAuthenticatedUser(userData);
+    } catch (err) {
+      removeToken();
+      setIsLogged(false);
+      setUser(null);
+    }
+  }, [hydrateAuthenticatedUser]);
+
   // Check for existing session
   useEffect(() => {
+    const demoAccessToken = searchParams.get('demo_access_token');
+    const demoRefreshToken = searchParams.get('demo_refresh_token');
+    if (demoAccessToken) {
+      setToken(demoAccessToken);
+      if (demoRefreshToken) {
+        setRefreshToken(demoRefreshToken);
+      }
+      void loadUser().finally(() => {
+        if (typeof window === 'undefined') return;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('demo_access_token');
+        url.searchParams.delete('demo_refresh_token');
+        url.searchParams.delete('demo_type');
+        url.searchParams.delete('demo_expires_at');
+        url.searchParams.delete('demo_session_id');
+        window.history.replaceState({}, '', url.toString());
+      });
+      return;
+    }
+
     const token = localStorage.getItem('auth_token');
     if (token) {
-      loadUser();
+      void loadUser();
     }
-  }, []);
+  }, [loadUser, searchParams]);
 
   // Auto-open signup modal from search params
   useEffect(() => {
@@ -93,28 +139,6 @@ export default function Home() {
       setShowSignup(true);
     }
   }, [searchParams]);
-
-  const loadUser = async () => {
-    try {
-      const userData = await auth.me();
-      setUser(userData);
-      setIsLogged(true);
-      // Cache currency immediately from user object (fast path)
-      if (userData?.currency) localStorage.setItem('user_currency', userData.currency);
-      // Also refresh from settings in case it was updated separately
-      import('../services/api').then(({ settings: settingsApi }) => {
-        settingsApi.get().then((s: any) => {
-          if (s?.currency) localStorage.setItem('user_currency', s.currency);
-          if (s?.modules) setModules(s.modules);
-        }).catch(() => { });
-      });
-      // Load features
-      userFeatures.get().then(setFeatures).catch(() => { });
-    } catch (err) {
-      localStorage.removeItem('auth_token');
-      setIsLogged(false);
-    }
-  };
 
   // Poll unread message count every 30 seconds when logged in
   const fetchUnread = useCallback(async () => {
@@ -139,15 +163,12 @@ export default function Home() {
     try {
       const response = await auth.login(email, password);
       setToken(response.access_token);
-      setUser(response.user);
-      setIsLogged(true);
-      // Load features and settings after successful login
-      userFeatures.get().then(setFeatures).catch(() => { });
-      import('../services/api').then(({ settings: settingsApi }) => {
-        settingsApi.get().then((s: any) => { if (s?.modules) setModules(s.modules); }).catch(() => { });
-      });
+      if (response.refresh_token) {
+        setRefreshToken(response.refresh_token);
+      }
+      hydrateAuthenticatedUser(response.user);
     } catch (err: any) {
-      setError(err instanceof ApiError ? err.message : "Erreur d'authentification");
+      setError(err instanceof ApiError ? err.message : t('common.auth_error', { defaultValue: "Erreur d'authentification" }));
     } finally {
       setLoading(false);
     }
@@ -192,6 +213,7 @@ export default function Home() {
   }
 
   if (isSubscriptionRecoveryMode) {
+    const planLabel = subscriptionPlan === 'enterprise' ? 'Enterprise' : subscriptionPlan === 'pro' ? 'Pro' : 'Starter';
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-3xl glass-card p-8 md:p-10 border border-amber-500/20">
@@ -200,36 +222,35 @@ export default function Home() {
               <AlertIcon size={28} />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-amber-400 font-black">Acces limite</p>
+              <p className="text-xs uppercase tracking-[0.35em] text-amber-400 font-black">{t('home.recovery.badge')}</p>
               <h1 className="text-3xl font-black text-white tracking-tight">
-                Votre abonnement {subscriptionPlan === 'enterprise' ? 'Enterprise' : subscriptionPlan === 'pro' ? 'Pro' : 'Starter'} demande une regularisation
+                {t('home.recovery.title', { plan: planLabel })}
               </h1>
             </div>
           </div>
           <p className="text-slate-300 leading-relaxed text-sm md:text-base mb-6">
-            Vos donnees restent conservees et vous pouvez toujours regulariser votre abonnement sans perdre votre travail.
-            Le back-office complet est temporairement limite tant que le paiement n&apos;est pas remis en ordre.
+            {t('home.recovery.desc')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Phase</p>
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">{t('home.recovery.phase')}</p>
               <p className="text-white font-bold capitalize">{subscriptionAccessPhase}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Fin de grace</p>
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">{t('home.recovery.grace_end')}</p>
               <p className="text-white font-bold">{user?.grace_until ? new Date(user.grace_until).toLocaleDateString('fr-FR') : '—'}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">Lecture seule</p>
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">{t('home.recovery.read_only')}</p>
               <p className="text-white font-bold">{user?.read_only_after ? new Date(user.read_only_after).toLocaleDateString('fr-FR') : '—'}</p>
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-8">
-            <p className="text-sm text-slate-300 mb-2">Ce que vous pouvez encore faire maintenant</p>
+            <p className="text-sm text-slate-300 mb-2">{t('home.recovery.can_do')}</p>
             <ul className="text-sm text-slate-400 space-y-2">
-              <li>Consulter votre abonnement et relancer le paiement</li>
-              <li>Conserver vos donnees et votre rattachement a l&apos;entreprise</li>
-              <li>Contacter le support ou un responsable facturation si besoin</li>
+              <li>{t('home.recovery.can_do_1')}</li>
+              <li>{t('home.recovery.can_do_2')}</li>
+              <li>{t('home.recovery.can_do_3')}</li>
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -237,13 +258,13 @@ export default function Home() {
               onClick={() => setActiveTab('subscription')}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white font-black tracking-tight hover:scale-[1.01] transition-transform"
             >
-              <Zap size={18} /> Regulariser l&apos;abonnement
+              <Zap size={18} /> {t('home.recovery.cta_regularize')}
             </button>
             <button
               onClick={handleLogout}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-slate-200 font-black tracking-tight hover:bg-white/10"
             >
-              <LogOut size={18} /> Se deconnecter
+              <LogOut size={18} /> {t('home.recovery.cta_logout')}
             </button>
           </div>
         </div>
@@ -255,167 +276,26 @@ export default function Home() {
   if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && effectivePlan !== 'enterprise') {
     const currentPlan = effectivePlan === 'pro' ? 'Pro' : 'Starter';
 
-    const WEB_MODULES = [
-      {
-        icon: LayoutDashboard, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20',
-        name: 'Dashboard', tagline: 'Pilotage en temps réel',
-        features: [
-          'KPIs instantanés : CA, ventes, marge nette',
-          'Graphiques de revenus sur 7j / 30j / 90j',
-          'Alertes stock bas et péremptions en un coup d\'œil',
-          'Résumé IA quotidien de votre activité',
-          'Comparaison automatique période sur période',
-        ],
-      },
-      {
-        icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20',
-        name: 'Inventaire', tagline: 'Gestion de stock complète',
-        features: [
-          'Import en masse via CSV ou Excel',
-          'Scan code-barres intégré dans le navigateur',
-          'Filtres par emplacement, catégorie, fournisseur',
-          'Gestion des lots, numéros de série et péremptions',
-          'Inventaire comptable et comptage physique guidé',
-          'Analyse ABC (classification produits A/B/C)',
-        ],
-      },
-      {
-        icon: ShoppingCart, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20',
-        name: 'Caisse (POS)', tagline: 'Point de vente professionnel',
-        features: [
-          'Interface caisse rapide avec recherche produit',
-          'Remises en % ou montant fixe validées serveur',
-          'Paiements partagés : espèces + mobile + carte',
-          'Multi-terminaux : caisse 1, caisse 2… sélectionnable',
-          'Retours sur vente avec génération d\'avoir',
-          'Reçus personnalisés : logo, nom, message de pied',
-        ],
-      },
-      {
-        icon: LineChart, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20',
-        name: 'Comptabilité', tagline: 'Finances & reporting avancé',
-        features: [
-          'Compte de résultat P&L : revenus, coûts, bénéfice',
-          'Gestion des dépenses par catégorie avec édition',
-          'Valeur du stock au coût et à la vente',
-          'Onglets : paiements, pertes/casses, charges',
-          'Classement des produits les plus rentables',
-          'Export CSV des données financières filtrées',
-        ],
-      },
-      {
-        icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20',
-        name: 'CRM Clients', tagline: 'Fidélisation & marketing',
-        features: [
-          'Segmentation automatique Bronze / Silver / Gold',
-          'Bannière anniversaires clients (7 jours à venir)',
-          'Historique complet des achats par client',
-          'Tableau de bord : panier moyen, clients inactifs',
-          'Campagnes de fidélité et programmes de points',
-          'Export de la liste clients en CSV (filtres actifs)',
-        ],
-      },
-      {
-        icon: ClipboardList, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20',
-        name: 'Commandes', tagline: 'Réapprovisionnement intelligent',
-        features: [
-          'Création de bons de commande fournisseurs',
-          'Suggestions de réapprovisionnement automatiques',
-          'Suivi statut : brouillon → envoyé → reçu',
-          'Réception partielle avec mise à jour stock auto',
-          'Historique commandes avec PDF téléchargeable',
-        ],
-      },
-      {
-        icon: Truck, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20',
-        name: 'Fournisseurs', tagline: 'Portail fournisseur dédié',
-        features: [
-          'Fiche fournisseur complète (contact, conditions)',
-          'Portail web sécurisé pour chaque fournisseur',
-          'Consultation du catalogue et des prix fournisseur',
-          'Historique des échanges et documents partagés',
-          'Intégration directe avec les commandes',
-        ],
-      },
-      {
-        icon: Bell, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20',
-        name: 'Alertes', tagline: 'Surveillance proactive',
-        features: [
-          'Alertes stock bas configurables par produit',
-          'Alertes péremption : 7j, 14j, 30j avant expiry',
-          'Journal des alertes avec historique complet',
-          'Seuils personnalisables par article ou catégorie',
-          'Notifications push mobile (Pro + Enterprise)',
-        ],
-      },
-      {
-        icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20',
-        name: 'Équipe', tagline: 'Gestion du personnel & rôles',
-        features: [
-          '6 modules de permission granulaires (none/read/write)',
-          'Templates de rôles : caissier, comptable, manager…',
-          'Délégation : un manager peut gérer l\'équipe',
-          'Anti-escalade : impossible de créer un super-admin',
-          'Audit log complet de toutes les actions équipe',
-        ],
-      },
-      {
-        icon: Store, color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/20',
-        name: 'Multi-Boutiques', tagline: 'Vue consolidée & transferts',
-        features: [
-          'Dashboard consolidé : CA total, toutes boutiques',
-          'Tableau comparatif des performances par boutique',
-          'Transfert de stock entre boutiques en 1 clic',
-          'Paramètres individuels par boutique (devise, reçu)',
-          'Basculer d\'une boutique à l\'autre instantanément',
-          'Boutiques illimitées (vs 1 Starter, 2 Pro)',
-        ],
-      },
-      {
-        icon: BarChart3, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20',
-        name: 'Historique & Analyse', tagline: 'Traçabilité totale',
-        features: [
-          'Historique complet des mouvements de stock',
-          'Analyse ABC : concentrer les efforts sur les produits A',
-          'Rapport de pertes et ajustements d\'inventaire',
-          'Filtres avancés : date, produit, employé, boutique',
-          'Export complet pour audit comptable',
-        ],
-      },
-      {
-        icon: Settings2, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20',
-        name: 'Paramètres', tagline: 'Personnalisation totale',
-        features: [
-          'Emplacements de stock : rayon A, réserve, entrepôt…',
-          'Multi-terminaux par boutique : caisse 1, drive…',
-          'Personnalisation des reçus (logo, en-tête, pied)',
-          'Devise par boutique (XOF, EUR, USD, GHS…)',
-          'Règles de rappel et notifications automatiques',
-        ],
-      },
-    ];
-
-    const COMPARE = [
-      { feature: 'Application mobile complète', starter: true, pro: true, enterprise: true },
-      { feature: 'Boutiques', starter: '1', pro: '2', enterprise: 'Illimité' },
-      { feature: 'Utilisateurs / staff', starter: '1', pro: '5', enterprise: 'Illimité' },
-      { feature: 'IA (Assistant Stockman)', starter: 'Limité', pro: 'Illimité', enterprise: 'Illimité' },
-      { feature: 'Application web back-office', starter: false, pro: false, enterprise: true },
-      { feature: 'Dashboard & reporting web', starter: false, pro: false, enterprise: true },
-      { feature: 'Caisse POS web multi-terminaux', starter: false, pro: false, enterprise: true },
-      { feature: 'Comptabilité P&L avancée', starter: false, pro: false, enterprise: true },
-      { feature: 'CRM avancé & anniversaires', starter: false, pro: false, enterprise: true },
-      { feature: 'Commandes fournisseurs web', starter: false, pro: false, enterprise: true },
-      { feature: 'Vue multi-boutiques consolidée', starter: false, pro: false, enterprise: true },
-      { feature: 'Transfert de stock inter-boutiques', starter: false, pro: false, enterprise: true },
-      { feature: 'Gestion équipe & permissions', starter: false, pro: false, enterprise: true },
-      { feature: 'Audit log des actions', starter: false, pro: false, enterprise: true },
-      { feature: 'Emplacements de stock (web)', starter: false, pro: false, enterprise: true },
+    const WEB_MODULES_CONFIG = [
+      { key: 'dashboard', icon: LayoutDashboard, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', count: 5 },
+      { key: 'inventory', icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', count: 6 },
+      { key: 'pos', icon: ShoppingCart, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', count: 6 },
+      { key: 'accounting', icon: LineChart, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', count: 6 },
+      { key: 'crm', icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', count: 6 },
+      { key: 'orders', icon: ClipboardList, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', count: 5 },
+      { key: 'suppliers', icon: Truck, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', count: 5 },
+      { key: 'alerts', icon: Bell, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', count: 5 },
+      { key: 'staff', icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', count: 5 },
+      { key: 'multi_stores', icon: Store, color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/20', count: 6 },
+      { key: 'history', icon: BarChart3, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', count: 5 },
+      { key: 'settings', icon: Settings2, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', count: 5 },
     ];
 
     const renderCell = (val: boolean | string) => {
       if (val === true) return <CheckCircle2 size={16} className="text-emerald-400 mx-auto" />;
       if (val === false) return <XCircle size={16} className="text-slate-700 mx-auto" />;
+      if (val === 'unlimited') return <span className="text-xs font-bold text-slate-300">{t('home.compare.unlimited')}</span>;
+      if (val === 'limited') return <span className="text-xs font-bold text-slate-300">{t('home.compare.limited')}</span>;
       return <span className="text-xs font-bold text-slate-300">{val}</span>;
     };
 
@@ -425,26 +305,23 @@ export default function Home() {
         <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
           <div className="max-w-6xl mx-auto px-6 py-14 text-center">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 text-xs font-bold px-4 py-2 rounded-full border border-amber-500/20 mb-6">
-              <ShieldCheck size={13} /> Plan actuel : <strong>{currentPlan}</strong> — accès mobile uniquement
+              <ShieldCheck size={13} /> {t('home.upsell.badge', { plan: currentPlan })}
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
-              Votre back-office professionnel,<br />
-              <span className="text-primary">disponible partout sur le web</span>
+              {t('home.upsell.h1')}<br />
+              <span className="text-primary">{t('home.upsell.h1_gradient')}</span>
             </h1>
             <p className="text-slate-400 max-w-2xl mx-auto text-base mb-8">
-              Le plan <strong className="text-white">Enterprise</strong> débloque l'application web complète de Stockman —
-              12 modules puissants pour piloter votre commerce ou votre restaurant depuis n'importe quel ordinateur, tablette ou écran.
+              {t('home.upsell.subtitle')}
             </p>
             <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left mb-8">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">Starter et Pro restent sur mobile</p>
-              <p className="text-sm text-slate-300 leading-6">
-                Continuez a gerer vos boutiques depuis l'application mobile. Passez a Enterprise lorsque vous avez besoin du back-office web, des analyses avancees et du pilotage multi-boutiques.
-              </p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">{t('home.upsell.mobile_note_title')}</p>
+              <p className="text-sm text-slate-300 leading-6">{t('home.upsell.mobile_note_desc')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                {BUSINESS_TYPE_GROUPS.map((group) => (
-                  <div key={group.title} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-xs font-black text-white mb-1">{group.title}</p>
-                    <p className="text-[11px] text-slate-500 leading-5">{group.description}</p>
+                {BUSINESS_TYPE_GROUP_IDS.map((id) => (
+                  <div key={id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <p className="text-xs font-black text-white mb-1">{t(`home.business_groups.${id}.title`)}</p>
+                    <p className="text-[11px] text-slate-500 leading-5">{t(`home.business_groups.${id}.description`)}</p>
                   </div>
                 ))}
               </div>
@@ -456,7 +333,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold rounded-xl transition-all text-sm"
               >
-                <Package size={16} /> Ouvrir l'app mobile
+                <Package size={16} /> {t('home.upsell.cta_mobile')}
               </a>
               <a
                 href="/pricing"
@@ -464,13 +341,13 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/25 text-sm"
               >
-                <Zap size={16} /> Passer à Enterprise maintenant
+                <Zap size={16} /> {t('home.upsell.cta_upgrade')}
               </a>
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-bold rounded-xl transition-all text-sm"
               >
-                <LogOut size={14} /> Déconnexion
+                <LogOut size={14} /> {t('home.upsell.cta_logout')}
               </button>
             </div>
           </div>
@@ -481,26 +358,27 @@ export default function Home() {
           {/* ── MODULES ── */}
           <section>
             <div className="text-center mb-10">
-              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Ce qui vous attend</p>
-              <h2 className="text-2xl font-black text-white">12 modules professionnels inclus</h2>
-              <p className="text-slate-500 text-sm mt-1">Chaque module conçu pour les commerces et restaurants qui veulent aller plus loin.</p>
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.modules_eyebrow')}</p>
+              <h2 className="text-2xl font-black text-white">{t('home.upsell.modules_title')}</h2>
+              <p className="text-slate-500 text-sm mt-1">{t('home.upsell.modules_subtitle')}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {WEB_MODULES.map(mod => {
+              {WEB_MODULES_CONFIG.map(mod => {
                 const Icon = mod.icon;
+                const features = Array.from({ length: mod.count }, (_, i) => t(`home.modules.${mod.key}.f${i + 1}`));
                 return (
-                  <div key={mod.name} className={`rounded-2xl border ${mod.border} ${mod.bg} p-5 flex flex-col gap-3`}>
+                  <div key={mod.key} className={`rounded-2xl border ${mod.border} ${mod.bg} p-5 flex flex-col gap-3`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg bg-black/30`}>
+                      <div className="p-2 rounded-lg bg-black/30">
                         <Icon size={18} className={mod.color} />
                       </div>
                       <div>
-                        <h3 className={`text-sm font-black ${mod.color}`}>{mod.name}</h3>
-                        <p className="text-[11px] text-slate-500">{mod.tagline}</p>
+                        <h3 className={`text-sm font-black ${mod.color}`}>{t(`home.modules.${mod.key}.name`)}</h3>
+                        <p className="text-[11px] text-slate-500">{t(`home.modules.${mod.key}.tagline`)}</p>
                       </div>
                     </div>
                     <ul className="space-y-1.5">
-                      {mod.features.map(f => (
+                      {features.map(f => (
                         <li key={f} className="flex items-start gap-2">
                           <CheckCircle2 size={12} className="text-emerald-400 shrink-0 mt-0.5" />
                           <span className="text-xs text-slate-300 leading-relaxed">{f}</span>
@@ -516,34 +394,32 @@ export default function Home() {
           {/* ── COMPARISON TABLE ── */}
           <section>
             <div className="text-center mb-8">
-              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Comparaison des plans</p>
-              <h2 className="text-2xl font-black text-white">Tout ce qui est inclus</h2>
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.compare_eyebrow')}</p>
+              <h2 className="text-2xl font-black text-white">{t('home.upsell.compare_title')}</h2>
             </div>
             <div className="rounded-2xl border border-white/10 overflow-hidden">
-              {/* Table header */}
               <div className="grid grid-cols-4 bg-white/5 border-b border-white/10">
-                <div className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">Fonctionnalité</div>
+                <div className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">{t('home.compare.col_feature')}</div>
                 <div className="p-4 text-center">
                   {user?.plan === 'starter' && (
-                    <span className="inline-block bg-amber-500/20 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full mb-1">Plan actuel</span>
+                    <span className="inline-block bg-amber-500/20 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full mb-1">{t('home.compare.current_plan')}</span>
                   )}
                   <p className="text-sm font-black text-slate-400">Starter</p>
                 </div>
                 <div className="p-4 text-center">
                   {user?.plan === 'pro' && (
-                    <span className="inline-block bg-amber-500/20 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full mb-1">Plan actuel</span>
+                    <span className="inline-block bg-amber-500/20 text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full mb-1">{t('home.compare.current_plan')}</span>
                   )}
                   <p className="text-sm font-black text-blue-400">Pro</p>
                 </div>
                 <div className="p-4 text-center relative">
-                  <span className="inline-block bg-primary/20 text-primary text-[10px] font-black px-2 py-0.5 rounded-full mb-1">Recommandé</span>
+                  <span className="inline-block bg-primary/20 text-primary text-[10px] font-black px-2 py-0.5 rounded-full mb-1">{t('home.compare.recommended')}</span>
                   <p className="text-sm font-black text-primary">Enterprise</p>
                 </div>
               </div>
-              {/* Rows */}
               {PLAN_COMPARISON_ROWS.map((row, i) => (
-                <div key={row.feature} className={`grid grid-cols-4 border-b border-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
-                  <div className="p-3.5 text-xs text-slate-300 flex items-center">{row.feature}</div>
+                <div key={row.key} className={`grid grid-cols-4 border-b border-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                  <div className="p-3.5 text-xs text-slate-300 flex items-center">{t(`home.compare.${row.key}`)}</div>
                   <div className="p-3.5 flex items-center justify-center">{renderCell(row.starter)}</div>
                   <div className="p-3.5 flex items-center justify-center">{renderCell(row.pro)}</div>
                   <div className="p-3.5 flex items-center justify-center bg-primary/5">{renderCell(row.enterprise)}</div>
@@ -555,20 +431,18 @@ export default function Home() {
           {/* ── FINAL CTA ── */}
           <section className="rounded-2xl border border-primary/30 bg-primary/5 p-8 text-center">
             <Star size={32} className="text-primary mx-auto mb-4" />
-            <h2 className="text-2xl font-black text-white mb-2">Prêt à passer au niveau supérieur ?</h2>
-            <p className="text-slate-400 text-sm max-w-lg mx-auto mb-6">
-              Rejoignez les commerces et restaurants qui utilisent le back-office Enterprise pour mieux piloter leur activité, leur équipe et leur service.
-            </p>
+            <h2 className="text-2xl font-black text-white mb-2">{t('home.upsell.cta_final_title')}</h2>
+            <p className="text-slate-400 text-sm max-w-lg mx-auto mb-6">{t('home.upsell.cta_final_desc')}</p>
             <a
               href="/pricing"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-primary hover:bg-primary/90 text-white font-black rounded-xl transition-all shadow-xl shadow-primary/30 text-base"
             >
-              <Zap size={18} /> Voir les tarifs Enterprise
+              <Zap size={18} /> {t('home.upsell.cta_final_btn')}
             </a>
             <p className="text-slate-600 text-xs mt-4">
-              Votre application mobile <strong className="text-slate-500">{currentPlan}</strong> reste disponible en attendant.
+              {t('home.upsell.mobile_remains', { plan: currentPlan })}
             </p>
           </section>
 
@@ -581,15 +455,27 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
         <div className="max-w-md glass-card p-8 text-center">
-          <h1 className="text-2xl font-bold mb-3">Accès web limité</h1>
-          <p className="text-slate-400 text-sm leading-6">
-            Votre compte Enterprise est bien rattaché à l’entreprise, mais aucun module web ne vous a encore été attribué.
-            Demandez à un administrateur opérations ou facturation de mettre à jour vos droits.
-          </p>
+          <h1 className="text-2xl font-bold mb-3">{t('home.limited_access.title')}</h1>
+          <p className="text-slate-400 text-sm leading-6">{t('home.limited_access.desc')}</p>
         </div>
       </div>
     );
   }
+
+  /*
+
+  if (isLogged && user?.role !== ‘admin’ && user?.role !== ‘superadmin’ && user?.role !== ‘supplier’ && !isBillingAdmin && !hasOperationalAccess) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+        <div className="max-w-md glass-card p-8 text-center">
+          <h1 className="text-2xl font-bold mb-3">{t(‘home.limited_access.title’)}</h1>
+          <p className="text-slate-400 text-sm leading-6">{t(‘home.limited_access.desc’)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  */
 
   if (isLogged) {
     return (
@@ -671,7 +557,7 @@ export default function Home() {
             className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
           >
             <Sparkles size={18} />
-            <span className="text-sm">Assistant IA</span>
+            <span className="text-sm">{t('home.ai_assistant')}</span>
           </button>
 
           {/* AI chat panel */}
@@ -703,26 +589,26 @@ export default function Home() {
 
             <div className="flex flex-col gap-4">
               <h2 className="text-4xl font-extrabold text-white leading-tight">
-                Stockman pour le terrain, <br />
-                <span className="text-secondary">maîtrisé et optimisé.</span>
+                {t('home.brand.h2')} <br />
+                <span className="text-secondary">{t('home.brand.h2_gradient')}</span>
               </h2>
               <p className="text-xl text-muted leading-relaxed max-w-lg">
-                Starter et Pro se gerent sur mobile. Enterprise ajoute le back-office web pour les commerces, restaurants, boulangeries, grossistes et activites de production.
+                {t('home.brand.subtitle')}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">Business types pris en charge</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">{t('home.brand.business_label')}</p>
               <div className="flex flex-wrap gap-2">
-                {BUSINESS_TYPE_GROUPS.flatMap((group) => group.tags).map((tag) => (
+                {BUSINESS_TYPE_GROUP_IDS.flatMap((id) =>
+                  (t(`home.business_groups.${id}.tags`, { returnObjects: true }) as string[])
+                ).map((tag) => (
                   <span key={tag} className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-slate-300">
                     {tag}
                   </span>
                 ))}
               </div>
-              <p className="text-sm text-slate-400 leading-6 mt-4">
-                L'application mobile couvre le terrain au quotidien. Le web sert au back-office Enterprise, aux analyses avancees et a la gestion multi-boutiques.
-              </p>
+              <p className="text-sm text-slate-400 leading-6 mt-4">{t('home.brand.mobile_note')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
@@ -730,25 +616,25 @@ export default function Home() {
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
                   <LayoutDashboard size={24} className="text-primary" />
                 </div>
-                <span className="text-lg font-medium text-slate-200">Tableau de Bord Profond</span>
+                <span className="text-lg font-medium text-slate-200">{t('home.brand.feature_1')}</span>
               </div>
               <div className="flex items-center gap-4 group">
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
                   <LineChart size={24} className="text-primary" />
                 </div>
-                <span className="text-lg font-medium text-slate-200">Analyses IA & Prévisions</span>
+                <span className="text-lg font-medium text-slate-200">{t('home.brand.feature_2')}</span>
               </div>
               <div className="flex items-center gap-4 group">
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
                   <ShoppingCart size={24} className="text-primary" />
                 </div>
-                <span className="text-lg font-medium text-slate-200">Ventes & CRM Intégrés</span>
+                <span className="text-lg font-medium text-slate-200">{t('home.brand.feature_3')}</span>
               </div>
               <div className="flex items-center gap-4 group">
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
                   <ShieldCheck size={24} className="text-primary" />
                 </div>
-                <span className="text-lg font-medium text-slate-200">Sécurisé & Synchronisé</span>
+                <span className="text-lg font-medium text-slate-200">{t('home.brand.feature_4')}</span>
               </div>
             </div>
           </div>
@@ -758,8 +644,8 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
 
             <div className="flex flex-col gap-1 relative z-10">
-              <h3 className="text-2xl font-bold text-white">Connexion</h3>
-              <p className="text-slate-400">Accédez à votre espace professionnel Enterprise</p>
+              <h3 className="text-2xl font-bold text-white">{t('home.login.title')}</h3>
+              <p className="text-slate-400">{t('home.login.subtitle')}</p>
             </div>
 
             {error && (
@@ -771,10 +657,10 @@ export default function Home() {
 
             <div className="flex flex-col gap-4 relative z-10">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">Email professionnel</label>
+                <label className="text-sm font-semibold text-slate-300">{t('home.login.email_label')}</label>
                 <input
                   type="email"
-                  placeholder="nom@boutique.com"
+                  placeholder={t('home.login.email_placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
@@ -783,8 +669,8 @@ export default function Home() {
 
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
-                  <a href="#" className="text-xs text-primary hover:underline">Oublié ?</a>
+                  <label className="text-sm font-semibold text-slate-300">{t('home.login.password_label')}</label>
+                  <a href="#" className="text-xs text-primary hover:underline">{t('home.login.forgot_password')}</a>
                 </div>
                 <input
                   type="password"
@@ -806,23 +692,23 @@ export default function Home() {
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Connexion...
+                    {t('home.login.btn_loading')}
                   </>
                 ) : (
-                  <><LogIn size={20} /> Se connecter</>
+                  <><LogIn size={20} /> {t('home.login.btn_login')}</>
                 )}
               </button>
               <div className="text-center">
-                <span className="text-sm text-muted">Besoin d&apos;un compte web Enterprise ?{' '}
+                <span className="text-sm text-muted">{t('home.login.create_account')}{' '}
                   <button
                     onClick={() => setShowSignup(true)}
                     className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
-                  >Creer mon compte Enterprise</button>
+                  >{t('home.login.create_account_link')}</button>
                 </span>
                 <div className="mt-3 flex items-center justify-center gap-3 text-xs">
-                  <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">Comparer les plans</a>
+                  <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">{t('home.login.compare_plans')}</a>
                   <span className="text-white/10">|</span>
-                  <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">Ouvrir l'app mobile</a>
+                  <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{t('home.login.open_mobile')}</a>
                 </div>
               </div>
             </div>
@@ -836,10 +722,12 @@ export default function Home() {
           onSuccess={(response: AuthResponse) => {
             setShowSignup(false);
             setToken(response.access_token);
+            if (response.refresh_token) {
+              setRefreshToken(response.refresh_token);
+            }
             setEmail(response.user.email);
             setPassword('');
-            setUser(response.user);
-            setIsLogged(true);
+            hydrateAuthenticatedUser(response.user);
           }}
         />
       )}

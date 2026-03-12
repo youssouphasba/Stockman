@@ -1470,12 +1470,30 @@ export type User = {
   can_access_web?: boolean;
   phone?: string;
   country_code?: string;
+  is_demo?: boolean;
+  demo_session_id?: string | null;
+  demo_type?: string | null;
+  demo_surface?: string | null;
+  demo_expires_at?: string | null;
 };
 
 export type AuthResponse = {
   access_token: string;
   refresh_token?: string;
   user: User;
+};
+
+export type DemoSessionInfo = {
+  demo_session_id: string;
+  demo_type: string;
+  label: string;
+  surface: string;
+  expires_at: string;
+  contact_email: string;
+  status: string;
+  country_code: string;
+  currency: string;
+  pricing_region: string;
 };
 
 export type PricingPlanQuote = {
@@ -2668,6 +2686,11 @@ export type SubscriptionData = {
   billing_contact_name?: string;
   billing_contact_email?: string;
   use_mobile_money?: boolean;
+  is_demo?: boolean;
+  demo_session_id?: string | null;
+  demo_type?: string | null;
+  demo_surface?: string | null;
+  demo_expires_at?: string | null;
 };
 
 export const profile = {
@@ -2696,6 +2719,10 @@ export const subscription = {
   getDetails: () => request<SubscriptionData>('/subscription/me'),
   checkout: (plan: string) => request<{ payment_url: string; transaction_id: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
   sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
+};
+
+export const demo = {
+  getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
 };
 
 export type Location = {

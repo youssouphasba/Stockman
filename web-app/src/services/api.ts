@@ -5,6 +5,7 @@ if (!API_URL && typeof window !== 'undefined') {
     console.error('NEXT_PUBLIC_API_URL environment variable is required');
 }
 const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 
 // Simple idempotency key generator for re-submitting critical mutations
@@ -14,7 +15,13 @@ const generateIdempotencyKey = () =>
 // For web, we use standard localStorage
 export const getToken = () => typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
 export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
-export const removeToken = () => localStorage.removeItem(TOKEN_KEY);
+export const getRefreshToken = () => typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
+export const setRefreshToken = (token: string) => localStorage.setItem(REFRESH_TOKEN_KEY, token);
+export const removeToken = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+};
 
 type RequestOptions = {
     method?: string;
@@ -120,15 +127,21 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
             // Tenter un refresh avant de déconnecter
             try {
+                const storedRefreshToken = getRefreshToken();
                 const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
                     method: 'POST',
                     credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: storedRefreshToken }),
                 });
 
                 if (refreshRes.ok) {
                     const refreshData = await refreshRes.json();
                     const newToken = refreshData.access_token;
                     setToken(newToken);
+                    if (refreshData.refresh_token) {
+                        setRefreshToken(refreshData.refresh_token);
+                    }
 
                     // Rejouer la requête
                     const retryConfig = {
@@ -281,6 +294,11 @@ export type User = {
     verification_completed_at?: string | null;
     can_access_app?: boolean;
     can_access_web?: boolean;
+    is_demo?: boolean;
+    demo_session_id?: string | null;
+    demo_type?: string | null;
+    demo_surface?: string | null;
+    demo_expires_at?: string | null;
 };
 
 export type PricingPlanQuote = {
@@ -329,6 +347,24 @@ export type SubscriptionData = {
     billing_contact_name?: string;
     billing_contact_email?: string;
     use_mobile_money?: boolean;
+    is_demo?: boolean;
+    demo_session_id?: string | null;
+    demo_type?: string | null;
+    demo_surface?: string | null;
+    demo_expires_at?: string | null;
+};
+
+export type DemoSessionInfo = {
+    demo_session_id: string;
+    demo_type: string;
+    label: string;
+    surface: string;
+    expires_at: string;
+    contact_email: string;
+    status: string;
+    country_code: string;
+    currency: string;
+    pricing_region: string;
 };
 
 export type DashboardLayoutSettings = {
@@ -2001,6 +2037,10 @@ export const subscription = {
     stripeCheckout: (plan: string) => request<{ checkout_url: string; session_id: string }>(`/billing/stripe-checkout?plan=${plan}`, { method: 'POST' }),
 };
 
+export const demo = {
+    getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
+};
+
 export const stores = {
     list: () => request<Store[]>('/stores'),
     create: (data: { name: string; address?: string }) =>
@@ -2038,6 +2078,11 @@ export const admin = {
     getEnterpriseSignupStats: (days = 30) => request<any>(`/admin/stats/enterprise-signups?days=${days}`),
     getConversionStats: () => request<any>('/admin/stats/conversion'),
     getSubscriptionsOverview: (days = 30) => request<any>(`/admin/subscriptions/overview?days=${days}`),
+    getDemoSessionsOverview: (days = 30) => request<any>(`/admin/demo-sessions/overview?days=${days}`),
+    listDemoSessions: (params?: { search?: string; status?: string; demo_type?: string; surface?: string; skip?: number; limit?: number }) => {
+        const query = new URLSearchParams(params as any || {}).toString();
+        return request<{ items: any[]; total: number }>(`/admin/demo-sessions${query ? `?${query}` : ''}`);
+    },
     listSubscriptionAccounts: (params?: { search?: string; status?: string; plan?: string; provider?: string; country_code?: string; skip?: number; limit?: number }) => {
         const query = new URLSearchParams(params as any || {}).toString();
         return request<{ items: any[]; total: number }>(`/admin/subscriptions/accounts${query ? `?${query}` : ''}`);

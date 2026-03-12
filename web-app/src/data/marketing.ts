@@ -20,21 +20,36 @@ export type MarketingPlan = {
     features: { label: string; ok: boolean }[];
 };
 
-export const BUSINESS_TYPE_GROUPS = [
+export const BUSINESS_TYPE_GROUP_IDS = ["commerce", "restauration", "production"] as const;
+export type BusinessTypeGroupId = typeof BUSINESS_TYPE_GROUP_IDS[number];
+
+export const BUSINESS_TYPE_GROUPS: Array<{
+    slug: BusinessTypeGroupId;
+    title: string;
+    overview: string;
+    description: string;
+    tags: string[];
+}> = [
     {
+        slug: "commerce",
         title: "Commerce",
-        description: "Epicerie, supermarche, pharmacie, quincaillerie, mode, electronique et grossiste.",
-        tags: ["Epicerie", "Supermarche", "Pharmacie", "Quincaillerie", "Grossiste"],
+        overview: "Pour les boutiques, epiceries, superettes et points de vente avec pilotage stock et caisse.",
+        description: "Stocks, ventes, caisse et alertes pour les commerces de proximite et multi-points de vente.",
+        tags: ["Boutique", "Epicerie", "Superette", "POS"],
     },
     {
+        slug: "restauration",
         title: "Restauration",
-        description: "Restaurant, boulangerie, traiteur et activites alimentaires avec service ou production legere.",
-        tags: ["Restaurant", "Boulangerie", "Traiteur", "Boissons"],
+        overview: "Pour les restaurants, snacks, fast-foods et cuisines avec service, tables et preparation.",
+        description: "Menu, caisse restaurant, tables, reservations et suivi cuisine pour les activites food.",
+        tags: ["Restaurant", "Snack", "Fast-food", "Cuisine"],
     },
     {
+        slug: "production",
         title: "Production",
-        description: "Couture, savonnerie, menuiserie, imprimerie, artisanat et ateliers.",
-        tags: ["Couture", "Savonnerie", "Menuiserie", "Imprimerie", "Artisanat"],
+        overview: "Pour les ateliers, boulangeries et petites productions qui suivent matieres, lots et sorties.",
+        description: "Fabrication legere, consommation matieres, rendement et tracabilite pour les activites de production.",
+        tags: ["Boulangerie", "Atelier", "Production", "Fabrication"],
     },
 ];
 
@@ -93,21 +108,26 @@ export const PLAN_MARKETING: MarketingPlan[] = [
     },
 ];
 
-export const PLAN_COMPARISON_ROWS = [
-    { feature: "Application mobile complete", starter: true, pro: true, enterprise: true },
-    { feature: "Boutiques", starter: "1", pro: "2", enterprise: "Illimite" },
-    { feature: "Utilisateurs / staff", starter: "1", pro: "5", enterprise: "Illimite" },
-    { feature: "Gestion equipe & permissions", starter: false, pro: true, enterprise: true },
-    { feature: "IA (Assistant Stockman)", starter: "Limite", pro: "Illimite", enterprise: "Illimite" },
-    { feature: "Alertes push stock bas", starter: false, pro: true, enterprise: true },
-    { feature: "Application web back-office", starter: false, pro: false, enterprise: true },
-    { feature: "Dashboard & reporting web", starter: false, pro: false, enterprise: true },
-    { feature: "Caisse POS web multi-terminaux", starter: false, pro: false, enterprise: true },
-    { feature: "Comptabilite P&L web", starter: false, pro: false, enterprise: true },
-    { feature: "CRM avance web & anniversaires", starter: false, pro: false, enterprise: true },
-    { feature: "Commandes fournisseurs web", starter: false, pro: false, enterprise: true },
-    { feature: "Vue multi-boutiques consolidee", starter: false, pro: false, enterprise: true },
-    { feature: "Transferts de stock inter-boutiques", starter: false, pro: false, enterprise: true },
-    { feature: "Audit log des actions", starter: false, pro: false, enterprise: true },
-    { feature: "Emplacements de stock (web)", starter: false, pro: false, enterprise: true },
+export const PLAN_COMPARISON_ROWS: Array<{
+    key: string;
+    starter: boolean | string;
+    pro: boolean | string;
+    enterprise: boolean | string;
+}> = [
+    { key: "f_mobile_app", starter: true, pro: true, enterprise: true },
+    { key: "f_stores", starter: "1", pro: "2", enterprise: "unlimited" },
+    { key: "f_users", starter: "1", pro: "5", enterprise: "unlimited" },
+    { key: "f_team", starter: false, pro: true, enterprise: true },
+    { key: "f_ai", starter: "limited", pro: "unlimited", enterprise: "unlimited" },
+    { key: "f_push", starter: false, pro: true, enterprise: true },
+    { key: "f_web", starter: false, pro: false, enterprise: true },
+    { key: "f_dashboard", starter: false, pro: false, enterprise: true },
+    { key: "f_pos", starter: false, pro: false, enterprise: true },
+    { key: "f_pl", starter: false, pro: false, enterprise: true },
+    { key: "f_crm", starter: false, pro: false, enterprise: true },
+    { key: "f_orders", starter: false, pro: false, enterprise: true },
+    { key: "f_multi", starter: false, pro: false, enterprise: true },
+    { key: "f_transfers", starter: false, pro: false, enterprise: true },
+    { key: "f_audit", starter: false, pro: false, enterprise: true },
+    { key: "f_locations", starter: false, pro: false, enterprise: true },
 ];

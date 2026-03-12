@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Linking from 'expo-linking';
+import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -50,10 +51,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasProduction, setHasProduction] = useState(false);
   const [isRestaurant, setIsRestaurant] = useState(false);
 
+  const hydrateAuthenticatedUser = useCallback(async (userData: User) => {
+    setUser(userData);
+    try {
+      const f = await userFeatures.get();
+      setHasProduction(f.has_production);
+      setIsRestaurant(isRestaurantBusiness(f));
+    } catch (e) {
+      console.warn('[DEBUG] Failed to load user features:', e);
+    }
+    if (Platform.OS !== 'web') {
+      initPurchases(userData.user_id).catch(console.warn);
+    }
+  }, []);
+
+  const consumeDemoLink = useCallback(async (url?: string | null) => {
+    if (!url) return false;
+    const parsed = Linking.parse(url);
+    const accessToken = typeof parsed.queryParams?.demo_access_token === 'string'
+      ? parsed.queryParams.demo_access_token
+      : null;
+    if (!accessToken) return false;
+
+    const refreshToken = typeof parsed.queryParams?.demo_refresh_token === 'string'
+      ? parsed.queryParams.demo_refresh_token
+      : null;
+
+    await setToken(accessToken);
+    if (refreshToken) {
+      await setRefreshToken(refreshToken);
+    }
+    const userData = await authApi.me();
+    await hydrateAuthenticatedUser(userData);
+    return true;
+  }, [hydrateAuthenticatedUser]);
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const initialUrl = await Linking.getInitialURL();
+      const hasConsumedDemoLink = await consumeDemoLink(initialUrl);
+      if (hasConsumedDemoLink) {
+        return;
+      }
+
+      const token = await getToken();
+      if (token) {
+        const userData = await authApi.me();
+        await hydrateAuthenticatedUser(userData);
+      }
+    } catch {
+      await removeToken();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [consumeDemoLink, hydrateAuthenticatedUser]);
+
   useEffect(() => {
-    checkAuth();
-    loadSecuritySettings();
-    // Safety timeout: if checking auth takes too long (e.g. SecureStore hangs), stop loading
+    void checkAuth();
+    void loadSecuritySettings();
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void consumeDemoLink(url);
+    });
+
     const timer = setTimeout(() => {
       setIsLoading((loading) => {
         if (loading) {
@@ -62,10 +121,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return loading;
       });
-    }, 15000); // 15 seconds timeout
+    }, 15000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [checkAuth, consumeDemoLink]);
 
   async function loadSecuritySettings() {
     try {
@@ -74,34 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const biom = await SecureStore.getItemAsync('biometrics_enabled');
       setIsBiometricsEnabled(biom === 'true');
 
-      // If PIN is set, lock the app initially
       if (pin) {
         setIsAppLocked(true);
       }
     } catch (e) {
-      console.error("Failed to load security settings", e);
-    }
-  }
-
-  async function checkAuth() {
-    try {
-      const token = await getToken();
-      if (token) {
-        const userData = await authApi.me();
-        setUser(userData);
-        // Detect production mode
-        userFeatures.get().then(f => {
-          setHasProduction(f.has_production);
-          setIsRestaurant(isRestaurantBusiness(f));
-        }).catch(() => { });
-        if (Platform.OS !== 'web') {
-          initPurchases(userData.user_id).catch(console.warn);
-        }
-      }
-    } catch {
-      await removeToken();
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to load security settings', e);
     }
   }
 
@@ -110,19 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('[DEBUG] Login successful, user data:', JSON.stringify(response.user, null, 2));
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
-    setUser(response.user);
-    // Load features (restaurant mode, production mode) — must await to ensure state is set before render
-    try {
-      const f = await userFeatures.get();
-      console.log('[DEBUG] User features:', JSON.stringify(f));
-      setHasProduction(f.has_production);
-      setIsRestaurant(isRestaurantBusiness(f));
-    } catch (e) {
-      console.warn('[DEBUG] Failed to load user features:', e);
-    }
-    if (Platform.OS !== 'web') {
-      initPurchases(response.user.user_id).catch(console.warn);
-    }
+    await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
 
@@ -142,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan, signupSurface);
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
-    setUser(response.user);
+    await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
 
@@ -159,7 +186,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    // Update UI immediately
     setUser(null);
     await removeToken();
 
@@ -174,10 +200,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     try {
       const updatedUser = await storesApi.setActive(storeId);
-      await cache.clear(); // Clear all cached API responses to force fresh data load for the new store
+      await cache.clear();
       setUser(updatedUser);
     } catch (e) {
-      console.error("Failed to switch store", e);
+      console.error('Failed to switch store', e);
     }
   }
 
@@ -233,7 +259,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isSuperAdmin = access.isSuperAdmin;
   const isOrgAdmin = access.isOrgAdmin;
   const isBillingAdmin = access.isBillingAdmin;
-  const effectivePermissions = access.effectivePermissions;
   const hasOperationalAccess = access.hasOperationalAccess;
 
   return (

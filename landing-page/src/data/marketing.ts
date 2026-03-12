@@ -10,6 +10,36 @@ export const LANDING_DEMO_PATH = "/demo";
 export const BUSINESS_TYPE_SLUGS = ['commerce', 'restauration', 'production'] as const;
 export type BusinessTypeSlug = typeof BUSINESS_TYPE_SLUGS[number];
 
+export const BUSINESS_TYPE_GROUPS: Array<{
+  slug: BusinessTypeSlug;
+  title: string;
+  overview: string;
+  description: string;
+  tags: string[];
+}> = [
+  {
+    slug: 'commerce',
+    title: 'Commerce',
+    overview: 'Pour les boutiques, epiceries, superettes et points de vente avec pilotage stock et caisse.',
+    description: 'Stocks, ventes, caisse et alertes pour les commerces de proximite et multi-points de vente.',
+    tags: ['Boutique', 'Epicerie', 'Superette', 'POS'],
+  },
+  {
+    slug: 'restauration',
+    title: 'Restauration',
+    overview: 'Pour les restaurants, snacks, fast-foods et cuisines avec service, tables et preparation.',
+    description: 'Menu, caisse restaurant, tables, reservations et suivi cuisine pour les activites food.',
+    tags: ['Restaurant', 'Snack', 'Fast-food', 'Cuisine'],
+  },
+  {
+    slug: 'production',
+    title: 'Production',
+    overview: 'Pour les ateliers, boulangeries et petites productions qui suivent matieres, lots et sorties.',
+    description: 'Fabrication legere, consommation matieres, rendement et tracabilite pour les activites de production.',
+    tags: ['Boulangerie', 'Atelier', 'Production', 'Fabrication'],
+  },
+];
+
 export const DEMO_CHOICE_IDS = ['commerce', 'restaurant', 'enterprise'] as const;
 export type DemoChoiceId = typeof DEMO_CHOICE_IDS[number];
 

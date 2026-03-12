@@ -7,12 +7,59 @@ import MarketingFooter from './components/marketing/MarketingFooter';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { API_URL } from './config';
 import {
+  APP_WEB_URL,
   DEMO_CHOICE_IDS,
   DEMO_CHOICE_NEXT_LINKS,
   DEMO_CHOICE_SCREENSHOTS,
-  DemoChoiceId,
   LANDING_KEYWORDS,
 } from './data/marketing';
+import type { DemoChoiceId } from './data/marketing';
+
+type DemoSessionInfo = {
+  demo_session_id: string;
+  demo_type: string;
+  label: string;
+  surface: string;
+  expires_at: string;
+  contact_email: string;
+  status: string;
+  country_code: string;
+  currency: string;
+  pricing_region: string;
+};
+
+type DemoSessionResponse = {
+  access_token: string;
+  refresh_token?: string;
+  demo_session: DemoSessionInfo;
+};
+
+type DemoSuccessState = {
+  choiceId: DemoChoiceId;
+  launchUrl: string;
+  demoSession: DemoSessionInfo;
+};
+
+const DEMO_API_TYPES: Record<DemoChoiceId, string> = {
+  commerce: 'retail',
+  restaurant: 'restaurant',
+  enterprise: 'enterprise',
+};
+
+const MOBILE_DEMO_SCHEME = 'stockman://';
+
+function buildLaunchUrl(baseUrl: string, payload: DemoSessionResponse) {
+  const params = new URLSearchParams({
+    demo_access_token: payload.access_token,
+    demo_type: payload.demo_session.demo_type,
+    demo_expires_at: payload.demo_session.expires_at,
+    demo_session_id: payload.demo_session.demo_session_id,
+  });
+  if (payload.refresh_token) {
+    params.set('demo_refresh_token', payload.refresh_token);
+  }
+  return `${baseUrl}?${params.toString()}`;
+}
 
 export default function DemoSelectorPage() {
   useScrollReveal();
@@ -23,13 +70,21 @@ export default function DemoSelectorPage() {
   const [selectedId, setSelectedId] = useState<DemoChoiceId | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<DemoSuccessState | null>(null);
 
   useEffect(() => {
     if (preset === 'enterprise') setSelectedId('enterprise');
     else if (preset === 'restaurant') setSelectedId('restaurant');
     else if (preset === 'commerce') setSelectedId('commerce');
   }, [preset]);
+
+  useEffect(() => {
+    if (!success || typeof window === 'undefined') return;
+    const timer = window.setTimeout(() => {
+      window.location.assign(success.launchUrl);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [success]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,19 +101,27 @@ export default function DemoSelectorPage() {
 
     setLoading(true);
     try {
-      const choiceTitle = t(`demo_page.choices.${selectedId}.title`);
-      const response = await fetch(`${API_URL}/api/public/contact`, {
+      const response = await fetch(`${API_URL}/api/demo/session`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `Lead démo ${choiceTitle}`,
           email: email.trim().toLowerCase(),
-          message: `Demande de démo Stockman.\nType : ${choiceTitle}\nSurface : ${t(`demo_page.choices.${selectedId}.surface`)}\nDurée : ${t(`demo_page.choices.${selectedId}.duration`)}\nAudience : ${t(`demo_page.choices.${selectedId}.audience`)}`,
+          demo_type: DEMO_API_TYPES[selectedId],
         }),
       });
 
       if (!response.ok) throw new Error(t('demo_page.error_submit'));
-      setSuccess(true);
+      const payload = await response.json() as DemoSessionResponse;
+      const launchUrl = payload.demo_session.surface === 'web'
+        ? buildLaunchUrl(APP_WEB_URL, payload)
+        : buildLaunchUrl(MOBILE_DEMO_SCHEME, payload);
+
+      setSuccess({
+        choiceId: selectedId,
+        launchUrl,
+        demoSession: payload.demo_session,
+      });
     } catch {
       setError(t('demo_page.error_submit'));
     } finally {
@@ -80,7 +143,7 @@ export default function DemoSelectorPage() {
         title={t('demo_page.badge') + ' - Stockman'}
         description={t('demo_page.subtitle')}
         url="https://stockman.pro/demo"
-        keywords={[...LANDING_KEYWORDS, 'démo Stockman', 'demo enterprise', 'demo commerce', 'demo restaurant']}
+        keywords={[...LANDING_KEYWORDS, 'demo Stockman', 'demo enterprise', 'demo commerce', 'demo restaurant']}
         structuredData={structuredData}
       />
 
@@ -139,19 +202,25 @@ export default function DemoSelectorPage() {
             </button>
           </div>
           {error ? <p className="signup-error">{error}</p> : null}
-          {success && selectedId ? (
+          {success ? (
             <div className="demo-success-panel">
               <h3>{t('demo_page.success_title')}</h3>
-              <p>{t('demo_page.success_desc', { title: t(`demo_page.choices.${selectedId}.title`) })}</p>
+              <p>{t('demo_page.success_desc', { title: t(`demo_page.choices.${success.choiceId}.title`) })}</p>
+              <p className="text-muted">
+                {success.demoSession.label} · {success.demoSession.surface} · expiration {new Date(success.demoSession.expires_at).toLocaleString()}
+              </p>
               <div className="hero-btns">
-                {DEMO_CHOICE_NEXT_LINKS[selectedId].map((link, i) =>
+                <a href={success.launchUrl} className="btn-primary">
+                  {success.demoSession.surface === 'web' ? 'Ouvrir la demo web' : 'Ouvrir la demo mobile'}
+                </a>
+                {DEMO_CHOICE_NEXT_LINKS[success.choiceId].map((link, i) =>
                   link.external ? (
                     <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                      {t(`demo_page.choices.${selectedId}.link_${i + 1}`)}
+                      {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
                     </a>
                   ) : (
                     <Link key={i} to={link.href} className="btn-secondary">
-                      {t(`demo_page.choices.${selectedId}.link_${i + 1}`)}
+                      {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
                     </Link>
                   )
                 )}
@@ -215,7 +284,7 @@ export default function DemoSelectorPage() {
                 <button
                   type="button"
                   className={isSelected ? 'btn-primary' : 'btn-secondary'}
-                  onClick={() => { setSelectedId(id); setSuccess(false); setError(''); }}
+                  onClick={() => { setSelectedId(id); setSuccess(null); setError(''); }}
                 >
                   {isSelected ? t('demo_page.btn_selected') : t('demo_page.btn_choose')}
                 </button>
