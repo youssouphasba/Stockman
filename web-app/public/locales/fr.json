@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Aucun revenu généré sur la période.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -276,7 +276,10 @@
       }
     },
     "voice_to_text_error": "Impossible de transcrire l'audio",
-    "voice_to_text_prompt": "Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Répondez UNIQUEMENT avec la transcription, rien d'autre."
+    "voice_to_text_prompt": "Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Répondez UNIQUEMENT avec la transcription, rien d'autre.",
+    "chat_welcome": "Bonjour ! Je suis votre assistant Stockman alimenté par l'IA. Posez-moi vos questions sur le stock, les ventes, la comptabilité ou l'exploitation.",
+    "chat_welcome_restaurant": "Bonjour ! Je suis votre assistant Stockman pour restaurant. Je peux vous aider sur la carte, les recettes, la cuisine, les tables, les réservations et le service.",
+    "chat_welcome_sector": "Bonjour ! Je suis votre assistant Stockman pour {{sector}}. Je peux vous aider sur vos produits, vos ventes, votre stock et vos décisions du jour."
   },
   "alerts": {
     "ai_anomaly_detection": "AI Anomaly Detection",
@@ -319,10 +322,10 @@
     "rule_desc_low_stock": "Alerte quand un produit passe sous un seuil défini.",
     "rule_desc_out_of_stock": "Alerte immédiate quand la quantité atteint zéro.",
     "rule_desc_overstock": "Alerte quand le stock dépasse la capacité conseillée.",
-    "rule_dormant": "Dormant product",
-    "rule_low_stock": "Low stock",
-    "rule_out_of_stock": "Out of stock",
-    "rule_overstock": "Overstock",
+    "rule_dormant": "Produits Dormants",
+    "rule_low_stock": "Stock Faible",
+    "rule_out_of_stock": "Rupture de Stock",
+    "rule_overstock": "Surstockage",
     "rule_update_error": "Could not modify rule",
     "rules_title": "Règles d'alertes",
     "see_less": "Voir moins",
@@ -507,9 +510,6 @@
     "info": "Info",
     "items_count": "{{count}} article(s)",
     "language_choice": "Choisir la langue",
-    "last_30_days": "30 derniers jours",
-    "last_7_days": "7 derniers jours",
-    "last_90_days": "90 derniers jours",
     "loading": "Chargement...",
     "merchant": "Commerçant",
     "months_ago": "Il y a {{count}} mois",
@@ -549,7 +549,10 @@
     "weeks_ago": "Il y a {{count}} semaines",
     "years_ago": "Il y a {{count}} ans",
     "yes": "Oui",
-    "yesterday": "Hier"
+    "yesterday": "Hier",
+    "last_7_days": "7 derniers jours",
+    "last_30_days": "30 derniers jours",
+    "last_90_days": "90 derniers jours"
   },
   "crm": {
     "active_30d": "Actifs (30j)",
@@ -742,6 +745,14 @@
     "guide_reminders_content": "L'IA vous donne des conseils personnalisés et vous rappelle les actions urgentes.",
     "guide_welcome_content": "C'est ici que vous pouvez suivre la santé de votre commerce en un coup d'œil.",
     "guide_welcome_title": "Bienvenue sur votre Dashboard",
+    "restaurant_guide_welcome_title": "Bienvenue sur votre dashboard restaurant",
+    "restaurant_guide_welcome_content": "Suivez le service, les couverts, la cuisine et les réservations depuis un seul écran.",
+    "restaurant_guide_kpi_title": "Indicateurs de service",
+    "restaurant_guide_kpi_content": "Gardez un oeil sur le chiffre du jour, les couverts servis, le ticket moyen et les tables occupées.",
+    "restaurant_guide_sales_title": "Heures de pointe",
+    "restaurant_guide_sales_content": "Le chiffre d'affaires par heure aide à repérer les pics de service et à mieux organiser l'équipe.",
+    "restaurant_guide_reservations_title": "Réservations et salle",
+    "restaurant_guide_reservations_content": "Visualisez les réservations du jour et la charge cuisine avant le coup de feu.",
     "history": "Historique",
     "history_btn": "Historique",
     "items_abbrev": "art.",
@@ -1535,11 +1546,59 @@
     "stock_depleted": "Stock depleted",
     "success": "Sale recorded",
     "suggestions_title": "Souvent achetés ensemble",
+    "production_mode_prepped": "À l'avance",
+    "production_mode_on_demand": "À la commande",
+    "production_mode_hybrid": "Hybride",
+    "guide_welcome_title": "Bienvenue au POS",
+    "guide_welcome_content": "C'est ici que vous effectuez vos ventes rapidement.",
+    "guide_search_title": "Recherche & Scan",
+    "guide_search_content": "Recherchez un produit par son nom ou utilisez le scanner de code-barres pour aller plus vite.",
+    "guide_cart_title": "Gestion du panier",
+    "guide_cart_content": "Vos articles s'affichent ici. Vous pouvez ajuster les quantités ou supprimer des produits.",
+    "guide_checkout_title": "Paiement & validation",
+    "guide_checkout_content": "Choisissez le mode de paiement pour finaliser la vente.",
+    "guide_restaurant_welcome_title": "Bienvenue en caisse restaurant",
+    "guide_restaurant_welcome_content": "Gérez les tables, l'envoi en cuisine et l'encaissement depuis cet écran.",
+    "guide_restaurant_menu_title": "Menu et table",
+    "guide_restaurant_menu_content": "Choisissez les plats du menu puis rattachez la commande à une table ou à l'emporté.",
+    "guide_restaurant_cart_title": "Commande ouverte",
+    "guide_restaurant_cart_content": "Les lignes déjà envoyées restent verrouillées pour conserver l'historique du service.",
+    "guide_restaurant_checkout_title": "Cuisine et paiement",
+    "guide_restaurant_checkout_content": "Envoyez les plats en cuisine pendant le service puis finalisez le paiement à la fin du repas.",
+    "restaurant_options": "Options restaurant",
+    "table_label": "Table",
+    "open_order_linked": "Commande ouverte",
+    "loading_open_order": "Chargement commande…",
+    "kitchen_notes_label": "Notes cuisine",
+    "kitchen_notes_placeholder": "Sans gluten, allergie arachide...",
+    "subtotal_label": "Sous-total",
+    "service_label": "Service",
+    "tip_label": "Pourboire",
+    "final_total": "Total final",
+    "discount_label": "Remise",
+    "return_last_sale": "Retour sur dernière vente",
+    "send_to_kitchen": "Envoyer en cuisine",
+    "add_to_open_order": "Ajouter à la commande",
+    "menu_stock_label": "en stock",
+    "made_to_order_stock_label": "à la commande",
+    "anonymous_client": "Client anonyme",
+    "no_table": "Sans table",
+    "terminal_label": "Caisse",
+    "ai_suggest": "Suggestion IA",
+    "cancel_action": "Annuler",
+    "confirm_action": "Confirmer",
     "title": "Caisse (POS)",
     "total": "Total",
     "unknown": "Unknown",
     "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
     "unknown_product_title": "Produit inconnu"
+  },
+  "restaurant": {
+    "recipe_linked": "Recette liée",
+    "station_label": "Station",
+    "walkin_order": "Commande comptoir",
+    "covers": "Couverts",
+    "service_charge": "Frais de service"
   },
   "premium": {
     "features": {
@@ -1737,26 +1796,26 @@
     "variants": "Variantes"
   },
   "reminders": {
-    "birthdays_desc": "Notification pour les anniversaires",
-    "birthdays_label": "Anniversaires clients",
-    "client_reactivation_desc": "Clients fidèles inactifs depuis X jours",
-    "client_reactivation_label": "Réactivation clients",
-    "debt_recovery_desc": "Paiements clients en retard",
-    "debt_recovery_label": "Recouvrement de dettes",
-    "dormant_products_desc": "Produits sans vente depuis X jours",
-    "dormant_products_label": "Produits dormants",
-    "expense_spike_desc": "Alerte si les dépenses augmentent de X%",
-    "expense_spike_label": "Pic de dépenses",
-    "inventory_check_desc": "Alerte si pas d'inventaire depuis X jours",
     "inventory_check_label": "Vérification inventaire",
-    "late_deliveries_desc": "Critique après X jours de retard",
+    "inventory_check_desc": "Alerte si pas d'inventaire depuis X jours",
+    "dormant_products_label": "Produits dormants",
+    "dormant_products_desc": "Produits sans vente depuis X jours",
     "late_deliveries_label": "Livraisons en retard",
-    "monthly_report_desc": "Résumé des performances",
-    "monthly_report_label": "Rapport Mensuel",
-    "pending_invitations_desc": "En attente depuis X jours",
-    "pending_invitations_label": "Invitations en attente",
-    "replenishment_desc": "Produits sous le stock minimum",
+    "late_deliveries_desc": "Critique après X jours de retard",
     "replenishment_label": "Réapprovisionnement",
+    "replenishment_desc": "Produits sous le stock minimum",
+    "pending_invitations_label": "Invitations en attente",
+    "pending_invitations_desc": "En attente depuis X jours",
+    "debt_recovery_label": "Recouvrement de dettes",
+    "debt_recovery_desc": "Paiements clients en retard",
+    "client_reactivation_label": "Réactivation clients",
+    "client_reactivation_desc": "Clients fidèles inactifs depuis X jours",
+    "birthdays_label": "Anniversaires clients",
+    "birthdays_desc": "Notification pour les anniversaires",
+    "monthly_report_label": "Rapport Mensuel",
+    "monthly_report_desc": "Résumé des performances",
+    "expense_spike_label": "Pic de dépenses",
+    "expense_spike_desc": "Alerte si les dépenses augmentent de X%",
     "unit_days": "jours"
   },
   "settings": {
@@ -2241,5 +2300,603 @@
     "whatsapp_invite_prompt": "Voulez-vous envoyer les accès par WhatsApp ?",
     "whatsapp_invite_send": "Envoyer",
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."
+  },
+  "home": {
+    "recovery": {
+      "badge": "Accès limité",
+      "title": "Votre abonnement {{plan}} demande une régularisation",
+      "desc": "Vos données restent conservées et vous pouvez toujours régulariser votre abonnement sans perdre votre travail. Le back-office complet est temporairement limité tant que le paiement n'est pas remis en ordre.",
+      "phase": "Phase",
+      "grace_end": "Fin de grâce",
+      "read_only": "Lecture seule",
+      "can_do": "Ce que vous pouvez encore faire maintenant",
+      "can_do_1": "Consulter votre abonnement et relancer le paiement",
+      "can_do_2": "Conserver vos données et votre rattachement à l'entreprise",
+      "can_do_3": "Contacter le support ou un responsable facturation si besoin",
+      "cta_regularize": "Régulariser l'abonnement",
+      "cta_logout": "Se déconnecter"
+    },
+    "upsell": {
+      "badge": "Plan actuel : {{plan}} — accès mobile uniquement",
+      "h1": "Votre back-office professionnel,",
+      "h1_gradient": "disponible partout sur le web",
+      "subtitle": "Le plan Enterprise débloque l'application web complète de Stockman — 12 modules puissants pour piloter votre commerce ou votre restaurant depuis n'importe quel ordinateur, tablette ou écran.",
+      "mobile_note_title": "Starter et Pro restent sur mobile",
+      "mobile_note_desc": "Continuez à gérer vos boutiques depuis l'application mobile. Passez à Enterprise lorsque vous avez besoin du back-office web, des analyses avancées et du pilotage multi-boutiques.",
+      "cta_mobile": "Ouvrir l'app mobile",
+      "cta_upgrade": "Passer à Enterprise maintenant",
+      "cta_logout": "Déconnexion",
+      "modules_eyebrow": "Ce qui vous attend",
+      "modules_title": "12 modules professionnels inclus",
+      "modules_subtitle": "Chaque module conçu pour les commerces et restaurants qui veulent aller plus loin.",
+      "compare_eyebrow": "Comparaison des plans",
+      "compare_title": "Tout ce qui est inclus",
+      "cta_final_title": "Prêt à passer au niveau supérieur ?",
+      "cta_final_desc": "Rejoignez les commerces et restaurants qui utilisent le back-office Enterprise pour mieux piloter leur activité, leur équipe et leur service.",
+      "cta_final_btn": "Voir les tarifs Enterprise",
+      "mobile_remains": "Votre application mobile {{plan}} reste disponible en attendant."
+    },
+    "limited_access": {
+      "title": "Accès web limité",
+      "desc": "Votre compte Enterprise est bien rattaché à l'entreprise, mais aucun module web ne vous a encore été attribué. Demandez à un administrateur opérations ou facturation de mettre à jour vos droits."
+    },
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Accédez à votre espace professionnel Enterprise",
+      "email_label": "Email professionnel",
+      "email_placeholder": "nom@boutique.com",
+      "password_label": "Mot de passe",
+      "forgot_password": "Oublié ?",
+      "btn_login": "Se connecter",
+      "btn_loading": "Connexion...",
+      "create_account": "Besoin d'un compte web Enterprise ?",
+      "create_account_link": "Créer mon compte Enterprise",
+      "compare_plans": "Comparer les plans",
+      "open_mobile": "Ouvrir l'app mobile"
+    },
+    "brand": {
+      "h2": "Stockman pour le terrain,",
+      "h2_gradient": "maîtrisé et optimisé.",
+      "subtitle": "Starter et Pro se gèrent sur mobile. Enterprise ajoute le back-office web pour les commerces, restaurants, boulangeries, grossistes et activités de production.",
+      "business_label": "Secteurs pris en charge",
+      "mobile_note": "L'application mobile couvre le terrain au quotidien. Le web sert au back-office Enterprise, aux analyses avancées et à la gestion multi-boutiques.",
+      "feature_1": "Tableau de bord profond",
+      "feature_2": "Analyses IA & prévisions",
+      "feature_3": "Ventes & CRM intégrés",
+      "feature_4": "Sécurisé & synchronisé"
+    },
+    "ai_assistant": "Assistant IA",
+    "business_groups": {
+      "commerce": {
+        "title": "Commerce",
+        "description": "Épicerie, supermarché, pharmacie, quincaillerie, mode, électronique et grossiste.",
+        "tags": [
+          "Épicerie",
+          "Supermarché",
+          "Pharmacie",
+          "Quincaillerie",
+          "Grossiste"
+        ]
+      },
+      "restauration": {
+        "title": "Restauration",
+        "description": "Restaurant, boulangerie, traiteur et activités alimentaires avec service ou production légère.",
+        "tags": [
+          "Restaurant",
+          "Boulangerie",
+          "Traiteur",
+          "Boissons"
+        ]
+      },
+      "production": {
+        "title": "Production",
+        "description": "Couture, savonnerie, menuiserie, imprimerie, artisanat et ateliers.",
+        "tags": [
+          "Couture",
+          "Savonnerie",
+          "Menuiserie",
+          "Imprimerie",
+          "Artisanat"
+        ]
+      }
+    },
+    "modules": {
+      "dashboard": {
+        "name": "Dashboard",
+        "tagline": "Pilotage en temps réel",
+        "f1": "KPIs instantanés : CA, ventes, marge nette",
+        "f2": "Graphiques de revenus sur 7j / 30j / 90j",
+        "f3": "Alertes stock bas et péremptions en un coup d'œil",
+        "f4": "Résumé IA quotidien de votre activité",
+        "f5": "Comparaison automatique période sur période"
+      },
+      "inventory": {
+        "name": "Inventaire",
+        "tagline": "Gestion de stock complète",
+        "f1": "Import en masse via CSV ou Excel",
+        "f2": "Scan code-barres intégré dans le navigateur",
+        "f3": "Filtres par emplacement, catégorie, fournisseur",
+        "f4": "Gestion des lots, numéros de série et péremptions",
+        "f5": "Inventaire comptable et comptage physique guidé",
+        "f6": "Analyse ABC (classification produits A/B/C)"
+      },
+      "pos": {
+        "name": "Caisse (POS)",
+        "tagline": "Point de vente professionnel",
+        "f1": "Interface caisse rapide avec recherche produit",
+        "f2": "Remises en % ou montant fixe validées serveur",
+        "f3": "Paiements partagés : espèces + mobile + carte",
+        "f4": "Multi-terminaux : caisse 1, caisse 2… sélectionnable",
+        "f5": "Retours sur vente avec génération d'avoir",
+        "f6": "Reçus personnalisés : logo, nom, message de pied"
+      },
+      "accounting": {
+        "name": "Comptabilité",
+        "tagline": "Finances & reporting avancé",
+        "f1": "Compte de résultat P&L : revenus, coûts, bénéfice",
+        "f2": "Gestion des dépenses par catégorie avec édition",
+        "f3": "Valeur du stock au coût et à la vente",
+        "f4": "Onglets : paiements, pertes/casses, charges",
+        "f5": "Classement des produits les plus rentables",
+        "f6": "Export CSV des données financières filtrées"
+      },
+      "crm": {
+        "name": "CRM Clients",
+        "tagline": "Fidélisation & marketing",
+        "f1": "Segmentation automatique Bronze / Silver / Gold",
+        "f2": "Bannière anniversaires clients (7 jours à venir)",
+        "f3": "Historique complet des achats par client",
+        "f4": "Tableau de bord : panier moyen, clients inactifs",
+        "f5": "Campagnes de fidélité et programmes de points",
+        "f6": "Export de la liste clients en CSV (filtres actifs)"
+      },
+      "orders": {
+        "name": "Commandes",
+        "tagline": "Réapprovisionnement intelligent",
+        "f1": "Création de bons de commande fournisseurs",
+        "f2": "Suggestions de réapprovisionnement automatiques",
+        "f3": "Suivi statut : brouillon → envoyé → reçu",
+        "f4": "Réception partielle avec mise à jour stock auto",
+        "f5": "Historique commandes avec PDF téléchargeable"
+      },
+      "suppliers": {
+        "name": "Fournisseurs",
+        "tagline": "Portail fournisseur dédié",
+        "f1": "Fiche fournisseur complète (contact, conditions)",
+        "f2": "Portail web sécurisé pour chaque fournisseur",
+        "f3": "Consultation du catalogue et des prix fournisseur",
+        "f4": "Historique des échanges et documents partagés",
+        "f5": "Intégration directe avec les commandes"
+      },
+      "alerts": {
+        "name": "Alertes",
+        "tagline": "Surveillance proactive",
+        "f1": "Alertes stock bas configurables par produit",
+        "f2": "Alertes péremption : 7j, 14j, 30j avant expiry",
+        "f3": "Journal des alertes avec historique complet",
+        "f4": "Seuils personnalisables par article ou catégorie",
+        "f5": "Notifications push mobile (Pro + Enterprise)"
+      },
+      "staff": {
+        "name": "Équipe",
+        "tagline": "Gestion du personnel & rôles",
+        "f1": "6 modules de permission granulaires (none/read/write)",
+        "f2": "Templates de rôles : caissier, comptable, manager…",
+        "f3": "Délégation : un manager peut gérer l'équipe",
+        "f4": "Anti-escalade : impossible de créer un super-admin",
+        "f5": "Audit log complet de toutes les actions équipe"
+      },
+      "multi_stores": {
+        "name": "Multi-Boutiques",
+        "tagline": "Vue consolidée & transferts",
+        "f1": "Dashboard consolidé : CA total, toutes boutiques",
+        "f2": "Tableau comparatif des performances par boutique",
+        "f3": "Transfert de stock entre boutiques en 1 clic",
+        "f4": "Paramètres individuels par boutique (devise, reçu)",
+        "f5": "Basculer d'une boutique à l'autre instantanément",
+        "f6": "Boutiques illimitées (vs 1 Starter, 2 Pro)"
+      },
+      "history": {
+        "name": "Historique & Analyse",
+        "tagline": "Traçabilité totale",
+        "f1": "Historique complet des mouvements de stock",
+        "f2": "Analyse ABC : concentrer les efforts sur les produits A",
+        "f3": "Rapport de pertes et ajustements d'inventaire",
+        "f4": "Filtres avancés : date, produit, employé, boutique",
+        "f5": "Export complet pour audit comptable"
+      },
+      "settings": {
+        "name": "Paramètres",
+        "tagline": "Personnalisation totale",
+        "f1": "Emplacements de stock : rayon A, réserve, entrepôt…",
+        "f2": "Multi-terminaux par boutique : caisse 1, drive…",
+        "f3": "Personnalisation des reçus (logo, en-tête, pied)",
+        "f4": "Devise par boutique (XOF, EUR, USD, GHS…)",
+        "f5": "Règles de rappel et notifications automatiques"
+      }
+    },
+    "compare": {
+      "col_feature": "Fonctionnalité",
+      "current_plan": "Plan actuel",
+      "recommended": "Recommandé",
+      "f_mobile_app": "Application mobile complète",
+      "f_stores": "Boutiques",
+      "f_users": "Utilisateurs / staff",
+      "f_team": "Gestion équipe & permissions",
+      "f_ai": "IA (Assistant Stockman)",
+      "f_push": "Alertes push stock bas",
+      "f_web": "Application web back-office",
+      "f_dashboard": "Dashboard & reporting web",
+      "f_pos": "Caisse POS web multi-terminaux",
+      "f_pl": "Comptabilité P&L web",
+      "f_crm": "CRM avancé web & anniversaires",
+      "f_orders": "Commandes fournisseurs web",
+      "f_multi": "Vue multi-boutiques consolidée",
+      "f_transfers": "Transferts de stock inter-boutiques",
+      "f_audit": "Audit log des actions",
+      "f_locations": "Emplacements de stock (web)",
+      "unlimited": "Illimité",
+      "limited": "Limité"
+    }
+  },
+  "settings_workspace": {
+    "actions": {
+      "saving": "Enregistrement..."
+    },
+    "header": {
+      "title": "Paramètres",
+      "subtitle": "Gérez votre compte, vos documents et vos alertes depuis un espace organisé par usage.",
+      "guide_title": "Organisation des réglages",
+      "guide_body": "Chaque section regroupe un type de réglage pour vous aider à modifier plus vite ce qui compte."
+    },
+    "summary": {
+      "account": {
+        "label": "Compte personnel",
+        "empty_name": "Utilisateur",
+        "description": "Profil, langue, devise et notifications personnelles."
+      },
+      "organization": {
+        "label": "Organisation",
+        "editable": "Modification disponible",
+        "read_only": "Lecture seule",
+        "description": "Modules, documents et alertes partagés du compte."
+      },
+      "store": {
+        "label": "Boutique active",
+        "empty": "Aucune boutique active",
+        "description": "Les réglages boutique s'appliquent ici."
+      }
+    },
+    "tabs": {
+      "account": {
+        "label": "Compte",
+        "description": "Profil, langue et préférences personnelles."
+      },
+      "organization": {
+        "label": "Organisation",
+        "description": "Modules et règles globales du compte."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Canaux personnels et destinataires d'alerte."
+      },
+      "documents": {
+        "label": "Documents",
+        "description": "Reçus, factures, taxes et terminaux."
+      },
+      "stores": {
+        "label": "Boutiques",
+        "description": "Emplacements et réglages par boutique."
+      },
+      "security": {
+        "label": "Sécurité",
+        "description": "Mot de passe et session courante."
+      }
+    },
+    "scopes": {
+      "user": "Utilisateur",
+      "account": "Compte",
+      "store": "Boutique",
+      "stock": "Stock"
+    },
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "wo": "Wolof"
+    },
+    "currencies": {
+      "XOF": "XOF - CFA BCEAO",
+      "XAF": "XAF - CFA BEAC",
+      "EUR": "EUR - Euro",
+      "USD": "USD - Dollar US",
+      "GHS": "GHS - Cedi",
+      "NGN": "NGN - Naira",
+      "MAD": "MAD - Dirham",
+      "TND": "TND - Dinar",
+      "DZD": "DZD - Dinar",
+      "EGP": "EGP - Livre égyptienne",
+      "KES": "KES - Shilling kényan",
+      "ZAR": "ZAR - Rand"
+    },
+    "modules": {
+      "stock_management": "Gestion du stock",
+      "alerts": "Alertes",
+      "history": "Historique",
+      "statistics": "Statistiques",
+      "rules": "Règles",
+      "export": "Exports",
+      "crm": "CRM clients",
+      "suppliers": "Fournisseurs",
+      "orders": "Commandes",
+      "accounting": "Comptabilité",
+      "reservations": "Réservations",
+      "kitchen": "Cuisine / KDS"
+    },
+    "notification_groups": {
+      "default": {
+        "label": "Destinataires par défaut",
+        "description": "Utilisés si aucun groupe plus précis n'est ciblé."
+      },
+      "stock": {
+        "label": "Stock",
+        "description": "Ruptures, stock bas, surstock et produits dormants."
+      },
+      "procurement": {
+        "label": "Approvisionnement",
+        "description": "Retards fournisseurs, commandes et réceptions."
+      },
+      "finance": {
+        "label": "Finance",
+        "description": "Dépenses, écarts et alertes de trésorerie."
+      },
+      "crm": {
+        "label": "CRM",
+        "description": "Relances clients et alertes commerciales."
+      },
+      "operations": {
+        "label": "Opérations",
+        "description": "Anomalies transverses et alertes générales."
+      },
+      "billing": {
+        "label": "Facturation",
+        "description": "Abonnement, paiements et sujets contractuels."
+      }
+    },
+    "feedback": {
+      "load_error": "Impossible de charger les paramètres.",
+      "generic_error": "Une erreur est survenue.",
+      "profile_saved": "Votre profil a été mis à jour.",
+      "regional_saved": "Langue et devise enregistrées.",
+      "billing_saved": "Le contact de facturation a été mis à jour.",
+      "taxes_saved": "La configuration de taxe a été enregistrée.",
+      "terminals_saved": "Les terminaux ont été enregistrés.",
+      "location_deleted": "L'emplacement a été supprimé.",
+      "location_added": "Le nouvel emplacement a été ajouté.",
+      "store_saved": "La boutique a été mise à jour.",
+      "receipt_saved": "Le reçu par défaut a été mis à jour.",
+      "invoice_saved": "Le modèle de facture a été mis à jour.",
+      "org_recipients_saved": "Les destinataires de l'organisation ont été enregistrés.",
+      "store_recipients_saved": "Les destinataires de la boutique active ont été enregistrés.",
+      "modules_saved": "La visibilité des modules a été mise à jour.",
+      "reminders_saved": "Les rappels intelligents ont été mis à jour.",
+      "personal_notifications_saved": "Vos préférences de notification ont été enregistrées.",
+      "password_mismatch": "La confirmation ne correspond pas au nouveau mot de passe.",
+      "password_saved": "Votre mot de passe a été modifié."
+    },
+    "account": {
+      "profile": {
+        "title": "Profil personnel",
+        "description": "Ces informations servent à vous identifier dans l'application.",
+        "action_hint": "Enregistre les informations du profil.",
+        "full_name_label": "Nom complet",
+        "full_name_hint": "Visible dans votre profil et les journaux d'activité.",
+        "login_email_label": "Email de connexion",
+        "login_email_hint": "Cet email est affiché ici à titre informatif.",
+        "submit": "Mettre à jour mon profil"
+      },
+      "regional": {
+        "title": "Langue et devise",
+        "description": "Choisissez la langue de l'interface et la devise de référence pour vos rapports.",
+        "action_hint": "Enregistre la langue et la devise du compte.",
+        "language_label": "Langue du tableau de bord",
+        "language_hint": "Change les textes et libellés de l'interface web.",
+        "currency_label": "Devise principale",
+        "currency_hint": "Utilisée comme référence dans les tableaux financiers.",
+        "submit": "Enregistrer la langue et la devise"
+      },
+      "billing": {
+        "title": "Contact de facturation",
+        "description": "Ce contact reçoit les informations liées à l'abonnement, aux paiements et au contrat.",
+        "action_hint": "Enregistre le contact de facturation.",
+        "contact_name_label": "Nom du contact",
+        "contact_name_hint": "Personne ou équipe à joindre pour l'abonnement.",
+        "contact_email_label": "Email de facturation",
+        "contact_email_hint": "Adresse recevant les informations de paiement et de contrat.",
+        "submit": "Mettre à jour la facturation"
+      },
+      "billing_notice": {
+        "title": "Facturation gérée par votre organisation",
+        "text": "Seul un responsable facturation peut modifier ce bloc."
+      }
+    },
+    "documents": {
+      "tax_and_terminals": {
+        "title": "Taxes et terminaux",
+        "description": "Réglez ici la TVA, le mode de prix et la liste des caisses utilisées.",
+        "action_hint": "Chaque sous-section enregistre un réglage précis."
+      },
+      "tax": {
+        "title": "Activer la taxe / TVA",
+        "description": "Active le calcul de taxe sur les ventes de la boutique active.",
+        "rate_label": "Taux",
+        "rate_hint": "Pourcentage appliqué si la taxe est active.",
+        "mode_label": "Mode de saisie",
+        "mode_hint": "TTC = prix taxes incluses, HT = hors taxes.",
+        "mode_ttc": "TTC",
+        "mode_ht": "HT",
+        "submit": "Enregistrer la taxe"
+      },
+      "terminals": {
+        "title": "Caisses / terminaux",
+        "description": "Ajoutez ou retirez des terminaux avant d'enregistrer la liste.",
+        "placeholder": "Ex. : Caisse 1",
+        "submit": "Enregistrer les terminaux"
+      },
+      "receipt": {
+        "title": "Reçu par défaut",
+        "description": "Personnalisez le nom affiché sur le reçu et le message de bas de ticket.",
+        "action_hint": "Enregistre le modèle de reçu.",
+        "business_name_label": "Nom de l'établissement",
+        "business_name_hint": "Nom affiché en haut du reçu pour la boutique active.",
+        "footer_label": "Message de bas de reçu",
+        "footer_hint": "Texte affiché en fin de ticket.",
+        "submit": "Enregistrer le reçu"
+      },
+      "invoice": {
+        "title": "Facture par défaut",
+        "description": "Rassemblez ici le nom, le libellé, l'adresse et les mentions de vos factures.",
+        "action_hint": "Enregistre le modèle de facture.",
+        "document_default": "Facture",
+        "business_name_label": "Nom sur la facture",
+        "business_name_hint": "Nom affiché dans l'en-tête des factures.",
+        "document_label_label": "Libellé du document",
+        "document_label_hint": "Ex. : Facture, Proforma ou Bon de livraison.",
+        "prefix_label": "Préfixe",
+        "prefix_hint": "Préfixe utilisé avant le numéro de facture.",
+        "payment_terms_label": "Conditions de paiement",
+        "payment_terms_hint": "Ex. : Paiement à réception ou sous 15 jours.",
+        "address_label": "Adresse de facturation",
+        "address_hint": "Adresse affichée sur les factures.",
+        "footer_label": "Pied de facture",
+        "footer_hint": "Message de fin de document.",
+        "submit": "Enregistrer la facture"
+      },
+      "notice": {
+        "title": "Documents réservés aux administrateurs",
+        "text": "Les reçus et factures par défaut restent gérés par les administrateurs opérationnels."
+      }
+    },
+    "stores": {
+      "locations": {
+        "title": "Emplacements du stock",
+        "description": "Organisez vos rayons, entrepôts et zones de réception.",
+        "action_hint": "Ajoute ou retire des emplacements selon votre organisation du stock.",
+        "placeholder": "Ex. : Rayon A, Entrepôt Nord",
+        "types": {
+          "shelf": "Rayon",
+          "warehouse": "Entrepôt",
+          "dock": "Réception"
+        }
+      },
+      "profile": {
+        "title": "Fiche de boutique",
+        "description": "Modifiez ici le nom et l'adresse de chaque boutique.",
+        "action_hint": "Enregistre la fiche de la boutique ouverte.",
+        "empty_address": "Aucune adresse définie",
+        "store_name_label": "Nom de la boutique",
+        "store_name_hint": "Nom visible dans les listes et documents de cette boutique.",
+        "address_label": "Adresse",
+        "address_hint": "Adresse ou repère terrain de cette boutique.",
+        "submit": "Sauvegarder cette boutique"
+      }
+    },
+    "notifications": {
+      "organization": {
+        "title": "Destinataires de l'organisation",
+        "description": "Indiquez qui reçoit les alertes par sujet. Vous pouvez saisir plusieurs adresses séparées par des virgules.",
+        "action_hint": "Enregistre les destinataires de l'organisation.",
+        "placeholder": "ex. : responsable@entreprise.com, stock@entreprise.com",
+        "submit": "Enregistrer les destinataires"
+      },
+      "store": {
+        "title": "Emails de la boutique active : {{store}}",
+        "description": "Ces emails reçoivent les alertes de la boutique active en plus des destinataires globaux du compte.",
+        "action_hint": "Enregistre les destinataires de la boutique active.",
+        "placeholder": "ex. : boutique-plateau@entreprise.com",
+        "submit": "Enregistrer la boutique active"
+      },
+      "personal": {
+        "title": "Mes notifications",
+        "description": "Choisissez vos canaux personnels et le niveau d'alerte à partir duquel vous souhaitez être contacté.",
+        "action_hint": "Enregistre vos préférences personnelles.",
+        "channels": {
+          "in_app": {
+            "label": "In-app",
+            "description": "Toujours visible dans le centre de notifications."
+          },
+          "push": {
+            "label": "Push mobile",
+            "description": "Pour les alertes qui demandent une réaction rapide."
+          },
+          "email": {
+            "label": "Email perso",
+            "description": "Pour recevoir aussi un récapitulatif dans votre boîte."
+          }
+        },
+        "push_severity_label": "Sévérité minimum pour push",
+        "push_severity_hint": "À partir de quel niveau vous voulez être sollicité sur mobile.",
+        "email_severity_label": "Sévérité minimum pour email",
+        "email_severity_hint": "À partir de quel niveau vous voulez aussi un email.",
+        "severity": {
+          "info": "Information",
+          "warning": "Attention",
+          "critical": "Critique"
+        },
+        "submit": "Enregistrer mes notifications"
+      }
+    },
+    "organization": {
+      "modules": {
+        "title": "Modules visibles",
+        "description": "Masquez les modules inutiles sans supprimer les données.",
+        "action_hint": "Enregistre la visibilité des modules.",
+        "submit": "Enregistrer les modules visibles"
+      },
+      "reminders": {
+        "title": "Rappels intelligents",
+        "description": "Définissez les seuils qui déclenchent vos alertes intelligentes.",
+        "action_hint": "Enregistre les règles de rappel.",
+        "submit": "Enregistrer les rappels"
+      },
+      "notice": {
+        "title": "Organisation en lecture seule",
+        "text": "Les modules partagés et les rappels intelligents sont réservés aux administrateurs opérationnels."
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Changer mon mot de passe",
+        "description": "Saisissez votre mot de passe actuel puis choisissez un nouveau mot de passe sécurisé.",
+        "action_hint": "Enregistre votre nouveau mot de passe.",
+        "current_label": "Mot de passe actuel",
+        "current_hint": "Nécessaire pour confirmer l'opération.",
+        "new_label": "Nouveau mot de passe",
+        "new_hint": "Au moins 8 caractères.",
+        "confirm_label": "Confirmation",
+        "confirm_hint": "Doit correspondre exactement au nouveau mot de passe.",
+        "submit": "Modifier mon mot de passe"
+      },
+      "logout": {
+        "title": "Déconnexion",
+        "description": "Utilisez cette action si vous quittez ce poste ou si vous voulez repartir sur une session propre.",
+        "action_hint": "Ferme votre session sur ce navigateur.",
+        "submit": "Se déconnecter"
+      }
+    }
+  },
+  "demo_lead": {
+    "badge": "Démo en cours",
+    "title": "Continuez la démo, laissez juste un contact",
+    "description": "Votre démo est déjà active. Ajoutez votre email si vous souhaitez être recontacté après l'essai. Ce n'est pas requis pour continuer à explorer Stockman.",
+    "default_label": "Démo Stockman",
+    "expires_at": "Expire le {{value}}",
+    "contact_label": "Email de suivi",
+    "contact_placeholder": "vous@entreprise.com",
+    "later": "Plus tard",
+    "save": "Enregistrer mon email",
+    "saving": "Enregistrement...",
+    "required": "Ajoutez votre email pour que notre équipe puisse vous recontacter.",
+    "save_error": "Impossible d'enregistrer votre email pour le moment.",
+    "not_available": "Indisponible"
   }
 }

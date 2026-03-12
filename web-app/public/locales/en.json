@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -276,7 +276,10 @@
       }
     },
     "voice_to_text_error": "Unable to transcribe audio",
-    "voice_to_text_prompt": "Transcribe exactly what this person says. Main language is {lang_name}. Answer ONLY with the transcription."
+    "voice_to_text_prompt": "Transcribe exactly what this person says. Main language is {lang_name}. Answer ONLY with the transcription.",
+    "chat_welcome": "Hello! I am your Stockman AI assistant. Ask me about stock, sales, accounting, or business operations.",
+    "chat_welcome_restaurant": "Hello! I am your Stockman restaurant assistant. I can help with menu items, recipes, kitchen flow, tables, reservations, and service.",
+    "chat_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions."
   },
   "alerts": {
     "ai_anomaly_detection": "AI ALast Namealy Detection",
@@ -507,9 +510,6 @@
     "info": "Info",
     "items_count": "{{count}} item(s)",
     "language_choice": "Choose language",
-    "last_30_days": "Last 30 days",
-    "last_7_days": "Last 7 days",
-    "last_90_days": "Last 90 days",
     "loading": "Loading...",
     "merchant": "Merchant",
     "months_ago": "{{count}} months ago",
@@ -549,7 +549,10 @@
     "weeks_ago": "{{count}} weeks ago",
     "years_ago": "{{count}} years ago",
     "yes": "Yes",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "last_7_days": "Last 7 days",
+    "last_30_days": "Last 30 days",
+    "last_90_days": "Last 90 days"
   },
   "crm": {
     "active_30d": "Active (30d)",
@@ -742,6 +745,14 @@
     "guide_reminders_content": "Get personalised AI advice and urgent action reminders.",
     "guide_welcome_content": "Monitor your business health at a glance.",
     "guide_welcome_title": "Welcome to your Dashboard",
+    "restaurant_guide_welcome_title": "Welcome to your restaurant dashboard",
+    "restaurant_guide_welcome_content": "Track service, covers, kitchen flow, and reservations from one place.",
+    "restaurant_guide_kpi_title": "Service KPIs",
+    "restaurant_guide_kpi_content": "Keep an eye on daily revenue, covers served, average ticket, and occupied tables.",
+    "restaurant_guide_sales_title": "Peak service hours",
+    "restaurant_guide_sales_content": "Hourly revenue helps spot rush periods and organize the team better.",
+    "restaurant_guide_reservations_title": "Reservations and dining room",
+    "restaurant_guide_reservations_content": "Review today's reservations and kitchen workload before service starts.",
     "history": "History",
     "history_btn": "History",
     "items_abbrev": "items",
@@ -1536,11 +1547,59 @@
     "stock_depleted": "Stock depleted",
     "success": "Sale recorded",
     "suggestions_title": "Often bought together",
+    "production_mode_prepped": "Prepared in advance",
+    "production_mode_on_demand": "Made to order",
+    "production_mode_hybrid": "Hybrid",
+    "guide_welcome_title": "Welcome to POS",
+    "guide_welcome_content": "This is where you process sales quickly.",
+    "guide_search_title": "Search and scan",
+    "guide_search_content": "Search for a product by name or use the barcode scanner to move faster.",
+    "guide_cart_title": "Cart management",
+    "guide_cart_content": "Your items appear here. You can adjust quantities or remove products.",
+    "guide_checkout_title": "Payment and validation",
+    "guide_checkout_content": "Choose a payment method to complete the sale.",
+    "guide_restaurant_welcome_title": "Welcome to restaurant checkout",
+    "guide_restaurant_welcome_content": "Manage tables, kitchen sending, and payment from this screen.",
+    "guide_restaurant_menu_title": "Menu and table",
+    "guide_restaurant_menu_content": "Choose menu dishes, then attach the order to a table or to takeaway.",
+    "guide_restaurant_cart_title": "Open order flow",
+    "guide_restaurant_cart_content": "Already-sent lines stay locked so service history remains clear.",
+    "guide_restaurant_checkout_title": "Kitchen and payment",
+    "guide_restaurant_checkout_content": "Send dishes to kitchen during service, then finalize payment at the end of the meal.",
+    "restaurant_options": "Restaurant options",
+    "table_label": "Table",
+    "open_order_linked": "Open order",
+    "loading_open_order": "Loading order…",
+    "kitchen_notes_label": "Kitchen notes",
+    "kitchen_notes_placeholder": "No gluten, peanut allergy...",
+    "subtotal_label": "Subtotal",
+    "service_label": "Service",
+    "tip_label": "Tip",
+    "final_total": "Final total",
+    "discount_label": "Discount",
+    "return_last_sale": "Return last sale",
+    "send_to_kitchen": "Send to kitchen",
+    "add_to_open_order": "Add to order",
+    "menu_stock_label": "in stock",
+    "made_to_order_stock_label": "made to order",
+    "anonymous_client": "Anonymous customer",
+    "no_table": "No table",
+    "terminal_label": "Register",
+    "ai_suggest": "AI suggestion",
+    "cancel_action": "Cancel",
+    "confirm_action": "Confirm",
     "title": "Point of Sale",
     "total": "Total",
     "unknown": "Unknown",
     "unknown_product_msg": "No product found with SKU: {{sku}}",
     "unknown_product_title": "Unknown product"
+  },
+  "restaurant": {
+    "recipe_linked": "Recipe linked",
+    "station_label": "Station",
+    "walkin_order": "Counter order",
+    "covers": "Covers",
+    "service_charge": "Service charge"
   },
   "premium": {
     "features": {
@@ -1738,26 +1797,26 @@
     "variants": "Variantes"
   },
   "reminders": {
-    "birthdays_desc": "Notification for upcoming birthdays",
-    "birthdays_label": "Birthdays",
-    "client_reactivation_desc": "Loyal clients inactive for X days",
-    "client_reactivation_label": "Client Reactivation",
-    "debt_recovery_desc": "Reminders for outstanding debts",
-    "debt_recovery_label": "Debt Recovery",
-    "dormant_products_desc": "Products without sales for X days",
-    "dormant_products_label": "Dormant Products",
-    "expense_spike_desc": "Alert if expenses increase by X%",
-    "expense_spike_label": "Expense Spike",
-    "inventory_check_desc": "Alert if no inventory performed for X days",
     "inventory_check_label": "Inventory Check",
-    "late_deliveries_desc": "Critical after X days of delay",
+    "inventory_check_desc": "Alert if no inventory performed for X days",
+    "dormant_products_label": "Dormant Products",
+    "dormant_products_desc": "Products without sales for X days",
     "late_deliveries_label": "Late Deliveries",
-    "monthly_report_desc": "Generate performance summary",
-    "monthly_report_label": "Monthly Report",
-    "pending_invitations_desc": "Pending for X days",
-    "pending_invitations_label": "Pending Invitations",
-    "replenishment_desc": "Products below minimum stock",
+    "late_deliveries_desc": "Critical after X days of delay",
     "replenishment_label": "Replenishment",
+    "replenishment_desc": "Products below minimum stock",
+    "pending_invitations_label": "Pending Invitations",
+    "pending_invitations_desc": "Pending for X days",
+    "debt_recovery_label": "Debt Recovery",
+    "debt_recovery_desc": "Reminders for outstanding debts",
+    "client_reactivation_label": "Client Reactivation",
+    "client_reactivation_desc": "Loyal clients inactive for X days",
+    "birthdays_label": "Birthdays",
+    "birthdays_desc": "Notification for upcoming birthdays",
+    "monthly_report_label": "Monthly Report",
+    "monthly_report_desc": "Generate performance summary",
+    "expense_spike_label": "Expense Spike",
+    "expense_spike_desc": "Alert if expenses increase by X%",
     "unit_days": "days"
   },
   "settings": {
@@ -2253,5 +2312,603 @@
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device."
+  },
+  "home": {
+    "recovery": {
+      "badge": "Limited access",
+      "title": "Your {{plan}} subscription requires attention",
+      "desc": "Your data remains safe and you can still settle your subscription without losing your work. Full back-office access is temporarily restricted until payment is resolved.",
+      "phase": "Phase",
+      "grace_end": "Grace period ends",
+      "read_only": "Read-only after",
+      "can_do": "What you can still do now",
+      "can_do_1": "View your subscription and restart payment",
+      "can_do_2": "Keep your data and company association",
+      "can_do_3": "Contact support or a billing admin if needed",
+      "cta_regularize": "Settle subscription",
+      "cta_logout": "Log out"
+    },
+    "upsell": {
+      "badge": "Current plan: {{plan}} — mobile access only",
+      "h1": "Your professional back-office,",
+      "h1_gradient": "available anywhere on the web",
+      "subtitle": "The Enterprise plan unlocks Stockman's full web app — 12 powerful modules to manage your business or restaurant from any computer, tablet or screen.",
+      "mobile_note_title": "Starter and Pro stay on mobile",
+      "mobile_note_desc": "Keep managing your stores from the mobile app. Switch to Enterprise when you need the web back-office, advanced analytics and multi-store management.",
+      "cta_mobile": "Open mobile app",
+      "cta_upgrade": "Switch to Enterprise now",
+      "cta_logout": "Sign out",
+      "modules_eyebrow": "What awaits you",
+      "modules_title": "12 professional modules included",
+      "modules_subtitle": "Every module designed for businesses and restaurants that want to go further.",
+      "compare_eyebrow": "Plan comparison",
+      "compare_title": "Everything included",
+      "cta_final_title": "Ready to level up?",
+      "cta_final_desc": "Join businesses and restaurants using the Enterprise back-office to better manage their operations, team and service.",
+      "cta_final_btn": "See Enterprise pricing",
+      "mobile_remains": "Your {{plan}} mobile app remains available in the meantime."
+    },
+    "limited_access": {
+      "title": "Limited web access",
+      "desc": "Your Enterprise account is linked to the company, but no web module has been assigned to you yet. Ask an operations or billing admin to update your permissions."
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Access your Enterprise professional workspace",
+      "email_label": "Professional email",
+      "email_placeholder": "name@store.com",
+      "password_label": "Password",
+      "forgot_password": "Forgot?",
+      "btn_login": "Sign in",
+      "btn_loading": "Signing in...",
+      "create_account": "Need an Enterprise web account?",
+      "create_account_link": "Create my Enterprise account",
+      "compare_plans": "Compare plans",
+      "open_mobile": "Open mobile app"
+    },
+    "brand": {
+      "h2": "Stockman for the field,",
+      "h2_gradient": "mastered and optimised.",
+      "subtitle": "Starter and Pro are managed on mobile. Enterprise adds the web back-office for shops, restaurants, bakeries, wholesalers and production businesses.",
+      "business_label": "Supported sectors",
+      "mobile_note": "The mobile app covers daily field operations. The web serves the Enterprise back-office, advanced analytics and multi-store management.",
+      "feature_1": "Deep dashboard",
+      "feature_2": "AI analytics & forecasts",
+      "feature_3": "Sales & CRM integrated",
+      "feature_4": "Secure & synchronised"
+    },
+    "ai_assistant": "AI Assistant",
+    "business_groups": {
+      "commerce": {
+        "title": "Retail",
+        "description": "Grocery, supermarket, pharmacy, hardware store, fashion, electronics and wholesale.",
+        "tags": [
+          "Grocery",
+          "Supermarket",
+          "Pharmacy",
+          "Hardware",
+          "Wholesale"
+        ]
+      },
+      "restauration": {
+        "title": "Food service",
+        "description": "Restaurant, bakery, caterer and food businesses with service or light production.",
+        "tags": [
+          "Restaurant",
+          "Bakery",
+          "Catering",
+          "Beverages"
+        ]
+      },
+      "production": {
+        "title": "Production",
+        "description": "Tailoring, soap-making, carpentry, printing, crafts and workshops.",
+        "tags": [
+          "Tailoring",
+          "Soap-making",
+          "Carpentry",
+          "Printing",
+          "Crafts"
+        ]
+      }
+    },
+    "modules": {
+      "dashboard": {
+        "name": "Dashboard",
+        "tagline": "Real-time management",
+        "f1": "Instant KPIs: revenue, sales, net margin",
+        "f2": "Revenue charts: 7d / 30d / 90d",
+        "f3": "Low stock and expiry alerts at a glance",
+        "f4": "Daily AI summary of your activity",
+        "f5": "Automatic period-over-period comparison"
+      },
+      "inventory": {
+        "name": "Inventory",
+        "tagline": "Complete stock management",
+        "f1": "Bulk import via CSV or Excel",
+        "f2": "Integrated barcode scanner in the browser",
+        "f3": "Filters by location, category, supplier",
+        "f4": "Manage batches, serial numbers and expiries",
+        "f5": "Accounting inventory and guided physical count",
+        "f6": "ABC analysis (A/B/C product classification)"
+      },
+      "pos": {
+        "name": "POS (Cash Register)",
+        "tagline": "Professional point of sale",
+        "f1": "Fast checkout interface with product search",
+        "f2": "Discounts in % or fixed amount, server-validated",
+        "f3": "Split payments: cash + mobile + card",
+        "f4": "Multi-terminal: register 1, register 2… selectable",
+        "f5": "Returns with credit note generation",
+        "f6": "Personalised receipts: logo, name, footer message"
+      },
+      "accounting": {
+        "name": "Accounting",
+        "tagline": "Finance & advanced reporting",
+        "f1": "P&L income statement: revenue, costs, profit",
+        "f2": "Expense management by category with editing",
+        "f3": "Stock value at cost and selling price",
+        "f4": "Tabs: payments, losses/waste, charges",
+        "f5": "Ranking of most profitable products",
+        "f6": "CSV export of filtered financial data"
+      },
+      "crm": {
+        "name": "CRM",
+        "tagline": "Loyalty & marketing",
+        "f1": "Automatic segmentation Bronze / Silver / Gold",
+        "f2": "Customer birthday banner (next 7 days)",
+        "f3": "Full purchase history per customer",
+        "f4": "Dashboard: average basket, inactive customers",
+        "f5": "Loyalty campaigns and points programmes",
+        "f6": "Export customer list to CSV (active filters)"
+      },
+      "orders": {
+        "name": "Orders",
+        "tagline": "Smart replenishment",
+        "f1": "Create supplier purchase orders",
+        "f2": "Automatic replenishment suggestions",
+        "f3": "Status tracking: draft → sent → received",
+        "f4": "Partial receipt with automatic stock update",
+        "f5": "Order history with downloadable PDF"
+      },
+      "suppliers": {
+        "name": "Suppliers",
+        "tagline": "Dedicated supplier portal",
+        "f1": "Complete supplier profile (contact, terms)",
+        "f2": "Secure web portal for each supplier",
+        "f3": "Catalogue and supplier price consultation",
+        "f4": "Exchange history and shared documents",
+        "f5": "Direct integration with orders"
+      },
+      "alerts": {
+        "name": "Alerts",
+        "tagline": "Proactive monitoring",
+        "f1": "Configurable low stock alerts per product",
+        "f2": "Expiry alerts: 7d, 14d, 30d before expiry",
+        "f3": "Alert log with full history",
+        "f4": "Customisable thresholds per item or category",
+        "f5": "Mobile push notifications (Pro + Enterprise)"
+      },
+      "staff": {
+        "name": "Team",
+        "tagline": "Staff management & roles",
+        "f1": "6 granular permission modules (none/read/write)",
+        "f2": "Role templates: cashier, accountant, manager…",
+        "f3": "Delegation: a manager can manage the team",
+        "f4": "Anti-escalation: cannot create super-admin",
+        "f5": "Full audit log of all team actions"
+      },
+      "multi_stores": {
+        "name": "Multi-Stores",
+        "tagline": "Consolidated view & transfers",
+        "f1": "Consolidated dashboard: total revenue, all stores",
+        "f2": "Performance comparison table by store",
+        "f3": "1-click stock transfer between stores",
+        "f4": "Individual store settings (currency, receipt)",
+        "f5": "Switch between stores instantly",
+        "f6": "Unlimited stores (vs 1 Starter, 2 Pro)"
+      },
+      "history": {
+        "name": "History & Analysis",
+        "tagline": "Full traceability",
+        "f1": "Complete stock movement history",
+        "f2": "ABC analysis: focus efforts on A-class products",
+        "f3": "Loss and inventory adjustment report",
+        "f4": "Advanced filters: date, product, employee, store",
+        "f5": "Full export for accounting audit"
+      },
+      "settings": {
+        "name": "Settings",
+        "tagline": "Full customisation",
+        "f1": "Stock locations: aisle A, storage room, warehouse…",
+        "f2": "Multi-terminal per store: register 1, drive-through…",
+        "f3": "Receipt personalisation (logo, header, footer)",
+        "f4": "Currency per store (XOF, EUR, USD, GHS…)",
+        "f5": "Reminder rules and automatic notifications"
+      }
+    },
+    "compare": {
+      "col_feature": "Feature",
+      "current_plan": "Current plan",
+      "recommended": "Recommended",
+      "f_mobile_app": "Full mobile app",
+      "f_stores": "Stores",
+      "f_users": "Users / staff",
+      "f_team": "Team & permissions management",
+      "f_ai": "AI (Stockman Assistant)",
+      "f_push": "Low stock push alerts",
+      "f_web": "Web back-office app",
+      "f_dashboard": "Dashboard & web reporting",
+      "f_pos": "Web POS multi-terminal",
+      "f_pl": "P&L Accounting web",
+      "f_crm": "Advanced CRM web & birthdays",
+      "f_orders": "Supplier orders web",
+      "f_multi": "Consolidated multi-store view",
+      "f_transfers": "Inter-store stock transfers",
+      "f_audit": "Action audit log",
+      "f_locations": "Stock locations (web)",
+      "unlimited": "Unlimited",
+      "limited": "Limited"
+    }
+  },
+  "settings_workspace": {
+    "actions": {
+      "saving": "Saving..."
+    },
+    "header": {
+      "title": "Settings",
+      "subtitle": "Manage your account, documents, and alerts from a workspace organised by use case.",
+      "guide_title": "How settings are organised",
+      "guide_body": "Each section groups one type of setting so you can find and update the right information faster."
+    },
+    "summary": {
+      "account": {
+        "label": "Personal account",
+        "empty_name": "User",
+        "description": "Profile, language, currency, and personal notifications."
+      },
+      "organization": {
+        "label": "Organisation",
+        "editable": "Editing available",
+        "read_only": "Read-only",
+        "description": "Shared modules, documents, and alerts for the account."
+      },
+      "store": {
+        "label": "Active store",
+        "empty": "No active store",
+        "description": "Store settings apply here."
+      }
+    },
+    "tabs": {
+      "account": {
+        "label": "Account",
+        "description": "Profile, language, and personal preferences."
+      },
+      "organization": {
+        "label": "Organisation",
+        "description": "Global modules and rules for the account."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Personal channels and alert recipients."
+      },
+      "documents": {
+        "label": "Documents",
+        "description": "Receipts, invoices, taxes, and terminals."
+      },
+      "stores": {
+        "label": "Stores",
+        "description": "Locations and store-specific settings."
+      },
+      "security": {
+        "label": "Security",
+        "description": "Password and current session."
+      }
+    },
+    "scopes": {
+      "user": "User",
+      "account": "Account",
+      "store": "Store",
+      "stock": "Stock"
+    },
+    "languages": {
+      "fr": "French",
+      "en": "English",
+      "wo": "Wolof"
+    },
+    "currencies": {
+      "XOF": "XOF - West African CFA franc",
+      "XAF": "XAF - Central African CFA franc",
+      "EUR": "EUR - Euro",
+      "USD": "USD - US dollar",
+      "GHS": "GHS - Ghanaian cedi",
+      "NGN": "NGN - Nigerian naira",
+      "MAD": "MAD - Moroccan dirham",
+      "TND": "TND - Tunisian dinar",
+      "DZD": "DZD - Algerian dinar",
+      "EGP": "EGP - Egyptian pound",
+      "KES": "KES - Kenyan shilling",
+      "ZAR": "ZAR - South African rand"
+    },
+    "modules": {
+      "stock_management": "Stock management",
+      "alerts": "Alerts",
+      "history": "History",
+      "statistics": "Statistics",
+      "rules": "Rules",
+      "export": "Exports",
+      "crm": "Customer CRM",
+      "suppliers": "Suppliers",
+      "orders": "Orders",
+      "accounting": "Accounting",
+      "reservations": "Reservations",
+      "kitchen": "Kitchen / KDS"
+    },
+    "notification_groups": {
+      "default": {
+        "label": "Default recipients",
+        "description": "Used when no more specific group is targeted."
+      },
+      "stock": {
+        "label": "Stock",
+        "description": "Stock-outs, low stock, overstock, and dormant products."
+      },
+      "procurement": {
+        "label": "Procurement",
+        "description": "Supplier delays, orders, and deliveries."
+      },
+      "finance": {
+        "label": "Finance",
+        "description": "Expenses, discrepancies, and cash-flow alerts."
+      },
+      "crm": {
+        "label": "CRM",
+        "description": "Customer follow-ups and sales alerts."
+      },
+      "operations": {
+        "label": "Operations",
+        "description": "Cross-functional anomalies and general alerts."
+      },
+      "billing": {
+        "label": "Billing",
+        "description": "Subscription, payments, and contractual topics."
+      }
+    },
+    "feedback": {
+      "load_error": "Unable to load settings.",
+      "generic_error": "Something went wrong.",
+      "profile_saved": "Your profile has been updated.",
+      "regional_saved": "Language and currency saved.",
+      "billing_saved": "The billing contact has been updated.",
+      "taxes_saved": "Tax settings have been saved.",
+      "terminals_saved": "Terminals have been saved.",
+      "location_deleted": "The location has been removed.",
+      "location_added": "The new location has been added.",
+      "store_saved": "The store has been updated.",
+      "receipt_saved": "The default receipt has been updated.",
+      "invoice_saved": "The invoice template has been updated.",
+      "org_recipients_saved": "Organisation recipients have been saved.",
+      "store_recipients_saved": "Active store recipients have been saved.",
+      "modules_saved": "Module visibility has been updated.",
+      "reminders_saved": "Smart reminders have been updated.",
+      "personal_notifications_saved": "Your notification preferences have been saved.",
+      "password_mismatch": "The confirmation does not match the new password.",
+      "password_saved": "Your password has been updated."
+    },
+    "account": {
+      "profile": {
+        "title": "Personal profile",
+        "description": "These details identify you in the application.",
+        "action_hint": "Saves your profile details.",
+        "full_name_label": "Full name",
+        "full_name_hint": "Visible in your profile and activity logs.",
+        "login_email_label": "Login email",
+        "login_email_hint": "This email is shown here for reference.",
+        "submit": "Update my profile"
+      },
+      "regional": {
+        "title": "Language and currency",
+        "description": "Choose the interface language and the reference currency for your reports.",
+        "action_hint": "Saves the language and currency.",
+        "language_label": "Dashboard language",
+        "language_hint": "Changes web interface labels and copy.",
+        "currency_label": "Primary currency",
+        "currency_hint": "Used as the reference in financial dashboards.",
+        "submit": "Save language and currency"
+      },
+      "billing": {
+        "title": "Billing contact",
+        "description": "This contact receives subscription, payment, and contract information.",
+        "action_hint": "Saves the billing contact.",
+        "contact_name_label": "Contact name",
+        "contact_name_hint": "Person or team to reach for the subscription.",
+        "contact_email_label": "Billing email",
+        "contact_email_hint": "Address receiving payment and contract information.",
+        "submit": "Update billing"
+      },
+      "billing_notice": {
+        "title": "Billing managed by your organisation",
+        "text": "Only a billing manager can edit this section."
+      }
+    },
+    "documents": {
+      "tax_and_terminals": {
+        "title": "Taxes and terminals",
+        "description": "Set VAT, pricing mode, and the list of registers used by the active store.",
+        "action_hint": "Each subsection saves one specific setting."
+      },
+      "tax": {
+        "title": "Enable tax / VAT",
+        "description": "Applies tax calculation to sales in the active store.",
+        "rate_label": "Rate",
+        "rate_hint": "Percentage applied when tax is enabled.",
+        "mode_label": "Pricing mode",
+        "mode_hint": "VAT included or tax excluded.",
+        "mode_ttc": "VAT incl.",
+        "mode_ht": "Tax excl.",
+        "submit": "Save tax settings"
+      },
+      "terminals": {
+        "title": "Registers / terminals",
+        "description": "Add or remove terminals before saving the list.",
+        "placeholder": "e.g. Register 1",
+        "submit": "Save terminals"
+      },
+      "receipt": {
+        "title": "Default receipt",
+        "description": "Customise the name shown on the receipt and the footer message.",
+        "action_hint": "Saves the receipt template.",
+        "business_name_label": "Business name",
+        "business_name_hint": "Shown at the top of the receipt for the active store.",
+        "footer_label": "Receipt footer",
+        "footer_hint": "Text shown at the bottom of the ticket.",
+        "submit": "Save receipt"
+      },
+      "invoice": {
+        "title": "Default invoice",
+        "description": "Manage the name, label, address, and footer used for invoices.",
+        "action_hint": "Saves the invoice template.",
+        "document_default": "Invoice",
+        "business_name_label": "Invoice name",
+        "business_name_hint": "Displayed in the invoice header.",
+        "document_label_label": "Document label",
+        "document_label_hint": "e.g. Invoice, Proforma, or Delivery note.",
+        "prefix_label": "Prefix",
+        "prefix_hint": "Prefix used before the invoice number.",
+        "payment_terms_label": "Payment terms",
+        "payment_terms_hint": "e.g. Due on receipt or Net 15 days.",
+        "address_label": "Billing address",
+        "address_hint": "Address displayed on invoices.",
+        "footer_label": "Invoice footer",
+        "footer_hint": "Closing message shown on the document.",
+        "submit": "Save invoice"
+      },
+      "notice": {
+        "title": "Documents reserved for administrators",
+        "text": "Default receipts and invoices remain managed by operational administrators."
+      }
+    },
+    "stores": {
+      "locations": {
+        "title": "Stock locations",
+        "description": "Organise shelves, warehouses, and receiving zones.",
+        "action_hint": "Adds or removes locations for your stock setup.",
+        "placeholder": "e.g. Aisle A, North warehouse",
+        "types": {
+          "shelf": "Shelf",
+          "warehouse": "Warehouse",
+          "dock": "Receiving"
+        }
+      },
+      "profile": {
+        "title": "Store profile",
+        "description": "Edit the name and address of each store here.",
+        "action_hint": "Saves the currently opened store profile.",
+        "empty_address": "No address set",
+        "store_name_label": "Store name",
+        "store_name_hint": "Name shown in lists and store documents.",
+        "address_label": "Address",
+        "address_hint": "Address or landmark for this store.",
+        "submit": "Save this store"
+      }
+    },
+    "notifications": {
+      "organization": {
+        "title": "Organisation recipients",
+        "description": "Choose who receives alerts by topic. You can enter multiple addresses separated by commas.",
+        "action_hint": "Saves organisation recipients.",
+        "placeholder": "e.g. ops@company.com, stock@company.com",
+        "submit": "Save recipients"
+      },
+      "store": {
+        "title": "Active store emails: {{store}}",
+        "description": "These addresses receive alerts for the active store in addition to global account recipients.",
+        "action_hint": "Saves active store recipients.",
+        "placeholder": "e.g. plateau-store@company.com",
+        "submit": "Save active store"
+      },
+      "personal": {
+        "title": "My notifications",
+        "description": "Choose your personal channels and the minimum alert severity for each one.",
+        "action_hint": "Saves your personal notification preferences.",
+        "channels": {
+          "in_app": {
+            "label": "In-app",
+            "description": "Always visible in the notification centre."
+          },
+          "push": {
+            "label": "Mobile push",
+            "description": "For alerts that need a fast reaction."
+          },
+          "email": {
+            "label": "Personal email",
+            "description": "To also receive a summary in your inbox."
+          }
+        },
+        "push_severity_label": "Minimum severity for push",
+        "push_severity_hint": "Choose when you want to be alerted on mobile.",
+        "email_severity_label": "Minimum severity for email",
+        "email_severity_hint": "Choose when you also want an email.",
+        "severity": {
+          "info": "Information",
+          "warning": "Warning",
+          "critical": "Critical"
+        },
+        "submit": "Save my notifications"
+      }
+    },
+    "organization": {
+      "modules": {
+        "title": "Visible modules",
+        "description": "Hide unused modules without deleting any data.",
+        "action_hint": "Saves module visibility.",
+        "submit": "Save visible modules"
+      },
+      "reminders": {
+        "title": "Smart reminders",
+        "description": "Define the thresholds that trigger your smart alerts.",
+        "action_hint": "Saves reminder rules.",
+        "submit": "Save reminders"
+      },
+      "notice": {
+        "title": "Organisation in read-only mode",
+        "text": "Shared modules and smart reminders are reserved for operational administrators."
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Change my password",
+        "description": "Enter your current password, then choose a new secure password.",
+        "action_hint": "Saves your new password.",
+        "current_label": "Current password",
+        "current_hint": "Required to confirm this action.",
+        "new_label": "New password",
+        "new_hint": "At least 8 characters.",
+        "confirm_label": "Confirmation",
+        "confirm_hint": "Must exactly match the new password.",
+        "submit": "Change my password"
+      },
+      "logout": {
+        "title": "Sign out",
+        "description": "Use this action when leaving this device or when you want a fresh session.",
+        "action_hint": "Closes your session in this browser.",
+        "submit": "Sign out"
+      }
+    }
+  },
+  "demo_lead": {
+    "badge": "Demo in progress",
+    "title": "Keep exploring, just leave a contact",
+    "description": "Your demo is already active. Add your email if you want our team to follow up after the trial. It is not required to keep exploring Stockman.",
+    "default_label": "Stockman demo",
+    "expires_at": "Expires on {{value}}",
+    "contact_label": "Follow-up email",
+    "contact_placeholder": "you@company.com",
+    "later": "Later",
+    "save": "Save my email",
+    "saving": "Saving...",
+    "required": "Add your email so our team can follow up with you.",
+    "save_error": "Unable to save your email right now.",
+    "not_available": "Unavailable"
   }
 }
