@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2312,5 +2312,243 @@
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device."
+  },
+  "home": {
+    "recovery": {
+      "badge": "Limited access",
+      "title": "Your {{plan}} subscription requires attention",
+      "desc": "Your data remains safe and you can still settle your subscription without losing your work. Full back-office access is temporarily restricted until payment is resolved.",
+      "phase": "Phase",
+      "grace_end": "Grace period ends",
+      "read_only": "Read-only after",
+      "can_do": "What you can still do now",
+      "can_do_1": "View your subscription and restart payment",
+      "can_do_2": "Keep your data and company association",
+      "can_do_3": "Contact support or a billing admin if needed",
+      "cta_regularize": "Settle subscription",
+      "cta_logout": "Log out"
+    },
+    "upsell": {
+      "badge": "Current plan: {{plan}} — mobile access only",
+      "h1": "Your professional back-office,",
+      "h1_gradient": "available anywhere on the web",
+      "subtitle": "The Enterprise plan unlocks Stockman's full web app — 12 powerful modules to manage your business or restaurant from any computer, tablet or screen.",
+      "mobile_note_title": "Starter and Pro stay on mobile",
+      "mobile_note_desc": "Keep managing your stores from the mobile app. Switch to Enterprise when you need the web back-office, advanced analytics and multi-store management.",
+      "cta_mobile": "Open mobile app",
+      "cta_upgrade": "Switch to Enterprise now",
+      "cta_logout": "Sign out",
+      "modules_eyebrow": "What awaits you",
+      "modules_title": "12 professional modules included",
+      "modules_subtitle": "Every module designed for businesses and restaurants that want to go further.",
+      "compare_eyebrow": "Plan comparison",
+      "compare_title": "Everything included",
+      "cta_final_title": "Ready to level up?",
+      "cta_final_desc": "Join businesses and restaurants using the Enterprise back-office to better manage their operations, team and service.",
+      "cta_final_btn": "See Enterprise pricing",
+      "mobile_remains": "Your {{plan}} mobile app remains available in the meantime."
+    },
+    "limited_access": {
+      "title": "Limited web access",
+      "desc": "Your Enterprise account is linked to the company, but no web module has been assigned to you yet. Ask an operations or billing admin to update your permissions."
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Access your Enterprise professional workspace",
+      "email_label": "Professional email",
+      "email_placeholder": "name@store.com",
+      "password_label": "Password",
+      "forgot_password": "Forgot?",
+      "btn_login": "Sign in",
+      "btn_loading": "Signing in...",
+      "create_account": "Need an Enterprise web account?",
+      "create_account_link": "Create my Enterprise account",
+      "compare_plans": "Compare plans",
+      "open_mobile": "Open mobile app"
+    },
+    "brand": {
+      "h2": "Stockman for the field,",
+      "h2_gradient": "mastered and optimised.",
+      "subtitle": "Starter and Pro are managed on mobile. Enterprise adds the web back-office for shops, restaurants, bakeries, wholesalers and production businesses.",
+      "business_label": "Supported sectors",
+      "mobile_note": "The mobile app covers daily field operations. The web serves the Enterprise back-office, advanced analytics and multi-store management.",
+      "feature_1": "Deep dashboard",
+      "feature_2": "AI analytics & forecasts",
+      "feature_3": "Sales & CRM integrated",
+      "feature_4": "Secure & synchronised"
+    },
+    "ai_assistant": "AI Assistant",
+    "business_groups": {
+      "commerce": {
+        "title": "Retail",
+        "description": "Grocery, supermarket, pharmacy, hardware store, fashion, electronics and wholesale.",
+        "tags": [
+          "Grocery",
+          "Supermarket",
+          "Pharmacy",
+          "Hardware",
+          "Wholesale"
+        ]
+      },
+      "restauration": {
+        "title": "Food service",
+        "description": "Restaurant, bakery, caterer and food businesses with service or light production.",
+        "tags": [
+          "Restaurant",
+          "Bakery",
+          "Catering",
+          "Beverages"
+        ]
+      },
+      "production": {
+        "title": "Production",
+        "description": "Tailoring, soap-making, carpentry, printing, crafts and workshops.",
+        "tags": [
+          "Tailoring",
+          "Soap-making",
+          "Carpentry",
+          "Printing",
+          "Crafts"
+        ]
+      }
+    },
+    "modules": {
+      "dashboard": {
+        "name": "Dashboard",
+        "tagline": "Real-time management",
+        "f1": "Instant KPIs: revenue, sales, net margin",
+        "f2": "Revenue charts: 7d / 30d / 90d",
+        "f3": "Low stock and expiry alerts at a glance",
+        "f4": "Daily AI summary of your activity",
+        "f5": "Automatic period-over-period comparison"
+      },
+      "inventory": {
+        "name": "Inventory",
+        "tagline": "Complete stock management",
+        "f1": "Bulk import via CSV or Excel",
+        "f2": "Integrated barcode scanner in the browser",
+        "f3": "Filters by location, category, supplier",
+        "f4": "Manage batches, serial numbers and expiries",
+        "f5": "Accounting inventory and guided physical count",
+        "f6": "ABC analysis (A/B/C product classification)"
+      },
+      "pos": {
+        "name": "POS (Cash Register)",
+        "tagline": "Professional point of sale",
+        "f1": "Fast checkout interface with product search",
+        "f2": "Discounts in % or fixed amount, server-validated",
+        "f3": "Split payments: cash + mobile + card",
+        "f4": "Multi-terminal: register 1, register 2… selectable",
+        "f5": "Returns with credit note generation",
+        "f6": "Personalised receipts: logo, name, footer message"
+      },
+      "accounting": {
+        "name": "Accounting",
+        "tagline": "Finance & advanced reporting",
+        "f1": "P&L income statement: revenue, costs, profit",
+        "f2": "Expense management by category with editing",
+        "f3": "Stock value at cost and selling price",
+        "f4": "Tabs: payments, losses/waste, charges",
+        "f5": "Ranking of most profitable products",
+        "f6": "CSV export of filtered financial data"
+      },
+      "crm": {
+        "name": "CRM",
+        "tagline": "Loyalty & marketing",
+        "f1": "Automatic segmentation Bronze / Silver / Gold",
+        "f2": "Customer birthday banner (next 7 days)",
+        "f3": "Full purchase history per customer",
+        "f4": "Dashboard: average basket, inactive customers",
+        "f5": "Loyalty campaigns and points programmes",
+        "f6": "Export customer list to CSV (active filters)"
+      },
+      "orders": {
+        "name": "Orders",
+        "tagline": "Smart replenishment",
+        "f1": "Create supplier purchase orders",
+        "f2": "Automatic replenishment suggestions",
+        "f3": "Status tracking: draft → sent → received",
+        "f4": "Partial receipt with automatic stock update",
+        "f5": "Order history with downloadable PDF"
+      },
+      "suppliers": {
+        "name": "Suppliers",
+        "tagline": "Dedicated supplier portal",
+        "f1": "Complete supplier profile (contact, terms)",
+        "f2": "Secure web portal for each supplier",
+        "f3": "Catalogue and supplier price consultation",
+        "f4": "Exchange history and shared documents",
+        "f5": "Direct integration with orders"
+      },
+      "alerts": {
+        "name": "Alerts",
+        "tagline": "Proactive monitoring",
+        "f1": "Configurable low stock alerts per product",
+        "f2": "Expiry alerts: 7d, 14d, 30d before expiry",
+        "f3": "Alert log with full history",
+        "f4": "Customisable thresholds per item or category",
+        "f5": "Mobile push notifications (Pro + Enterprise)"
+      },
+      "staff": {
+        "name": "Team",
+        "tagline": "Staff management & roles",
+        "f1": "6 granular permission modules (none/read/write)",
+        "f2": "Role templates: cashier, accountant, manager…",
+        "f3": "Delegation: a manager can manage the team",
+        "f4": "Anti-escalation: cannot create super-admin",
+        "f5": "Full audit log of all team actions"
+      },
+      "multi_stores": {
+        "name": "Multi-Stores",
+        "tagline": "Consolidated view & transfers",
+        "f1": "Consolidated dashboard: total revenue, all stores",
+        "f2": "Performance comparison table by store",
+        "f3": "1-click stock transfer between stores",
+        "f4": "Individual store settings (currency, receipt)",
+        "f5": "Switch between stores instantly",
+        "f6": "Unlimited stores (vs 1 Starter, 2 Pro)"
+      },
+      "history": {
+        "name": "History & Analysis",
+        "tagline": "Full traceability",
+        "f1": "Complete stock movement history",
+        "f2": "ABC analysis: focus efforts on A-class products",
+        "f3": "Loss and inventory adjustment report",
+        "f4": "Advanced filters: date, product, employee, store",
+        "f5": "Full export for accounting audit"
+      },
+      "settings": {
+        "name": "Settings",
+        "tagline": "Full customisation",
+        "f1": "Stock locations: aisle A, storage room, warehouse…",
+        "f2": "Multi-terminal per store: register 1, drive-through…",
+        "f3": "Receipt personalisation (logo, header, footer)",
+        "f4": "Currency per store (XOF, EUR, USD, GHS…)",
+        "f5": "Reminder rules and automatic notifications"
+      }
+    },
+    "compare": {
+      "col_feature": "Feature",
+      "current_plan": "Current plan",
+      "recommended": "Recommended",
+      "f_mobile_app": "Full mobile app",
+      "f_stores": "Stores",
+      "f_users": "Users / staff",
+      "f_team": "Team & permissions management",
+      "f_ai": "AI (Stockman Assistant)",
+      "f_push": "Low stock push alerts",
+      "f_web": "Web back-office app",
+      "f_dashboard": "Dashboard & web reporting",
+      "f_pos": "Web POS multi-terminal",
+      "f_pl": "P&L Accounting web",
+      "f_crm": "Advanced CRM web & birthdays",
+      "f_orders": "Supplier orders web",
+      "f_multi": "Consolidated multi-store view",
+      "f_transfers": "Inter-store stock transfers",
+      "f_audit": "Action audit log",
+      "f_locations": "Stock locations (web)",
+      "unlimited": "Unlimited",
+      "limited": "Limited"
+    }
   }
 }

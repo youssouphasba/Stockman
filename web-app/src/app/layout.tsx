@@ -20,8 +20,10 @@ export const metadata: Metadata = {
   description: "Le back-office web pour commerçants : stock, caisse, comptabilité, CRM. Plan Enterprise — essai gratuit 3 mois.",
   manifest: "/manifest.json",
   icons: {
-    apple: "/icon.png",
-    icon: "/icon.png",
+    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+    ],
   },
   openGraph: {
     siteName: "Stockman",

@@ -1,7 +1,43 @@
 # Demo Experience Roadmap
 
 Date de preparation : 2026-03-11
-Statut : planifie, non implemente
+Statut : partiellement implemente
+
+## Etat actuel
+
+Ce qui est deja en place :
+
+- backend v1 des sessions demo interactives
+- email obligatoire avant creation d'une session demo interactive
+- 3 types supportes :
+  - `Epicerie ou boutique`
+  - `Restaurant`
+  - `Entreprise`
+- durees :
+  - `24h` pour les demos mobile
+  - `48h` pour la demo Enterprise
+- sandbox isolee par utilisateur
+- donnees seed realistement cote backend :
+  - boutiques
+  - produits
+  - clients
+  - ventes
+  - factures
+  - fournisseurs
+  - commandes fournisseurs
+  - depenses
+  - stock movements
+  - tables/reservations pour restaurant
+- expiration + nettoyage automatique cote backend
+- blocage des paiements reels sur les comptes demo
+
+Ce qui reste a faire :
+
+- brancher le parcours frontend final `Tester en mode Demo`
+- monitoring admin detaille des sessions demo
+- prolongation admin `24h/48h`
+- experience guidee pas a pas
+- enrichissement visuel du selecteur public
 
 Ce document fige la strategie d'un vrai `mode demo` pour Stockman, afin de
 permettre a un prospect ou un nouveau client de tester le produit avec des
