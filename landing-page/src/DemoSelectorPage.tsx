@@ -111,7 +111,22 @@ export default function DemoSelectorPage() {
         }),
       });
 
-      if (!response.ok) throw new Error(t('demo_page.error_submit'));
+      if (!response.ok) {
+        let detail = '';
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const payload = await response.json() as { detail?: string };
+            detail = typeof payload.detail === 'string' ? payload.detail.trim() : '';
+          } else {
+            detail = (await response.text()).trim();
+          }
+        } catch {
+          detail = '';
+        }
+
+        throw new Error(detail || t('demo_page.error_submit'));
+      }
       const payload = await response.json() as DemoSessionResponse;
       const launchUrl = payload.demo_session.surface === 'web'
         ? buildLaunchUrl(APP_WEB_URL, payload)
@@ -122,8 +137,12 @@ export default function DemoSelectorPage() {
         launchUrl,
         demoSession: payload.demo_session,
       });
-    } catch {
-      setError(t('demo_page.error_submit'));
+    } catch (err) {
+      if (err instanceof Error && err.message) {
+        setError(err.message);
+      } else {
+        setError(t('demo_page.error_submit'));
+      }
     } finally {
       setLoading(false);
     }
@@ -207,7 +226,7 @@ export default function DemoSelectorPage() {
               <h3>{t('demo_page.success_title')}</h3>
               <p>{t('demo_page.success_desc', { title: t(`demo_page.choices.${success.choiceId}.title`) })}</p>
               <p className="text-muted">
-                {success.demoSession.label} · {success.demoSession.surface} · expiration {new Date(success.demoSession.expires_at).toLocaleString()}
+                {success.demoSession.label} - {success.demoSession.surface} - expiration {new Date(success.demoSession.expires_at).toLocaleString()}
               </p>
               <div className="hero-btns">
                 <a href={success.launchUrl} className="btn-primary">

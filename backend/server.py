@@ -18620,6 +18620,14 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 _is_production = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "development")) == "production"
 _raw_origins = os.environ.get("ALLOWED_ORIGIN", "")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+_first_party_prod_origins = [
+    "https://stockman.pro",
+    "https://www.stockman.pro",
+    "https://app.stockman.pro",
+    "https://stockman.sn",
+    "https://www.stockman.sn",
+    "https://app.stockman.sn",
+]
 
 # Toujours autoriser localhost pour les tests locaux (web + Expo)
 _localhost_origins = [
@@ -18634,6 +18642,7 @@ if not _is_production:
     _allowed_origins = ["*"]
     logger.info("CORS Policy: PERMISSIVE (Development/Testing)")
 else:
+    _allowed_origins = sorted(set(_allowed_origins + _first_party_prod_origins))
     logger.info(f"CORS Policy: RESTRICTED (Production) - Allowed: {', '.join(_allowed_origins)}")
 
 app.add_middleware(
