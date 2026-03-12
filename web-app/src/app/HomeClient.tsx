@@ -42,7 +42,7 @@ import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
 import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 
 export default function Home() {
-  const { t, ready } = useTranslation();
+  const { t, ready, i18n } = useTranslation();
   const [isLogged, setIsLogged] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [email, setEmail] = useState('demo@stockman.pro');
@@ -79,10 +79,16 @@ export default function Home() {
     user?.role !== 'supplier' &&
     ['restricted', 'read_only'].includes(subscriptionAccessPhase);
 
-  // Sidebar & Chat state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const formatDemoExpiration = (value?: string | null) => {
+    if (!value) return t('demo_lead.not_available');
+    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  };
 
   const hydrateAuthenticatedUser = useCallback((userData: any) => {
     setUser(userData);
@@ -110,7 +116,6 @@ export default function Home() {
     }
   }, [hydrateAuthenticatedUser]);
 
-  // Check for existing session
   useEffect(() => {
     const demoAccessToken = searchParams.get('demo_access_token');
     const demoRefreshToken = searchParams.get('demo_refresh_token');
@@ -138,7 +143,6 @@ export default function Home() {
     }
   }, [loadUser, searchParams]);
 
-  // Auto-open signup modal from search params
   useEffect(() => {
     if (searchParams.get('signup') === 'true') {
       setShowSignup(true);
@@ -173,13 +177,11 @@ export default function Home() {
     };
   }, [isLogged, user?.is_demo, user?.demo_session_id]);
 
-  // Poll unread message count every 30 seconds when logged in
   const fetchUnread = useCallback(async () => {
     try {
       const res = await chatApi.getUnreadCount();
       setUnreadMessages(res.unread || 0);
     } catch {
-      // silently ignore
     }
   }, []);
 
@@ -218,7 +220,7 @@ export default function Home() {
   const handleSaveDemoLead = async () => {
     const normalizedEmail = demoLeadEmail.trim().toLowerCase();
     if (!normalizedEmail) {
-      setDemoLeadError("Ajoutez votre email pour que notre équipe puisse vous recontacter.");
+      setDemoLeadError(t('demo_lead.required'));
       return;
     }
     setDemoLeadSaving(true);
@@ -229,7 +231,7 @@ export default function Home() {
       setDemoLeadEmail(updatedSession.contact_email || normalizedEmail);
       setShowDemoLeadPrompt(false);
     } catch (err) {
-      setDemoLeadError(err instanceof ApiError ? err.message : "Impossible d'enregistrer votre email pour le moment.");
+      setDemoLeadError(err instanceof ApiError ? err.message : t('demo_lead.save_error'));
     } finally {
       setDemoLeadSaving(false);
     }
@@ -538,29 +540,28 @@ export default function Home() {
             <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#111827] shadow-2xl shadow-black/40 overflow-hidden">
                 <div className="px-6 py-5 border-b border-white/10 bg-white/5">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-2">Demo en cours</p>
-                  <h2 className="text-2xl font-black text-white tracking-tight">Continuez la démo, laissez juste un contact</h2>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-2">{t('demo_lead.badge')}</p>
+                  <h2 className="text-2xl font-black text-white tracking-tight">{t('demo_lead.title')}</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   <p className="text-sm text-slate-300 leading-6">
-                    Votre démo est déjà active. Si vous voulez être recontacté après l'essai, ajoutez votre email ici.
-                    Ce n'est pas requis pour continuer à explorer Stockman.
+                    {t('demo_lead.description')}
                   </p>
                   <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                    <span className="font-semibold text-white">{demoSessionInfo?.label || 'Demo Stockman'}</span>
+                    <span className="font-semibold text-white">{demoSessionInfo?.label || t('demo_lead.default_label')}</span>
                     <span className="text-slate-500"> · </span>
-                    Expire le {demoSessionInfo?.expires_at ? new Date(demoSessionInfo.expires_at).toLocaleString('fr-FR') : '—'}
+                    {t('demo_lead.expires_at', { value: formatDemoExpiration(demoSessionInfo?.expires_at) })}
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="demo-contact-email" className="block text-xs uppercase tracking-widest text-slate-500 font-black">
-                      Email de suivi
+                      {t('demo_lead.contact_label')}
                     </label>
                     <input
                       id="demo-contact-email"
                       type="email"
                       value={demoLeadEmail}
                       onChange={(e) => setDemoLeadEmail(e.target.value)}
-                      placeholder="vous@entreprise.com"
+                      placeholder={t('demo_lead.contact_placeholder')}
                       autoComplete="email"
                       className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/40"
                     />
@@ -572,7 +573,7 @@ export default function Home() {
                       onClick={() => setShowDemoLeadPrompt(false)}
                       className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 font-black"
                     >
-                      Plus tard
+                      {t('demo_lead.later')}
                     </button>
                     <button
                       type="button"
@@ -580,7 +581,7 @@ export default function Home() {
                       disabled={demoLeadSaving}
                       className="flex-1 rounded-2xl bg-primary px-4 py-3 text-white font-black disabled:opacity-60"
                     >
-                      {demoLeadSaving ? 'Enregistrement...' : 'Enregistrer mon email'}
+                      {demoLeadSaving ? t('demo_lead.saving') : t('demo_lead.save')}
                     </button>
                   </div>
                 </div>

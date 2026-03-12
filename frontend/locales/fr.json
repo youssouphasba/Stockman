@@ -2679,5 +2679,20 @@
         "no_materials_desc": "Affectez des matériaux depuis la fiche chantier.",
         "no_situations": "Aucune situation de travaux",
         "no_situations_desc": "Ajoutez des factures progressives depuis la fiche chantier."
+    },
+    "demo_lead": {
+        "badge": "Démo en cours",
+        "title": "Continuez la démo, laissez juste un contact",
+        "description_mobile": "Votre démo est déjà active. Ajoutez votre email si vous souhaitez être recontacté après l'essai. Ce n'est pas requis pour continuer à utiliser l'application.",
+        "default_label": "Démo Stockman",
+        "expires_at": "Expire le {{value}}",
+        "contact_label": "Email de suivi",
+        "contact_placeholder": "vous@entreprise.com",
+        "later": "Plus tard",
+        "save": "Enregistrer",
+        "saving": "Enregistrement...",
+        "required": "Ajoutez votre email pour que notre équipe puisse vous recontacter.",
+        "save_error": "Impossible d'enregistrer votre email pour le moment.",
+        "not_available": "Indisponible"
     }
 }

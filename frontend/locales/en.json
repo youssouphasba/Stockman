@@ -2652,5 +2652,20 @@
         "no_materials_desc": "Allocate materials from the project card.",
         "no_situations": "No progress invoices",
         "no_situations_desc": "Add progressive invoices from the project card."
+    },
+    "demo_lead": {
+        "badge": "Demo in progress",
+        "title": "Keep exploring, just leave a contact",
+        "description_mobile": "Your demo is already active. Add your email if you want our team to follow up after the trial. It is not required to keep using the app.",
+        "default_label": "Stockman demo",
+        "expires_at": "Expires on {{value}}",
+        "contact_label": "Follow-up email",
+        "contact_placeholder": "you@company.com",
+        "later": "Later",
+        "save": "Save",
+        "saving": "Saving...",
+        "required": "Add your email so our team can follow up with you.",
+        "save_error": "Unable to save your email right now.",
+        "not_available": "Unavailable"
     }
 }

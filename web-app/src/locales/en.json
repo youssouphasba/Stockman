@@ -2550,5 +2550,365 @@
       "unlimited": "Unlimited",
       "limited": "Limited"
     }
+  },
+  "settings_workspace": {
+    "actions": {
+      "saving": "Saving..."
+    },
+    "header": {
+      "title": "Settings",
+      "subtitle": "Manage your account, documents, and alerts from a workspace organised by use case.",
+      "guide_title": "How settings are organised",
+      "guide_body": "Each section groups one type of setting so you can find and update the right information faster."
+    },
+    "summary": {
+      "account": {
+        "label": "Personal account",
+        "empty_name": "User",
+        "description": "Profile, language, currency, and personal notifications."
+      },
+      "organization": {
+        "label": "Organisation",
+        "editable": "Editing available",
+        "read_only": "Read-only",
+        "description": "Shared modules, documents, and alerts for the account."
+      },
+      "store": {
+        "label": "Active store",
+        "empty": "No active store",
+        "description": "Store settings apply here."
+      }
+    },
+    "tabs": {
+      "account": {
+        "label": "Account",
+        "description": "Profile, language, and personal preferences."
+      },
+      "organization": {
+        "label": "Organisation",
+        "description": "Global modules and rules for the account."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Personal channels and alert recipients."
+      },
+      "documents": {
+        "label": "Documents",
+        "description": "Receipts, invoices, taxes, and terminals."
+      },
+      "stores": {
+        "label": "Stores",
+        "description": "Locations and store-specific settings."
+      },
+      "security": {
+        "label": "Security",
+        "description": "Password and current session."
+      }
+    },
+    "scopes": {
+      "user": "User",
+      "account": "Account",
+      "store": "Store",
+      "stock": "Stock"
+    },
+    "languages": {
+      "fr": "French",
+      "en": "English",
+      "wo": "Wolof"
+    },
+    "currencies": {
+      "XOF": "XOF - West African CFA franc",
+      "XAF": "XAF - Central African CFA franc",
+      "EUR": "EUR - Euro",
+      "USD": "USD - US dollar",
+      "GHS": "GHS - Ghanaian cedi",
+      "NGN": "NGN - Nigerian naira",
+      "MAD": "MAD - Moroccan dirham",
+      "TND": "TND - Tunisian dinar",
+      "DZD": "DZD - Algerian dinar",
+      "EGP": "EGP - Egyptian pound",
+      "KES": "KES - Kenyan shilling",
+      "ZAR": "ZAR - South African rand"
+    },
+    "modules": {
+      "stock_management": "Stock management",
+      "alerts": "Alerts",
+      "history": "History",
+      "statistics": "Statistics",
+      "rules": "Rules",
+      "export": "Exports",
+      "crm": "Customer CRM",
+      "suppliers": "Suppliers",
+      "orders": "Orders",
+      "accounting": "Accounting",
+      "reservations": "Reservations",
+      "kitchen": "Kitchen / KDS"
+    },
+    "notification_groups": {
+      "default": {
+        "label": "Default recipients",
+        "description": "Used when no more specific group is targeted."
+      },
+      "stock": {
+        "label": "Stock",
+        "description": "Stock-outs, low stock, overstock, and dormant products."
+      },
+      "procurement": {
+        "label": "Procurement",
+        "description": "Supplier delays, orders, and deliveries."
+      },
+      "finance": {
+        "label": "Finance",
+        "description": "Expenses, discrepancies, and cash-flow alerts."
+      },
+      "crm": {
+        "label": "CRM",
+        "description": "Customer follow-ups and sales alerts."
+      },
+      "operations": {
+        "label": "Operations",
+        "description": "Cross-functional anomalies and general alerts."
+      },
+      "billing": {
+        "label": "Billing",
+        "description": "Subscription, payments, and contractual topics."
+      }
+    },
+    "feedback": {
+      "load_error": "Unable to load settings.",
+      "generic_error": "Something went wrong.",
+      "profile_saved": "Your profile has been updated.",
+      "regional_saved": "Language and currency saved.",
+      "billing_saved": "The billing contact has been updated.",
+      "taxes_saved": "Tax settings have been saved.",
+      "terminals_saved": "Terminals have been saved.",
+      "location_deleted": "The location has been removed.",
+      "location_added": "The new location has been added.",
+      "store_saved": "The store has been updated.",
+      "receipt_saved": "The default receipt has been updated.",
+      "invoice_saved": "The invoice template has been updated.",
+      "org_recipients_saved": "Organisation recipients have been saved.",
+      "store_recipients_saved": "Active store recipients have been saved.",
+      "modules_saved": "Module visibility has been updated.",
+      "reminders_saved": "Smart reminders have been updated.",
+      "personal_notifications_saved": "Your notification preferences have been saved.",
+      "password_mismatch": "The confirmation does not match the new password.",
+      "password_saved": "Your password has been updated."
+    },
+    "account": {
+      "profile": {
+        "title": "Personal profile",
+        "description": "These details identify you in the application.",
+        "action_hint": "Saves your profile details.",
+        "full_name_label": "Full name",
+        "full_name_hint": "Visible in your profile and activity logs.",
+        "login_email_label": "Login email",
+        "login_email_hint": "This email is shown here for reference.",
+        "submit": "Update my profile"
+      },
+      "regional": {
+        "title": "Language and currency",
+        "description": "Choose the interface language and the reference currency for your reports.",
+        "action_hint": "Saves the language and currency.",
+        "language_label": "Dashboard language",
+        "language_hint": "Changes web interface labels and copy.",
+        "currency_label": "Primary currency",
+        "currency_hint": "Used as the reference in financial dashboards.",
+        "submit": "Save language and currency"
+      },
+      "billing": {
+        "title": "Billing contact",
+        "description": "This contact receives subscription, payment, and contract information.",
+        "action_hint": "Saves the billing contact.",
+        "contact_name_label": "Contact name",
+        "contact_name_hint": "Person or team to reach for the subscription.",
+        "contact_email_label": "Billing email",
+        "contact_email_hint": "Address receiving payment and contract information.",
+        "submit": "Update billing"
+      },
+      "billing_notice": {
+        "title": "Billing managed by your organisation",
+        "text": "Only a billing manager can edit this section."
+      }
+    },
+    "documents": {
+      "tax_and_terminals": {
+        "title": "Taxes and terminals",
+        "description": "Set VAT, pricing mode, and the list of registers used by the active store.",
+        "action_hint": "Each subsection saves one specific setting."
+      },
+      "tax": {
+        "title": "Enable tax / VAT",
+        "description": "Applies tax calculation to sales in the active store.",
+        "rate_label": "Rate",
+        "rate_hint": "Percentage applied when tax is enabled.",
+        "mode_label": "Pricing mode",
+        "mode_hint": "VAT included or tax excluded.",
+        "mode_ttc": "VAT incl.",
+        "mode_ht": "Tax excl.",
+        "submit": "Save tax settings"
+      },
+      "terminals": {
+        "title": "Registers / terminals",
+        "description": "Add or remove terminals before saving the list.",
+        "placeholder": "e.g. Register 1",
+        "submit": "Save terminals"
+      },
+      "receipt": {
+        "title": "Default receipt",
+        "description": "Customise the name shown on the receipt and the footer message.",
+        "action_hint": "Saves the receipt template.",
+        "business_name_label": "Business name",
+        "business_name_hint": "Shown at the top of the receipt for the active store.",
+        "footer_label": "Receipt footer",
+        "footer_hint": "Text shown at the bottom of the ticket.",
+        "submit": "Save receipt"
+      },
+      "invoice": {
+        "title": "Default invoice",
+        "description": "Manage the name, label, address, and footer used for invoices.",
+        "action_hint": "Saves the invoice template.",
+        "document_default": "Invoice",
+        "business_name_label": "Invoice name",
+        "business_name_hint": "Displayed in the invoice header.",
+        "document_label_label": "Document label",
+        "document_label_hint": "e.g. Invoice, Proforma, or Delivery note.",
+        "prefix_label": "Prefix",
+        "prefix_hint": "Prefix used before the invoice number.",
+        "payment_terms_label": "Payment terms",
+        "payment_terms_hint": "e.g. Due on receipt or Net 15 days.",
+        "address_label": "Billing address",
+        "address_hint": "Address displayed on invoices.",
+        "footer_label": "Invoice footer",
+        "footer_hint": "Closing message shown on the document.",
+        "submit": "Save invoice"
+      },
+      "notice": {
+        "title": "Documents reserved for administrators",
+        "text": "Default receipts and invoices remain managed by operational administrators."
+      }
+    },
+    "stores": {
+      "locations": {
+        "title": "Stock locations",
+        "description": "Organise shelves, warehouses, and receiving zones.",
+        "action_hint": "Adds or removes locations for your stock setup.",
+        "placeholder": "e.g. Aisle A, North warehouse",
+        "types": {
+          "shelf": "Shelf",
+          "warehouse": "Warehouse",
+          "dock": "Receiving"
+        }
+      },
+      "profile": {
+        "title": "Store profile",
+        "description": "Edit the name and address of each store here.",
+        "action_hint": "Saves the currently opened store profile.",
+        "empty_address": "No address set",
+        "store_name_label": "Store name",
+        "store_name_hint": "Name shown in lists and store documents.",
+        "address_label": "Address",
+        "address_hint": "Address or landmark for this store.",
+        "submit": "Save this store"
+      }
+    },
+    "notifications": {
+      "organization": {
+        "title": "Organisation recipients",
+        "description": "Choose who receives alerts by topic. You can enter multiple addresses separated by commas.",
+        "action_hint": "Saves organisation recipients.",
+        "placeholder": "e.g. ops@company.com, stock@company.com",
+        "submit": "Save recipients"
+      },
+      "store": {
+        "title": "Active store emails: {{store}}",
+        "description": "These addresses receive alerts for the active store in addition to global account recipients.",
+        "action_hint": "Saves active store recipients.",
+        "placeholder": "e.g. plateau-store@company.com",
+        "submit": "Save active store"
+      },
+      "personal": {
+        "title": "My notifications",
+        "description": "Choose your personal channels and the minimum alert severity for each one.",
+        "action_hint": "Saves your personal notification preferences.",
+        "channels": {
+          "in_app": {
+            "label": "In-app",
+            "description": "Always visible in the notification centre."
+          },
+          "push": {
+            "label": "Mobile push",
+            "description": "For alerts that need a fast reaction."
+          },
+          "email": {
+            "label": "Personal email",
+            "description": "To also receive a summary in your inbox."
+          }
+        },
+        "push_severity_label": "Minimum severity for push",
+        "push_severity_hint": "Choose when you want to be alerted on mobile.",
+        "email_severity_label": "Minimum severity for email",
+        "email_severity_hint": "Choose when you also want an email.",
+        "severity": {
+          "info": "Information",
+          "warning": "Warning",
+          "critical": "Critical"
+        },
+        "submit": "Save my notifications"
+      }
+    },
+    "organization": {
+      "modules": {
+        "title": "Visible modules",
+        "description": "Hide unused modules without deleting any data.",
+        "action_hint": "Saves module visibility.",
+        "submit": "Save visible modules"
+      },
+      "reminders": {
+        "title": "Smart reminders",
+        "description": "Define the thresholds that trigger your smart alerts.",
+        "action_hint": "Saves reminder rules.",
+        "submit": "Save reminders"
+      },
+      "notice": {
+        "title": "Organisation in read-only mode",
+        "text": "Shared modules and smart reminders are reserved for operational administrators."
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Change my password",
+        "description": "Enter your current password, then choose a new secure password.",
+        "action_hint": "Saves your new password.",
+        "current_label": "Current password",
+        "current_hint": "Required to confirm this action.",
+        "new_label": "New password",
+        "new_hint": "At least 8 characters.",
+        "confirm_label": "Confirmation",
+        "confirm_hint": "Must exactly match the new password.",
+        "submit": "Change my password"
+      },
+      "logout": {
+        "title": "Sign out",
+        "description": "Use this action when leaving this device or when you want a fresh session.",
+        "action_hint": "Closes your session in this browser.",
+        "submit": "Sign out"
+      }
+    }
+  },
+  "demo_lead": {
+    "badge": "Demo in progress",
+    "title": "Keep exploring, just leave a contact",
+    "description": "Your demo is already active. Add your email if you want our team to follow up after the trial. It is not required to keep exploring Stockman.",
+    "default_label": "Stockman demo",
+    "expires_at": "Expires on {{value}}",
+    "contact_label": "Follow-up email",
+    "contact_placeholder": "you@company.com",
+    "later": "Later",
+    "save": "Save my email",
+    "saving": "Saving...",
+    "required": "Add your email so our team can follow up with you.",
+    "save_error": "Unable to save your email right now.",
+    "not_available": "Unavailable"
   }
 }

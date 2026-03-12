@@ -2538,5 +2538,365 @@
       "unlimited": "Illimité",
       "limited": "Limité"
     }
+  },
+  "settings_workspace": {
+    "actions": {
+      "saving": "Enregistrement..."
+    },
+    "header": {
+      "title": "Paramètres",
+      "subtitle": "Gérez votre compte, vos documents et vos alertes depuis un espace organisé par usage.",
+      "guide_title": "Organisation des réglages",
+      "guide_body": "Chaque section regroupe un type de réglage pour vous aider à modifier plus vite ce qui compte."
+    },
+    "summary": {
+      "account": {
+        "label": "Compte personnel",
+        "empty_name": "Utilisateur",
+        "description": "Profil, langue, devise et notifications personnelles."
+      },
+      "organization": {
+        "label": "Organisation",
+        "editable": "Modification disponible",
+        "read_only": "Lecture seule",
+        "description": "Modules, documents et alertes partagés du compte."
+      },
+      "store": {
+        "label": "Boutique active",
+        "empty": "Aucune boutique active",
+        "description": "Les réglages boutique s'appliquent ici."
+      }
+    },
+    "tabs": {
+      "account": {
+        "label": "Compte",
+        "description": "Profil, langue et préférences personnelles."
+      },
+      "organization": {
+        "label": "Organisation",
+        "description": "Modules et règles globales du compte."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Canaux personnels et destinataires d'alerte."
+      },
+      "documents": {
+        "label": "Documents",
+        "description": "Reçus, factures, taxes et terminaux."
+      },
+      "stores": {
+        "label": "Boutiques",
+        "description": "Emplacements et réglages par boutique."
+      },
+      "security": {
+        "label": "Sécurité",
+        "description": "Mot de passe et session courante."
+      }
+    },
+    "scopes": {
+      "user": "Utilisateur",
+      "account": "Compte",
+      "store": "Boutique",
+      "stock": "Stock"
+    },
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "wo": "Wolof"
+    },
+    "currencies": {
+      "XOF": "XOF - CFA BCEAO",
+      "XAF": "XAF - CFA BEAC",
+      "EUR": "EUR - Euro",
+      "USD": "USD - Dollar US",
+      "GHS": "GHS - Cedi",
+      "NGN": "NGN - Naira",
+      "MAD": "MAD - Dirham",
+      "TND": "TND - Dinar",
+      "DZD": "DZD - Dinar",
+      "EGP": "EGP - Livre égyptienne",
+      "KES": "KES - Shilling kényan",
+      "ZAR": "ZAR - Rand"
+    },
+    "modules": {
+      "stock_management": "Gestion du stock",
+      "alerts": "Alertes",
+      "history": "Historique",
+      "statistics": "Statistiques",
+      "rules": "Règles",
+      "export": "Exports",
+      "crm": "CRM clients",
+      "suppliers": "Fournisseurs",
+      "orders": "Commandes",
+      "accounting": "Comptabilité",
+      "reservations": "Réservations",
+      "kitchen": "Cuisine / KDS"
+    },
+    "notification_groups": {
+      "default": {
+        "label": "Destinataires par défaut",
+        "description": "Utilisés si aucun groupe plus précis n'est ciblé."
+      },
+      "stock": {
+        "label": "Stock",
+        "description": "Ruptures, stock bas, surstock et produits dormants."
+      },
+      "procurement": {
+        "label": "Approvisionnement",
+        "description": "Retards fournisseurs, commandes et réceptions."
+      },
+      "finance": {
+        "label": "Finance",
+        "description": "Dépenses, écarts et alertes de trésorerie."
+      },
+      "crm": {
+        "label": "CRM",
+        "description": "Relances clients et alertes commerciales."
+      },
+      "operations": {
+        "label": "Opérations",
+        "description": "Anomalies transverses et alertes générales."
+      },
+      "billing": {
+        "label": "Facturation",
+        "description": "Abonnement, paiements et sujets contractuels."
+      }
+    },
+    "feedback": {
+      "load_error": "Impossible de charger les paramètres.",
+      "generic_error": "Une erreur est survenue.",
+      "profile_saved": "Votre profil a été mis à jour.",
+      "regional_saved": "Langue et devise enregistrées.",
+      "billing_saved": "Le contact de facturation a été mis à jour.",
+      "taxes_saved": "La configuration de taxe a été enregistrée.",
+      "terminals_saved": "Les terminaux ont été enregistrés.",
+      "location_deleted": "L'emplacement a été supprimé.",
+      "location_added": "Le nouvel emplacement a été ajouté.",
+      "store_saved": "La boutique a été mise à jour.",
+      "receipt_saved": "Le reçu par défaut a été mis à jour.",
+      "invoice_saved": "Le modèle de facture a été mis à jour.",
+      "org_recipients_saved": "Les destinataires de l'organisation ont été enregistrés.",
+      "store_recipients_saved": "Les destinataires de la boutique active ont été enregistrés.",
+      "modules_saved": "La visibilité des modules a été mise à jour.",
+      "reminders_saved": "Les rappels intelligents ont été mis à jour.",
+      "personal_notifications_saved": "Vos préférences de notification ont été enregistrées.",
+      "password_mismatch": "La confirmation ne correspond pas au nouveau mot de passe.",
+      "password_saved": "Votre mot de passe a été modifié."
+    },
+    "account": {
+      "profile": {
+        "title": "Profil personnel",
+        "description": "Ces informations servent à vous identifier dans l'application.",
+        "action_hint": "Enregistre les informations du profil.",
+        "full_name_label": "Nom complet",
+        "full_name_hint": "Visible dans votre profil et les journaux d'activité.",
+        "login_email_label": "Email de connexion",
+        "login_email_hint": "Cet email est affiché ici à titre informatif.",
+        "submit": "Mettre à jour mon profil"
+      },
+      "regional": {
+        "title": "Langue et devise",
+        "description": "Choisissez la langue de l'interface et la devise de référence pour vos rapports.",
+        "action_hint": "Enregistre la langue et la devise du compte.",
+        "language_label": "Langue du tableau de bord",
+        "language_hint": "Change les textes et libellés de l'interface web.",
+        "currency_label": "Devise principale",
+        "currency_hint": "Utilisée comme référence dans les tableaux financiers.",
+        "submit": "Enregistrer la langue et la devise"
+      },
+      "billing": {
+        "title": "Contact de facturation",
+        "description": "Ce contact reçoit les informations liées à l'abonnement, aux paiements et au contrat.",
+        "action_hint": "Enregistre le contact de facturation.",
+        "contact_name_label": "Nom du contact",
+        "contact_name_hint": "Personne ou équipe à joindre pour l'abonnement.",
+        "contact_email_label": "Email de facturation",
+        "contact_email_hint": "Adresse recevant les informations de paiement et de contrat.",
+        "submit": "Mettre à jour la facturation"
+      },
+      "billing_notice": {
+        "title": "Facturation gérée par votre organisation",
+        "text": "Seul un responsable facturation peut modifier ce bloc."
+      }
+    },
+    "documents": {
+      "tax_and_terminals": {
+        "title": "Taxes et terminaux",
+        "description": "Réglez ici la TVA, le mode de prix et la liste des caisses utilisées.",
+        "action_hint": "Chaque sous-section enregistre un réglage précis."
+      },
+      "tax": {
+        "title": "Activer la taxe / TVA",
+        "description": "Active le calcul de taxe sur les ventes de la boutique active.",
+        "rate_label": "Taux",
+        "rate_hint": "Pourcentage appliqué si la taxe est active.",
+        "mode_label": "Mode de saisie",
+        "mode_hint": "TTC = prix taxes incluses, HT = hors taxes.",
+        "mode_ttc": "TTC",
+        "mode_ht": "HT",
+        "submit": "Enregistrer la taxe"
+      },
+      "terminals": {
+        "title": "Caisses / terminaux",
+        "description": "Ajoutez ou retirez des terminaux avant d'enregistrer la liste.",
+        "placeholder": "Ex. : Caisse 1",
+        "submit": "Enregistrer les terminaux"
+      },
+      "receipt": {
+        "title": "Reçu par défaut",
+        "description": "Personnalisez le nom affiché sur le reçu et le message de bas de ticket.",
+        "action_hint": "Enregistre le modèle de reçu.",
+        "business_name_label": "Nom de l'établissement",
+        "business_name_hint": "Nom affiché en haut du reçu pour la boutique active.",
+        "footer_label": "Message de bas de reçu",
+        "footer_hint": "Texte affiché en fin de ticket.",
+        "submit": "Enregistrer le reçu"
+      },
+      "invoice": {
+        "title": "Facture par défaut",
+        "description": "Rassemblez ici le nom, le libellé, l'adresse et les mentions de vos factures.",
+        "action_hint": "Enregistre le modèle de facture.",
+        "document_default": "Facture",
+        "business_name_label": "Nom sur la facture",
+        "business_name_hint": "Nom affiché dans l'en-tête des factures.",
+        "document_label_label": "Libellé du document",
+        "document_label_hint": "Ex. : Facture, Proforma ou Bon de livraison.",
+        "prefix_label": "Préfixe",
+        "prefix_hint": "Préfixe utilisé avant le numéro de facture.",
+        "payment_terms_label": "Conditions de paiement",
+        "payment_terms_hint": "Ex. : Paiement à réception ou sous 15 jours.",
+        "address_label": "Adresse de facturation",
+        "address_hint": "Adresse affichée sur les factures.",
+        "footer_label": "Pied de facture",
+        "footer_hint": "Message de fin de document.",
+        "submit": "Enregistrer la facture"
+      },
+      "notice": {
+        "title": "Documents réservés aux administrateurs",
+        "text": "Les reçus et factures par défaut restent gérés par les administrateurs opérationnels."
+      }
+    },
+    "stores": {
+      "locations": {
+        "title": "Emplacements du stock",
+        "description": "Organisez vos rayons, entrepôts et zones de réception.",
+        "action_hint": "Ajoute ou retire des emplacements selon votre organisation du stock.",
+        "placeholder": "Ex. : Rayon A, Entrepôt Nord",
+        "types": {
+          "shelf": "Rayon",
+          "warehouse": "Entrepôt",
+          "dock": "Réception"
+        }
+      },
+      "profile": {
+        "title": "Fiche de boutique",
+        "description": "Modifiez ici le nom et l'adresse de chaque boutique.",
+        "action_hint": "Enregistre la fiche de la boutique ouverte.",
+        "empty_address": "Aucune adresse définie",
+        "store_name_label": "Nom de la boutique",
+        "store_name_hint": "Nom visible dans les listes et documents de cette boutique.",
+        "address_label": "Adresse",
+        "address_hint": "Adresse ou repère terrain de cette boutique.",
+        "submit": "Sauvegarder cette boutique"
+      }
+    },
+    "notifications": {
+      "organization": {
+        "title": "Destinataires de l'organisation",
+        "description": "Indiquez qui reçoit les alertes par sujet. Vous pouvez saisir plusieurs adresses séparées par des virgules.",
+        "action_hint": "Enregistre les destinataires de l'organisation.",
+        "placeholder": "ex. : responsable@entreprise.com, stock@entreprise.com",
+        "submit": "Enregistrer les destinataires"
+      },
+      "store": {
+        "title": "Emails de la boutique active : {{store}}",
+        "description": "Ces emails reçoivent les alertes de la boutique active en plus des destinataires globaux du compte.",
+        "action_hint": "Enregistre les destinataires de la boutique active.",
+        "placeholder": "ex. : boutique-plateau@entreprise.com",
+        "submit": "Enregistrer la boutique active"
+      },
+      "personal": {
+        "title": "Mes notifications",
+        "description": "Choisissez vos canaux personnels et le niveau d'alerte à partir duquel vous souhaitez être contacté.",
+        "action_hint": "Enregistre vos préférences personnelles.",
+        "channels": {
+          "in_app": {
+            "label": "In-app",
+            "description": "Toujours visible dans le centre de notifications."
+          },
+          "push": {
+            "label": "Push mobile",
+            "description": "Pour les alertes qui demandent une réaction rapide."
+          },
+          "email": {
+            "label": "Email perso",
+            "description": "Pour recevoir aussi un récapitulatif dans votre boîte."
+          }
+        },
+        "push_severity_label": "Sévérité minimum pour push",
+        "push_severity_hint": "À partir de quel niveau vous voulez être sollicité sur mobile.",
+        "email_severity_label": "Sévérité minimum pour email",
+        "email_severity_hint": "À partir de quel niveau vous voulez aussi un email.",
+        "severity": {
+          "info": "Information",
+          "warning": "Attention",
+          "critical": "Critique"
+        },
+        "submit": "Enregistrer mes notifications"
+      }
+    },
+    "organization": {
+      "modules": {
+        "title": "Modules visibles",
+        "description": "Masquez les modules inutiles sans supprimer les données.",
+        "action_hint": "Enregistre la visibilité des modules.",
+        "submit": "Enregistrer les modules visibles"
+      },
+      "reminders": {
+        "title": "Rappels intelligents",
+        "description": "Définissez les seuils qui déclenchent vos alertes intelligentes.",
+        "action_hint": "Enregistre les règles de rappel.",
+        "submit": "Enregistrer les rappels"
+      },
+      "notice": {
+        "title": "Organisation en lecture seule",
+        "text": "Les modules partagés et les rappels intelligents sont réservés aux administrateurs opérationnels."
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Changer mon mot de passe",
+        "description": "Saisissez votre mot de passe actuel puis choisissez un nouveau mot de passe sécurisé.",
+        "action_hint": "Enregistre votre nouveau mot de passe.",
+        "current_label": "Mot de passe actuel",
+        "current_hint": "Nécessaire pour confirmer l'opération.",
+        "new_label": "Nouveau mot de passe",
+        "new_hint": "Au moins 8 caractères.",
+        "confirm_label": "Confirmation",
+        "confirm_hint": "Doit correspondre exactement au nouveau mot de passe.",
+        "submit": "Modifier mon mot de passe"
+      },
+      "logout": {
+        "title": "Déconnexion",
+        "description": "Utilisez cette action si vous quittez ce poste ou si vous voulez repartir sur une session propre.",
+        "action_hint": "Ferme votre session sur ce navigateur.",
+        "submit": "Se déconnecter"
+      }
+    }
+  },
+  "demo_lead": {
+    "badge": "Démo en cours",
+    "title": "Continuez la démo, laissez juste un contact",
+    "description": "Votre démo est déjà active. Ajoutez votre email si vous souhaitez être recontacté après l'essai. Ce n'est pas requis pour continuer à explorer Stockman.",
+    "default_label": "Démo Stockman",
+    "expires_at": "Expire le {{value}}",
+    "contact_label": "Email de suivi",
+    "contact_placeholder": "vous@entreprise.com",
+    "later": "Plus tard",
+    "save": "Enregistrer mon email",
+    "saving": "Enregistrement...",
+    "required": "Ajoutez votre email pour que notre équipe puisse vous recontacter.",
+    "save_error": "Impossible d'enregistrer votre email pour le moment.",
+    "not_available": "Indisponible"
   }
 }

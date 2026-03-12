@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Bell,
     ChevronRight,
@@ -49,53 +50,53 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
     minimum_severity_for_email: 'critical',
 };
 
-const NOTIFICATION_CONTACT_FIELDS: { key: keyof NotificationContactMap; label: string; description: string }[] = [
-    { key: 'default', label: 'Destinataires par defaut', description: 'Utilises si aucun groupe plus precis n est cible.' },
-    { key: 'stock', label: 'Stock', description: 'Ruptures, stock bas, surstock et produits dormants.' },
-    { key: 'procurement', label: 'Approvisionnement', description: 'Retards fournisseurs, commandes et receptions.' },
-    { key: 'finance', label: 'Finance', description: 'Depenses, ecarts et alertes de tresorerie.' },
-    { key: 'crm', label: 'CRM', description: 'Relances clients et alertes commerciales.' },
-    { key: 'operations', label: 'Operations', description: 'Anomalies transverses et alertes generales.' },
-    { key: 'billing', label: 'Facturation', description: 'Abonnement, paiements et sujets contractuels.' },
+const NOTIFICATION_CONTACT_FIELDS: { key: keyof NotificationContactMap }[] = [
+    { key: 'default' },
+    { key: 'stock' },
+    { key: 'procurement' },
+    { key: 'finance' },
+    { key: 'crm' },
+    { key: 'operations' },
+    { key: 'billing' },
 ];
 
 const CURRENCIES = [
-    { code: 'XOF', label: 'XOF - CFA BCEAO' },
-    { code: 'XAF', label: 'XAF - CFA BEAC' },
-    { code: 'EUR', label: 'EUR - Euro' },
-    { code: 'USD', label: 'USD - Dollar US' },
-    { code: 'GHS', label: 'GHS - Cedi' },
-    { code: 'NGN', label: 'NGN - Naira' },
-    { code: 'MAD', label: 'MAD - Dirham' },
-    { code: 'TND', label: 'TND - Dinar' },
-    { code: 'DZD', label: 'DZD - Dinar' },
-    { code: 'EGP', label: 'EGP - Livre' },
-    { code: 'KES', label: 'KES - Shilling' },
-    { code: 'ZAR', label: 'ZAR - Rand' },
+    { code: 'XOF' },
+    { code: 'XAF' },
+    { code: 'EUR' },
+    { code: 'USD' },
+    { code: 'GHS' },
+    { code: 'NGN' },
+    { code: 'MAD' },
+    { code: 'TND' },
+    { code: 'DZD' },
+    { code: 'EGP' },
+    { code: 'KES' },
+    { code: 'ZAR' },
 ];
 
 const MODULE_OPTIONS = [
-    { key: 'stock_management', label: 'Gestion du stock', showFor: 'all' },
-    { key: 'alerts', label: 'Alertes', showFor: 'all' },
-    { key: 'history', label: 'Historique', showFor: 'all' },
-    { key: 'statistics', label: 'Statistiques', showFor: 'all' },
-    { key: 'rules', label: 'Regles', showFor: 'all' },
-    { key: 'export', label: 'Exports', showFor: 'all' },
-    { key: 'crm', label: 'CRM Clients', showFor: 'all' },
-    { key: 'suppliers', label: 'Fournisseurs', showFor: 'all' },
-    { key: 'orders', label: 'Commandes', showFor: 'all' },
-    { key: 'accounting', label: 'Comptabilite', showFor: 'all' },
-    { key: 'reservations', label: 'Reservations', showFor: 'restaurant' },
-    { key: 'kitchen', label: 'Cuisine / KDS', showFor: 'restaurant' },
+    { key: 'stock_management', showFor: 'all' },
+    { key: 'alerts', showFor: 'all' },
+    { key: 'history', showFor: 'all' },
+    { key: 'statistics', showFor: 'all' },
+    { key: 'rules', showFor: 'all' },
+    { key: 'export', showFor: 'all' },
+    { key: 'crm', showFor: 'all' },
+    { key: 'suppliers', showFor: 'all' },
+    { key: 'orders', showFor: 'all' },
+    { key: 'accounting', showFor: 'all' },
+    { key: 'reservations', showFor: 'restaurant' },
+    { key: 'kitchen', showFor: 'restaurant' },
 ];
 
-const TABS: { id: TabId; label: string; description: string }[] = [
-    { id: 'account', label: 'Compte', description: 'Profil, langue et preferences personnelles.' },
-    { id: 'organization', label: 'Organisation', description: 'Modules et regles globales du compte.' },
-    { id: 'notifications', label: 'Notifications', description: 'Canaux personnels et emails d alerte.' },
-    { id: 'documents', label: 'Documents', description: 'Recus, factures, taxes et terminaux.' },
-    { id: 'stores', label: 'Boutiques', description: 'Emplacements et reglages par boutique.' },
-    { id: 'security', label: 'Securite', description: 'Mot de passe et session courante.' },
+const TABS: { id: TabId }[] = [
+    { id: 'account' },
+    { id: 'organization' },
+    { id: 'notifications' },
+    { id: 'documents' },
+    { id: 'stores' },
+    { id: 'security' },
 ];
 
 const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
@@ -160,6 +161,7 @@ function Notice({ title, text }: { title: string; text: string }) {
 }
 
 export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
+    const { t } = useTranslation();
     const access = getAccessContext(user);
     const canManageOrgSettings = access.isOrgAdmin;
     const canManageBilling = access.isBillingAdmin;
@@ -202,6 +204,37 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     const [newLocType, setNewLocType] = useState('shelf');
     const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
 
+    const notificationContactFields = NOTIFICATION_CONTACT_FIELDS.map((field) => ({
+        ...field,
+        label: t(`settings_workspace.notification_groups.${field.key}.label`),
+        description: t(`settings_workspace.notification_groups.${field.key}.description`),
+    }));
+    const currencies = CURRENCIES.map((currencyOption) => ({
+        ...currencyOption,
+        label: t(`settings_workspace.currencies.${currencyOption.code}`),
+    }));
+    const tabs = TABS.map((tab) => ({
+        ...tab,
+        label: t(`settings_workspace.tabs.${tab.id}.label`),
+        description: t(`settings_workspace.tabs.${tab.id}.description`),
+    }));
+    const notificationChannelOptions = [
+        {
+            key: 'in_app',
+            label: t('settings_workspace.notifications.personal.channels.in_app.label'),
+            desc: t('settings_workspace.notifications.personal.channels.in_app.description'),
+        },
+        {
+            key: 'push',
+            label: t('settings_workspace.notifications.personal.channels.push.label'),
+            desc: t('settings_workspace.notifications.personal.channels.push.description'),
+        },
+        {
+            key: 'email',
+            label: t('settings_workspace.notifications.personal.channels.email.label'),
+            desc: t('settings_workspace.notifications.personal.channels.email.description'),
+        },
+    ] as const;
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
     const visibleModules = MODULE_OPTIONS.filter((item) => item.showFor === 'all' || ['restaurant', 'traiteur'].includes(sector));
 
@@ -233,7 +266,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             setReceiptFooter(res?.receipt_footer || '');
             setInvoiceName(res?.invoice_business_name || '');
             setInvoiceAddress(res?.invoice_business_address || '');
-            setInvoiceLabel(res?.invoice_label || 'Facture');
+            setInvoiceLabel(res?.invoice_label || t('settings_workspace.documents.invoice.document_default'));
             setInvoicePrefix(res?.invoice_prefix || 'FAC');
             setInvoiceFooter(res?.invoice_footer || '');
             setInvoicePaymentTerms(res?.invoice_payment_terms || '');
@@ -246,7 +279,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             setStoreList(storesRes || []);
             setSector(features?.sector || '');
         } catch (error: any) {
-            setBanner({ tone: 'error', message: error?.message || 'Impossible de charger les parametres.' });
+            setBanner({ tone: 'error', message: error?.message || t('settings_workspace.feedback.load_error') });
         } finally {
             setLoading(false);
         }
@@ -259,7 +292,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             await action();
             setBanner({ tone: 'success', message: successMessage });
         } catch (error: any) {
-            setBanner({ tone: 'error', message: error?.message || 'Une erreur est survenue.' });
+            setBanner({ tone: 'error', message: error?.message || t('settings_workspace.feedback.generic_error') });
         } finally {
             setSavingKey('');
         }
@@ -278,6 +311,16 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
         setSettings(next);
     }
 
+    function getLocationTypeLabel(type: string) {
+        if (type === 'warehouse') {
+            return t('settings_workspace.stores.locations.types.warehouse');
+        }
+        if (type === 'dock') {
+            return t('settings_workspace.stores.locations.types.dock');
+        }
+        return t('settings_workspace.stores.locations.types.shelf');
+    }
+
     if (loading && !settings) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -290,15 +333,15 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
         <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
             <header className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
-                    <h1 className="text-3xl font-black tracking-tight text-white">Parametres reorientes</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-white">{t('settings_workspace.header.title')}</h1>
                     <p className="mt-3 text-sm leading-7 text-slate-400">
-                        Chaque bloc a maintenant un objectif clair, une explication simple et un bouton d action explicite.
+                        {t('settings_workspace.header.subtitle')}
                     </p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm text-slate-300">
-                    <p className="font-black text-white">Mode d emploi</p>
+                    <p className="font-black text-white">{t('settings_workspace.header.guide_title')}</p>
                     <p className="mt-2 leading-6 text-slate-400">
-                        Vous modifiez un bloc, puis vous enregistrez ce bloc uniquement. Plus de faux boutons ni de champs sans validation visible.
+                        {t('settings_workspace.header.guide_body')}
                     </p>
                 </div>
             </header>
@@ -315,24 +358,28 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
 
             <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Compte personnel</p>
-                    <h2 className="mt-2 text-lg font-black text-white">{user?.name || settings?.user_name || 'Utilisateur'}</h2>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">Profil, langue, devise et notifications personnelles.</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('settings_workspace.summary.account.label')}</p>
+                    <h2 className="mt-2 text-lg font-black text-white">{user?.name || settings?.user_name || t('settings_workspace.summary.account.empty_name')}</h2>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{t('settings_workspace.summary.account.description')}</p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Organisation</p>
-                    <h2 className="mt-2 text-lg font-black text-white">{canManageOrgSettings ? 'Edition disponible' : 'Lecture seule'}</h2>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">Modules, documents et alertes partages du compte.</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('settings_workspace.summary.organization.label')}</p>
+                    <h2 className="mt-2 text-lg font-black text-white">
+                        {canManageOrgSettings
+                            ? t('settings_workspace.summary.organization.editable')
+                            : t('settings_workspace.summary.organization.read_only')}
+                    </h2>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{t('settings_workspace.summary.organization.description')}</p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Boutique active</p>
-                    <h2 className="mt-2 text-lg font-black text-white">{activeStore?.name || 'Aucune boutique active'}</h2>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">Les reglages boutique s appliquent ici.</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('settings_workspace.summary.store.label')}</p>
+                    <h2 className="mt-2 text-lg font-black text-white">{activeStore?.name || t('settings_workspace.summary.store.empty')}</h2>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{t('settings_workspace.summary.store.description')}</p>
                 </div>
             </div>
 
             <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-                {TABS.map((tab) => (
+                {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         type="button"
@@ -354,13 +401,13 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                     <>
                         <SectionCard
                             icon={<User size={24} className="text-primary" />}
-                            title="Profil personnel"
-                            scope="User"
-                            description="Ces informations servent a vous identifier dans l application. Elles ne changent pas les regles globales du compte."
-                            actionHint="Le bouton ci-dessous met a jour uniquement votre profil."
+                            title={t('settings_workspace.account.profile.title')}
+                            scope={t('settings_workspace.scopes.user')}
+                            description={t('settings_workspace.account.profile.description')}
+                            actionHint={t('settings_workspace.account.profile.action_hint')}
                         >
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <Field label="Nom complet" hint="Visible dans votre profil et les journaux d activite.">
+                                <Field label={t('settings_workspace.account.profile.full_name_label')} hint={t('settings_workspace.account.profile.full_name_hint')}>
                                     <input
                                         type="text"
                                         value={profileName}
@@ -368,7 +415,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                         className={inputClass}
                                     />
                                 </Field>
-                                <Field label="Email de connexion" hint="Cet email est informatif ici. Il ne se modifie pas depuis cet ecran.">
+                                <Field label={t('settings_workspace.account.profile.login_email_label')} hint={t('settings_workspace.account.profile.login_email_hint')}>
                                     <input
                                         type="email"
                                         value={settings?.email || user?.email || ''}
@@ -382,33 +429,33 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 onClick={() => void runSave('profile', async () => {
                                     await authApi.updateProfile({ name: profileName.trim() });
                                     setSettings((current: any) => ({ ...current, user_name: profileName.trim() }));
-                                }, 'Votre profil a ete mis a jour.')}
+                                }, t('settings_workspace.feedback.profile_saved'))}
                                 disabled={savingKey === 'profile'}
                                 className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'profile' ? 'Enregistrement...' : 'Mettre a jour mon profil'}
+                                {savingKey === 'profile' ? t('settings_workspace.actions.saving') : t('settings_workspace.account.profile.submit')}
                             </button>
                         </SectionCard>
 
                         <SectionCard
                             icon={<Globe size={24} className="text-primary" />}
-                            title="Langue et devise"
-                            scope="User"
-                            description="La langue change l interface. La devise sert aux rapports et tableaux de bord. Le bloc entier se valide avec un seul bouton clair."
-                            actionHint="Le bouton ci-dessous enregistre uniquement la langue et la devise."
+                            title={t('settings_workspace.account.regional.title')}
+                            scope={t('settings_workspace.scopes.user')}
+                            description={t('settings_workspace.account.regional.description')}
+                            actionHint={t('settings_workspace.account.regional.action_hint')}
                         >
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <Field label="Langue du tableau de bord" hint="Change les textes et libelles de l interface web.">
+                                <Field label={t('settings_workspace.account.regional.language_label')} hint={t('settings_workspace.account.regional.language_hint')}>
                                     <select value={language} onChange={(event) => setLanguage(event.target.value)} className={selectClass}>
-                                        <option value="fr">Francais</option>
-                                        <option value="en">English</option>
-                                        <option value="wo">Wolof</option>
+                                        <option value="fr">{t('settings_workspace.languages.fr')}</option>
+                                        <option value="en">{t('settings_workspace.languages.en')}</option>
+                                        <option value="wo">{t('settings_workspace.languages.wo')}</option>
                                     </select>
                                 </Field>
-                                <Field label="Devise principale" hint="Utilisee comme reference dans les tableaux financiers.">
+                                <Field label={t('settings_workspace.account.regional.currency_label')} hint={t('settings_workspace.account.regional.currency_hint')}>
                                     <select value={currency} onChange={(event) => setCurrency(event.target.value)} className={selectClass}>
-                                        {CURRENCIES.map((currencyOption) => (
+                                        {currencies.map((currencyOption) => (
                                             <option key={currencyOption.code} value={currencyOption.code}>{currencyOption.label}</option>
                                         ))}
                                     </select>
@@ -422,25 +469,25 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                     await authApi.updateProfile({ currency });
                                     setSettings((current: any) => ({ ...current, currency }));
                                     localStorage.setItem('user_currency', currency);
-                                }, 'Langue et devise enregistrees.')}
+                                }, t('settings_workspace.feedback.regional_saved'))}
                                 disabled={savingKey === 'regional'}
                                 className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'regional' ? 'Enregistrement...' : 'Enregistrer langue et devise'}
+                                {savingKey === 'regional' ? t('settings_workspace.actions.saving') : t('settings_workspace.account.regional.submit')}
                             </button>
                         </SectionCard>
 
                         {canManageBilling ? (
                             <SectionCard
                                 icon={<Mail size={24} className="text-primary" />}
-                                title="Contact de facturation"
-                                scope="Compte"
-                                description="Ce contact est utilise pour l abonnement, les paiements et les sujets contractuels. Il ne se confond plus avec les autres emails de la page."
-                                actionHint="Le bouton ci-dessous met a jour uniquement le contact de facturation."
+                                title={t('settings_workspace.account.billing.title')}
+                                scope={t('settings_workspace.scopes.account')}
+                                description={t('settings_workspace.account.billing.description')}
+                                actionHint={t('settings_workspace.account.billing.action_hint')}
                             >
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Field label="Nom du contact" hint="Personne ou equipe a joindre pour l abonnement.">
+                                    <Field label={t('settings_workspace.account.billing.contact_name_label')} hint={t('settings_workspace.account.billing.contact_name_hint')}>
                                         <input
                                             type="text"
                                             value={billingContactName}
@@ -448,7 +495,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                             className={inputClass}
                                         />
                                     </Field>
-                                    <Field label="Email de facturation" hint="Adresse recevant les infos de paiement et de contrat.">
+                                    <Field label={t('settings_workspace.account.billing.contact_email_label')} hint={t('settings_workspace.account.billing.contact_email_hint')}>
                                         <input
                                             type="email"
                                             value={billingContactEmail}
@@ -465,18 +512,18 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                             billing_contact_email: billingContactEmail,
                                         });
                                         syncFromSettings(updated);
-                                    }, 'Le contact de facturation a ete mis a jour.')}
+                                    }, t('settings_workspace.feedback.billing_saved'))}
                                     disabled={savingKey === 'billing'}
                                     className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                                 >
                                     <Save size={18} />
-                                    {savingKey === 'billing' ? 'Enregistrement...' : 'Mettre a jour la facturation'}
+                                    {savingKey === 'billing' ? t('settings_workspace.actions.saving') : t('settings_workspace.account.billing.submit')}
                                 </button>
                             </SectionCard>
                         ) : (
                             <Notice
-                                title="Facturation geree par votre organisation"
-                                text="Seul un responsable facturation peut modifier ce bloc."
+                                title={t('settings_workspace.account.billing_notice.title')}
+                                text={t('settings_workspace.account.billing_notice.text')}
                             />
                         )}
                     </>
@@ -485,30 +532,30 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                 {activeTab === 'documents' && canManageOrgSettings ? (
                     <SectionCard
                         icon={<SettingsIcon size={24} className="text-primary" />}
-                        title="Taxes et terminaux"
-                        scope="Boutique"
-                        description="Reglez ici si la TVA est active, son taux, le mode TTC/HT et la liste des caisses utilisables."
-                        actionHint="Chaque sous-bloc ci-dessous a son propre bouton de validation."
+                        title={t('settings_workspace.documents.tax_and_terminals.title')}
+                        scope={t('settings_workspace.scopes.store')}
+                        description={t('settings_workspace.documents.tax_and_terminals.description')}
+                        actionHint={t('settings_workspace.documents.tax_and_terminals.action_hint')}
                     >
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                             <div className="flex items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-sm font-black text-white">Activer la taxe / TVA</p>
-                                    <p className="mt-1 text-xs leading-5 text-slate-500">Active le calcul de taxe sur les ventes de la boutique active.</p>
+                                    <p className="text-sm font-black text-white">{t('settings_workspace.documents.tax.title')}</p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-500">{t('settings_workspace.documents.tax.description')}</p>
                                 </div>
                                 <button type="button" onClick={() => setTaxEnabled((current) => !current)} className={`relative h-6 w-11 rounded-full transition-colors ${taxEnabled ? 'bg-primary' : 'bg-white/10'}`}>
                                     <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${taxEnabled ? 'left-6' : 'left-1'}`} />
                                 </button>
                             </div>
                             <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <Field label="Taux" hint="Pourcentage applique si la taxe est active.">
+                                <Field label={t('settings_workspace.documents.tax.rate_label')} hint={t('settings_workspace.documents.tax.rate_hint')}>
                                     <input type="number" min="0" max="30" step="0.5" value={taxRate} onChange={(event) => setTaxRate(parseFloat(event.target.value) || 0)} className={inputClass} />
                                 </Field>
-                                <Field label="Mode de saisie" hint="TTC = prix taxes incluses, HT = hors taxe.">
+                                <Field label={t('settings_workspace.documents.tax.mode_label')} hint={t('settings_workspace.documents.tax.mode_hint')}>
                                     <div className="grid grid-cols-2 gap-3">
                                         {(['ttc', 'ht'] as const).map((mode) => (
                                             <button key={mode} type="button" onClick={() => setTaxMode(mode)} className={`rounded-2xl border px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition-all ${taxMode === mode ? 'border-primary/40 bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-slate-300'}`}>
-                                                {mode}
+                                                {t(`settings_workspace.documents.tax.mode_${mode}`)}
                                             </button>
                                         ))}
                                     </div>
@@ -519,18 +566,18 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 onClick={() => void runSave('taxes', async () => {
                                     const updated = await settingsApi.update({ tax_enabled: taxEnabled, tax_rate: taxRate, tax_mode: taxMode });
                                     syncFromSettings(updated);
-                                }, 'La configuration de taxe a ete enregistree.')}
+                                }, t('settings_workspace.feedback.taxes_saved'))}
                                 disabled={savingKey === 'taxes'}
                                 className="btn-primary mt-6 inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'taxes' ? 'Enregistrement...' : 'Enregistrer la taxe'}
+                                {savingKey === 'taxes' ? t('settings_workspace.actions.saving') : t('settings_workspace.documents.tax.submit')}
                             </button>
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                            <p className="text-sm font-black text-white">Caisses / terminaux</p>
-                            <p className="mt-2 text-xs leading-5 text-slate-500">La liste est modifiee ici puis enregistree en un seul clic.</p>
+                            <p className="text-sm font-black text-white">{t('settings_workspace.documents.terminals.title')}</p>
+                            <p className="mt-2 text-xs leading-5 text-slate-500">{t('settings_workspace.documents.terminals.description')}</p>
                             <div className="mt-4 space-y-3">
                                 {terminals.map((terminal, index) => (
                                     <div key={`${terminal}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#0F172A]/60 px-4 py-3">
@@ -542,7 +589,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 ))}
                             </div>
                             <div className="mt-4 flex flex-col gap-3 md:flex-row">
-                                <input type="text" value={newTerminal} onChange={(event) => setNewTerminal(event.target.value)} className={inputClass} placeholder="Ex: Caisse 1" />
+                                <input type="text" value={newTerminal} onChange={(event) => setNewTerminal(event.target.value)} className={inputClass} placeholder={t('settings_workspace.documents.terminals.placeholder')} />
                                 <button type="button" onClick={() => {
                                     if (!newTerminal.trim()) return;
                                     setTerminals((current) => [...current, newTerminal.trim()]);
@@ -556,12 +603,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 onClick={() => void runSave('terminals', async () => {
                                     const updated = await settingsApi.update({ terminals });
                                     syncFromSettings(updated);
-                                }, 'Les terminaux ont ete enregistres.')}
+                                }, t('settings_workspace.feedback.terminals_saved'))}
                                 disabled={savingKey === 'terminals'}
                                 className="btn-primary mt-6 inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'terminals' ? 'Enregistrement...' : 'Enregistrer les terminaux'}
+                                {savingKey === 'terminals' ? t('settings_workspace.actions.saving') : t('settings_workspace.documents.terminals.submit')}
                             </button>
                         </div>
                     </SectionCard>
@@ -571,10 +618,10 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                     <>
                         <SectionCard
                             icon={<MapPin size={24} className="text-primary" />}
-                            title="Emplacements du stock"
-                            scope="Stock"
-                            description="Organisez vos rayons, entrepots et zones de reception. Chaque ajout ou suppression est une action directe."
-                            actionHint="Les boutons ci-dessous ajoutent ou suppriment immediatement un emplacement."
+                            title={t('settings_workspace.stores.locations.title')}
+                            scope={t('settings_workspace.scopes.stock')}
+                            description={t('settings_workspace.stores.locations.description')}
+                            actionHint={t('settings_workspace.stores.locations.action_hint')}
                         >
                             <div className="space-y-3">
                                 {locations.map((location) => (
@@ -582,30 +629,30 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                         <div className="flex items-center gap-3">
                                             <span className="text-sm font-medium text-white">{location.name}</span>
                                             <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                                {location.type === 'shelf' ? 'Rayon' : location.type === 'warehouse' ? 'Entrepot' : 'Reception'}
+                                                {getLocationTypeLabel(location.type)}
                                             </span>
                                         </div>
                                         <button type="button" onClick={() => void runSave('delete-location', async () => {
                                             await locationsApi.delete(location.location_id);
                                             setLocations((current) => current.filter((item) => item.location_id !== location.location_id));
-                                        }, 'L emplacement a ete supprime.')} className="text-slate-500 transition-colors hover:text-rose-400">
+                                        }, t('settings_workspace.feedback.location_deleted'))} className="text-slate-500 transition-colors hover:text-rose-400">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
                                 ))}
                             </div>
                             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr,220px,auto]">
-                                <input type="text" value={newLocName} onChange={(event) => setNewLocName(event.target.value)} className={inputClass} placeholder="Ex: Rayon A, Entrepot Nord" />
+                                <input type="text" value={newLocName} onChange={(event) => setNewLocName(event.target.value)} className={inputClass} placeholder={t('settings_workspace.stores.locations.placeholder')} />
                                 <select value={newLocType} onChange={(event) => setNewLocType(event.target.value)} className={selectClass}>
-                                    <option value="shelf">Rayon</option>
-                                    <option value="warehouse">Entrepot</option>
-                                    <option value="dock">Reception</option>
+                                    <option value="shelf">{t('settings_workspace.stores.locations.types.shelf')}</option>
+                                    <option value="warehouse">{t('settings_workspace.stores.locations.types.warehouse')}</option>
+                                    <option value="dock">{t('settings_workspace.stores.locations.types.dock')}</option>
                                 </select>
                                 <button type="button" onClick={() => void runSave('location', async () => {
                                     const location = await locationsApi.create({ name: newLocName.trim(), type: newLocType });
                                     setLocations((current) => [...current, location]);
                                     setNewLocName('');
-                                }, 'Le nouvel emplacement a ete ajoute.')} className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-3 text-white transition-colors hover:bg-primary/90">
+                                }, t('settings_workspace.feedback.location_added'))} className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-3 text-white transition-colors hover:bg-primary/90">
                                     <Plus size={18} />
                                 </button>
                             </div>
@@ -614,10 +661,10 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                         {canManageOrgSettings && storeList.length ? (
                             <SectionCard
                                 icon={<Store size={24} className="text-primary" />}
-                                title="Fiche de boutique"
-                                scope="Boutique"
-                                description="Modifiez ici le nom et l adresse d une boutique. Les recus, factures, taxes et terminaux restent centralises dans l onglet Documents."
-                                actionHint="Chaque boutique a son propre bouton de sauvegarde."
+                                title={t('settings_workspace.stores.profile.title')}
+                                scope={t('settings_workspace.scopes.store')}
+                                description={t('settings_workspace.stores.profile.description')}
+                                actionHint={t('settings_workspace.stores.profile.action_hint')}
                             >
                                 <div className="space-y-3">
                                     {storeList.map((store) => (
@@ -629,16 +676,16 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                             >
                                                 <div>
                                                     <p className="text-sm font-black text-white">{store.name}</p>
-                                                    <p className="mt-1 text-xs text-slate-500">{store.address || 'Aucune adresse definie'}</p>
+                                                    <p className="mt-1 text-xs text-slate-500">{store.address || t('settings_workspace.stores.profile.empty_address')}</p>
                                                 </div>
                                                 <ChevronRight size={18} className={`text-slate-500 transition-transform ${editingStore?.store_id === store.store_id ? 'rotate-90' : ''}`} />
                                             </button>
                                             {editingStore?.store_id === store.store_id ? (
                                                 <div className="space-y-4 border-t border-white/10 bg-white/[0.03] px-5 py-5">
-                                                    <Field label="Nom de la boutique" hint="Nom visible dans les listes et documents de cette boutique.">
+                                                    <Field label={t('settings_workspace.stores.profile.store_name_label')} hint={t('settings_workspace.stores.profile.store_name_hint')}>
                                                         <input type="text" value={editingStore.name || ''} onChange={(event) => setEditingStore((current: any) => ({ ...current, name: event.target.value }))} className={inputClass} />
                                                     </Field>
-                                                    <Field label="Adresse" hint="Adresse ou repere terrain de cette boutique.">
+                                                    <Field label={t('settings_workspace.stores.profile.address_label')} hint={t('settings_workspace.stores.profile.address_hint')}>
                                                         <input type="text" value={editingStore.address || ''} onChange={(event) => setEditingStore((current: any) => ({ ...current, address: event.target.value }))} className={inputClass} />
                                                     </Field>
                                                     <button
@@ -647,12 +694,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                                             const updated = await storesApi.update(store.store_id, { name: editingStore.name, address: editingStore.address });
                                                             setStoreList((current) => current.map((item) => item.store_id === store.store_id ? { ...item, ...updated } : item));
                                                             setEditingStore(null);
-                                                        }, 'La boutique a ete mise a jour.')}
+                                                        }, t('settings_workspace.feedback.store_saved'))}
                                                         disabled={savingKey === 'store-editor'}
                                                         className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                                                     >
                                                         <Save size={18} />
-                                                        {savingKey === 'store-editor' ? 'Enregistrement...' : 'Sauvegarder cette boutique'}
+                                                        {savingKey === 'store-editor' ? t('settings_workspace.actions.saving') : t('settings_workspace.stores.profile.submit')}
                                                     </button>
                                                 </div>
                                             ) : null}
@@ -669,16 +716,16 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                         <>
                             <SectionCard
                                 icon={<Printer size={24} className="text-primary" />}
-                                title="Recu par defaut"
-                                scope="Boutique"
-                                description="Personnalisez le nom qui apparait sur le recu et le message de bas de ticket. Ce bloc ne touche pas au modele de facture."
-                                actionHint="Le bouton ci-dessous enregistre uniquement le recu."
+                                title={t('settings_workspace.documents.receipt.title')}
+                                scope={t('settings_workspace.scopes.store')}
+                                description={t('settings_workspace.documents.receipt.description')}
+                                actionHint={t('settings_workspace.documents.receipt.action_hint')}
                             >
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Field label="Nom de l etablissement" hint="Nom affiche en haut du recu pour la boutique active.">
+                                    <Field label={t('settings_workspace.documents.receipt.business_name_label')} hint={t('settings_workspace.documents.receipt.business_name_hint')}>
                                         <input type="text" value={receiptName} onChange={(event) => setReceiptName(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Message de bas de recu" hint="Texte affiche en fin de ticket.">
+                                    <Field label={t('settings_workspace.documents.receipt.footer_label')} hint={t('settings_workspace.documents.receipt.footer_hint')}>
                                         <input type="text" value={receiptFooter} onChange={(event) => setReceiptFooter(event.target.value)} className={inputClass} />
                                     </Field>
                                 </div>
@@ -687,39 +734,39 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                     onClick={() => void runSave('receipt', async () => {
                                         const updated = await settingsApi.update({ receipt_business_name: receiptName, receipt_footer: receiptFooter });
                                         syncFromSettings(updated);
-                                    }, 'Le recu par defaut a ete mis a jour.')}
+                                    }, t('settings_workspace.feedback.receipt_saved'))}
                                     disabled={savingKey === 'receipt'}
                                     className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                                 >
                                     <Save size={18} />
-                                    {savingKey === 'receipt' ? 'Enregistrement...' : 'Enregistrer le recu'}
+                                    {savingKey === 'receipt' ? t('settings_workspace.actions.saving') : t('settings_workspace.documents.receipt.submit')}
                                 </button>
                             </SectionCard>
 
                             <SectionCard
                                 icon={<FileText size={24} className="text-primary" />}
-                                title="Facture par defaut"
-                                scope="Boutique"
-                                description="Rassemblez ici tout ce qui concerne vos factures: nom, prefixe, adresse et pied de document."
-                                actionHint="Le bouton ci-dessous enregistre uniquement le modele de facture."
+                                title={t('settings_workspace.documents.invoice.title')}
+                                scope={t('settings_workspace.scopes.store')}
+                                description={t('settings_workspace.documents.invoice.description')}
+                                actionHint={t('settings_workspace.documents.invoice.action_hint')}
                             >
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Field label="Nom sur la facture" hint="Nom affiche dans l entete des factures.">
+                                    <Field label={t('settings_workspace.documents.invoice.business_name_label')} hint={t('settings_workspace.documents.invoice.business_name_hint')}>
                                         <input type="text" value={invoiceName} onChange={(event) => setInvoiceName(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Libelle du document" hint="Ex: Facture, Proforma ou Bon de livraison.">
+                                    <Field label={t('settings_workspace.documents.invoice.document_label_label')} hint={t('settings_workspace.documents.invoice.document_label_hint')}>
                                         <input type="text" value={invoiceLabel} onChange={(event) => setInvoiceLabel(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Prefixe" hint="Prefixe numerique utilise avant le numero de facture.">
+                                    <Field label={t('settings_workspace.documents.invoice.prefix_label')} hint={t('settings_workspace.documents.invoice.prefix_hint')}>
                                         <input type="text" value={invoicePrefix} onChange={(event) => setInvoicePrefix(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Conditions de paiement" hint="Ex: Paiement a reception ou sous 15 jours.">
+                                    <Field label={t('settings_workspace.documents.invoice.payment_terms_label')} hint={t('settings_workspace.documents.invoice.payment_terms_hint')}>
                                         <input type="text" value={invoicePaymentTerms} onChange={(event) => setInvoicePaymentTerms(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Adresse de facturation" hint="Adresse affichee sur les factures.">
+                                    <Field label={t('settings_workspace.documents.invoice.address_label')} hint={t('settings_workspace.documents.invoice.address_hint')}>
                                         <input type="text" value={invoiceAddress} onChange={(event) => setInvoiceAddress(event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Pied de facture" hint="Message de fin de document.">
+                                    <Field label={t('settings_workspace.documents.invoice.footer_label')} hint={t('settings_workspace.documents.invoice.footer_hint')}>
                                         <input type="text" value={invoiceFooter} onChange={(event) => setInvoiceFooter(event.target.value)} className={inputClass} />
                                     </Field>
                                 </div>
@@ -735,19 +782,19 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                             invoice_payment_terms: invoicePaymentTerms,
                                         });
                                         syncFromSettings(updated);
-                                    }, 'Le modele de facture a ete mis a jour.')}
+                                    }, t('settings_workspace.feedback.invoice_saved'))}
                                     disabled={savingKey === 'invoice'}
                                     className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                                 >
                                     <Save size={18} />
-                                    {savingKey === 'invoice' ? 'Enregistrement...' : 'Enregistrer la facture'}
+                                    {savingKey === 'invoice' ? t('settings_workspace.actions.saving') : t('settings_workspace.documents.invoice.submit')}
                                 </button>
                             </SectionCard>
                         </>
                     ) : (
                         <Notice
-                            title="Documents reserves aux administrateurs"
-                            text="Les recus et factures par defaut restent geres par les administrateurs operationnels."
+                            title={t('settings_workspace.documents.notice.title')}
+                            text={t('settings_workspace.documents.notice.text')}
                         />
                     )
                 ) : null}
@@ -756,20 +803,20 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                     <>
                         <SectionCard
                             icon={<Mail size={24} className="text-primary" />}
-                            title="Destinataires de l organisation"
-                            scope="Compte"
-                            description="Indiquez qui recoit les alertes par sujet. Utilisez plusieurs adresses separees par des virgules si besoin."
-                            actionHint="Le bouton ci-dessous enregistre uniquement les emails de l organisation."
+                            title={t('settings_workspace.notifications.organization.title')}
+                            scope={t('settings_workspace.scopes.account')}
+                            description={t('settings_workspace.notifications.organization.description')}
+                            actionHint={t('settings_workspace.notifications.organization.action_hint')}
                         >
                             <div className="grid grid-cols-1 gap-5">
-                                {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+                                {notificationContactFields.map((field) => (
                                     <Field key={field.key} label={field.label} hint={field.description}>
                                         <textarea
                                             rows={2}
                                             value={(notificationContacts[field.key] || []).join(', ')}
                                             onChange={(event) => updateNotificationGroup(setNotificationContacts, field.key, event.target.value)}
                                             className={textareaClass}
-                                            placeholder="ex: responsable@entreprise.com, stock@entreprise.com"
+                                            placeholder={t('settings_workspace.notifications.organization.placeholder')}
                                         />
                                     </Field>
                                 ))}
@@ -779,32 +826,32 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 onClick={() => void runSave('org-notifications', async () => {
                                     const updated = await settingsApi.update({ notification_contacts: notificationContacts });
                                     syncFromSettings(updated);
-                                }, 'Les destinataires de l organisation ont ete enregistres.')}
+                                }, t('settings_workspace.feedback.org_recipients_saved'))}
                                 disabled={savingKey === 'org-notifications'}
                                 className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'org-notifications' ? 'Enregistrement...' : 'Enregistrer les destinataires'}
+                                {savingKey === 'org-notifications' ? t('settings_workspace.actions.saving') : t('settings_workspace.notifications.organization.submit')}
                             </button>
                         </SectionCard>
 
                         {activeStore ? (
                             <SectionCard
                                 icon={<Store size={24} className="text-primary" />}
-                                title={`Emails de la boutique active: ${activeStore.name}`}
-                                scope="Boutique"
-                                description="Ces emails se declenchent pour la boutique active en plus des destinataires globaux du compte."
-                                actionHint="Le bouton ci-dessous enregistre uniquement les emails de la boutique active."
+                                title={t('settings_workspace.notifications.store.title', { store: activeStore.name })}
+                                scope={t('settings_workspace.scopes.store')}
+                                description={t('settings_workspace.notifications.store.description')}
+                                actionHint={t('settings_workspace.notifications.store.action_hint')}
                             >
                                 <div className="grid grid-cols-1 gap-5">
-                                    {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+                                    {notificationContactFields.map((field) => (
                                         <Field key={field.key} label={field.label} hint={field.description}>
                                             <textarea
                                                 rows={2}
                                                 value={(storeNotificationContacts[field.key] || []).join(', ')}
                                                 onChange={(event) => updateNotificationGroup(setStoreNotificationContacts, field.key, event.target.value)}
                                                 className={textareaClass}
-                                                placeholder="ex: boutique-plateau@entreprise.com"
+                                                placeholder={t('settings_workspace.notifications.store.placeholder')}
                                             />
                                         </Field>
                                     ))}
@@ -814,12 +861,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                     onClick={() => void runSave('store-notifications', async () => {
                                         const updated = await settingsApi.update({ store_notification_contacts: storeNotificationContacts });
                                         syncFromSettings(updated);
-                                    }, 'Les destinataires de la boutique active ont ete enregistres.')}
+                                    }, t('settings_workspace.feedback.store_recipients_saved'))}
                                     disabled={savingKey === 'store-notifications'}
                                     className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                                 >
                                     <Save size={18} />
-                                    {savingKey === 'store-notifications' ? 'Enregistrement...' : 'Enregistrer la boutique active'}
+                                    {savingKey === 'store-notifications' ? t('settings_workspace.actions.saving') : t('settings_workspace.notifications.store.submit')}
                                 </button>
                             </SectionCard>
                         ) : null}
@@ -831,17 +878,17 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                         <>
                             <SectionCard
                                 icon={<Eye size={24} className="text-primary" />}
-                                title="Modules visibles"
-                                scope="Compte"
-                                description="Masquez les modules inutiles sans supprimer les donnees. Ici, rien n est applique tant que vous n enregistrez pas le bloc."
-                                actionHint="Le bouton ci-dessous applique uniquement la visibilite des modules."
+                                title={t('settings_workspace.organization.modules.title')}
+                                scope={t('settings_workspace.scopes.account')}
+                                description={t('settings_workspace.organization.modules.description')}
+                                actionHint={t('settings_workspace.organization.modules.action_hint')}
                             >
                                 <div className="space-y-3">
                                     {visibleModules.map((module) => {
                                         const enabled = modulesDraft[module.key] !== false;
                                         return (
                                             <div key={module.key} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                                <span className="text-sm font-medium text-slate-200">{module.label}</span>
+                                                <span className="text-sm font-medium text-slate-200">{t(`settings_workspace.modules.${module.key}`)}</span>
                                                 <button
                                                     type="button"
                                                     onClick={() => setModulesDraft((current) => ({ ...current, [module.key]: !enabled }))}
@@ -854,67 +901,63 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                     })}
                                 </div>
                                 <button
-                                    type="button"
-                                    onClick={() => void runSave('modules', async () => {
-                                        const updated = await settingsApi.update({ modules: modulesDraft });
-                                        syncFromSettings(updated);
-                                    }, 'La visibilite des modules a ete mise a jour.')}
-                                    disabled={savingKey === 'modules'}
-                                    className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
-                                >
-                                    <Save size={18} />
-                                    {savingKey === 'modules' ? 'Enregistrement...' : 'Enregistrer les modules visibles'}
-                                </button>
-                            </SectionCard>
-
-                            <SectionCard
-                                icon={<Bell size={24} className="text-primary" />}
-                                title="Rappels intelligents"
-                                scope="Compte"
-                                description="Definissez les seuils avant qu une alerte ne remonte. Les modifications restent locales jusqu au bouton d enregistrement."
-                                actionHint="Le bouton ci-dessous enregistre uniquement les rappels intelligents."
+                                type="button"
+                                onClick={() => void runSave('modules', async () => {
+                                    const updated = await settingsApi.update({ modules: modulesDraft });
+                                    syncFromSettings(updated);
+                                }, t('settings_workspace.feedback.modules_saved'))}
+                                disabled={savingKey === 'modules'}
+                                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
-                                <ReminderRulesSettings
-                                    rules={reminderRules}
-                                    onUpdate={setReminderRules}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => void runSave('reminders', async () => {
-                                        const updated = await settingsApi.update({ reminder_rules: reminderRules });
-                                        syncFromSettings(updated);
-                                    }, 'Les rappels intelligents ont ete mis a jour.')}
-                                    disabled={savingKey === 'reminders'}
-                                    className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
-                                >
-                                    <Save size={18} />
-                                    {savingKey === 'reminders' ? 'Enregistrement...' : 'Enregistrer les rappels'}
-                                </button>
-                            </SectionCard>
-                        </>
-                    ) : (
-                        <Notice
-                            title="Organisation en lecture seule"
-                            text="Les modules partages et les rappels intelligents sont reserves aux administrateurs operationnels."
-                        />
-                    )
-                ) : null}
+                                <Save size={18} />
+                                {savingKey === 'modules' ? t('settings_workspace.actions.saving') : t('settings_workspace.organization.modules.submit')}
+                            </button>
+                        </SectionCard>
 
-                {activeTab === 'notifications' ? (
-                    <>
                         <SectionCard
                             icon={<Bell size={24} className="text-primary" />}
-                            title="Mes notifications"
-                            scope="User"
-                            description="Choisissez vos canaux personnels. Le bouton a la fin du bloc enregistre tout d un coup."
-                            actionHint="Le bouton ci-dessous enregistre uniquement vos canaux personnels."
+                            title={t('settings_workspace.organization.reminders.title')}
+                            scope={t('settings_workspace.scopes.account')}
+                            description={t('settings_workspace.organization.reminders.description')}
+                            actionHint={t('settings_workspace.organization.reminders.action_hint')}
                         >
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                {([
-                                    { key: 'in_app', label: 'In-app', desc: 'Toujours visible dans le centre de notifications.' },
-                                    { key: 'push', label: 'Push mobile', desc: 'Pour les alertes qui doivent vous faire reagir vite.' },
-                                    { key: 'email', label: 'Email perso', desc: 'Pour recevoir aussi un recap dans votre boite.' },
-                                ] as const).map((item) => {
+                            <ReminderRulesSettings
+                                rules={reminderRules}
+                                onUpdate={setReminderRules}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => void runSave('reminders', async () => {
+                                    const updated = await settingsApi.update({ reminder_rules: reminderRules });
+                                    syncFromSettings(updated);
+                                }, t('settings_workspace.feedback.reminders_saved'))}
+                                disabled={savingKey === 'reminders'}
+                                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
+                            >
+                                <Save size={18} />
+                                {savingKey === 'reminders' ? t('settings_workspace.actions.saving') : t('settings_workspace.organization.reminders.submit')}
+                            </button>
+                        </SectionCard>
+                    </>
+                ) : (
+                    <Notice
+                        title={t('settings_workspace.organization.notice.title')}
+                        text={t('settings_workspace.organization.notice.text')}
+                    />
+                )
+            ) : null}
+
+            {activeTab === 'notifications' ? (
+                <>
+                    <SectionCard
+                        icon={<Bell size={24} className="text-primary" />}
+                        title={t('settings_workspace.notifications.personal.title')}
+                        scope={t('settings_workspace.scopes.user')}
+                        description={t('settings_workspace.notifications.personal.description')}
+                        actionHint={t('settings_workspace.notifications.personal.action_hint')}
+                    >
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            {notificationChannelOptions.map((item) => {
                                     const enabled = notificationPreferences[item.key];
                                     return (
                                         <button
@@ -928,31 +971,31 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                         </button>
                                     );
                                 })}
-                            </div>
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <Field label="Severite minimum pour push" hint="A partir de quel niveau vous voulez etre sollicite sur mobile.">
-                                    <select
-                                        value={notificationPreferences.minimum_severity_for_push}
-                                        onChange={(event) => setNotificationPreferences((current) => ({ ...current, minimum_severity_for_push: event.target.value as NotificationPreferences['minimum_severity_for_push'] }))}
-                                        className={selectClass}
-                                    >
-                                        <option value="info">Information</option>
-                                        <option value="warning">Attention</option>
-                                        <option value="critical">Critique</option>
-                                    </select>
-                                </Field>
-                                <Field label="Severite minimum pour email" hint="A partir de quel niveau vous voulez aussi un email.">
-                                    <select
-                                        value={notificationPreferences.minimum_severity_for_email}
-                                        onChange={(event) => setNotificationPreferences((current) => ({ ...current, minimum_severity_for_email: event.target.value as NotificationPreferences['minimum_severity_for_email'] }))}
-                                        className={selectClass}
-                                    >
-                                        <option value="info">Information</option>
-                                        <option value="warning">Attention</option>
-                                        <option value="critical">Critique</option>
-                                    </select>
-                                </Field>
-                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <Field label={t('settings_workspace.notifications.personal.push_severity_label')} hint={t('settings_workspace.notifications.personal.push_severity_hint')}>
+                                <select
+                                    value={notificationPreferences.minimum_severity_for_push}
+                                    onChange={(event) => setNotificationPreferences((current) => ({ ...current, minimum_severity_for_push: event.target.value as NotificationPreferences['minimum_severity_for_push'] }))}
+                                    className={selectClass}
+                                >
+                                    <option value="info">{t('settings_workspace.notifications.personal.severity.info')}</option>
+                                    <option value="warning">{t('settings_workspace.notifications.personal.severity.warning')}</option>
+                                    <option value="critical">{t('settings_workspace.notifications.personal.severity.critical')}</option>
+                                </select>
+                            </Field>
+                            <Field label={t('settings_workspace.notifications.personal.email_severity_label')} hint={t('settings_workspace.notifications.personal.email_severity_hint')}>
+                                <select
+                                    value={notificationPreferences.minimum_severity_for_email}
+                                    onChange={(event) => setNotificationPreferences((current) => ({ ...current, minimum_severity_for_email: event.target.value as NotificationPreferences['minimum_severity_for_email'] }))}
+                                    className={selectClass}
+                                >
+                                    <option value="info">{t('settings_workspace.notifications.personal.severity.info')}</option>
+                                    <option value="warning">{t('settings_workspace.notifications.personal.severity.warning')}</option>
+                                    <option value="critical">{t('settings_workspace.notifications.personal.severity.critical')}</option>
+                                </select>
+                            </Field>
+                        </div>
                             <button
                                 type="button"
                                 onClick={() => void runSave('personal-notifications', async () => {
@@ -961,12 +1004,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                         notification_preferences: notificationPreferences,
                                     });
                                     syncFromSettings(updated);
-                                }, 'Vos preferences de notification ont ete enregistrees.')}
+                                }, t('settings_workspace.feedback.personal_notifications_saved'))}
                                 disabled={savingKey === 'personal-notifications'}
                                 className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'personal-notifications' ? 'Enregistrement...' : 'Enregistrer mes notifications'}
+                                {savingKey === 'personal-notifications' ? t('settings_workspace.actions.saving') : t('settings_workspace.notifications.personal.submit')}
                             </button>
                         </SectionCard>
                     </>
@@ -976,19 +1019,19 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                     <>
                         <SectionCard
                             icon={<Shield size={24} className="text-primary" />}
-                            title="Changer mon mot de passe"
-                            scope="User"
-                            description="Cette section remplace les anciens boutons vides. L action est bien branchee: vous saisissez votre mot de passe actuel, le nouveau, puis vous validez."
-                            actionHint="Le bouton ci-dessous modifie uniquement votre mot de passe."
+                            title={t('settings_workspace.security.password.title')}
+                            scope={t('settings_workspace.scopes.user')}
+                            description={t('settings_workspace.security.password.description')}
+                            actionHint={t('settings_workspace.security.password.action_hint')}
                         >
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                <Field label="Mot de passe actuel" hint="Necessaire pour confirmer l operation.">
+                                <Field label={t('settings_workspace.security.password.current_label')} hint={t('settings_workspace.security.password.current_hint')}>
                                     <input type="password" value={passwordForm.oldPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, oldPassword: event.target.value }))} className={inputClass} />
                                 </Field>
-                                <Field label="Nouveau mot de passe" hint="Au moins 8 caracteres.">
+                                <Field label={t('settings_workspace.security.password.new_label')} hint={t('settings_workspace.security.password.new_hint')}>
                                     <input type="password" value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} className={inputClass} />
                                 </Field>
-                                <Field label="Confirmation" hint="Doit correspondre exactement au nouveau mot de passe.">
+                                <Field label={t('settings_workspace.security.password.confirm_label')} hint={t('settings_workspace.security.password.confirm_hint')}>
                                     <input type="password" value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))} className={inputClass} />
                                 </Field>
                             </div>
@@ -996,25 +1039,25 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 type="button"
                                 onClick={() => void runSave('password', async () => {
                                     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-                                        throw new Error('La confirmation ne correspond pas au nouveau mot de passe.');
+                                        throw new Error(t('settings_workspace.feedback.password_mismatch'));
                                     }
                                     await authApi.changePassword({ old_password: passwordForm.oldPassword, new_password: passwordForm.newPassword });
                                     setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-                                }, 'Votre mot de passe a ete modifie.')}
+                                }, t('settings_workspace.feedback.password_saved'))}
                                 disabled={savingKey === 'password'}
                                 className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
                             >
                                 <Save size={18} />
-                                {savingKey === 'password' ? 'Enregistrement...' : 'Modifier mon mot de passe'}
+                                {savingKey === 'password' ? t('settings_workspace.actions.saving') : t('settings_workspace.security.password.submit')}
                             </button>
                         </SectionCard>
 
                         <SectionCard
                             icon={<LogOut size={24} className="text-rose-400" />}
-                            title="Deconnexion"
-                            scope="User"
-                            description="Utilisez cette action si vous quittez le poste ou voulez repartir sur une session propre."
-                            actionHint="Le bouton ci-dessous ferme uniquement votre session sur ce navigateur."
+                            title={t('settings_workspace.security.logout.title')}
+                            scope={t('settings_workspace.scopes.user')}
+                            description={t('settings_workspace.security.logout.description')}
+                            actionHint={t('settings_workspace.security.logout.action_hint')}
                         >
                             <button
                                 type="button"
@@ -1025,7 +1068,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/10 px-6 py-3 font-bold text-rose-300 transition-colors hover:bg-rose-500 hover:text-white"
                             >
                                 <LogOut size={18} />
-                                Se deconnecter
+                                {t('settings_workspace.security.logout.submit')}
                             </button>
                         </SectionCard>
                     </>

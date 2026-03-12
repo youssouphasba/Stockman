@@ -23,13 +23,12 @@ import TrialBanner from '../../components/TrialBanner';
 import SyncWarningBanner from '../../components/SyncWarningBanner';
 
 export default function TabLayout() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // Register for push notifications
   useNotifications(user?.user_id);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const settingsLoadedRef = useRef(false);
@@ -45,7 +44,6 @@ export default function TabLayout() {
   const simpleMode = userSettings?.simple_mode ?? false;
   const billingOnly = isBillingAdmin && !hasOperationalAccess;
 
-  // Masquage des onglets selon secteur + permissions + préférences modules
   const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
   const hideStock = isRestaurant || modules.stock_management === false || !hasPermission('stock', 'read');
   const hideAccounting = simpleMode || modules.accounting === false || !hasPermission('accounting', 'read');
@@ -54,7 +52,6 @@ export default function TabLayout() {
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
 
-  // Tab principal : Produits / Production / Menu restaurant
   const productsTabTitle = isRestaurant
     ? t('tabs.menu', 'Menu')
     : hasProduction
@@ -123,6 +120,13 @@ export default function TabLayout() {
   const [demoLeadEmail, setDemoLeadEmail] = useState('');
   const [demoLeadError, setDemoLeadError] = useState<string | null>(null);
   const [demoLeadSaving, setDemoLeadSaving] = useState(false);
+  const formatDemoExpiration = (value?: string | null) => {
+    if (!value) return t('demo_lead.not_available');
+    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  };
 
   const getGuideForRoute = () => {
     const routeName = (segments[segments.length - 1] || 'index') as string;
@@ -153,7 +157,7 @@ export default function TabLayout() {
   const handleSaveDemoLead = async () => {
     const normalizedEmail = demoLeadEmail.trim().toLowerCase();
     if (!normalizedEmail) {
-      setDemoLeadError("Ajoutez votre email pour que notre équipe puisse vous recontacter.");
+      setDemoLeadError(t('demo_lead.required'));
       return;
     }
     setDemoLeadSaving(true);
@@ -164,7 +168,7 @@ export default function TabLayout() {
       setDemoLeadEmail(updatedSession.contact_email || normalizedEmail);
       setShowDemoLeadPrompt(false);
     } catch (err: any) {
-      setDemoLeadError(err?.message || "Impossible d'enregistrer votre email pour le moment.");
+      setDemoLeadError(err?.message || t('demo_lead.save_error'));
     } finally {
       setDemoLeadSaving(false);
     }
@@ -439,16 +443,15 @@ export default function TabLayout() {
               backgroundColor: colors.glass,
             }}>
               <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2 }}>
-                Demo en cours
+                {t('demo_lead.badge')}
               </Text>
               <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900', marginTop: 8 }}>
-                Continuez la démo, laissez juste un contact
+                {t('demo_lead.title')}
               </Text>
             </View>
             <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
-                Votre démo est déjà active. Ajoutez votre email si vous souhaitez être recontacté après l'essai.
-                Ce n'est pas requis pour continuer à utiliser l'application.
+                {t('demo_lead.description_mobile')}
               </Text>
               <View style={{
                 borderRadius: 20,
@@ -459,20 +462,20 @@ export default function TabLayout() {
                 paddingVertical: 14,
               }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>
-                  {demoSessionInfo?.label || 'Demo Stockman'}
+                  {demoSessionInfo?.label || t('demo_lead.default_label')}
                 </Text>
                 <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
-                  Expire le {demoSessionInfo?.expires_at ? new Date(demoSessionInfo.expires_at).toLocaleString('fr-FR') : '—'}
+                  {t('demo_lead.expires_at', { value: formatDemoExpiration(demoSessionInfo?.expires_at) })}
                 </Text>
               </View>
               <View style={{ gap: 8 }}>
                 <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                  Email de suivi
+                  {t('demo_lead.contact_label')}
                 </Text>
                 <TextInput
                   value={demoLeadEmail}
                   onChangeText={setDemoLeadEmail}
-                  placeholder="vous@entreprise.com"
+                  placeholder={t('demo_lead.contact_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -505,7 +508,7 @@ export default function TabLayout() {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: colors.text, fontWeight: '800' }}>Plus tard</Text>
+                  <Text style={{ color: colors.text, fontWeight: '800' }}>{t('demo_lead.later')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSaveDemoLead}
@@ -520,7 +523,7 @@ export default function TabLayout() {
                   }}
                 >
                   <Text style={{ color: '#fff', fontWeight: '800' }}>
-                    {demoLeadSaving ? 'Enregistrement...' : 'Enregistrer'}
+                    {demoLeadSaving ? t('demo_lead.saving') : t('demo_lead.save')}
                   </Text>
                 </TouchableOpacity>
               </View>
