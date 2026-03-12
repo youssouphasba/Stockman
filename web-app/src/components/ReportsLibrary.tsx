@@ -112,16 +112,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
             setLoading(true);
             setError(null);
             try {
-                const [
-                    executive,
-                    stock,
-                    finance,
-                    sales,
-                    invoices,
-                    crm,
-                    procurement,
-                    stores,
-                ] = await Promise.all([
+                const results = await Promise.allSettled([
                     !isRestaurantBusiness ? analytics.getExecutiveOverview(analyticsFilters) : Promise.resolve(null),
                     !isRestaurantBusiness ? analytics.getStockHealth(analyticsFilters) : Promise.resolve(null),
                     accounting.getStats(
@@ -150,22 +141,84 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                         filters.useCustomRange ? filters.startDate : undefined,
                         filters.useCustomRange ? filters.endDate : undefined,
                     ) : Promise.resolve(null),
-                    !isRestaurantBusiness ? procurementAnalytics.getOverview(derivedDays) : Promise.resolve(null),
+                    !isRestaurantBusiness ? procurementAnalytics.getOverview({
+                        days: filters.useCustomRange ? undefined : derivedDays,
+                        start_date: filters.useCustomRange ? filters.startDate : undefined,
+                        end_date: filters.useCustomRange ? filters.endDate : undefined,
+                        store_id: filters.storeId || undefined,
+                        supplier_id: filters.supplierId || undefined,
+                    }) : Promise.resolve(null),
                     !isRestaurantBusiness && isOrgAdmin ? analytics.getStoreComparison(analyticsFilters) : Promise.resolve(null),
                 ]);
 
                 if (cancelled) return;
-                setExecutiveOverview(executive);
-                setStockHealth(stock);
-                setAccountingStats(finance);
-                setSalesHistory(sales.items || []);
-                setInvoiceHistory(invoices.items || []);
-                setCrmOverview(crm);
-                setProcurementOverview(procurement);
-                setStoreComparison(stores);
-            } catch (err) {
-                console.error('Failed to load reports library', err);
-                if (!cancelled) setError("Impossible de charger la bibliotheque de rapports.");
+                const [
+                    executiveResult,
+                    stockResult,
+                    financeResult,
+                    salesResult,
+                    invoicesResult,
+                    crmResult,
+                    procurementResult,
+                    storesResult,
+                ] = results;
+
+                const hasRejectedSection = results.some((result) => result.status === 'rejected');
+                const allRejected = results.every((result) => result.status === 'rejected');
+
+                if (executiveResult.status === 'fulfilled') setExecutiveOverview(executiveResult.value);
+                else {
+                    console.error('Reports executive load error', executiveResult.reason);
+                    setExecutiveOverview(null);
+                }
+
+                if (stockResult.status === 'fulfilled') setStockHealth(stockResult.value);
+                else {
+                    console.error('Reports stock load error', stockResult.reason);
+                    setStockHealth(null);
+                }
+
+                if (financeResult.status === 'fulfilled') setAccountingStats(financeResult.value);
+                else {
+                    console.error('Reports finance load error', financeResult.reason);
+                    setAccountingStats(null);
+                }
+
+                if (salesResult.status === 'fulfilled') setSalesHistory(salesResult.value.items || []);
+                else {
+                    console.error('Reports sales history load error', salesResult.reason);
+                    setSalesHistory([]);
+                }
+
+                if (invoicesResult.status === 'fulfilled') setInvoiceHistory(invoicesResult.value.items || []);
+                else {
+                    console.error('Reports invoices load error', invoicesResult.reason);
+                    setInvoiceHistory([]);
+                }
+
+                if (crmResult.status === 'fulfilled') setCrmOverview(crmResult.value);
+                else {
+                    console.error('Reports CRM load error', crmResult.reason);
+                    setCrmOverview(null);
+                }
+
+                if (procurementResult.status === 'fulfilled') setProcurementOverview(procurementResult.value);
+                else {
+                    console.error('Reports procurement load error', procurementResult.reason);
+                    setProcurementOverview(null);
+                }
+
+                if (storesResult.status === 'fulfilled') setStoreComparison(storesResult.value);
+                else {
+                    console.error('Reports multi-store load error', storesResult.reason);
+                    setStoreComparison(null);
+                }
+
+                if (allRejected) {
+                    setError("Impossible de charger la bibliotheque de rapports.");
+                } else if (hasRejectedSection) {
+                    setError("Certaines sections n'ont pas pu etre chargees.");
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import {
-  BUSINESS_TYPE_GROUPS,
+  BUSINESS_TYPE_SLUGS,
   ENTERPRISE_FEATURES_URL,
-  ENTERPRISE_HIGHLIGHTS,
   ENTERPRISE_PRICING_URL,
   ENTERPRISE_SIGNUP_URL,
   LANDING_DEMO_PATH,
@@ -14,56 +14,33 @@ import {
   MOBILE_APP_URL,
 } from './data/marketing';
 
-const structuredData = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'Stockman',
-    url: 'https://stockman.pro',
-    logo: 'https://stockman.pro/stockman_landing_hero.png',
-    sameAs: ['https://app.stockman.pro'],
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'Stockman Enterprise',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web, iOS, Android',
-    url: 'https://stockman.pro/enterprise',
-    offers: {
-      '@type': 'Offer',
-      url: ENTERPRISE_PRICING_URL,
-      priceCurrency: 'XOF',
-      price: '9900',
-      category: 'Enterprise',
-    },
-    featureList: [
-      'Back-office web complet',
-      'Dashboard et analyses avancees',
-      'Multi-boutiques et permissions par boutique',
-      'Mobile terrain relie au web',
-    ],
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://stockman.pro/' },
-      { '@type': 'ListItem', position: 2, name: 'Enterprise', item: 'https://stockman.pro/enterprise' },
-    ],
-  },
-];
-
 export default function EnterprisePage() {
   useScrollReveal();
+  const { t } = useTranslation();
+
+  const highlights = t('enterprise_highlights', { returnObjects: true }) as Array<{ title: string; desc: string }>;
+  const sideList = t('enterprise_page.side_li', { returnObjects: true }) as string[];
+  const steps = t('enterprise_page.steps', { returnObjects: true }) as Array<{ title: string; desc: string }>;
+
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Stockman Enterprise',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web, iOS, Android',
+      url: 'https://stockman.pro/enterprise',
+      offers: { '@type': 'Offer', url: ENTERPRISE_PRICING_URL, priceCurrency: 'XOF', price: '9900' },
+    },
+  ];
 
   return (
     <div className="landing-page">
       <SEO
-        title="Stockman Enterprise - App web de gestion multi-boutiques"
-        description="Stockman Enterprise combine application web et mobile terrain pour piloter stock, ventes, CRM, comptabilite, equipe et multi-boutiques."
+        title={t('enterprise_page.h1_pre') + ' ' + t('enterprise_page.h1_gradient') + ' - Stockman'}
+        description={t('enterprise_page.subtitle')}
         url="https://stockman.pro/enterprise"
-        keywords={[...LANDING_KEYWORDS, 'Stockman Enterprise', 'application web gestion entreprise', 'logiciel multi-boutiques']}
+        keywords={[...LANDING_KEYWORDS, 'Stockman Enterprise', 'application web gestion entreprise']}
         structuredData={structuredData}
       />
 
@@ -73,46 +50,42 @@ export default function EnterprisePage() {
         <div className="container enterprise-hero-layout">
           <div className="hero-content enterprise-hero-copy">
             <div className="hero-badge-row">
-              <span className="badge-premium">Pour les entreprises structurees</span>
+              <span className="badge-premium">{t('enterprise_page.badge')}</span>
             </div>
             <h1>
-              L&apos;application web <span className="text-gradient">Enterprise</span>
+              {t('enterprise_page.h1_pre')} <span className="text-gradient">{t('enterprise_page.h1_gradient')}</span>
               <br />
-              pour piloter votre activite
+              {t('enterprise_page.h1_post')}
             </h1>
-            <p>
-              Stockman Enterprise donne a la direction un vrai back-office web, pendant que les equipes continuent
-              a travailler sur mobile. C&apos;est le bon modele pour les comptes multi-boutiques, multi-equipes
-              et les activites qui ont besoin d&apos;analyses avancees sur ordinateur.
-            </p>
+            <p>{t('enterprise_page.subtitle')}</p>
             <div className="hero-btns">
               <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                Voir l&apos;app web Enterprise
+                {t('enterprise_page.cta_web')}
               </a>
               <Link to={`${LANDING_DEMO_PATH}?type=enterprise`} className="btn-secondary">
-                Tester la demo Enterprise
+                {t('enterprise_page.cta_demo')}
               </Link>
             </div>
             <div className="enterprise-inline-links">
-              <a href={ENTERPRISE_PRICING_URL} target="_blank" rel="noopener noreferrer">Tarifs Enterprise</a>
+              <a href={ENTERPRISE_PRICING_URL} target="_blank" rel="noopener noreferrer">{t('enterprise_page.link_pricing')}</a>
               <span>•</span>
-              <a href={ENTERPRISE_SIGNUP_URL} target="_blank" rel="noopener noreferrer">Creer mon compte Enterprise</a>
+              <a href={ENTERPRISE_SIGNUP_URL} target="_blank" rel="noopener noreferrer">{t('enterprise_page.link_create')}</a>
               <span>•</span>
-              <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile terrain</a>
+              <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">{t('enterprise_page.link_mobile')}</a>
             </div>
 
             <div className="metric-strip">
               <div className="mini-kpi">
-                <strong>Web + mobile</strong>
-                <span>Direction sur ordinateur, equipes sur mobile</span>
+                <strong>{t('enterprise_page.kpi1_title')}</strong>
+                <span>{t('enterprise_page.kpi1_desc')}</span>
               </div>
               <div className="mini-kpi">
-                <strong>Multi-boutiques</strong>
-                <span>Permissions et pilotage par boutique</span>
+                <strong>{t('enterprise_page.kpi2_title')}</strong>
+                <span>{t('enterprise_page.kpi2_desc')}</span>
               </div>
               <div className="mini-kpi">
-                <strong>Business types</strong>
-                <span>Commerce, restauration et production</span>
+                <strong>{t('enterprise_page.kpi3_title')}</strong>
+                <span>{t('enterprise_page.kpi3_desc')}</span>
               </div>
             </div>
           </div>
@@ -126,11 +99,9 @@ export default function EnterprisePage() {
               />
             </div>
             <div className="glass-card hero-side-card">
-              <p className="business-card-eyebrow">Ce que voit un compte Enterprise</p>
+              <p className="business-card-eyebrow">{t('enterprise_page.side_eyebrow')}</p>
               <ul className="business-type-list">
-                <li>Vue multi-boutiques et comparaison des points de vente</li>
-                <li>CRM, comptabilite, analytics et equipe sur le web</li>
-                <li>Staff terrain relie au meme backend sur mobile</li>
+                {sideList.map((item) => <li key={item}>{item}</li>)}
               </ul>
             </div>
           </div>
@@ -139,16 +110,14 @@ export default function EnterprisePage() {
 
       <section className="container enterprise-highlights reveal">
         <div className="section-title">
-          <h2>Ce que Enterprise vous apporte au quotidien</h2>
-          <p className="text-muted">
-            Vos equipes travaillent vite sur mobile. Vous gardez une vision complete de l&apos;activite depuis le web.
-          </p>
+          <h2>{t('enterprise_page.highlights_title')}</h2>
+          <p className="text-muted">{t('enterprise_page.highlights_subtitle')}</p>
         </div>
         <div className="enterprise-grid">
-          {ENTERPRISE_HIGHLIGHTS.map((item) => (
+          {highlights.map((item) => (
             <article key={item.title} className="glass-card enterprise-card interactive-card">
               <h3>{item.title}</h3>
-              <p>{item.description}</p>
+              <p>{item.desc}</p>
             </article>
           ))}
         </div>
@@ -156,23 +125,17 @@ export default function EnterprisePage() {
 
       <section className="container business-preview reveal">
         <div className="section-title">
-          <h2>Une solution adaptee a votre activite</h2>
-          <p className="text-muted">
-            Que vous geriez un commerce, un restaurant ou une activite de production, Stockman s&apos;adapte a votre facon de travailler.
-          </p>
+          <h2>{t('enterprise_page.solution_title')}</h2>
+          <p className="text-muted">{t('enterprise_page.solution_subtitle')}</p>
         </div>
         <div className="enterprise-grid">
-          {BUSINESS_TYPE_GROUPS.map((group) => (
-            <article key={group.slug} className="glass-card enterprise-card interactive-card">
-              <p className="business-card-eyebrow">{group.title}</p>
-              <h3>
-                {group.title === 'Commerce' && 'Supervisez vos boutiques avec plus de precision'}
-                {group.title === 'Restauration' && 'Coordonnez le terrain, la salle et le pilotage'}
-                {group.title === 'Production' && 'Gardez la main sur vos stocks et votre fabrication'}
-              </h3>
-              <p>{group.overview}</p>
+          {BUSINESS_TYPE_SLUGS.map((slug) => (
+            <article key={slug} className="glass-card enterprise-card interactive-card">
+              <p className="business-card-eyebrow">{t(`business_types.${slug}.title`)}</p>
+              <h3>{t(`enterprise_page.${slug}_h3`)}</h3>
+              <p>{t(`business_types.${slug}.overview`)}</p>
               <div className="tag-list">
-                {group.tags.map((tag) => (
+                {(t(`business_types.${slug}.tags`, { returnObjects: true }) as string[]).map((tag) => (
                   <span key={tag} className="tag-pill">{tag}</span>
                 ))}
               </div>
@@ -180,9 +143,9 @@ export default function EnterprisePage() {
           ))}
         </div>
         <div className="section-cta-row">
-          <Link to="/business-types" className="btn-secondary">Voir tous les business types</Link>
+          <Link to="/business-types" className="btn-secondary">{t('enterprise_page.cta_business_types')}</Link>
           <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
-            Voir les modules Enterprise
+            {t('enterprise_page.cta_modules')}
           </a>
         </div>
       </section>
@@ -190,26 +153,16 @@ export default function EnterprisePage() {
       <section className="container enterprise-funnel reveal">
         <div className="glass-card enterprise-flow-card">
           <div className="section-title">
-            <h2>Comment demarrer avec Enterprise ?</h2>
-            <p className="text-muted">En quelques etapes, vous voyez le produit, puis vous creez votre espace.</p>
+            <h2>{t('enterprise_page.funnel_title')}</h2>
+            <p className="text-muted">{t('enterprise_page.funnel_subtitle')}</p>
           </div>
           <div className="enterprise-flow">
-            <div>
-              <strong>1. Decouvrez la solution</strong>
-              <p>Consultez les cas d&apos;usage, les activites couvertes et le plan adapte a votre entreprise.</p>
-            </div>
-            <div>
-              <strong>2. Comprenez le mode Enterprise</strong>
-              <p>Voyez comment le web sert la direction pendant que les equipes utilisent le mobile sur le terrain.</p>
-            </div>
-            <div>
-              <strong>3. Explorez l&apos;app web</strong>
-              <p>Parcourez les modules concrets du back-office: stock, caisse, CRM, comptabilite et equipe.</p>
-            </div>
-            <div>
-              <strong>4. Creez votre espace</strong>
-              <p>Demarrez votre compte Enterprise ou connectez-vous directement a l&apos;application web.</p>
-            </div>
+            {steps.map((step) => (
+              <div key={step.title}>
+                <strong>{step.title}</strong>
+                <p>{step.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ENTERPRISE_FEATURES_URL,
   LANDING_BUSINESS_TYPES_PATH,
@@ -14,28 +15,30 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
+  const { t } = useTranslation();
+
   return (
     <header className="hero reveal">
       <div className="container hero-container">
         <div className="hero-content">
           <div className="profile-selector">
-            <p className="profile-selector-label">Choisissez votre parcours</p>
+            <p className="profile-selector-label">{t('marketing_hero.choose_path')}</p>
             <div className="profile-selector-options">
               <button
                 className={`profile-option${profile === 'merchant' ? ' active' : ''}`}
                 onClick={() => onProfileChange('merchant')}
               >
-                <span className="profile-chip">Mobile</span>
-                <strong>Je gere une boutique</strong>
-                <span>Pour les commerces qui veulent aller vite au quotidien.</span>
+                <span className="profile-chip">{t('marketing_hero.merchant_chip')}</span>
+                <strong>{t('marketing_hero.merchant_title')}</strong>
+                <span>{t('marketing_hero.merchant_desc')}</span>
               </button>
               <button
                 className={`profile-option${profile === 'enterprise' ? ' active' : ''}`}
                 onClick={() => onProfileChange('enterprise')}
               >
-                <span className="profile-chip">Web + mobile</span>
-                <strong>Je pilote une entreprise</strong>
-                <span>Pour les entreprises qui veulent piloter sur ordinateur avec un vrai back-office web.</span>
+                <span className="profile-chip">{t('marketing_hero.enterprise_chip')}</span>
+                <strong>{t('marketing_hero.enterprise_title')}</strong>
+                <span>{t('marketing_hero.enterprise_desc')}</span>
               </button>
             </div>
           </div>
@@ -44,47 +47,41 @@ const Hero: React.FC<HeroProps> = ({ profile, onProfileChange }) => {
             {profile === 'merchant' ? (
               <>
                 <h1>
-                  Gerez votre boutique
+                  {t('marketing_hero.merchant_h1')}
                   <br />
-                  <span className="text-gradient">plus simplement</span>
+                  <span className="text-gradient">{t('marketing_hero.merchant_h1_gradient')}</span>
                 </h1>
-                <p>
-                  Stock, ventes, caisse et suivi quotidien dans une application mobile pensee
-                  pour les commerces qui veulent gagner du temps.
-                </p>
+                <p>{t('marketing_hero.merchant_subtitle')}</p>
                 <div className="hero-btns">
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                    Telecharger l&apos;app
+                    {t('marketing_hero.merchant_download')}
                   </a>
-                  <a href={LANDING_DEMO_PATH} className="btn-secondary">Tester en mode Demo</a>
+                  <a href={LANDING_DEMO_PATH} className="btn-secondary">{t('marketing_hero.merchant_demo')}</a>
                 </div>
                 <div className="enterprise-inline-links">
-                  <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">Application mobile</a>
+                  <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">{t('marketing_hero.merchant_mobile')}</a>
                   <span>•</span>
-                  <a href={LANDING_BUSINESS_TYPES_PATH}>Secteurs couverts</a>
+                  <a href={LANDING_BUSINESS_TYPES_PATH}>{t('marketing_hero.merchant_sectors')}</a>
                 </div>
               </>
             ) : (
               <>
                 <h1>
-                  Donnez a votre entreprise
+                  {t('marketing_hero.enterprise_h1')}
                   <br />
-                  un <span className="text-gradient">vrai poste de pilotage</span>
+                  <span className="text-gradient">{t('marketing_hero.enterprise_h1_gradient')}</span>
                 </h1>
-                <p>
-                  L&apos;app web Enterprise vous aide a suivre vos boutiques, vos equipes,
-                  votre stock, votre CRM et votre comptabilite sur ordinateur, pendant que le terrain reste sur mobile.
-                </p>
+                <p>{t('marketing_hero.enterprise_subtitle')}</p>
                 <div className="hero-btns">
-                  <a href="/enterprise" className="btn-primary">Decouvrir Enterprise</a>
+                  <a href="/enterprise" className="btn-primary">{t('marketing_hero.enterprise_discover')}</a>
                   <a href={`${LANDING_DEMO_PATH}?type=enterprise`} className="btn-secondary">
-                    Tester en mode Demo
+                    {t('marketing_hero.enterprise_demo')}
                   </a>
                 </div>
                 <div className="enterprise-inline-links">
-                  <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer">Modules Enterprise</a>
+                  <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer">{t('marketing_hero.enterprise_modules')}</a>
                   <span>•</span>
-                  <a href={LANDING_BUSINESS_TYPES_PATH}>Secteurs couverts</a>
+                  <a href={LANDING_BUSINESS_TYPES_PATH}>{t('marketing_hero.enterprise_sectors')}</a>
                 </div>
               </>
             )}

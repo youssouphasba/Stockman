@@ -11979,6 +11979,13 @@ async def build_analytics_snapshot(
         {"_id": 0, "category_id": 1, "name": 1},
     ).to_list(1000)
     category_name_map = {category["category_id"]: category.get("name") or "Sans categorie" for category in categories}
+    supplier_query: Dict[str, Any] = {"user_id": owner_id}
+    if supplier_id:
+        supplier_query["supplier_id"] = supplier_id
+    supplier_docs = await db.suppliers.find(
+        supplier_query,
+        {"_id": 0, "supplier_id": 1, "name": 1},
+    ).to_list(1000)
     filter_on_product_set = bool(category_id or supplier_id)
     allowed_product_ids = set(product_map.keys()) if filter_on_product_set else None
 
@@ -15876,19 +15883,27 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
 @api_router.get("/analytics/procurement/overview")
 async def get_procurement_overview(
     days: int = 90,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    store_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
     user: User = Depends(require_procurement_access("read")),
 ):
     owner_id = get_owner_id(user)
     normalized_days = normalize_analytics_days(days)
-    now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=normalized_days)
+    date_range = _parse_optional_range(days=normalized_days, start_date=start_date, end_date=end_date)
+    now = date_range["end"]
+    cutoff = date_range["start"]
 
     stores = await load_accessible_stores(user)
+    if store_id:
+        stores = [store for store in stores if store.get("store_id") == store_id]
     store_name_map = {store["store_id"]: store.get("name", "Boutique") for store in stores if store.get("store_id")}
-    scope_label = build_analytics_scope_label(stores)
 
     orders_query: Dict[str, Any] = {"user_id": owner_id, "created_at": {"$gte": cutoff}}
-    orders_query = apply_accessible_store_scope(orders_query, user)
+    orders_query = apply_accessible_store_scope(orders_query, user, store_id)
+    if supplier_id:
+        orders_query["supplier_id"] = supplier_id
     orders = await db.orders.find(orders_query, {"_id": 0}).to_list(4000)
     order_ids = [order["order_id"] for order in orders]
     order_items = (
@@ -15900,8 +15915,17 @@ async def get_procurement_overview(
     for item in order_items:
         order_items_by_order[item["order_id"]].append(item)
 
-    manual_suppliers = await db.suppliers.find({"user_id": owner_id}, {"_id": 0, "supplier_id": 1, "name": 1}).to_list(2000)
+    manual_supplier_query: Dict[str, Any] = {"user_id": owner_id}
+    if supplier_id:
+        manual_supplier_query["supplier_id"] = supplier_id
+    manual_suppliers = await db.suppliers.find(manual_supplier_query, {"_id": 0, "supplier_id": 1, "name": 1}).to_list(2000)
     manual_supplier_map = {supplier["supplier_id"]: supplier.get("name", "Fournisseur") for supplier in manual_suppliers}
+    scope_label = build_analytics_scope_label(
+        stores,
+        store_id=store_id,
+        supplier_id=supplier_id,
+        supplier_name_map=manual_supplier_map,
+    )
 
     marketplace_ids = list({order.get("supplier_user_id") for order in orders if order.get("is_connected") and order.get("supplier_user_id")})
     supplier_profiles = (
@@ -16009,9 +16033,12 @@ async def get_procurement_overview(
     supplier_ranking.sort(key=lambda item: (-item["score"], -item["total_spent"]))
 
     products_query: Dict[str, Any] = {"user_id": owner_id, "is_active": True, "min_stock": {"$gt": 0}}
-    products_query = apply_accessible_store_scope(products_query, user)
+    products_query = apply_accessible_store_scope(products_query, user, store_id)
     products = await db.products.find(products_query, {"_id": 0}).to_list(4000)
-    supplier_links = await db.supplier_products.find({"user_id": owner_id}, {"_id": 0}).to_list(4000)
+    supplier_links_query: Dict[str, Any] = {"user_id": owner_id}
+    if supplier_id:
+        supplier_links_query["supplier_id"] = supplier_id
+    supplier_links = await db.supplier_products.find(supplier_links_query, {"_id": 0}).to_list(4000)
     links_by_product: Dict[str, List[dict]] = defaultdict(list)
     for link in supplier_links:
         if link.get("product_id"):

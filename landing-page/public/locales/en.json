@@ -581,5 +581,301 @@
         "title": "Privacy Policy",
         "version": "Last updated: February 13, 2026",
         "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
+    },
+    "marketing_footer": {
+        "product": "Product",
+        "access": "Access",
+        "legal": "Legal",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Use",
+        "delete_account": "Delete my account",
+        "help": "Help Center",
+        "mobile_app": "Mobile App",
+        "login": "Login",
+        "blog": "Blog",
+        "enterprise_link": "Enterprise",
+        "business_types_link": "Business types",
+        "web_app_link": "Web App",
+        "copyright": "© 2026 Stockman. All rights reserved."
+    },
+    "marketing_hero": {
+        "choose_path": "Choose your path",
+        "merchant_chip": "Mobile",
+        "merchant_title": "I manage a shop",
+        "merchant_desc": "For merchants who want to move fast every day.",
+        "enterprise_chip": "Web + mobile",
+        "enterprise_title": "I manage a company",
+        "enterprise_desc": "For businesses that want to manage on a computer with a real web back-office.",
+        "merchant_h1": "Manage your shop",
+        "merchant_h1_gradient": "more simply",
+        "merchant_subtitle": "Stock, sales, POS, and daily tracking in a mobile app built for merchants who want to save time.",
+        "merchant_download": "Download the app",
+        "merchant_demo": "Try in Demo mode",
+        "merchant_mobile": "Mobile app",
+        "merchant_sectors": "Sectors covered",
+        "enterprise_h1": "Give your company",
+        "enterprise_h1_gradient": "a real control center",
+        "enterprise_subtitle": "The Enterprise web app helps you track your shops, teams, stock, CRM, and accounting on a computer, while your field teams stay on mobile.",
+        "enterprise_discover": "Discover Enterprise",
+        "enterprise_demo": "Try in Demo mode",
+        "enterprise_modules": "Enterprise modules",
+        "enterprise_sectors": "Sectors covered"
+    },
+    "enterprise_page": {
+        "badge": "For structured businesses",
+        "h1_pre": "The",
+        "h1_gradient": "Enterprise",
+        "h1_post": "web app to manage your business",
+        "subtitle": "Stockman Enterprise gives management a real web back-office, while teams continue working on mobile. It's the right model for multi-shop, multi-team accounts and businesses that need advanced analytics on a computer.",
+        "cta_web": "View the Enterprise web app",
+        "cta_demo": "Try the Enterprise demo",
+        "link_pricing": "Enterprise pricing",
+        "link_create": "Create my Enterprise account",
+        "link_mobile": "Mobile field app",
+        "kpi1_title": "Web + mobile",
+        "kpi1_desc": "Management on computer, teams on mobile",
+        "kpi2_title": "Multi-shops",
+        "kpi2_desc": "Permissions and management per shop",
+        "kpi3_title": "Business types",
+        "kpi3_desc": "Commerce, food service, and production",
+        "side_eyebrow": "What an Enterprise account sees",
+        "side_li": [
+            "Multi-shop view and point-of-sale comparison",
+            "CRM, accounting, analytics, and team on the web",
+            "Field staff linked to the same backend on mobile"
+        ],
+        "highlights_title": "What Enterprise brings you every day",
+        "highlights_subtitle": "Your teams work fast on mobile. You keep a complete view of the business from the web.",
+        "solution_title": "A solution adapted to your business",
+        "solution_subtitle": "Whether you manage a shop, restaurant, or production facility, Stockman adapts to your way of working.",
+        "commerce_h3": "Supervise your shops with more precision",
+        "restauration_h3": "Coordinate field work, the floor, and management",
+        "production_h3": "Keep control of your stocks and production",
+        "cta_business_types": "See all business types",
+        "cta_modules": "See Enterprise modules",
+        "funnel_title": "How to get started with Enterprise?",
+        "funnel_subtitle": "In a few steps, you see the product, then create your workspace.",
+        "steps": [
+            {
+                "title": "1. Discover the solution",
+                "desc": "Browse use cases, covered activities, and the plan suited to your business."
+            },
+            {
+                "title": "2. Understand Enterprise mode",
+                "desc": "See how the web serves management while teams use mobile in the field."
+            },
+            {
+                "title": "3. Explore the web app",
+                "desc": "Browse the concrete back-office modules: stock, POS, CRM, accounting, and team."
+            },
+            {
+                "title": "4. Create your workspace",
+                "desc": "Start your Enterprise account or log in directly to the web app."
+            }
+        ]
+    },
+    "enterprise_highlights": [
+        {
+            "title": "Manage your business in one place",
+            "desc": "Access sales, stock, CRM, accounting, alerts, and team in a clear, centralized web interface."
+        },
+        {
+            "title": "Keep control of every shop",
+            "desc": "Compare your points of sale, transfer stock, and give each employee the right access per shop."
+        },
+        {
+            "title": "Your teams stay fast in the field",
+            "desc": "Teams check out and work on mobile while you follow activity and analytics from the web."
+        },
+        {
+            "title": "A solution adapted to your business",
+            "desc": "Commerce, food service, and light production with modules and a path adapted to each activity."
+        }
+    ],
+    "business_types_page": {
+        "badge": "Choose your activity",
+        "h1": "Paths adapted to each type of business",
+        "subtitle": "Find at a glance the covered activities, use cases, and recommended path for your trade.",
+        "use_cases_title": "Use cases",
+        "sectors_title": "Sectors covered",
+        "choose_path": "Choose the path that suits you",
+        "starter_h3": "Starter / Pro",
+        "starter_desc": "You manage your shop from your phone with a simple, fast setup centered on operations.",
+        "cta_demo_mobile": "Try the mobile demo",
+        "cta_app_mobile": "Open the mobile app",
+        "enterprise_h3": "Enterprise",
+        "enterprise_desc": "You need advanced management, multiple shops, or a team: Enterprise adds the web to your organization.",
+        "cta_demo_enterprise": "Try the Enterprise demo",
+        "cta_app_web": "View the web app",
+        "cta_create": "Create my Enterprise account"
+    },
+    "business_types": {
+        "commerce": {
+            "title": "Commerce",
+            "overview": "For grocery stores, supermarkets, pharmacies, wholesalers, hardware stores, fashion boutiques, and multi-shop points of sale.",
+            "recommended_plan": "Starter / Pro on mobile, Enterprise for the web back-office",
+            "tags": [
+                "Grocery",
+                "Supermarket",
+                "Pharmacy",
+                "Wholesaler",
+                "Fashion",
+                "Hardware"
+            ],
+            "use_cases": [
+                "Track stock levels and thresholds in real time",
+                "Check out quickly with the mobile or web POS",
+                "Compare the performance of multiple shops"
+            ]
+        },
+        "restauration": {
+            "title": "Food service",
+            "overview": "For restaurants, bakeries, caterers, and food businesses that need seating, kitchen, reservations, and management.",
+            "recommended_plan": "Enterprise for web, mobile for field teams",
+            "tags": [
+                "Restaurant",
+                "Bakery",
+                "Caterer",
+                "Beverages",
+                "Snack"
+            ],
+            "use_cases": [
+                "Manage reservations, arrivals, and tables",
+                "Open and track orders through to payment",
+                "Manage the kitchen and service performance"
+            ]
+        },
+        "production": {
+            "title": "Production",
+            "overview": "For workshops and light manufacturing activities: tailoring, soap-making, carpentry, printing, crafts, and transformation.",
+            "recommended_plan": "Pro or Enterprise depending on team size and management needs",
+            "tags": [
+                "Tailoring",
+                "Soap-making",
+                "Carpentry",
+                "Printing",
+                "Crafts"
+            ],
+            "use_cases": [
+                "Track raw materials and stock movements",
+                "Manage client and supplier orders",
+                "Monitor margins and team workload"
+            ]
+        }
+    },
+    "demo_page": {
+        "badge": "Try in Demo mode",
+        "h1": "Choose the demo that truly shows your reality",
+        "subtitle": "Field merchants and businesses don't need to see the same thing. Choose the right path from the start to test the right product promise, especially if you're looking for a real management tool on a computer for a supermarket, shop network, distribution, or logistics activity.",
+        "step1_title": "Enter your email",
+        "step1_desc": "We qualify the right demo and keep a clean point of contact.",
+        "step2_title": "Choose your type of activity",
+        "step2_desc": "Mobile for field operations, Enterprise web on computer for advanced management.",
+        "callout_title": "Who is the Enterprise demo for?",
+        "callout_desc": "Supermarkets, commerce companies, distribution, logistics, shop networks, purchasing hubs, multi-team structures, or any activity that needs analytics, consolidation, and a real web back-office to use on a computer.",
+        "email_title": "Enter your email before starting",
+        "email_subtitle": "Your email lets us prepare the right demo experience, follow up if the session expires, and guide you to the right path.",
+        "email_placeholder": "you@company.com",
+        "email_submit": "Receive this demo",
+        "email_loading": "Saving...",
+        "error_email": "Please enter your email address to receive the right demo.",
+        "error_choice": "First choose the type of demo that matches your activity.",
+        "error_submit": "Unable to register the demo request at the moment.",
+        "success_title": "Your demo request has been registered",
+        "success_desc": "We have noted your interest in {{title}}. While the tailored demo is being activated, you can already explore the right path below.",
+        "ideal_for": "Ideal for",
+        "you_will_see": "You will see",
+        "why_choose": "Why choose this path",
+        "btn_selected": "Selected",
+        "btn_choose": "Choose this demo",
+        "footer_title": "A clear separation between field and management",
+        "footer_desc": "Mobile demos show fast execution. The Enterprise demo shows the management vision, consolidation, and advanced analytics in a web experience designed for computers.",
+        "cta_business_types": "See business types",
+        "cta_enterprise": "Understand the Enterprise plan",
+        "choices": {
+            "commerce": {
+                "title": "Grocery or shop",
+                "duration": "24h",
+                "surface": "Mobile demo",
+                "audience": "For field merchants",
+                "summary": "A mobile demo focused on the POS, stock, sales, and daily operations of a shop.",
+                "business_types": [
+                    "Grocery",
+                    "Shop",
+                    "Hardware",
+                    "Pharmacy",
+                    "Neighborhood store"
+                ],
+                "what_they_will_see": [
+                    "a simple-to-use mobile POS",
+                    "pre-filled products, stock, and movements",
+                    "pre-created clients, debts, and sales",
+                    "screens designed for fast field execution"
+                ],
+                "why_choose_it": [
+                    "you want to see how to sell fast every day",
+                    "you have one shop or a very operational setup",
+                    "you want to understand the mobile app first"
+                ],
+                "link_1": "See commerce business types",
+                "link_2": "View the mobile app"
+            },
+            "restaurant": {
+                "title": "Restaurant",
+                "duration": "24h",
+                "surface": "Mobile demo",
+                "audience": "For service and kitchen",
+                "summary": "A mobile demo oriented toward reservations, orders, service, and checkout for food businesses.",
+                "business_types": [
+                    "Restaurant",
+                    "Fast-food",
+                    "Bakery",
+                    "Caterer",
+                    "Snack"
+                ],
+                "what_they_will_see": [
+                    "customer reservations and arrivals",
+                    "open orders and service tracking",
+                    "a field path for floor and kitchen",
+                    "pre-filled tickets and payments for fast testing"
+                ],
+                "why_choose_it": [
+                    "you want to see a real restaurant flow on mobile",
+                    "you work with reservations, floor, or kitchen",
+                    "you're looking for a field tool rather than a web back-office"
+                ],
+                "link_1": "See food service business types",
+                "link_2": "View the mobile app"
+            },
+            "enterprise": {
+                "title": "Enterprise",
+                "duration": "48h",
+                "surface": "Enterprise web demo on computer",
+                "audience": "For supermarkets, shop networks, and management teams",
+                "recommendation_badge": "Recommended for supermarkets, large stores, commerce companies, and logistics businesses",
+                "summary": "The Enterprise demo shows the real web management platform best used on a computer for supermarkets, commerce companies, shop networks, distribution, logistics, and structures that need advanced analytics.",
+                "business_types": [
+                    "Supermarket",
+                    "Shop network",
+                    "Distribution",
+                    "Logistics",
+                    "Multi-shop commerce",
+                    "Purchasing hub"
+                ],
+                "what_they_will_see": [
+                    "the complete Enterprise web back-office on a computer",
+                    "analytics, reports, and multi-shop comparisons",
+                    "suppliers, purchases, advanced CRM and accounting",
+                    "enterprise settings and team management on a large screen"
+                ],
+                "why_choose_it": [
+                    "you manage multiple shops, warehouses, or teams",
+                    "you need reporting, control, consolidation, or inter-site coordination",
+                    "you want to test the full Enterprise level from the start, on a computer"
+                ],
+                "link_1": "View the Enterprise web app",
+                "link_2": "Understand Enterprise"
+            }
+        }
     }
 }

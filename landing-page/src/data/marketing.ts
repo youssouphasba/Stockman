@@ -7,96 +7,38 @@ export const APP_LOGIN_URL = APP_WEB_URL;
 export const LANDING_BUSINESS_TYPES_PATH = "/business-types";
 export const LANDING_DEMO_PATH = "/demo";
 
-export type BusinessTypeGroup = {
-  slug: string;
-  title: string;
-  overview: string;
-  seoTitle: string;
-  seoDescription: string;
-  tags: string[];
-  useCases: string[];
-  recommendedPlan: string;
+export const BUSINESS_TYPE_SLUGS = ['commerce', 'restauration', 'production'] as const;
+export type BusinessTypeSlug = typeof BUSINESS_TYPE_SLUGS[number];
+
+export const DEMO_CHOICE_IDS = ['commerce', 'restaurant', 'enterprise'] as const;
+export type DemoChoiceId = typeof DEMO_CHOICE_IDS[number];
+
+export const DEMO_CHOICE_SCREENSHOTS: Record<DemoChoiceId, string> = {
+  commerce: '/assets/screenshots/stockman_screenshot_2_inventory_final_1771434576068.png',
+  restaurant: '/assets/screenshots/pos-overview.jpg',
+  enterprise: '/assets/screenshots/stockman-enterprise-preview.png',
 };
 
-export const BUSINESS_TYPE_GROUPS: BusinessTypeGroup[] = [
-  {
-    slug: "commerce",
-    title: "Commerce",
-    overview:
-      "Pour les epiceries, supermarches, pharmacies, grossistes, quincailleries, boutiques de mode et points de vente multi-boutiques.",
-    seoTitle: "Logiciel de gestion pour commerce, supermarche et boutique",
-    seoDescription:
-      "Stock, caisse POS, inventaire, comptabilite, equipe et pilotage multi-boutiques pour le commerce moderne.",
-    tags: ["Epicerie", "Supermarche", "Pharmacie", "Grossiste", "Mode", "Quincaillerie"],
-    useCases: [
-      "Suivre les stocks et les seuils en temps reel",
-      "Encaisser vite avec la caisse mobile ou web",
-      "Comparer les performances de plusieurs boutiques",
-    ],
-    recommendedPlan: "Starter / Pro sur mobile, Enterprise pour le back-office web",
-  },
-  {
-    slug: "restauration",
-    title: "Restauration",
-    overview:
-      "Pour les restaurants, boulangeries, traiteurs et activites alimentaires qui ont besoin de salle, cuisine, reservations et pilotage.",
-    seoTitle: "Logiciel restaurant, boulangerie et traiteur",
-    seoDescription:
-      "Reservations, tables, commandes ouvertes, cuisine, comptabilite et analyses pour la restauration et les activites alimentaires.",
-    tags: ["Restaurant", "Boulangerie", "Traiteur", "Boissons", "Snack"],
-    useCases: [
-      "Gerer reservations, arrivees et tables",
-      "Ouvrir et suivre les commandes jusqu'au paiement",
-      "Piloter la cuisine et la performance du service",
-    ],
-    recommendedPlan: "Enterprise pour le web, mobile terrain pour les equipes",
-  },
-  {
-    slug: "production",
-    title: "Production",
-    overview:
-      "Pour les ateliers et activites de fabrication legere: couture, savonnerie, menuiserie, imprimerie, artisanat et transformation.",
-    seoTitle: "Logiciel de gestion pour atelier et production legere",
-    seoDescription:
-      "Stocks de matieres, production, equipe, commandes, CRM et reporting pour les activites de transformation et d'atelier.",
-    tags: ["Couture", "Savonnerie", "Menuiserie", "Imprimerie", "Artisanat"],
-    useCases: [
-      "Suivre les matieres premieres et les sorties de stock",
-      "Gerer les commandes clients et fournisseurs",
-      "Piloter les marges et la charge d'equipe",
-    ],
-    recommendedPlan: "Pro ou Enterprise selon l'equipe et le niveau de pilotage",
-  },
-];
-
-export const ENTERPRISE_HIGHLIGHTS = [
-  {
-    title: "Pilotez votre activite au meme endroit",
-    description:
-      "Retrouvez ventes, stock, CRM, comptabilite, alertes et equipe dans une interface web claire et centralisee.",
-  },
-  {
-    title: "Gardez le controle sur chaque boutique",
-    description:
-      "Comparez vos points de vente, transferez du stock et donnez a chaque employe les bons acces selon sa boutique.",
-  },
-  {
-    title: "Vos equipes restent rapides sur le terrain",
-    description:
-      "Les equipes encaissent et travaillent sur mobile pendant que vous suivez l'activite et les analyses depuis le web.",
-  },
-  {
-    title: "Une solution adaptee a votre metier",
-    description:
-      "Commerce, restauration et production legere avec des modules et un parcours adaptes a chaque activite.",
-  },
-];
+export const DEMO_CHOICE_NEXT_LINKS: Record<DemoChoiceId, Array<{ href: string; external?: boolean }>> = {
+  commerce: [
+    { href: LANDING_BUSINESS_TYPES_PATH },
+    { href: MOBILE_APP_URL, external: true },
+  ],
+  restaurant: [
+    { href: LANDING_BUSINESS_TYPES_PATH },
+    { href: MOBILE_APP_URL, external: true },
+  ],
+  enterprise: [
+    { href: ENTERPRISE_FEATURES_URL, external: true },
+    { href: '/enterprise' },
+  ],
+};
 
 export const LANDING_KEYWORDS = [
   "Stockman",
   "logiciel gestion stock",
   "logiciel caisse POS",
-  "logiciel supermarche",
+  "logiciel supermarché",
   "logiciel commerce",
   "logiciel restaurant",
   "logiciel boulangerie",
@@ -104,6 +46,6 @@ export const LANDING_KEYWORDS = [
   "back-office enterprise",
   "gestion multi-boutiques",
   "logiciel CRM commerce",
-  "comptabilite boutique",
+  "comptabilité boutique",
   "gestion stock Afrique",
 ];

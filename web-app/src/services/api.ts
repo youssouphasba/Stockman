@@ -1792,7 +1792,22 @@ export const suppliers = {
 };
 
 export const procurementAnalytics = {
-    getOverview: (days = 90) => request<ProcurementOverview>(`/analytics/procurement/overview?days=${days}`),
+    getOverview: (filtersOrDays: number | AnalyticsFilters = 90) => {
+        const qs = new URLSearchParams();
+        if (typeof filtersOrDays === 'number') {
+            qs.set('days', filtersOrDays.toString());
+        } else {
+            if (typeof filtersOrDays.days === 'number') qs.set('days', filtersOrDays.days.toString());
+            if (filtersOrDays.start_date) qs.set('start_date', filtersOrDays.start_date);
+            if (filtersOrDays.end_date) qs.set('end_date', filtersOrDays.end_date);
+            if (filtersOrDays.store_id) qs.set('store_id', filtersOrDays.store_id);
+            if (filtersOrDays.supplier_id) qs.set('supplier_id', filtersOrDays.supplier_id);
+        }
+        if (!qs.has('days') && !qs.has('start_date') && !qs.has('end_date')) {
+            qs.set('days', '90');
+        }
+        return request<ProcurementOverview>(`/analytics/procurement/overview?${qs.toString()}`);
+    },
 };
 
 export const supplierProducts = {

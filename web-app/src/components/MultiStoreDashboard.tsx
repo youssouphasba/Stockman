@@ -36,6 +36,7 @@ function formatCurrency(amount: number, currency = 'XOF') {
 export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) {
     const [stats, setStats] = useState<AnalyticsStoreComparison | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [switching, setSwitching] = useState<string | null>(null);
     const [showNewStore, setShowNewStore] = useState(false);
     const [newStoreName, setNewStoreName] = useState('');
@@ -58,11 +59,14 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
 
     const load = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const statsRes = await analyticsApi.getStoreComparison(analyticsFilters);
             setStats(statsRes);
         } catch (err) {
             console.error(err);
+            setStats(null);
+            setError("Impossible de charger la vue multi-boutiques.");
         } finally {
             setLoading(false);
         }
@@ -126,6 +130,16 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
         return (
             <div className="flex items-center justify-center h-64">
                 <RefreshCw size={28} className="animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (error || !stats) {
+        return (
+            <div className="mx-auto max-w-6xl p-6">
+                <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 text-rose-200">
+                    {error || "Impossible de charger la vue multi-boutiques."}
+                </div>
             </div>
         );
     }
