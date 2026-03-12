@@ -20,7 +20,21 @@ export default function EnterprisePage() {
 
   const highlights = t('enterprise_highlights', { returnObjects: true }) as Array<{ title: string; desc: string }>;
   const sideList = t('enterprise_page.side_li', { returnObjects: true }) as string[];
+  const showcaseCards = t('enterprise_page.showcase_cards', { returnObjects: true }) as Array<{
+    eyebrow: string;
+    title: string;
+    desc: string;
+    points: string[];
+  }>;
   const steps = t('enterprise_page.steps', { returnObjects: true }) as Array<{ title: string; desc: string }>;
+  const showcaseImages = [
+    '/assets/screenshots/enterprise-stock-overview.png',
+    '/assets/screenshots/enterprise-finance-overview.png',
+    '/assets/screenshots/enterprise-suppliers-overview.png',
+    '/assets/screenshots/enterprise-team-overview.png',
+    '/assets/screenshots/enterprise-crm-overview.png',
+    '/assets/screenshots/enterprise-pos-overview.png',
+  ];
 
   const structuredData = [
     {
@@ -93,8 +107,8 @@ export default function EnterprisePage() {
           <div className="enterprise-hero-side">
             <div className="hero-image-placeholder glass-card enterprise-mockup">
               <img
-                src="/assets/screenshots/stockman-enterprise-preview.png"
-                alt="Back-office web Stockman Enterprise"
+                src="/assets/screenshots/enterprise-executive-dashboard.png"
+                alt={t('enterprise_page.hero_alt')}
                 className="hero-image"
               />
             </div>
@@ -105,6 +119,37 @@ export default function EnterprisePage() {
               </ul>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="container enterprise-showcase reveal">
+        <div className="section-title">
+          <h2>{t('enterprise_page.showcase_title')}</h2>
+          <p className="text-muted">{t('enterprise_page.showcase_subtitle')}</p>
+        </div>
+        <div className="enterprise-showcase-grid">
+          {showcaseCards.map((card, index) => (
+            <article key={card.title} className="glass-card enterprise-showcase-card interactive-card">
+              <div className="enterprise-showcase-media">
+                <img
+                  src={showcaseImages[index]}
+                  alt={card.title}
+                  className="enterprise-showcase-image"
+                  loading="lazy"
+                />
+              </div>
+              <div className="enterprise-showcase-body">
+                <p className="business-card-eyebrow">{card.eyebrow}</p>
+                <h3>{card.title}</h3>
+                <p>{card.desc}</p>
+                <ul className="enterprise-showcase-points">
+                  {card.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 

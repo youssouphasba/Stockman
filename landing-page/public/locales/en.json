@@ -638,11 +638,76 @@
         "kpi2_desc": "Permissions and management per shop",
         "kpi3_title": "Business types",
         "kpi3_desc": "Commerce, food service, and production",
+        "hero_alt": "Stockman Enterprise executive cockpit",
         "side_eyebrow": "What an Enterprise account sees",
         "side_li": [
             "Multi-shop view and point-of-sale comparison",
             "CRM, accounting, analytics, and team on the web",
             "Field staff linked to the same backend on mobile"
+        ],
+        "showcase_title": "Real Enterprise screens",
+        "showcase_subtitle": "See the executive cockpit, stock, finance, procurement, CRM, and team tools inside one web experience.",
+        "showcase_cards": [
+            {
+                "eyebrow": "Stock & alerts",
+                "title": "Spot stock priorities quickly",
+                "desc": "This screen shows where stock is costing you money or time right away.",
+                "points": [
+                    "Prioritise replenishment before stock-outs happen",
+                    "Spot dormant references that tie up cash",
+                    "Give managers a clear list of actions to launch"
+                ]
+            },
+            {
+                "eyebrow": "Finance",
+                "title": "Read profitability at a glance",
+                "desc": "Leadership finally sees the numbers that matter without relying on spreadsheets.",
+                "points": [
+                    "Track margins and financial trends over time",
+                    "Compare sales, costs, and profitability in one place",
+                    "Make faster decisions on pricing, cost control, and performance"
+                ]
+            },
+            {
+                "eyebrow": "Procurement",
+                "title": "Manage suppliers and purchase flows",
+                "desc": "Purchasing no longer has to be managed store by store without coordination.",
+                "points": [
+                    "Centralise needs from multiple points of sale",
+                    "Follow partners, opportunities, and open orders",
+                    "Build a more controlled procurement process"
+                ]
+            },
+            {
+                "eyebrow": "Team",
+                "title": "Control roles and permissions",
+                "desc": "Enterprise helps you delegate without losing control of access rights.",
+                "points": [
+                    "See who can act on each sensitive module",
+                    "Assign permissions by role and by store",
+                    "Keep the organisation secure as the team grows"
+                ]
+            },
+            {
+                "eyebrow": "CRM",
+                "title": "Work on loyalty and customer segments",
+                "desc": "The web app gives more room to use customer data strategically.",
+                "points": [
+                    "Identify high-value segments and customers to reactivate",
+                    "Prepare campaigns and loyalty actions more cleanly",
+                    "Turn customer data into concrete commercial actions"
+                ]
+            },
+            {
+                "eyebrow": "Web POS",
+                "title": "Keep a POS inside the back-office",
+                "desc": "Even on desktop, the POS stays aligned with the rest of your organisation.",
+                "points": [
+                    "Sell from a fixed workstation when needed",
+                    "Keep products, pricing, and customers synchronised",
+                    "Maintain continuity between field operations and web supervision"
+                ]
+            }
         ],
         "highlights_title": "What Enterprise brings you every day",
         "highlights_subtitle": "Your teams work fast on mobile. You keep a complete view of the business from the web.",

@@ -638,11 +638,76 @@
         "kpi2_desc": "Permissions et pilotage par boutique",
         "kpi3_title": "Business types",
         "kpi3_desc": "Commerce, restauration et production",
+        "hero_alt": "Cockpit exécutif Stockman Enterprise",
         "side_eyebrow": "Ce que voit un compte Enterprise",
         "side_li": [
             "Vue multi-boutiques et comparaison des points de vente",
             "CRM, comptabilité, analytics et équipe sur le web",
             "Staff terrain relié au même backend sur mobile"
+        ],
+        "showcase_title": "Des écrans Enterprise concrets",
+        "showcase_subtitle": "Visualisez le cockpit direction, le stock, la finance, les achats, le CRM et l'équipe dans une même expérience web.",
+        "showcase_cards": [
+            {
+                "eyebrow": "Stock & alertes",
+                "title": "Repérez vite les priorités stock",
+                "desc": "Cet écran montre immédiatement où vous perdez de l'argent ou du temps dans vos stocks.",
+                "points": [
+                    "Priorisez les produits à réapprovisionner avant la rupture",
+                    "Repérez les références dormantes qui immobilisent votre trésorerie",
+                    "Donnez à vos managers une vue claire des actions à lancer"
+                ]
+            },
+            {
+                "eyebrow": "Finance",
+                "title": "Lisez votre rentabilité en un coup d'œil",
+                "desc": "La direction voit enfin les chiffres utiles sans attendre un export ou un tableur externe.",
+                "points": [
+                    "Suivez vos marges et votre évolution financière sur la période",
+                    "Comparez ventes, charges et rentabilité dans le même espace",
+                    "Prenez des décisions plus vite sur les prix, les coûts et la performance"
+                ]
+            },
+            {
+                "eyebrow": "Achats",
+                "title": "Pilotez les fournisseurs et les commandes",
+                "desc": "Les achats ne se gèrent plus boutique par boutique sans coordination.",
+                "points": [
+                    "Centralisez les besoins de plusieurs points de vente",
+                    "Suivez les partenaires, les opportunités et les commandes ouvertes",
+                    "Structurez un vrai pilotage achats pour gagner en contrôle"
+                ]
+            },
+            {
+                "eyebrow": "Équipe",
+                "title": "Contrôlez les rôles et les accès",
+                "desc": "Enterprise facilite la délégation sans perdre la maîtrise des accès.",
+                "points": [
+                    "Vérifiez qui peut agir sur chaque module sensible",
+                    "Répartissez les droits selon les rôles et les boutiques",
+                    "Sécurisez l'organisation au fur et à mesure que l'équipe grandit"
+                ]
+            },
+            {
+                "eyebrow": "CRM",
+                "title": "Activez la fidélité et les segments client",
+                "desc": "Le web donne plus d'espace pour exploiter votre base client de façon plus stratégique.",
+                "points": [
+                    "Identifiez les segments à forte valeur et les clients à relancer",
+                    "Préparez vos campagnes et vos actions fidélité plus proprement",
+                    "Transformez la donnée client en actions commerciales concrètes"
+                ]
+            },
+            {
+                "eyebrow": "Caisse web",
+                "title": "Gardez aussi un POS dans le back-office",
+                "desc": "Même sur ordinateur, le POS reste cohérent avec le reste de votre organisation.",
+                "points": [
+                    "Encaissez depuis un poste fixe quand le contexte le demande",
+                    "Gardez vos produits, vos prix et vos clients synchronisés",
+                    "Assurez une continuité entre opérations terrain et supervision web"
+                ]
+            }
         ],
         "highlights_title": "Ce que Enterprise vous apporte au quotidien",
         "highlights_subtitle": "Vos équipes travaillent vite sur mobile. Vous gardez une vision complète de l'activité depuis le web.",
