@@ -26,6 +26,7 @@ import { settings as settingsApi, auth as authApi, locations as locationsApi, st
 import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
+import SettingsWorkspace from './SettingsWorkspace';
 
 
 type SettingsProps = {
@@ -69,6 +70,8 @@ function ScopeBadge({ label }: { label: string }) {
 }
 
 export default function Settings({ user }: SettingsProps) {
+    return <SettingsWorkspace user={user} />;
+
     const { t, i18n } = useTranslation();
     const access = getAccessContext(user);
     const canManageOrgSettings = access.isOrgAdmin;

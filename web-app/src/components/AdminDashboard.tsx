@@ -1125,11 +1125,12 @@ export default function AdminDashboard() {
             {/* ── DEMOS ── */}
             {activeSection === 'demos' && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <StatCard label="Sessions actives" value={demoOverview?.active_sessions || 0} icon={Clock} color="bg-sky-500" sub={`${demoOverview?.expiring_24h || 0} expirent <24h`} />
                         <StatCard label="Expirees" value={demoOverview?.expired_sessions || 0} icon={AlertTriangle} color="bg-amber-500" sub={`${demoOverview?.stale_expired_uncleaned || 0} a nettoyer`} />
                         <StatCard label="Nettoyees" value={demoOverview?.cleaned_sessions || 0} icon={Trash2} color="bg-emerald-500" sub={`${demoOverview?.created_in_window || 0} creees / ${demoOverview?.window_days || 30}j`} />
-                        <StatCard label="Creees aujourd'hui" value={demoOverview?.created_today || 0} icon={Zap} color="bg-primary" sub={`${demoSessionsTotal || 0} sessions total`} />
+                        <StatCard label="Contacts captes" value={demoOverview?.contacts_captured || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Emails enregistres" />
+                        <StatCard label="Contacts en attente" value={demoOverview?.contacts_pending || 0} icon={Zap} color="bg-primary" sub={`${demoSessionsTotal || 0} sessions total`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -1212,7 +1213,7 @@ export default function AdminDashboard() {
                         <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
                             <div>
                                 <h3 className="text-base font-black text-white uppercase tracking-tighter">Sessions demo ({filteredDemoSessions.length})</h3>
-                                <p className="text-xs text-slate-500 mt-1">Vue admin sur le type, la surface, l'expiration et le nettoyage.</p>
+                                <p className="text-xs text-slate-500 mt-1">Vue admin sur le type, la surface, l'expiration, la capture email et le nettoyage.</p>
                             </div>
                             <button onClick={loadDemos} className="p-2 text-slate-400 hover:text-white transition-all">
                                 <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />

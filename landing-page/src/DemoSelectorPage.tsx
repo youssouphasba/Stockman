@@ -21,7 +21,7 @@ type DemoSessionInfo = {
   label: string;
   surface: string;
   expires_at: string;
-  contact_email: string;
+  contact_email?: string | null;
   status: string;
   country_code: string;
   currency: string;
@@ -66,7 +66,6 @@ export default function DemoSelectorPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const preset = searchParams.get('type');
-  const [email, setEmail] = useState('');
   const [selectedId, setSelectedId] = useState<DemoChoiceId | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,19 +85,15 @@ export default function DemoSelectorPage() {
     return () => window.clearTimeout(timer);
   }, [success]);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const startDemo = async (choiceId?: DemoChoiceId | null) => {
     setError('');
-
-    if (!email.trim()) {
-      setError(t('demo_page.error_email'));
-      return;
-    }
-    if (!selectedId) {
+    const targetChoice = choiceId || selectedId;
+    if (!targetChoice) {
       setError(t('demo_page.error_choice'));
       return;
     }
 
+    setSelectedId(targetChoice);
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/demo/session`, {
@@ -106,8 +101,7 @@ export default function DemoSelectorPage() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          demo_type: DEMO_API_TYPES[selectedId],
+          demo_type: DEMO_API_TYPES[targetChoice],
         }),
       });
 
@@ -133,7 +127,7 @@ export default function DemoSelectorPage() {
         : buildLaunchUrl(MOBILE_DEMO_SCHEME, payload);
 
       setSuccess({
-        choiceId: selectedId,
+        choiceId: targetChoice,
         launchUrl,
         demoSession: payload.demo_session,
       });
@@ -182,15 +176,15 @@ export default function DemoSelectorPage() {
             <div className="demo-step">
               <span className="demo-step-number">1</span>
               <div>
-                <strong>{t('demo_page.step1_title')}</strong>
-                <p>{t('demo_page.step1_desc')}</p>
+                <strong>{t('demo_page.instant_step1_title', { defaultValue: 'Choisissez votre demo' })}</strong>
+                <p>{t('demo_page.instant_step1_desc', { defaultValue: 'Sélectionnez le parcours le plus proche de votre activité: commerce, restaurant ou enterprise.' })}</p>
               </div>
             </div>
             <div className="demo-step">
               <span className="demo-step-number">2</span>
               <div>
-                <strong>{t('demo_page.step2_title')}</strong>
-                <p>{t('demo_page.step2_desc')}</p>
+                <strong>{t('demo_page.instant_step2_title', { defaultValue: 'La demo se lance tout de suite' })}</strong>
+                <p>{t('demo_page.instant_step2_desc', { defaultValue: "Nous ouvrons la démo immédiatement. L'email de suivi sera demandé dans l'application, pas avant." })}</p>
               </div>
             </div>
           </div>
@@ -202,29 +196,35 @@ export default function DemoSelectorPage() {
       </section>
 
       <section className="container reveal">
-        <form onSubmit={handleSubmit} className="demo-email-form glass-card">
+        <div className="demo-email-form glass-card">
           <div className="demo-email-copy">
-            <h2>{t('demo_page.email_title')}</h2>
-            <p className="text-muted">{t('demo_page.email_subtitle')}</p>
+            <h2>{t('demo_page.instant_title', { defaultValue: 'La demo demarre tout de suite' })}</h2>
+            <p className="text-muted">
+              {t('demo_page.instant_subtitle', {
+                defaultValue: "Choisissez un parcours ci-dessous pour ouvrir la démo immédiatement. L'email de suivi sera demandé dans l'application, pas avant.",
+              })}
+            </p>
           </div>
           <div className="demo-email-controls">
-            <input
-              type="email"
-              className="demo-email-input"
-              placeholder={t('demo_page.email_placeholder')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? t('demo_page.email_loading') : t('demo_page.email_submit')}
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={loading || !selectedId}
+              onClick={() => { void startDemo(selectedId); }}
+            >
+              {loading
+                ? t('demo_page.instant_loading', { defaultValue: 'Preparation de la demo...' })
+                : t('demo_page.instant_submit', { defaultValue: 'Lancer la demo selectionnee' })}
             </button>
           </div>
           {error ? <p className="signup-error">{error}</p> : null}
           {success ? (
             <div className="demo-success-panel">
               <h3>{t('demo_page.success_title')}</h3>
-              <p>{t('demo_page.success_desc', { title: t(`demo_page.choices.${success.choiceId}.title`) })}</p>
+              <p>{t('demo_page.success_desc', {
+                title: t(`demo_page.choices.${success.choiceId}.title`),
+                defaultValue: `${t(`demo_page.choices.${success.choiceId}.title`)} est prete. Si la redirection ne se lance pas, utilisez le bouton ci-dessous.`,
+              })}</p>
               <p className="text-muted">
                 {success.demoSession.label} - {success.demoSession.surface} - expiration {new Date(success.demoSession.expires_at).toLocaleString()}
               </p>
@@ -246,7 +246,7 @@ export default function DemoSelectorPage() {
               </div>
             </div>
           ) : null}
-        </form>
+        </div>
       </section>
 
       <section className="container demo-options-grid reveal">
@@ -303,9 +303,17 @@ export default function DemoSelectorPage() {
                 <button
                   type="button"
                   className={isSelected ? 'btn-primary' : 'btn-secondary'}
-                  onClick={() => { setSelectedId(id); setSuccess(null); setError(''); }}
+                  disabled={loading}
+                  onClick={() => {
+                    setSelectedId(id);
+                    setSuccess(null);
+                    setError('');
+                    void startDemo(id);
+                  }}
                 >
-                  {isSelected ? t('demo_page.btn_selected') : t('demo_page.btn_choose')}
+                  {loading && selectedId === id
+                    ? t('demo_page.instant_loading', { defaultValue: 'Preparation de la demo...' })
+                    : t('demo_page.instant_card_cta', { defaultValue: 'Choisir et lancer' })}
                 </button>
               </div>
             </article>

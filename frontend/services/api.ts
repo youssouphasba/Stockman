@@ -105,6 +105,7 @@ const ONLINE_ONLY_MUTATION_PREFIXES = [
   '/auth/resend',
   '/billing',
   '/subscription/sync',
+  '/demo/session',
   '/ai/',
 ];
 
@@ -1475,6 +1476,7 @@ export type User = {
   demo_type?: string | null;
   demo_surface?: string | null;
   demo_expires_at?: string | null;
+  demo_contact_email?: string | null;
 };
 
 export type AuthResponse = {
@@ -1484,16 +1486,16 @@ export type AuthResponse = {
 };
 
 export type DemoSessionInfo = {
-  demo_session_id: string;
-  demo_type: string;
-  label: string;
-  surface: string;
-  expires_at: string;
-  contact_email: string;
-  status: string;
-  country_code: string;
-  currency: string;
-  pricing_region: string;
+    demo_session_id: string;
+    demo_type: string;
+    label: string;
+    surface: string;
+    expires_at: string;
+    contact_email?: string | null;
+    status: string;
+    country_code: string;
+    currency: string;
+    pricing_region: string;
 };
 
 export type PricingPlanQuote = {
@@ -2723,6 +2725,8 @@ export const subscription = {
 
 export const demo = {
   getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
+  captureContact: (email: string) =>
+    request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),
 };
 
 export type Location = {

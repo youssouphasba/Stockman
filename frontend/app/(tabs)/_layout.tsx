@@ -5,12 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { settings as settingsApi, UserSettings } from '../../services/api';
+import { demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
 
 import { useFocusEffect } from 'expo-router';
 
 import StoreSelector from '../../components/StoreSelector';
-import { View, TouchableOpacity } from 'react-native';
+import { Modal, Text, TextInput, View, TouchableOpacity } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -86,10 +86,43 @@ export default function TabLayout() {
     }
   }, [billingOnly, currentRoute, router, user]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.is_demo || !user?.demo_session_id) {
+      setDemoSessionInfo(null);
+      setShowDemoLeadPrompt(false);
+      setDemoLeadEmail('');
+      setDemoLeadError(null);
+      return;
+    }
+
+    demoApi.getCurrentSession()
+      .then((session) => {
+        if (cancelled) return;
+        setDemoSessionInfo(session);
+        setDemoLeadEmail(session.contact_email || '');
+        setDemoLeadError(null);
+        setShowDemoLeadPrompt(!session.contact_email);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDemoSessionInfo(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.is_demo, user?.demo_session_id]);
+
   const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [guideOverride, setGuideOverride] = useState<{ title: string; steps: any[] } | null>(null);
+  const [demoSessionInfo, setDemoSessionInfo] = useState<DemoSessionInfo | null>(null);
+  const [showDemoLeadPrompt, setShowDemoLeadPrompt] = useState(false);
+  const [demoLeadEmail, setDemoLeadEmail] = useState('');
+  const [demoLeadError, setDemoLeadError] = useState<string | null>(null);
+  const [demoLeadSaving, setDemoLeadSaving] = useState(false);
 
   const getGuideForRoute = () => {
     const routeName = (segments[segments.length - 1] || 'index') as string;
@@ -116,6 +149,26 @@ export default function TabLayout() {
 
   const activeGuide = guideOverride || getGuideForRoute();
   const currentGuide = getGuideForRoute();
+
+  const handleSaveDemoLead = async () => {
+    const normalizedEmail = demoLeadEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setDemoLeadError("Ajoutez votre email pour que notre équipe puisse vous recontacter.");
+      return;
+    }
+    setDemoLeadSaving(true);
+    setDemoLeadError(null);
+    try {
+      const updatedSession = await demoApi.captureContact(normalizedEmail);
+      setDemoSessionInfo(updatedSession);
+      setDemoLeadEmail(updatedSession.contact_email || normalizedEmail);
+      setShowDemoLeadPrompt(false);
+    } catch (err: any) {
+      setDemoLeadError(err?.message || "Impossible d'enregistrer votre email pour le moment.");
+    } finally {
+      setDemoLeadSaving(false);
+    }
+  };
 
   return (
     <>
@@ -359,6 +412,122 @@ export default function TabLayout() {
           }
         }}
       />
+      <Modal
+        visible={showDemoLeadPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDemoLeadPrompt(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(2, 6, 23, 0.82)',
+          justifyContent: 'center',
+          padding: 20,
+        }}>
+          <View style={{
+            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: colors.glassBorder,
+            backgroundColor: colors.card,
+            overflow: 'hidden',
+          }}>
+            <View style={{
+              paddingHorizontal: 20,
+              paddingVertical: 18,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.glassBorder,
+              backgroundColor: colors.glass,
+            }}>
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2 }}>
+                Demo en cours
+              </Text>
+              <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900', marginTop: 8 }}>
+                Continuez la démo, laissez juste un contact
+              </Text>
+            </View>
+            <View style={{ padding: 20, gap: 16 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
+                Votre démo est déjà active. Ajoutez votre email si vous souhaitez être recontacté après l'essai.
+                Ce n'est pas requis pour continuer à utiliser l'application.
+              </Text>
+              <View style={{
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.glassBorder,
+                backgroundColor: colors.glass,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+              }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>
+                  {demoSessionInfo?.label || 'Demo Stockman'}
+                </Text>
+                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
+                  Expire le {demoSessionInfo?.expires_at ? new Date(demoSessionInfo.expires_at).toLocaleString('fr-FR') : '—'}
+                </Text>
+              </View>
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                  Email de suivi
+                </Text>
+                <TextInput
+                  value={demoLeadEmail}
+                  onChangeText={setDemoLeadEmail}
+                  placeholder="vous@entreprise.com"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  style={{
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: colors.glassBorder,
+                    backgroundColor: colors.bgDark,
+                    color: colors.text,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    fontSize: 15,
+                  }}
+                />
+              </View>
+              {demoLeadError ? (
+                <Text style={{ color: colors.danger, fontSize: 13 }}>{demoLeadError}</Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={() => setShowDemoLeadPrompt(false)}
+                  style={{
+                    flex: 1,
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: colors.glassBorder,
+                    backgroundColor: colors.glass,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: colors.text, fontWeight: '800' }}>Plus tard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveDemoLead}
+                  disabled={demoLeadSaving}
+                  style={{
+                    flex: 1,
+                    borderRadius: 18,
+                    backgroundColor: colors.primary,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                    opacity: demoLeadSaving ? 0.65 : 1,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>
+                    {demoLeadSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }

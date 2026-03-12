@@ -77,6 +77,7 @@ from services.pricing import (
     resolve_plan_amount,
 )
 from services.demo_service import (
+    capture_demo_session_contact,
     cleanup_expired_demo_sessions,
     create_demo_session as create_demo_session_data,
     expire_demo_session,
@@ -971,10 +972,14 @@ class TokenResponse(BaseModel):
 
 
 class DemoSessionCreate(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
     demo_type: str
     country_code: Optional[str] = None
     currency: Optional[str] = None
+
+
+class DemoSessionLeadCapture(BaseModel):
+    email: EmailStr
 
 
 class DemoSessionInfo(BaseModel):
@@ -983,7 +988,7 @@ class DemoSessionInfo(BaseModel):
     label: str
     surface: str
     expires_at: datetime
-    contact_email: EmailStr
+    contact_email: Optional[EmailStr] = None
     status: str
     country_code: str
     currency: str
@@ -4173,6 +4178,8 @@ async def admin_demo_sessions_overview(days: int = 30):
             "started_at": 1,
             "last_accessed_at": 1,
             "expires_at": 1,
+            "contact_email": 1,
+            "contact_captured_at": 1,
         },
     ).to_list(None)
 
@@ -4188,6 +4195,8 @@ async def admin_demo_sessions_overview(days: int = 30):
     expiring_24h = 0
     active_last_window = 0
     stale_expired_uncleaned = 0
+    contacts_captured = 0
+    contacts_pending = 0
 
     for session in sessions:
         session_type = normalize_demo_type(session.get("demo_type"))
@@ -4196,6 +4205,10 @@ async def admin_demo_sessions_overview(days: int = 30):
         last_accessed_at = _normalize_admin_datetime(session.get("last_accessed_at"))
         expires_at = _normalize_admin_datetime(session.get("expires_at"))
         derived_status = _derive_demo_session_status(session, now)
+        if session.get("contact_email"):
+            contacts_captured += 1
+        else:
+            contacts_pending += 1
 
         by_type[session_type] += 1
         by_surface[surface] += 1
@@ -4229,6 +4242,8 @@ async def admin_demo_sessions_overview(days: int = 30):
         "expiring_24h": expiring_24h,
         "active_last_window": active_last_window,
         "stale_expired_uncleaned": stale_expired_uncleaned,
+        "contacts_captured": contacts_captured,
+        "contacts_pending": contacts_pending,
         "by_type": dict(by_type),
         "by_surface": dict(by_surface),
         "by_status": dict(by_status),
@@ -4280,6 +4295,7 @@ async def admin_demo_sessions(
             "demo_type": row_type,
             "surface": row.get("surface") or get_demo_definition(row_type)["surface"],
             "status": derived_status,
+            "lead_status": "captured" if row.get("contact_email") else "pending",
             "remaining_seconds": remaining_seconds,
             "is_expired": bool(expires_at and expires_at <= now),
             "cleanup_items_deleted": sum(int(value or 0) for value in cleanup_counts.values()),
@@ -18351,7 +18367,7 @@ async def create_demo_session_endpoint(
             label=session_doc.get("label") or get_demo_definition(session_doc["demo_type"])["label"],
             surface=session_doc["surface"],
             expires_at=session_doc["expires_at"],
-            contact_email=session_doc["contact_email"],
+            contact_email=session_doc.get("contact_email"),
             status=session_doc["status"],
             country_code=session_doc["country_code"],
             currency=session_doc["currency"],
@@ -18377,7 +18393,36 @@ async def get_current_demo_session(user: User = Depends(require_auth)):
         label=session_doc.get("label") or get_demo_definition(session_doc["demo_type"])["label"],
         surface=session_doc["surface"],
         expires_at=session_doc["expires_at"],
-        contact_email=session_doc["contact_email"],
+        contact_email=session_doc.get("contact_email"),
+        status=session_doc["status"],
+        country_code=session_doc["country_code"],
+        currency=session_doc["currency"],
+        pricing_region=session_doc.get("pricing_region") or "WAEMU",
+    )
+
+
+@api_router.post("/demo/session/contact", response_model=DemoSessionInfo)
+async def capture_current_demo_session_contact(
+    payload: DemoSessionLeadCapture,
+    user: User = Depends(require_auth),
+):
+    if not user.is_demo or not user.demo_session_id:
+        raise HTTPException(status_code=404, detail="Aucune session demo active")
+    try:
+        session_doc = await capture_demo_session_contact(
+            db,
+            demo_session_id=user.demo_session_id,
+            contact_email=payload.email,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return DemoSessionInfo(
+        demo_session_id=session_doc["demo_session_id"],
+        demo_type=session_doc["demo_type"],
+        label=session_doc.get("label") or get_demo_definition(session_doc["demo_type"])["label"],
+        surface=session_doc["surface"],
+        expires_at=session_doc["expires_at"],
+        contact_email=session_doc.get("contact_email"),
         status=session_doc["status"],
         country_code=session_doc["country_code"],
         currency=session_doc["currency"],

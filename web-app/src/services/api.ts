@@ -360,7 +360,7 @@ export type DemoSessionInfo = {
     label: string;
     surface: string;
     expires_at: string;
-    contact_email: string;
+    contact_email?: string | null;
     status: string;
     country_code: string;
     currency: string;
@@ -438,6 +438,7 @@ export type UserSettings = {
     account_id?: string;
     user_name?: string;
     email?: string;
+    language?: string;
     currency?: string;
     modules: Record<string, boolean>;
     simple_mode: boolean;
@@ -1401,6 +1402,8 @@ export const auth = {
     me: () => request<User>('/auth/me'),
     updateProfile: (data: { name?: string; currency?: string; country_code?: string; business_type?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
+    changePassword: (data: { old_password: string; new_password: string }) =>
+        request<{ message: string }>('/auth/change-password', { method: 'POST', body: data }),
     register: (data: {
         email: string; password: string; name: string;
         role: string; phone?: string; business_type?: string; how_did_you_hear?: string;
@@ -2039,6 +2042,8 @@ export const subscription = {
 
 export const demo = {
     getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
+    captureContact: (email: string) =>
+        request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),
 };
 
 export const stores = {

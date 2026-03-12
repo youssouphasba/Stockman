@@ -33,7 +33,7 @@ import ReportsLibrary from "../components/ReportsLibrary";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
-import { auth, userFeatures, chat as chatApi, ApiError, UserFeatures, setToken, setRefreshToken, removeToken, type AuthResponse } from "../services/api";
+import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, setToken, setRefreshToken, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
@@ -55,6 +55,11 @@ export default function Home() {
   const searchParams = useSearchParams();
 
   const [showSignup, setShowSignup] = useState(false);
+  const [demoSessionInfo, setDemoSessionInfo] = useState<DemoSessionInfo | null>(null);
+  const [showDemoLeadPrompt, setShowDemoLeadPrompt] = useState(false);
+  const [demoLeadEmail, setDemoLeadEmail] = useState('');
+  const [demoLeadError, setDemoLeadError] = useState<string | null>(null);
+  const [demoLeadSaving, setDemoLeadSaving] = useState(false);
   const effectivePlan = user?.effective_plan || user?.plan;
   const subscriptionPlan = user?.subscription_plan || user?.plan || effectivePlan;
   const subscriptionAccessPhase = user?.subscription_access_phase || 'active';
@@ -140,6 +145,34 @@ export default function Home() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!isLogged || !user?.is_demo || !user?.demo_session_id) {
+      setDemoSessionInfo(null);
+      setShowDemoLeadPrompt(false);
+      setDemoLeadEmail('');
+      setDemoLeadError(null);
+      return;
+    }
+
+    demoApi.getCurrentSession()
+      .then((session) => {
+        if (cancelled) return;
+        setDemoSessionInfo(session);
+        setDemoLeadEmail(session.contact_email || '');
+        setDemoLeadError(null);
+        setShowDemoLeadPrompt(!session.contact_email);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDemoSessionInfo(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLogged, user?.is_demo, user?.demo_session_id]);
+
   // Poll unread message count every 30 seconds when logged in
   const fetchUnread = useCallback(async () => {
     try {
@@ -180,6 +213,26 @@ export default function Home() {
     localStorage.removeItem('user_currency');
     setUser(null);
     setIsLogged(false);
+  };
+
+  const handleSaveDemoLead = async () => {
+    const normalizedEmail = demoLeadEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setDemoLeadError("Ajoutez votre email pour que notre équipe puisse vous recontacter.");
+      return;
+    }
+    setDemoLeadSaving(true);
+    setDemoLeadError(null);
+    try {
+      const updatedSession = await demoApi.captureContact(normalizedEmail);
+      setDemoSessionInfo(updatedSession);
+      setDemoLeadEmail(updatedSession.contact_email || normalizedEmail);
+      setShowDemoLeadPrompt(false);
+    } catch (err) {
+      setDemoLeadError(err instanceof ApiError ? err.message : "Impossible d'enregistrer votre email pour le moment.");
+    } finally {
+      setDemoLeadSaving(false);
+    }
   };
 
   const [mounted, setMounted] = useState(false);
@@ -480,95 +533,150 @@ export default function Home() {
   if (isLogged) {
     return (
       <AnalyticsFiltersProvider enabled={analyticsEnabled}>
-        <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
-          <Sidebar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onLogout={handleLogout}
-            user={user}
-            features={features || undefined}
-            modules={modules}
-            isMobileOpen={isSidebarOpen}
-            onMobileClose={() => setIsSidebarOpen(false)}
-            onOpenChat={() => setIsChatOpen(true)}
-            unreadMessages={unreadMessages}
-          />
-
-          <div className="flex-1 flex flex-col h-screen overflow-hidden">
-            <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
-            {/* Mobile top bar */}
-            <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
-              >
-                <Menu size={20} />
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                  <Package className="text-white" size={14} />
+        <>
+          {showDemoLeadPrompt && (
+            <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#111827] shadow-2xl shadow-black/40 overflow-hidden">
+                <div className="px-6 py-5 border-b border-white/10 bg-white/5">
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-2">Demo en cours</p>
+                  <h2 className="text-2xl font-black text-white tracking-tight">Continuez la démo, laissez juste un contact</h2>
                 </div>
-                <span className="text-white font-bold text-gradient">Stockman</span>
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-slate-300 leading-6">
+                    Votre démo est déjà active. Si vous voulez être recontacté après l'essai, ajoutez votre email ici.
+                    Ce n'est pas requis pour continuer à explorer Stockman.
+                  </p>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                    <span className="font-semibold text-white">{demoSessionInfo?.label || 'Demo Stockman'}</span>
+                    <span className="text-slate-500"> · </span>
+                    Expire le {demoSessionInfo?.expires_at ? new Date(demoSessionInfo.expires_at).toLocaleString('fr-FR') : '—'}
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="demo-contact-email" className="block text-xs uppercase tracking-widest text-slate-500 font-black">
+                      Email de suivi
+                    </label>
+                    <input
+                      id="demo-contact-email"
+                      type="email"
+                      value={demoLeadEmail}
+                      onChange={(e) => setDemoLeadEmail(e.target.value)}
+                      placeholder="vous@entreprise.com"
+                      autoComplete="email"
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/40"
+                    />
+                  </div>
+                  {demoLeadError ? <p className="text-sm text-rose-300">{demoLeadError}</p> : null}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowDemoLeadPrompt(false)}
+                      className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 font-black"
+                    >
+                      Plus tard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveDemoLead}
+                      disabled={demoLeadSaving}
+                      className="flex-1 rounded-2xl bg-primary px-4 py-3 text-white font-black disabled:opacity-60"
+                    >
+                      {demoLeadSaving ? 'Enregistrement...' : 'Enregistrer mon email'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
+          <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
+            <Sidebar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onLogout={handleLogout}
+              user={user}
+              features={features || undefined}
+              modules={modules}
+              isMobileOpen={isSidebarOpen}
+              onMobileClose={() => setIsSidebarOpen(false)}
+              onOpenChat={() => setIsChatOpen(true)}
+              unreadMessages={unreadMessages}
+            />
 
-            {analyticsEnabled && (
-              <div className="shrink-0">
-                <GlobalFiltersBar />
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+              <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
+              {/* Mobile top bar */}
+              <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
+                >
+                  <Menu size={20} />
+                </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                    <Package className="text-white" size={14} />
+                  </div>
+                  <span className="text-white font-bold text-gradient">Stockman</span>
+                </div>
               </div>
-            )}
 
-            {/* Page content */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              {activeTab === 'dashboard' && (
-                isRestaurantBusiness
-                  ? <Dashboard onNavigate={setActiveTab} features={features} />
-                  : <ExecutiveDashboard onNavigate={setActiveTab} />
+              {analyticsEnabled && (
+                <div className="shrink-0">
+                  <GlobalFiltersBar />
+                </div>
               )}
-              {activeTab === 'multi_stores' && <MultiStoreDashboard user={user} />}
-              {activeTab === 'pos' && <POS />}
-              {activeTab === 'inventory' && <Inventory />}
-              {activeTab === 'orders' && <Orders />}
-              {activeTab === 'accounting' && <Accounting />}
-              {activeTab === 'reports' && <ReportsLibrary user={user} features={features} />}
-              {activeTab === 'crm' && <CRM user={user} />}
-              {activeTab === 'staff' && <Staff />}
-              {activeTab === 'suppliers' && <Suppliers />}
-              {activeTab === 'activity' && <Activity />}
-              {activeTab === 'alerts' && <Alerts />}
-              {activeTab === 'stock_history' && <StockHistory />}
-              {activeTab === 'stats' && <AbcAnalysis />}
-              {activeTab === 'inventory_counting' && <InventoryCounting />}
-              {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
-              {activeTab === 'subscription' && <Subscription />}
-              {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
-              {activeTab === 'tables' && <TableManagement />}
-              {activeTab === 'reservations' && <Reservations />}
-              {activeTab === 'kitchen' && <KitchenDisplay />}
-              {activeTab === 'admin' && <AdminDashboard />}
-              {activeTab === 'supplier_portal' && <SupplierPortal />}
-              {activeTab === 'settings' && <Settings user={user} />}
+
+              {/* Page content */}
+              <div className="flex-1 overflow-hidden flex flex-col">
+                {activeTab === 'dashboard' && (
+                  isRestaurantBusiness
+                    ? <Dashboard onNavigate={setActiveTab} features={features} />
+                    : <ExecutiveDashboard onNavigate={setActiveTab} />
+                )}
+                {activeTab === 'multi_stores' && <MultiStoreDashboard user={user} />}
+                {activeTab === 'pos' && <POS />}
+                {activeTab === 'inventory' && <Inventory />}
+                {activeTab === 'orders' && <Orders />}
+                {activeTab === 'accounting' && <Accounting />}
+                {activeTab === 'reports' && <ReportsLibrary user={user} features={features} />}
+                {activeTab === 'crm' && <CRM user={user} />}
+                {activeTab === 'staff' && <Staff />}
+                {activeTab === 'suppliers' && <Suppliers />}
+                {activeTab === 'activity' && <Activity />}
+                {activeTab === 'alerts' && <Alerts />}
+                {activeTab === 'stock_history' && <StockHistory />}
+                {activeTab === 'stats' && <AbcAnalysis />}
+                {activeTab === 'inventory_counting' && <InventoryCounting />}
+                {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
+                {activeTab === 'subscription' && <Subscription />}
+                {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
+                {activeTab === 'tables' && <TableManagement />}
+                {activeTab === 'reservations' && <Reservations />}
+                {activeTab === 'kitchen' && <KitchenDisplay />}
+                {activeTab === 'admin' && <AdminDashboard />}
+                {activeTab === 'supplier_portal' && <SupplierPortal />}
+                {activeTab === 'settings' && <Settings user={user} />}
+              </div>
             </div>
-          </div>
 
-          {/* Floating AI chat button */}
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
-          >
-            <Sparkles size={18} />
-            <span className="text-sm">{t('home.ai_assistant')}</span>
-          </button>
+            {/* Floating AI chat button */}
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
+            >
+              <Sparkles size={18} />
+              <span className="text-sm">{t('home.ai_assistant')}</span>
+            </button>
 
-          {/* AI chat panel */}
-          <AiChatPanel
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            currentUser={user}
-            features={features}
-          />
+            {/* AI chat panel */}
+            <AiChatPanel
+              isOpen={isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+              currentUser={user}
+              features={features}
+            />
 
-        </main>
+          </main>
+        </>
       </AnalyticsFiltersProvider>
     );
   }

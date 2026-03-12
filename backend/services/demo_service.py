@@ -100,8 +100,9 @@ def resolve_demo_pricing(country_code: Optional[str]) -> Dict[str, Any]:
     return build_pricing_payload(country_code=country_code or DEFAULT_COUNTRY_CODE, currency=None, locked=False)
 
 
-def build_demo_user_email(contact_email: str, demo_session_id: str) -> str:
-    local_part = (contact_email.split("@")[0] if "@" in contact_email else contact_email).strip().lower()
+def build_demo_user_email(contact_email: Optional[str], demo_session_id: str) -> str:
+    seed_value = contact_email or "guest"
+    local_part = (seed_value.split("@")[0] if "@" in seed_value else seed_value).strip().lower()
     safe_local = "".join(char for char in local_part if char.isalnum()) or "user"
     return f"demo+{safe_local}.{demo_session_id[-6:]}@stockman.pro"
 
@@ -174,19 +175,43 @@ def _build_category_docs(
     demo_session_id: str,
     expires_at: datetime,
     now: datetime,
-    category_names: List[str],
+    category_names: List[Any],
 ) -> List[Dict[str, Any]]:
-    return [
-        _with_demo_metadata({
-            "category_id": _new_id("cat"),
-            "name": name,
-            "color": color,
-            "icon": icon,
-            "user_id": owner_user_id,
-            "created_at": now,
-        }, demo_session_id, expires_at)
-        for name, color, icon in category_names
-    ]
+    default_styles = {
+        "Plats": ("#F97316", "restaurant-outline"),
+        "Boissons": ("#0EA5E9", "wine-outline"),
+        "Desserts": ("#EC4899", "ice-cream-outline"),
+        "Snacking": ("#F59E0B", "fast-food-outline"),
+        "Epicerie": ("#10B981", "basket-outline"),
+        "Hygiene": ("#8B5CF6", "sparkles-outline"),
+    }
+    documents: List[Dict[str, Any]] = []
+    for raw_item in category_names:
+        if isinstance(raw_item, (list, tuple)):
+            if len(raw_item) >= 3:
+                name, color, icon = raw_item[0], raw_item[1], raw_item[2]
+            elif len(raw_item) == 2:
+                name, color = raw_item[0], raw_item[1]
+                icon = default_styles.get(str(name), ("#3B82F6", "cube-outline"))[1]
+            elif len(raw_item) == 1:
+                name = raw_item[0]
+                color, icon = default_styles.get(str(name), ("#3B82F6", "cube-outline"))
+            else:
+                continue
+        else:
+            name = str(raw_item)
+            color, icon = default_styles.get(name, ("#3B82F6", "cube-outline"))
+        documents.append(
+            _with_demo_metadata({
+                "category_id": _new_id("cat"),
+                "name": str(name),
+                "color": str(color),
+                "icon": str(icon),
+                "user_id": owner_user_id,
+                "created_at": now,
+            }, demo_session_id, expires_at)
+        )
+    return documents
 
 
 def _build_product_blueprints(demo_type: str) -> List[Dict[str, Any]]:
@@ -734,7 +759,9 @@ def _build_restaurant_tables(
     return tables, reservations
 
 
-def _build_owner_name(contact_email: str, definition: Dict[str, Any]) -> str:
+def _build_owner_name(contact_email: Optional[str], definition: Dict[str, Any]) -> str:
+    if not contact_email:
+        return f"Responsable {definition['label']}"
     local_part = (contact_email.split("@")[0] if "@" in contact_email else contact_email).strip()
     cleaned = " ".join(chunk.capitalize() for chunk in local_part.replace(".", " ").replace("_", " ").split())
     return cleaned or f"Responsable {definition['label']}"
@@ -744,47 +771,15 @@ async def create_demo_session(
     db: Any,
     *,
     demo_type: str,
-    contact_email: str,
+    contact_email: Optional[str],
     password_hash: str,
     country_code: Optional[str] = None,
     currency: Optional[str] = None,
 ) -> Dict[str, Any]:
     normalized_type = normalize_demo_type(demo_type)
     definition = get_demo_definition(normalized_type)
-    normalized_email = contact_email.strip().lower()
+    normalized_email = (contact_email or "").strip().lower() or None
     now = datetime.now(timezone.utc)
-
-    existing_session = await db.demo_sessions.find_one(
-        {
-            "contact_email": normalized_email,
-            "demo_type": normalized_type,
-            "status": "active",
-            "expires_at": {"$gt": now},
-        },
-        {"_id": 0},
-    )
-    if existing_session:
-        owner_doc = await db.users.find_one(
-            {"user_id": existing_session.get("owner_user_id"), "demo_session_id": existing_session["demo_session_id"]},
-            {"_id": 0},
-        )
-        account_doc = await db.business_accounts.find_one(
-            {"account_id": existing_session.get("account_id"), "demo_session_id": existing_session["demo_session_id"]},
-            {"_id": 0},
-        )
-        if owner_doc and account_doc:
-            await db.demo_sessions.update_one(
-                {"demo_session_id": existing_session["demo_session_id"]},
-                {"$set": {"last_accessed_at": now}},
-            )
-            existing_session["last_accessed_at"] = now
-            return {
-                "session": existing_session,
-                "owner_user": owner_doc,
-                "account": account_doc,
-                "created": False,
-            }
-        await cleanup_demo_session(db, existing_session["demo_session_id"], mark_missing=True)
 
     pricing_payload = build_pricing_payload(
         country_code=country_code or DEFAULT_COUNTRY_CODE,
@@ -798,7 +793,7 @@ async def create_demo_session(
     account_id = _new_id("acct")
     owner_user_id = _new_id("user")
     owner_name = _build_owner_name(normalized_email, definition)
-    synthetic_email = build_demo_user_email(normalized_email, demo_session_id)
+    synthetic_email = build_demo_user_email(normalized_email or normalized_type, demo_session_id)
 
     stores = _build_store_docs(definition, owner_user_id, demo_session_id, expires_at, now)
     store_ids = [store["store_id"] for store in stores]
@@ -940,8 +935,6 @@ async def create_demo_session(
         }, demo_session_id, expires_at))
 
     notification_contacts = default_notification_contacts()
-    notification_contacts["default"] = [normalized_email]
-    notification_contacts["billing"] = [normalized_email]
     business_account = _with_demo_metadata({
         "account_id": account_id,
         "owner_user_id": owner_user_id,
@@ -960,7 +953,7 @@ async def create_demo_session(
         "modules": default_modules(),
         "notification_contacts": notification_contacts,
         "billing_contact_name": owner_name,
-        "billing_contact_email": normalized_email,
+        "billing_contact_email": None,
         "created_at": now,
         "updated_at": now,
         "demo_type": normalized_type,
@@ -992,7 +985,7 @@ async def create_demo_session(
         "invoice_footer": "Document genere automatiquement pour la demonstration.",
         "invoice_payment_terms": "Paiement a reception",
         "billing_contact_name": owner_name,
-        "billing_contact_email": normalized_email,
+        "billing_contact_email": None,
         "created_at": now,
         "updated_at": now,
     }, demo_session_id, expires_at)
@@ -1004,6 +997,7 @@ async def create_demo_session(
         "label": definition["label"],
         "surface": definition["surface"],
         "contact_email": normalized_email,
+        "contact_captured_at": now if normalized_email else None,
         "country_code": resolved_country_code,
         "currency": resolved_currency,
         "pricing_region": pricing_payload["pricing_region"],
@@ -1057,6 +1051,47 @@ async def create_demo_session(
         "account": business_account,
         "created": True,
     }
+
+
+async def capture_demo_session_contact(
+    db: Any,
+    *,
+    demo_session_id: str,
+    contact_email: str,
+) -> Dict[str, Any]:
+    normalized_email = contact_email.strip().lower()
+    now = datetime.now(timezone.utc)
+    session_doc = await db.demo_sessions.find_one({"demo_session_id": demo_session_id}, {"_id": 0})
+    if not session_doc:
+        raise ValueError("Session demo introuvable")
+
+    await db.demo_sessions.update_one(
+        {"demo_session_id": demo_session_id},
+        {"$set": {
+            "contact_email": normalized_email,
+            "contact_captured_at": now,
+            "last_accessed_at": now,
+        }},
+    )
+    await db.business_accounts.update_one(
+        {"account_id": session_doc.get("account_id"), "demo_session_id": demo_session_id},
+        {"$set": {
+            "demo_contact_email": normalized_email,
+            "updated_at": now,
+        }},
+    )
+    await db.users.update_many(
+        {"demo_session_id": demo_session_id},
+        {"$set": {"demo_contact_email": normalized_email}},
+    )
+
+    updated_session = {
+        **session_doc,
+        "contact_email": normalized_email,
+        "contact_captured_at": now,
+        "last_accessed_at": now,
+    }
+    return updated_session
 
 
 async def expire_demo_session(db: Any, demo_session_id: str, *, now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
