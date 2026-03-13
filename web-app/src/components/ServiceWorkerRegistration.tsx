@@ -4,17 +4,13 @@ import { useEffect } from 'react';
 
 export default function ServiceWorkerRegistration() {
     useEffect(() => {
-        if (!('serviceWorker' in navigator)) {
+        if (process.env.NODE_ENV !== 'production') {
             return;
         }
 
-        let refreshed = false;
-
-        const handleControllerChange = () => {
-            if (refreshed) return;
-            refreshed = true;
-            window.location.reload();
-        };
+        if (!('serviceWorker' in navigator)) {
+            return;
+        }
 
         const registerServiceWorker = async () => {
             try {
@@ -39,11 +35,13 @@ export default function ServiceWorkerRegistration() {
             }
         };
 
-        navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-        window.addEventListener('load', registerServiceWorker);
+        if (document.readyState === 'complete') {
+            void registerServiceWorker();
+        } else {
+            window.addEventListener('load', registerServiceWorker, { once: true });
+        }
 
         return () => {
-            navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
             window.removeEventListener('load', registerServiceWorker);
         };
     }, []);

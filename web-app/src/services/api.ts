@@ -165,21 +165,19 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         config.body = body instanceof FormData ? (body as any) : JSON.stringify(body);
     }
 
-    const response = await fetch(`${API_URL}/api${endpoint}`, config);
+    let response = await fetch(`${API_URL}/api${endpoint}`, config);
 
     if (response.status === 401) {
-        const skipAutoRedirect = ['/auth/login', '/auth/refresh', '/auth/me'];
-        if (!skipAutoRedirect.includes(endpoint)) {
+        const skipRefresh = ['/auth/login', '/auth/refresh', '/auth/me'];
+        if (!skipRefresh.includes(endpoint)) {
             const refreshed = await refreshWithMutex();
             if (refreshed) {
-                const retryRes = await fetch(`${API_URL}/api${endpoint}`, config);
-                if (retryRes.ok) return retryRes.json();
+                response = await fetch(`${API_URL}/api${endpoint}`, config);
             }
-
+        }
+        if (response.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
             removeToken();
-            if (typeof window !== 'undefined') {
-                window.location.href = '/';
-            }
+            throw new AuthError('Session expirée. Veuillez vous reconnecter.');
         }
     }
 
