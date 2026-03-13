@@ -28,6 +28,7 @@ import {
     customers as customersApi,
     stores as storesApi,
     expenses as expensesApi,
+    sales as salesApi,
     AccountingStats,
     AccountingSaleHistoryItem,
     Customer,
@@ -80,6 +81,7 @@ export default function AccountingScreen() {
     const [recentSales, setRecentSales] = useState<AccountingSaleHistoryItem[]>([]);
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
+    const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -273,6 +275,52 @@ export default function AccountingScreen() {
             setInvoiceBusyId(null);
         }
     };
+
+    const handleCancelSale = async (saleId: string) => {
+        Alert.alert(
+            t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' }),
+            t('accounting.cancel_sale_confirm', { defaultValue: 'Annuler cette vente et remettre le stock en place ?' }),
+            [
+                { text: t('common.cancel', { defaultValue: 'Annuler' }), style: 'cancel' },
+                {
+                    text: t('common.confirm', { defaultValue: 'Confirmer' }),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setCancellingSaleId(saleId);
+                            await salesApi.cancel(saleId);
+                            await loadData(selectedPeriod, appliedStart || undefined, appliedEnd || undefined);
+                        } catch (err: any) {
+                            Alert.alert(
+                                t('common.error', { defaultValue: 'Erreur' }),
+                                err?.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d’annuler cette vente pour le moment.' }),
+                            );
+                        } finally {
+                            setCancellingSaleId(null);
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
+    const getSaleStatusLabel = (sale: AccountingSaleHistoryItem) =>
+        sale.status === 'cancelled'
+            ? t('accounting.sale_status_cancelled', { defaultValue: 'Annulee' })
+            : t('accounting.sale_status_completed', { defaultValue: 'Completee' });
+
+    const getSaleStatusTone = (sale: AccountingSaleHistoryItem) =>
+        sale.status === 'cancelled'
+            ? {
+                color: colors.danger,
+                borderColor: colors.danger + '35',
+                backgroundColor: colors.danger + '14',
+            }
+            : {
+                color: colors.success,
+                borderColor: colors.success + '35',
+                backgroundColor: colors.success + '14',
+            };
 
 
 
@@ -1108,6 +1156,14 @@ export default function AccountingScreen() {
                                             </View>
                                             <View style={{ alignItems: 'flex-end', gap: 8 }}>
                                                 <Text style={styles.saleTotal}>{formatCurrency(sale.total_amount)}</Text>
+                                                <Text
+                                                    style={[
+                                                        styles.saleStatusBadge,
+                                                        getSaleStatusTone(sale),
+                                                    ]}
+                                                >
+                                                    {getSaleStatusLabel(sale)}
+                                                </Text>
                                                 <View style={{ flexDirection: 'row', gap: 8 }}>
                                                     <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
                                                         <Ionicons name="receipt-outline" size={16} color={colors.primary} />
@@ -1119,7 +1175,7 @@ export default function AccountingScreen() {
                                                         >
                                                             <Ionicons name="document-text-outline" size={16} color={colors.primary} />
                                                         </TouchableOpacity>
-                                                    ) : (
+                                                    ) : sale.status !== 'cancelled' ? (
                                                         <TouchableOpacity
                                                             style={[styles.receiptBtn, invoiceBusyId === sale.sale_id && { opacity: 0.5 }]}
                                                             disabled={invoiceBusyId === sale.sale_id}
@@ -1131,8 +1187,46 @@ export default function AccountingScreen() {
                                                                 <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
                                                             )}
                                                         </TouchableOpacity>
-                                                    )}
+                                                    ) : null}
+                                                    {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                styles.receiptBtn,
+                                                                {
+                                                                    borderColor: colors.danger + '35',
+                                                                    backgroundColor: colors.danger + '14',
+                                                                    opacity: cancellingSaleId === sale.sale_id ? 0.6 : 1,
+                                                                },
+                                                            ]}
+                                                            disabled={cancellingSaleId === sale.sale_id}
+                                                            onPress={() => handleCancelSale(sale.sale_id)}
+                                                        >
+                                                            {cancellingSaleId === sale.sale_id ? (
+                                                                <ActivityIndicator size="small" color={colors.danger} />
+                                                            ) : (
+                                                                <Ionicons name="close-circle-outline" size={16} color={colors.danger} />
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    ) : null}
                                                 </View>
+                                                {sale.status === 'cancelled' && sale.cancelled_at ? (
+                                                    <Text
+                                                        style={[
+                                                            styles.saleMeta,
+                                                            {
+                                                                color: colors.danger,
+                                                                fontWeight: '700',
+                                                                textAlign: 'right',
+                                                                maxWidth: 180,
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {t('accounting.cancelled_on', {
+                                                            defaultValue: 'Annulee le {{date}}',
+                                                            date: formatDate(sale.cancelled_at),
+                                                        })}
+                                                    </Text>
+                                                ) : null}
                                             </View>
                                         </View>
                                     ))}
@@ -1494,6 +1588,17 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     saleDate: { color: colors.text, fontSize: FontSize.sm, fontWeight: '600' },
     saleMeta: { color: colors.textSecondary, fontSize: 10, marginTop: 2 },
     saleTotal: { color: colors.success, fontSize: FontSize.sm, fontWeight: '700' },
+    saleStatusBadge: {
+        fontSize: 10,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        borderWidth: 1,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        overflow: 'hidden',
+    },
     receiptBtn: {
         padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: BorderRadius.sm,
     },

@@ -38,7 +38,6 @@ import {
 import BarcodeScanner from './BarcodeScanner';
 import QuickCustomerModal from './QuickCustomerModal';
 import DigitalReceiptModal from './DigitalReceiptModal';
-import OrderReturnModal from './OrderReturnModal';
 import ChangeCalculatorModal from './ChangeCalculatorModal';
 import LineDiscountModal from './LineDiscountModal';
 import { syncService } from '../services/syncService';
@@ -76,8 +75,8 @@ export default function POS() {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [lastSale, setLastSale] = useState<any>(null);
+    const [cancellingLastSale, setCancellingLastSale] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -538,6 +537,39 @@ export default function POS() {
         const product = (Array.isArray(allProducts) ? allProducts : []).find(p => p.sku === sku);
         if (product) {
             addToCart(product);
+        }
+    };
+
+    const handleCancelLastSale = async () => {
+        if (!lastSale?.sale_id || lastSale?.status === 'cancelled') return;
+
+        const confirmed = window.confirm(
+            t('pos.cancel_sale_confirm', {
+                defaultValue: 'Annuler cette vente et remettre le stock en place ?',
+            }),
+        );
+        if (!confirmed) return;
+
+        try {
+            setCancellingLastSale(true);
+            const cancelledSale = await salesApi.cancel(lastSale.sale_id);
+            setLastSale(cancelledSale);
+            const prodsRes = await productsApi.list(undefined, 0, 500);
+            setAllProducts(prodsRes.items || prodsRes);
+            if (restaurantMode) {
+                tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
+            }
+            window.alert(
+                t('pos.cancel_sale_success', {
+                    defaultValue: 'La vente a été annulée et le stock a été remis à jour.',
+                }),
+            );
+        } catch (err: any) {
+            window.alert(
+                err?.message || t('pos.cancel_sale_error', { defaultValue: 'Impossible d’annuler cette vente pour le moment.' }),
+            );
+        } finally {
+            setCancellingLastSale(false);
         }
     };
 
@@ -1043,10 +1075,11 @@ export default function POS() {
                         </div>
 
                         {/* Return button for last sale */}
-                        {lastSale && cart.length === 0 && (
+                        {lastSale && lastSale.status !== 'cancelled' && cart.length === 0 && (
                             <button
-                                onClick={() => setIsReturnModalOpen(true)}
-                                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-white bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+                                onClick={() => void handleCancelLastSale()}
+                                disabled={cancellingLastSale}
+                                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-white bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-all disabled:opacity-60"
                             >
                                 <RotateCcw size={14} /> {t('pos.return_last_sale', 'Retour sur dernière vente')}
                             </button>
@@ -1296,13 +1329,6 @@ export default function POS() {
                     name: storeSettings?.receipt_business_name,
                     footer: storeSettings?.receipt_footer,
                 }}
-            />
-
-            <OrderReturnModal
-                isOpen={isReturnModalOpen}
-                onClose={() => setIsReturnModalOpen(false)}
-                order={lastSale}
-                onSuccess={() => setIsReturnModalOpen(false)}
             />
 
             <ChangeCalculatorModal

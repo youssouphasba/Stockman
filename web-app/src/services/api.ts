@@ -537,6 +537,8 @@ export type AccountingSaleHistoryItem = {
     invoice_number?: string;
     invoice_label?: string;
     invoice_issued_at?: string;
+    cancelled_at?: string;
+    cancellation_reason?: string;
 };
 
 export type CustomerInvoiceItem = {
@@ -1552,6 +1554,8 @@ export const restaurantOrders = {
     removeItem: (saleId: string, itemIdx: number) => request<any>(`/sales/${saleId}/items/${itemIdx}`, { method: 'DELETE' }),
     finalize: (saleId: string, data: { payment_method?: string; payments?: any[]; tip_amount?: number; discount_amount?: number; service_charge_percent?: number; covers?: number }) =>
         request<any>(`/sales/${saleId}/finalize`, { method: 'POST', body: data }),
+    cancel: (saleId: string, reason?: string) =>
+        request<any>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
 };
 
 export const restaurant = {
@@ -1715,6 +1719,8 @@ export const sales = {
             method: 'POST',
             body: data,
         }),
+    cancel: (saleId: string, reason?: string) =>
+        request<any>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
     forecast: () => request<any>('/sales/forecast'),
 };
 

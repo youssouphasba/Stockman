@@ -77,6 +77,13 @@
     "product_performance": "Performance par Produit",
     "purchases_count": "{{count}} réappro.",
     "recent_sales": "Ventes récentes",
+    "cancel_sale": "Annuler la vente",
+    "cancel_sale_confirm": "Annuler cette vente et remettre le stock en place ?",
+    "cancel_sale_error": "Impossible d'annuler cette vente pour le moment.",
+    "cancelling_sale": "Annulation...",
+    "sale_status_cancelled": "Annulée",
+    "sale_status_completed": "Complétée",
+    "cancelled_on": "Annulée le {{date}}",
     "recipient_label": "Destinataire :",
     "report": "Rapport",
     "report_gen_error": "Erreur lors de la génération du rapport",
@@ -1576,7 +1583,10 @@
     "tip_label": "Pourboire",
     "final_total": "Total final",
     "discount_label": "Remise",
-    "return_last_sale": "Retour sur dernière vente",
+    "return_last_sale": "Annuler la dernière vente",
+    "cancel_sale_confirm": "Annuler cette vente et remettre le stock en place ?",
+    "cancel_sale_success": "La vente a été annulée et le stock a été remis à jour.",
+    "cancel_sale_error": "Impossible d'annuler cette vente pour le moment.",
     "send_to_kitchen": "Envoyer en cuisine",
     "add_to_open_order": "Ajouter à la commande",
     "menu_stock_label": "en stock",
@@ -1926,7 +1936,8 @@
       "pos_sale": "Vente POS",
       "inventory_adjustment": "Ajustement d'inventaire",
       "supplier_reception": "Réception fournisseur",
-      "loss_damage": "Perte ou casse"
+      "loss_damage": "Perte ou casse",
+      "sale_cancelled": "Vente annulée"
     }
   },
   "store_selector": {

@@ -77,6 +77,13 @@
     "product_performance": "Product Performance",
     "purchases_count": "{{count}} order(s)",
     "recent_sales": "Recent Sales",
+    "cancel_sale": "Cancel sale",
+    "cancel_sale_confirm": "Cancel this sale and restore the stock?",
+    "cancel_sale_error": "Unable to cancel this sale right now.",
+    "cancelling_sale": "Cancelling...",
+    "sale_status_cancelled": "Cancelled",
+    "sale_status_completed": "Completed",
+    "cancelled_on": "Cancelled on {{date}}",
     "recipient_label": "Client",
     "report": "Report",
     "report_gen_error": "Error while generating the report",
@@ -1577,7 +1584,10 @@
     "tip_label": "Tip",
     "final_total": "Final total",
     "discount_label": "Discount",
-    "return_last_sale": "Return last sale",
+    "return_last_sale": "Cancel last sale",
+    "cancel_sale_confirm": "Cancel this sale and restore the stock?",
+    "cancel_sale_success": "The sale was cancelled and the stock has been restored.",
+    "cancel_sale_error": "Unable to cancel this sale right now.",
     "send_to_kitchen": "Send to kitchen",
     "add_to_open_order": "Add to order",
     "menu_stock_label": "in stock",
@@ -1927,7 +1937,8 @@
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",
-      "loss_damage": "Loss or Damage"
+      "loss_damage": "Loss or Damage",
+      "sale_cancelled": "Sale cancelled"
     }
   },
   "store_selector": {

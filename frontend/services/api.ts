@@ -1832,6 +1832,8 @@ export const sales = {
     return request<PaginatedResponse<Sale>>(`/sales?${qs.toString()}`);
   },
   create: (data: SaleCreate) => request<Sale>('/sales', { method: 'POST', body: data }),
+  cancel: (saleId: string, reason?: string) =>
+    request<Sale>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
   forecast: () => request<SalesForecastResponse>('/sales/forecast'),
 };
 
@@ -2029,6 +2031,9 @@ export type Sale = {
   customer_id?: string;
   customer_name?: string;
   created_at: string;
+  status?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
 };
 
 export type AccountingSaleHistoryItem = {
@@ -2048,6 +2053,8 @@ export type AccountingSaleHistoryItem = {
   invoice_number?: string;
   invoice_label?: string;
   invoice_issued_at?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
 };
 
 export type SaleCreate = {
@@ -2798,4 +2805,6 @@ export const restaurantOrders = {
     addItems: (saleId: string, items: any[]) => request<any>(`/sales/${saleId}/items`, { method: 'POST', body: { items } }),
     finalize: (saleId: string, data: { payment_method?: string; payments?: any[]; tip_amount?: number; discount_amount?: number; service_charge_percent?: number; covers?: number }) =>
         request<any>(`/sales/${saleId}/finalize`, { method: 'POST', body: data }),
+    cancel: (saleId: string, reason?: string) =>
+        request<any>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
 };

@@ -79,6 +79,13 @@
         "product_performance": "Product Performance",
         "purchases_count": "{{count}} order(s)",
         "recent_sales": "Recent Sales",
+        "cancel_sale": "Cancel sale",
+        "cancel_sale_confirm": "Cancel this sale and restore the stock?",
+        "cancel_sale_error": "Unable to cancel this sale right now.",
+        "cancelling_sale": "Cancelling...",
+        "sale_status_cancelled": "Cancelled",
+        "sale_status_completed": "Completed",
+        "cancelled_on": "Cancelled on {{date}}",
         "recipient_label": "Customer",
         "report": "Report",
         "report_gen_error": "Error while generating the report",
@@ -1644,7 +1651,10 @@
     "tip_label": "Tip",
     "final_total": "Final total",
     "discount_label": "Discount",
-    "return_last_sale": "Return last sale",
+    "return_last_sale": "Cancel last sale",
+    "cancel_sale_confirm": "Cancel this sale and restore the stock?",
+    "cancel_sale_success": "The sale was cancelled and the stock has been restored.",
+    "cancel_sale_error": "Unable to cancel this sale right now.",
     "cart_locked_open_order": "This line has already been sent. Add a new line to extend the order.",
     "open_order_locked_title": "Open order",
     "no_new_items_to_send": "No new items to send.",
@@ -2067,7 +2077,8 @@
             "pos_sale": "Vente POS",
             "inventory_adjustment": "Ajustement d'inventaire",
             "supplier_reception": "Supplier reception",
-            "loss_damage": "Perte ou casse"
+            "loss_damage": "Perte ou casse",
+            "sale_cancelled": "Sale cancelled"
         }
     },
     "store_selector": {

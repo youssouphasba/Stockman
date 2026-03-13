@@ -1531,6 +1531,12 @@ class Sale(BaseModel):
     service_type: str = "dine_in"  # dine_in | takeaway | delivery
     occupied_since: Optional[datetime] = None  # quand la table a été occupée
     current_amount: float = 0.0  # total provisoire avant paiement
+    loyalty_points_earned: int = 0
+    customer_total_spent_increment: float = 0.0
+    credit_debt_applied: float = 0.0
+    cancelled_at: Optional[datetime] = None
+    cancelled_by_user_id: Optional[str] = None
+    cancellation_reason: Optional[str] = None
 
 
 class SaleCreate(BaseModel):
@@ -1548,6 +1554,9 @@ class SaleCreate(BaseModel):
     kitchen_sent: Optional[bool] = False
     status: Optional[str] = "completed"  # "open" pour commande restaurant en cours
     service_type: Optional[str] = "dine_in"
+
+class SaleCancelRequest(BaseModel):
+    reason: Optional[str] = None
 
 class Table(BaseModel):
     table_id: str = Field(default_factory=lambda: f"tbl_{uuid.uuid4().hex[:8]}")
@@ -7012,11 +7021,12 @@ async def get_customer_debt_history(
     """
     # 1. Get Credit Sales (Debt increase)
     owner_id = get_owner_id(user)
-    sales_cursor = db.sales.find({
+    sales_query = apply_completed_sales_scope({
         "user_id": owner_id,
         "customer_id": customer_id,
         "payment_method": "credit"
     })
+    sales_cursor = db.sales.find(sales_query)
     sales = await sales_cursor.to_list(None)
 
     # 2. Get Payments (Debt decrease)
@@ -9259,6 +9269,13 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
             primary_method = payments[0].get("method", "cash")
         else:
             primary_method = payment_method
+        customer_effects = await _compute_sale_customer_effects(
+            owner_id,
+            sale.get("customer_id"),
+            actual_total,
+            primary_method,
+            payments,
+        )
     except Exception:
         await db.sales.update_one(
             {"sale_id": sale_id, "user_id": owner_id, "status": "finalizing"},
@@ -9287,10 +9304,15 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
             "payment_method": primary_method,
             "payments": payments,
             "covers": data.get("covers", sale.get("covers")),
+            "loyalty_points_earned": customer_effects["loyalty_points_earned"],
+            "customer_total_spent_increment": customer_effects["customer_total_spent_increment"],
+            "credit_debt_applied": customer_effects["credit_debt_applied"],
         }, "$unset": {"finalizing_at": ""}},
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=409, detail="La commande a change d'etat pendant la finalisation")
+
+    await _apply_sale_customer_effects(owner_id, sale.get("customer_id"), customer_effects)
 
     if sale.get("table_id"):
         await db.tables.update_one(
@@ -9307,6 +9329,124 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
     updated = await db.sales.find_one({"sale_id": sale_id})
     updated.pop("_id", None)
     return updated
+
+@api_router.post("/sales/{sale_id}/cancel", response_model=Sale)
+async def cancel_sale(
+    sale_id: str,
+    cancel_data: SaleCancelRequest,
+    user: User = Depends(require_permission("pos", "write")),
+):
+    ensure_subscription_write_allowed(user)
+    owner_id = get_owner_id(user)
+    now = datetime.now(timezone.utc)
+
+    locked_sale = await db.sales.find_one_and_update(
+        {"sale_id": sale_id, "user_id": owner_id, "status": "completed"},
+        {"$set": {"status": "cancelling", "cancelling_at": now}},
+        return_document=True,
+    )
+    if not locked_sale:
+        current_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
+        ensure_scoped_document_access(user, current_sale, detail="Acces refuse pour cette vente")
+        if not current_sale:
+            raise HTTPException(status_code=404, detail="Vente introuvable")
+        if current_sale.get("status") == "cancelled":
+            return Sale(**current_sale)
+        if current_sale.get("status") == "cancelling":
+            raise HTTPException(status_code=409, detail="Cette vente est deja en cours d'annulation")
+        raise HTTPException(status_code=400, detail="Seules les ventes completees peuvent etre annulees")
+
+    ensure_scoped_document_access(user, locked_sale, detail="Acces refuse pour cette vente")
+    revert_query = {"sale_id": sale_id, "user_id": owner_id, "status": "cancelling"}
+    revert_update = {
+        "$set": {"status": "completed"},
+        "$unset": {
+            "cancelling_at": "",
+            "cancelled_by_user_id": "",
+            "cancellation_reason": "",
+            "cancelled_at": "",
+        },
+    }
+
+    linked_invoice = await db.customer_invoices.find_one(
+        {"user_id": owner_id, "sale_id": sale_id},
+        {"_id": 0, "invoice_id": 1},
+    )
+    if linked_invoice:
+        await db.sales.update_one(revert_query, revert_update)
+        raise HTTPException(
+            status_code=400,
+            detail="Cette vente possede deja une facture. Reglez d'abord la facture ou emettez un avoir avant d'annuler la vente.",
+        )
+
+    acting_user = user.model_copy(update={"active_store_id": locked_sale.get("store_id") or user.active_store_id})
+    try:
+        for item in locked_sale.get("items") or []:
+            product_id = item.get("product_id")
+            if not product_id:
+                continue
+            product_doc = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+            if not product_doc:
+                raise HTTPException(status_code=404, detail=f"Produit {product_id} introuvable pour remise en stock")
+
+            normalized_product = normalize_product_measurement_fields(product_doc)
+            product_mode = (normalized_product.get("production_mode") or "prepped").lower()
+            if product_mode in ("prepped", "hybrid"):
+                await create_stock_movement(
+                    StockMovementCreate(
+                        product_id=product_id,
+                        type="in",
+                        quantity=round_quantity(item.get("quantity", 0) or 0),
+                        reason="stock.reasons.sale_cancelled",
+                    ),
+                    acting_user,
+                )
+
+        customer_effects = {
+            "credit_debt_applied": _round_money(
+                locked_sale.get("credit_debt_applied")
+                if locked_sale.get("credit_debt_applied") is not None
+                else (locked_sale.get("total_amount", 0.0) if locked_sale.get("payment_method") == "credit" else 0.0)
+            ),
+            "loyalty_points_earned": int(locked_sale.get("loyalty_points_earned") or 0),
+            "customer_total_spent_increment": _round_money(locked_sale.get("customer_total_spent_increment", 0.0)),
+        }
+        await _apply_sale_customer_effects(
+            owner_id,
+            locked_sale.get("customer_id"),
+            customer_effects,
+            multiplier=-1,
+        )
+    except HTTPException:
+        await db.sales.update_one(revert_query, revert_update)
+        raise
+    except Exception:
+        await db.sales.update_one(revert_query, revert_update)
+        raise HTTPException(status_code=500, detail="Annulation impossible pour le moment")
+
+    updated_sale = await db.sales.find_one_and_update(
+        revert_query,
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_at": now,
+            "cancelled_by_user_id": user.user_id,
+            "cancellation_reason": cancel_data.reason,
+        }, "$unset": {"cancelling_at": ""}},
+        return_document=True,
+    )
+    if not updated_sale:
+        raise HTTPException(status_code=409, detail="La vente a change d'etat pendant l'annulation")
+
+    await log_activity(
+        user=user,
+        action="sale_cancelled",
+        module="pos",
+        description=f"Vente annulee {locked_sale.get('total_amount', 0):,} FCFA ({len(locked_sale.get('items') or [])} articles)",
+        details={"sale_id": sale_id, "reason": cancel_data.reason},
+    )
+
+    updated_sale.pop("_id", None)
+    return Sale(**updated_sale)
 
 @api_router.post("/sales/{sale_id}/serve")
 async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
@@ -10115,11 +10255,12 @@ async def get_customer(customer_id: str, user: User = Depends(require_permission
         raise HTTPException(status_code=404, detail="Client non trouvé")
     cust.pop("_id", None)
     # Compute stats
-    sales_count = await db.sales.count_documents({"customer_id": customer_id, "user_id": owner_id})
+    customer_sales_query = apply_completed_sales_scope({"customer_id": customer_id, "user_id": owner_id})
+    sales_count = await db.sales.count_documents(customer_sales_query)
     cust["visit_count"] = sales_count
     cust["average_basket"] = round(cust.get("total_spent", 0) / sales_count, 0) if sales_count > 0 else 0
     cust["tier"] = _compute_tier(sales_count)
-    last_sale = await db.sales.find_one({"customer_id": customer_id, "user_id": owner_id}, sort=[("created_at", -1)])
+    last_sale = await db.sales.find_one(customer_sales_query, sort=[("created_at", -1)])
     cust["last_purchase_date"] = str(last_sale["created_at"]) if last_sale else None
     return Customer(**cust)
 
@@ -10240,6 +10381,70 @@ async def _apply_sale_item_inventory(product: dict, quantity: float, user: User,
 
 def _round_money(value: Any) -> float:
     return round(float(value or 0.0), 2)
+
+
+async def _compute_sale_customer_effects(
+    owner_id: str,
+    customer_id: Optional[str],
+    total_amount: float,
+    payment_method: str,
+    payments: Optional[List[dict]] = None,
+) -> Dict[str, Any]:
+    effects = {
+        "credit_debt_applied": 0.0,
+        "loyalty_points_earned": 0,
+        "customer_total_spent_increment": 0.0,
+    }
+    if not customer_id:
+        return effects
+
+    total_amount = _round_money(total_amount)
+    if payments:
+        credit_amount = sum(_round_money(payment.get("amount", 0.0)) for payment in payments if payment.get("method") == "credit")
+        effects["credit_debt_applied"] = _round_money(credit_amount)
+    elif payment_method == "credit":
+        effects["credit_debt_applied"] = total_amount
+
+    settings_doc = await db.user_settings.find_one({"user_id": owner_id})
+    ratio = 1000
+    if settings_doc and "loyalty" in settings_doc:
+        ratio = settings_doc["loyalty"].get("ratio", 1000)
+        if not settings_doc["loyalty"].get("is_active", True):
+            ratio = 0
+    if ratio > 0:
+        effects["loyalty_points_earned"] = int(total_amount / ratio)
+        effects["customer_total_spent_increment"] = total_amount
+
+    return effects
+
+
+async def _apply_sale_customer_effects(
+    owner_id: str,
+    customer_id: Optional[str],
+    effects: Dict[str, Any],
+    multiplier: int = 1,
+) -> None:
+    if not customer_id:
+        return
+
+    inc_payload: Dict[str, Any] = {}
+    credit_debt = _round_money((effects.get("credit_debt_applied") or 0.0) * multiplier)
+    if credit_debt:
+        inc_payload["current_debt"] = credit_debt
+
+    loyalty_points = int((effects.get("loyalty_points_earned") or 0) * multiplier)
+    if loyalty_points:
+        inc_payload["loyalty_points"] = loyalty_points
+
+    total_spent = _round_money((effects.get("customer_total_spent_increment") or 0.0) * multiplier)
+    if total_spent:
+        inc_payload["total_spent"] = total_spent
+
+    if inc_payload:
+        await db.customers.update_one(
+            {"customer_id": customer_id, "user_id": owner_id},
+            {"$inc": inc_payload},
+        )
 
 
 def _normalize_tax_mode(tax_mode: Optional[str]) -> str:
@@ -10493,6 +10698,13 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             {"customer_id": sale_data.customer_id, "user_id": owner_id},
             {"_id": 0, "customer_id": 1, "name": 1},
         )
+    customer_effects = await _compute_sale_customer_effects(
+        owner_id,
+        sale_data.customer_id,
+        actual_total,
+        primary_method or sale_data.payment_method,
+        payments,
+    )
 
     # 5. Créer la vente
     sale = Sale(
@@ -10520,6 +10732,9 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         service_type=sale_data.service_type or "dine_in",
         current_amount=actual_total,
         occupied_since=datetime.now(timezone.utc) if is_open_order and sale_data.table_id else None,
+        loyalty_points_earned=customer_effects["loyalty_points_earned"],
+        customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
+        credit_debt_applied=customer_effects["credit_debt_applied"],
     )
     await db.sales.insert_one(sale.model_dump())
 
@@ -10551,24 +10766,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             details={"sale_id": sale.sale_id, "total": actual_total, "discount": discount, "customer_id": sale_data.customer_id}
         )
 
-        if sale_data.customer_id:
-            if sale_data.payment_method == 'credit':
-                await db.customers.update_one(
-                    {"customer_id": sale_data.customer_id, "user_id": owner_id},
-                    {"$inc": {"current_debt": actual_total}}
-                )
-            settings_doc = await db.user_settings.find_one({"user_id": owner_id})
-            ratio = 1000
-            if settings_doc and "loyalty" in settings_doc:
-                ratio = settings_doc["loyalty"].get("ratio", 1000)
-                if not settings_doc["loyalty"].get("is_active", True):
-                    ratio = 0
-            if ratio > 0:
-                points_earned = int(actual_total / ratio)
-                await db.customers.update_one(
-                    {"customer_id": sale_data.customer_id, "user_id": owner_id},
-                    {"$inc": {"loyalty_points": points_earned, "total_spent": actual_total}}
-                )
+        await _apply_sale_customer_effects(owner_id, sale_data.customer_id, customer_effects)
 
     return sale
 
@@ -11144,7 +11342,7 @@ async def get_accounting_sales_history(
     date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
     query: Dict[str, Any] = {"user_id": owner_id}
     query = apply_store_scope(query, user, store_id)
-    query = apply_completed_sales_scope(query)
+    query["$or"] = [{"status": {"$exists": False}}, {"status": "completed"}, {"status": "cancelled"}]
     query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
 
     total = await db.sales.count_documents(query)
@@ -11226,6 +11424,8 @@ async def create_customer_invoice_from_sale(
     sale_doc = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
     if not sale_doc:
         raise HTTPException(status_code=404, detail="Vente introuvable")
+    if sale_doc.get("status") == "cancelled":
+        raise HTTPException(status_code=400, detail="Impossible de creer une facture pour une vente annulee")
     return await _create_or_get_invoice_from_sale_doc(sale_doc, user)
 
 

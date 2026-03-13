@@ -39,6 +39,7 @@ import {
     accounting as accountingApi,
     expenses as expensesApi,
     ai as aiApi,
+    sales as salesApi,
     type AccountingSaleHistoryItem,
     type AccountingStats,
     type AnalyticsKpiDetail,
@@ -97,6 +98,7 @@ export default function Accounting() {
     const [salesHistory, setSalesHistory] = useState<AccountingSaleHistoryItem[]>([]);
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
+    const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
@@ -242,7 +244,36 @@ export default function Accounting() {
         }
     };
 
+    const handleCancelSale = async (saleId: string) => {
+        if (!confirm(t('accounting.cancel_sale_confirm', { defaultValue: 'Annuler cette vente et remettre le stock en place ?' }))) {
+            return;
+        }
+        setCancellingSaleId(saleId);
+        try {
+            await salesApi.cancel(saleId);
+            await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
+        } catch (err: any) {
+            alert(err?.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d’annuler cette vente pour le moment.' }));
+        } finally {
+            setCancellingSaleId(null);
+        }
+    };
+
     const formatPercent = (value?: number) => `${(value || 0).toFixed(1)}%`;
+
+    const getSaleStatusLabel = (sale: AccountingSaleHistoryItem) => {
+        if (sale.status === 'cancelled') {
+            return t('accounting.sale_status_cancelled', { defaultValue: 'Annulee' });
+        }
+        return t('accounting.sale_status_completed', { defaultValue: 'Completee' });
+    };
+
+    const getSaleStatusClassName = (sale: AccountingSaleHistoryItem) => {
+        if (sale.status === 'cancelled') {
+            return 'border-rose-500/20 bg-rose-500/10 text-rose-300';
+        }
+        return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300';
+    };
 
     const handleOpenFinanceDetail = async (metric: string) => {
         setDetailOpen(true);
@@ -895,9 +926,14 @@ export default function Accounting() {
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <p className="text-white font-black">{formatCurrency(sale.total_amount)}</p>
-                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {sale.payment_method?.replace('_', ' ')}
-                                                    </p>
+                                                    <div className="mt-1 flex flex-col items-end gap-2">
+                                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                                            {sale.payment_method?.replace('_', ' ')}
+                                                        </p>
+                                                        <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getSaleStatusClassName(sale)}`}>
+                                                            {getSaleStatusLabel(sale)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mt-4">
@@ -908,7 +944,7 @@ export default function Accounting() {
                                                     >
                                                         Voir {sale.invoice_label || 'facture'}
                                                     </button>
-                                                ) : (
+                                                ) : sale.status !== 'cancelled' ? (
                                                     <button
                                                         onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
                                                         disabled={invoiceBusyId === sale.sale_id}
@@ -916,8 +952,27 @@ export default function Accounting() {
                                                     >
                                                         {invoiceBusyId === sale.sale_id ? 'Creation...' : 'Creer facture'}
                                                     </button>
-                                                )}
+                                                ) : null}
+                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                    <button
+                                                        onClick={() => void handleCancelSale(sale.sale_id)}
+                                                        disabled={cancellingSaleId === sale.sale_id}
+                                                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                    >
+                                                        {cancellingSaleId === sale.sale_id
+                                                            ? t('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
+                                                            : t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' })}
+                                                    </button>
+                                                ) : null}
                                             </div>
+                                            {sale.status === 'cancelled' && sale.cancelled_at ? (
+                                                <p className="mt-3 text-[11px] text-rose-300">
+                                                    {t('accounting.cancelled_on', {
+                                                        defaultValue: 'Annulee le {{date}}',
+                                                        date: formatDate(sale.cancelled_at),
+                                                    })}
+                                                </p>
+                                            ) : null}
                                         </div>
                                     ))
                                 )}
