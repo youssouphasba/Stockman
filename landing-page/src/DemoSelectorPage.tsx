@@ -48,7 +48,7 @@ const DEMO_API_TYPES: Record<DemoChoiceId, string> = {
 
 const MOBILE_DEMO_SCHEME = 'stockman://';
 
-function buildLaunchUrl(baseUrl: string, payload: DemoSessionResponse) {
+function buildMobileLaunchUrl(baseUrl: string, payload: DemoSessionResponse) {
   const params = new URLSearchParams({
     demo_access_token: payload.access_token,
     demo_type: payload.demo_session.demo_type,
@@ -130,8 +130,8 @@ export default function DemoSelectorPage() {
 
       const payload = await response.json() as DemoSessionResponse;
       const launchUrl = payload.demo_session.surface === 'web'
-        ? buildLaunchUrl(APP_WEB_URL, payload)
-        : buildLaunchUrl(MOBILE_DEMO_SCHEME, payload);
+        ? APP_WEB_URL
+        : buildMobileLaunchUrl(MOBILE_DEMO_SCHEME, payload);
 
       setSuccess({
         choiceId: targetChoice,

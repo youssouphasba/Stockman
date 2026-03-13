@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import DOMPurify from 'dompurify';
 import './App.css';
 
 function PrivacyPolicy() {
@@ -61,7 +62,7 @@ function PrivacyPolicy() {
                     <div
                         ref={contentRef}
                         style={{ lineHeight: '1.8', color: 'var(--text-light)' }}
-                        dangerouslySetInnerHTML={{ __html: t('privacy.content') }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(t('privacy.content')) }}
                     />
                 </div>
             </section>

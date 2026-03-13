@@ -1,7 +1,6 @@
 'use client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const TOKEN_KEY = 'auth_token';
 const OFFLINE_REQUESTS_KEY = 'stockman_offline_requests';
 const LEGACY_OFFLINE_SALES_KEY = 'stockman_offline_sales';
 
@@ -84,13 +83,11 @@ class SyncService {
     }
 
     private async send(request: QueuedRequest) {
-        const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
         const response = await fetch(`${API_URL}/api${request.endpoint}`, {
             method: request.method,
             credentials: 'include',
             headers: {
                 ...(request.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: request.body
                 ? (request.body instanceof FormData ? request.body : JSON.stringify(request.body))

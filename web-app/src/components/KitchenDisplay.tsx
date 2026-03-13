@@ -14,11 +14,10 @@ async function apiRequest<T>(
     method: string = 'GET',
     body?: unknown
 ): Promise<T> {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     const res = await fetch(`${API_URL}/api${path}`, {
         method,
+        credentials: 'include',
         headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,

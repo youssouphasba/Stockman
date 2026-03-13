@@ -1,18 +1,29 @@
 /**
- * Utility to register a "default" Trusted Types policy.
- * This is used to allow browser-injected scripts (like alert-observer.js)
- * to run when a strict Content Security Policy (CSP) is enforced.
+ * Trusted Types default policy.
+ * Sanitizes HTML by stripping <script> tags and event handlers.
  */
+
+function sanitizeHTML(html: string): string {
+    return html
+        .replace(/<script[\s>][\s\S]*?<\/script>/gi, '')
+        .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/\bon\w+\s*=\s*[^\s>]*/gi, '')
+        .replace(/javascript\s*:/gi, 'about:invalid');
+}
 
 if (typeof window !== 'undefined' && (window as any).trustedTypes) {
     try {
         if (!(window as any).trustedTypes.defaultPolicy) {
             (window as any).trustedTypes.createPolicy('default', {
-                createHTML: (html: string) => html,
-                createScript: (script: string) => script,
-                createScriptURL: (url: string) => url,
+                createHTML: (html: string) => sanitizeHTML(html),
+                createScript: () => '',
+                createScriptURL: (url: string) => {
+                    if (url.startsWith(window.location.origin) || url.startsWith('https://')) {
+                        return url;
+                    }
+                    return 'about:invalid';
+                },
             });
-            console.log('Trusted Types default policy registered.');
         }
     } catch (e) {
         console.error('Failed to register Trusted Types policy:', e);

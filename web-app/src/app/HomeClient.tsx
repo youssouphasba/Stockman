@@ -33,7 +33,7 @@ import ReportsLibrary from "../components/ReportsLibrary";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
-import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, setToken, setRefreshToken, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
+import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
@@ -117,30 +117,24 @@ export default function Home() {
   }, [hydrateAuthenticatedUser]);
 
   useEffect(() => {
-    const demoAccessToken = searchParams.get('demo_access_token');
-    const demoRefreshToken = searchParams.get('demo_refresh_token');
-    if (demoAccessToken) {
-      setToken(demoAccessToken);
-      if (demoRefreshToken) {
-        setRefreshToken(demoRefreshToken);
-      }
-      void loadUser().finally(() => {
-        if (typeof window === 'undefined') return;
-        const url = new URL(window.location.href);
-        url.searchParams.delete('demo_access_token');
-        url.searchParams.delete('demo_refresh_token');
-        url.searchParams.delete('demo_type');
-        url.searchParams.delete('demo_expires_at');
-        url.searchParams.delete('demo_session_id');
-        window.history.replaceState({}, '', url.toString());
-      });
-      return;
+    const hasLegacyDemoParams =
+      searchParams.has('demo_access_token') ||
+      searchParams.has('demo_refresh_token') ||
+      searchParams.has('demo_type') ||
+      searchParams.has('demo_expires_at') ||
+      searchParams.has('demo_session_id');
+
+    if (hasLegacyDemoParams && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('demo_access_token');
+      url.searchParams.delete('demo_refresh_token');
+      url.searchParams.delete('demo_type');
+      url.searchParams.delete('demo_expires_at');
+      url.searchParams.delete('demo_session_id');
+      window.history.replaceState({}, '', url.toString());
     }
 
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      void loadUser();
-    }
+    void loadUser();
   }, [loadUser, searchParams]);
 
   useEffect(() => {
@@ -197,10 +191,6 @@ export default function Home() {
     setLoading(true);
     try {
       const response = await auth.login(email, password);
-      setToken(response.access_token);
-      if (response.refresh_token) {
-        setRefreshToken(response.refresh_token);
-      }
       hydrateAuthenticatedUser(response.user);
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : t('common.auth_error', { defaultValue: "Erreur d'authentification" }));
@@ -209,8 +199,8 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    auth.logout();
+  const handleLogout = async () => {
+    await auth.logout().catch(() => undefined);
     removeToken();
     localStorage.removeItem('user_currency');
     setUser(null);
@@ -830,10 +820,6 @@ export default function Home() {
           onClose={() => setShowSignup(false)}
           onSuccess={(response: AuthResponse) => {
             setShowSignup(false);
-            setToken(response.access_token);
-            if (response.refresh_token) {
-              setRefreshToken(response.refresh_token);
-            }
             setEmail(response.user.email);
             setPassword('');
             hydrateAuthenticatedUser(response.user);

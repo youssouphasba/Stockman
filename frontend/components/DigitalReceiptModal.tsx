@@ -25,7 +25,9 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
 
     if (!sale) return null;
 
-    const receiptUrl = `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/api/public/receipts/${sale.sale_id}`;
+    const receiptUrl = sale.public_receipt_token
+        ? `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/api/public/receipts/t/${sale.public_receipt_token}`
+        : '';
 
     const handleSharePdf = async () => {
         if (!sale || !store) return;
@@ -40,6 +42,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
     };
 
     const shareToWhatsAppLegacy = () => {
+        if (!receiptUrl) return;
         const text = t('modals.receipt_whatsapp_text', { url: receiptUrl });
         const url = `whatsapp://send?text=${encodeURIComponent(text)}`;
         Linking.canOpenURL(url).then(supported => {
@@ -68,7 +71,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
 
                     <View style={styles.qrContainer}>
                         <QRCode
-                            value={receiptUrl}
+                            value={receiptUrl || 'receipt-unavailable'}
                             size={180}
                             color="#000"
                             backgroundColor="#fff"

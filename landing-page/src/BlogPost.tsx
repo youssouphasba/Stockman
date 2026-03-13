@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import DOMPurify from 'dompurify';
 import SEO from './components/SEO';
 import './App.css';
 
@@ -52,7 +53,7 @@ function BlogPost() {
                         <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{t('blog.published_on')} {date.toUpperCase()}</span>
                         <h1 style={{ fontSize: '2.5rem', marginTop: '10px' }}>{title}</h1>
                     </div>
-                    <div className="blog-body" style={{ lineHeight: '1.8', fontSize: '1.1rem', color: 'var(--text-light)' }} dangerouslySetInnerHTML={{ __html: content }} />
+                    <div className="blog-body" style={{ lineHeight: '1.8', fontSize: '1.1rem', color: 'var(--text-light)' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />
                     <div style={{ marginTop: '60px', paddingTop: '40px', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
                         <h3>{t('blog.liked_article')}</h3>
                         <p className="text-muted" style={{ marginBottom: '20px' }}>{t('blog.try_stockman')}</p>

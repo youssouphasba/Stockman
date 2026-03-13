@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import {
     accounting as accountingApi,
@@ -360,8 +361,38 @@ export default function AccountingScreen() {
         } else if (selectedPeriod !== 'custom') {
             params.set('days', selectedPeriod.toString());
         }
-        params.set('token', token);
-        Linking.openURL(`${API_URL}/api/export/accounting/csv?${params.toString()}`);
+
+        try {
+            const response = await fetch(`${API_URL}/api/export/accounting/csv?${params.toString()}`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error('export accounting failed');
+            const csv = await response.text();
+
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = 'accounting.csv';
+                anchor.click();
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+
+            const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+            if (!baseDir) throw new Error('filesystem unavailable');
+            const fileUri = `${baseDir}accounting.csv`;
+            await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+            } else {
+                Alert.alert(t('common.error'), t('accounting.export_error', { defaultValue: "Impossible d'exporter le rapport comptable." }));
+            }
+        } catch {
+            Alert.alert(t('common.error'), t('accounting.export_error', { defaultValue: "Impossible d'exporter le rapport comptable." }));
+        }
     };
 
     // Custom invoice

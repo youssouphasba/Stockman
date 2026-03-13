@@ -7,11 +7,14 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import hashlib
+import hmac
 import google.generativeai as genai
 from pathlib import Path as PathLib
 from pydantic import BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional
 import uuid
+import secrets
 from datetime import datetime, timezone, timedelta
 from utils.i18n import i18n
 from passlib.context import CryptContext
@@ -167,6 +170,9 @@ def safe_regex(user_input: str) -> str:
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures (refresh auto via SecureStore dans l'APK)
 REFRESH_TOKEN_EXPIRE_DAYS = 30 # 30 jours
+AUTH_LOCK_MAX_ATTEMPTS = 5
+AUTH_LOCK_WINDOW_MINUTES = 15
+AUTH_LOCK_DURATION_MINUTES = 15
 
 # Rate limiting
 limiter = Limiter(key_func=get_remote_address)
@@ -204,7 +210,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         f"UNHANDLED EXCEPTION [{request.method} {request.url.path}]: {type(exc).__name__}: {exc}",
         exc_info=True
     )
-    return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {str(exc)}"})
+    detail = "Erreur serveur interne" if IS_PROD else f"{type(exc).__name__}: {str(exc)}"
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 # App routers
 api_router = APIRouter(prefix="/api")
@@ -368,7 +375,7 @@ async def update_privacy(privacy_data: PrivacyPolicy):
     return {"message": "Politique de confidentialité mise à jour avec succès"}
 
 async def run_startup_migrations():
-    """Background migration: backfill store_id and is_active on documents missing it"""
+    """Background migration: backfill operational and security fields."""
     try:
         logger.info("Starting background migrations...")
         users = await db.users.find({"active_store_id": {"$ne": None}}, {"user_id": 1, "active_store_id": 1, "_id": 0}).to_list(None)
@@ -410,6 +417,46 @@ async def run_startup_migrations():
                 {"user_id": uid, "$or": [{"store_id": None}, {"store_id": {"$exists": False}}]},
                 {"$set": {"store_id": sid}}
             )
+        await db.users.update_many(
+            {"$or": [{"auth_version": {"$exists": False}}, {"auth_version": None}]},
+            {"$set": {"auth_version": 1}},
+        )
+        await db.user_sessions.update_many(
+            {"$or": [{"session_id": {"$exists": False}}, {"session_id": None}]},
+            {
+                "$set": {
+                    "revoked_at": datetime.now(timezone.utc),
+                    "revocation_reason": "legacy_session_without_session_id",
+                }
+            },
+        )
+        otp_users = await db.users.find(
+            {
+                "$or": [
+                    {"phone_otp": {"$nin": [None, ""]}},
+                    {"email_otp": {"$nin": [None, ""]}},
+                ]
+            },
+            {"_id": 0, "user_id": 1, "phone_otp": 1, "email_otp": 1, "phone_otp_digest": 1, "email_otp_digest": 1},
+        ).to_list(None)
+        for otp_user in otp_users:
+            otp_set: Dict[str, Any] = {"phone_otp": None, "email_otp": None}
+            if otp_user.get("phone_otp") and not otp_user.get("phone_otp_digest"):
+                otp_set["phone_otp_digest"] = hash_otp_code(str(otp_user["phone_otp"]))
+            if otp_user.get("email_otp") and not otp_user.get("email_otp_digest"):
+                otp_set["email_otp_digest"] = hash_otp_code(str(otp_user["email_otp"]))
+            await db.users.update_one({"user_id": otp_user["user_id"]}, {"$set": otp_set})
+
+        sales_without_public_token = await db.sales.find(
+            {"$or": [{"public_receipt_token": {"$exists": False}}, {"public_receipt_token": None}]},
+            {"_id": 0, "sale_id": 1},
+        ).to_list(None)
+        for sale_doc in sales_without_public_token:
+            await db.sales.update_one(
+                {"sale_id": sale_doc["sale_id"]},
+                {"$set": {"public_receipt_token": generate_public_receipt_token()}},
+            )
+
         owner_docs = await db.users.find(
             {"role": {"$in": ["shopkeeper", "staff", "admin"]}},
             {"_id": 0}
@@ -515,9 +562,12 @@ async def create_indexes_and_init():
                 # I12 - Session and Security indexes
                 await db.user_sessions.create_index("session_token")
                 await db.user_sessions.create_index("user_id")
+                await db.user_sessions.create_index("session_id", unique=True, sparse=True)
+                await db.user_sessions.create_index("refresh_jti", sparse=True)
                 await db.users.create_index([("is_demo", 1), ("demo_expires_at", 1)])
                 await db.users.create_index("demo_session_id")
                 await db.business_accounts.create_index([("is_demo", 1), ("demo_expires_at", 1)])
+                await db.sales.create_index("public_receipt_token", unique=True, sparse=True)
                 await db.demo_sessions.create_index("demo_session_id", unique=True)
                 await db.demo_sessions.create_index([("status", 1), ("expires_at", 1)])
                 await db.demo_sessions.create_index([("contact_email", 1), ("demo_type", 1), ("status", 1)])
@@ -749,9 +799,14 @@ class PublicReceipt(BaseModel):
 # ===================== PUBLIC ENDPOINTS =====================
 
 @app.get("/api/public/receipts/{sale_id}", response_model=PublicReceipt)
-async def get_public_receipt(sale_id: str):
-    """Public endpoint to view receipt details without authentication"""
-    sale = await db.sales.find_one({"sale_id": sale_id})
+async def get_legacy_public_receipt(sale_id: str):
+    raise HTTPException(status_code=410, detail="Ce lien de reçu a été révoqué. Utilisez le nouveau lien sécurisé.")
+
+
+@app.get("/api/public/receipts/t/{public_token}", response_model=PublicReceipt)
+async def get_public_receipt(public_token: str):
+    """Public endpoint to view receipt details without authentication."""
+    sale = await db.sales.find_one({"public_receipt_token": public_token})
     if not sale:
         raise HTTPException(status_code=404, detail="Reçu non trouvé")
     
@@ -915,6 +970,7 @@ class User(UserBase):
     demo_type: Optional[str] = None
     demo_surface: Optional[str] = None
     demo_expires_at: Optional[datetime] = None
+    auth_version: int = 1
 
 class BusinessAccount(BaseModel):
     account_id: str = Field(default_factory=lambda: f"acct_{uuid.uuid4().hex[:12]}")
@@ -1409,6 +1465,7 @@ class SaleItem(BaseModel):
 
 class Sale(BaseModel):
     sale_id: str = Field(default_factory=lambda: f"sale_{uuid.uuid4().hex[:12]}")
+    public_receipt_token: str = Field(default_factory=lambda: f"rcpt_{secrets.token_urlsafe(24)}")
     user_id: str
     store_id: str
     items: List[SaleItem]
@@ -1737,12 +1794,198 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def create_refresh_token(user_id: str) -> str:
-    """Crée un refresh token longue durée (30 jours)."""
-    token_id = f"rt_{uuid.uuid4().hex[:16]}"
+def create_refresh_token(user_id: str, session_id: str, auth_version: int, token_id: Optional[str] = None) -> str:
+    token_id = token_id or f"rt_{uuid.uuid4().hex[:16]}"
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"sub": user_id, "type": "refresh", "jti": token_id, "exp": expire}
+    to_encode = {
+        "sub": user_id,
+        "type": "refresh",
+        "sid": session_id,
+        "av": auth_version,
+        "jti": token_id,
+        "exp": expire,
+    }
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def normalize_auth_version(value: Any) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = 1
+    return parsed if parsed > 0 else 1
+
+
+def get_cookie_settings() -> Dict[str, Any]:
+    return {
+        "httponly": True,
+        "secure": IS_PROD,
+        "samesite": "none" if IS_PROD else "lax",
+        "path": "/",
+    }
+
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    cookie_settings = get_cookie_settings()
+    response.set_cookie(
+        key="session_token",
+        value=access_token,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        **cookie_settings,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        **cookie_settings,
+    )
+
+
+def hash_otp_code(otp: str) -> str:
+    return hmac.new(SECRET_KEY.encode("utf-8"), otp.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def otp_matches(expected_digest: Optional[str], candidate: str) -> bool:
+    if not expected_digest:
+        return False
+    return hmac.compare_digest(expected_digest, hash_otp_code(candidate))
+
+
+def new_session_id() -> str:
+    return f"sess_{uuid.uuid4().hex[:16]}"
+
+
+def new_refresh_jti() -> str:
+    return f"rt_{uuid.uuid4().hex[:16]}"
+
+
+def generate_public_receipt_token() -> str:
+    return f"rcpt_{secrets.token_urlsafe(24)}"
+
+
+def is_active_session_doc(session_doc: Optional[dict]) -> bool:
+    return bool(session_doc and not session_doc.get("revoked_at"))
+
+
+def parse_datetime_value(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def is_login_locked(user_doc: dict) -> bool:
+    locked_until = parse_datetime_value(user_doc.get("login_locked_until"))
+    return bool(locked_until and locked_until > datetime.now(timezone.utc))
+
+
+async def log_security_event(
+    event_type: str,
+    *,
+    user_id: Optional[str] = None,
+    user_email: Optional[str] = None,
+    request: Optional[Request] = None,
+    details: str = "",
+):
+    await db.security_events.insert_one({
+        "event_id": f"sec_{uuid.uuid4().hex[:12]}",
+        "type": event_type,
+        "user_id": user_id,
+        "user_email": user_email,
+        "ip_address": request.client.host if request and request.client else None,
+        "user_agent": request.headers.get("user-agent") if request else None,
+        "details": details,
+        "created_at": datetime.now(timezone.utc),
+    })
+
+
+async def clear_login_lock_state(user_id: str):
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"failed_login_count": 0, "first_failed_login_at": None, "login_locked_until": None}},
+    )
+
+
+async def register_failed_login_attempt(user_doc: dict, request: Request):
+    now = datetime.now(timezone.utc)
+    first_failed = parse_datetime_value(user_doc.get("first_failed_login_at"))
+    failed_count = int(user_doc.get("failed_login_count", 0) or 0)
+    if not first_failed or now - first_failed > timedelta(minutes=AUTH_LOCK_WINDOW_MINUTES):
+        failed_count = 0
+        first_failed = now
+    failed_count += 1
+    update_payload: Dict[str, Any] = {
+        "failed_login_count": failed_count,
+        "first_failed_login_at": first_failed,
+    }
+    locked = False
+    if failed_count >= AUTH_LOCK_MAX_ATTEMPTS:
+        locked = True
+        update_payload["login_locked_until"] = now + timedelta(minutes=AUTH_LOCK_DURATION_MINUTES)
+    await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": update_payload})
+    await log_security_event(
+        "account_locked" if locked else "login_failed",
+        user_id=user_doc.get("user_id"),
+        user_email=user_doc.get("email"),
+        request=request,
+        details="login",
+    )
+
+
+async def revoke_session(session_id: Optional[str], reason: str = "logout"):
+    if not session_id:
+        return
+    await db.user_sessions.update_one(
+        {"session_id": session_id, "revoked_at": {"$exists": False}},
+        {"$set": {"revoked_at": datetime.now(timezone.utc), "revocation_reason": reason}},
+    )
+
+
+async def revoke_all_user_sessions(user_id: str, reason: str):
+    await db.user_sessions.update_many(
+        {"user_id": user_id, "revoked_at": {"$exists": False}},
+        {"$set": {"revoked_at": datetime.now(timezone.utc), "revocation_reason": reason}},
+    )
+
+
+async def create_authenticated_session(
+    user_doc: dict,
+    request: Optional[Request],
+    response: Optional[Response] = None,
+    *,
+    session_label: Optional[str] = None,
+) -> Dict[str, str]:
+    user_id = user_doc["user_id"]
+    auth_version = normalize_auth_version(user_doc.get("auth_version"))
+    session_id = new_session_id()
+    refresh_jti = new_refresh_jti()
+    access_token = create_access_token({"sub": user_id, "sid": session_id, "av": auth_version, "type": "access"})
+    refresh_token = create_refresh_token(user_id, session_id, auth_version, refresh_jti)
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_id": session_id,
+        "session_token": access_token,
+        "refresh_jti": refresh_jti,
+        "auth_version": auth_version,
+        "created_at": datetime.now(timezone.utc),
+        "last_active": datetime.now(timezone.utc),
+        "user_agent": request.headers.get("user-agent") if request else session_label,
+        "ip": request.client.host if request and request.client else None,
+    })
+    if response:
+        set_auth_cookies(response, access_token, refresh_token)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "session_id": session_id,
+        "refresh_jti": refresh_jti,
+    }
+
 
 def sanitize_user_doc(user_doc: dict) -> dict:
     """Sanitize MongoDB user document for Pydantic V2 strict validation.
@@ -2119,10 +2362,23 @@ async def get_current_user(request: Request) -> Optional[User]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        session_id: Optional[str] = payload.get("sid")
+        token_auth_version = payload.get("av")
+        token_type = payload.get("type")
         if user_id is None:
+            return None
+        if token_type == "refresh" or not session_id or token_auth_version is None:
             return None
         user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if not user_doc:
+            return None
+        if normalize_auth_version(user_doc.get("auth_version")) != normalize_auth_version(token_auth_version):
+            return None
+        session_doc = await db.user_sessions.find_one(
+            {"session_id": session_id, "user_id": user_id},
+            {"_id": 0, "session_id": 1, "revoked_at": 1},
+        )
+        if not is_active_session_doc(session_doc):
             return None
         if is_demo_session_expired(user_doc):
             if user_doc.get("demo_session_id"):
@@ -2134,8 +2390,8 @@ async def get_current_user(request: Request) -> Optional[User]:
         # Update last_active (fire-and-forget, must not break auth)
         try:
             asyncio.create_task(db.user_sessions.update_one(
-                {"session_token": token},
-                {"$set": {"last_active": datetime.now(timezone.utc)}}
+                {"session_id": session_id},
+                {"$set": {"last_active": datetime.now(timezone.utc), "session_token": token}}
             ))
         except Exception:
             pass
@@ -4611,7 +4867,9 @@ async def list_collections():
 
 @admin_router.get("/collections/{name}")
 async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Optional[str] = None, user: User = Depends(require_superadmin)):
-    """View documents in a collection with pagination and search"""
+    """View documents in a collection with pagination and search (superadmin only, disabled in production)."""
+    if IS_PROD:
+        raise HTTPException(status_code=403, detail="Endpoint désactivé en production")
     # Security check: ensure strictly read-only and no arbitrary code execution
     if name not in await db.list_collection_names():
         raise HTTPException(status_code=404, detail="Collection not found")
@@ -7154,31 +7412,20 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "verification_channel": required_verification,
             "signup_surface": signup_surface,
             "verification_completed_at": None,
-            "phone_otp": otp if required_verification == "phone" else None,
+            "phone_otp": None,
+            "phone_otp_digest": hash_otp_code(otp) if required_verification == "phone" else None,
             "phone_otp_expiry": otp_expiry if required_verification == "phone" else None,
             "phone_otp_attempts": 0,
-            "email_otp": otp if required_verification == "email" else None,
+            "email_otp": None,
+            "email_otp_digest": hash_otp_code(otp) if required_verification == "email" else None,
             "email_otp_expiry": otp_expiry if required_verification == "email" else None,
             "email_otp_attempts": 0,
+            "auth_version": 1,
             "country_code": user_data.country_code or "SN",
             "created_at": datetime.now(timezone.utc)
         }
         
         await db.users.insert_one(user_doc)
-
-        # Track initial session (I10)
-        access_token = create_access_token(data={"sub": user_id})
-        await db.user_sessions.insert_one({
-            "user_id": user_id,
-            "session_token": access_token,
-            "created_at": datetime.now(timezone.utc),
-            "last_active": datetime.now(timezone.utc),
-            "user_agent": request.headers.get("user-agent"),
-            "ip": request.client.host if request.client else None
-        })
-        
-        # We need the token for the response
-        # It's already generated above
 
         # Log registration activity
         log_user = await build_user_from_doc(user_doc)
@@ -7257,35 +7504,15 @@ async def register(request: Request, user_data: UserCreate, response: Response):
                 detail=str(otp_err),
             )
 
-        # Create access token
-        access_token = create_access_token(data={"sub": user_id})
-        
-        # Set cookie
-        response.set_cookie(
-            key="session_token",
-            value=access_token,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            path="/"
-        )
-        
-        # Set refresh token cookie
-        refresh_token = create_refresh_token(user_id)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-            path="/"
-        )
+        session_tokens = await create_authenticated_session(user_doc, request, response)
         
         user = await build_user_from_doc(user_doc)
 
-        return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+        return TokenResponse(
+            access_token=session_tokens["access_token"],
+            refresh_token=session_tokens["refresh_token"],
+            user=user,
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -7326,10 +7553,11 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
         )
         raise HTTPException(status_code=400, detail="Code expiré. Veuillez demander un nouveau code.")
     
-    if user_doc.get("phone_otp") == data.otp:
+    if otp_matches(user_doc.get("phone_otp_digest"), data.otp):
         update_payload = {
             "is_phone_verified": True,
             "phone_otp": None,
+            "phone_otp_digest": None,
             "phone_otp_expiry": None,
             "phone_otp_attempts": 0,
         }
@@ -7379,7 +7607,7 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
     """Resend a new OTP via WhatsApp"""
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
-        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
     
     if user_doc.get("is_phone_verified"):
         raise HTTPException(status_code=400, detail="Téléphone déjà vérifié")
@@ -7395,7 +7623,8 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
     await db.users.update_one(
         {"user_id": current_user.user_id},
         {"$set": {
-            "phone_otp": otp,
+            "phone_otp": None,
+            "phone_otp_digest": hash_otp_code(otp),
             "phone_otp_expiry": otp_expiry,
             "phone_otp_attempts": 0
         }}
@@ -7441,10 +7670,11 @@ async def verify_email(request: Request, data: VerifyEmailRequest, current_user:
         )
         raise HTTPException(status_code=400, detail="Code expire. Veuillez demander un nouveau code.")
 
-    if user_doc.get("email_otp") == data.otp:
+    if otp_matches(user_doc.get("email_otp_digest"), data.otp):
         update_payload = {
             "is_email_verified": True,
             "email_otp": None,
+            "email_otp_digest": None,
             "email_otp_expiry": None,
             "email_otp_attempts": 0,
         }
@@ -7499,7 +7729,7 @@ async def resend_phone_otp(request: Request, current_user: User = Depends(requir
     otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
     await db.users.update_one(
         {"user_id": current_user.user_id},
-        {"$set": {"phone_otp": otp, "phone_otp_expiry": otp_expiry, "phone_otp_attempts": 0}}
+        {"$set": {"phone_otp": None, "phone_otp_digest": hash_otp_code(otp), "phone_otp_expiry": otp_expiry, "phone_otp_attempts": 0}}
     )
 
     sent = False
@@ -7540,7 +7770,7 @@ async def resend_email_otp(request: Request, current_user: User = Depends(requir
     otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
     await db.users.update_one(
         {"user_id": current_user.user_id},
-        {"$set": {"email_otp": otp, "email_otp_expiry": otp_expiry, "email_otp_attempts": 0}}
+        {"$set": {"email_otp": None, "email_otp_digest": hash_otp_code(otp), "email_otp_expiry": otp_expiry, "email_otp_attempts": 0}}
     )
 
     sent = False
@@ -7576,16 +7806,34 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     user_data.email = user_data.email.lower().strip()
     user_doc = await db.users.find_one({"email": user_data.email}, {"_id": 0})
     if not user_doc:
+        await log_security_event("login_failed", user_email=user_data.email, request=request, details="email_not_found")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
     if user_doc.get("auth_type") == "google":
         raise HTTPException(status_code=400, detail="Ce compte utilise la connexion Google")
+
+    if is_login_locked(user_doc):
+        await log_security_event(
+            "account_locked",
+            user_id=user_doc.get("user_id"),
+            user_email=user_doc.get("email"),
+            request=request,
+            details="login_locked",
+        )
+        raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
     
     if not verify_password(user_data.password, user_doc.get("password_hash", "")):
+        await register_failed_login_attempt(user_doc, request)
+        refreshed_doc = await db.users.find_one({"user_id": user_doc["user_id"]}, {"_id": 0})
+        if refreshed_doc and is_login_locked(refreshed_doc):
+            raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
     # Update last_login / first_login_at
-    login_updates = {"last_login": datetime.now(timezone.utc)}
+    login_updates = {
+        "last_login": datetime.now(timezone.utc),
+        "auth_version": normalize_auth_version(user_doc.get("auth_version")),
+    }
     if not user_doc.get("first_login_at"):
         login_updates["first_login_at"] = login_updates["last_login"]
     await db.users.update_one(
@@ -7593,40 +7841,15 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         {"$set": login_updates}
     )
     user_doc.update(login_updates)
-    
-    access_token = create_access_token(data={"sub": user_doc["user_id"]})
-    
-    # Set refresh token cookie
-    refresh_token = create_refresh_token(user_doc["user_id"])
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        path="/"
+    await clear_login_lock_state(user_doc["user_id"])
+    await log_security_event(
+        "login_success",
+        user_id=user_doc["user_id"],
+        user_email=user_doc.get("email"),
+        request=request,
+        details="login",
     )
-
-    response.set_cookie(
-        key="session_token",
-        value=access_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/"
-    )
-    
-    # Track session (I10)
-    await db.user_sessions.insert_one({
-        "user_id": user_doc["user_id"],
-        "session_token": access_token,
-        "created_at": datetime.now(timezone.utc),
-        "last_active": datetime.now(timezone.utc),
-        "user_agent": request.headers.get("user-agent"),
-        "ip": request.client.host if request.client else None
-    })
+    session_tokens = await create_authenticated_session(user_doc, request, response)
     
     # Ensure store info is returned (compatibility with older users)
     active_store_id = user_doc.get("active_store_id")
@@ -7660,7 +7883,11 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     except Exception as e:
         logger.error(f"Login User build failed: {e} - doc keys: {list(user_doc.keys())}")
         raise HTTPException(status_code=500, detail="Erreur interne de construction du profil")
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+    return TokenResponse(
+        access_token=session_tokens["access_token"],
+        refresh_token=session_tokens["refresh_token"],
+        user=user,
+    )
 
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(require_auth)):
@@ -7686,39 +7913,48 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
         raise HTTPException(status_code=401, detail="Refresh token expiré ou invalide")
 
     user_id = payload.get("sub")
+    session_id = payload.get("sid")
+    token_auth_version = payload.get("av")
+    refresh_jti = payload.get("jti")
+    if not user_id or not session_id or token_auth_version is None or not refresh_jti:
+        raise HTTPException(status_code=401, detail="Refresh token invalide")
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    auth_version = normalize_auth_version(user_doc.get("auth_version"))
+    if auth_version != normalize_auth_version(token_auth_version):
+        await revoke_session(session_id, "auth_version_mismatch")
+        raise HTTPException(status_code=401, detail="Session expiree")
     if is_demo_session_expired(user_doc):
         if user_doc.get("demo_session_id"):
             await expire_demo_session(db, user_doc["demo_session_id"])
         raise HTTPException(status_code=401, detail="Cette session demo a expire. Relancez une nouvelle demo.")
 
-    # Access token
-    new_access = create_access_token(data={"sub": user_id})
-    
-    # Refresh token rotation
-    new_refresh = create_refresh_token(user_id)
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        path="/"
+    session_doc = await db.user_sessions.find_one(
+        {"session_id": session_id, "user_id": user_id},
+        {"_id": 0},
     )
-    
-    # Also update session token cookie to match new access token
-    response.set_cookie(
-        key="session_token",
-        value=new_access,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/"
+    if not is_active_session_doc(session_doc):
+        raise HTTPException(status_code=401, detail="Session expiree")
+    if session_doc.get("refresh_jti") != refresh_jti:
+        await revoke_session(session_id, "refresh_token_reuse_detected")
+        raise HTTPException(status_code=401, detail="Refresh token invalide")
+
+    rotated_refresh_jti = new_refresh_jti()
+    new_access = create_access_token({"sub": user_id, "sid": session_id, "av": auth_version, "type": "access"})
+    new_refresh = create_refresh_token(user_id, session_id, auth_version, rotated_refresh_jti)
+    await db.user_sessions.update_one(
+        {"session_id": session_id},
+        {
+            "$set": {
+                "session_token": new_access,
+                "refresh_jti": rotated_refresh_jti,
+                "last_active": datetime.now(timezone.utc),
+                "last_refresh_at": datetime.now(timezone.utc),
+            }
+        },
     )
+    set_auth_cookies(response, new_access, new_refresh)
 
     user = await build_user_from_doc(user_doc)
     return TokenResponse(access_token=new_access, refresh_token=new_refresh, user=user)
@@ -7748,21 +7984,34 @@ async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
     """Logout user"""
-    # 1. Try session_token from cookie
-    token = request.cookies.get("session_token")
-    
-    # 2. Try Authorization header (Bearer token)
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-            
-    if token:
-        await db.user_sessions.delete_one({"session_token": token})
-    
-    response.delete_cookie(key="session_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
-    return {"message": "Déconnexion réussie"}
+    tokens_to_check: List[str] = []
+    session_cookie = request.cookies.get("session_token")
+    refresh_cookie = request.cookies.get("refresh_token")
+    if session_cookie:
+        tokens_to_check.append(session_cookie)
+    if refresh_cookie:
+        tokens_to_check.append(refresh_cookie)
+
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        tokens_to_check.append(auth_header.split(" ", 1)[1])
+
+    session_id: Optional[str] = None
+    for token in tokens_to_check:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        except JWTError:
+            continue
+        session_id = payload.get("sid")
+        if session_id:
+            break
+
+    await revoke_session(session_id, "logout")
+
+    cookie_settings = get_cookie_settings()
+    response.delete_cookie(key="session_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
+    response.delete_cookie(key="refresh_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
+    return {"message": "Deconnexion reussie"}
 
 @api_router.post("/auth/change-password")
 async def change_password(data: PasswordChange, user: User = Depends(require_auth)):
@@ -7775,20 +8024,17 @@ async def change_password(data: PasswordChange, user: User = Depends(require_aut
         raise HTTPException(status_code=401, detail="Ancien mot de passe incorrect")
 
     new_hash = get_password_hash(data.new_password)
+    new_auth_version = normalize_auth_version(user_doc.get("auth_version")) + 1
     await db.users.update_one(
         {"user_id": user.user_id},
-        {"$set": {"password_hash": new_hash}}
+        {"$set": {"password_hash": new_hash, "auth_version": new_auth_version}}
     )
+    await revoke_all_user_sessions(user.user_id, "password_changed")
 
     # Audit trail
-    await db.security_events.insert_one({
-        "event_id": f"sec_{uuid.uuid4().hex[:12]}",
-        "type": "password_changed",
-        "user_id": user.user_id,
-        "created_at": datetime.utcnow().isoformat(),
-    })
+    await log_security_event("password_changed", user_id=user.user_id, user_email=user.email, details="password_change")
     logger.info(f"Password changed for user {user.user_id}")
-    return {"message": "Mot de passe modifié avec succès"}
+    return {"message": "Mot de passe modifie avec succes"}
 
 # ===================== STORE ROUTES =====================
 
@@ -15078,7 +15324,7 @@ async def search_marketplace_suppliers(
     if category:
         query["categories"] = category
     if city:
-        query["city"] = {"$regex": city, "$options": "i"}
+        query["city"] = {"$regex": safe_regex(city), "$options": "i"}
     if min_rating is not None:
         query["rating_average"] = {"$gte": min_rating}
     if verified_only:
@@ -15129,7 +15375,7 @@ async def search_marketplace_products(
         fuzzy_q = get_fuzzy_regex(q)
         query["name"] = {"$regex": fuzzy_q, "$options": "i"}
     if category:
-        query["category"] = {"$regex": category, "$options": "i"}
+        query["category"] = {"$regex": safe_regex(category), "$options": "i"}
     
     if price_min is not None or price_max is not None:
         price_filter = {}
@@ -15188,7 +15434,7 @@ async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user
     return {"message": "Invitation envoyée", "invitation_id": invitation.invitation_id, "token": invitation.token}
 
 @api_router.post("/auth/register-from-invitation")
-async def register_from_invitation(user_data: UserCreate, token: str):
+async def register_from_invitation(request: Request, response: Response, user_data: UserCreate, token: str):
     """Register a supplier from an invitation token"""
     invitation = await db.supplier_invitations.find_one({"token": token, "status": "pending"}, {"_id": 0})
     if not invitation:
@@ -15214,6 +15460,7 @@ async def register_from_invitation(user_data: UserCreate, token: str):
         "picture": None,
         "auth_type": "email",
         "role": "supplier",
+        "auth_version": 1,
         "created_at": datetime.now(timezone.utc)
     }
     await db.users.insert_one(user_doc)
@@ -15239,21 +15486,20 @@ async def register_from_invitation(user_data: UserCreate, token: str):
     )
     await db.supplier_profiles.insert_one(profile.model_dump())
 
-    access_token = create_access_token(data={"sub": user_id})
-
-    # Track session (I10)
-    await db.user_sessions.insert_one({
-        "user_id": user_id,
-        "session_token": access_token,
-        "created_at": datetime.now(timezone.utc),
-        "last_active": datetime.now(timezone.utc),
-        "user_agent": "invitation_flow",
-        "ip": None
-    })
+    session_tokens = await create_authenticated_session(
+        user_doc,
+        request,
+        response,
+        session_label="invitation_flow",
+    )
 
     user_obj = await build_user_from_doc(user_doc)
 
-    return TokenResponse(access_token=access_token, user=user_obj)
+    return TokenResponse(
+        access_token=session_tokens["access_token"],
+        refresh_token=session_tokens["refresh_token"],
+        user=user_obj,
+    )
 
 # ===================== RATING ROUTES (CAS 1) =====================
 
@@ -15354,31 +15600,11 @@ async def check_late_deliveries(user: User = Depends(require_auth)):
 # ===================== EXPORT CSV ROUTES =====================
 
 
-def get_user_from_token_query(token: str = Query(...)):
-    """Helper to auth via query param (for direct download links)"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Token invalide")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token invalide")
-    
-    # We can't verify user exists easily without async here or duplicating logic, 
-    # but for export `sub` is usually enough. Optimally we'd reuse `get_current_user` logic but it depends on OAuth2PasswordBearer.
-    # Let's just return a simple User object or fetch from DB if needed. 
-    # Since we are in async function below, we can fetch user there.
-    return user_id
-
 @api_router.get("/export/products/csv")
-async def export_products_csv(token: str = Query(...)):
-    try:
-        user_id = get_user_from_token_query(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Non autorisé")
-        
-    products = await db.products.find({"user_id": user_id, "is_active": True}, {"_id": 0}).to_list(1000)
-    categories = await db.categories.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+async def export_products_csv(user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
+    products = await db.products.find(apply_store_scope({"user_id": owner_id, "is_active": True}, user), {"_id": 0}).to_list(1000)
+    categories = await db.categories.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
     cat_map = {c["category_id"]: c["name"] for c in categories}
 
     output = io.StringIO()
@@ -15408,18 +15634,14 @@ async def export_products_csv(token: str = Query(...)):
 @api_router.get("/export/movements/csv")
 @api_router.get("/export/stock/csv")
 async def export_movements_csv(
-    token: str = Query(...),
+    user: User = Depends(require_auth),
     product_id: Optional[str] = Query(None),
     days: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None)
 ):
-    try:
-        user_id = get_user_from_token_query(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Non autorisé")
-
-    query = {"user_id": user_id}
+    owner_id = get_owner_id(user)
+    query = apply_store_scope({"user_id": owner_id}, user)
     if product_id:
         query["product_id"] = product_id
     
@@ -15435,7 +15657,7 @@ async def export_movements_csv(
             pass
 
     movements = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
-    products = await db.products.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
+    products = await db.products.find({"user_id": owner_id}, {"_id": 0}).to_list(1000)
     prod_map = {p["product_id"]: p["name"] for p in products}
 
     output = io.StringIO()
@@ -15461,26 +15683,36 @@ async def export_movements_csv(
     )
 
 @api_router.get("/export/accounting/csv")
-async def export_accounting_csv(token: str = Query(...), days: int = Query(30)):
-    try:
-        user_id = get_user_from_token_query(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Non autorisé")
-
-    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+async def export_accounting_csv(
+    days: Optional[int] = Query(30),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    user: User = Depends(require_auth),
+):
+    owner_id = get_owner_id(user)
+    start_dt = datetime.now(timezone.utc) - timedelta(days=days or 30)
+    end_dt = datetime.now(timezone.utc)
+    if start_date and end_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+            end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Periode comptable invalide")
 
     # Sales
-    sales = await db.sales.find({"user_id": user_id, "created_at": {"$gte": start_date}}).to_list(5000)
+    sales = await db.sales.find(
+        apply_store_scope({"user_id": owner_id, "created_at": {"$gte": start_dt, "$lte": end_dt}}, user)
+    ).to_list(5000)
     # Losses
-    loss_movements = await db.stock_movements.find({
-        "user_id": user_id, "type": "out",
-        "created_at": {"$gte": start_date}, "reason": {"$ne": "Vente POS"}
-    }).to_list(5000)
-    products = await db.products.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
+    loss_movements = await db.stock_movements.find(apply_store_scope({
+        "user_id": owner_id, "type": "out",
+        "created_at": {"$gte": start_dt, "$lte": end_dt}, "reason": {"$ne": "Vente POS"}
+    }, user)).to_list(5000)
+    products = await db.products.find({"user_id": owner_id}, {"_id": 0}).to_list(1000)
     prod_map = {p["product_id"]: p for p in products}
     # Purchases
     orders = await db.orders.find({
-        "user_id": user_id, "status": "delivered", "updated_at": {"$gte": start_date}
+        "user_id": owner_id, "status": "delivered", "updated_at": {"$gte": start_dt, "$lte": end_dt}
     }).to_list(1000)
 
     output = io.StringIO()
@@ -18332,34 +18564,15 @@ async def create_demo_session_endpoint(
         currency=payload.currency,
     )
     owner_user = await build_user_from_doc(demo_payload["owner_user"])
-    access_token = create_access_token(data={"sub": owner_user.user_id})
-    refresh_token = create_refresh_token(owner_user.user_id)
-    response.set_cookie(
-        key="session_token",
-        value=access_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/"
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        path="/"
-    )
+    session_tokens = await create_authenticated_session(demo_payload["owner_user"], request, response, session_label="demo_session")
     session_doc = demo_payload["session"]
     await db.demo_sessions.update_one(
         {"demo_session_id": session_doc["demo_session_id"]},
         {"$set": {"last_accessed_at": datetime.now(timezone.utc)}},
     )
     return DemoSessionResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        access_token=session_tokens["access_token"],
+        refresh_token=session_tokens["refresh_token"],
         user=owner_user,
         demo_session=DemoSessionInfo(
             demo_session_id=session_doc["demo_session_id"],

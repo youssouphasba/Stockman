@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Modal,
-  Linking,
   Alert,
   Share,
   Image,
@@ -24,6 +23,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as Print from 'expo-print';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
 import DashboardSettingsModal from '../../components/DashboardSettingsModal';
@@ -397,7 +397,35 @@ export default function DashboardScreen() {
   async function exportHistory() {
     const token = await getToken();
     if (!token) return;
-    Linking.openURL(`${API_URL}/export/movements/csv?token=${token}`);
+    try {
+      const response = await fetch(`${API_URL}/api/export/movements/csv`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('export history failed');
+      const csv = await response.text();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'mouvements.csv';
+        anchor.click();
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (!baseDir) throw new Error('filesystem unavailable');
+      const fileUri = `${baseDir}mouvements.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      } else {
+        await Share.share({ url: fileUri, message: fileUri });
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('dashboard.export_error', { defaultValue: "Impossible d'exporter l'historique." }));
+    }
   }
 
   async function openStatsModal() {
@@ -416,7 +444,35 @@ export default function DashboardScreen() {
   async function exportStats() {
     const token = await getToken();
     if (!token) return;
-    Linking.openURL(`${API_URL}/export/products/csv?token=${token}`);
+    try {
+      const response = await fetch(`${API_URL}/api/export/products/csv`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('export stats failed');
+      const csv = await response.text();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'produits.csv';
+        anchor.click();
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (!baseDir) throw new Error('filesystem unavailable');
+      const fileUri = `${baseDir}produits.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      } else {
+        await Share.share({ url: fileUri, message: fileUri });
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('dashboard.export_error', { defaultValue: "Impossible d'exporter les statistiques." }));
+    }
   }
 
   function formatCurrency(val: number) {

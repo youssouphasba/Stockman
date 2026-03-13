@@ -1998,6 +1998,7 @@ export type SaleItem = {
 
 export type Sale = {
   sale_id: string;
+  public_receipt_token?: string;
   user_id: string;
   store_id: string;
   items: SaleItem[];

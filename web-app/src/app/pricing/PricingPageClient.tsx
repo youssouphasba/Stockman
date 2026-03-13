@@ -231,8 +231,8 @@ export default function PricingPageClient() {
                             </div>
                         </div>
                         {PLAN_COMPARISON_ROWS.map((row, index) => (
-                            <div key={row.feature} className={`grid grid-cols-4 border-b border-white/5 ${index % 2 !== 0 ? 'bg-white/[0.02]' : ''}`}>
-                                <div className="p-3.5 text-xs text-slate-300 flex items-center">{row.feature}</div>
+                            <div key={row.key} className={`grid grid-cols-4 border-b border-white/5 ${index % 2 !== 0 ? 'bg-white/[0.02]' : ''}`}>
+                                <div className="p-3.5 text-xs text-slate-300 flex items-center">{row.key}</div>
                                 <div className="p-3.5 flex items-center justify-center"><Cell val={row.starter} /></div>
                                 <div className="p-3.5 flex items-center justify-center"><Cell val={row.pro} /></div>
                                 <div className="p-3.5 flex items-center justify-center bg-primary/5"><Cell val={row.enterprise} /></div>

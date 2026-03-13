@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import DOMPurify from 'dompurify';
 import './App.css';
 
 function TermsOfService() {
@@ -61,7 +62,7 @@ function TermsOfService() {
                     <div
                         ref={contentRef}
                         style={{ lineHeight: '1.8', color: 'var(--text-light)' }}
-                        dangerouslySetInnerHTML={{ __html: t('terms.content') }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(t('terms.content')) }}
                     />
                 </div>
             </section>

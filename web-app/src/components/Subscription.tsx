@@ -5,6 +5,7 @@ import {
     AlertCircle,
     ArrowRight,
     CheckCircle2,
+    Clock,
     CreditCard,
     Download,
     Globe2,
@@ -75,6 +76,24 @@ function formatDemoTypeLabel(demoType?: string | null) {
     }
 }
 
+function isAllowedCheckoutUrl(rawUrl: string) {
+    try {
+        const parsed = new URL(rawUrl);
+        const hostname = parsed.hostname.toLowerCase();
+        return (
+            parsed.protocol === 'https:' &&
+            (
+                hostname === 'checkout.stripe.com' ||
+                hostname.endsWith('.stripe.com') ||
+                hostname === 'checkout.flutterwave.com' ||
+                hostname.endsWith('.flutterwave.com')
+            )
+        );
+    } catch {
+        return false;
+    }
+}
+
 export default function Subscription() {
     const [subDetails, setSubDetails] = useState<SubscriptionData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -111,6 +130,9 @@ export default function Subscription() {
         setPurchasing('flutterwave');
         try {
             const { payment_url } = await subApi.checkout(plan);
+            if (!isAllowedCheckoutUrl(payment_url)) {
+                throw new Error('URL de paiement non autorisee');
+            }
             window.location.href = payment_url;
         } catch (err) {
             console.error('Flutterwave init error', err);
@@ -124,6 +146,9 @@ export default function Subscription() {
         setPurchasing('stripe');
         try {
             const { checkout_url } = await subApi.stripeCheckout(plan);
+            if (!isAllowedCheckoutUrl(checkout_url)) {
+                throw new Error('URL de paiement non autorisee');
+            }
             window.location.href = checkout_url;
         } catch (err) {
             console.error('Stripe init error', err);

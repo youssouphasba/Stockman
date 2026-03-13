@@ -12,11 +12,11 @@ const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 const generateIdempotencyKey = () =>
     Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-// For web, we use standard localStorage
-export const getToken = () => typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
-export const getRefreshToken = () => typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
-export const setRefreshToken = (token: string) => localStorage.setItem(REFRESH_TOKEN_KEY, token);
+// Web auth is cookie-based; these helpers only clear legacy storage when needed.
+export const getToken = () => null;
+export const setToken = (_token: string) => {};
+export const getRefreshToken = () => null;
+export const setRefreshToken = (_token: string) => {};
 export const removeToken = () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_KEY);
@@ -104,7 +104,6 @@ export class AuthError extends ApiError {
 }
 
 async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const token = getToken();
     const { method = 'GET', body, headers = {} } = options;
 
     const config: RequestInit = {
@@ -112,7 +111,6 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         credentials: 'include', // Support HttpOnly cookies
         headers: {
             ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...headers,
         },
     };
@@ -127,31 +125,18 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
             // Tenter un refresh avant de déconnecter
             try {
-                const storedRefreshToken = getRefreshToken();
                 const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ refresh_token: storedRefreshToken }),
+                    body: JSON.stringify({}),
                 });
 
                 if (refreshRes.ok) {
-                    const refreshData = await refreshRes.json();
-                    const newToken = refreshData.access_token;
-                    setToken(newToken);
-                    if (refreshData.refresh_token) {
-                        setRefreshToken(refreshData.refresh_token);
-                    }
+                    await refreshRes.json().catch(() => null);
 
                     // Rejouer la requête
-                    const retryConfig = {
-                        ...config,
-                        headers: {
-                            ...config.headers,
-                            Authorization: `Bearer ${newToken}`,
-                        },
-                    };
-                    const retryRes = await fetch(`${API_URL}/api${endpoint}`, retryConfig);
+                    const retryRes = await fetch(`${API_URL}/api${endpoint}`, config);
                     if (retryRes.ok) return retryRes.json();
                 }
             } catch (refreshErr) {
@@ -1418,9 +1403,12 @@ export const auth = {
         request<{ message: string; otp_fallback?: string }>('/auth/resend-email-otp', { method: 'POST' }),
     verificationStatus: () =>
         request<VerificationStatus>('/auth/verification-status'),
-    logout: () => {
-        removeToken();
-        return Promise.resolve({ message: 'Success' });
+    logout: async () => {
+        try {
+            return await request<{ message: string }>('/auth/logout', { method: 'POST' });
+        } finally {
+            removeToken();
+        }
     }
 };
 
