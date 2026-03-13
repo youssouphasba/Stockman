@@ -3,6 +3,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const OFFLINE_REQUESTS_KEY = 'stockman_offline_requests';
 const LEGACY_OFFLINE_SALES_KEY = 'stockman_offline_sales';
+const SYNC_LOCK_KEY = 'stockman_sync_lock';
+const SYNC_LOCK_TTL_MS = 30_000; // 30s max lock duration (safety)
 
 export interface QueuedRequest {
     id: string;
@@ -10,6 +12,21 @@ export interface QueuedRequest {
     method: string;
     body?: any;
     timestamp: number;
+}
+
+function acquireSyncLock(): boolean {
+    const now = Date.now();
+    const existing = localStorage.getItem(SYNC_LOCK_KEY);
+    if (existing) {
+        const lockTime = parseInt(existing, 10);
+        if (now - lockTime < SYNC_LOCK_TTL_MS) return false; // another tab is syncing
+    }
+    localStorage.setItem(SYNC_LOCK_KEY, String(now));
+    return true;
+}
+
+function releaseSyncLock() {
+    localStorage.removeItem(SYNC_LOCK_KEY);
 }
 
 class SyncService {
@@ -106,20 +123,27 @@ class SyncService {
         const queue = this.getQueue();
         if (queue.length === 0) return;
 
+        // Cross-tab lock: only one tab syncs at a time
+        if (!acquireSyncLock()) return;
+
         this.isSyncing = true;
         const failed: QueuedRequest[] = [];
 
-        for (const request of queue) {
-            try {
-                await this.send(request);
-            } catch (err) {
-                console.error(`Failed to sync request ${request.id}`, err);
-                failed.push(request);
+        try {
+            for (const request of queue) {
+                try {
+                    await this.send(request);
+                } catch (err) {
+                    console.error(`Failed to sync request ${request.id}`, err);
+                    failed.push(request);
+                }
             }
-        }
 
-        localStorage.setItem(OFFLINE_REQUESTS_KEY, JSON.stringify(failed));
-        this.isSyncing = false;
+            localStorage.setItem(OFFLINE_REQUESTS_KEY, JSON.stringify(failed));
+        } finally {
+            this.isSyncing = false;
+            releaseSyncLock();
+        }
     }
 }
 

@@ -43,9 +43,11 @@ console.log('API URL configured:', API_URL);
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-// Simple idempotency key generator for re-submitting critical mutations
+// Idempotency key generator for critical mutations (sales, payments)
 const generateIdempotencyKey = () =>
   Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
 async function isOnline() {
   const state = await NetInfo.fetch();
@@ -212,16 +214,54 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 }
 
+// Mutex: ensures only one refresh runs at a time across concurrent 401s
+let refreshPromise: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
+  try {
+    const storedRefresh = await getRefreshToken();
+    const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: storedRefresh }),
+      credentials: 'include',
+    });
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json();
+      const newToken = refreshData.access_token;
+      await setToken(newToken);
+      if (refreshData.refresh_token) await setRefreshToken(refreshData.refresh_token);
+      return newToken;
+    }
+  } catch (refreshErr) {
+    console.warn('Auto-refresh failed:', refreshErr);
+  }
+  return null;
+}
+
+async function refreshWithMutex(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
 // Low-level request that doesn't intercept for sync (used by syncService)
 export async function rawRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const token = await getToken();
   const { method = 'GET', body, headers = {} } = options;
+
+  // Attach idempotency key on critical mutations to prevent duplicates on retry
+  const extraHeaders: Record<string, string> = {};
+  if (method !== 'GET' && IDEMPOTENT_MUTATION_PREFIXES.some((p) => endpoint.startsWith(p))) {
+    extraHeaders['X-Idempotency-Key'] = generateIdempotencyKey();
+  }
 
   const config: RequestInit = {
     method,
     headers: {
       ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extraHeaders,
       ...headers,
     },
   };
@@ -242,37 +282,19 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
 
     if (response.status === 401) {
       if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
-        // Tenter un refresh avant de déconnecter
-        try {
-          const storedRefresh = await getRefreshToken();
-          const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: storedRefresh }),
-            credentials: 'include',
-          });
+        const newToken = await refreshWithMutex();
+        if (newToken) {
+          const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
+          const retryRes = await fetch(`${API_URL}/api${endpoint}`, {
+            ...config,
+            headers: retryHeaders,
+            signal: controller.signal,
+          } as any);
 
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            const newToken = refreshData.access_token;
-            await setToken(newToken);
-            if (refreshData.refresh_token) await setRefreshToken(refreshData.refresh_token);
-
-            // Rejouer la requête originale
-            const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
-            const retryRes = await fetch(`${API_URL}/api${endpoint}`, {
-              ...config,
-              headers: retryHeaders,
-              signal: controller.signal,
-            } as any);
-
-            if (retryRes.ok) {
-              clearTimeout(timeoutId);
-              return retryRes.json();
-            }
+          if (retryRes.ok) {
+            clearTimeout(timeoutId);
+            return retryRes.json();
           }
-        } catch (refreshErr) {
-          console.warn('Auto-refresh failed:', refreshErr);
         }
 
         await removeToken();

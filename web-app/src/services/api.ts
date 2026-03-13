@@ -7,10 +7,13 @@ if (!API_URL && typeof window !== 'undefined') {
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// Simple idempotency key generator for re-submitting critical mutations
+// Idempotency key generator for critical mutations (sales, payments)
 const generateIdempotencyKey = () =>
     Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
 // Web auth is cookie-based; these helpers only clear legacy storage when needed.
 export const getToken = () => null;
@@ -44,11 +47,19 @@ function getOfflineCacheKey(endpoint: string) {
     return `${OFFLINE_CACHE_PREFIX}${endpoint}`;
 }
 
+interface CachedEntry { data: unknown; ts: number }
+
 function readCachedResponse<T>(endpoint: string): T | null {
     if (typeof window === 'undefined') return null;
     try {
         const raw = localStorage.getItem(getOfflineCacheKey(endpoint));
-        return raw ? JSON.parse(raw) as T : null;
+        if (!raw) return null;
+        const entry: CachedEntry = JSON.parse(raw);
+        if (entry.ts && Date.now() - entry.ts > CACHE_TTL_MS) {
+            localStorage.removeItem(getOfflineCacheKey(endpoint));
+            return null;
+        }
+        return (entry.data ?? entry) as T;
     } catch {
         return null;
     }
@@ -57,7 +68,8 @@ function readCachedResponse<T>(endpoint: string): T | null {
 function writeCachedResponse(endpoint: string, value: unknown) {
     if (typeof window === 'undefined') return;
     try {
-        localStorage.setItem(getOfflineCacheKey(endpoint), JSON.stringify(value));
+        const entry: CachedEntry = { data: value, ts: Date.now() };
+        localStorage.setItem(getOfflineCacheKey(endpoint), JSON.stringify(entry));
     } catch {
         // ignore cache quota issues
     }
@@ -103,14 +115,48 @@ export class AuthError extends ApiError {
     }
 }
 
+// Mutex: ensures only one refresh request runs at a time across all concurrent 401s
+let refreshPromise: Promise<boolean> | null = null;
+
+async function doRefresh(): Promise<boolean> {
+    try {
+        const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+        });
+        if (refreshRes.ok) {
+            await refreshRes.json().catch(() => null);
+            return true;
+        }
+    } catch (refreshErr) {
+        console.warn('Auto-refresh failed:', refreshErr);
+    }
+    return false;
+}
+
+async function refreshWithMutex(): Promise<boolean> {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
+    return refreshPromise;
+}
+
 async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, headers = {} } = options;
 
+    // Attach idempotency key on critical mutations to prevent duplicates on retry
+    const extraHeaders: Record<string, string> = {};
+    if (method !== 'GET' && IDEMPOTENT_MUTATION_PREFIXES.some((p) => endpoint.startsWith(p))) {
+        extraHeaders['X-Idempotency-Key'] = generateIdempotencyKey();
+    }
+
     const config: RequestInit = {
         method,
-        credentials: 'include', // Support HttpOnly cookies
+        credentials: 'include',
         headers: {
             ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+            ...extraHeaders,
             ...headers,
         },
     };
@@ -123,24 +169,10 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
 
     if (response.status === 401) {
         if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
-            // Tenter un refresh avant de déconnecter
-            try {
-                const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}),
-                });
-
-                if (refreshRes.ok) {
-                    await refreshRes.json().catch(() => null);
-
-                    // Rejouer la requête
-                    const retryRes = await fetch(`${API_URL}/api${endpoint}`, config);
-                    if (retryRes.ok) return retryRes.json();
-                }
-            } catch (refreshErr) {
-                console.warn('Auto-refresh failed:', refreshErr);
+            const refreshed = await refreshWithMutex();
+            if (refreshed) {
+                const retryRes = await fetch(`${API_URL}/api${endpoint}`, config);
+                if (retryRes.ok) return retryRes.json();
             }
 
             removeToken();

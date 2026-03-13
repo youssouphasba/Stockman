@@ -213,6 +213,45 @@ async def global_exception_handler(request: Request, exc: Exception):
     detail = "Erreur serveur interne" if IS_PROD else f"{type(exc).__name__}: {str(exc)}"
     return JSONResponse(status_code=500, content={"detail": detail})
 
+# ─── Idempotency middleware ───────────────────────────────────────────────────
+# Prevents duplicate mutations when the client retries on network issues.
+IDEMPOTENCY_TTL_SECONDS = 300  # 5 minutes
+
+@app.middleware("http")
+async def idempotency_middleware(request: Request, call_next):
+    idem_key = request.headers.get("x-idempotency-key")
+    if not idem_key or request.method in ("GET", "HEAD", "OPTIONS"):
+        return await call_next(request)
+
+    cache_key = f"idem:{idem_key}"
+    existing = await db.idempotency_cache.find_one({"_id": cache_key})
+    if existing:
+        return JSONResponse(
+            status_code=existing.get("status_code", 200),
+            content=existing.get("body"),
+        )
+
+    response = await call_next(request)
+
+    # Only cache successful responses for mutations
+    if 200 <= response.status_code < 300:
+        body_bytes = b""
+        async for chunk in response.body_iterator:
+            body_bytes += chunk if isinstance(chunk, bytes) else chunk.encode()
+        import json as _json
+        try:
+            body_json = _json.loads(body_bytes)
+        except Exception:
+            body_json = body_bytes.decode(errors="replace")
+        await db.idempotency_cache.update_one(
+            {"_id": cache_key},
+            {"$set": {"status_code": response.status_code, "body": body_json, "created_at": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
+        return JSONResponse(status_code=response.status_code, content=body_json, headers=dict(response.headers))
+
+    return response
+
 # App routers
 api_router = APIRouter(prefix="/api")
 admin_router = APIRouter(prefix="/admin")
@@ -573,6 +612,7 @@ async def create_indexes_and_init():
                 await db.demo_sessions.create_index([("contact_email", 1), ("demo_type", 1), ("status", 1)])
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
+                await db.idempotency_cache.create_index("created_at", expireAfterSeconds=IDEMPOTENCY_TTL_SECONDS)
                 await db.security_events.create_index("created_at")
                 await db.verification_events.create_index("created_at")
                 await db.verification_events.create_index([("type", 1), ("created_at", -1)])
@@ -8176,40 +8216,52 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
     if not from_store or not to_store:
         raise HTTPException(status_code=400, detail="Boutique invalide")
 
-    from_product = await db.products.find_one(
-        {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id},
-        {"_id": 0}
+    # Atomic deduct from source — prevents race condition / negative stock
+    from_product = await db.products.find_one_and_update(
+        {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id, "quantity": {"$gte": data.quantity}},
+        {"$inc": {"quantity": -data.quantity}},
+        return_document=False,
     )
     if not from_product:
-        raise HTTPException(status_code=404, detail="Produit non trouvé dans la boutique source")
-    if from_product.get("quantity", 0) < data.quantity:
-        raise HTTPException(status_code=400, detail=f"Stock insuffisant ({from_product.get('quantity', 0)} disponibles)")
+        # Distinguish not-found from insufficient stock
+        exists = await db.products.find_one(
+            {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id},
+            {"_id": 0, "quantity": 1},
+        )
+        if not exists:
+            raise HTTPException(status_code=404, detail="Produit non trouvé dans la boutique source")
+        raise HTTPException(status_code=400, detail=f"Stock insuffisant ({exists.get('quantity', 0)} disponibles)")
 
-    # Deduct from source
-    await db.products.update_one(
-        {"product_id": data.product_id, "store_id": data.from_store_id},
-        {"$inc": {"quantity": -data.quantity}}
-    )
-
-    # Find matching product in destination (by barcode or name)
+    # Upsert destination stock in one write to avoid duplicate inserts during concurrent transfers.
     barcode = from_product.get("barcode")
     dest_query: dict = {"user_id": owner_id, "store_id": data.to_store_id, "name": from_product["name"]}
     if barcode:
         dest_query = {"user_id": owner_id, "store_id": data.to_store_id, "barcode": barcode}
-    to_product = await db.products.find_one(dest_query)
 
-    if to_product:
+    now = datetime.now(timezone.utc)
+    new_product = {k: v for k, v in from_product.items() if k not in {"_id", "quantity"}}
+    new_product["product_id"] = f"prod_{uuid.uuid4().hex[:12]}"
+    new_product["store_id"] = data.to_store_id
+    new_product["created_at"] = now
+    new_product["updated_at"] = now
+
+    try:
         await db.products.update_one(
-            {"product_id": to_product["product_id"]},
-            {"$inc": {"quantity": data.quantity}}
+            dest_query,
+            {
+                "$inc": {"quantity": data.quantity},
+                "$set": {"updated_at": now},
+                "$setOnInsert": new_product,
+            },
+            upsert=True,
         )
-    else:
-        new_product = {k: v for k, v in from_product.items() if k != "_id"}
-        new_product["product_id"] = f"prod_{uuid.uuid4().hex[:12]}"
-        new_product["store_id"] = data.to_store_id
-        new_product["quantity"] = data.quantity
-        new_product["created_at"] = datetime.now(timezone.utc)
-        await db.products.insert_one(new_product)
+    except Exception as exc:
+        logger.exception("Stock transfer destination write failed, rolling back source quantity", exc_info=exc)
+        await db.products.update_one(
+            {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id},
+            {"$inc": {"quantity": data.quantity}, "$set": {"updated_at": now}},
+        )
+        raise HTTPException(status_code=500, detail="Le transfert n'a pas pu être finalisé. Le stock source a été restauré.")
 
     await log_activity(user, "stock_transfer", "stock",
         f"Transfert {data.quantity}x '{from_product['name']}' : {from_store['name']} → {to_store['name']}",
@@ -8520,10 +8572,10 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     product = await db.products.find_one(product_query, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    
+
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     previous_quantity = product["quantity"]
-    
+
     # Handle Batch Sync
     if mov_data.type == "in":
         new_quantity = round_quantity(previous_quantity + mov_data.quantity)
@@ -8532,9 +8584,27 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
                 {"batch_id": mov_data.batch_id, "user_id": owner_id},
                 {"$inc": {"quantity": mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}}
             )
+        # Atomic increment
+        await db.products.update_one(
+            {"product_id": mov_data.product_id, "user_id": owner_id, "store_id": product.get("store_id")},
+            {"$inc": {"quantity": mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}}
+        )
     else: # OUT
-        new_quantity = round_quantity(max(0, previous_quantity - mov_data.quantity))
-        
+        # Atomic decrement with floor at 0 — prevents negative stock
+        updated_product = await db.products.find_one_and_update(
+            {
+                "product_id": mov_data.product_id,
+                "user_id": owner_id,
+                "store_id": product.get("store_id"),
+                "quantity": {"$gte": mov_data.quantity},
+            },
+            {"$inc": {"quantity": -mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+            return_document=True,
+        )
+        if not updated_product:
+            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name', mov_data.product_id)}")
+        new_quantity = round_quantity(updated_product["quantity"])
+
         # FEFO Logic for Outflows
         if mov_data.batch_id:
             # Specific batch selected
@@ -8549,23 +8619,17 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
                 {"product_id": mov_data.product_id, "user_id": owner_id, "quantity": {"$gt": 0}},
                 {"_id": 0}
             ).sort("expiry_date", 1).to_list(None)
-            
+
             for b in active_batches:
                 if qty_to_deduct <= 0:
                     break
-                
+
                 deduct = min(float(b["quantity"]), qty_to_deduct)
                 await db.batches.update_one(
                     {"batch_id": b["batch_id"]},
                     {"$inc": {"quantity": -deduct}, "$set": {"updated_at": datetime.now(timezone.utc)}}
                 )
                 qty_to_deduct -= deduct
-    
-    # Update product quantity
-    await db.products.update_one(
-        {"product_id": mov_data.product_id, "user_id": owner_id, "store_id": product.get("store_id")},
-        {"$set": {"quantity": new_quantity, "updated_at": datetime.now(timezone.utc)}}
-    )
     
     # Create movement record
     movement = StockMovement(
@@ -8764,7 +8828,22 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
     else:
         raise HTTPException(status_code=400, detail="Action de table inconnue")
 
-    await db.tables.update_one({"table_id": table_id, "user_id": owner_id}, {"$set": updates})
+    result = await db.tables.update_one(
+        {
+            "table_id": table_id,
+            "user_id": owner_id,
+            "store_id": store_id,
+            "status": table.get("status"),
+            "current_sale_id": table.get("current_sale_id"),
+        },
+        {"$set": updates},
+    )
+    if result.matched_count == 0:
+        latest = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
+        if not latest:
+            raise HTTPException(status_code=404, detail="Table non trouvée")
+        raise HTTPException(status_code=409, detail="La table a été modifiée par une autre action. Rechargez avant de réessayer.")
+
     updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
     updated.pop("_id", None)
     return updated
@@ -8966,11 +9045,11 @@ async def get_table_order(table_id: str, user: User = Depends(get_current_user))
 
 @api_router.post("/sales/{sale_id}/items")
 async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
-    """Ajouter des articles à une commande ouverte."""
+    """Ajouter des articles a une commande ouverte."""
     owner_id = get_owner_id(user)
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
     if not sale:
-        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
+        raise HTTPException(status_code=404, detail="Commande ouverte non trouvee")
 
     tax_settings = await _load_tax_settings_for_user(user)
     sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
@@ -9001,7 +9080,6 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
             effective_unit_price = round(line_total / qty, 2) if qty else base_unit_price
         item_tax_rate = _resolve_product_tax_rate(product, tax_settings["tax_enabled"], tax_settings["tax_rate"])
 
-        # Merge si même produit + mêmes notes + même prix effectif
         existing = next((
             i for i in sale_items_raw
             if i["product_id"] == prod_id
@@ -9080,7 +9158,6 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
     updated.pop("_id", None)
     return updated
 
-
 @api_router.delete("/sales/{sale_id}/items/{item_idx}")
 async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depends(require_permission("pos", "write"))):
     """Retirer un article d'une commande ouverte (par index)."""
@@ -9131,55 +9208,71 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
 
 @api_router.post("/sales/{sale_id}/finalize")
 async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
-    """Finaliser une commande restaurant : déduction stock + paiement + libération table."""
+    """Finaliser une commande restaurant en evitant la double finalisation concurrente."""
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
-    if not sale:
-        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
-
-    tax_settings = await _load_tax_settings_for_user(user)
-    sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
-    items = await _enrich_sale_items_with_product_tax(
-        owner_id,
-        sale.get("items", []),
-        store_tax_enabled=tax_settings["tax_enabled"],
-        store_tax_rate=tax_settings["tax_rate"],
-        tax_mode=sale_tax_mode,
+    finalize_started_at = datetime.now(timezone.utc)
+    sale = await db.sales.find_one_and_update(
+        {"sale_id": sale_id, "user_id": owner_id, "status": "open"},
+        {"$set": {"status": "finalizing", "finalizing_at": finalize_started_at}},
+        return_document=False,
     )
-    # Déduction stock
+    if not sale:
+        existing_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
+        if not existing_sale:
+            raise HTTPException(status_code=404, detail="Commande ouverte non trouvee")
+        if existing_sale.get("status") == "completed":
+            return existing_sale
+        raise HTTPException(status_code=409, detail="Cette commande est deja en cours de finalisation")
+
+    try:
+        tax_settings = await _load_tax_settings_for_user(user)
+        sale_tax_mode = _normalize_tax_mode(sale.get("tax_mode") or tax_settings["tax_mode"])
+        items = await _enrich_sale_items_with_product_tax(
+            owner_id,
+            sale.get("items", []),
+            store_tax_enabled=tax_settings["tax_enabled"],
+            store_tax_rate=tax_settings["tax_rate"],
+            tax_mode=sale_tax_mode,
+        )
+
+        discount = float(data.get("discount_amount", sale.get("discount_amount", 0)))
+        tip = float(data.get("tip_amount", sale.get("tip_amount", 0)))
+        service_pct = float(data.get("service_charge_percent", sale.get("service_charge_percent", 0)))
+        totals = _compute_sale_totals(
+            items,
+            tax_mode=sale_tax_mode,
+            order_discount=discount,
+            service_charge_percent=service_pct,
+            tip_amount=tip,
+        )
+        discount = totals["discount_amount"]
+        tip = totals["tip_amount"]
+        actual_total = totals["total_amount"]
+
+        payment_method = data.get("payment_method", "cash")
+        payments = data.get("payments", [])
+        if payments:
+            paid_sum = round(sum(float(p.get("amount", 0)) for p in payments), 2)
+            if paid_sum != actual_total:
+                raise HTTPException(status_code=400, detail=f"Paiements ({paid_sum}) ne couvrent pas le total ({actual_total})")
+        if payments:
+            primary_method = payments[0].get("method", "cash")
+        else:
+            primary_method = payment_method
+    except Exception:
+        await db.sales.update_one(
+            {"sale_id": sale_id, "user_id": owner_id, "status": "finalizing"},
+            {"$set": {"status": "open"}, "$unset": {"finalizing_at": ""}},
+        )
+        raise
+
     for it in items:
         product_doc = await db.products.find_one({"product_id": it["product_id"], "user_id": owner_id})
         if product_doc:
             await _apply_sale_item_inventory(product_doc, it["quantity"], user, suppress_errors=True)
 
-    # Totaux finaux
-    discount = float(data.get("discount_amount", sale.get("discount_amount", 0)))
-    tip = float(data.get("tip_amount", sale.get("tip_amount", 0)))
-    service_pct = float(data.get("service_charge_percent", sale.get("service_charge_percent", 0)))
-    totals = _compute_sale_totals(
-        items,
-        tax_mode=sale_tax_mode,
-        order_discount=discount,
-        service_charge_percent=service_pct,
-        tip_amount=tip,
-    )
-    discount = totals["discount_amount"]
-    tip = totals["tip_amount"]
-    actual_total = totals["total_amount"]
-
-    payment_method = data.get("payment_method", "cash")
-    payments = data.get("payments", [])
-    if payments:
-        paid_sum = round(sum(float(p.get("amount", 0)) for p in payments), 2)
-        if paid_sum != actual_total:
-            raise HTTPException(status_code=400, detail=f"Paiements ({paid_sum}) ne couvrent pas le total ({actual_total})")
-    if payments:
-        primary_method = payments[0].get("method", "cash")
-    else:
-        primary_method = payment_method
-
-    await db.sales.update_one(
-        {"sale_id": sale_id},
+    result = await db.sales.update_one(
+        {"sale_id": sale_id, "user_id": owner_id, "status": "finalizing"},
         {"$set": {
             "status": "completed",
             "items": totals["items"],
@@ -9194,13 +9287,14 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
             "payment_method": primary_method,
             "payments": payments,
             "covers": data.get("covers", sale.get("covers")),
-        }}
+        }, "$unset": {"finalizing_at": ""}},
     )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=409, detail="La commande a change d'etat pendant la finalisation")
 
-    # Libérer la table
     if sale.get("table_id"):
         await db.tables.update_one(
-            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"table_id": sale["table_id"], "user_id": owner_id, "current_sale_id": sale_id},
             {"$set": {"status": "free", "current_sale_id": None, "current_amount": 0, "occupied_since": None, "covers": 0}}
         )
 
@@ -9213,7 +9307,6 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
     updated = await db.sales.find_one({"sale_id": sale_id})
     updated.pop("_id", None)
     return updated
-
 
 @api_router.post("/sales/{sale_id}/serve")
 async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
@@ -10322,8 +10415,11 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         qty = quantity_context["quantity"]
 
         sale_mode = (product.get("production_mode") or "prepped").lower()
-        if not is_open_order and sale_mode in ("prepped", "hybrid") and product["quantity"] < qty:
-            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product['name']}")
+        if not is_open_order and sale_mode in ("prepped", "hybrid"):
+            # Atomic pre-check: verify stock is sufficient (actual deduction happens later)
+            current_qty = product.get("quantity", 0)
+            if current_qty < qty:
+                raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product['name']} ({current_qty} disponible(s))")
 
         base_unit_price = float(product["selling_price"])
         raw_unit_price = item.get("price")
@@ -10425,21 +10521,28 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         current_amount=actual_total,
         occupied_since=datetime.now(timezone.utc) if is_open_order and sale_data.table_id else None,
     )
+    await db.sales.insert_one(sale.model_dump())
 
-    # 6. Si commande ouverte avec une table → occuper la table
+    # 6. If this is an open order tied to a table, claim the table atomically.
     if is_open_order and sale_data.table_id:
-        await db.tables.update_one(
-            {"table_id": sale_data.table_id, "user_id": owner_id},
+        claim_result = await db.tables.update_one(
+            {
+                "table_id": sale_data.table_id,
+                "user_id": owner_id,
+                "store_id": store_id,
+                "$or": [{"current_sale_id": None}, {"current_sale_id": {"$exists": False}}],
+            },
             {"$set": {
                 "status": "occupied",
                 "current_sale_id": sale.sale_id,
                 "occupied_since": datetime.now(timezone.utc).isoformat(),
                 "current_amount": actual_total,
                 "covers": sale_data.covers or 0,
-            }}
+            }},
         )
-
-    await db.sales.insert_one(sale.model_dump())
+        if claim_result.matched_count == 0:
+            await db.sales.delete_one({"sale_id": sale.sale_id, "user_id": owner_id})
+            raise HTTPException(status_code=409, detail="Cette table est deja liee a une commande ouverte")
 
     if not is_open_order:
         await log_activity(
