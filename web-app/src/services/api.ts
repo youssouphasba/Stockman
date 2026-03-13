@@ -168,7 +168,8 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
     const response = await fetch(`${API_URL}/api${endpoint}`, config);
 
     if (response.status === 401) {
-        if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+        const skipAutoRedirect = ['/auth/login', '/auth/refresh', '/auth/me'];
+        if (!skipAutoRedirect.includes(endpoint)) {
             const refreshed = await refreshWithMutex();
             if (refreshed) {
                 const retryRes = await fetch(`${API_URL}/api${endpoint}`, config);

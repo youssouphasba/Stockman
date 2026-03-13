@@ -52,6 +52,7 @@ export default function Home() {
   const [modules, setModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const searchParams = useSearchParams();
 
   const [showSignup, setShowSignup] = useState(false);
@@ -113,29 +114,27 @@ export default function Home() {
       removeToken();
       setIsLogged(false);
       setUser(null);
+    } finally {
+      setInitialLoading(false);
     }
   }, [hydrateAuthenticatedUser]);
 
+  // Clean up legacy demo URL params (runs once on mount)
   useEffect(() => {
-    const hasLegacyDemoParams =
-      searchParams.has('demo_access_token') ||
-      searchParams.has('demo_refresh_token') ||
-      searchParams.has('demo_type') ||
-      searchParams.has('demo_expires_at') ||
-      searchParams.has('demo_session_id');
-
-    if (hasLegacyDemoParams && typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('demo_access_token');
-      url.searchParams.delete('demo_refresh_token');
-      url.searchParams.delete('demo_type');
-      url.searchParams.delete('demo_expires_at');
-      url.searchParams.delete('demo_session_id');
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const demoKeys = ['demo_access_token', 'demo_refresh_token', 'demo_type', 'demo_expires_at', 'demo_session_id'];
+    const hasAny = demoKeys.some((k) => url.searchParams.has(k));
+    if (hasAny) {
+      demoKeys.forEach((k) => url.searchParams.delete(k));
       window.history.replaceState({}, '', url.toString());
     }
+  }, []);
 
+  // Load authenticated user (runs once on mount)
+  useEffect(() => {
     void loadUser();
-  }, [loadUser, searchParams]);
+  }, [loadUser]);
 
   useEffect(() => {
     if (searchParams.get('signup') === 'true') {
@@ -239,7 +238,7 @@ export default function Home() {
     }
   }, [activeTab, isBillingOnly, isLogged]);
 
-  if (!mounted || !ready) return <div className="min-h-screen bg-[#0F172A]" />;
+  if (!mounted || !ready || initialLoading) return <div className="min-h-screen bg-[#0F172A]" />;
 
   if (needsEmailVerification) {
     return (
