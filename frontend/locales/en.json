@@ -376,7 +376,14 @@
             "noAccount": "No account yet?",
             "signUp": "Sign Up",
             "errorFillFields": "Please fill in all fields",
-            "errorLogin": "Login error"
+            "errorLogin": "Login error",
+            "or": "or",
+            "tryDemo": "Try the free demo",
+            "demoRetail": "Shop",
+            "demoRestaurant": "Restaurant",
+            "demoEnterprise": "Enterprise (Web)",
+            "demoHint": "Explore the app with sample data, no sign-up needed",
+            "errorDemo": "Unable to start the demo"
         },
         "logout_btn": "Se déconnecter",
         "logout_confirm": "Voulez-vous vraiment vous déconnecter ?",

@@ -13,10 +13,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import { ApiError } from '../../services/api';
+import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
 
   React.useEffect(() => {
@@ -115,6 +117,31 @@ export default function LoginScreen() {
       } finally {
         setLoading(false);
       }
+    }
+  }
+
+  const [demoType, setDemoType] = useState<string | null>(null);
+
+  async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
+    if (type === 'enterprise') {
+      Linking.openURL('https://app.stockman.pro/?demo=enterprise');
+      return;
+    }
+    setError('');
+    setDemoType(type);
+    setDemoLoading(true);
+    try {
+      const res = await demoApi.createSession(type);
+      await setToken(res.access_token);
+      if (res.refresh_token) {
+        await setRefreshToken(res.refresh_token);
+      }
+      router.replace('/(tabs)');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('auth.login.errorDemo'));
+    } finally {
+      setDemoLoading(false);
+      setDemoType(null);
     }
   }
 
@@ -224,6 +251,54 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.login.or')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <Text style={styles.demoTitle}>{t('auth.login.tryDemo')}</Text>
+            <View style={styles.demoRow}>
+              <TouchableOpacity
+                style={[styles.demoButton, { flex: 1 }, demoType === 'retail' && styles.buttonDisabled]}
+                onPress={() => handleDemo('retail')}
+                disabled={demoLoading || loading}
+              >
+                {demoType === 'retail' ? (
+                  <ActivityIndicator color={Colors.primary} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="storefront-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.demoButtonText}>{t('auth.login.demoRetail')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.demoButton, { flex: 1 }, demoType === 'restaurant' && styles.buttonDisabled]}
+                onPress={() => handleDemo('restaurant')}
+                disabled={demoLoading || loading}
+              >
+                {demoType === 'restaurant' ? (
+                  <ActivityIndicator color={Colors.primary} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="restaurant-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.demoButtonText}>{t('auth.login.demoRestaurant')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.demoEnterpriseButton}
+              onPress={() => handleDemo('enterprise')}
+              disabled={demoLoading || loading}
+            >
+              <Ionicons name="globe-outline" size={18} color={Colors.text} />
+              <Text style={styles.demoEnterpriseText}>{t('auth.login.demoEnterprise')}</Text>
+              <Ionicons name="open-outline" size={14} color={Colors.textMuted} />
+            </TouchableOpacity>
+            <Text style={styles.demoHint}>{t('auth.login.demoHint')}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -363,5 +438,71 @@ const styles = StyleSheet.create({
   rememberText: {
     color: Colors.textSecondary,
     fontSize: FontSize.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.divider,
+  },
+  dividerText: {
+    color: Colors.textMuted,
+    fontSize: FontSize.sm,
+    marginHorizontal: Spacing.sm,
+  },
+  demoTitle: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  demoRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  demoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm + 2,
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+  },
+  demoButtonText: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  demoEnterpriseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm + 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginTop: Spacing.sm,
+  },
+  demoEnterpriseText: {
+    color: Colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  demoHint: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
   },
 });

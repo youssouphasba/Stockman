@@ -383,7 +383,14 @@
             "noAccount": "Pas encore de compte ?",
             "signUp": "S'inscrire",
             "errorFillFields": "Veuillez remplir tous les champs",
-            "errorLogin": "Erreur de connexion"
+            "errorLogin": "Erreur de connexion",
+            "or": "ou",
+            "tryDemo": "Essayer la démo gratuite",
+            "demoRetail": "Boutique",
+            "demoRestaurant": "Restaurant",
+            "demoEnterprise": "Enterprise (Web)",
+            "demoHint": "Explorez l'app avec des données fictives, sans inscription",
+            "errorDemo": "Impossible de lancer la démo"
         },
         "logout_btn": "Se déconnecter",
         "logout_confirm": "Voulez-vous vraiment vous déconnecter ?",

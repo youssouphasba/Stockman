@@ -2753,7 +2753,16 @@ export const subscription = {
   sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
 };
 
+export type DemoSessionResponse = {
+  access_token: string;
+  refresh_token: string | null;
+  user: User;
+  demo_session: DemoSessionInfo;
+};
+
 export const demo = {
+  createSession: (demoType: string) =>
+    request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType } }),
   getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
   captureContact: (email: string) =>
     request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),

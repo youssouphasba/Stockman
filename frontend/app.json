@@ -2,11 +2,11 @@
     "expo": {
         "name": "Stockman",
         "slug": "stockman",
-        "version": "1.0.4",
+        "version": "1.0.5",
         "orientation": "default",
         "android": {
             "package": "com.youssouphasba.stockman",
-            "versionCode": 5,
+            "versionCode": 6,
             "targetSdkVersion": 35,
             "compileSdkVersion": 35,
             "adaptiveIcon": {
