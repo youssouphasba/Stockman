@@ -213,7 +213,12 @@ export default function ProductsScreen() {
   }, [user?.active_store_id]);
 
   useEffect(() => {
-    if (isFirstVisit) setShowGuide(true);
+    // On fresh native release installs, the onboarding modal can block the whole
+    // screen before the user understands what happened. Keep guides accessible
+    // from the help button, but only auto-open them on web/dev.
+    if (isFirstVisit && (Platform.OS === 'web' || __DEV__)) {
+      setShowGuide(true);
+    }
   }, [isFirstVisit]);
 
   // Search Debouncing
@@ -249,19 +254,42 @@ export default function ProductsScreen() {
     try {
       if (isConnected) {
         const isEnterprise = user?.plan === 'enterprise';
-        const [prodsRes, cats, forecast, locsRes, recipesRes] = await Promise.all([
+        const [prodsRes, cats] = await Promise.all([
           productsApi.list(selectedCategory ?? undefined, 0, 500, isRestaurant ? true : undefined),
           categoriesApi.list(),
-          salesApi.forecast(),
-          isEnterprise ? locationsApi.list() : Promise.resolve([]),
-          isRestaurant ? recipesApi.list() : Promise.resolve([]),
         ]);
+        let forecast: any = null;
+        let locsRes: Location[] = [];
+        let recipesRes: Recipe[] = [];
+
+        try {
+          forecast = await salesApi.forecast();
+        } catch (forecastError) {
+          console.warn('[Products] forecast unavailable', forecastError);
+        }
+
+        if (isEnterprise) {
+          try {
+            locsRes = await locationsApi.list();
+          } catch (locationError) {
+            console.warn('[Products] locations unavailable', locationError);
+          }
+        }
+
+        if (isRestaurant) {
+          try {
+            recipesRes = await recipesApi.list();
+          } catch (recipeError) {
+            console.warn('[Products] recipes unavailable', recipeError);
+          }
+        }
+
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
         setCategoryList(cats);
         setForecastData(forecast);
-        if (isEnterprise) setLocationList(locsRes as Location[]);
-        setRecipeList((recipesRes as Recipe[]).filter((recipe) => recipe.recipe_type !== 'prep'));
+        if (isEnterprise) setLocationList(locsRes);
+        setRecipeList(recipesRes.filter((recipe) => recipe.recipe_type !== 'prep'));
         // Determine whether to cache: only cache full list (no category filter)
         if (!selectedCategory) {
           await cache.set(KEYS.PRODUCTS, prods);
@@ -1697,11 +1725,19 @@ export default function ProductsScreen() {
               ? t('products.no_results_for', { query: debouncedSearch })
               : isRestaurant ? t('restaurant.first_dish_hint', 'Commencez par créer votre premier plat de menu.') : t('products.no_products_desc')}
             icon={debouncedSearch ? "search-outline" : "cube-outline"}
-            actionLabel={debouncedSearch ? t('common.clear_search') : isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}
+            actionLabel={
+              debouncedSearch
+                ? t('common.clear_search')
+                : canWrite
+                  ? isRestaurant
+                    ? t('restaurant.add_dish', 'Ajouter un plat')
+                    : t('products.add_product')
+                  : undefined
+            }
             onAction={() => {
               if (debouncedSearch) {
                 setSearch('');
-              } else {
+              } else if (canWrite) {
                 setEditingProduct(null);
                 resetForm();
                 setShowAddModal(true);

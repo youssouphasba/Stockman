@@ -374,7 +374,7 @@ export default function OrderCreationModal({
                     }}
                   >
                     <Text style={[s.tabText, supplierTab === 'marketplace' && s.tabTextActive]}>
-                      {t('orders.marketplace')}
+                      {t('orders.marketplace_tab')}
                     </Text>
                   </TouchableOpacity>
                 </View>

@@ -567,6 +567,7 @@
         "name": "Name",
         "no": "No",
         "none": "None",
+        "not_provided": "Not provided",
         "offline": "Offline",
         "or": "or",
         "orders": "Orders",
@@ -748,7 +749,10 @@
         "whatsapp_campaign": "WhatsApp Campaign",
         "whatsapp_campaign_title": "New WhatsApp Campaign",
         "whatsapp_default_msg": "Hello {{name}}, we have an offer for you!",
-        "yesterday": "Yesterday"
+        "yesterday": "Yesterday",
+        "call": "Call",
+        "send_message": "Send a message",
+        "send_sms": "Send an SMS"
     },
     "dashboard": {
         "abc_analysis": "ABC Analysis (Priorities)",

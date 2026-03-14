@@ -1161,6 +1161,21 @@ export default function CRMScreen() {
                                             )}
                                             {detailTab === 'compte' && (
                                                 <View style={{ paddingVertical: Spacing.md }}>
+                                                    {/* Balance summary */}
+                                                    <View style={[styles.debtCard, (detailCustomer.current_debt || 0) < 0 && { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
+                                                        <View>
+                                                            <Text style={[styles.debtLabel, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
+                                                                {(detailCustomer.current_debt || 0) > 0 ? t('crm.debt_in_progress') : (detailCustomer.current_debt || 0) < 0 ? t('crm.credit_advance') : t('crm.no_debt')}
+                                                            </Text>
+                                                            <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
+                                                                {formatNumber(Math.abs(detailCustomer.current_debt || 0))} {t('common.currency_default')}
+                                                            </Text>
+                                                        </View>
+                                                        <TouchableOpacity style={[styles.payBtn, (detailCustomer.current_debt || 0) <= 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
+                                                            <Text style={styles.payBtnText}>{(detailCustomer.current_debt || 0) > 0 ? t('crm.repay') : t('crm.add_credit_debit')}</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+
                                                     {debtHistoryLoading ? (
                                                         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
                                                     ) : customerDebtHistory.length === 0 ? (
