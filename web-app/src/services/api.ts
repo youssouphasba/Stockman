@@ -8,6 +8,13 @@ const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const NON_CACHEABLE_GET_PREFIXES = [
+    '/auth/',
+    '/demo/session/',
+    '/subscription/me',
+    '/user/features',
+    '/settings',
+];
 
 // Idempotency key generator for critical mutations (sales, payments)
 const generateIdempotencyKey = () =>
@@ -20,10 +27,30 @@ export const getToken = () => null;
 export const setToken = (_token: string) => {};
 export const getRefreshToken = () => null;
 export const setRefreshToken = (_token: string) => {};
+
+function shouldBypassOfflineCache(endpoint: string) {
+    return NON_CACHEABLE_GET_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
+}
+
+function clearOfflineApiCache() {
+    if (typeof window === 'undefined') return;
+    try {
+        for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(OFFLINE_CACHE_PREFIX)) {
+                localStorage.removeItem(key);
+            }
+        }
+    } catch {
+        // ignore storage cleanup issues
+    }
+}
+
 export const removeToken = () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearOfflineApiCache();
 };
 
 type RequestOptions = {
@@ -50,6 +77,7 @@ function getOfflineCacheKey(endpoint: string) {
 interface CachedEntry { data: unknown; ts: number }
 
 function readCachedResponse<T>(endpoint: string): T | null {
+    if (shouldBypassOfflineCache(endpoint)) return null;
     if (typeof window === 'undefined') return null;
     try {
         const raw = localStorage.getItem(getOfflineCacheKey(endpoint));
@@ -66,6 +94,7 @@ function readCachedResponse<T>(endpoint: string): T | null {
 }
 
 function writeCachedResponse(endpoint: string, value: unknown) {
+    if (shouldBypassOfflineCache(endpoint)) return;
     if (typeof window === 'undefined') return;
     try {
         const entry: CachedEntry = { data: value, ts: Date.now() };
@@ -222,6 +251,9 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
             writeCachedResponse(endpoint, data);
             return data;
         } catch (error) {
+            if (error instanceof AuthError || shouldBypassOfflineCache(endpoint)) {
+                throw error;
+            }
             const cached = readCachedResponse<T>(endpoint);
             if (cached) return cached;
             throw error;

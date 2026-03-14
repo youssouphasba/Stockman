@@ -45,7 +45,8 @@
       "Bash(cmd.exe:*)",
       "WebFetch(domain:127.0.0.1)",
       "Bash(npm ls:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(wc -l /mnt/c/Users/Utilisateur/projet_stock/frontend/app/\\\\\\(tabs\\\\\\)/pos.tsx)"
     ]
   }
 }
