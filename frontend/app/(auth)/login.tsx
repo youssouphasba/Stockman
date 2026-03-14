@@ -22,9 +22,11 @@ import * as LocalAuthentication from 'expo-local-authentication';
 
 import { useTranslation } from 'react-i18next';
 
+const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
+
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { login, isBiometricsEnabled } = useAuth();
+  const { login, isBiometricsEnabled, restoreSession } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -124,7 +126,7 @@ export default function LoginScreen() {
 
   async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
     if (type === 'enterprise') {
-      Linking.openURL('https://app.stockman.pro/?demo=enterprise');
+      await Linking.openURL(ENTERPRISE_DEMO_URL);
       return;
     }
     setError('');
@@ -135,6 +137,10 @@ export default function LoginScreen() {
       await setToken(res.access_token);
       if (res.refresh_token) {
         await setRefreshToken(res.refresh_token);
+      }
+      const demoUser = await restoreSession();
+      if (!demoUser) {
+        throw new Error(t('auth.login.errorDemo'));
       }
       router.replace('/(tabs)');
     } catch (e) {

@@ -29,6 +29,7 @@ type AuthState = {
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   verifyPhone: (otp: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
+  restoreSession: () => Promise<User | null>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
   setPin: (pin: string) => Promise<void>;
@@ -65,6 +66,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const restoreSession = useCallback(async () => {
+    const token = await getToken();
+    if (!token) {
+      setUser(null);
+      setHasProduction(false);
+      setIsRestaurant(false);
+      return null;
+    }
+
+    const userData = await authApi.me();
+    await hydrateAuthenticatedUser(userData);
+    return userData;
+  }, [hydrateAuthenticatedUser]);
+
   const consumeDemoLink = useCallback(async (url?: string | null) => {
     if (!url) return false;
     const parsed = Linking.parse(url);
@@ -81,10 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (refreshToken) {
       await setRefreshToken(refreshToken);
     }
-    const userData = await authApi.me();
-    await hydrateAuthenticatedUser(userData);
+    await restoreSession();
     return true;
-  }, [hydrateAuthenticatedUser]);
+  }, [restoreSession]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -94,17 +108,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const token = await getToken();
-      if (token) {
-        const userData = await authApi.me();
-        await hydrateAuthenticatedUser(userData);
-      }
+      await restoreSession();
     } catch {
       await removeToken();
+      setUser(null);
+      setHasProduction(false);
+      setIsRestaurant(false);
     } finally {
       setIsLoading(false);
     }
-  }, [consumeDemoLink, hydrateAuthenticatedUser]);
+  }, [consumeDemoLink, restoreSession]);
 
   useEffect(() => {
     void checkAuth();
@@ -187,6 +200,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     setUser(null);
+    setHasProduction(false);
+    setIsRestaurant(false);
     await removeToken();
 
     try {
@@ -282,6 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         verifyPhone,
         verifyEmail,
+        restoreSession,
         logout,
         switchStore,
         isAppLocked,
