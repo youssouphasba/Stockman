@@ -1667,6 +1667,7 @@ class ReplenishmentSuggestion(BaseModel):
 class Customer(BaseModel):
     customer_id: str = Field(default_factory=lambda: f"cust_{uuid.uuid4().hex[:12]}")
     user_id: str
+    store_id: Optional[str] = None
     name: str
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -1687,6 +1688,7 @@ class CustomerPayment(BaseModel):
     payment_id: str = Field(default_factory=lambda: f"pay_{uuid.uuid4().hex[:12]}")
     customer_id: str
     user_id: str
+    store_id: Optional[str] = None
     amount: float
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -2566,6 +2568,44 @@ def apply_store_scope(query: Dict[str, Any], user: User, requested_store_id: Opt
     return query
 
 
+def should_allow_legacy_unassigned_store_docs(user: User, requested_store_id: Optional[str] = None) -> bool:
+    target_store = requested_store_id or user.active_store_id
+    if not target_store or is_org_admin_user(user):
+        return False
+    visible_store_ids = {store_id for store_id in (user.store_ids or []) if store_id}
+    return len(visible_store_ids) <= 1
+
+
+def apply_store_scope_with_legacy(
+    query: Dict[str, Any],
+    user: User,
+    requested_store_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    target_store = requested_store_id or user.active_store_id
+    if not target_store:
+        return apply_store_scope(dict(query), user, requested_store_id)
+
+    ensure_user_store_access(user, target_store)
+    if should_allow_legacy_unassigned_store_docs(user, target_store):
+        return {
+            "$and": [
+                dict(query),
+                {
+                    "$or": [
+                        {"store_id": target_store},
+                        {"store_id": {"$exists": False}},
+                        {"store_id": None},
+                        {"store_id": ""},
+                    ]
+                },
+            ]
+        }
+
+    scoped_query = dict(query)
+    scoped_query["store_id"] = target_store
+    return scoped_query
+
+
 def apply_completed_sales_scope(query: Dict[str, Any]) -> Dict[str, Any]:
     scoped_query = dict(query)
     scoped_query["$or"] = [{"status": {"$exists": False}}, {"status": "completed"}]
@@ -2586,6 +2626,35 @@ def ensure_scoped_document_access(
         return
     if not is_org_admin_user(user) and len(user.store_ids or []) > 1:
         raise HTTPException(status_code=403, detail=detail)
+
+
+async def backfill_legacy_store_field(
+    collection: Any,
+    document_filter: Dict[str, Any],
+    document: Optional[dict],
+    user: User,
+    store_field: str = "store_id",
+) -> Optional[dict]:
+    if not document:
+        return document
+
+    existing_store_id = document.get(store_field)
+    if existing_store_id not in (None, ""):
+        return document
+
+    target_store = user.active_store_id
+    if not should_allow_legacy_unassigned_store_docs(user, target_store):
+        return document
+
+    backfill_filter = dict(document_filter)
+    backfill_filter["$or"] = [
+        {store_field: {"$exists": False}},
+        {store_field: None},
+        {store_field: ""},
+    ]
+    await collection.update_one(backfill_filter, {"$set": {store_field: target_store}})
+    document[store_field] = target_store
+    return document
 
 
 async def require_operational_access(user: User = Depends(require_auth)) -> User:
@@ -5699,8 +5768,11 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
         top_pids = sorted(co_occurrence, key=co_occurrence.get, reverse=True)[:5]
 
         # Fetch product details
+        prod_fetch_query: dict = {"product_id": {"$in": top_pids}, "user_id": owner_id, "quantity": {"$gt": 0}}
+        if store_id:
+            prod_fetch_query["store_id"] = store_id
         products = await db.products.find(
-            {"product_id": {"$in": top_pids}, "quantity": {"$gt": 0}},
+            prod_fetch_query,
             {"_id": 0, "product_id": 1, "name": 1, "selling_price": 1, "image": 1}
         ).to_list(5)
 
@@ -5843,8 +5915,11 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
         # Similar products in same category
         similar_prices = []
         if product.get("category_id"):
+            similar_query: dict = {"user_id": owner_id, "category_id": product["category_id"], "product_id": {"$ne": product_id}}
+            if store_id:
+                similar_query["store_id"] = store_id
             similar = await db.products.find(
-                {"user_id": owner_id, "category_id": product["category_id"], "product_id": {"$ne": product_id}},
+                similar_query,
                 {"name": 1, "selling_price": 1, "purchase_price": 1, "_id": 0}
             ).to_list(10)
             similar_prices = [f"- {p['name']}: achat={p.get('purchase_price', '?')}, vente={p.get('selling_price', '?')} {currency}" for p in similar]
@@ -6993,9 +7068,17 @@ async def create_customer_payment(
     if not customer:
         raise HTTPException(status_code=404, detail="Client non trouvé")
 
+    customer = await backfill_legacy_store_field(
+        db.customers,
+        {"customer_id": customer_id, "user_id": owner_id},
+        customer,
+        user,
+    )
+    ensure_scoped_document_access(user, customer, detail="Acces refuse pour ce client")
     payment = CustomerPayment(
         customer_id=customer_id,
         user_id=owner_id,
+        store_id=user.active_store_id,
         amount=payment_data.amount,
         notes=payment_data.notes
     )
@@ -7004,10 +7087,10 @@ async def create_customer_payment(
     await db.customer_payments.insert_one(payment.model_dump())
 
     # 2. Decrease debt
-    await db.customers.update_one(
-        {"customer_id": customer_id},
-        {"$inc": {"current_debt": -payment_data.amount}}
-    )
+    customer_update_query = {"customer_id": customer_id, "user_id": owner_id}
+    if customer.get("store_id"):
+        customer_update_query["store_id"] = customer["store_id"]
+    await db.customers.update_one(customer_update_query, {"$inc": {"current_debt": -payment_data.amount}})
 
     return payment
 
@@ -7021,19 +7104,20 @@ async def get_customer_debt_history(
     """
     # 1. Get Credit Sales (Debt increase)
     owner_id = get_owner_id(user)
-    sales_query = apply_completed_sales_scope({
+    sales_query = apply_completed_sales_scope(apply_store_scope({
         "user_id": owner_id,
         "customer_id": customer_id,
         "payment_method": "credit"
-    })
+    }, user))
     sales_cursor = db.sales.find(sales_query)
     sales = await sales_cursor.to_list(None)
 
     # 2. Get Payments (Debt decrease)
-    payments_cursor = db.customer_payments.find({
+    payments_query = apply_store_scope_with_legacy({
         "user_id": owner_id,
         "customer_id": customer_id
-    })
+    }, user)
+    payments_cursor = db.customer_payments.find(payments_query)
     payments = await payments_cursor.to_list(None)
 
     # 3. Serialize and Merge
@@ -7075,7 +7159,7 @@ async def get_customer_payments(
 ):
     owner_id = get_owner_id(user)
     payments = await db.customer_payments.find(
-        {"customer_id": customer_id, "user_id": owner_id}, 
+        apply_store_scope_with_legacy({"customer_id": customer_id, "user_id": owner_id}, user),
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return [CustomerPayment(**p) for p in payments]
@@ -7092,6 +7176,7 @@ class CustomerCreate(BaseModel):
 class Promotion(BaseModel):
     promotion_id: str = Field(default_factory=lambda: f"promo_{uuid.uuid4().hex[:12]}")
     user_id: str
+    store_id: Optional[str] = None
     title: str
     description: str
     discount_percentage: Optional[float] = None
@@ -7104,6 +7189,7 @@ class Promotion(BaseModel):
 class Supplier(BaseModel):
     supplier_id: str = Field(default_factory=lambda: f"sup_{uuid.uuid4().hex[:12]}")
     user_id: str
+    store_id: Optional[str] = None
     name: str
     contact_name: Optional[str] = None
     email: Optional[str] = None
@@ -8167,7 +8253,7 @@ async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a
     if not update:
         raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
     await db.stores.update_one({"store_id": store_id, "user_id": owner_id}, {"$set": update})
-    doc = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
+    doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Boutique non trouvée")
     return Store(**doc)
@@ -8730,7 +8816,7 @@ async def update_location(location_id: str, data: LocationCreate, user: User = D
     owner_id = get_owner_id(user)
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     await db.locations.update_one({"location_id": location_id, "user_id": owner_id}, {"$set": update})
-    loc = await db.locations.find_one({"location_id": location_id}, {"_id": 0})
+    loc = await db.locations.find_one({"location_id": location_id, "user_id": owner_id}, {"_id": 0})
     if not loc:
         raise HTTPException(404, "Emplacement non trouvé")
     return Location(**loc)
@@ -8766,14 +8852,15 @@ async def create_table(data: TableCreate, user: User = Depends(require_permissio
 @api_router.put("/tables/{table_id}")
 async def update_table(table_id: str, data: Any = Body(...), user: User = Depends(require_permission("settings", "write"))):
     owner_id = get_owner_id(user)
-    existing = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    existing = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Table non trouvée")
     allowed = {"name", "capacity"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if updates:
-        await db.tables.update_one({"table_id": table_id}, {"$set": updates})
-    updated = await db.tables.find_one({"table_id": table_id})
+        await db.tables.update_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id}, {"$set": updates})
+    updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
     return updated
 
@@ -8854,14 +8941,15 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
             raise HTTPException(status_code=404, detail="Table non trouvée")
         raise HTTPException(status_code=409, detail="La table a été modifiée par une autre action. Rechargez avant de réessayer.")
 
-    updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
+    updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
     return updated
 
 @api_router.delete("/tables/{table_id}")
 async def delete_table(table_id: str, user: User = Depends(require_permission("settings", "write"))):
     owner_id = get_owner_id(user)
-    result = await db.tables.delete_one({"table_id": table_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    result = await db.tables.delete_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Table non trouvée")
     return {"message": "Table supprimée"}
@@ -8896,21 +8984,23 @@ async def create_reservation(data: ReservationCreate, user: User = Depends(get_c
 @api_router.put("/reservations/{reservation_id}")
 async def update_reservation(reservation_id: str, data: Any = Body(...), user: User = Depends(get_current_user)):
     owner_id = get_owner_id(user)
-    existing = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    existing = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     allowed = {"customer_name", "phone", "date", "time", "covers", "table_id", "notes", "status"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if updates:
-        await db.reservations.update_one({"reservation_id": reservation_id}, {"$set": updates})
-    updated = await db.reservations.find_one({"reservation_id": reservation_id})
+        await db.reservations.update_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id}, {"$set": updates})
+    updated = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
     return updated
 
 @api_router.delete("/reservations/{reservation_id}")
 async def delete_reservation(reservation_id: str, user: User = Depends(get_current_user)):
     owner_id = get_owner_id(user)
-    result = await db.reservations.delete_one({"reservation_id": reservation_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    result = await db.reservations.delete_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     return {"message": "Réservation supprimée"}
@@ -8921,13 +9011,14 @@ async def delete_reservation(reservation_id: str, user: User = Depends(get_curre
 async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
         raise HTTPException(status_code=404, detail="Vente non trouvée")
     items = sale.get("items", [])
     all_ready = all(it.get("ready", False) for it in items) if items else False
     await db.sales.update_one(
-        {"sale_id": sale_id},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"},
         {"$set": {
             "kitchen_sent": True,
             "kitchen_sent_at": datetime.now(timezone.utc),
@@ -9041,12 +9132,13 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
 async def get_table_order(table_id: str, user: User = Depends(get_current_user)):
     """Récupère la commande ouverte pour une table."""
     owner_id = get_owner_id(user)
-    table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if not table:
         raise HTTPException(status_code=404, detail="Table non trouvée")
     if not table.get("current_sale_id"):
         return None
-    sale = await db.sales.find_one({"sale_id": table["current_sale_id"], "user_id": owner_id, "status": "open"})
+    sale = await db.sales.find_one({"sale_id": table["current_sale_id"], "user_id": owner_id, "store_id": store_id, "status": "open"})
     if not sale:
         return None
     sale.pop("_id", None)
@@ -9057,7 +9149,8 @@ async def get_table_order(table_id: str, user: User = Depends(get_current_user))
 async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
     """Ajouter des articles a une commande ouverte."""
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
+    store_id = user.active_store_id
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"})
     if not sale:
         raise HTTPException(status_code=404, detail="Commande ouverte non trouvee")
 
@@ -9145,7 +9238,7 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
     )
 
     await db.sales.update_one(
-        {"sale_id": sale_id},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"},
         {"$set": {
             "items": totals["items"],
             "current_amount": totals["total_amount"],
@@ -9161,10 +9254,10 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
     )
     if sale.get("table_id"):
         await db.tables.update_one(
-            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"table_id": sale["table_id"], "user_id": owner_id, "store_id": store_id},
             {"$set": {"current_amount": totals["total_amount"]}}
         )
-    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"})
     updated.pop("_id", None)
     return updated
 
@@ -9172,7 +9265,8 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
 async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depends(require_permission("pos", "write"))):
     """Retirer un article d'une commande ouverte (par index)."""
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "status": "open"})
+    store_id = user.active_store_id
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"})
     if not sale:
         raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
     items = sale.get("items", [])
@@ -9196,7 +9290,7 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
         tip_amount=sale.get("tip_amount", 0.0),
     )
     await db.sales.update_one(
-        {"sale_id": sale_id},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"},
         {"$set": {
             "items": totals["items"],
             "current_amount": totals["total_amount"],
@@ -9208,10 +9302,10 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
     )
     if sale.get("table_id"):
         await db.tables.update_one(
-            {"table_id": sale["table_id"], "user_id": owner_id},
+            {"table_id": sale["table_id"], "user_id": owner_id, "store_id": store_id},
             {"$set": {"current_amount": totals["total_amount"]}}
         )
-    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"})
     updated.pop("_id", None)
     return updated
 
@@ -9220,14 +9314,15 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
 async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depends(require_permission("pos", "write"))):
     """Finaliser une commande restaurant en evitant la double finalisation concurrente."""
     owner_id = get_owner_id(user)
+    store_id = user.active_store_id
     finalize_started_at = datetime.now(timezone.utc)
     sale = await db.sales.find_one_and_update(
-        {"sale_id": sale_id, "user_id": owner_id, "status": "open"},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"},
         {"$set": {"status": "finalizing", "finalizing_at": finalize_started_at}},
         return_document=False,
     )
     if not sale:
-        existing_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
+        existing_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id}, {"_id": 0})
         if not existing_sale:
             raise HTTPException(status_code=404, detail="Commande ouverte non trouvee")
         if existing_sale.get("status") == "completed":
@@ -9278,7 +9373,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
         )
     except Exception:
         await db.sales.update_one(
-            {"sale_id": sale_id, "user_id": owner_id, "status": "finalizing"},
+            {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "finalizing"},
             {"$set": {"status": "open"}, "$unset": {"finalizing_at": ""}},
         )
         raise
@@ -9289,7 +9384,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
             await _apply_sale_item_inventory(product_doc, it["quantity"], user, suppress_errors=True)
 
     result = await db.sales.update_one(
-        {"sale_id": sale_id, "user_id": owner_id, "status": "finalizing"},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "finalizing"},
         {"$set": {
             "status": "completed",
             "items": totals["items"],
@@ -9316,7 +9411,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
 
     if sale.get("table_id"):
         await db.tables.update_one(
-            {"table_id": sale["table_id"], "user_id": owner_id, "current_sale_id": sale_id},
+            {"table_id": sale["table_id"], "user_id": owner_id, "store_id": store_id, "current_sale_id": sale_id},
             {"$set": {"status": "free", "current_sale_id": None, "current_amount": 0, "occupied_since": None, "covers": 0}}
         )
 
@@ -9326,7 +9421,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
         details={"sale_id": sale_id, "total": actual_total}
     )
 
-    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "completed"})
     updated.pop("_id", None)
     return updated
 
@@ -9338,16 +9433,16 @@ async def cancel_sale(
 ):
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
+    store_id = user.active_store_id
     now = datetime.now(timezone.utc)
 
     locked_sale = await db.sales.find_one_and_update(
-        {"sale_id": sale_id, "user_id": owner_id, "status": "completed"},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "completed"},
         {"$set": {"status": "cancelling", "cancelling_at": now}},
         return_document=True,
     )
     if not locked_sale:
-        current_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
-        ensure_scoped_document_access(user, current_sale, detail="Acces refuse pour cette vente")
+        current_sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id}, {"_id": 0})
         if not current_sale:
             raise HTTPException(status_code=404, detail="Vente introuvable")
         if current_sale.get("status") == "cancelled":
@@ -9356,8 +9451,7 @@ async def cancel_sale(
             raise HTTPException(status_code=409, detail="Cette vente est deja en cours d'annulation")
         raise HTTPException(status_code=400, detail="Seules les ventes completees peuvent etre annulees")
 
-    ensure_scoped_document_access(user, locked_sale, detail="Acces refuse pour cette vente")
-    revert_query = {"sale_id": sale_id, "user_id": owner_id, "status": "cancelling"}
+    revert_query = {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "cancelling"}
     revert_update = {
         "$set": {"status": "completed"},
         "$unset": {
@@ -9453,11 +9547,12 @@ async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
     """Marquer une commande comme servie (plats livrés à la table). Disparaît du KDS, table reste occupée."""
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     await db.sales.update_one(
-        {"sale_id": sale_id},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id},
         {"$set": {"all_items_ready": True, "served_at": datetime.now(timezone.utc)}}
     )
     return {"message": "Commande servie"}
@@ -9468,7 +9563,8 @@ async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depe
     """Marquer un article d'une commande comme prêt en cuisine."""
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
-    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     items = sale.get("items", [])
@@ -9477,10 +9573,10 @@ async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depe
     items[item_idx]["ready"] = True
     all_ready = all(it.get("ready", False) for it in items)
     await db.sales.update_one(
-        {"sale_id": sale_id},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id},
         {"$set": {"items": items, "all_items_ready": all_ready}}
     )
-    updated = await db.sales.find_one({"sale_id": sale_id})
+    updated = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
     return updated
 
@@ -9489,21 +9585,22 @@ async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depe
 async def reservation_arrive(reservation_id: str, data: dict = Body(default={}), user: User = Depends(get_current_user)):
     """Marquer une réservation comme arrivée et optionnellement occuper la table."""
     owner_id = get_owner_id(user)
-    reservation = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id})
+    store_id = user.active_store_id
+    reservation = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     await db.reservations.update_one(
-        {"reservation_id": reservation_id},
+        {"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id},
         {"$set": {"status": "arrived"}}
     )
     # Si une table est assignée → la passer en "reserved" visuellement
     table_id = reservation.get("table_id") or data.get("table_id")
     if table_id:
         await db.tables.update_one(
-            {"table_id": table_id, "user_id": owner_id},
+            {"table_id": table_id, "user_id": owner_id, "store_id": store_id},
             {"$set": {"status": "occupied", "occupied_since": datetime.now(timezone.utc).isoformat(), "covers": reservation.get("covers", 0)}}
         )
-    updated = await db.reservations.find_one({"reservation_id": reservation_id})
+    updated = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
     return updated
 
@@ -9626,7 +9723,7 @@ async def submit_inventory_result(
         
         # Update product
         await db.products.update_one(
-            {"product_id": task["product_id"]},
+            {"product_id": task["product_id"], "user_id": get_owner_id(user)},
             {"$set": {"quantity": actual, "updated_at": updated_at}}
         )
         
@@ -9749,19 +9846,25 @@ def _classify_crm_segment(
     return "occasional"
 
 
-async def _build_crm_customer_rows(owner_id: str, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
+async def _build_crm_customer_rows(owner_id: str, start_date: datetime, end_date: datetime, store_id: Optional[str] = None) -> List[Dict[str, Any]]:
     now = datetime.now(timezone.utc)
-    customers_raw = await db.customers.find({"user_id": owner_id}, {"_id": 0}).to_list(5000)
+    cust_query: dict = {"user_id": owner_id}
+    if store_id:
+        cust_query["store_id"] = store_id
+    customers_raw = await db.customers.find(cust_query, {"_id": 0}).to_list(5000)
     customer_ids = [customer.get("customer_id") for customer in customers_raw if customer.get("customer_id")]
     stats_map: Dict[str, Dict[str, Any]] = {}
 
     if customer_ids:
+        sales_match: dict = {
+            "user_id": owner_id,
+            "customer_id": {"$in": customer_ids},
+            "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
+        }
+        if store_id:
+            sales_match["store_id"] = store_id
         sales_pipeline = [
-            {"$match": {
-                "user_id": owner_id,
-                "customer_id": {"$in": customer_ids},
-                "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
-            }},
+            {"$match": sales_match},
             {"$group": {
                 "_id": "$customer_id",
                 "visit_count": {"$sum": 1},
@@ -9894,13 +9997,14 @@ async def get_customers(
     limit: int = 50
 ):
     owner_id = get_owner_id(user)
-    total = await db.customers.count_documents({"user_id": owner_id})
-    customers_raw = await db.customers.find({"user_id": owner_id}).skip(skip).limit(limit).to_list(limit)
+    cust_query = apply_store_scope_with_legacy({"user_id": owner_id}, user)
+    total = await db.customers.count_documents(cust_query)
+    customers_raw = await db.customers.find(cust_query).skip(skip).limit(limit).to_list(limit)
 
     # Aggregate sales stats per customer in one query
     customer_ids = [c["customer_id"] for c in customers_raw if "customer_id" in c]
     sales_pipeline = [
-        {"$match": {"user_id": owner_id, "customer_id": {"$in": customer_ids}}},
+        {"$match": apply_store_scope({"user_id": owner_id, "customer_id": {"$in": customer_ids}}, user)},
         {"$group": {
             "_id": "$customer_id",
             "visit_count": {"$sum": 1},
@@ -9946,7 +10050,7 @@ async def get_crm_analytics_overview(
 ):
     owner_id = get_owner_id(user)
     date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
-    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"])
+    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"], store_id=user.active_store_id)
 
     total_customers = len(rows)
     active_customers = len([row for row in rows if row.get("period_visit_count", 0) > 0])
@@ -10012,7 +10116,7 @@ async def get_crm_kpi_details(
 ):
     owner_id = get_owner_id(user)
     date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
-    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"])
+    rows = await _build_crm_customer_rows(owner_id, date_range["start"], date_range["end"], store_id=user.active_store_id)
 
     base_columns = [
         {"key": "name", "label": "Client"},
@@ -10152,7 +10256,7 @@ class CampaignCreate(BaseModel):
 async def get_customer_birthdays(user: User = Depends(require_permission("crm", "read")), days: int = Query(7, ge=1, le=90)):
     """Get customers with birthdays in the next N days"""
     customers_raw = await db.customers.find(
-        {"user_id": get_owner_id(user), "birthday": {"$ne": None}}
+        apply_store_scope_with_legacy({"user_id": get_owner_id(user), "birthday": {"$ne": None}}, user)
     ).to_list(1000)
 
     today = datetime.now(timezone.utc)
@@ -10179,13 +10283,23 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_per
     """Log a marketing campaign"""
     ensure_subscription_advanced_allowed(user, detail="Les campagnes CRM sont indisponibles tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
+    valid_customer_query = apply_store_scope_with_legacy(
+        {"user_id": owner_id, "customer_id": {"$in": data.customer_ids}},
+        user,
+    )
+    scoped_customers = await db.customers.find(valid_customer_query, {"_id": 0, "customer_id": 1}).to_list(len(data.customer_ids))
+    scoped_customer_ids = [customer["customer_id"] for customer in scoped_customers if customer.get("customer_id")]
+    if len(scoped_customer_ids) != len(set(data.customer_ids)):
+        raise HTTPException(status_code=400, detail="Un ou plusieurs clients n'appartiennent pas a la boutique active")
+    data = data.model_copy(update={"customer_ids": scoped_customer_ids})
     campaign = {
         "campaign_id": f"camp_{uuid.uuid4().hex[:12]}",
         "user_id": owner_id,
+        "store_id": user.active_store_id,
         "message": data.message,
-        "customer_ids": data.customer_ids,
+        "customer_ids": scoped_customer_ids,
         "channel": data.channel,
-        "recipients_count": len(data.customer_ids),
+        "recipients_count": len(scoped_customer_ids),
         "created_at": datetime.now(timezone.utc),
     }
     await db.campaigns.insert_one(campaign)
@@ -10207,9 +10321,16 @@ async def get_customer_sales(customer_id: str, user: User = Depends(require_perm
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
         raise HTTPException(status_code=404, detail="Client non trouvé")
+    cust = await backfill_legacy_store_field(
+        db.customers,
+        {"customer_id": customer_id, "user_id": owner_id},
+        cust,
+        user,
+    )
+    ensure_scoped_document_access(user, cust, detail="Acces refuse pour ce client")
 
     sales = await db.sales.find(
-        {"customer_id": customer_id, "user_id": owner_id}, {"_id": 0}
+        apply_store_scope({"customer_id": customer_id, "user_id": owner_id}, user), {"_id": 0}
     ).sort("created_at", -1).to_list(500)
 
     visit_count = len(sales)
@@ -10233,6 +10354,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
     owner_id = get_owner_id(user)
     customer = Customer(
         user_id=owner_id,
+        store_id=user.active_store_id,
         **customer_data.model_dump()
     )
     await db.customers.insert_one(customer.model_dump())
@@ -10253,9 +10375,16 @@ async def get_customer(customer_id: str, user: User = Depends(require_permission
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
         raise HTTPException(status_code=404, detail="Client non trouvé")
+    cust = await backfill_legacy_store_field(
+        db.customers,
+        {"customer_id": customer_id, "user_id": owner_id},
+        cust,
+        user,
+    )
+    ensure_scoped_document_access(user, cust, detail="Acces refuse pour ce client")
     cust.pop("_id", None)
     # Compute stats
-    customer_sales_query = apply_completed_sales_scope({"customer_id": customer_id, "user_id": owner_id})
+    customer_sales_query = apply_completed_sales_scope(apply_store_scope({"customer_id": customer_id, "user_id": owner_id}, user))
     sales_count = await db.sales.count_documents(customer_sales_query)
     cust["visit_count"] = sales_count
     cust["average_basket"] = round(cust.get("total_spent", 0) / sales_count, 0) if sales_count > 0 else 0
@@ -10267,9 +10396,20 @@ async def get_customer(customer_id: str, user: User = Depends(require_permission
 @api_router.put("/customers/{customer_id}", response_model=Customer)
 async def update_customer(customer_id: str, customer_data: CustomerCreate, user: User = Depends(require_permission("crm", "write"))):
     owner_id = get_owner_id(user)
-    update_dict = customer_data.model_dump()
-    result = await db.customers.find_one_and_update(
+    existing = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.customers,
         {"customer_id": customer_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour ce client")
+    update_dict = customer_data.model_dump()
+    customer_query = {"customer_id": customer_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        customer_query["store_id"] = existing["store_id"]
+    result = await db.customers.find_one_and_update(
+        customer_query,
         {"$set": update_dict},
         return_document=True
     )
@@ -10281,8 +10421,18 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str, user: User = Depends(require_permission("crm", "write"))):
     owner_id = get_owner_id(user)
-    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"name": 1})
-    result = await db.customers.delete_one({"customer_id": customer_id, "user_id": owner_id})
+    cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
+    cust = await backfill_legacy_store_field(
+        db.customers,
+        {"customer_id": customer_id, "user_id": owner_id},
+        cust,
+        user,
+    )
+    ensure_scoped_document_access(user, cust, detail="Acces refuse pour ce client")
+    delete_query = {"customer_id": customer_id, "user_id": owner_id}
+    if cust and cust.get("store_id"):
+        delete_query["store_id"] = cust["store_id"]
+    result = await db.customers.delete_one(delete_query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Client non trouvé")
     await log_activity(user, "customer_deleted", "crm", f"Client '{cust.get('name', customer_id)}' supprimé", {"customer_id": customer_id})
@@ -10290,7 +10440,7 @@ async def delete_customer(customer_id: str, user: User = Depends(require_permiss
 
 @api_router.get("/promotions", response_model=List[Promotion])
 async def get_promotions(user: User = Depends(require_permission("crm", "read"))):
-    promotions = await db.promotions.find({"user_id": get_owner_id(user), "is_active": True}).to_list(100)
+    promotions = await db.promotions.find(apply_store_scope_with_legacy({"user_id": get_owner_id(user), "is_active": True}, user)).to_list(100)
     return [Promotion(**p) for p in promotions]
 
 class PromotionCreate(BaseModel):
@@ -10302,15 +10452,27 @@ class PromotionCreate(BaseModel):
 
 @api_router.post("/promotions", response_model=Promotion)
 async def create_promotion(data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
-    promotion = Promotion(**data.model_dump(), user_id=get_owner_id(user))
+    promotion = Promotion(**data.model_dump(), user_id=get_owner_id(user), store_id=user.active_store_id)
     await db.promotions.insert_one(promotion.model_dump())
     return promotion
 
 @api_router.put("/promotions/{promotion_id}", response_model=Promotion)
 async def update_promotion(promotion_id: str, data: PromotionCreate, user: User = Depends(require_permission("crm", "write"))):
     update_dict = data.model_dump()
+    owner_id = get_owner_id(user)
+    existing = await db.promotions.find_one({"promotion_id": promotion_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.promotions,
+        {"promotion_id": promotion_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour cette promotion")
+    promotion_query = {"promotion_id": promotion_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        promotion_query["store_id"] = existing["store_id"]
     result = await db.promotions.find_one_and_update(
-        {"promotion_id": promotion_id, "user_id": get_owner_id(user)},
+        promotion_query,
         {"$set": update_dict},
         return_document=True
     )
@@ -10321,7 +10483,19 @@ async def update_promotion(promotion_id: str, data: PromotionCreate, user: User 
 
 @api_router.delete("/promotions/{promotion_id}")
 async def delete_promotion(promotion_id: str, user: User = Depends(require_permission("crm", "write"))):
-    result = await db.promotions.delete_one({"promotion_id": promotion_id, "user_id": get_owner_id(user)})
+    owner_id = get_owner_id(user)
+    existing = await db.promotions.find_one({"promotion_id": promotion_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.promotions,
+        {"promotion_id": promotion_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour cette promotion")
+    delete_query = {"promotion_id": promotion_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        delete_query["store_id"] = existing["store_id"]
+    result = await db.promotions.delete_one(delete_query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Promotion non trouvée")
     return {"message": "Promotion supprimée"}
@@ -10609,7 +10783,10 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     for item in sale_data.items:
         prod_id = item["product_id"]
 
-        product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
+        prod_query = {"product_id": prod_id, "user_id": owner_id}
+        if store_id:
+            prod_query["store_id"] = store_id
+        product = await db.products.find_one(prod_query)
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouvé")
 
@@ -10695,9 +10872,17 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     customer_doc = None
     if sale_data.customer_id:
         customer_doc = await db.customers.find_one(
-            {"customer_id": sale_data.customer_id, "user_id": owner_id},
-            {"_id": 0, "customer_id": 1, "name": 1},
+            apply_store_scope_with_legacy({"customer_id": sale_data.customer_id, "user_id": owner_id}, user),
+            {"_id": 0, "customer_id": 1, "name": 1, "store_id": 1},
         )
+        customer_doc = await backfill_legacy_store_field(
+            db.customers,
+            {"customer_id": sale_data.customer_id, "user_id": owner_id},
+            customer_doc,
+            user,
+        )
+        if not customer_doc:
+            raise HTTPException(status_code=404, detail="Client non trouvÃ© pour la boutique active")
     customer_effects = await _compute_sale_customer_effects(
         owner_id,
         sale_data.customer_id,
@@ -10841,9 +11026,10 @@ async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: Use
     if "date" in update:
         update["created_at"] = update.pop("date")
     await db.expenses.update_one({"expense_id": expense_id, "user_id": owner_id}, {"$set": update})
-    doc = await db.expenses.find_one({"expense_id": expense_id}, {"_id": 0})
+    doc = await db.expenses.find_one({"expense_id": expense_id, "user_id": owner_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Dépense non trouvée")
+    ensure_scoped_document_access(user, doc, detail="Acces refuse pour cette depense")
     return Expense(**doc)
 
 @api_router.delete("/expenses/{expense_id}")
@@ -11272,8 +11458,18 @@ async def _create_or_get_invoice_from_sale_doc(sale_doc: dict, user: User) -> Cu
     customer_name = sale_doc.get("customer_name")
     if sale_doc.get("customer_id") and not customer_name:
         customer_doc = await db.customers.find_one(
+            apply_store_scope_with_legacy(
+                {"customer_id": sale_doc.get("customer_id"), "user_id": owner_id},
+                user,
+                requested_store_id=sale_doc.get("store_id"),
+            ),
+            {"_id": 0, "name": 1, "store_id": 1},
+        )
+        customer_doc = await backfill_legacy_store_field(
+            db.customers,
             {"customer_id": sale_doc.get("customer_id"), "user_id": owner_id},
-            {"_id": 0, "name": 1},
+            customer_doc,
+            user.model_copy(update={"active_store_id": sale_doc.get("store_id") or user.active_store_id}),
         )
         customer_name = (customer_doc or {}).get("name")
 
@@ -11421,9 +11617,11 @@ async def create_customer_invoice_from_sale(
 ):
     ensure_subscription_advanced_allowed(user, detail="La creation de facture est indisponible tant que le compte n'est pas regularise.")
     owner_id = get_owner_id(user)
-    sale_doc = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id}, {"_id": 0})
+    sale_query = apply_store_scope({"sale_id": sale_id, "user_id": owner_id}, user)
+    sale_doc = await db.sales.find_one(sale_query, {"_id": 0})
     if not sale_doc:
         raise HTTPException(status_code=404, detail="Vente introuvable")
+    ensure_scoped_document_access(user, sale_doc, detail="Acces refuse pour cette vente")
     if sale_doc.get("status") == "cancelled":
         raise HTTPException(status_code=400, detail="Impossible de creer une facture pour une vente annulee")
     return await _create_or_get_invoice_from_sale_doc(sale_doc, user)
@@ -11780,7 +11978,10 @@ async def get_stock_movements(
     # Populate product names
     if movements:
         product_ids = list(set(m["product_id"] for m in movements))
-        products = await db.products.find({"product_id": {"$in": product_ids}}, {"product_id": 1, "name": 1}).to_list(len(product_ids))
+        products = await db.products.find(
+            {"product_id": {"$in": product_ids}, "user_id": owner_id},
+            {"product_id": 1, "name": 1},
+        ).to_list(len(product_ids))
         product_map = {p["product_id"]: p["name"] for p in products}
 
         for m in movements:
@@ -12500,6 +12701,10 @@ def build_store_metric_bucket() -> Dict[str, Any]:
     }
 
 
+def build_visible_store_ids(stores: List[dict]) -> set[str]:
+    return {store.get("store_id") for store in stores if store.get("store_id")}
+
+
 def build_analytics_scope_label(
     stores: List[dict],
     store_id: Optional[str] = None,
@@ -12806,6 +13011,8 @@ async def build_analytics_snapshot(
     stores = await load_accessible_stores(user)
     if store_id:
         stores = [store for store in stores if store.get("store_id") == store_id]
+    visible_store_ids = build_visible_store_ids(stores)
+    allow_legacy_unassigned = len(visible_store_ids) == 1
 
     products = await load_analytics_products(
         user,
@@ -12813,6 +13020,16 @@ async def build_analytics_snapshot(
         category_id=category_id,
         supplier_id=supplier_id,
     )
+    if visible_store_ids:
+        products = [
+            product
+            for product in products
+            if product.get("store_id") in visible_store_ids
+            or (
+                allow_legacy_unassigned
+                and product.get("store_id") in (None, "")
+            )
+        ]
     product_map = {product["product_id"]: product for product in products if product.get("product_id")}
     category_ids = [product.get("category_id") for product in products if product.get("category_id")]
     categories = await db.categories.find(
@@ -12837,6 +13054,16 @@ async def build_analytics_snapshot(
     }
     sales_query = apply_accessible_store_scope(sales_query, user, store_id)
     sales_docs = await db.sales.find(sales_query, {"_id": 0}).to_list(10000)
+    if visible_store_ids:
+        sales_docs = [
+            sale
+            for sale in sales_docs
+            if sale.get("store_id") in visible_store_ids
+            or (
+                allow_legacy_unassigned
+                and sale.get("store_id") in (None, "")
+            )
+        ]
 
     current_sale_ids = set()
     previous_sale_ids = set()
@@ -13586,33 +13813,37 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
 
     products = await db.products.find(product_query, {"_id": 0}).to_list(1000)
 
-    # Fallback: if store_id filter returns nothing, try without store_id
+    # Legacy safety net: only backfill unassigned products automatically for true single-store accounts.
     if not products and user.active_store_id:
-        fallback_query = {"user_id": owner_id}
-        products = await db.products.find(fallback_query, {"_id": 0}).to_list(1000)
-        # Backfill store_id and is_active on found products
-        if products:
-            logger.info(f"Dashboard fallback: found {len(products)} products without store_id filter, backfilling...")
-            for p in products:
-                updates = {}
-                if not p.get("store_id"):
-                    updates["store_id"] = user.active_store_id
-                if "is_active" not in p:
-                    updates["is_active"] = True
-                if updates:
-                    await db.products.update_one(
-                        {"product_id": p["product_id"]},
-                        {"$set": updates}
+        accessible_store_ids = list(dict.fromkeys((user.store_ids or []) + [user.active_store_id]))
+        if len(accessible_store_ids) <= 1:
+            fallback_query = {
+                "user_id": owner_id,
+                "$or": [{"store_id": None}, {"store_id": {"$exists": False}}],
+            }
+            products = await db.products.find(fallback_query, {"_id": 0}).to_list(1000)
+            if products:
+                logger.info(f"Dashboard legacy backfill: assigning {len(products)} unscoped products to active store {user.active_store_id}")
+                product_ids = [p["product_id"] for p in products if p.get("product_id")]
+                if product_ids:
+                    await db.products.update_many(
+                        {"product_id": {"$in": product_ids}},
+                        {"$set": {"store_id": user.active_store_id, "is_active": True}},
                     )
-                    p.update(updates)
+                for p in products:
+                    p["store_id"] = user.active_store_id
+                    p["is_active"] = True
 
     # Filter active products in memory (handles missing is_active field)
     products = [p for p in products if p.get("is_active", True)]
 
     # Auto-dismiss AI anomaly alerts for accounts with no products (false positives)
     if not products:
+        ai_dismiss_query: dict = {"user_id": owner_id, "type": {"$regex": "^ai_"}, "is_dismissed": False}
+        if user.active_store_id:
+            ai_dismiss_query["store_id"] = user.active_store_id
         await db.alerts.update_many(
-            {"user_id": owner_id, "type": {"$regex": "^ai_"}, "is_dismissed": False},
+            ai_dismiss_query,
             {"$set": {"is_dismissed": True}}
         )
 
@@ -13643,13 +13874,16 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
     # Auto-resolve: dismiss out_of_stock/low_stock alerts for products that are back to normal
     normal_product_ids = [p["product_id"] for p in products if p.get("quantity", 0) > 0 and not (p.get("min_stock", 0) > 0 and p.get("quantity", 0) <= p.get("min_stock", 0))]
     if normal_product_ids:
+        resolve_query: dict = {
+            "user_id": owner_id,
+            "product_id": {"$in": normal_product_ids},
+            "type": {"$in": ["out_of_stock", "low_stock"]},
+            "is_dismissed": False,
+        }
+        if user.active_store_id:
+            resolve_query["store_id"] = user.active_store_id
         await db.alerts.update_many(
-            {
-                "user_id": owner_id,
-                "product_id": {"$in": normal_product_ids},
-                "type": {"$in": ["out_of_stock", "low_stock"]},
-                "is_dismissed": False,
-            },
+            resolve_query,
             {"$set": {"is_dismissed": True}}
         )
 
@@ -13754,8 +13988,7 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
 async def get_suppliers(user: User = Depends(require_permission("suppliers", "read")), skip: int = 0, limit: int = 50, search: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id, "is_active": True}
-    if user.active_store_id:
-        query["store_id"] = user.active_store_id
+    query = apply_store_scope_with_legacy(query, user)
     if search:
         query["name"] = {"$regex": safe_regex(search), "$options": "i"}
     total = await db.suppliers.count_documents(query)
@@ -13781,22 +14014,42 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_permission
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     return Supplier(**supplier)
 
 @api_router.post("/suppliers", response_model=Supplier)
 async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
-    supplier = Supplier(**sup_data.model_dump(), user_id=owner_id)
+    supplier = Supplier(**sup_data.model_dump(), user_id=owner_id, store_id=user.active_store_id)
     await db.suppliers.insert_one(supplier.model_dump())
     return supplier
 
 @api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
 async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
+    existing = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour ce fournisseur")
     update_dict = sup_data.model_dump()
     update_dict["updated_at"] = datetime.now(timezone.utc)
+    supplier_query = {"supplier_id": supplier_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        supplier_query["store_id"] = existing["store_id"]
     result = await db.suppliers.find_one_and_update(
-        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier_query,
         {"$set": update_dict},
         return_document=True
     )
@@ -13808,8 +14061,19 @@ async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User
 @api_router.delete("/suppliers/{supplier_id}")
 async def delete_supplier(supplier_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
-    result = await db.suppliers.update_one(
+    existing = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.suppliers,
         {"supplier_id": supplier_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour ce fournisseur")
+    supplier_query = {"supplier_id": supplier_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        supplier_query["store_id"] = existing["store_id"]
+    result = await db.suppliers.update_one(
+        supplier_query,
         {"$set": {"is_active": False}}
     )
     if result.modified_count == 0:
@@ -13820,6 +14084,16 @@ async def delete_supplier(supplier_id: str, user: User = Depends(require_permiss
 @api_router.get("/suppliers/{supplier_id}/products")
 async def get_supplier_products(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     links = await db.supplier_products.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
     ).to_list(100)
@@ -14235,6 +14509,16 @@ async def get_supplier_price_history(supplier_id: str, user: User = Depends(requ
 @api_router.get("/suppliers/{supplier_id}/invoices", response_model=List[SupplierInvoice])
 async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     invoices = await db.supplier_invoices.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
@@ -14243,6 +14527,16 @@ async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_p
 @api_router.post("/suppliers/{supplier_id}/invoices", response_model=SupplierInvoice)
 async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     invoice = SupplierInvoice(**inv_data, supplier_id=supplier_id, user_id=owner_id)
     await db.supplier_invoices.insert_one(invoice.model_dump())
     return invoice
@@ -14250,6 +14544,14 @@ async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User =
 @api_router.get("/suppliers/{supplier_id}/logs", response_model=List[SupplierCommunicationLog])
 async def get_supplier_logs(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     logs = await db.supplier_logs.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
@@ -14258,6 +14560,14 @@ async def get_supplier_logs(supplier_id: str, user: User = Depends(require_permi
 @api_router.post("/suppliers/{supplier_id}/logs", response_model=SupplierCommunicationLog)
 async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     log = SupplierCommunicationLog(**log_data.model_dump(), supplier_id=supplier_id, user_id=owner_id)
     await db.supplier_logs.insert_one(log.model_dump())
     return log
@@ -14265,6 +14575,16 @@ async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, use
 @api_router.post("/supplier-products", response_model=SupplierProduct)
 async def link_supplier_product(link_data: SupplierProductCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": link_data.supplier_id, "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": link_data.supplier_id, "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     # Check if link already exists
     existing = await db.supplier_products.find_one({
         "supplier_id": link_data.supplier_id,
@@ -14294,6 +14614,19 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
 @api_router.delete("/supplier-products/{link_id}")
 async def unlink_supplier_product(link_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
+    link = await db.supplier_products.find_one({"link_id": link_id, "user_id": owner_id}, {"_id": 0})
+    if not link:
+        raise HTTPException(status_code=404, detail="Lien non trouvÃ©")
+    supplier = await db.suppliers.find_one({"supplier_id": link.get("supplier_id"), "user_id": owner_id}, {"_id": 0})
+    supplier = await backfill_legacy_store_field(
+        db.suppliers,
+        {"supplier_id": link.get("supplier_id"), "user_id": owner_id},
+        supplier,
+        user,
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+    ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     result = await db.supplier_products.delete_one({"link_id": link_id, "user_id": owner_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lien non trouvé")
@@ -14378,7 +14711,7 @@ async def get_orders(
     unique_product_ids = list(set(all_item_product_ids))
     
     # Fetch names from local products and catalog products
-    products = await db.products.find({"product_id": {"$in": unique_product_ids}}, {"_id": 0, "product_id": 1, "name": 1}).to_list(len(unique_product_ids))
+    products = await db.products.find({"product_id": {"$in": unique_product_ids}, "user_id": owner_id}, {"_id": 0, "product_id": 1, "name": 1}).to_list(len(unique_product_ids))
     catalog_products = await db.catalog_products.find({"catalog_id": {"$in": unique_product_ids}}, {"_id": 0, "catalog_id": 1, "name": 1}).to_list(len(unique_product_ids))
 
     product_names_map = {p["product_id"]: p["name"] for p in products}
@@ -14806,7 +15139,10 @@ async def delete_order(order_id: str, user: User = Depends(require_procurement_a
     if order["status"] not in ["pending", "cancelled"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer une commande en cours")
     
-    await db.orders.delete_one({"order_id": order_id})
+    delete_query = {"order_id": order_id, "user_id": get_owner_id(user)}
+    if order.get("store_id"):
+        delete_query["store_id"] = order["store_id"]
+    await db.orders.delete_one(delete_query)
     await db.order_items.delete_many({"order_id": order_id})
     return {"message": "Commande supprimée"}
 
@@ -15868,7 +16204,7 @@ async def check_late_deliveries_internal(user_id: str):
         supplier_id = order.get("supplier_id")
         supplier_name = "Inconnu"
         if supplier_id:
-            supplier = await db.suppliers.find_one({"supplier_id": supplier_id}, {"_id": 0})
+            supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": user_id}, {"_id": 0})
             supplier_name = supplier.get("name", "Inconnu") if supplier else "Inconnu"
 
         existing = await db.alerts.find_one({
@@ -15907,7 +16243,7 @@ async def check_late_deliveries(user: User = Depends(require_auth)):
 async def export_products_csv(user: User = Depends(require_auth)):
     owner_id = get_owner_id(user)
     products = await db.products.find(apply_store_scope({"user_id": owner_id, "is_active": True}, user), {"_id": 0}).to_list(1000)
-    categories = await db.categories.find({"user_id": owner_id}, {"_id": 0}).to_list(100)
+    categories = await db.categories.find(apply_store_scope({"user_id": owner_id}, user), {"_id": 0}).to_list(100)
     cat_map = {c["category_id"]: c["name"] for c in categories}
 
     output = io.StringIO()
@@ -16014,9 +16350,9 @@ async def export_accounting_csv(
     products = await db.products.find({"user_id": owner_id}, {"_id": 0}).to_list(1000)
     prod_map = {p["product_id"]: p for p in products}
     # Purchases
-    orders = await db.orders.find({
+    orders = await db.orders.find(apply_store_scope({
         "user_id": owner_id, "status": "delivered", "updated_at": {"$gte": start_dt, "$lte": end_dt}
-    }).to_list(1000)
+    }, user)).to_list(1000)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -16564,7 +16900,7 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
         
         # Get suppliers names
         supplier_ids = list(set(sp.get("supplier_id") for sp in supplier_products if sp.get("supplier_id")))
-        suppliers = await db.suppliers.find({"supplier_id": {"$in": supplier_ids}}).to_list(100)
+        suppliers = await db.suppliers.find({"supplier_id": {"$in": supplier_ids}, "user_id": owner_id}).to_list(100)
         supplier_names = {s.get("supplier_id"): s.get("name", "Fournisseur") for s in suppliers if s.get("supplier_id")}
 
         suggestions = []
