@@ -565,6 +565,7 @@
     "common": {
         "add": "Ajouter",
         "all": "Tous",
+        "article": "Article",
         "back": "Retour",
         "call": "Appeler",
         "camera": "Caméra",
@@ -1735,9 +1736,16 @@
         "total_to_pay": "Total à payer",
         "received_amount": "Montant reçu",
         "change_to_render": "Monnaie à rendre",
+    "add_quantity_error": "Impossible d'ajouter cette quantité.",
+    "add_to_cart": "Ajouter au panier",
+    "cmd_prefix": "CMD",
+    "recipe_linked": "Recette liée",
+    "station_default": "plat",
     "unknown": "Inconnu",
     "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
-    "unknown_product_title": "Produit inconnu"
+    "unknown_product_title": "Produit inconnu",
+    "update_line": "Mettre à jour la ligne",
+    "vat": "TVA"
   },
   "restaurant": {
     "menu_category": "Catégorie menu",

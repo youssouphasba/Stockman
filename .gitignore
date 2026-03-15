@@ -28,3 +28,4 @@ backend/uploads/
 *.p12
 *.key
 *.mobileprovision
+.claude/settings.local.json

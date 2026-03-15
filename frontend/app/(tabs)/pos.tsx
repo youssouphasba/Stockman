@@ -455,7 +455,7 @@ export default function POSScreen() {
 
             closeWeightedModal();
         } catch (error: any) {
-            Alert.alert(t('common.error'), error?.message || 'Impossible d\'ajouter cette quantité.');
+            Alert.alert(t('common.error'), error?.message || t('pos.add_quantity_error'));
         }
     };
 
