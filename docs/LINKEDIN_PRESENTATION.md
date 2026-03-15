@@ -6,74 +6,55 @@
 
 ---
 
-🚀 **J'ai construit Stockman — le super-héros de la gestion de stock pour les petits commerçants africains et européens.**
+Il y a quelques mois, je suis entré dans la boutique d'un commerçant à Dakar.
 
-Pendant que je travaillais sur ce projet, j'ai réalisé quelque chose de frappant :
-**80% des petits commerçants en Afrique de l'Ouest gèrent encore leur stock sur papier — ou de tête.**
+Sur le comptoir : un cahier froissé, des colonnes de chiffres à la main, des pages cornées.
 
-Résultat : 15 à 25% de leur chiffre d'affaires s'évapore chaque mois à cause de vols non détectés, de ruptures de stock, de produits périmés et d'un manque total de visibilité financière.
+Je lui ai demandé : *"Tu sais combien tu as vendu ce mois-ci ?"*
 
-**Stockman est la solution.**
+Il a souri. *"À peu près."*
 
----
-
-### 🎯 Ce que fait Stockman
-
-Une application mobile (iOS/Android) + dashboard web qui digitalise en totalité les opérations quotidiennes d'un commerce :
-
-📦 **Gestion d'inventaire intelligente**
-→ Suivi en temps réel, alertes de stock, scan de codes-barres, import CSV/Excel avec détection automatique des colonnes par IA
-
-🛒 **Point de Vente (POS)**
-→ Caisse rapide, paiements multiples (espèces, Mobile Money, carte), reçus digitaux par WhatsApp/SMS
-
-🤖 **Assistant IA (Gemini 2.0)**
-→ "Quel est mon chiffre d'affaires ce mois-ci ?" — analyse de tendances, prédictions de ventes, recommandations de réapprovisionnement
-
-👥 **CRM & Fidélité**
-→ Historique clients, programme de points, suivi des dettes, campagnes marketing par SMS/WhatsApp
-
-📊 **Comptabilité simplifiée**
-→ Tableau de bord KPIs, Grand Livre, export PDF/Excel, suivi des charges
-
-🏪 **Multi-boutiques & Fournisseurs**
-→ Marketplace fournisseurs vérifiés, commandes directes, gestion multi-dépôts
+**À peu près.** C'est comme ça que des milliers de commerçants pilotent leur activité chaque jour.
 
 ---
 
-### 🛠️ Stack Technique
+Ce n'est pas un manque d'intelligence. Ce n'est pas un manque de volonté.
 
-**Mobile :** React Native (Expo) + TypeScript
-**Web :** Next.js 15 + TailwindCSS v4
-**Backend :** FastAPI (Python) + MongoDB Atlas
-**IA :** Google Gemini 2.0/2.5 Flash
-**Paiements :** Stripe + Flutterwave (Orange Money, Wave, MTN) + RevenueCat
-**Infra :** Railway + Docker + GitHub Actions
+C'est un manque d'outil adapté à leur réalité.
 
----
+Les solutions qui existent sont pensées pour des grandes enseignes, dans des langues qu'ils ne parlent pas, avec des abonnements qu'ils ne peuvent pas payer, sur des connexions internet qu'ils n'ont pas toujours.
 
-### 🌍 Pourquoi l'Afrique de l'Ouest ?
-
-- 15 langues supportées (dont Wolof et Peul)
-- Architecture offline-first (zones à faible connectivité)
-- Intégration Mobile Money locale (Orange Money, Wave, MTN)
-- 3 mois d'essai gratuit pour lever les freins à l'adoption
-- Tarification adaptée : dès 1 000 FCFA/mois (~1,50€)
+**J'ai décidé de changer ça.**
 
 ---
 
-### 📈 Objectifs
+**Stockman**, c'est l'application que ce commerçant mérite.
 
-- **Mois 12 :** 1 500 utilisateurs payants (1 200 Sénégal + 300 France) → ~5 100€ MRR
-- **2028 :** 10 000+ utilisateurs en Afrique subsaharienne et en Europe
+Celle qui lui dit en Wolof, en temps réel :
+— Quel produit se vend le mieux ce mois-ci.
+— Quel client lui doit encore de l'argent.
+— Ce qu'il doit commander avant de tomber en rupture.
+— Combien il a vraiment gagné — pas "à peu près", mais exactement.
+
+Tout ça, depuis son téléphone. Même sans internet.
 
 ---
 
-**Ce projet m'a appris à construire un produit complet, de l'idée au déploiement, en pensant à l'accessibilité, à l'inclusivité et à l'impact réel sur des populations sous-digitalisées.**
+Parce qu'un petit commerçant de Dakar, de Saint-Louis ou de la diaspora à Paris mérite d'avoir les mêmes armes qu'un gérant de supermarché.
 
-Si vous êtes commerçant, investisseur, ou simplement curieux d'en savoir plus — je serais ravi d'échanger. 👇
+Il mérite de savoir si on le vole.
+Il mérite de récompenser ses clients fidèles.
+Il mérite de finir le mois sans mauvaise surprise.
 
-**#Stockman #SaaS #AfriTech #ReactNative #FastAPI #AI #Entrepreneuriat #Senegal #GestionDeStock #MobileMoney**
+**Stockman, c'est ça. La dignité de gérer son commerce comme un professionnel.**
+
+---
+
+Dès 1 000 FCFA par mois. 3 mois offerts pour commencer.
+
+Vous connaissez un commerçant qui le mérite ? Partagez. 👇
+
+**#Stockman #AfriTech #Entrepreneuriat #Senegal #Commerce #Afrique #Diaspora #GestionDeStock #Innovation**
 
 ---
 
@@ -83,29 +64,27 @@ Si vous êtes commerçant, investisseur, ou simplement curieux d'en savoir plus 
 
 ---
 
-🏪 **Et si un marchand de Dakar pouvait gérer son stock aussi bien qu'un supermarché ?**
+Un commerçant m'a dit un jour :
 
-C'est exactement le problème que j'ai décidé de résoudre avec **Stockman**.
+*"Je sais que je gagne de l'argent. Mais je ne sais jamais combien."*
 
-80% des petits commerçants en Afrique de l'Ouest gèrent encore tout sur papier.
-Résultat : jusqu'à 25% de CA perdu chaque mois.
+Cette phrase m'a hanté.
 
-J'ai construit une app mobile + web complète :
-✅ Gestion de stock en temps réel
-✅ POS avec Mobile Money intégré
-✅ Assistant IA (Gemini) pour les analyses
-✅ CRM, comptabilité, fournisseurs
-✅ 15 langues dont Wolof & Peul
-✅ Mode offline-first
+J'ai passé des mois à construire **Stockman** — pour que plus aucun commerçant n'ait à gérer son activité à l'aveugle.
 
-Stack : React Native · Next.js · FastAPI · MongoDB · Gemini AI · Stripe/Flutterwave
+✅ Il sait ce qu'il a en stock, en temps réel
+✅ Il sait qui lui doit de l'argent
+✅ Il sait quel produit lui rapporte vraiment
+✅ Il fidélise ses clients sans effort
+✅ Il termine le mois avec de vraies chiffres — pas des estimations
 
-Dès 1 000 FCFA/mois. 3 mois d'essai gratuit.
+Dans sa langue. Depuis son téléphone. Même sans connexion.
 
-Je cherche des retours, des partenariats, et des premiers utilisateurs.
-Vous connaissez des commerçants en Afrique ou en diaspora ? Taggez-les ! 👇
+Dès 1 000 FCFA/mois. 3 mois offerts.
 
-**#SaaS #AfriTech #Startup #GestionDeStock #Senegal #DigitalAfrica #ReactNative #Python**
+Si vous connaissez un petit commerçant en Afrique ou en diaspora — cette application est faite pour lui. 👇
+
+**#Stockman #AfriTech #Senegal #Commerce #Diaspora #Entrepreneuriat #Afrique**
 
 ---
 
@@ -113,27 +92,23 @@ Vous connaissez des commerçants en Afrique ou en diaspora ? Taggez-les ! 👇
 
 ## À propos du projet (section "En vedette" LinkedIn)
 
-**Stockman** — Plateforme SaaS de gestion de stock et de commerce de détail
+**Stockman** — Reprendre le contrôle de son commerce, pour de vrai.
 
-Application mobile (iOS/Android) et dashboard web conçus pour les petits commerçants d'Afrique et d'Europe.
+80% des petits commerçants en Afrique de l'Ouest pilotent leur activité sur un cahier — ou de mémoire. Résultat : jusqu'à 25% de leur chiffre d'affaires disparaît chaque mois, sans qu'ils s'en rendent compte.
 
-**Problème résolu :** 80% des marchands africains gèrent leur stock sur papier, perdant 15-25% de leur CA chaque mois.
+Stockman est l'application qui change ça.
 
-**Solution :** Une application complète, accessible offline, supportant 15 langues et les paiements mobiles locaux.
+Elle donne à chaque commerçant — à Dakar, à Abidjan, à Paris — la visibilité dont il a besoin pour gérer son stock, encaisser ses ventes, suivre ses clients et comprendre ses finances. Dans sa langue. Depuis son téléphone. Même hors connexion.
 
-**Technologies clés :**
-- Frontend Mobile : React Native (Expo 52) + TypeScript
-- Web Dashboard : Next.js 15 + TailwindCSS
-- Backend : FastAPI (Python) + MongoDB Atlas
-- Intelligence Artificielle : Google Gemini 2.0 Flash
-- Paiements : Stripe, Flutterwave, RevenueCat
+**Ce que Stockman change concrètement :**
+- Fini les ruptures de stock surprises : les alertes arrivent avant
+- Fini les clients oubliés : l'historique et les dettes sont toujours là
+- Fini les fins de mois flous : les vrais chiffres sont à portée de main
+- Fini les commandes fournisseurs désorganisées : tout se gère en un endroit
 
-**Fonctionnalités phares :**
-- Inventaire temps réel avec alertes intelligentes
-- Point de vente avec paiements Mobile Money
-- Assistant IA conversationnel pour l'analyse des ventes
-- CRM avec programme de fidélité
-- Comptabilité et rapports financiers
-- Marketplace fournisseurs
+**Pour qui :**
+Épiciers, pharmaciens, boutiquiers, vendeurs de marché, gérants de kiosques — partout en Afrique et en diaspora.
 
-**Impact ciblé :** 1 500 utilisateurs payants en an 1, 10 000+ d'ici 2028.
+**Tarif :** Dès 1 000 FCFA/mois (~1,50€). 3 mois offerts sans engagement.
+
+**Ambition :** 10 000 commerçants équipés d'ici 2028.
