@@ -30,7 +30,7 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale, businessInf
             maxWidth="md"
         >
             <div className="py-4">
-                <div className="bg-white text-slate-900 p-8 rounded-xl shadow-inner receipt-print-area">
+                <div className="bg-white text-slate-900 p-4 md:p-8 rounded-xl shadow-inner receipt-print-area">
                     {/* Receipt Header */}
                     <div className="text-center border-b-2 border-dashed border-slate-200 pb-6 mb-6">
                         <h2 className="text-2xl font-black uppercase tracking-tighter mb-1">

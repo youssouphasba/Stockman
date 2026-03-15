@@ -369,7 +369,7 @@ export default function AdminDashboard() {
                     { id: 'shopkeeper', label: t('admin.users.filterShopkeepers') },
                     { id: 'staff', label: t('admin.users.filterStaff') },
                     { id: 'supplier', label: t('admin.users.filterSuppliers') },
-                    { id: 'admin', label: t('admin.users.filterAdmins') },
+                    { id: 'superadmin', label: t('admin.users.filterAdmins') },
                 ]}
                 active={roleFilter}
                 onSelect={setRoleFilter as any}
@@ -438,35 +438,53 @@ export default function AdminDashboard() {
     );
 
     const renderStores = () => (
-        <View>
-            <SearchBar value={search} onChangeText={setSearch} placeholder={t('admin.placeholders.searchStores')} colors={colors} />
-            <SectionHeader title={t('admin.segments.stores')} count={stores.length} colors={colors} />
-            {stores.map(s => (
-                <Card key={s.store_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{s.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('admin.stores.owner')}: {s.owner_name}</Text>
-                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="cube-outline" size={14} color={colors.textMuted} />
-                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                        {t('admin.stores.products', { count: s.product_count })}
-                                    </Text>
+        (() => {
+            const filteredStores = stores.filter((s) => {
+                if (!search.trim()) return true;
+                const query = search.toLowerCase();
+                return [
+                    s.name,
+                    s.owner_name,
+                    s.owner_email,
+                    s.store_id,
+                ].some((value) => String(value || '').toLowerCase().includes(query));
+            });
+
+            return (
+                <View>
+                    <SearchBar value={search} onChangeText={setSearch} placeholder={t('admin.placeholders.searchStores')} colors={colors} />
+                    <SectionHeader title={t('admin.segments.stores')} count={filteredStores.length} colors={colors} />
+                    {filteredStores.map(s => (
+                        <Card key={s.store_id} colors={colors}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{s.name}</Text>
+                                    <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('admin.stores.owner')}: {s.owner_name}</Text>
+                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Ionicons name="cube-outline" size={14} color={colors.textMuted} />
+                                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                                {t('admin.stores.products', { count: s.product_count })}
+                                            </Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Ionicons name="cart-outline" size={14} color={colors.textMuted} />
+                                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                                {t('admin.stores.sales', { count: s.sales_count })}
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="cart-outline" size={14} color={colors.textMuted} />
-                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                        {t('admin.stores.sales', { count: s.sales_count })}
-                                    </Text>
-                                </View>
+                                <Text style={{ color: '#10B981', fontWeight: '800' }}>{fmtMoney(s.total_revenue)}</Text>
                             </View>
-                        </View>
-                        <Text style={{ color: '#10B981', fontWeight: '800' }}>{fmtMoney(s.total_revenue)}</Text>
-                    </View>
-                </Card>
-            ))}
-        </View>
+                        </Card>
+                    ))}
+                    {filteredStores.length === 0 && (
+                        <EmptyState icon="business-outline" message={t('admin.stores.empty') || t('admin.stock.empty')} colors={colors} />
+                    )}
+                </View>
+            );
+        })()
     );
 
     const renderStock = () => (
@@ -1023,7 +1041,7 @@ export default function AdminDashboard() {
                             <TouchableOpacity onPress={onRefresh} style={st.headerBtn}>
                                 <Ionicons name="refresh" size={18} color="#fff" />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => logout()} style={st.headerBtn}>
+                            <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={st.headerBtn}>
                                 <Ionicons name="log-out" size={18} color="#EF4444" />
                             </TouchableOpacity>
                         </View>

@@ -5,6 +5,12 @@
   },
   "accounting": {
     "amount": "Montant",
+    "cat_rent": "Loyer",
+    "cat_salaries": "Salaires",
+    "cat_transport": "Transport",
+    "cat_utilities": "Eau / Électricité",
+    "cat_purchases": "Achat Marchandises",
+    "cat_other": "Autres",
     "amount_placeholder": "0.00",
     "articles_count": "{{count}} articles",
     "articles_short": "{{count}} art.",
@@ -288,8 +294,21 @@
     "chat_welcome_restaurant": "Bonjour ! Je suis votre assistant Stockman pour restaurant. Je peux vous aider sur la carte, les recettes, la cuisine, les tables, les réservations et le service.",
     "chat_welcome_sector": "Bonjour ! Je suis votre assistant Stockman pour {{sector}}. Je peux vous aider sur vos produits, vos ventes, votre stock et vos décisions du jour."
   },
+  "staff": {
+    "module_pos": "🧾 Ventes (POS)",
+    "module_stock": "📦 Stock",
+    "module_accounting": "💼 Comptabilité",
+    "module_crm": "👥 Clients (CRM)",
+    "module_suppliers": "🚚 Fournisseurs",
+    "module_team": "🏪 Gestion équipe",
+    "role_cashier": "🧾 Caissier",
+    "role_stock": "📦 Stock",
+    "role_accountant": "💼 Comptable",
+    "role_manager": "🏪 Manager",
+    "role_crm": "👥 CRM / Clients"
+  },
   "alerts": {
-    "ai_anomaly_detection": "AI Anomaly Detection",
+    "ai_anomaly_detection": "Détection d'anomalies IA",
     "all_good": "Everything is in order",
     "all_stocks_normal": "All your stocks are normal",
     "analysis_error": "Could not analyze anomalies",
@@ -499,6 +518,8 @@
   "common": {
     "add": "Ajouter",
     "all": "Tous",
+    "general": "Général",
+    "search_placeholder": "Rechercher...",
     "back": "Retour",
     "cancel": "Annuler",
     "confirm": "Confirmer",
@@ -707,6 +728,32 @@
     "whatsapp_default_msg": "Bonjour {{name}}, nous avons une offre pour vous !",
     "yesterday": "Hier"
   },
+  "expiry": {
+    "title": "Alertes de Péremption",
+    "subtitle": "Évitez les pertes en suivant les dates d'expiration de vos produits.",
+    "no_alerts": "Aucune alerte trouvée",
+    "all_good": "Tous vos produits sont à jour et leur date d'expiration est éloignée.",
+    "expired": "PÉRIMÉ",
+    "days_remaining": "{{count}} jours restants",
+    "delete_alert": "Supprimer l'alerte",
+    "lot": "Lot",
+    "expiry_date": "Date d'expiration",
+    "stock_quantity": "Quantité en stock",
+    "manage_withdrawal": "Gérer le retrait"
+  },
+  "inventory_counting": {
+    "title": "Inventaire Tournant",
+    "subtitle": "Contrôles aléatoires pour garantir l'exactitude de vos stocks.",
+    "generate_tasks": "Générer les tâches du jour",
+    "analyzing": "Analyse des stocks...",
+    "all_done": "Tout est à jour !",
+    "all_done_desc": "Toutes les tâches d'inventaire ont été complétées. Revenez demain ou générez de nouvelles tâches.",
+    "restart_cycle": "Relancer un cycle",
+    "pending": "En attente",
+    "expected_qty": "Quantité Théorique",
+    "submit_count": "Saisir le comptage",
+    "enter_count": "Entrez la quantité réelle comptée (Attendu: {{expected}}) :"
+  },
   "dashboard": {
     "abc_analysis": "Analyse ABC (Priorités)",
     "admin_messages": "Messages de l'administrateur",
@@ -839,7 +886,15 @@
     "widget_reorder": "Réapprovisionnement",
     "widget_smart_reminders": "Rappels intelligents",
     "widget_stock_chart": "Évolution valeur stock",
-    "widget_stock_status": "Statut des stocks"
+    "widget_stock_status": "Statut des stocks",
+    "restaurant_no_service": "Aucun service enregistré pour le moment.",
+    "restaurant_top_dishes": "Top plats du jour",
+    "restaurant_no_dishes": "Aucun plat encore vendu aujourd'hui.",
+    "restaurant_reservations": "Réservations du jour",
+    "restaurant_no_reservations": "Aucune réservation planifiée pour aujourd'hui.",
+    "restaurant_arrived": "Arrivé",
+    "restaurant_confirmed": "Confirmé",
+    "restaurant_covers": "{{count}} couverts"
   },
   "delivery": {
     "ai_analysis": "Analyse IA des produits...",
@@ -1917,6 +1972,28 @@
     "users_permissions_desc": "Gérez les accès de vos employés",
     "version": "Version"
   },
+  "production": {
+    "status_planned": "Planifié",
+    "status_in_progress": "En cours",
+    "status_completed": "Terminé",
+    "status_cancelled": "Annulé"
+  },
+  "projects": {
+    "corps_gros_oeuvre": "Gros œuvre",
+    "corps_plomberie": "Plomberie",
+    "corps_electricite": "Électricité",
+    "corps_peinture": "Peinture",
+    "corps_carrelage": "Carrelage",
+    "corps_menuiserie": "Menuiserie",
+    "corps_toiture": "Toiture",
+    "corps_ferronnerie": "Ferronnerie",
+    "corps_etancheite": "Étanchéité",
+    "corps_autre": "Autre",
+    "tab_quotes": "Devis",
+    "tab_journal": "Journal",
+    "tab_subcontractors": "Sous-traitants",
+    "tab_planning": "Planning"
+  },
   "sidebar": {
     "abc_analysis": "Analyses ABC",
     "expiry": "Péremption",
@@ -1928,6 +2005,11 @@
     "stock_history": "Historique Stock",
     "stock_inventory": "Stock & Inventaire",
     "supplier_portal": "Portail Fournisseur",
+    "tables": "Tables",
+    "reservations": "Réservations",
+    "kitchen": "Cuisine",
+    "recipes": "Recettes",
+    "reports": "Rapports",
     "system": "Système",
     "system_history": "Historique Système"
   },

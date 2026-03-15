@@ -57,13 +57,13 @@ const PERIODS = [
     { label: '1an', value: 365 },
 ];
 
-const EXPENSE_CATEGORIES = [
-    { value: 'rent', label: 'Loyer' },
-    { value: 'salary', label: 'Salaires' },
-    { value: 'transport', label: 'Transport' },
-    { value: 'water', label: 'Eau / Électricité' },
-    { value: 'merchandise', label: 'Achat Marchandises' },
-    { value: 'other', label: 'Autres' },
+const EXPENSE_CATEGORY_KEYS = [
+    { value: 'rent', labelKey: 'accounting.cat_rent' },
+    { value: 'salary', labelKey: 'accounting.cat_salaries' },
+    { value: 'transport', labelKey: 'accounting.cat_transport' },
+    { value: 'water', labelKey: 'accounting.cat_utilities' },
+    { value: 'merchandise', labelKey: 'accounting.cat_purchases' },
+    { value: 'other', labelKey: 'accounting.cat_other' },
 ];
 
 export default function Accounting() {
@@ -326,7 +326,7 @@ export default function Accounting() {
     const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             {/* Header */}
             <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-10">
                 <div>
@@ -707,10 +707,10 @@ export default function Accounting() {
                                             className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                             Toutes catégories
                                         </button>
-                                        {EXPENSE_CATEGORIES.map(cat => (
+                                        {EXPENSE_CATEGORY_KEYS.map(cat => (
                                             <button key={cat.value} onClick={() => { setFilterExpenseCategory(cat.value); setIsExpenseFilterOpen(false); }}
                                                 className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat.value ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                                {cat.label}
+                                                {t(cat.labelKey)}
                                             </button>
                                         ))}
                                     </div>
@@ -730,7 +730,7 @@ export default function Accounting() {
                                             <div>
                                                 <h4 className="text-white font-bold text-sm">{exp.description || exp.category}</h4>
                                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
-                                                    {formatDate(exp.created_at)} · {EXPENSE_CATEGORIES.find(c => c.value === exp.category)?.label || exp.category}
+                                                    {formatDate(exp.created_at)} · {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
                                                 </p>
                                             </div>
                                         </div>
@@ -884,7 +884,7 @@ export default function Accounting() {
                                     Object.entries(stats.expenses_breakdown || {})
                                         .sort(([, a]: any, [, b]: any) => b - a)
                                         .map(([cat, amount]: [string, any]) => {
-                                            const label = EXPENSE_CATEGORIES.find(c => c.value === cat)?.label || cat;
+                                            const catObj = EXPENSE_CATEGORY_KEYS.find(c => c.value === cat); const label = catObj ? t(catObj.labelKey) : cat;
                                             const pct = (stats.expenses || 0) > 0 ? (amount / stats.expenses) * 100 : 0;
                                             return (
                                                 <div key={cat} className="p-3 bg-white/5 rounded-xl border border-white/5">
@@ -1053,8 +1053,8 @@ export default function Accounting() {
                                     value={newExpense.category}
                                     onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
                                 >
-                                    {EXPENSE_CATEGORIES.map(cat => (
-                                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                    {EXPENSE_CATEGORY_KEYS.map(cat => (
+                                        <option key={cat.value} value={cat.value}>{t(cat.labelKey)}</option>
                                     ))}
                                 </select>
                             </div>

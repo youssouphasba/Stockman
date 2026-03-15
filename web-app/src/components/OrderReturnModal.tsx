@@ -199,7 +199,7 @@ export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: 
                 <div>
                     <label className="text-[10px] font-black uppercase text-slate-500 block mb-2 px-1">Notes Additionnelles</label>
                     <textarea
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-primary/50 min-h-[100px] resize-none"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-primary/50 min-h-[80px] max-h-[150px] resize-none"
                         placeholder="Détails sur l'expédition, numéro de suivi..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}

@@ -239,7 +239,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     ];
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A] animate-in fade-in duration-700">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A] animate-in fade-in duration-700">
             <ScreenGuide guideKey="dashboard_tour" steps={dashboardSteps} />
             {error && data && (
                 <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -420,7 +420,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">Aucun service enregistre pour le moment.</div>
+                            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">{t('dashboard.restaurant_no_service')}</div>
                         )}
                     </div>
 
@@ -428,7 +428,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                     <div className="space-y-4">
                         {/* Top 5 plats */}
                         <div className="glass-card p-4">
-                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">Top plats du jour</h3>
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">{t('dashboard.restaurant_top_dishes')}</h3>
                             {restaurantStats.top_dishes?.length > 0 ? (
                                 <ul className="space-y-2">
                                     {restaurantStats.top_dishes.slice(0, 5).map((d: any, i: number) => (
@@ -439,29 +439,29 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-xs text-slate-500">Aucun plat encore vendu aujourd'hui.</p>
+                                <p className="text-xs text-slate-500">{t('dashboard.restaurant_no_dishes')}</p>
                             )}
                         </div>
 
                         {/* Prochaines réservations */}
                         <div className="glass-card p-4">
-                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">Réservations du jour</h3>
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">{t('dashboard.restaurant_reservations')}</h3>
                             {restaurantStats.today_reservations?.length > 0 ? (
                                 <ul className="space-y-2">
                                     {restaurantStats.today_reservations.map((r: any, i: number) => (
                                         <li key={i} className="flex justify-between items-center">
                                             <div>
                                                 <p className="text-sm text-white font-medium">{r.time} — {r.customer_name}</p>
-                                                <p className="text-xs text-slate-500">{r.covers} couverts{r.notes ? ` · ${r.notes}` : ''}</p>
+                                                <p className="text-xs text-slate-500">{t('dashboard.restaurant_covers', { count: r.covers })}{r.notes ? ` · ${r.notes}` : ''}</p>
                                             </div>
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === 'arrived' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                {r.status === 'arrived' ? 'Arrivé' : 'Confirmé'}
+                                                {r.status === 'arrived' ? t('dashboard.restaurant_arrived') : t('dashboard.restaurant_confirmed')}
                                             </span>
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-xs text-slate-500">Aucune reservation planifiee pour aujourd'hui.</p>
+                                <p className="text-xs text-slate-500">{t('dashboard.restaurant_no_reservations')}</p>
                             )}
                         </div>
                     </div>

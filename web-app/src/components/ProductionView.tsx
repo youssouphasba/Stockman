@@ -17,7 +17,7 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
             <div
-                className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto"
+                className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar"
                 onClick={e => e.stopPropagation()}
             >
                 {children}
@@ -117,7 +117,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             setRecipeName(''); setRecipeCategory(''); setOutputQty('1'); setOutputUnit('pièce'); setPrepTime('0'); setInstructions('');
             loadData();
         } catch (e: any) {
-            setError(e?.message || 'Erreur');
+            setError(e?.message || t('common.error'));
         } finally {
             setSubmitting(false);
         }
@@ -129,7 +129,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             await production.recipes.delete(recipe.recipe_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || 'Erreur');
+            alert(e?.message || t('common.error'));
         }
     };
 
@@ -144,7 +144,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             setBatchMultiplier('1'); setProduceNotes(''); setSelectedRecipe(null);
             loadData();
         } catch (e: any) {
-            setError(e?.message || 'Erreur');
+            setError(e?.message || t('common.error'));
         } finally {
             setSubmitting(false);
         }
@@ -155,7 +155,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             await production.orders.start(order.order_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || 'Erreur');
+            alert(e?.message || t('common.error'));
         }
     };
 
@@ -171,7 +171,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             setSelectedOrder(null); setActualOutput(''); setWasteQty('0');
             loadData();
         } catch (e: any) {
-            setError(e?.message || 'Erreur');
+            setError(e?.message || t('common.error'));
         } finally {
             setSubmitting(false);
         }
@@ -183,17 +183,17 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             await production.orders.cancel(order.order_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || 'Erreur');
+            alert(e?.message || t('common.error'));
         }
     };
 
     const marginColor = (pct: number) => pct > 50 ? 'text-emerald-400' : pct > 20 ? 'text-amber-400' : 'text-red-400';
 
-    const statusCfg: Record<string, { color: string; label: string }> = {
-        planned: { color: 'bg-blue-500/20 text-blue-400', label: 'Planifié' },
-        in_progress: { color: 'bg-amber-500/20 text-amber-400', label: 'En cours' },
-        completed: { color: 'bg-emerald-500/20 text-emerald-400', label: 'Terminé' },
-        cancelled: { color: 'bg-red-500/20 text-red-400', label: 'Annulé' },
+    const statusCfg: Record<string, { color: string; labelKey: string }> = {
+        planned: { color: 'bg-blue-500/20 text-blue-400', labelKey: 'production.status_planned' },
+        in_progress: { color: 'bg-amber-500/20 text-amber-400', labelKey: 'production.status_in_progress' },
+        completed: { color: 'bg-emerald-500/20 text-emerald-400', labelKey: 'production.status_completed' },
+        cancelled: { color: 'bg-red-500/20 text-red-400', labelKey: 'production.status_cancelled' },
     };
 
     const tabs: { key: SubTab; label: string; Icon: any }[] = [
@@ -346,7 +346,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-1">
                                             <p className="font-bold text-white">{order.recipe_name}</p>
-                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${sc.color}`}>{sc.label}</span>
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${sc.color}`}>{t(sc.labelKey)}</span>
                                         </div>
                                         <p className="text-xs text-slate-400">
                                             ×{order.batch_multiplier} → {order.planned_output} {order.output_unit} · Coût: {Math.round(order.total_material_cost).toLocaleString()}

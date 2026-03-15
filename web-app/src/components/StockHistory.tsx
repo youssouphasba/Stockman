@@ -107,7 +107,7 @@ export default function StockHistory() {
     };
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">

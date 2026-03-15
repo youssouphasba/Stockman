@@ -58,21 +58,21 @@ export default function ExpiryAlerts() {
     );
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <Calendar className="text-rose-500" size={32} />
-                        Alertes de Péremption
+                        {t('expiry.title')}
                     </h1>
-                    <p className="text-slate-400">Évitez les pertes en suivant les dates d'expiration de vos produits.</p>
+                    <p className="text-slate-400">{t('expiry.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                         <input
                             type="text"
-                            placeholder="Rechercher..."
+                            placeholder={t('common.search_placeholder')}
                             className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm outline-none focus:border-primary/50"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -90,8 +90,8 @@ export default function ExpiryAlerts() {
                     <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
                         <History className="text-emerald-500" size={40} />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Aucune alerte trouvée</h2>
-                    <p className="text-slate-400 max-w-sm mx-auto">Tous vos produits sont à jour et leur date d'expiration est éloignée.</p>
+                    <h2 className="text-2xl font-bold text-white mb-2">{t('expiry.no_alerts')}</h2>
+                    <p className="text-slate-400 max-w-sm mx-auto">{t('expiry.all_good')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,27 +101,27 @@ export default function ExpiryAlerts() {
                             <div key={i} className="glass-card p-6 flex flex-col border border-white/5 hover:border-rose-500/30 transition-all scroll-reveal">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(days)}`}>
-                                        {days < 0 ? 'PÉRIMÉ' : `${days} jours restants`}
+                                        {days < 0 ? t('expiry.expired') : t('expiry.days_remaining', { count: days })}
                                     </div>
                                     <button
                                         onClick={() => handleDeleteAlert(i)}
                                         className="text-slate-600 hover:text-rose-400 transition-colors p-1 rounded-lg hover:bg-rose-500/10"
-                                        title="Supprimer l'alerte"
+                                        title={t('expiry.delete_alert')}
                                     >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
 
                                 <h3 className="text-xl font-bold text-white mb-1">{alert.name}</h3>
-                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">Lot: {alert.lot_number || 'N/A'}</p>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">{t('expiry.lot')}: {alert.lot_number || 'N/A'}</p>
 
                                 <div className="space-y-3 mb-6">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Date d'expiration</span>
+                                        <span className="text-slate-400">{t('expiry.expiry_date')}</span>
                                         <span className="text-white font-bold">{new Date(alert.expiry_date).toLocaleDateString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Quantité en stock</span>
+                                        <span className="text-slate-400">{t('expiry.stock_quantity')}</span>
                                         <span className="text-rose-400 font-bold">{alert.quantity} {alert.unit}</span>
                                     </div>
                                 </div>
@@ -130,7 +130,7 @@ export default function ExpiryAlerts() {
                                     onClick={() => { setSelectedAlertForReturn(alert); setIsReturnModalOpen(true); }}
                                     className="w-full bg-white/5 hover:bg-rose-500/10 text-white py-3 rounded-xl border border-white/5 hover:border-rose-500/20 transition-all font-bold text-sm flex items-center justify-center gap-2"
                                 >
-                                    Gérer le retrait <ArrowRight size={16} />
+                                    {t('expiry.manage_withdrawal')} <ArrowRight size={16} />
                                 </button>
                             </div>
                         );

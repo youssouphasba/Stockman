@@ -549,7 +549,8 @@
     "common": {
         "add": "Add",
         "all": "All",
-        "back": "Retour",
+        "article": "Item",
+        "back": "Back",
         "call": "Call",
         "cancel": "Cancel",
         "categories": "Categories",
@@ -1702,9 +1703,16 @@
         "total_to_pay": "Total to pay",
         "received_amount": "Amount received",
         "change_to_render": "Change to give back",
+    "add_quantity_error": "Cannot add this quantity.",
+    "add_to_cart": "Add to cart",
+    "cmd_prefix": "CMD",
+    "recipe_linked": "Recipe linked",
+    "station_default": "dish",
     "unknown": "Unknown",
     "unknown_product_msg": "No product found with SKU: {{sku}}",
-    "unknown_product_title": "Unknown product"
+    "unknown_product_title": "Unknown product",
+    "update_line": "Update line",
+    "vat": "VAT"
   },
   "restaurant": {
     "menu_category": "Menu category",

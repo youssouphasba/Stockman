@@ -108,7 +108,7 @@ export default function AiChatPanel({ isOpen, onClose, currentUser, features }: 
             {isOpen && <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />}
 
             {/* Panel */}
-            <div className={`fixed right-0 top-0 h-screen w-full sm:w-[420px] z-50 flex flex-col bg-[#0F172A] border-l border-white/10 shadow-2xl transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`fixed right-0 top-0 h-[100dvh] w-full sm:w-[420px] z-50 flex flex-col bg-[#0F172A] border-l border-white/10 shadow-2xl transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Header */}
                 <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10 shrink-0">

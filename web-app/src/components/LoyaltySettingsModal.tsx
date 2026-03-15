@@ -114,7 +114,7 @@ export default function LoyaltySettingsModal({ isOpen, onClose }: LoyaltySetting
                     {/* Tiers Preview */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Niveaux de Fidélité (Automatique)</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                             {[
                                 { color: 'text-amber-700', icon: Shield, label: 'Bronze', min: '0 F' },
                                 { color: 'text-slate-400', icon: ShieldCheck, label: 'Argent', min: '100k F' },

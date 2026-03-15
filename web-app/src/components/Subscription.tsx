@@ -216,7 +216,7 @@ export default function Subscription() {
     });
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
             {error && (
                 <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 text-rose-500">

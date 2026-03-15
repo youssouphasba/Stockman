@@ -14,22 +14,22 @@ import { useDateFormatter } from '../hooks/useDateFormatter';
 type SubTab = 'dashboard' | 'projects' | 'devis' | 'journal' | 'sousTraitants' | 'planning' | 'materials' | 'situations';
 
 const CORPS_OPTIONS = [
-    { key: 'gros_oeuvre', label: 'Gros œuvre', icon: '🧱' },
-    { key: 'plomberie', label: 'Plomberie', icon: '🚿' },
-    { key: 'electricite', label: 'Électricité', icon: '⚡' },
-    { key: 'peinture', label: 'Peinture', icon: '🎨' },
-    { key: 'carrelage', label: 'Carrelage', icon: '🧱' },
-    { key: 'menuiserie', label: 'Menuiserie', icon: '🪑' },
-    { key: 'toiture', label: 'Toiture', icon: '🏠' },
-    { key: 'ferronnerie', label: 'Ferronnerie', icon: '⚒️' },
-    { key: 'etancheite', label: 'Étanchéité', icon: '💧' },
-    { key: 'autre', label: 'Autre', icon: '📦' },
+    { key: 'gros_oeuvre', labelKey: 'projects.corps_gros_oeuvre', icon: '🧱' },
+    { key: 'plomberie', labelKey: 'projects.corps_plomberie', icon: '🚿' },
+    { key: 'electricite', labelKey: 'projects.corps_electricite', icon: '⚡' },
+    { key: 'peinture', labelKey: 'projects.corps_peinture', icon: '🎨' },
+    { key: 'carrelage', labelKey: 'projects.corps_carrelage', icon: '🧱' },
+    { key: 'menuiserie', labelKey: 'projects.corps_menuiserie', icon: '🪑' },
+    { key: 'toiture', labelKey: 'projects.corps_toiture', icon: '🏠' },
+    { key: 'ferronnerie', labelKey: 'projects.corps_ferronnerie', icon: '⚒️' },
+    { key: 'etancheite', labelKey: 'projects.corps_etancheite', icon: '💧' },
+    { key: 'autre', labelKey: 'projects.corps_autre', icon: '📦' },
 ];
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
-            <div className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-6 max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-5">
                     <h2 className="text-lg font-black text-white">{title}</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
@@ -160,19 +160,19 @@ export default function ProjectView() {
             setShowNewProject(false);
             setNewName(''); setNewClient(''); setNewPhone(''); setNewAddress(''); setNewBudget(''); setNewDesc(''); setNewRetentionPercent('');
             loadData();
-        } catch (e: any) { setError(e?.message || 'Erreur'); }
+        } catch (e: any) { setError(e?.message || t('common.error')); }
         finally { setSubmitting(false); }
     };
 
     const handleStartProject = async (p: Project) => {
         try { await projects.update(p.project_id, { status: 'en_cours' }); loadData(); }
-        catch (e: any) { alert(e?.message || 'Erreur'); }
+        catch (e: any) { alert(e?.message || t('common.error')); }
     };
 
     const handleCompleteProject = async (p: Project) => {
         if (!confirm('Clôturer ce chantier ? Cette action est irréversible.')) return;
         try { await projects.complete(p.project_id); loadData(); }
-        catch (e: any) { alert(e?.message || 'Erreur'); }
+        catch (e: any) { alert(e?.message || t('common.error')); }
     };
 
     const handleAllocate = async () => {
@@ -185,7 +185,7 @@ export default function ProjectView() {
             setShowAllocate(false);
             setAllocProductId(''); setAllocQty(''); setAllocCorps('autre');
             loadData();
-        } catch (e: any) { setError(e?.message || 'Erreur'); }
+        } catch (e: any) { setError(e?.message || t('common.error')); }
         finally { setSubmitting(false); }
     };
 
@@ -200,7 +200,7 @@ export default function ProjectView() {
             setShowLabor(false);
             setLaborName(''); setLaborRole(''); setLaborDays(''); setLaborRate(''); setLaborCorps('autre');
             loadData();
-        } catch (e: any) { setError(e?.message || 'Erreur'); }
+        } catch (e: any) { setError(e?.message || t('common.error')); }
         finally { setSubmitting(false); }
     };
 
@@ -215,7 +215,7 @@ export default function ProjectView() {
             setShowSituation(false);
             setSitLabel(''); setSitPercent(''); setSitAmount(''); setSitNotes('');
             loadData();
-        } catch (e: any) { setError(e?.message || 'Erreur'); }
+        } catch (e: any) { setError(e?.message || t('common.error')); }
         finally { setSubmitting(false); }
     };
 
@@ -224,10 +224,10 @@ export default function ProjectView() {
         { key: 'projects', label: t('tabs.projects', 'Chantiers'), Icon: HardHat },
         { key: 'materials', label: t('projects.materials', 'Matériaux'), Icon: Truck },
         { key: 'situations', label: t('projects.situations', 'Factures'), Icon: FileText },
-        { key: 'devis', label: 'Devis', Icon: FileText },
-        { key: 'journal', label: 'Journal', Icon: BookOpen },
-        { key: 'sousTraitants', label: 'Sous-traitants', Icon: UserCheck },
-        { key: 'planning', label: 'Planning', Icon: Calendar },
+        { key: 'devis', label: t('projects.tab_quotes'), Icon: FileText },
+        { key: 'journal', label: t('projects.tab_journal'), Icon: BookOpen },
+        { key: 'sousTraitants', label: t('projects.tab_subcontractors'), Icon: UserCheck },
+        { key: 'planning', label: t('projects.tab_planning'), Icon: Calendar },
     ];
 
     if (loading) {
@@ -401,7 +401,7 @@ export default function ProjectView() {
                             <div key={i} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
                                 <div>
                                     <p className="font-semibold text-white text-sm">{m.name}</p>
-                                    <p className="text-xs text-slate-400">{m.projectName} · {CORPS_OPTIONS.find(c => c.key === m.corps_metier)?.label || m.corps_metier}</p>
+                                    <p className="text-xs text-slate-400">{m.projectName} · {t(CORPS_OPTIONS.find(c => c.key === m.corps_metier)?.labelKey || m.corps_metier)}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-white text-sm">{m.quantity} {m.unit}</p>
@@ -563,7 +563,7 @@ export default function ProjectView() {
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <div className="text-white font-bold">{sub.name}</div>
-                                            <div className="text-xs text-slate-400">{CORPS_OPTIONS.find(c => c.key === sub.corps_metier)?.label || sub.corps_metier}{sub.contact ? ` · ${sub.contact}` : ''}</div>
+                                            <div className="text-xs text-slate-400">{t(CORPS_OPTIONS.find(c => c.key === sub.corps_metier)?.labelKey || sub.corps_metier)}{sub.contact ? ` · ${sub.contact}` : ''}</div>
                                         </div>
                                         <button onClick={() => setShowPaySubModal(sub.sub_id)} className="btn-primary px-3 py-1.5 rounded-lg text-xs">Payer</button>
                                     </div>
@@ -600,7 +600,7 @@ export default function ProjectView() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <span className="text-white font-bold text-sm">{phase.name}</span>
-                                        <span className="text-xs text-slate-500">{CORPS_OPTIONS.find(c => c.key === phase.corps_metier)?.label || ''}</span>
+                                        <span className="text-xs text-slate-500">{t(CORPS_OPTIONS.find(c => c.key === phase.corps_metier)?.labelKey || '')}</span>
                                     </div>
                                     {(phase.start_date || phase.end_date) && (
                                         <div className="text-xs text-slate-400 mt-0.5">{phase.start_date || '?'} → {phase.end_date || '?'}</div>
@@ -690,7 +690,7 @@ export default function ProjectView() {
                             {CORPS_OPTIONS.map(c => (
                                 <button key={c.key} onClick={() => setAllocCorps(c.key)}
                                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${allocCorps === c.key ? 'bg-primary/20 border-primary text-white' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-                                    {c.icon} {c.label}
+                                    {c.icon} {t(c.labelKey)}
                                 </button>
                             ))}
                         </div>
@@ -729,7 +729,7 @@ export default function ProjectView() {
                             {CORPS_OPTIONS.map(c => (
                                 <button key={c.key} onClick={() => setLaborCorps(c.key)}
                                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${laborCorps === c.key ? 'bg-purple-500/20 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-                                    {c.icon} {c.label}
+                                    {c.icon} {t(c.labelKey)}
                                 </button>
                             ))}
                         </div>
@@ -830,7 +830,7 @@ export default function ProjectView() {
                     <Field label="Nom / Entreprise *"><input value={subForm.name} onChange={e => setSubForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Entreprise DIALLO..." /></Field>
                     <Field label="Corps de métier">
                         <select value={subForm.corps_metier} onChange={e => setSubForm(f => ({...f, corps_metier: e.target.value}))} className={input}>
-                            {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+                            {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {t(c.labelKey)}</option>)}
                         </select>
                     </Field>
                     <Field label="Contact"><input value={subForm.contact} onChange={e => setSubForm(f => ({...f, contact: e.target.value}))} className={input} placeholder="+221 77..." /></Field>
@@ -872,7 +872,7 @@ export default function ProjectView() {
                     <Field label="Nom de la phase *"><input value={phaseForm.name} onChange={e => setPhaseForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Fondations, Gros œuvre..." /></Field>
                     <Field label="Corps de métier">
                         <select value={phaseForm.corps_metier} onChange={e => setPhaseForm(f => ({...f, corps_metier: e.target.value}))} className={input}>
-                            {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+                            {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {t(c.labelKey)}</option>)}
                         </select>
                     </Field>
                     <div className="grid grid-cols-2 gap-3">

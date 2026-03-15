@@ -452,7 +452,7 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             <header className="flex justify-between items-center mb-10">

@@ -85,8 +85,8 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                 ) : (
                     <div className="space-y-8">
                         {tab === 'stock' ? (
-                            <div className="glass-card p-6 h-[400px]">
-                                <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                            <div className="glass-card p-4 md:p-6 h-[280px] md:h-[400px]">
+                                <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2">
                                     <Package size={18} className="text-primary" />
                                     Mouvements de stock (30j)
                                 </h3>
@@ -118,8 +118,8 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                 </ResponsiveContainer>
                             </div>
                         ) : (
-                            <div className="glass-card p-6 h-[400px]">
-                                <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                            <div className="glass-card p-4 md:p-6 h-[280px] md:h-[400px]">
+                                <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2">
                                     <DollarSign size={18} className="text-emerald-500" />
                                     Historique des prix
                                 </h3>

@@ -145,8 +145,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
     }
 
     return (
-        <>
-        <div className="p-6 space-y-6 max-w-6xl mx-auto">
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar space-y-6 max-w-6xl mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-white flex items-center gap-2">
@@ -363,16 +362,16 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                     </div>
                 </div>
             )}
+
+            <AnalyticsKpiDetailsModal
+                open={detailOpen}
+                detail={detail}
+                loading={detailLoading}
+                onClose={() => {
+                    setDetailOpen(false);
+                    setDetail(null);
+                }}
+            />
         </div>
-        <AnalyticsKpiDetailsModal
-            open={detailOpen}
-            detail={detail}
-            loading={detailLoading}
-            onClose={() => {
-                setDetailOpen(false);
-                setDetail(null);
-            }}
-        />
-        </>
     );
 }

@@ -71,7 +71,7 @@ export default function AbcAnalysis() {
     ] as const;
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <header className="mb-10">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <BarChart3 className="text-primary" size={32} />

@@ -227,7 +227,7 @@ export default function Alerts() {
     const unreadCount = alerts.filter((alert) => !alert.is_read).length;
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
             <header className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('alerts.title') || 'Centre de notifications'}</h1>

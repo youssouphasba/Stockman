@@ -126,13 +126,13 @@ export default function Sidebar({
         // ── RESTAURANT ──────────────────────────────────────────
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
-        { id: 'pos', icon: ShoppingCart, label: 'Caisse', roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
-        { id: 'tables', icon: UtensilsCrossed, label: 'Tables', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'reservations', icon: CalendarCheck, label: 'Réservations', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'kitchen', icon: ChefHat, label: 'Cuisine', roles: ['shopkeeper', 'staff', 'admin'] },
-        { id: 'production', icon: Factory, label: 'Recettes', roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
+        { id: 'tables', icon: UtensilsCrossed, label: t('sidebar.tables'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'reservations', icon: CalendarCheck, label: t('sidebar.reservations'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'kitchen', icon: ChefHat, label: t('sidebar.kitchen'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'production', icon: Factory, label: t('sidebar.recipes'), roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
-        { id: 'reports', icon: FileText, label: 'Rapports', roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
+        { id: 'reports', icon: FileText, label: t('sidebar.reports'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
             id: 'system_group', icon: Clock, label: t('sidebar.system'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true,
@@ -175,7 +175,7 @@ export default function Sidebar({
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
-        { id: 'reports', icon: FileText, label: 'Rapports', roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
+        { id: 'reports', icon: FileText, label: t('sidebar.reports'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         {
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [

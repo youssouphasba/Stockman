@@ -227,7 +227,7 @@ export default function GrandLivreModal({ isOpen, onClose, period, startDate, en
                             <p className="text-sm">Aucune écriture trouvée</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto max-h-[360px] overflow-y-auto custom-scrollbar">
+                        <div className="overflow-x-auto max-h-[40vh] md:max-h-[360px] overflow-y-auto custom-scrollbar">
                             <table className="w-full text-xs">
                                 <thead className="sticky top-0 bg-[#0F172A] border-b border-white/10 z-10">
                                     <tr>

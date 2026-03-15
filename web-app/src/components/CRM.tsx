@@ -321,7 +321,7 @@ export default function CRM({ user }: CRMProps) {
     })();
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
             <header className="flex flex-wrap justify-between items-start gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('crm.title') || 'Gestion Clients (CRM)'}</h1>

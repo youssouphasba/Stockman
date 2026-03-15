@@ -116,7 +116,7 @@ export default function CampaignModal({ isOpen, onClose }: CampaignModalProps) {
 
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Aperçu de la Cible</label>
-                    <div className="max-h-40 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                    <div className="max-h-48 md:max-h-56 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                         {loading ? (
                             <div className="flex justify-center py-4">
                                 <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>

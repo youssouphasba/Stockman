@@ -45,7 +45,7 @@ export default function InventoryCounting() {
     };
 
     const handleSubmitCount = async (taskId: string, expected: number) => {
-        const count = prompt(`Entrez la quantité réelle comptée (Attendu: ${expected}) :`, expected.toString());
+        const count = prompt(t('inventory_counting.enter_count', { expected }), expected.toString());
         if (count === null || isNaN(parseInt(count))) return;
 
         setSubmitting(taskId);
@@ -60,40 +60,40 @@ export default function InventoryCounting() {
     };
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <ClipboardCheck className="text-primary" size={32} />
-                        Inventaire Tournant
+                        {t('inventory_counting.title')}
                     </h1>
-                    <p className="text-slate-400">Contrôles aléatoires pour garantir l'exactitude de vos stocks.</p>
+                    <p className="text-slate-400">{t('inventory_counting.subtitle')}</p>
                 </div>
                 <button
                     onClick={handleGenerate}
                     className="btn-primary flex items-center gap-2 px-6 py-3 shadow-lg shadow-primary/20"
                 >
-                    <RefreshCw size={18} /> Générer les tâches du jour
+                    <RefreshCw size={18} /> {t('inventory_counting.generate_tasks')}
                 </button>
             </header>
 
             {loading && tasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Analyse des stocks...</p>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('inventory_counting.analyzing')}</p>
                 </div>
             ) : tasks.length === 0 ? (
                 <div className="glass-card p-12 text-center flex flex-col items-center">
                     <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
                         <CheckCircle2 className="text-emerald-500" size={40} />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Tout est à jour !</h2>
-                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">Toutes les tâches d'inventaire ont été complétées. Revenez demain ou générez de nouvelles tâches.</p>
+                    <h2 className="text-2xl font-bold text-white mb-2">{t('inventory_counting.all_done')}</h2>
+                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">{t('inventory_counting.all_done_desc')}</p>
                     <button
                         onClick={handleGenerate}
                         className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-xl border border-white/10 transition-all font-bold"
                     >
-                        Relancer un cycle
+                        {t('inventory_counting.restart_cycle')}
                     </button>
                 </div>
             ) : (
@@ -106,16 +106,16 @@ export default function InventoryCounting() {
                                         <Box size={24} />
                                     </div>
                                     <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/20">
-                                        En attente
+                                        {t('inventory_counting.pending')}
                                     </span>
                                 </div>
 
                                 <h3 className="text-xl font-bold text-white mb-1 truncate">{task.product_name}</h3>
-                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">{task.category || 'Général'}</p>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-6">{task.category || t('common.general')}</p>
 
                                 <div className="bg-white/5 rounded-2xl p-4 mb-6 flex justify-between items-center border border-white/5">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Quantité Théorique</span>
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('inventory_counting.expected_qty')}</span>
                                         <span className="text-2xl font-black text-white">{task.expected_quantity}</span>
                                     </div>
                                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
@@ -132,7 +132,7 @@ export default function InventoryCounting() {
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                     ) : (
                                         <>
-                                            <ClipboardCheck size={18} /> Saisir le comptage
+                                            <ClipboardCheck size={18} /> {t('inventory_counting.submit_count')}
                                         </>
                                     )}
                                 </button>

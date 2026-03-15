@@ -160,9 +160,9 @@ export default function ChatModal({ isOpen, onClose, partnerId, partnerName, cur
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-end p-6">
+        <div className="fixed inset-0 z-[100] flex items-end justify-end p-2 sm:p-6">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 glass-card w-[420px] h-[600px] flex flex-col rounded-2xl overflow-hidden border-primary/20 shadow-2xl shadow-primary/10">
+            <div className="relative z-10 glass-card w-full sm:w-[420px] h-[80vh] sm:h-[600px] max-h-[600px] flex flex-col rounded-2xl overflow-hidden border-primary/20 shadow-2xl shadow-primary/10">
 
                 {/* Header */}
                 <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-white/5 shrink-0">

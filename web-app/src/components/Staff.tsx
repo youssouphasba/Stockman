@@ -27,25 +27,25 @@ import { subUsers as subUsersApi, stores as storesApi } from '../services/api';
 import type { PermissionLevel, UserPermissions, StorePermissions } from '../services/api';
 import Modal from './Modal';
 
-const MODULE_LABELS: Record<string, string> = {
-    pos: '🧾 Ventes (POS)',
-    stock: '📦 Stock',
-    accounting: '💼 Comptabilité',
-    crm: '👥 Clients (CRM)',
-    suppliers: '🚚 Fournisseurs',
-    staff: '🏪 Gestion équipe',
+const MODULE_LABEL_KEYS: Record<string, string> = {
+    pos: 'staff.module_pos',
+    stock: 'staff.module_stock',
+    accounting: 'staff.module_accounting',
+    crm: 'staff.module_crm',
+    suppliers: 'staff.module_suppliers',
+    staff: 'staff.module_team',
 };
 
 type StaffPermissions = Record<keyof UserPermissions, PermissionLevel>;
 
 type AccountRole = 'billing_admin' | 'org_admin';
 
-const ROLE_TEMPLATES: Record<string, { label: string; permissions: StaffPermissions }> = {
-    cashier: { label: '🧾 Caissier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
-    stock_manager: { label: '📦 Stock', permissions: { pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
-    accountant: { label: '💼 Comptable', permissions: { pos: 'read', stock: 'read', accounting: 'write', crm: 'none', suppliers: 'read', staff: 'none' } },
-    manager: { label: '🏪 Manager', permissions: { pos: 'write', stock: 'write', accounting: 'read', crm: 'write', suppliers: 'write', staff: 'write' } },
-    crm_agent: { label: '👥 CRM / Clients', permissions: { pos: 'read', stock: 'none', accounting: 'none', crm: 'write', suppliers: 'none', staff: 'none' } },
+const ROLE_TEMPLATE_KEYS: Record<string, { labelKey: string; permissions: StaffPermissions }> = {
+    cashier: { labelKey: 'staff.role_cashier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
+    stock_manager: { labelKey: 'staff.role_stock', permissions: { pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
+    accountant: { labelKey: 'staff.role_accountant', permissions: { pos: 'read', stock: 'read', accounting: 'write', crm: 'none', suppliers: 'read', staff: 'none' } },
+    manager: { labelKey: 'staff.role_manager', permissions: { pos: 'write', stock: 'write', accounting: 'read', crm: 'write', suppliers: 'write', staff: 'write' } },
+    crm_agent: { labelKey: 'staff.role_crm', permissions: { pos: 'read', stock: 'none', accounting: 'none', crm: 'write', suppliers: 'none', staff: 'none' } },
 };
 
 export default function Staff() {
@@ -304,7 +304,7 @@ export default function Staff() {
     );
 
     return (
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
             {error && (
                 <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 text-rose-500">
@@ -448,14 +448,14 @@ export default function Staff() {
 
                         {/* Role Templates */}
                         <div className="flex flex-wrap gap-2">
-                            {Object.entries(ROLE_TEMPLATES).map(([key, tpl]) => (
+                            {Object.entries(ROLE_TEMPLATE_KEYS).map(([key, tpl]) => (
                                 <button
                                     key={key}
                                     type="button"
                                     onClick={() => setForm(f => ({ ...f, permissions: tpl.permissions }))}
                                     className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:border-primary/50 hover:text-primary hover:bg-primary/10 transition-all"
                                 >
-                                    {tpl.label}
+                                    {t(tpl.labelKey)}
                                 </button>
                             ))}
                         </div>
@@ -463,7 +463,7 @@ export default function Staff() {
                         <div className="space-y-2">
                             {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
                                 <div key={mod} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
-                                    <span className="text-slate-200 font-medium">{MODULE_LABELS[mod] || mod}</span>
+                                    <span className="text-slate-200 font-medium">{t(MODULE_LABEL_KEYS[mod] || mod)}</span>
                                     <button
                                         type="button"
                                         onClick={() => togglePermission(mod)}
@@ -518,7 +518,7 @@ export default function Staff() {
                                             <div className="space-y-2 mt-4">
                                                 {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
                                                     <div key={`${storeId}-${mod}`} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
-                                                        <span className="text-slate-200 font-medium">{MODULE_LABELS[mod] || mod}</span>
+                                                        <span className="text-slate-200 font-medium">{t(MODULE_LABEL_KEYS[mod] || mod)}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleStorePermission(storeId, mod)}
