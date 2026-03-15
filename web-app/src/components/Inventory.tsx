@@ -64,6 +64,7 @@ export default function Inventory() {
     const [locationsList, setLocationsList] = useState<any[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
 
     // Modal & Form State
@@ -162,22 +163,49 @@ export default function Inventory() {
 
     const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
+        setError(null);
         try {
-            const [prodsRes, catsRes, locsRes] = await Promise.all([
-                productsApi.list(undefined, 0, 500, locationFilter || selectedLocation || undefined),
+            const resolvedLocation = locationFilter !== undefined
+                ? (locationFilter || undefined)
+                : (selectedLocation || undefined);
+            const offlineLocationKey = locationFilter !== undefined ? locationFilter : selectedLocation;
+            let partialError = false;
+            const [prodsRes, catsRes, locsRes] = await Promise.allSettled([
+                productsApi.list(undefined, 0, 500, resolvedLocation),
                 categoriesApi.list(),
                 locationsApi.list()
             ]);
+
+            if (prodsRes.status !== 'fulfilled') {
+                throw prodsRes.reason;
+            }
+
             const merged = mergeInventoryOfflineState(
-                prodsRes.items || prodsRes,
-                locationFilter || selectedLocation || '',
+                prodsRes.value.items || prodsRes.value,
+                offlineLocationKey || '',
             );
             setProducts(merged.products);
-            setCategoriesList(catsRes);
-            setLocationsList(locsRes);
             setPendingInventorySummary(merged.summary);
+
+            if (catsRes.status === 'fulfilled') {
+                setCategoriesList(catsRes.value);
+            } else {
+                partialError = true;
+                console.warn('Inventory categories unavailable', catsRes.reason);
+            }
+
+            if (locsRes.status === 'fulfilled') {
+                setLocationsList(locsRes.value);
+            } else {
+                partialError = true;
+                console.warn('Inventory locations unavailable', locsRes.reason);
+            }
+            if (partialError) {
+                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines données annexes du stock sont temporairement indisponibles.' }));
+            }
         } catch (err) {
             console.error('Error fetching inventory data', err);
+            setError(t('inventory.load_error', { defaultValue: 'Impossible de charger les produits pour le moment.' }));
             setPendingInventorySummary(getPendingInventorySummary());
         } finally {
             setLoading(false);
@@ -197,13 +225,18 @@ export default function Inventory() {
     };
 
     useEffect(() => {
-        fetchProducts();
-        loadStockHealth();
-        Promise.all([storesApi.list(), auth.me(), userFeaturesApi.get()])
+        void fetchProducts();
+        void loadStockHealth();
+        Promise.allSettled([storesApi.list(), auth.me(), userFeaturesApi.get()])
             .then(([storesRes, userRes, featuresRes]) => {
-                setStoreList(storesRes || []);
-                setCurrentUser(userRes);
-                setCurrentFeatures(featuresRes);
+                if (storesRes.status === 'fulfilled') setStoreList(storesRes.value || []);
+                else console.warn('Stores unavailable for inventory', storesRes.reason);
+
+                if (userRes.status === 'fulfilled') setCurrentUser(userRes.value);
+                else console.warn('Current user unavailable for inventory', userRes.reason);
+
+                if (featuresRes.status === 'fulfilled') setCurrentFeatures(featuresRes.value);
+                else console.warn('User features unavailable for inventory', featuresRes.reason);
             }).catch(() => {});
     }, []);
 
@@ -445,10 +478,30 @@ export default function Inventory() {
         p.sku?.toLowerCase().includes(search.toLowerCase())
     );
 
-    if (loading && products.length === 0) {
+    if (loading && products.length === 0 && !error) {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    if (error && products.length === 0) {
+        return (
+            <div className="flex-1 flex items-center justify-center px-6">
+                <div className="glass-card max-w-md w-full p-8 text-center border border-rose-500/20">
+                    <AlertCircle size={28} className="mx-auto mb-4 text-rose-400" />
+                    <h2 className="text-xl font-black text-white mb-2">
+                        {t('inventory.load_error_title', { defaultValue: 'Chargement impossible' })}
+                    </h2>
+                    <p className="text-sm text-slate-400 leading-6 mb-6">{error}</p>
+                    <button
+                        onClick={() => void fetchProducts()}
+                        className="btn-primary px-6 py-3"
+                    >
+                        {t('common.retry', { defaultValue: 'Réessayer' })}
+                    </button>
+                </div>
             </div>
         );
     }
@@ -459,6 +512,18 @@ export default function Inventory() {
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
                     <p className="text-slate-400">{t('catalog.product_count', { count: filteredProducts.length })}</p>
+                    {error && (
+                        <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
+                            <AlertCircle size={14} />
+                            <span>{error}</span>
+                            <button
+                                onClick={() => void fetchProducts()}
+                                className="rounded-full border border-amber-400/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-100 hover:bg-amber-500/10"
+                            >
+                                {t('common.retry', { defaultValue: 'RÃ©essayer' })}
+                            </button>
+                        </div>
+                    )}
                     <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                         Création disponible : manuel, texte IA, import CSV et catalogue métier
                     </p>

@@ -11,6 +11,7 @@ import OfflineBanner from '../components/OfflineBanner';
 import { SyncProvider, useSync } from '../contexts/SyncContext';
 import { syncService } from '../services/sync';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../services/i18n';
 
@@ -20,8 +21,9 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Immersive mode for Android
+  // Immersive mode for Android + unlock rotation
   useEffect(() => {
+    ScreenOrientation.unlockAsync();
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
       NavigationBar.setBehaviorAsync('inset-swipe' as any);

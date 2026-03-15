@@ -30,33 +30,33 @@ type RuleScope = 'account' | 'store';
 type ContactGroupKey = 'default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing';
 type SeverityLevel = 'info' | 'warning' | 'critical';
 
-const RULE_TEMPLATES: Record<string, { label: string; description: string; hasThreshold: boolean; defaultThreshold?: number; defaultRecipients: ContactGroupKey[]; defaultChannels: ('in_app' | 'push' | 'email')[]; defaultSeverity: SeverityLevel | null }> = {
-  low_stock: { label: 'Stock bas', description: 'Alerte quand un produit passe sous son stock minimum.', hasThreshold: true, defaultThreshold: 20, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push'], defaultSeverity: 'warning' },
-  out_of_stock: { label: 'Rupture de stock', description: 'Alerte immediate lorsqu un produit tombe a zero.', hasThreshold: false, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'critical' },
-  overstock: { label: 'Surstock', description: 'Signale les produits surstockes pour mieux piloter les achats.', hasThreshold: true, defaultThreshold: 80, defaultRecipients: ['stock'], defaultChannels: ['in_app'], defaultSeverity: 'info' },
-  slow_moving: { label: 'Produits dormants', description: 'Alerte sur les references qui ne tournent plus.', hasThreshold: false, defaultRecipients: ['stock'], defaultChannels: ['in_app', 'email'], defaultSeverity: 'info' },
-  late_delivery: { label: 'Retards fournisseurs', description: 'Previent quand une commande n est pas livree a la date attendue.', hasThreshold: false, defaultRecipients: ['default', 'procurement'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'warning' },
+const RULE_TEMPLATES: Record<string, { labelKey: string; descriptionKey: string; hasThreshold: boolean; defaultThreshold?: number; defaultRecipients: ContactGroupKey[]; defaultChannels: ('in_app' | 'push' | 'email')[]; defaultSeverity: SeverityLevel | null }> = {
+  low_stock: { labelKey: 'alerts.rule_low_stock', descriptionKey: 'alerts.config.low_stock.desc', hasThreshold: true, defaultThreshold: 20, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push'], defaultSeverity: 'warning' },
+  out_of_stock: { labelKey: 'alerts.rule_out_of_stock', descriptionKey: 'alerts.config.out_of_stock.desc', hasThreshold: false, defaultRecipients: ['default', 'stock'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'critical' },
+  overstock: { labelKey: 'alerts.rule_overstock', descriptionKey: 'alerts.config.overstock.desc', hasThreshold: true, defaultThreshold: 80, defaultRecipients: ['stock'], defaultChannels: ['in_app'], defaultSeverity: 'info' },
+  slow_moving: { labelKey: 'alerts.rule_dormant', descriptionKey: 'alerts.config.slow_moving.desc', hasThreshold: false, defaultRecipients: ['stock'], defaultChannels: ['in_app', 'email'], defaultSeverity: 'info' },
+  late_delivery: { labelKey: 'alerts.rule_supplier_delay', descriptionKey: 'alerts.config.late_delivery.desc', hasThreshold: false, defaultRecipients: ['default', 'procurement'], defaultChannels: ['in_app', 'push', 'email'], defaultSeverity: 'warning' },
 };
 
-const CONTACT_GROUPS: { key: ContactGroupKey; label: string }[] = [
-  { key: 'default', label: 'Par defaut' },
-  { key: 'stock', label: 'Stock' },
-  { key: 'procurement', label: 'Appro' },
-  { key: 'finance', label: 'Finance' },
-  { key: 'crm', label: 'CRM' },
-  { key: 'operations', label: 'Operations' },
-  { key: 'billing', label: 'Facturation' },
+const CONTACT_GROUPS: { key: ContactGroupKey; labelKey: string }[] = [
+  { key: 'default', labelKey: 'alerts.group_default' },
+  { key: 'stock', labelKey: 'alerts.group_stock' },
+  { key: 'procurement', labelKey: 'alerts.group_supply' },
+  { key: 'finance', labelKey: 'alerts.group_finance' },
+  { key: 'crm', labelKey: 'alerts.group_crm' },
+  { key: 'operations', labelKey: 'alerts.group_operations' },
+  { key: 'billing', labelKey: 'alerts.group_billing' },
 ];
 
-const SEVERITY_OPTIONS: { value: SeverityLevel; label: string }[] = [
-  { value: 'info', label: 'Info' },
-  { value: 'warning', label: 'Alerte' },
-  { value: 'critical', label: 'Critique' },
+const SEVERITY_OPTIONS: { value: SeverityLevel; labelKey: string }[] = [
+  { value: 'info', labelKey: 'alerts.severity_info' },
+  { value: 'warning', labelKey: 'alerts.severity_warning' },
+  { value: 'critical', labelKey: 'alerts.severity_critical' },
 ];
 
-const CHANNEL_OPTIONS: { value: 'push' | 'email'; label: string }[] = [
-  { value: 'push', label: 'Push' },
-  { value: 'email', label: 'Email' },
+const CHANNEL_OPTIONS: { value: 'push' | 'email'; labelKey: string }[] = [
+  { value: 'push', labelKey: 'alerts.channel_push' },
+  { value: 'email', labelKey: 'alerts.channel_email' },
 ];
 
 function buildRuleKey(type: string, scope: RuleScope, storeId?: string | null) {
@@ -490,8 +490,8 @@ export default function AlertsScreen() {
                       <View key={currentKey} style={styles.ruleCard}>
                         <View style={styles.ruleHeader}>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.ruleTitle}>{config?.label || rule.type}</Text>
-                            <Text style={styles.ruleDesc}>{config?.description || ''}</Text>
+                            <Text style={styles.ruleTitle}>{config ? t(config.labelKey) : rule.type}</Text>
+                            <Text style={styles.ruleDesc}>{config ? t(config.descriptionKey) : ''}</Text>
                           </View>
                           <Switch
                             value={rule.enabled}
@@ -539,7 +539,7 @@ export default function AlertsScreen() {
                                   size={12}
                                   color={enabled ? colors.primaryLight : colors.textMuted}
                                 />
-                                <Text style={[styles.channelText, !enabled && { color: colors.textMuted }]}>{channel.label}</Text>
+                                <Text style={[styles.channelText, !enabled && { color: colors.textMuted }]}>{t(channel.labelKey)}</Text>
                               </TouchableOpacity>
                             );
                           })}
@@ -561,7 +561,7 @@ export default function AlertsScreen() {
                                       : [...(current.recipient_keys || []), group.key],
                                   }))}
                                 >
-                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{group.label}</Text>
+                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{t(group.labelKey)}</Text>
                                 </TouchableOpacity>
                               );
                             })}
@@ -595,7 +595,7 @@ export default function AlertsScreen() {
                                   style={[styles.scopeChip, enabled && styles.scopeChipActive]}
                                   onPress={() => updateDraft(rule, (current) => ({ ...current, minimum_severity: enabled ? null : severity.value }))}
                                 >
-                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{severity.label}</Text>
+                                  <Text style={[styles.scopeChipText, enabled && styles.scopeChipTextActive]}>{t(severity.labelKey)}</Text>
                                 </TouchableOpacity>
                               );
                             })}

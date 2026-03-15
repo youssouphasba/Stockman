@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect, Link, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
 import { settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';

@@ -337,10 +337,24 @@
             "slow_moving": {
                 "label": "Produit dormant",
                 "desc": "Alerte quand un produit n'a pas bougé depuis 30 jours"
+            },
+            "late_delivery": {
+                "label": "Retard fournisseur",
+                "desc": "Alerte quand une livraison fournisseur est en retard"
             }
         },
+        "channel_email": "Email",
+        "channel_push": "Push",
         "detect_anomalies": "Détection d'anomalies IA",
         "dismiss": "Ignorer",
+        "group_billing": "Facturation",
+        "group_crm": "CRM",
+        "group_default": "Par défaut",
+        "group_finance": "Finance",
+        "group_operations": "Opérations",
+        "group_stock": "Stock",
+        "group_supply": "Approvisionnement",
+        "rule_supplier_delay": "Retards fournisseurs",
         "error_anomaly": "Impossible d'analyser les anomalies",
         "error_rule_update": "Impossible de modifier la règle",
         "error_threshold_update": "Impossible de modifier le seuil",

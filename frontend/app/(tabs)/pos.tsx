@@ -353,13 +353,13 @@ export default function POSScreen() {
                             measurement_type: item.measurement_type ?? prod.measurement_type,
                         } : {
                             product_id: item.product_id,
-                            name: item.product_name || 'Article',
+                            name: item.product_name || t('common.article'),
                             selling_price: itemPrice,
                             tax_rate: item.tax_rate,
                             quantity: item.quantity ?? 0,
                             pricing_unit: item.pricing_unit,
                             measurement_type: item.measurement_type,
-                            unit: 'Pièce',
+                            unit: t('products.default_unit'),
                             purchase_price: 0,
                             min_stock: 0,
                             max_stock: 0,
@@ -393,7 +393,7 @@ export default function POSScreen() {
 
         const inputQty = parseFloat(String(weightedQuantityInput).replace(',', '.'));
         if (!inputQty || inputQty <= 0) {
-            Alert.alert(t('common.error'), 'Saisissez une quantité valide.');
+            Alert.alert(t('common.error'), t('products.invalid_quantity'));
             return;
         }
 
@@ -622,7 +622,7 @@ export default function POSScreen() {
         const base = taxSummary.taxableBase;
         return base + calculateTipAmount() + calculateServiceCharge();
     };
-    const taxLabel = taxSummary.ratesUsed.length === 1 ? `TVA (${taxSummary.ratesUsed[0]}%)` : 'TVA';
+    const taxLabel = taxSummary.ratesUsed.length === 1 ? `${t('pos.vat')} (${taxSummary.ratesUsed[0]}%)` : t('pos.vat');
 
     const processCheckout = async (method: string) => {
         if (openOrderId && cart.some(item => !item.persisted)) {
@@ -1163,7 +1163,7 @@ export default function POSScreen() {
                                             <Text style={styles.stockText}>
                                                 {requiresFinishedStock(product)
                                                     ? formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)
-                                                    : 'CMD'}
+                                                    : t('pos.cmd_prefix')}
                                             </Text>
                                         </View>
                                         <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
@@ -1175,7 +1175,7 @@ export default function POSScreen() {
                                                     </Text>
                                                 </View>
                                                 <Text style={styles.productMetaText} numberOfLines={1}>
-                                                    {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ' · Recette liee' : ''}
+                                                    {product.kitchen_station || t('pos.station_default')}{product.linked_recipe_id ? ` · ${t('pos.recipe_linked')}` : ''}
                                                 </Text>
                                             </>
                                         )}
@@ -1280,7 +1280,7 @@ export default function POSScreen() {
                                                             </Text>
                                                         </View>
                                                         <Text style={styles.cartMetaText}>
-                                                            {item.product.kitchen_station || 'plat'}{item.product.linked_recipe_id ? ' · recette' : ''}
+                                                            {item.product.kitchen_station || t('pos.station_default')}{item.product.linked_recipe_id ? ` · ${t('pos.recipe_linked')}` : ''}
                                                         </Text>
                                                     </View>
                                                 )}
@@ -1450,7 +1450,7 @@ export default function POSScreen() {
 
                                 <TouchableOpacity style={styles.createBtn} onPress={confirmWeightedSelection}>
                                     <Text style={styles.createBtnText}>
-                                        {weightedEditingCartKey ? 'Mettre a jour la ligne' : 'Ajouter au panier'}
+                                        {weightedEditingCartKey ? t('pos.update_line') : t('pos.add_to_cart')}
                                     </Text>
                                 </TouchableOpacity>
                             </>

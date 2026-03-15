@@ -55,6 +55,8 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [stats, setStats] = useState<any>(null);
     const [forecast, setForecast] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
     const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
     const [period, setPeriod] = useState<number>(30); // Default 30 days
     const [aiSummary, setAiSummary] = useState<string>('');
@@ -79,18 +81,47 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     useEffect(() => {
         async function fetchDashboard() {
             setLoading(true);
+            setError(null);
             let dashboardRes: any = null;
+            let partialError = false;
             try {
                 // Données essentielles en priorité
-                const promises: Promise<any>[] = [dashboardApi.get(), statsApi.get(period)];
-                if (isRestaurant) promises.push(restaurantApi.stats());
-                const [res, statsRes, restStats] = await Promise.all(promises);
-                dashboardRes = res;
-                setData(res);
-                setStats(statsRes);
-                if (restStats) setRestaurantStats(restStats);
+                const [dashboardResult, statsResult, restaurantResult] = await Promise.allSettled([
+                    dashboardApi.get(),
+                    statsApi.get(period),
+                    isRestaurant ? restaurantApi.stats() : Promise.resolve(null),
+                ]);
+                if (dashboardResult.status !== 'fulfilled') {
+                    throw dashboardResult.reason;
+                }
+                dashboardRes = dashboardResult.value;
+                setData(dashboardRes);
+
+                if (statsResult.status === 'fulfilled') {
+                    setStats(statsResult.value);
+                } else {
+                    setStats(null);
+                    partialError = true;
+                    console.warn('Dashboard stats unavailable', statsResult.reason);
+                }
+
+                if (isRestaurant) {
+                    if (restaurantResult.status === 'fulfilled') {
+                        setRestaurantStats(restaurantResult.value);
+                    } else {
+                        setRestaurantStats(null);
+                        partialError = true;
+                        console.warn('Restaurant dashboard stats unavailable', restaurantResult.reason);
+                    }
+                } else {
+                    setRestaurantStats(null);
+                }
+                if (partialError) {
+                    setError(t('dashboard.partial_load_error', { defaultValue: 'Certaines données secondaires du tableau de bord sont temporairement indisponibles.' }));
+                }
             } catch (err) {
                 console.error('Error fetching dashboard', err);
+                setError(t('dashboard.load_error', { defaultValue: 'Impossible de charger le tableau de bord pour le moment.' }));
                 return;
             } finally {
                 setLoading(false);
@@ -109,8 +140,8 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                 if (anomaliesRes.status === 'fulfilled') setAnomalies(anomaliesRes.value.anomalies || []);
             });
         }
-        fetchDashboard();
-    }, [period, i18n.language]);
+        void fetchDashboard();
+    }, [period, i18n.language, isRestaurant, reloadKey]);
 
     // Close settings panel on outside click
     useEffect(() => {
@@ -123,10 +154,30 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
         return () => document.removeEventListener('mousedown', handler);
     }, [isSettingsOpen]);
 
-    if (loading && !data) {
+    if (loading && !data && !error) {
         return (
             <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    if (error && !data) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-[#0F172A] px-6">
+                <div className="glass-card max-w-md w-full p-8 text-center border border-rose-500/20">
+                    <AlertCircle size={28} className="mx-auto mb-4 text-rose-400" />
+                    <h2 className="text-xl font-black text-white mb-2">
+                        {t('dashboard.load_error_title', { defaultValue: 'Chargement impossible' })}
+                    </h2>
+                    <p className="text-sm text-slate-400 leading-6 mb-6">{error}</p>
+                    <button
+                        onClick={() => setReloadKey((value) => value + 1)}
+                        className="btn-primary px-6 py-3"
+                    >
+                        {t('common.retry', { defaultValue: 'Réessayer' })}
+                    </button>
+                </div>
             </div>
         );
     }
@@ -190,6 +241,23 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     return (
         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0F172A] animate-in fade-in duration-700">
             <ScreenGuide guideKey="dashboard_tour" steps={dashboardSteps} />
+            {error && data && (
+                <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    <AlertCircle size={18} className="mt-0.5 shrink-0 text-amber-400" />
+                    <div className="flex-1">
+                        <p className="font-bold text-amber-300 mb-1">
+                            {t('dashboard.partial_load_title', { defaultValue: 'Certaines données n’ont pas pu être chargées' })}
+                        </p>
+                        <p className="text-amber-100/90">{error}</p>
+                    </div>
+                    <button
+                        onClick={() => setReloadKey((value) => value + 1)}
+                        className="rounded-xl border border-amber-400/30 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-amber-200 hover:bg-amber-500/10"
+                    >
+                        {t('common.retry', { defaultValue: 'Réessayer' })}
+                    </button>
+                </div>
+            )}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">{t('dashboard.title')}</h1>

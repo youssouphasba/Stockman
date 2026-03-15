@@ -23,7 +23,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as Print from 'expo-print';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
 import DashboardSettingsModal from '../../components/DashboardSettingsModal';

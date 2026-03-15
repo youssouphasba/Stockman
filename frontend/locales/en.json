@@ -330,10 +330,24 @@
             "slow_moving": {
                 "label": "Dormant product",
                 "desc": "Alert when a product hasn't moved for 30 days"
+            },
+            "late_delivery": {
+                "label": "Late delivery",
+                "desc": "Alert when a supplier delivery is late"
             }
         },
+        "channel_email": "Email",
+        "channel_push": "Push",
         "detect_anomalies": "AI Anomaly Detection",
         "dismiss": "Dismiss",
+        "group_billing": "Billing",
+        "group_crm": "CRM",
+        "group_default": "Default",
+        "group_finance": "Finance",
+        "group_operations": "Operations",
+        "group_stock": "Stock",
+        "group_supply": "Procurement",
+        "rule_supplier_delay": "Supplier delays",
         "error_anomaly": "Could not analyze anomalies",
         "error_rule_update": "Could not modify rule",
         "error_threshold_update": "Could not modify threshold",

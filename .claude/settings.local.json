@@ -46,7 +46,10 @@
       "WebFetch(domain:127.0.0.1)",
       "Bash(npm ls:*)",
       "Bash(npx next:*)",
-      "Bash(wc -l /mnt/c/Users/Utilisateur/projet_stock/frontend/app/\\\\\\(tabs\\\\\\)/pos.tsx)"
+      "Bash(wc -l /mnt/c/Users/Utilisateur/projet_stock/frontend/app/\\\\\\(tabs\\\\\\)/pos.tsx)",
+      "Bash(grep -n \"label: '[A-Z]\" /mnt/c/Users/Utilisateur/projet_stock/frontend/app/\\\\\\(tabs\\\\\\)/alerts.tsx)",
+      "Bash(grep -n \"fontSize:\\\\s*[0-9]\" /mnt/c/Users/Utilisateur/projet_stock/frontend/app/\\\\\\(tabs\\\\\\)/*.tsx | wc -l)",
+      "Bash(grep -n \"prompt\\(\" /mnt/c/Users/Utilisateur/projet_stock/web-app/src/components/*.tsx)"
     ]
   }
 }

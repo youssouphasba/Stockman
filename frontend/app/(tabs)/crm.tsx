@@ -1949,7 +1949,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     saleItemTotal: {
         fontSize: FontSize.md,
         fontWeight: '700',
-        color: '#FFF',
+        color: colors.text,
     },
 
     // Debt History Styles
@@ -1991,7 +1991,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         alignItems: 'center',
     },
     historyRef: {
-        color: '#FFF',
+        color: colors.text,
         fontWeight: '600',
         fontSize: FontSize.sm,
     },
