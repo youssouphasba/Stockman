@@ -34,6 +34,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
 import type { UserPermissions } from '../services/api';
+import { stores as storesApi, type Store as StoreRecord } from '../services/api';
 
 interface SidebarProps {
     activeTab: string;
@@ -107,6 +108,9 @@ export default function Sidebar({
     const isOrgAdmin = access.isOrgAdmin;
     const isBillingAdmin = access.isBillingAdmin;
     const hasOperationalAccess = access.hasOperationalAccess;
+    const [storeList, setStoreList] = useState<StoreRecord[]>([]);
+    const [storesLoading, setStoresLoading] = useState(false);
+    const [switchingStoreId, setSwitchingStoreId] = useState<string | null>(null);
 
     // Entrées communes (toujours visibles)
     const commonBottom: SidebarEntry[] = [
@@ -242,6 +246,55 @@ export default function Sidebar({
             return perm === 'read' || perm === 'write';
         }
         return true;
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!user || user.role === 'supplier') {
+            setStoreList([]);
+            setStoresLoading(false);
+            setSwitchingStoreId(null);
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        setStoresLoading(true);
+        storesApi.list()
+            .then((stores) => {
+                if (cancelled) return;
+                setStoreList(stores || []);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setStoreList([]);
+            })
+            .finally(() => {
+                if (cancelled) return;
+                setStoresLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.user_id, user?.active_store_id, (user?.store_ids || []).join(',')]);
+
+    const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
+    const canSwitchStores = storeList.length > 1;
+
+    const handleStoreSwitch = async (storeId: string) => {
+        if (!storeId || storeId === user?.active_store_id) {
+            return;
+        }
+        setSwitchingStoreId(storeId);
+        try {
+            await storesApi.setActive(storeId);
+            window.location.reload();
+        } catch (error) {
+            console.error(error);
+            setSwitchingStoreId(null);
+        }
     };
 
     const getDefaultOpenGroups = (): Set<string> => {
@@ -386,6 +439,38 @@ export default function Sidebar({
                         <X size={18} />
                     </button>
                 </div>
+
+                {storeList.length > 0 && (
+                    <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                        <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                            <Store size={13} className="text-primary" />
+                            <span>{t('sidebar.store_switcher.title', { defaultValue: 'Boutique active' })}</span>
+                        </div>
+                        <p className="mt-2 truncate text-sm font-bold text-white">
+                            {activeStore?.name || user?.store_name || t('sidebar.store_switcher.empty', { defaultValue: 'Aucune boutique active' })}
+                        </p>
+                        {canSwitchStores ? (
+                            <select
+                                value={switchingStoreId || user?.active_store_id || ''}
+                                onChange={(event) => void handleStoreSwitch(event.target.value)}
+                                disabled={storesLoading || !!switchingStoreId}
+                                className="mt-3 w-full rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-primary disabled:opacity-60"
+                            >
+                                {storeList.map((store) => (
+                                    <option key={store.store_id} value={store.store_id}>
+                                        {store.name}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <p className="mt-2 text-xs text-slate-400">
+                                {storesLoading
+                                    ? t('sidebar.store_switcher.loading', { defaultValue: 'Chargement des boutiques...' })
+                                    : t('sidebar.store_switcher.single', { defaultValue: 'Une seule boutique vous est attribuée.' })}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Navigation */}
                 <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar pr-1">

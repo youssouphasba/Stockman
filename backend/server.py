@@ -24,6 +24,7 @@ import csv
 import io
 import asyncio
 import base64
+import re
 from decimal import Decimal, InvalidOperation
 from PIL import Image
 from starlette.responses import StreamingResponse
@@ -2606,6 +2607,129 @@ def apply_store_scope_with_legacy(
     return scoped_query
 
 
+def build_legacy_unassigned_store_query(store_field: str = "store_id") -> Dict[str, Any]:
+    return {
+        "$or": [
+            {store_field: {"$exists": False}},
+            {store_field: None},
+            {store_field: ""},
+        ]
+    }
+
+
+def normalize_store_id_value(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = value.strip() if isinstance(value, str) else str(value).strip()
+    return normalized or None
+
+
+def resolve_single_store_candidate(store_ids: List[Any]) -> Optional[str]:
+    unique_store_ids = []
+    for value in store_ids:
+        normalized = normalize_store_id_value(value)
+        if normalized and normalized not in unique_store_ids:
+            unique_store_ids.append(normalized)
+    if len(unique_store_ids) == 1:
+        return unique_store_ids[0]
+    return None
+
+
+async def infer_customer_store_id(owner_id: str, customer: Optional[dict]) -> Optional[str]:
+    if not customer:
+        return None
+    customer_id = customer.get("customer_id")
+    if not customer_id:
+        return None
+
+    candidate_store_ids: List[Any] = []
+    scoped_filter = {"$nin": [None, ""]}
+    candidate_store_ids.extend(await db.sales.distinct("store_id", {"user_id": owner_id, "customer_id": customer_id, "store_id": scoped_filter}))
+    candidate_store_ids.extend(await db.customer_payments.distinct("store_id", {"user_id": owner_id, "customer_id": customer_id, "store_id": scoped_filter}))
+    candidate_store_ids.extend(await db.campaigns.distinct("store_id", {"user_id": owner_id, "customer_ids": customer_id, "store_id": scoped_filter}))
+    candidate_store_ids.extend(await db.activity_logs.distinct(
+        "store_id",
+        {
+            "owner_id": owner_id,
+            "$or": [
+                {"details.customer_id": customer_id},
+                {"details.customer_ids": customer_id},
+            ],
+            "store_id": scoped_filter,
+        },
+    ))
+    return resolve_single_store_candidate(candidate_store_ids)
+
+
+async def infer_customer_payment_store_id(owner_id: str, payment: Optional[dict]) -> Optional[str]:
+    if not payment:
+        return None
+    customer_id = payment.get("customer_id")
+    if not customer_id:
+        return None
+
+    customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"_id": 0, "customer_id": 1, "store_id": 1})
+    direct_store_id = normalize_store_id_value((customer or {}).get("store_id"))
+    if direct_store_id:
+        return direct_store_id
+    return await infer_customer_store_id(owner_id, customer or {"customer_id": customer_id})
+
+
+async def infer_order_store_id(owner_id: str, order: Optional[dict]) -> Optional[str]:
+    if not order:
+        return None
+    order_id = order.get("order_id")
+    if not order_id:
+        return None
+
+    candidate_store_ids: List[Any] = []
+    scoped_filter = {"$nin": [None, ""]}
+    supplier_id = order.get("supplier_id")
+    if supplier_id:
+        candidate_store_ids.extend(await db.suppliers.distinct("store_id", {"user_id": owner_id, "supplier_id": supplier_id, "store_id": scoped_filter}))
+
+    if not order.get("is_connected"):
+        order_items = await db.order_items.find({"order_id": order_id}, {"_id": 0, "product_id": 1}).to_list(500)
+        product_ids = [item.get("product_id") for item in order_items if item.get("product_id")]
+        if product_ids:
+            candidate_store_ids.extend(await db.products.distinct(
+                "store_id",
+                {"user_id": owner_id, "product_id": {"$in": list(set(product_ids))}, "store_id": scoped_filter},
+            ))
+
+    order_regex = re.escape(order_id)
+    candidate_store_ids.extend(await db.stock_movements.distinct(
+        "store_id",
+        {"user_id": owner_id, "reason": {"$regex": order_regex}, "store_id": scoped_filter},
+    ))
+    candidate_store_ids.extend(await db.returns.distinct(
+        "store_id",
+        {"user_id": owner_id, "order_id": order_id, "store_id": scoped_filter},
+    ))
+    candidate_store_ids.extend(await db.activity_logs.distinct(
+        "store_id",
+        {
+            "owner_id": owner_id,
+            "$or": [
+                {"details.order_id": order_id},
+                {"description": {"$regex": order_regex}},
+            ],
+            "store_id": scoped_filter,
+        },
+    ))
+    return resolve_single_store_candidate(candidate_store_ids)
+
+
+async def infer_legacy_store_id(collection_name: str, owner_id: str, document: Optional[dict]) -> Optional[str]:
+    if collection_name == "customers":
+        return await infer_customer_store_id(owner_id, document)
+    if collection_name == "customer_payments":
+        return await infer_customer_payment_store_id(owner_id, document)
+    if collection_name == "orders":
+        return await infer_order_store_id(owner_id, document)
+    return None
+
+
 def apply_completed_sales_scope(query: Dict[str, Any]) -> Dict[str, Any]:
     scoped_query = dict(query)
     scoped_query["$or"] = [{"status": {"$exists": False}}, {"status": "completed"}]
@@ -2643,18 +2767,39 @@ async def backfill_legacy_store_field(
         return document
 
     target_store = user.active_store_id
-    if not should_allow_legacy_unassigned_store_docs(user, target_store):
+    resolved_store_id = target_store if should_allow_legacy_unassigned_store_docs(user, target_store) else None
+    if not resolved_store_id:
+        resolved_store_id = await infer_legacy_store_id(getattr(collection, "name", ""), get_owner_id(user), document)
+    if not resolved_store_id:
         return document
+    ensure_user_store_access(user, resolved_store_id)
 
     backfill_filter = dict(document_filter)
-    backfill_filter["$or"] = [
-        {store_field: {"$exists": False}},
-        {store_field: None},
-        {store_field: ""},
-    ]
-    await collection.update_one(backfill_filter, {"$set": {store_field: target_store}})
-    document[store_field] = target_store
+    backfill_filter.update(build_legacy_unassigned_store_query(store_field))
+    await collection.update_one(backfill_filter, {"$set": {store_field: resolved_store_id}})
+    document[store_field] = resolved_store_id
     return document
+
+
+async def backfill_inferred_legacy_store_scope(
+    collection: Any,
+    owner_id: str,
+    user: User,
+    id_field: str,
+    limit: int = 500,
+) -> None:
+    legacy_query = {"user_id": owner_id, **build_legacy_unassigned_store_query()}
+    legacy_docs = await collection.find(legacy_query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    for document in legacy_docs:
+        document_id = document.get(id_field)
+        if not document_id:
+            continue
+        await backfill_legacy_store_field(
+            collection,
+            {id_field: document_id, "user_id": owner_id},
+            document,
+            user,
+        )
 
 
 async def require_operational_access(user: User = Depends(require_auth)) -> User:
@@ -7104,6 +7249,7 @@ async def get_customer_debt_history(
     """
     # 1. Get Credit Sales (Debt increase)
     owner_id = get_owner_id(user)
+    await backfill_inferred_legacy_store_scope(db.customer_payments, owner_id, user, "payment_id")
     sales_query = apply_completed_sales_scope(apply_store_scope({
         "user_id": owner_id,
         "customer_id": customer_id,
@@ -7158,6 +7304,7 @@ async def get_customer_payments(
     user: User = Depends(require_permission("crm", "read"))
 ):
     owner_id = get_owner_id(user)
+    await backfill_inferred_legacy_store_scope(db.customer_payments, owner_id, user, "payment_id")
     payments = await db.customer_payments.find(
         apply_store_scope_with_legacy({"customer_id": customer_id, "user_id": owner_id}, user),
         {"_id": 0}
@@ -9997,6 +10144,7 @@ async def get_customers(
     limit: int = 50
 ):
     owner_id = get_owner_id(user)
+    await backfill_inferred_legacy_store_scope(db.customers, owner_id, user, "customer_id")
     cust_query = apply_store_scope_with_legacy({"user_id": owner_id}, user)
     total = await db.customers.count_documents(cust_query)
     customers_raw = await db.customers.find(cust_query).skip(skip).limit(limit).to_list(limit)
@@ -10255,6 +10403,7 @@ class CampaignCreate(BaseModel):
 @api_router.get("/customers/birthdays")
 async def get_customer_birthdays(user: User = Depends(require_permission("crm", "read")), days: int = Query(7, ge=1, le=90)):
     """Get customers with birthdays in the next N days"""
+    await backfill_inferred_legacy_store_scope(db.customers, get_owner_id(user), user, "customer_id")
     customers_raw = await db.customers.find(
         apply_store_scope_with_legacy({"user_id": get_owner_id(user), "birthday": {"$ne": None}}, user)
     ).to_list(1000)
@@ -14645,8 +14794,9 @@ async def get_orders(
     limit: int = 50
 ):
     owner_id = get_owner_id(user)
+    await backfill_inferred_legacy_store_scope(db.orders, owner_id, user, "order_id")
     query = {"user_id": owner_id}
-    query = apply_store_scope(query, user)
+    query = apply_store_scope_with_legacy(query, user)
     if status:
         query["status"] = status
     if supplier_id:
@@ -14741,10 +14891,11 @@ async def get_orders(
 @api_router.get("/orders/filter-suppliers")
 async def get_orders_filter_suppliers(user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
+    await backfill_inferred_legacy_store_scope(db.orders, owner_id, user, "order_id")
     
     # Aggregate orders to find unique suppliers and their last order date
     match_stage: dict = {"user_id": owner_id}
-    match_stage = apply_store_scope(match_stage, user)
+    match_stage = apply_store_scope_with_legacy(match_stage, user)
     pipeline = [
         {"$match": match_stage},
         {
@@ -14790,6 +14941,12 @@ async def get_orders_filter_suppliers(user: User = Depends(require_procurement_a
 async def get_order(order_id: str, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    order = await backfill_legacy_store_field(
+        db.orders,
+        {"order_id": order_id, "user_id": owner_id},
+        order,
+        user,
+    )
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
@@ -14890,10 +15047,18 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
     if status_data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Statut invalide")
     current_order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
-    ensure_scoped_document_access(user, current_order, detail="Acces refuse pour cette commande")
-    
-    result = await db.orders.find_one_and_update(
+    current_order = await backfill_legacy_store_field(
+        db.orders,
         {"order_id": order_id, "user_id": owner_id},
+        current_order,
+        user,
+    )
+    ensure_scoped_document_access(user, current_order, detail="Acces refuse pour cette commande")
+    order_query = {"order_id": order_id, "user_id": owner_id}
+    if current_order and current_order.get("store_id"):
+        order_query["store_id"] = current_order["store_id"]
+    result = await db.orders.find_one_and_update(
+        order_query,
         {"$set": {"status": status_data.status, "updated_at": datetime.now(timezone.utc)}},
         return_document=True
     )
@@ -14917,7 +15082,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
                 movement = StockMovement(
                     product_id=item["product_id"],
                     user_id=owner_id,
-                    store_id=user.active_store_id,
+                    store_id=result.get("store_id") or user.active_store_id,
                     type="in",
                     quantity=item["quantity"],
                     reason=f"Commande {order_id} livrée",
@@ -14928,7 +15093,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
 
                 # Check alerts for updated product
                 product["quantity"] = new_quantity
-                await check_and_create_alerts(Product(**product), user.user_id, store_id=user.active_store_id)
+                await check_and_create_alerts(Product(**product), user.user_id, store_id=result.get("store_id") or user.active_store_id)
 
     return {"message": f"Statut mis à jour: {status_data.status}"}
 
@@ -15009,8 +15174,15 @@ async def receive_partial_delivery(
 
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    order = await backfill_legacy_store_field(
+        db.orders,
+        {"order_id": order_id, "user_id": owner_id},
+        order,
+        user,
+    )
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
 
     if order["status"] not in ["confirmed", "shipped", "partially_delivered"]:
         raise HTTPException(status_code=400, detail="La commande doit être confirmée ou expédiée pour recevoir une livraison")
@@ -15054,7 +15226,7 @@ async def receive_partial_delivery(
             movement = StockMovement(
                 product_id=item["product_id"],
                 user_id=owner_id,
-                store_id=user.active_store_id,
+                store_id=order.get("store_id") or user.active_store_id,
                 type="in",
                 quantity=qty_delta,
                 reason=f"Réception partielle - Commande {order_id}" + (f" - {data.notes}" if data.notes else ""),
@@ -15065,7 +15237,7 @@ async def receive_partial_delivery(
 
             # Check alerts
             product["quantity"] = new_qty
-            await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
+            await check_and_create_alerts(Product(**product), owner_id, store_id=order.get("store_id") or user.active_store_id)
 
     # Determine if fully delivered
     all_fully_received = True
@@ -15076,8 +15248,11 @@ async def receive_partial_delivery(
 
     new_status = "delivered" if all_fully_received else "partially_delivered"
 
+    order_update_query = {"order_id": order_id, "user_id": owner_id}
+    if order.get("store_id"):
+        order_update_query["store_id"] = order["store_id"]
     await db.orders.update_one(
-        {"order_id": order_id},
+        order_update_query,
         {"$set": {
             "received_items": received_so_far,
             "status": new_status,
@@ -15131,7 +15306,14 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
 
 @api_router.delete("/orders/{order_id}")
 async def delete_order(order_id: str, user: User = Depends(require_procurement_access("write"))):
-    order = await db.orders.find_one({"order_id": order_id, "user_id": get_owner_id(user)}, {"_id": 0})
+    owner_id = get_owner_id(user)
+    order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    order = await backfill_legacy_store_field(
+        db.orders,
+        {"order_id": order_id, "user_id": owner_id},
+        order,
+        user,
+    )
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
@@ -15139,7 +15321,7 @@ async def delete_order(order_id: str, user: User = Depends(require_procurement_a
     if order["status"] not in ["pending", "cancelled"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer une commande en cours")
     
-    delete_query = {"order_id": order_id, "user_id": get_owner_id(user)}
+    delete_query = {"order_id": order_id, "user_id": owner_id}
     if order.get("store_id"):
         delete_query["store_id"] = order["store_id"]
     await db.orders.delete_one(delete_query)
@@ -17470,8 +17652,15 @@ async def get_catalog_suggestions(order_id: str, user: User = Depends(require_pe
     """Use Gemini AI to suggest matches between catalog products and shopkeeper inventory."""
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    order = await backfill_legacy_store_field(
+        db.orders,
+        {"order_id": order_id, "user_id": owner_id},
+        order,
+        user,
+    )
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order.get("is_connected"):
         raise HTTPException(status_code=400, detail="Cette commande n'est pas une commande marketplace")
 
@@ -17662,8 +17851,15 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
     """Confirm marketplace delivery with product mappings and stock updates."""
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    order = await backfill_legacy_store_field(
+        db.orders,
+        {"order_id": order_id, "user_id": owner_id},
+        order,
+        user,
+    )
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order.get("is_connected"):
         raise HTTPException(status_code=400, detail="Cette commande n'est pas une commande marketplace")
     if order.get("status") == "delivered":
@@ -17711,7 +17907,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
                 selling_price=round(item["unit_price"] * 1.3, 2),  # 30% margin by default
                 source_catalog_id=mapping.catalog_id,
                 user_id=owner_id,
-                store_id=user.active_store_id,
+                store_id=order.get("store_id") or user.active_store_id,
             )
             await db.products.insert_one(new_product.model_dump())
             target_product_id = new_product.product_id
@@ -17720,7 +17916,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
             movement = StockMovement(
                 product_id=new_product.product_id,
                 user_id=owner_id,
-                store_id=user.active_store_id,
+                store_id=order.get("store_id") or user.active_store_id,
                 type="in",
                 quantity=item["quantity"],
                 reason=f"Commande {order_id} — nouveau produit créé",
@@ -17744,7 +17940,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
                 movement = StockMovement(
                     product_id=target_product_id,
                     user_id=owner_id,
-                    store_id=user.active_store_id,
+                    store_id=order.get("store_id") or user.active_store_id,
                     type="in",
                     quantity=item["quantity"],
                     reason=f"Commande {order_id} livrée",
@@ -17755,7 +17951,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
 
                 # Check alerts
                 product["quantity"] = new_qty
-                await check_and_create_alerts(Product(**product), owner_id, store_id=user.active_store_id)
+                await check_and_create_alerts(Product(**product), owner_id, store_id=order.get("store_id") or user.active_store_id)
 
                 results.append({"catalog_id": mapping.catalog_id, "action": "linked", "product_id": target_product_id})
 
@@ -17774,8 +17970,11 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
             )
 
     # Mark order as delivered
+    order_update_query = {"order_id": order_id, "user_id": owner_id}
+    if order.get("store_id"):
+        order_update_query["store_id"] = order["store_id"]
     await db.orders.update_one(
-        {"order_id": order_id},
+        order_update_query,
         {"$set": {"status": "delivered", "updated_at": datetime.now(timezone.utc)}}
     )
 
