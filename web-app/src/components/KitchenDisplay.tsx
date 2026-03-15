@@ -7,20 +7,21 @@ import {
 
 // ─── API helper (request not exported from api.ts) ────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = '';
 
 async function apiRequest<T>(
     path: string,
     method: string = 'GET',
     body?: unknown
 ): Promise<T> {
+    const hasJsonBody = body !== undefined && body !== null;
     const res = await fetch(`${API_URL}/api${path}`, {
         method,
         credentials: 'include',
         headers: {
-            'Content-Type': 'application/json',
+            ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
         },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: hasJsonBody ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));

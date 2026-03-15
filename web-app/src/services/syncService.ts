@@ -1,6 +1,6 @@
 'use client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = '';
 const OFFLINE_REQUESTS_KEY = 'stockman_offline_requests';
 const LEGACY_OFFLINE_SALES_KEY = 'stockman_offline_sales';
 const SYNC_LOCK_KEY = 'stockman_sync_lock';
@@ -100,13 +100,14 @@ class SyncService {
     }
 
     private async send(request: QueuedRequest) {
+        const hasJsonBody = request.body !== undefined && request.body !== null && !(request.body instanceof FormData);
         const response = await fetch(`${API_URL}/api${request.endpoint}`, {
             method: request.method,
             credentials: 'include',
             headers: {
-                ...(request.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+                ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
             },
-            body: request.body
+            body: request.body !== undefined && request.body !== null
                 ? (request.body instanceof FormData ? request.body : JSON.stringify(request.body))
                 : undefined,
         });

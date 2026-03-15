@@ -1,8 +1,9 @@
 import { syncService } from './syncService';
 
-// Use relative URL so requests go through Next.js rewrite proxy (same-origin cookies)
-// Falls back to NEXT_PUBLIC_API_URL for backwards compatibility
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// In the browser, always go through the Next.js rewrite proxy so auth cookies stay same-origin.
+// On the server, keep the env fallback for non-browser execution contexts.
+const IS_BROWSER = typeof window !== 'undefined';
+export const API_URL = IS_BROWSER ? '' : (process.env.NEXT_PUBLIC_API_URL || '');
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
@@ -172,6 +173,7 @@ async function refreshWithMutex(): Promise<boolean> {
 
 async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, headers = {} } = options;
+    const hasJsonBody = body !== undefined && body !== null && !(body instanceof FormData);
 
     // Attach idempotency key on critical mutations to prevent duplicates on retry
     const extraHeaders: Record<string, string> = {};
@@ -183,13 +185,13 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         method,
         credentials: 'include',
         headers: {
-            ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+            ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
             ...extraHeaders,
             ...headers,
         },
     };
 
-    if (body) {
+    if (body !== undefined && body !== null) {
         config.body = body instanceof FormData ? (body as any) : JSON.stringify(body);
     }
 
