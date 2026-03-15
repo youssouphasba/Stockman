@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://stockman-production-149d.up.railway.app/api/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {

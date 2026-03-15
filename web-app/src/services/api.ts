@@ -1,9 +1,8 @@
 import { syncService } from './syncService';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL;
-if (!API_URL && typeof window !== 'undefined') {
-    console.error('NEXT_PUBLIC_API_URL environment variable is required');
-}
+// Use relative URL so requests go through Next.js rewrite proxy (same-origin cookies)
+// Falls back to NEXT_PUBLIC_API_URL for backwards compatibility
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';

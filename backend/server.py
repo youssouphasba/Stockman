@@ -149,7 +149,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
 # JWT Configuration
 SECRET_KEY = os.environ.get('JWT_SECRET', '')
-IS_PROD = os.environ.get('APP_ENV') == 'production' or os.environ.get('DEBUG', 'true').lower() == 'false'
+IS_PROD = os.environ.get('ENV', os.environ.get('APP_ENV', os.environ.get('ENVIRONMENT', 'development'))) == 'production' or os.environ.get('DEBUG', 'true').lower() == 'false'
 
 if not SECRET_KEY:
     if IS_PROD:
