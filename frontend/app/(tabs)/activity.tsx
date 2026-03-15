@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { activityLogs, ActivityLog } from '../../services/api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { getDateLocale } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 
@@ -70,25 +70,29 @@ export default function ActivityScreen() {
 
     const currentLocale = getDateLocale(i18n.language);
 
-    const renderLog = ({ item }: { item: ActivityLog }) => (
-        <View style={styles.logCard}>
-            <View style={[styles.iconContainer, { backgroundColor: getColor(item.module) + '20' }]}>
-                <Ionicons name={getIcon(item.module, item.action)} size={24} color={getColor(item.module)} />
-            </View>
-            <View style={styles.logContent}>
-                <View style={styles.logHeader}>
-                    <Text style={[styles.userName, { color: colors.text }]}>{item.user_name}</Text>
-                    <Text style={[styles.time, { color: colors.textSecondary }]}>
-                        {format(new Date(item.created_at), 'HH:mm', { locale: currentLocale })}
+    const renderLog = ({ item }: { item: ActivityLog }) => {
+        const date = new Date(item.created_at);
+        const validDate = isValid(date);
+        return (
+            <View style={styles.logCard}>
+                <View style={[styles.iconContainer, { backgroundColor: getColor(item.module) + '20' }]}>
+                    <Ionicons name={getIcon(item.module, item.action)} size={24} color={getColor(item.module)} />
+                </View>
+                <View style={styles.logContent}>
+                    <View style={styles.logHeader}>
+                        <Text style={[styles.userName, { color: colors.text }]}>{item.user_name}</Text>
+                        <Text style={[styles.time, { color: colors.textSecondary }]}>
+                            {validDate ? format(date, 'HH:mm', { locale: currentLocale }) : '--:--'}
+                        </Text>
+                    </View>
+                    <Text style={[styles.description, { color: colors.text }]}>{item.description}</Text>
+                    <Text style={[styles.date, { color: colors.textSecondary }]}>
+                        {validDate ? format(date, 'PPP', { locale: currentLocale }) : ''}
                     </Text>
                 </View>
-                <Text style={[styles.description, { color: colors.text }]}>{item.description}</Text>
-                <Text style={[styles.date, { color: colors.textSecondary }]}>
-                    {format(new Date(item.created_at), 'PPP', { locale: currentLocale })}
-                </Text>
             </View>
-        </View>
-    );
+        );
+    };
 
     if (loading && !refreshing) {
         return (

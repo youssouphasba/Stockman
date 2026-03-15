@@ -401,7 +401,7 @@ export default function ProjectView() {
                             <div key={i} className="glass-card px-4 py-3 border border-white/5 flex items-center justify-between">
                                 <div>
                                     <p className="font-semibold text-white text-sm">{m.name}</p>
-                                    <p className="text-xs text-slate-400">{m.projectName} · {t(CORPS_OPTIONS.find(c => c.key === m.corps_metier)?.labelKey || m.corps_metier)}</p>
+                                    <p className="text-xs text-slate-400">{m.projectName} · {t(CORPS_OPTIONS.find(c => c.key === m.corps_metier)?.labelKey ?? m.corps_metier ?? '')}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-white text-sm">{m.quantity} {m.unit}</p>
@@ -563,7 +563,7 @@ export default function ProjectView() {
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <div className="text-white font-bold">{sub.name}</div>
-                                            <div className="text-xs text-slate-400">{t(CORPS_OPTIONS.find(c => c.key === sub.corps_metier)?.labelKey || sub.corps_metier)}{sub.contact ? ` · ${sub.contact}` : ''}</div>
+                                            <div className="text-xs text-slate-400">{t(CORPS_OPTIONS.find(c => c.key === sub.corps_metier)?.labelKey ?? sub.corps_metier ?? '')}{sub.contact ? ` · ${sub.contact}` : ''}</div>
                                         </div>
                                         <button onClick={() => setShowPaySubModal(sub.sub_id)} className="btn-primary px-3 py-1.5 rounded-lg text-xs">Payer</button>
                                     </div>
@@ -600,7 +600,7 @@ export default function ProjectView() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <span className="text-white font-bold text-sm">{phase.name}</span>
-                                        <span className="text-xs text-slate-500">{t(CORPS_OPTIONS.find(c => c.key === phase.corps_metier)?.labelKey || '')}</span>
+                                        <span className="text-xs text-slate-500">{t(CORPS_OPTIONS.find(c => c.key === phase.corps_metier)?.labelKey ?? '')}</span>
                                     </div>
                                     {(phase.start_date || phase.end_date) && (
                                         <div className="text-xs text-slate-400 mt-0.5">{phase.start_date || '?'} → {phase.end_date || '?'}</div>

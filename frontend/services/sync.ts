@@ -160,6 +160,7 @@ export const syncService = {
     },
 
     async processAction(action: SyncAction) {
+        // Lazy import to break circular dependency (api.ts imports sync.ts)
         const { rawRequest } = require('./api');
 
         // If action has a direct endpoint/method, use that

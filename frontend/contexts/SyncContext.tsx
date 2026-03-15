@@ -59,7 +59,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
             processQueue();
             prefetchData();
         }
-    }, [isOnline]);
+    }, [isOnline, processQueue, prefetchData]);
 
     // Periodic pending count refresh
     useEffect(() => {

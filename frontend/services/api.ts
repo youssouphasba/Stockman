@@ -158,7 +158,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     if (!online) {
       const cached = await cache.get<T>(endpoint);
       if (cached) return cached;
-      throw new ApiError('Mode hors ligne : Données non diponibles en cache', 503);
+      throw new ApiError('Mode hors ligne : Données non disponibles en cache', 503);
     }
 
     try {
