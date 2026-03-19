@@ -15,10 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { profile, subscription, SubscriptionData } from '../../services/api';
+import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
-import { COUNTRIES, Country } from '../../constants/countries';
+import { COUNTRIES } from '../../constants/countries';
 
 type PlanKey = 'starter' | 'pro' | 'enterprise';
 
@@ -92,18 +92,12 @@ export default function SubscriptionScreen() {
     const [payLoading, setPayLoading] = useState(false);
     const [data, setData] = useState<SubscriptionData | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
-    const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
-    const [savingBillingCountry, setSavingBillingCountry] = useState(false);
 
     const userCurrency = data?.currency || user?.currency || 'XOF';
     const useMobileMoney = data?.use_mobile_money ?? ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
     const isNative = Platform.OS !== 'web';
 
     useEffect(() => { fetchSubscription(); }, []);
-
-    useEffect(() => {
-        setSelectedCountryCode(data?.country_code || user?.country_code || 'SN');
-    }, [data?.country_code, user?.country_code]);
 
     const fetchSubscription = async () => {
         try {
@@ -163,25 +157,6 @@ export default function SubscriptionScreen() {
         await WebBrowser.openBrowserAsync('https://app.stockman.pro/features');
     };
 
-    const handleBillingCountryUpdate = async (country: Country) => {
-        try {
-            setSavingBillingCountry(true);
-            await profile.updateProfile({
-                country_code: country.code,
-                currency: country.currency,
-            });
-            await fetchSubscription();
-            Alert.alert(t('common.success'), t('subscription.billing_country_updated') || 'Pays de facturation mis a jour.');
-        } catch (error: any) {
-            Alert.alert(
-                t('common.error'),
-                error?.message || t('subscription.billing_country_update_error') || 'Impossible de modifier le pays de facturation.',
-            );
-        } finally {
-            setSavingBillingCountry(false);
-        }
-    };
-
     const handleRestorePurchases = async () => {
         if (!isPurchasesAvailable()) return;
         try {
@@ -220,7 +195,7 @@ export default function SubscriptionScreen() {
     const accessPhase = data?.subscription_access_phase || 'active';
     const activePlanConfig = PLANS.find(p => p.key === currentPlan);
     const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan)!;
-    const selectedCountry = COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0];
+    const billingCountry = COUNTRIES.find((country) => country.code === (data?.country_code || user?.country_code)) || COUNTRIES[0];
     const selectedPrice = data?.effective_prices?.[selectedPlan]?.display_price || (
         useMobileMoney ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}` : selectedPlanConfig.priceEUR
     );
@@ -288,41 +263,19 @@ export default function SubscriptionScreen() {
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>{t('subscription.billing_country_title') || 'Pays et devise'}</Text>
                     <Text style={styles.cardSubtitle}>
-                        {data?.can_change_billing_country
-                            ? (t('subscription.billing_country_help') || 'Choisissez votre pays avant le premier paiement pour afficher les bons prix et utiliser le bon canal de paiement.')
-                            : (t('subscription.billing_country_locked') || 'Le pays et la devise de facturation sont maintenant verrouilles apres votre premier paiement.')}
+                        Le pays de facturation est defini lors de l inscription et ne peut pas etre modifie depuis cet ecran.
                     </Text>
                     <View style={styles.pickerWrapper}>
                         <Ionicons name="globe-outline" size={18} color="#94A3B8" />
-                        <Text style={styles.pickerLabel}>{selectedCountry.flag}</Text>
-                        <Text style={styles.pickerValue}>{selectedCountry.name} ({selectedCountry.currency})</Text>
+                        <Text style={styles.pickerLabel}>{billingCountry.flag}</Text>
+                        <Text style={styles.pickerValue}>{billingCountry.name} ({billingCountry.currency})</Text>
                     </View>
-                    <View style={styles.countryList}>
-                        {COUNTRIES.map((country) => {
-                            const isSelected = selectedCountryCode === country.code;
-                            return (
-                                <TouchableOpacity
-                                    key={country.code}
-                                    style={[styles.countryChip, isSelected && styles.countryChipSelected]}
-                                    onPress={() => {
-                                        setSelectedCountryCode(country.code);
-                                        if (data?.can_change_billing_country) {
-                                            void handleBillingCountryUpdate(country);
-                                        }
-                                    }}
-                                    disabled={savingBillingCountry || !data?.can_change_billing_country}
-                                >
-                                    <Text style={styles.countryChipText}>{country.flag} {country.name} · {country.currency}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                    {savingBillingCountry && (
-                        <View style={styles.inlineLoading}>
-                            <ActivityIndicator size="small" color="#3B82F6" />
-                            <Text style={styles.inlineLoadingText}>{t('common.saving') || 'Enregistrement...'}</Text>
-                        </View>
-                    )}
+                    <Text style={styles.helperText}>
+                        {`Region tarifaire : ${data?.pricing_region || 'fallback'}`}
+                    </Text>
+                    <Text style={styles.helperText}>
+                        Si une correction est necessaire, elle doit passer par le support avant facturation.
+                    </Text>
                 </View>
 
                 {/* Plan Cards */}

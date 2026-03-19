@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, Printer, Share2 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import jsPDF from 'jspdf/dist/jspdf.es.min.js';
 import autoTable from 'jspdf-autotable';
 import Modal from './Modal';
 import type { CustomerInvoice } from '../services/api';

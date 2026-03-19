@@ -7,6 +7,7 @@
     "android": {
       "package": "com.youssouphasba.stockman",
       "versionCode": 8,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
@@ -21,6 +22,7 @@
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
       "supportsTablet": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -43,12 +45,24 @@
       "expo-secure-store",
       "expo-camera",
       "expo-notifications",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
       "expo-localization",
       "expo-image-picker",
       "expo-local-authentication",
       "expo-updates",
       "expo-screen-orientation",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "updates": {
       "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"

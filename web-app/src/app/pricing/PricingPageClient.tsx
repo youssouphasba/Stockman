@@ -14,7 +14,7 @@ import {
     PUBLIC_ENTERPRISE_URL,
 } from '@/data/marketing';
 import { detectBrowserCountryCode } from '@/utils/pricingClient';
-import { COUNTRIES } from '../../../../frontend/constants/countries';
+import { COUNTRIES } from '@/data/countries';
 
 function Cell({ val }: { val: boolean | string }) {
     if (val === true) return <CheckCircle2 size={16} className="text-emerald-400 mx-auto" />;

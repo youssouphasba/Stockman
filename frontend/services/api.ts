@@ -392,10 +392,10 @@ export const auth = {
         signup_surface,
       },
     }),
-  verifyPhone: (otp: string) =>
+  verifyPhone: (firebaseIdToken: string) =>
     request<{ message: string; user: User }>('/auth/verify-phone', {
       method: 'POST',
-      body: { otp },
+      body: { firebase_id_token: firebaseIdToken },
     }),
   verifyEmail: (otp: string) =>
     request<{ message: string; user: User }>('/auth/verify-email', {
@@ -412,7 +412,7 @@ export const auth = {
       body: { old_password: oldPassword, new_password: newPassword }
     }),
   resendPhoneOtp: () =>
-    request<{ message: string; otp_fallback?: string }>('/auth/resend-phone-otp', {
+    request<{ message: string; client_side?: boolean }>('/auth/resend-phone-otp', {
       method: 'POST',
     }),
   resendEmailOtp: () =>
@@ -420,7 +420,7 @@ export const auth = {
       method: 'POST',
     }),
   resendOtp: () =>
-    request<{ message: string; otp_fallback?: string }>('/auth/resend-otp', {
+    request<{ message: string; client_side?: boolean }>('/auth/resend-otp', {
       method: 'POST',
     }),
 };

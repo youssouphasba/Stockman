@@ -8,7 +8,7 @@ bcrypt==4.0.1
 python-jose[cryptography]
 google-generativeai
 slowapi
-twilio
+firebase-admin
 httpx
 pydantic[email]
 python-multipart

@@ -52,15 +52,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLastSyncTime(lt);
     }
 
-    // Process queue when coming back online
-    useEffect(() => {
-        if (isOnline && wasOffline.current) {
-            wasOffline.current = false;
-            processQueue();
-            prefetchData();
-        }
-    }, [isOnline, processQueue, prefetchData]);
-
     // Periodic pending count refresh
     useEffect(() => {
         const interval = setInterval(async () => {
@@ -133,6 +124,15 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Prefetch is best-effort
         }
     }, [isOnline]);
+
+    // Process queue when coming back online
+    useEffect(() => {
+        if (isOnline && wasOffline.current) {
+            wasOffline.current = false;
+            void processQueue();
+            void prefetchData();
+        }
+    }, [isOnline, processQueue, prefetchData]);
 
     async function safeFetch(endpoint: string, cacheKey: string) {
         try {

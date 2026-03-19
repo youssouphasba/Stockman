@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import jsPDF from 'jspdf/dist/jspdf.es.min.js';
 import autoTable from 'jspdf-autotable';
 
 

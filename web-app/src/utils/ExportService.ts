@@ -1,16 +1,16 @@
-/**
- * ExportService.ts — Stockman Professional Export Engine
+﻿/**
+ * ExportService.ts â€” Stockman Professional Export Engine
  * Handles Excel (XLSX) and PDF exports with consistent branding.
  * All functions are client-side safe (browser only).
  */
 
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
+import ExcelJS from 'exceljs/dist/exceljs.min.js';
+import jsPDF from 'jspdf/dist/jspdf.es.min.js';
 import autoTable from 'jspdf-autotable';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // TYPES
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ExcelColumn {
     key: string;
@@ -54,86 +54,151 @@ export interface PDFConfig {
     sections: PDFSection[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // EXCEL EXPORT
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function buildWorksheet(sheetConfig: ExcelSheet, meta: { title: string; period?: string }): XLSX.WorkSheet {
-    const { columns, data, summaryRows } = sheetConfig;
-    const today = new Date().toLocaleDateString('fr-FR');
-    const periodStr = meta.period ? `Période : ${meta.period}` : `Généré le : ${today}`;
+type ExcelCellValue = string | number | Date | null;
 
-    // Title block (rows 0-2)
-    const titleRow = [`STOCKMAN — ${meta.title.toUpperCase()}`];
-    const infoRow = [periodStr, '', `Exporté le : ${today}`];
-    const emptyRow: string[] = [];
-    const headerRow = columns.map(c => c.label);
+function formatExcelValue(column: ExcelColumn, row: Record<string, any>): ExcelCellValue {
+    const raw = row[column.key];
 
-    // Data rows
-    const dataRows = data.map(item =>
-        columns.map(col => {
-            const raw = item[col.key];
-            if (col.format) return col.format(raw, item);
-            if (raw === null || raw === undefined) return '';
-            if (col.type === 'date' && raw) {
-                try { return new Date(raw).toLocaleDateString('fr-FR'); } catch { return String(raw); }
-            }
-            if ((col.type === 'number' || col.type === 'currency') && raw !== '') {
-                const n = Number(raw);
-                return isNaN(n) ? raw : n;
-            }
-            return raw;
-        })
-    );
-
-    // Build full array-of-arrays
-    const aoa: any[][] = [
-        titleRow,    // row 0
-        infoRow,     // row 1
-        emptyRow,    // row 2
-        headerRow,   // row 3
-        ...dataRows, // rows 4+
-    ];
-
-    // Summary block
-    if (summaryRows && summaryRows.length > 0) {
-        aoa.push([]); // separator
-        summaryRows.forEach(([label, value]) => aoa.push([label, value]));
+    if (column.format) {
+        return column.format(raw, row) as string | number;
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    // Merge title across all columns
-    if (columns.length > 1) {
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: columns.length - 1 } },
-        ];
+    if (raw === null || raw === undefined || raw === '') {
+        return null;
     }
 
-    // Column widths
-    ws['!cols'] = columns.map(c => ({ wch: c.width || 20 }));
+    if (column.type === 'date') {
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? String(raw) : parsed;
+    }
 
-    // Freeze header row (row index 3 = 4th row)
-    ws['!freeze'] = { xSplit: 0, ySplit: 4 };
+    if (column.type === 'number' || column.type === 'currency' || column.type === 'percent') {
+        const numeric = Number(raw);
+        return Number.isNaN(numeric) ? String(raw) : numeric;
+    }
 
-    return ws;
+    return String(raw);
 }
 
-export function exportToExcel(config: ExcelConfig): void {
-    const wb = XLSX.utils.book_new();
+function getExcelNumberFormat(column: ExcelColumn): string | undefined {
+    if (column.type === 'currency') return '#,##0.00';
+    if (column.type === 'number') return '#,##0.00';
+    if (column.type === 'percent') return '0.00%';
+    if (column.type === 'date') return 'dd/mm/yyyy';
+    return undefined;
+}
 
-    config.sheets.forEach(sheet => {
-        const ws = buildWorksheet(sheet, { title: config.title, period: config.period });
-        XLSX.utils.book_append_sheet(wb, ws, sheet.name.substring(0, 31));
+function downloadBuffer(buffer: ArrayBuffer, filename: string): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+}
+
+function buildWorksheet(
+    workbook: ExcelJS.Workbook,
+    sheetConfig: ExcelSheet,
+    meta: { title: string; period?: string }
+): void {
+    const { columns, data, summaryRows } = sheetConfig;
+    const worksheet = workbook.addWorksheet(sheetConfig.name.substring(0, 31));
+    const today = new Date().toLocaleDateString('fr-FR');
+    const periodStr = meta.period ? `Periode : ${meta.period}` : `Genere le : ${today}`;
+
+    worksheet.views = [{ state: 'frozen', ySplit: 4 }];
+
+    columns.forEach((column, index) => {
+        const worksheetColumn = worksheet.getColumn(index + 1);
+        worksheetColumn.width = column.width || 20;
+
+        const numFmt = getExcelNumberFormat(column);
+        if (numFmt) {
+            worksheetColumn.numFmt = numFmt;
+        }
+    });
+
+    const titleRow = worksheet.addRow([`STOCKMAN - ${meta.title.toUpperCase()}`]);
+    titleRow.font = { bold: true, size: 16, color: { argb: 'FF3B82F6' } };
+    if (columns.length > 1) {
+        worksheet.mergeCells(1, 1, 1, columns.length);
+    }
+
+    const infoRow = worksheet.addRow([periodStr, '', `Exporte le : ${today}`]);
+    infoRow.font = { italic: true, size: 10, color: { argb: 'FF64748B' } };
+    worksheet.addRow([]);
+
+    const headerRow = worksheet.addRow(columns.map((column) => column.label));
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF3B82F6' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    data.forEach((item) => {
+        const row = worksheet.addRow(columns.map((column) => formatExcelValue(column, item)));
+        row.alignment = { vertical: 'middle' };
+    });
+
+    if (summaryRows && summaryRows.length > 0) {
+        worksheet.addRow([]);
+        summaryRows.forEach(([label, value]) => {
+            const row = worksheet.addRow([label, value]);
+            row.getCell(1).font = { bold: true };
+            row.getCell(2).font = { bold: true, color: { argb: 'FF0F172A' } };
+            row.getCell(2).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE2E8F0' },
+            };
+        });
+    }
+
+    worksheet.autoFilter = {
+        from: { row: 4, column: 1 },
+        to: { row: 4, column: columns.length },
+    };
+}
+
+async function exportToExcelFile(config: ExcelConfig): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Stockman';
+    workbook.created = new Date();
+
+    config.sheets.forEach((sheet) => {
+        buildWorksheet(workbook, sheet, { title: config.title, period: config.period });
     });
 
     const date = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(wb, `${config.filename}_${date}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBuffer(buffer as ArrayBuffer, `${config.filename}_${date}.xlsx`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+export function exportToExcel(config: ExcelConfig): void {
+    void exportToExcelFile(config).catch((error) => {
+        console.error('Excel export failed', error);
+    });
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // PDF EXPORT
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const C_PRIMARY: [number, number, number] = [59, 130, 246];
 const C_DARK: [number, number, number] = [15, 23, 42];
@@ -162,7 +227,7 @@ function drawPageHeader(doc: any, config: PDFConfig): void {
     // Separator dot
     doc.setTextColor(...C_GRAY);
     doc.setFontSize(18);
-    doc.text('·', 65, 17);
+    doc.text('Â·', 65, 17);
 
     // Report title next to logo
     doc.setFontSize(12);
@@ -189,9 +254,9 @@ function drawPageHeader(doc: any, config: PDFConfig): void {
 
     const metaParts: string[] = [];
     if (config.storeName) metaParts.push(`Magasin : ${config.storeName}`);
-    if (config.period) metaParts.push(`Période : ${config.period}`);
+    if (config.period) metaParts.push(`PÃ©riode : ${config.period}`);
     const now = new Date();
-    metaParts.push(`Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+    metaParts.push(`GÃ©nÃ©rÃ© le ${now.toLocaleDateString('fr-FR')} Ã  ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
 
     doc.text(metaParts.join('    |    '), 13, 40);
 }
@@ -209,7 +274,7 @@ function drawPageFooters(doc: any): void {
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...C_GRAY);
-        doc.text('STOCKMAN — Document confidentiel — Usage interne uniquement', 13, 291);
+        doc.text('STOCKMAN â€” Document confidentiel â€” Usage interne uniquement', 13, 291);
         doc.text(`Page ${i} / ${pageCount}`, pageW - 13, 291, { align: 'right' });
     }
 }
@@ -229,7 +294,7 @@ export function exportToPDF(config: PDFConfig): void {
             y = 15;
         }
 
-        // ── Section title ──
+        // â”€â”€ Section title â”€â”€
         if (section.title) {
             doc.setFillColor(...C_PRIMARY);
             doc.rect(12, y, 3, 7, 'F');
@@ -240,7 +305,7 @@ export function exportToPDF(config: PDFConfig): void {
             y += 13;
         }
 
-        // ── KPI Cards ──
+        // â”€â”€ KPI Cards â”€â”€
         if (section.kpiCards && section.kpiCards.length > 0) {
             const cards = section.kpiCards;
             const gap = 4;
@@ -272,14 +337,14 @@ export function exportToPDF(config: PDFConfig): void {
             y += 30;
         }
 
-        // ── Data Table ──
+        // â”€â”€ Data Table â”€â”€
         if (section.data.length > 0 && section.columns.length > 0) {
             const headers = section.columns.map(c => c.label);
             const rows = section.data.map(item =>
                 section.columns.map(col => {
                     const val = item[col.key];
                     if (col.format) return String(col.format(val, item));
-                    if (val === null || val === undefined) return '–';
+                    if (val === null || val === undefined) return 'â€“';
                     if (col.type === 'date' && val) {
                         try { return new Date(val).toLocaleDateString('fr-FR'); } catch { return String(val); }
                     }
@@ -328,9 +393,9 @@ export function exportToPDF(config: PDFConfig): void {
     doc.save(`${config.filename}_${date}.pdf`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // PRE-BUILT MODULE EXPORT FUNCTIONS
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Export the full product inventory */
 export function exportInventory(
@@ -340,12 +405,12 @@ export function exportInventory(
 ): void {
     const prepared = products.map(p => ({
         ...p,
-        category: p.category_name || p.category || '–',
-        location: p.location_name || p.location || '–',
+        category: p.category_name || p.category || 'â€“',
+        location: p.location_name || p.location || 'â€“',
         margin_pct:
             p.selling_price && p.purchase_price && p.selling_price > 0
                 ? `${(((p.selling_price - p.purchase_price) / p.selling_price) * 100).toFixed(1)}%`
-                : '–',
+                : 'â€“',
         stock_status:
             (p.quantity || 0) <= 0
                 ? 'Rupture'
@@ -358,9 +423,9 @@ export function exportInventory(
     const allCols: ExcelColumn[] = [
         { key: 'sku', label: 'SKU / Code', width: 16 },
         { key: 'name', label: 'Nom du Produit', width: 34 },
-        { key: 'category', label: 'Catégorie', width: 20 },
+        { key: 'category', label: 'CatÃ©gorie', width: 20 },
         { key: 'quantity', label: 'Stock Actuel', width: 14, type: 'number' },
-        { key: 'unit', label: 'Unité', width: 10 },
+        { key: 'unit', label: 'UnitÃ©', width: 10 },
         { key: 'min_stock', label: 'Stock Min', width: 12, type: 'number' },
         { key: 'max_stock', label: 'Stock Max', width: 12, type: 'number' },
         { key: 'purchase_price', label: `Prix Achat (${currency})`, width: 20, type: 'number' },
@@ -412,7 +477,7 @@ export function exportInventory(
             filename: 'Stockman_Inventaire',
             sections: [
                 {
-                    title: 'Résumé Inventaire',
+                    title: 'RÃ©sumÃ© Inventaire',
                     columns: [],
                     data: [],
                     kpiCards: [
@@ -423,7 +488,7 @@ export function exportInventory(
                     ],
                 },
                 {
-                    title: 'Liste Complète',
+                    title: 'Liste ComplÃ¨te',
                     columns: allCols.slice(0, 10),
                     data: prepared,
                 },
@@ -449,12 +514,12 @@ export function exportCRM(
 
     const columns: ExcelColumn[] = [
         { key: 'name', label: 'Nom Complet', width: 28 },
-        { key: 'phone', label: 'Téléphone', width: 18 },
+        { key: 'phone', label: 'TÃ©lÃ©phone', width: 18 },
         { key: 'email', label: 'Email', width: 30 },
-        { key: 'category', label: 'Catégorie', width: 16 },
-        { key: 'tier_label', label: 'Niveau Fidélité', width: 16 },
+        { key: 'category', label: 'CatÃ©gorie', width: 16 },
+        { key: 'tier_label', label: 'Niveau FidÃ©litÃ©', width: 16 },
         { key: 'loyalty_points', label: 'Points', width: 12, type: 'number' },
-        { key: 'total_spent', label: `Total Dépensé (${currency})`, width: 22, type: 'number' },
+        { key: 'total_spent', label: `Total DÃ©pensÃ© (${currency})`, width: 22, type: 'number' },
         { key: 'total_debt', label: `Dette (${currency})`, width: 18, type: 'number' },
         { key: 'birthday', label: 'Anniversaire', width: 16, type: 'date' },
         { key: 'notes', label: 'Notes', width: 35 },
@@ -466,7 +531,7 @@ export function exportCRM(
 
     if (format === 'excel') {
         exportToExcel({
-            title: 'CRM — Liste Clients',
+            title: 'CRM â€” Liste Clients',
             filename: 'Stockman_CRM',
             sheets: [
                 {
@@ -476,7 +541,7 @@ export function exportCRM(
                     summaryRows: [
                         ['TOTAL CLIENTS', prepared.length],
                         [`DETTE TOTALE (${currency})`, totalDebt],
-                        [`REVENUS GÉNÉRÉS (${currency})`, totalRevenue],
+                        [`REVENUS GÃ‰NÃ‰RÃ‰S (${currency})`, totalRevenue],
                         ['CLIENTS VIP (Or + Platine)', vipList.length],
                     ],
                 },
@@ -497,7 +562,7 @@ export function exportCRM(
             filename: 'Stockman_CRM',
             sections: [
                 {
-                    title: 'Indicateurs Clés',
+                    title: 'Indicateurs ClÃ©s',
                     columns: [],
                     data: [],
                     kpiCards: [
@@ -540,16 +605,16 @@ export function exportAccounting(
 
     const perfCols: ExcelColumn[] = [
         { key: 'name', label: 'Produit', width: 32 },
-        { key: 'qty_sold', label: 'Qté Vendue', width: 14, type: 'number' },
+        { key: 'qty_sold', label: 'QtÃ© Vendue', width: 14, type: 'number' },
         { key: 'revenue', label: `Ventes (${currency})`, width: 20, type: 'number' },
-        { key: 'cogs', label: `Coût (${currency})`, width: 20, type: 'number' },
+        { key: 'cogs', label: `CoÃ»t (${currency})`, width: 20, type: 'number' },
         { key: 'margin', label: `Marge (${currency})`, width: 20, type: 'number' },
         { key: 'margin_pct', label: 'Marge %', width: 12 },
     ];
 
     const expCols: ExcelColumn[] = [
         { key: 'created_at', label: 'Date', width: 16, type: 'date' },
-        { key: 'category', label: 'Catégorie', width: 22 },
+        { key: 'category', label: 'CatÃ©gorie', width: 22 },
         { key: 'description', label: 'Description', width: 38 },
         { key: 'amount', label: `Montant (${currency})`, width: 20, type: 'number' },
     ];
@@ -568,11 +633,11 @@ export function exportAccounting(
 
     const summaryData = [
         { label: 'Chiffre d\'affaires (CA)', value: totalRevenue },
-        { label: 'Coût des marchandises vendues (COGS)', value: cogs },
+        { label: 'CoÃ»t des marchandises vendues (COGS)', value: cogs },
         { label: 'Marge brute', value: grossProfit },
         { label: 'Marge brute %', value: totalRevenue > 0 ? `${((grossProfit / totalRevenue) * 100).toFixed(1)}%` : '0%' },
-        { label: 'Dépenses opérationnelles', value: totalExpenses },
-        { label: 'Bénéfice net', value: netProfit },
+        { label: 'DÃ©penses opÃ©rationnelles', value: totalExpenses },
+        { label: 'BÃ©nÃ©fice net', value: netProfit },
         { label: 'Marge nette %', value: netMarginPct },
     ];
 
@@ -583,7 +648,7 @@ export function exportAccounting(
             filename: 'Stockman_Comptabilite',
             sheets: [
                 {
-                    name: 'Résumé Financier',
+                    name: 'RÃ©sumÃ© Financier',
                     columns: summCols,
                     data: summaryData,
                 },
@@ -597,11 +662,11 @@ export function exportAccounting(
                     ],
                 },
                 {
-                    name: 'Dépenses',
+                    name: 'DÃ©penses',
                     columns: expCols,
                     data: expenses,
                     summaryRows: [
-                        [`TOTAL DÉPENSES (${currency})`, totalExpenses],
+                        [`TOTAL DÃ‰PENSES (${currency})`, totalExpenses],
                     ],
                 },
             ],
@@ -613,18 +678,18 @@ export function exportAccounting(
             filename: 'Stockman_Comptabilite',
             sections: [
                 {
-                    title: 'Résumé Financier',
+                    title: 'RÃ©sumÃ© Financier',
                     columns: [],
                     data: [],
                     kpiCards: [
                         { label: 'Chiffre d\'Affaires', value: `${totalRevenue.toLocaleString('fr-FR')} ${currency}` },
                         { label: 'Marge Brute', value: `${grossProfit.toLocaleString('fr-FR')} ${currency}` },
-                        { label: 'Dépenses', value: `${totalExpenses.toLocaleString('fr-FR')} ${currency}` },
-                        { label: 'Bénéfice Net', value: `${netProfit.toLocaleString('fr-FR')} ${currency}` },
+                        { label: 'DÃ©penses', value: `${totalExpenses.toLocaleString('fr-FR')} ${currency}` },
+                        { label: 'BÃ©nÃ©fice Net', value: `${netProfit.toLocaleString('fr-FR')} ${currency}` },
                     ],
                 },
                 {
-                    title: 'Indicateurs Financiers Détaillés',
+                    title: 'Indicateurs Financiers DÃ©taillÃ©s',
                     columns: summCols,
                     data: summaryData,
                 },
@@ -634,7 +699,7 @@ export function exportAccounting(
                     data: productPerf.slice(0, 30),
                 },
                 {
-                    title: 'Dépenses Opérationnelles',
+                    title: 'DÃ©penses OpÃ©rationnelles',
                     columns: expCols,
                     data: expenses,
                 },
@@ -651,25 +716,25 @@ export function exportOrders(
 ): void {
     const STATUS_FR: Record<string, string> = {
         pending: 'En attente',
-        ordered: 'Commandé',
-        received: 'Reçu',
+        ordered: 'CommandÃ©',
+        received: 'ReÃ§u',
         partial: 'Partiel',
-        cancelled: 'Annulé',
+        cancelled: 'AnnulÃ©',
     };
 
     const prepared = orders.map(o => ({
         ...o,
-        supplier_name: o.supplier_name || o.supplier?.name || '–',
+        supplier_name: o.supplier_name || o.supplier?.name || 'â€“',
         items_count: (o.items || []).length,
         total_amount:
             o.total_amount ||
             (o.items || []).reduce((s: number, i: any) => s + (i.total_price || 0), 0) ||
             0,
-        status_label: STATUS_FR[o.status] || o.status || '–',
+        status_label: STATUS_FR[o.status] || o.status || 'â€“',
     }));
 
     const columns: ExcelColumn[] = [
-        { key: 'order_number', label: 'N° Commande', width: 18 },
+        { key: 'order_number', label: 'NÂ° Commande', width: 18 },
         { key: 'supplier_name', label: 'Fournisseur', width: 26 },
         { key: 'created_at', label: 'Date', width: 16, type: 'date' },
         { key: 'status_label', label: 'Statut', width: 16 },
@@ -695,8 +760,8 @@ export function exportOrders(
                         ['TOTAL COMMANDES', prepared.length],
                         [`MONTANT TOTAL (${currency})`, totalAmount],
                         ['EN ATTENTE / EN COURS', pending],
-                        ['REÇUES', received],
-                        ['ANNULÉES', prepared.filter(o => o.status === 'cancelled').length],
+                        ['REÃ‡UES', received],
+                        ['ANNULÃ‰ES', prepared.filter(o => o.status === 'cancelled').length],
                     ],
                 },
             ],
@@ -714,7 +779,7 @@ export function exportOrders(
                         { label: 'Total Commandes', value: String(prepared.length) },
                         { label: `Montant Total`, value: `${totalAmount.toLocaleString('fr-FR')} ${currency}` },
                         { label: 'En Attente', value: String(pending) },
-                        { label: 'Reçues', value: String(received) },
+                        { label: 'ReÃ§ues', value: String(received) },
                     ],
                 },
                 {
@@ -737,19 +802,19 @@ export function exportActivity(
         { key: 'module', label: 'Module', width: 16 },
         { key: 'action', label: 'Action', width: 28 },
         { key: 'user_name', label: 'Utilisateur', width: 24 },
-        { key: 'description', label: 'Détails', width: 48 },
+        { key: 'description', label: 'DÃ©tails', width: 48 },
     ];
 
     const prepared = logs.map(l => ({
         ...l,
         created_at: l.created_at || l.timestamp || '',
-        user_name: l.user_name || l.user?.name || l.user_email || '–',
-        description: l.description || l.details || l.message || '–',
+        user_name: l.user_name || l.user?.name || l.user_email || 'â€“',
+        description: l.description || l.details || l.message || 'â€“',
     }));
 
     if (format === 'excel') {
         exportToExcel({
-            title: 'Journal d\'Activité',
+            title: 'Journal d\'ActivitÃ©',
             filename: 'Stockman_Activite',
             sheets: [
                 {
@@ -757,15 +822,15 @@ export function exportActivity(
                     columns,
                     data: prepared,
                     summaryRows: [
-                        ['TOTAL ENTRÉES', prepared.length],
-                        ['PÉRIODE', `${prepared.length > 0 ? new Date(prepared[prepared.length - 1].created_at).toLocaleDateString('fr-FR') : '–'} → ${prepared.length > 0 ? new Date(prepared[0].created_at).toLocaleDateString('fr-FR') : '–'}`],
+                        ['TOTAL ENTRÃ‰ES', prepared.length],
+                        ['PÃ‰RIODE', `${prepared.length > 0 ? new Date(prepared[prepared.length - 1].created_at).toLocaleDateString('fr-FR') : 'â€“'} â†’ ${prepared.length > 0 ? new Date(prepared[0].created_at).toLocaleDateString('fr-FR') : 'â€“'}`],
                     ],
                 },
             ],
         });
     } else {
         exportToPDF({
-            title: 'Journal d\'Activité Système',
+            title: 'Journal d\'ActivitÃ© SystÃ¨me',
             filename: 'Stockman_Activite',
             sections: [
                 {
@@ -793,7 +858,7 @@ export function exportDashboard(
         { label: 'Produits en Rupture', valeur: data?.out_of_stock_count || 0 },
         { label: 'Stock Faible (< min)', valeur: data?.low_stock_count || 0 },
         { label: 'Nouveaux Clients (mois)', valeur: data?.new_customers_month || 0 },
-        { label: 'Marge Brute Estimée', valeur: data?.gross_profit || 0 },
+        { label: 'Marge Brute EstimÃ©e', valeur: data?.gross_profit || 0 },
     ];
 
     const kpiCols: ExcelColumn[] = [
@@ -803,7 +868,7 @@ export function exportDashboard(
 
     const rawSales = data?.sales_chart || data?.daily_revenue || data?.revenue_chart || [];
     const salesData = rawSales.map((d: any) => ({
-        date: d.date || d.day || d._id || '–',
+        date: d.date || d.day || d._id || 'â€“',
         revenue: d.revenue || d.total || d.amount || 0,
         orders: d.orders || d.count || d.sales_count || 0,
     }));
@@ -838,7 +903,7 @@ export function exportDashboard(
     } else {
         const sections: PDFSection[] = [
             {
-                title: 'Indicateurs Clés de Performance',
+                title: 'Indicateurs ClÃ©s de Performance',
                 columns: [],
                 data: [],
                 kpiCards: [
@@ -848,10 +913,10 @@ export function exportDashboard(
                     { label: 'Ruptures', value: String(data?.out_of_stock_count || 0) },
                 ],
             },
-            { title: 'Détail des Métriques', columns: kpiCols, data: kpiRows },
+            { title: 'DÃ©tail des MÃ©triques', columns: kpiCols, data: kpiRows },
         ];
         if (salesData.length > 0) {
-            sections.push({ title: 'Évolution des Ventes', columns: salesCols, data: salesData });
+            sections.push({ title: 'Ã‰volution des Ventes', columns: salesCols, data: salesData });
         }
         exportToPDF({
             title: 'Tableau de Bord',

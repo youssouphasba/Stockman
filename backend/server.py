@@ -98,9 +98,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from services.import_service import ImportService
-from services.twilio_service import TwilioService
 from services.notification_service import NotificationService
 from services.catalog_service import CatalogService
+from services.firebase_service import init_firebase, verify_firebase_phone_token
 from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, RESTAURANT_SECTORS, is_production_sector
 from services import production_service
 try:
@@ -144,7 +144,6 @@ db = client[os.environ.get('DB_NAME', 'stock_management')]
 
 import_service = ImportService(db)
 catalog_service = CatalogService(db)
-twilio_service = TwilioService()
 notification_service = NotificationService()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -530,6 +529,8 @@ async def create_indexes_and_init():
     """Create essential indexes and initialize dynamic configs"""
     global rag_service
     try:
+        init_firebase()
+
         # Initialize RAG Service in background
         async def init_rag_and_migrations():
             global rag_service
@@ -660,6 +661,7 @@ async def create_indexes_and_init():
 
         # ── Email helper (Resend) ──────────────────────────────────────────
         RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+        RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "Stockman <noreply@stockman.app>")
 
         async def send_trial_reminder_email(to_email: str, name: str, days_left: int):
             """Send a trial expiry reminder via Resend (no extra package needed)."""
@@ -688,7 +690,7 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                         "https://api.resend.com/emails",
                         headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
                         json={
-                            "from": "Stockman <noreply@stockman.app>",
+                            "from": RESEND_FROM_EMAIL,
                             "to": [to_email],
                             "subject": subject,
                             "html": body,
@@ -1903,6 +1905,18 @@ def otp_matches(expected_digest: Optional[str], candidate: str) -> bool:
     return hmac.compare_digest(expected_digest, hash_otp_code(candidate))
 
 
+def normalize_phone_e164(phone: Optional[str]) -> Optional[str]:
+    if not phone:
+        return None
+    cleaned = re.sub(r"[^\d+]", "", phone.strip())
+    if cleaned.startswith("00"):
+        cleaned = f"+{cleaned[2:]}"
+    digits = re.sub(r"\D", "", cleaned)
+    if not digits:
+        return None
+    return f"+{digits}"
+
+
 def new_session_id() -> str:
     return f"sess_{uuid.uuid4().hex[:16]}"
 
@@ -2137,7 +2151,7 @@ def resolve_required_verification(role: str, plan: Optional[str], signup_surface
 
 def verification_provider(channel: Optional[str]) -> str:
     if channel == "phone":
-        return "twilio"
+        return "firebase"
     if channel == "email":
         return "resend"
     return "none"
@@ -2241,10 +2255,7 @@ async def send_email_otp_via_resend(to_email: str, name: Optional[str], otp: str
 async def dispatch_signup_verification_otp(user_doc: dict, otp: str) -> bool:
     channel = user_doc.get("required_verification")
     if channel == "phone":
-        phone = user_doc.get("phone")
-        if not phone:
-            raise ValueError("Phone number required for phone verification")
-        return await twilio_service.send_whatsapp_otp(phone, otp)
+        return True
     if channel == "email":
         return await send_email_otp_via_resend(user_doc.get("email"), user_doc.get("name"), otp)
     return True
@@ -4213,7 +4224,7 @@ async def admin_otp_stats(days: int = 30):
         "sent_today": sent_today,
         "verified_today": verified_today,
         "providers": {
-            "twilio": build_provider_stats("twilio"),
+            "firebase": build_provider_stats("firebase"),
             "resend": build_provider_stats("resend"),
         },
     }
@@ -7667,7 +7678,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         required_verification = resolve_required_verification(role, initial_plan, signup_surface)
         if required_verification == "phone" and not (user_data.phone or "").strip():
             raise HTTPException(status_code=400, detail="Le numero de telephone est requis pour verifier ce compte.")
-        otp = generate_otp_code()
+        otp = generate_otp_code() if required_verification == "email" else None
         otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
         trial_ends_at = datetime.now(timezone.utc) + timedelta(days=90)  # 3 months free trial
         user_doc = {
@@ -7696,11 +7707,11 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "signup_surface": signup_surface,
             "verification_completed_at": None,
             "phone_otp": None,
-            "phone_otp_digest": hash_otp_code(otp) if required_verification == "phone" else None,
-            "phone_otp_expiry": otp_expiry if required_verification == "phone" else None,
+            "phone_otp_digest": None,
+            "phone_otp_expiry": None,
             "phone_otp_attempts": 0,
             "email_otp": None,
-            "email_otp_digest": hash_otp_code(otp) if required_verification == "email" else None,
+            "email_otp_digest": hash_otp_code(otp) if required_verification == "email" and otp else None,
             "email_otp_expiry": otp_expiry if required_verification == "email" else None,
             "email_otp_attempts": 0,
             "auth_version": 1,
@@ -7767,7 +7778,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
 
         await log_verification_event("signup_completed", user_doc, channel=required_verification, success=True)
         try:
-            sent = await dispatch_signup_verification_otp(user_doc, otp)
+            sent = await dispatch_signup_verification_otp(user_doc, otp or "")
             await log_verification_event(
                 "otp_sent" if sent else "otp_send_failed",
                 user_doc,
@@ -7805,7 +7816,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         raise HTTPException(status_code=500, detail="Erreur lors de l'inscription")
 
 class VerifyPhoneRequest(BaseModel):
-    otp: str
+    firebase_id_token: Optional[str] = None
+    otp: Optional[str] = None
 
 
 class VerifyEmailRequest(BaseModel):
@@ -7817,118 +7829,105 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
     user_doc = await db.users.find_one({"user_id": current_user.user_id})
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
-    
-    # Security: check attempt limit
-    attempts = user_doc.get("phone_otp_attempts", 0)
-    if attempts >= 5:
-        raise HTTPException(status_code=429, detail="Trop de tentatives. Veuillez demander un nouveau code.")
-    
-    # Security: check OTP expiration
-    otp_expiry = user_doc.get("phone_otp_expiry")
-    if otp_expiry and datetime.now(timezone.utc) > otp_expiry:
-        await log_verification_event(
-            "otp_expired",
-            user_doc,
-            provider="twilio",
-            channel="phone",
-            success=False,
-            detail="verify_phone",
-        )
-        raise HTTPException(status_code=400, detail="Code expiré. Veuillez demander un nouveau code.")
-    
-    if otp_matches(user_doc.get("phone_otp_digest"), data.otp):
-        update_payload = {
-            "is_phone_verified": True,
-            "phone_otp": None,
-            "phone_otp_digest": None,
-            "phone_otp_expiry": None,
-            "phone_otp_attempts": 0,
-        }
-        if user_doc.get("required_verification") == "phone":
-            update_payload["verification_completed_at"] = datetime.now(timezone.utc)
-        await db.users.update_one(
-            {"user_id": current_user.user_id},
-            {"$set": update_payload}
-        )
-        # Audit trail (L3)
-        await db.security_events.insert_one({
-            "event_id": f"sec_{uuid.uuid4().hex[:12]}",
-            "type": "phone_verified",
-            "user_id": current_user.user_id,
-            "phone": user_doc.get("phone"),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        await log_verification_event(
-            "otp_verified",
-            {**user_doc, **update_payload},
-            provider="twilio",
-            channel="phone",
-            success=True,
-            detail="verify_phone",
-        )
-        updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
-        return {"message": "Téléphone vérifié avec succès", "user": await build_user_from_doc(updated_user)}
-    else:
-        # Increment failed attempts
-        await db.users.update_one(
-            {"user_id": current_user.user_id},
-            {"$inc": {"phone_otp_attempts": 1}}
-        )
+
+    if not data.firebase_id_token:
         await log_verification_event(
             "otp_verification_failed",
             user_doc,
-            provider="twilio",
+            provider="firebase",
             channel="phone",
             success=False,
-            detail="verify_phone",
+            detail="legacy_client_missing_firebase_token",
         )
-        raise HTTPException(status_code=400, detail="Code de vérification incorrect")
+        raise HTTPException(
+            status_code=400,
+            detail="Cette version de l'application n'est plus compatible avec la vérification téléphone. Mettez l'application à jour.",
+        )
+
+    try:
+        verified_phone = verify_firebase_phone_token(data.firebase_id_token)
+    except Exception as firebase_err:
+        await log_verification_event(
+            "otp_verification_failed",
+            user_doc,
+            provider="firebase",
+            channel="phone",
+            success=False,
+            detail=f"verify_phone:{firebase_err}",
+        )
+        raise HTTPException(status_code=400, detail="Code de vérification invalide ou expiré.")
+
+    expected_phone = normalize_phone_e164(user_doc.get("phone"))
+    firebase_phone = normalize_phone_e164(verified_phone.get("phone_number"))
+    if not expected_phone or not firebase_phone or expected_phone != firebase_phone:
+        await log_verification_event(
+            "otp_verification_failed",
+            user_doc,
+            provider="firebase",
+            channel="phone",
+            success=False,
+            detail="phone_number_mismatch",
+        )
+        raise HTTPException(status_code=400, detail="Le numéro vérifié ne correspond pas au compte.")
+
+    update_payload = {
+        "is_phone_verified": True,
+        "phone_otp": None,
+        "phone_otp_digest": None,
+        "phone_otp_expiry": None,
+        "phone_otp_attempts": 0,
+    }
+    if user_doc.get("required_verification") == "phone":
+        update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": update_payload}
+    )
+    await db.security_events.insert_one({
+        "event_id": f"sec_{uuid.uuid4().hex[:12]}",
+        "type": "phone_verified",
+        "user_id": current_user.user_id,
+        "phone": firebase_phone,
+        "provider": "firebase",
+        "firebase_uid": verified_phone.get("firebase_uid"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    await log_verification_event(
+        "otp_verified",
+        {**user_doc, **update_payload},
+        provider="firebase",
+        channel="phone",
+        success=True,
+        detail="verify_phone",
+    )
+    updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    return {"message": "Téléphone vérifié avec succès", "user": await build_user_from_doc(updated_user)}
 
 @api_router.post("/auth/resend-otp")
 @limiter.limit("2/minute")
 async def resend_otp(request: Request, current_user: User = Depends(require_auth)):
-    """Resend a new OTP via WhatsApp"""
-    user_doc = await db.users.find_one({"user_id": current_user.user_id})
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
-    
-    if user_doc.get("is_phone_verified"):
-        raise HTTPException(status_code=400, detail="Téléphone déjà vérifié")
-    
-    phone = user_doc.get("phone")
-    if not phone:
-        raise HTTPException(status_code=400, detail="Aucun numéro de téléphone associé au compte")
-    
-    # Generate new OTP
-    otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
-    
-    await db.users.update_one(
-        {"user_id": current_user.user_id},
-        {"$set": {
-            "phone_otp": None,
-            "phone_otp_digest": hash_otp_code(otp),
-            "phone_otp_expiry": otp_expiry,
-            "phone_otp_attempts": 0
-        }}
-    )
-    
-    # Refresh token rotation (optional here, but let's fulfill the plan requirements if called from elsewhere)
-    
-    # Send via WhatsApp
-    sent = False
-    try:
-        sent = await twilio_service.send_whatsapp_otp(phone, otp)
-    except Exception as e:
-        logger.error(f"Failed to send OTP via WhatsApp: {e}")
-    
-    if sent:
-        return {"message": "Nouveau code envoyé par WhatsApp"}
-    else:
-        response_data = {"message": "Le code a été généré mais l'envoi WhatsApp a échoué. Contactez le support."}
-        if not IS_PROD and os.environ.get("SHOW_OTP_FALLBACK") == "true":
-            response_data["otp_fallback"] = otp  # Double opt-in pour afficher l'OTP
-        return response_data
+
+    if user_doc.get("required_verification") == "email":
+        if user_doc.get("is_email_verified"):
+            raise HTTPException(status_code=400, detail="Email deja verifie")
+        return await resend_email_otp(request, current_user)
+
+    if user_doc.get("required_verification") == "phone":
+        await log_verification_event(
+            "otp_sent",
+            user_doc,
+            provider="firebase",
+            channel="phone",
+            success=True,
+            detail="resend_phone_client_side",
+        )
+        return {"message": "Le renvoi du code telephone est gere dans l'application.", "client_side": True}
+
+    return {"message": "Aucune verification supplementaire requise.", "client_side": False}
 
 @api_router.post("/auth/verify-email")
 @limiter.limit("5/minute")
@@ -8008,35 +8007,15 @@ async def resend_phone_otp(request: Request, current_user: User = Depends(requir
     if not phone:
         raise HTTPException(status_code=400, detail="Aucun numero de telephone associe au compte")
 
-    otp = generate_otp_code()
-    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
-    await db.users.update_one(
-        {"user_id": current_user.user_id},
-        {"$set": {"phone_otp": None, "phone_otp_digest": hash_otp_code(otp), "phone_otp_expiry": otp_expiry, "phone_otp_attempts": 0}}
-    )
-
-    sent = False
-    try:
-        sent = await twilio_service.send_whatsapp_otp(phone, otp)
-    except Exception as phone_err:
-        logger.error(f"Failed to send OTP via WhatsApp: {phone_err}")
-
     await log_verification_event(
-        "otp_sent" if sent else "otp_send_failed",
+        "otp_sent",
         user_doc,
-        provider="twilio",
+        provider="firebase",
         channel="phone",
-        success=bool(sent),
+        success=True,
         detail="resend_phone_otp",
     )
-
-    if sent:
-        return {"message": "Nouveau code envoye par WhatsApp"}
-
-    response_data = {"message": "Le code a ete genere mais l'envoi WhatsApp a echoue. Contactez le support."}
-    if not IS_PROD and os.environ.get("SHOW_OTP_FALLBACK") == "true":
-        response_data["otp_fallback"] = otp
-    return response_data
+    return {"message": "Le renvoi du code telephone est gere dans l'application.", "client_side": True}
 
 
 @api_router.post("/auth/resend-email-otp")
@@ -8244,20 +8223,15 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
 
 @api_router.put("/auth/profile")
 async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)):
-    """Update user profile fields (name, currency, country)."""
+    """Update user profile fields (excluding billing country/currency)."""
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
         return {"message": "Aucune modification"}
     if any(key in update for key in {"currency", "country_code"}):
-        owner_id = get_owner_id(user)
-        owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
-        account_doc = await ensure_business_account_for_user_doc(owner_doc) if owner_doc else None
-        source = account_doc or owner_doc
-        if has_locked_billing_country(source):
-            raise HTTPException(
-                status_code=400,
-                detail="La devise et le pays de facturation ne peuvent plus etre modifies apres le premier paiement.",
-            )
+        raise HTTPException(
+            status_code=400,
+            detail="Le pays et la devise de facturation sont definis a l'inscription et ne peuvent pas etre modifies depuis le profil.",
+        )
     await db.users.update_one({"user_id": user.user_id}, {"$set": update})
     shared_update = {k: v for k, v in update.items() if k in {"currency", "country_code", "business_type"}}
     if shared_update and (user.role == "superadmin" or "org_admin" in (user.account_roles or []) or "billing_admin" in (user.account_roles or [])):

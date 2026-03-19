@@ -18,8 +18,8 @@ import {
     Star,
     Zap,
 } from 'lucide-react';
-import { auth as authApi, settings as settingsApi, subscription as subApi, type SubscriptionData } from '../services/api';
-import { COUNTRIES } from '../../../shared/countries';
+import { settings as settingsApi, subscription as subApi, type SubscriptionData } from '../services/api';
+import { COUNTRIES } from '@/data/countries';
 
 type PlanId = 'starter' | 'pro' | 'enterprise';
 
@@ -102,8 +102,6 @@ export default function Subscription() {
     const [billingContactName, setBillingContactName] = useState('');
     const [billingContactEmail, setBillingContactEmail] = useState('');
     const [savingBillingContact, setSavingBillingContact] = useState(false);
-    const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
-    const [savingBillingCountry, setSavingBillingCountry] = useState(false);
 
     useEffect(() => {
         void loadSubDetails();
@@ -117,7 +115,6 @@ export default function Subscription() {
             setSubDetails(data);
             setBillingContactName(data.billing_contact_name || '');
             setBillingContactEmail(data.billing_contact_email || '');
-            setSelectedCountryCode(data.country_code || 'SN');
         } catch (err: any) {
             console.error('Subscription details error', err);
             setError(err?.message || 'Erreur de chargement');
@@ -174,23 +171,6 @@ export default function Subscription() {
         }
     };
 
-    const handleBillingCountrySave = async () => {
-        const selectedCountry = COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0];
-        setSavingBillingCountry(true);
-        try {
-            await authApi.updateProfile({
-                country_code: selectedCountry.code,
-                currency: selectedCountry.currency,
-            });
-            await loadSubDetails();
-        } catch (err) {
-            console.error('Billing country update error', err);
-            alert('Erreur lors de la mise a jour du pays de facturation.');
-        } finally {
-            setSavingBillingCountry(false);
-        }
-    };
-
     if (loading) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -203,7 +183,7 @@ export default function Subscription() {
     const isActive = subDetails?.status === 'active';
     const accessPhase = subDetails?.subscription_access_phase || 'active';
     const currency = subDetails?.currency || 'XOF';
-    const selectedCountry = COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0];
+    const billingCountry = COUNTRIES.find((country) => country.code === subDetails?.country_code) || COUNTRIES[0];
     const plans = (['starter', 'pro', 'enterprise'] as PlanId[]).map((planId) => {
         const quote = subDetails?.effective_prices?.[planId];
         return {
@@ -299,40 +279,30 @@ export default function Subscription() {
                     <div>
                         <h3 className="text-xl font-bold text-white">Pays et devise de facturation</h3>
                         <p className="text-sm text-slate-400">
-                            {subDetails?.can_change_billing_country
-                                ? 'Choisissez le pays qui doit servir de base a vos prix avant le premier paiement.'
-                                : 'Le pays et la devise sont verrouilles apres le premier paiement.'}
+                            Le pays de facturation est defini lors de l inscription et ne peut pas etre modifie depuis cet ecran.
                         </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm text-slate-400 mb-2">Pays de facturation</label>
-                        <select
-                            value={selectedCountryCode}
-                            onChange={(e) => setSelectedCountryCode(e.target.value)}
-                            disabled={!subDetails?.can_change_billing_country || savingBillingCountry}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white disabled:opacity-60"
-                        >
-                            {COUNTRIES.map((country) => (
-                                <option key={country.code} value={country.code}>
-                                    {country.flag} {country.name} ({country.currency})
-                                </option>
-                            ))}
-                        </select>
+                        <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white">
+                            {billingCountry.flag} {billingCountry.name}
+                        </div>
                         <p className="text-xs text-slate-500 mt-2">
-                            Devise affichee : {selectedCountry.currency} · Region : {subDetails?.pricing_region || 'fallback'}
+                            Region tarifaire : {subDetails?.pricing_region || 'fallback'}
                         </p>
                     </div>
-                    <button
-                        onClick={() => void handleBillingCountrySave()}
-                        disabled={!subDetails?.can_change_billing_country || savingBillingCountry}
-                        className="btn-primary px-6 py-3 rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {savingBillingCountry ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-                        {savingBillingCountry ? 'Enregistrement...' : 'Mettre a jour'}
-                    </button>
+                    <div>
+                        <label className="block text-sm text-slate-400 mb-2">Devise de facturation</label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white">
+                            {billingCountry.currency}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Si une correction est necessaire, elle doit passer par le support avant facturation.
+                        </p>
+                    </div>
                 </div>
             </div>
 

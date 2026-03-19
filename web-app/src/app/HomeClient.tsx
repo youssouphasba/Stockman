@@ -45,8 +45,8 @@ export default function Home() {
   const { t, ready, i18n } = useTranslation();
   const [isLogged, setIsLogged] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [email, setEmail] = useState('demo@stockman.pro');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [user, setUser] = useState<any>(null);
   const [features, setFeatures] = useState<UserFeatures | null>(null);
   const [modules, setModules] = useState<Record<string, boolean>>({});

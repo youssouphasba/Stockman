@@ -9,14 +9,19 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
-import { auth as authApi, ApiError } from '../../services/api';
+import { ApiError } from '../../services/api';
+import {
+    clearPhoneVerificationState,
+    confirmPhoneCode,
+    resendPhoneVerification,
+    sendPhoneVerification,
+} from '../../services/firebasePhoneAuth';
 
 import { useTranslation } from 'react-i18next';
 
@@ -27,6 +32,7 @@ export default function VerifyPhoneScreen() {
     const { verifyPhone, user } = useAuth();
     const router = useRouter();
     const [otp, setOtp] = useState('');
+    const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
@@ -40,6 +46,41 @@ export default function VerifyPhoneScreen() {
         return () => clearTimeout(timer);
     }, [cooldown]);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        async function bootstrapVerification() {
+            if (!user?.phone) {
+                setError(t('auth.verifyPhone.errorIncorrect'));
+                return;
+            }
+
+            setSending(true);
+            setError('');
+            setSuccess('');
+            try {
+                await sendPhoneVerification(user.phone);
+                if (!cancelled) {
+                    setCooldown(RESEND_COOLDOWN);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setError(e instanceof Error ? e.message : t('auth.verifyPhone.resendError'));
+                }
+            } finally {
+                if (!cancelled) {
+                    setSending(false);
+                }
+            }
+        }
+
+        void bootstrapVerification();
+        return () => {
+            cancelled = true;
+            clearPhoneVerificationState();
+        };
+    }, [t, user?.phone]);
+
     async function handleVerify() {
         if (otp.length !== 6) {
             setError(t('auth.verifyPhone.errorCode'));
@@ -50,37 +91,31 @@ export default function VerifyPhoneScreen() {
         setSuccess('');
         setLoading(true);
         try {
-            await verifyPhone(otp);
+            const firebaseIdToken = await confirmPhoneCode(otp);
+            await verifyPhone(firebaseIdToken);
             router.replace('/(tabs)');
         } catch (e) {
-            setError(e instanceof ApiError ? e.message : t('auth.verifyPhone.errorIncorrect'));
+            setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.errorIncorrect'));
         } finally {
             setLoading(false);
         }
     }
 
     const handleResend = useCallback(async () => {
-        if (cooldown > 0 || resending) return;
+        if (cooldown > 0 || resending || !user?.phone) return;
         setResending(true);
         setError('');
         setSuccess('');
         try {
-            const result = await authApi.resendPhoneOtp();
-            setSuccess(result.message);
-            // In dev mode, show the OTP fallback if WhatsApp failed
-            if (result.otp_fallback) {
-                Alert.alert(
-                    "Code de test (DEV)",
-                    `Votre code OTP : ${result.otp_fallback}\n\n(Visible uniquement en mode développement)`,
-                );
-            }
+            await resendPhoneVerification(user.phone);
+            setSuccess(t('auth.verifyPhone.sentTo', { phone: user.phone || t('common.none') }));
             setCooldown(RESEND_COOLDOWN);
         } catch (e) {
-            setError(e instanceof ApiError ? e.message : t('auth.verifyPhone.resendError'));
+            setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.resendError'));
         } finally {
             setResending(false);
         }
-    }, [cooldown, resending]);
+    }, [cooldown, resending, t, user?.phone]);
 
     return (
         <LinearGradient colors={[Colors.bgDark, Colors.bgMid]} style={styles.gradient}>
@@ -96,9 +131,6 @@ export default function VerifyPhoneScreen() {
                         <Text style={styles.title}>{t('auth.verifyPhone.title')}</Text>
                         <Text style={styles.subtitle}>
                             {t('auth.verifyPhone.sentTo', { phone: user?.phone || t('common.none') })}
-                        </Text>
-                        <Text style={[styles.subtitle, { marginTop: 4, fontWeight: '600', color: Colors.primaryLight }]}>
-                            {t('auth.verifyPhone.testTip')}
                         </Text>
                     </View>
 
@@ -134,11 +166,11 @@ export default function VerifyPhoneScreen() {
                         </View>
 
                         <TouchableOpacity
-                            style={[styles.button, (loading || otp.length !== 6) && styles.buttonDisabled]}
+                            style={[styles.button, (loading || sending || otp.length !== 6) && styles.buttonDisabled]}
                             onPress={handleVerify}
-                            disabled={loading || otp.length !== 6}
+                            disabled={loading || sending || otp.length !== 6}
                         >
-                            {loading ? (
+                            {loading || sending ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
                                 <Text style={styles.buttonText}>{t('auth.verifyPhone.verify')}</Text>

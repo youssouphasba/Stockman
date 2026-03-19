@@ -27,7 +27,7 @@ type AuthState = {
   hasOperationalAccess: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
-  verifyPhone: (otp: string) => Promise<User>;
+  verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
   restoreSession: () => Promise<User | null>;
   logout: () => Promise<void>;
@@ -186,8 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   }
 
-  async function verifyPhone(otp: string) {
-    const response = await authApi.verifyPhone(otp);
+  async function verifyPhone(firebaseIdToken: string) {
+    const response = await authApi.verifyPhone(firebaseIdToken);
     setUser(response.user);
     return response.user;
   }

@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -1857,7 +1857,12 @@
     "stock_inventory": "Stock & Inventory",
     "supplier_portal": "Supplier Portal",
     "system": "System",
-    "system_history": "System History"
+    "system_history": "System History",
+    "kitchen": "Kitchen",
+    "recipes": "Recipes",
+    "reports": "Reports",
+    "reservations": "Reservations",
+    "tables": "Tables"
   },
   "stock": {
     "reasons": {
@@ -2261,6 +2266,20 @@
     "whatsapp_invite_msg": "您好 {{name}} ！\n\n这是您的 Stockman 应用访问权限：\n📧 电子邮件：{{email}}\n🔑 密码：{{password}}\n\n您可以在此处访问应用：{{url}}\n\n祝工作愉快！",
     "whatsapp_invite_prompt": "您想通过 WhatsApp 发送访问权限吗？",
     "whatsapp_invite_send": "发送",
-    "whatsapp_not_installed": "此设备上未安装 WhatsApp。"
+    "whatsapp_not_installed": "此设备上未安装 WhatsApp。",
+    "subtitle_empty": "Manage your employees and their access to modules."
+  },
+  "staff": {
+    "module_pos": "Sales (POS)",
+    "module_stock": "Stock",
+    "module_accounting": "Accounting",
+    "module_crm": "Customers (CRM)",
+    "module_suppliers": "Suppliers",
+    "module_team": "Team Management",
+    "role_cashier": "Cashier",
+    "role_stock": "Stock",
+    "role_accountant": "Accountant",
+    "role_manager": "Manager",
+    "role_crm": "CRM / Customers"
   }
 }
