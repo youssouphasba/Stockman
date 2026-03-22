@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher';
 import {
   APP_LOGIN_URL,
@@ -14,6 +15,7 @@ type MarketingNavProps = {
 };
 
 export default function MarketingNav({ active }: MarketingNavProps) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = () => setMenuOpen(false);
@@ -37,7 +39,7 @@ export default function MarketingNav({ active }: MarketingNavProps) {
         </button>
 
         <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-          <button className="mobile-menu-close" onClick={closeMenu} aria-label="Fermer">x</button>
+          <button className="mobile-menu-close" onClick={closeMenu} aria-label={t('nav.close')}>x</button>
           <div className="mobile-menu-header">
             <span className="text-gradient" style={{ fontSize: '1.3rem', fontWeight: 800 }}>Stockman</span>
           </div>
@@ -47,28 +49,28 @@ export default function MarketingNav({ active }: MarketingNavProps) {
             className={`nav-link desktop-only${active === 'home' ? ' nav-link-active' : ''}`}
             onClick={closeMenu}
           >
-            Accueil
+            {t('nav.home')}
           </Link>
           <Link
             to={LANDING_BUSINESS_TYPES_PATH}
             className={`nav-link desktop-only${active === 'business-types' ? ' nav-link-active' : ''}`}
             onClick={closeMenu}
           >
-            Business types
+            {t('nav.business_types')}
           </Link>
           <Link
             to="/enterprise"
             className={`nav-link desktop-only${active === 'enterprise' ? ' nav-link-active' : ''}`}
             onClick={closeMenu}
           >
-            Enterprise
+            {t('nav.enterprise')}
           </Link>
           <Link
             to={LANDING_DEMO_PATH}
             className={`nav-link desktop-only${active === 'demo' ? ' nav-link-active' : ''}`}
             onClick={closeMenu}
           >
-            Demo
+            {t('nav.demo')}
           </Link>
           <a
             href={ENTERPRISE_FEATURES_URL}
@@ -77,28 +79,28 @@ export default function MarketingNav({ active }: MarketingNavProps) {
             className="nav-link desktop-only"
             onClick={closeMenu}
           >
-            App web
+            {t('nav.web_app')}
           </a>
-          <Link to="/blog" className="nav-link desktop-only" onClick={closeMenu}>Blog</Link>
+          <Link to="/blog" className="nav-link desktop-only" onClick={closeMenu}>{t('nav.blog')}</Link>
 
           <div className="mobile-menu-section">
-            <span className="mobile-menu-label">Parcours</span>
-            <Link to="/" className="nav-link" onClick={closeMenu}>Accueil</Link>
-            <Link to="/enterprise" className="nav-link" onClick={closeMenu}>Enterprise</Link>
-            <Link to={LANDING_BUSINESS_TYPES_PATH} className="nav-link" onClick={closeMenu}>Business types</Link>
-            <Link to={LANDING_DEMO_PATH} className="nav-link" onClick={closeMenu}>Demo</Link>
+            <span className="mobile-menu-label">{t('nav.paths')}</span>
+            <Link to="/" className="nav-link" onClick={closeMenu}>{t('nav.home')}</Link>
+            <Link to="/enterprise" className="nav-link" onClick={closeMenu}>{t('nav.enterprise')}</Link>
+            <Link to={LANDING_BUSINESS_TYPES_PATH} className="nav-link" onClick={closeMenu}>{t('nav.business_types')}</Link>
+            <Link to={LANDING_DEMO_PATH} className="nav-link" onClick={closeMenu}>{t('nav.demo')}</Link>
           </div>
 
           <div className="mobile-menu-section">
-            <span className="mobile-menu-label">Acces</span>
+            <span className="mobile-menu-label">{t('nav.access')}</span>
             <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="nav-link" onClick={closeMenu}>
-              Voir l'app web
+              {t('nav.view_web_app')}
             </a>
             <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="nav-link" onClick={closeMenu}>
-              Ouvrir l'app mobile
+              {t('nav.open_mobile_app')}
             </a>
             <a href={APP_LOGIN_URL} target="_blank" rel="noopener noreferrer" className="nav-link" onClick={closeMenu}>
-              Connexion
+              {t('nav.login')}
             </a>
           </div>
 
@@ -107,10 +109,10 @@ export default function MarketingNav({ active }: MarketingNavProps) {
           </div>
 
           <a href={APP_LOGIN_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary nav-login" onClick={closeMenu}>
-            Se connecter
+            {t('nav.login')}
           </a>
           <Link to="/enterprise" className="btn-primary" onClick={closeMenu}>
-            Essayer Enterprise
+            {t('nav.try_enterprise')}
           </Link>
         </div>
 

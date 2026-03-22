@@ -1482,7 +1482,11 @@ export const auth = {
         } finally {
             removeToken();
         }
-    }
+    },
+    deleteAccount: (password: string) => request<{ message: string }>('/profile', {
+        method: 'DELETE',
+        body: { password },
+    }),
 };
 
 export const products = {
@@ -2178,6 +2182,7 @@ export const admin = {
         return request<any>(`/admin/products?${qs.toString()}`);
     },
     toggleUser: (id: string) => request<any>(`/admin/users/${id}/toggle`, { method: 'PUT' }),
+    deleteUser: (email: string) => request<any>(`/admin/users?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
     toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),
     deleteProduct: (id: string) => request<any>(`/admin/products/${id}`, { method: 'DELETE' }),
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),

@@ -8,8 +8,8 @@ const Features: React.FC = () => {
     return (
         <section id="features" className="features container reveal">
             <div className="section-title">
-                <h2>Tout ce qu&apos;il vous faut pour bien gerer</h2>
-                <p className="text-muted">Stock, ventes, caisse, fournisseurs, clients et comptabilite dans une seule solution.</p>
+                <h2>{t('features.title')}</h2>
+                <p className="text-muted">{t('features.subtitle')}</p>
             </div>
 
             <div className="features-grid">

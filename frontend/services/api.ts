@@ -1188,6 +1188,8 @@ export const admin = {
   // User management
   toggleUser: (userId: string) =>
     request<{ user_id: string; is_active: boolean }>(`/admin/users/${userId}/toggle`, { method: 'PUT' }),
+  deleteUser: (email: string) =>
+    request<{ status: string; deleted_email: string; details: Record<string, number> }>(`/admin/users?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
 
   // Support
   listTickets: (status?: string) => request<SupportTicket[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),

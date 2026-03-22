@@ -19,7 +19,7 @@ export default function MarketingFooter() {
               <span className="text-gradient">Stockman</span>
             </div>
             <p className="text-muted">
-              Logiciel de gestion de stock, caisse POS et back-office web pour commerces, restaurants et entreprises.
+              {t('marketing_footer.desc')}
             </p>
           </div>
 

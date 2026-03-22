@@ -3,9 +3,19 @@
         "features": "Features",
         "resources": "Resources",
         "blog": "Blog",
-        "home": "Login",
+        "home": "Home",
         "login": "Log In",
-        "free_trial": "Free Trial"
+        "free_trial": "Free Trial",
+        "business_types": "Business Types",
+        "enterprise": "Enterprise",
+        "demo": "Demo",
+        "web_app": "Web App",
+        "try_enterprise": "Try Enterprise",
+        "paths": "Explore",
+        "access": "Access",
+        "view_web_app": "View Web App",
+        "open_mobile_app": "Open Mobile App",
+        "close": "Close"
     },
     "hero": {
         "title_start": "Unleash the potential of your",
@@ -122,8 +132,15 @@
             "f5": "Multi-team management",
             "f6": "Mobile app included for your teams",
             "cta": "Contact Us",
-            "cta_start": "Start Enterprise Trial →"
-        }
+            "cta_start": "Start Enterprise Trial →",
+            "cta_discover": "View Enterprise Web App",
+            "cta_signup": "Create My Account"
+        },
+        "starter_cta": "Start on Mobile",
+        "pro_cta": "Continue on Mobile",
+        "enterprise_title": "Enterprise to manage, mobile to execute",
+        "enterprise_subtitle": "Enterprise adds a full web back-office, while keeping the mobile app for teams in the field.",
+        "currency_label": "Show prices for:"
     },
     "faq": {
         "title": "Frequently Asked Questions",
@@ -132,9 +149,21 @@
         "q2": "Is my data secure?",
         "a2": "Absolutely. We use bank-level encryption to protect all your business information."
     },
+    "business_preview": {
+        "title": "Choose the experience that fits your business",
+        "subtitle": "Retail, restaurants or light production: discover the right path and tools for your way of working.",
+        "commerce_h3": "For your shops and points of sale",
+        "restauration_h3": "For your restaurant and kitchen",
+        "production_h3": "For your workshop and manufacturing"
+    },
     "download": {
-        "title": "Ready to take it to the next level?",
-        "subtitle": "Join thousands of merchants who have modernized their management.",
+        "title": "Start from the right entry point",
+        "subtitle": "Begin on mobile to manage your shop daily, or go Enterprise if you need a web command center for your organization.",
+        "mobile_app": "Mobile App",
+        "web_enterprise": "Enterprise Web App",
+        "badge_mobile": "Field Mobile",
+        "badge_web": "Web Enterprise",
+        "badge_business": "Business types covered",
         "app_store": "App Store",
         "google_play": "Google Play",
         "secure": "Secure Payments",
@@ -583,6 +612,7 @@
         "content": "<p>Welcome to Stockman. Protecting your personal data is a priority for us.</p><h3>1. Data Collection</h3><p>We collect: identification information (name, email, phone), professional data (store, inventory, transactions), technical data (IP, device, logs).</p><h3>2. Data Usage</h3><p>Your data is used exclusively for: managing your stock and sales, securing your account, improving our services and complying with our legal obligations.</p><h3>3. Storage and Security</h3><p>Your data is stored on secure servers (MongoDB Atlas) and encrypted at rest. We use the HTTPS protocol for all transfers.</p><h3>4. Data Sharing</h3><p>We do not sell or rent your data. It may only be shared with our technical service providers and authorities if required by law.</p><h3>5. Your Rights (GDPR)</h3><p>You have the rights of access, rectification, erasure and portability. Exercise these rights from the Settings tab of the app.</p><h3>6. Contact</h3><p>For any questions, contact us through the app or at <a href='mailto:contact@stockman.pro' style='color:var(--primary)'>contact@stockman.pro</a>.</p>"
     },
     "marketing_footer": {
+        "desc": "Stock management software, POS register and web back-office for shops, restaurants and businesses.",
         "product": "Product",
         "access": "Access",
         "legal": "Legal",
@@ -832,6 +862,7 @@
         "badge": "Try in Demo mode",
         "h1": "Choose the demo that truly shows your reality",
         "subtitle": "Field merchants and businesses don't need to see the same thing. Choose the right path from the start to test the right product promise, especially if you're looking for a real management tool on a computer for a supermarket, shop network, distribution, or logistics activity.",
+        "subtitle_short": "Pick the path that matches your business and start testing right away.",
         "instant_step1_title": "Choose your path",
         "instant_step1_desc": "Pick the demo that matches your activity best: commerce, restaurant, or enterprise.",
         "instant_step2_title": "The demo starts right away",

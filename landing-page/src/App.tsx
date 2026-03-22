@@ -14,10 +14,8 @@ import EnterprisePage from './EnterprisePage';
 import BusinessTypesPage from './BusinessTypesPage';
 import DemoSelectorPage from './DemoSelectorPage';
 
-import ComparisonTable from './components/ComparisonTable';
 import CookieBanner from './components/CookieBanner';
 import WhatsAppButton from './components/WhatsAppButton';
-import Newsletter from './components/Newsletter';
 import SEO from './components/SEO';
 import ContactSection from './components/ContactSection';
 import Analytics from './components/Analytics';
@@ -141,21 +139,15 @@ function Landing() {
 
       <section className="container business-preview reveal">
         <div className="section-title">
-          <h2>Choisissez l&apos;experience qui correspond a votre activite</h2>
-          <p className="text-muted">
-            Commerce, restauration ou production legere: decouvrez le bon parcours et les bons outils selon votre facon de travailler.
-          </p>
+          <h2>{t('business_preview.title')}</h2>
+          <p className="text-muted">{t('business_preview.subtitle')}</p>
         </div>
         <div className="enterprise-grid">
           {BUSINESS_TYPE_GROUPS.map((group) => (
             <Link key={group.slug} to="/business-types" style={{ textDecoration: 'none' }}>
               <article className="glass-card enterprise-card business-preview-card">
                 <p className="business-card-eyebrow">{group.title}</p>
-                <h3>
-                  {group.title === 'Commerce' && 'Pour vos boutiques et points de vente'}
-                  {group.title === 'Restauration' && 'Pour votre service et votre cuisine'}
-                  {group.title === 'Production' && 'Pour votre atelier et votre fabrication'}
-                </h3>
+                <h3>{t(`business_preview.${group.slug}_h3`)}</h3>
                 <p>{group.overview}</p>
                 <div className="tag-list">
                   {group.tags.slice(0, 4).map((tag) => (
@@ -167,10 +159,6 @@ function Landing() {
           ))}
         </div>
       </section>
-
-      <div className="container" style={{ position: 'relative', zIndex: 10 }}>
-        <ComparisonTable />
-      </div>
 
       <section className="stats-section reveal reveal-left">
         <div className="container">
@@ -199,36 +187,6 @@ function Landing() {
 
       <Features />
 
-      <section className="how-it-works container reveal reveal-right">
-        <div className="section-title">
-          <h2>Commencez simplement</h2>
-          <p className="text-muted">Créez votre compte, ajoutez vos produits et commencez à vendre rapidement.</p>
-        </div>
-        <div className="steps-grid">
-          <div className="step-card glass-card">
-            <div className="step-number">1</div>
-            <div className="step-content">
-              <h3>Créez votre compte</h3>
-              <p>Installez l&apos;application et configurez votre boutique en quelques minutes.</p>
-            </div>
-          </div>
-          <div className="step-card glass-card">
-            <div className="step-number">2</div>
-            <div className="step-content">
-              <h3>Ajoutez vos produits</h3>
-              <p>Importez votre stock ou scannez vos articles pour être prêt à vendre rapidement.</p>
-            </div>
-          </div>
-          <div className="step-card glass-card">
-            <div className="step-number">3</div>
-            <div className="step-content">
-              <h3>Vendez et suivez</h3>
-              <p>Encaissez vos premières ventes et gardez une vue claire sur votre activité.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="testimonials container reveal">
         <div className="section-title">
           <h2>{t('testimonials.title')}</h2>
@@ -252,14 +210,12 @@ function Landing() {
 
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
-          <h2>{profile === 'enterprise' ? 'Enterprise pour piloter, mobile pour executer' : t('pricing.title')}</h2>
+          <h2>{profile === 'enterprise' ? t('pricing.enterprise_title') : t('pricing.title')}</h2>
           <p className="text-muted">
-            {profile === 'enterprise'
-              ? 'Enterprise ajoute un back-office web complet, tout en gardant l application mobile pour les equipes sur le terrain.'
-              : t('pricing.subtitle')}
+            {profile === 'enterprise' ? t('pricing.enterprise_subtitle') : t('pricing.subtitle')}
           </p>
           <div className="pricing-currency-switcher">
-            <span className="pricing-currency-label">Afficher les prix pour :</span>
+            <span className="pricing-currency-label">{t('pricing.currency_label')}</span>
             <div className="pricing-currency-tabs" style={{ minWidth: 280 }}>
               <select
                 value={selectedCountryCode}
@@ -295,7 +251,7 @@ function Landing() {
                 className="btn-primary"
                 style={{ background: 'rgba(255,255,255,0.1)', display: 'block', textAlign: 'center', width: '100%' }}
               >
-                Demarrer sur mobile
+                {t('pricing.starter_cta')}
               </a>
             </div>
 
@@ -317,7 +273,7 @@ function Landing() {
                 className="btn-primary"
                 style={{ display: 'block', textAlign: 'center', width: '100%' }}
               >
-                Continuer sur mobile
+                {t('pricing.pro_cta')}
               </a>
             </div>
           </div>
@@ -328,11 +284,11 @@ function Landing() {
               <h3>Enterprise</h3>
               <div className="price">{pricingData?.plans.enterprise.display_price || '9 900 FCFA'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
-                <li><span className="check-icon">OK</span> App web back-office</li>
-                <li><span className="check-icon">OK</span> Mobile terrain inclus pour les equipes</li>
-                <li><span className="check-icon">OK</span> Multi-boutiques et staff illimites</li>
-                <li><span className="check-icon">OK</span> Dashboard, POS, CRM et comptabilite web</li>
-                <li><span className="check-icon">OK</span> Analyses avancees par activite</li>
+                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f1')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f2')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f3')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f4')}</li>
+                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f5')}</li>
               </ul>
               <div className="section-cta-row">
                 <a
@@ -342,7 +298,7 @@ function Landing() {
                   className="btn-primary"
                   style={{ display: 'block', textAlign: 'center' }}
                 >
-                  Voir l&apos;app web Enterprise
+                  {t('pricing.enterprise.cta_discover')}
                 </a>
                 <a
                   href={ENTERPRISE_SIGNUP_URL}
@@ -351,15 +307,13 @@ function Landing() {
                   className="btn-secondary"
                   style={{ display: 'block', textAlign: 'center' }}
                 >
-                  Creer mon compte
+                  {t('pricing.enterprise.cta_signup')}
                 </a>
               </div>
             </div>
           </div>
         )}
       </section>
-
-      <Newsletter />
 
       <ContactSection />
 
@@ -382,23 +336,20 @@ function Landing() {
         </div>
 
         <div className="download-banner reveal">
-          <h2>Demarrez par le bon point d&apos;entree</h2>
-          <p>
-            Commencez sur mobile pour gerer votre boutique au quotidien, ou passez par Enterprise si vous avez besoin
-            d&apos;un poste de pilotage web pour votre organisation.
-          </p>
+          <h2>{t('download.title')}</h2>
+          <p>{t('download.subtitle')}</p>
           <div className="download-buttons">
             <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="store-btn">
-              App mobile
+              {t('download.mobile_app')}
             </a>
             <a href={ENTERPRISE_FEATURES_URL} target="_blank" rel="noopener noreferrer" className="store-btn">
-              App web Enterprise
+              {t('download.web_enterprise')}
             </a>
           </div>
           <div className="trust-badges">
-            <div className="badge">Mobile terrain</div>
-            <div className="badge">Web Enterprise</div>
-            <div className="badge">Business types couverts</div>
+            <div className="badge">{t('download.badge_mobile')}</div>
+            <div className="badge">{t('download.badge_web')}</div>
+            <div className="badge">{t('download.badge_business')}</div>
           </div>
         </div>
       </section>

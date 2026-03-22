@@ -168,6 +168,27 @@ export default function AdminDashboard() {
             ]
         );
     };
+    const handleDeleteUser = async (u: any) => {
+        Alert.alert(
+            'Supprimer ce compte ?',
+            `Cette action est irréversible. Toutes les données de "${u.name}" (${u.email}) seront supprimées : produits, ventes, clients, boutiques, staff...`,
+            [
+                { text: t('admin.actions.cancel'), style: 'cancel' },
+                {
+                    text: 'Supprimer', style: 'destructive', onPress: async () => {
+                        try {
+                            await admin.deleteUser(u.email);
+                            loadData();
+                            Alert.alert('Compte supprimé', `"${u.name}" et toutes ses données ont été supprimés.`);
+                        } catch {
+                            Alert.alert(t('admin.actions.error'));
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleToggleProduct = async (p: Product) => {
         try {
             await admin.toggleProduct(p.product_id);
@@ -430,6 +451,9 @@ export default function AdminDashboard() {
                                     <Badge label={u.is_active === false ? t('admin.users.banned') : t('admin.users.active')} color={u.is_active === false ? '#EF4444' : '#10B981'} />
                                 </TouchableOpacity>
                             </View>
+                            <TouchableOpacity onPress={() => handleDeleteUser(u)} style={{ marginTop: 4 }}>
+                                <Badge label="Supprimer" color="#DC2626" />
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </Card>

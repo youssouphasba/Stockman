@@ -203,6 +203,9 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     const [newLocName, setNewLocName] = useState('');
     const [newLocType, setNewLocType] = useState('shelf');
     const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    const [deletePassword, setDeletePassword] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
 
     const notificationContactFields = NOTIFICATION_CONTACT_FIELDS.map((field) => ({
         ...field,
@@ -1070,6 +1073,65 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                 <LogOut size={18} />
                                 {t('settings_workspace.security.logout.submit')}
                             </button>
+                        </SectionCard>
+
+                        <SectionCard
+                            icon={<Trash2 size={24} className="text-red-500" />}
+                            title={t('modals.deleteAccount.dangerZone')}
+                            scope={t('settings_workspace.scopes.user')}
+                            description={t('modals.deleteAccount.warningText')}
+                            actionHint={t('modals.deleteAccount.confirmationDesc')}
+                        >
+                            {!showDeleteConfirm ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-red-500/10 px-6 py-3 font-bold text-red-400 transition-colors hover:bg-red-500 hover:text-white"
+                                >
+                                    <Trash2 size={18} />
+                                    {t('modals.deleteAccount.deleteBtn')}
+                                </button>
+                            ) : (
+                                <div className="space-y-4">
+                                    <Field label={t('modals.deleteAccount.confirmPasswordLabel')} hint={t('modals.deleteAccount.confirmPasswordPlaceholder')}>
+                                        <input
+                                            type="password"
+                                            value={deletePassword}
+                                            onChange={(e) => setDeletePassword(e.target.value)}
+                                            placeholder={t('modals.deleteAccount.confirmPasswordPlaceholder')}
+                                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30"
+                                        />
+                                    </Field>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
+                                            className="inline-flex items-center gap-2 rounded-2xl bg-white/5 px-6 py-3 font-bold text-slate-300 transition-colors hover:bg-white/10"
+                                        >
+                                            {t('modals.cancel')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={!deletePassword || deletingAccount}
+                                            onClick={async () => {
+                                                setDeletingAccount(true);
+                                                try {
+                                                    await authApi.deleteAccount(deletePassword);
+                                                    authApi.logout();
+                                                    window.location.reload();
+                                                } catch (err: any) {
+                                                    setBanner({ tone: 'error', message: err?.message || t('modals.deleteAccount.errorDelete') });
+                                                    setDeletingAccount(false);
+                                                }
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-2xl bg-red-500/20 px-6 py-3 font-bold text-red-400 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-40"
+                                        >
+                                            <Trash2 size={18} />
+                                            {deletingAccount ? t('settings_workspace.actions.saving') : t('modals.deleteAccount.deleteAllBtn')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </SectionCard>
                     </>
                 ) : null}

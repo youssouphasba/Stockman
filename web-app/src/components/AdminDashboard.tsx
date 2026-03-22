@@ -184,6 +184,8 @@ export default function AdminDashboard() {
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
+    const [deletingUser, setDeletingUser] = useState<string | null>(null);
+    const [confirmDeleteUser, setConfirmDeleteUser] = useState<{ user_id: string; email: string; name: string } | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
@@ -353,6 +355,21 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleDeleteUser = async () => {
+        if (!confirmDeleteUser) return;
+        setDeletingUser(confirmDeleteUser.user_id);
+        try {
+            await adminApi.deleteUser(confirmDeleteUser.email);
+            setUsers(prev => prev.filter(u => u.user_id !== confirmDeleteUser.user_id));
+            showToast(`Compte "${confirmDeleteUser.name}" supprimé avec toutes ses données.`);
+        } catch {
+            showToast('Erreur lors de la suppression.', 'error');
+        } finally {
+            setDeletingUser(null);
+            setConfirmDeleteUser(null);
+        }
+    };
+
     const handleReplyTicket = async () => {
         if (!replyTicketId || !replyContent.trim()) return;
         setReplying(true);
@@ -454,6 +471,47 @@ export default function AdminDashboard() {
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {/* Delete user confirmation modal */}
+            {confirmDeleteUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-xl bg-red-500/10">
+                                <Trash2 size={20} className="text-red-400" />
+                            </div>
+                            <h3 className="text-lg font-black text-white">Supprimer ce compte ?</h3>
+                        </div>
+                        <p className="text-slate-400 text-sm mb-2">
+                            Cette action est <span className="text-red-400 font-bold">irréversible</span>. Toutes les données seront supprimées :
+                        </p>
+                        <ul className="text-xs text-slate-500 mb-4 list-disc list-inside">
+                            <li>Produits, ventes, clients, dépenses</li>
+                            <li>Boutiques, alertes, fournisseurs</li>
+                            <li>Sous-utilisateurs (staff)</li>
+                        </ul>
+                        <div className="bg-white/5 rounded-xl p-3 mb-5">
+                            <p className="text-white font-bold text-sm">{confirmDeleteUser.name}</p>
+                            <p className="text-slate-500 text-xs">{confirmDeleteUser.email}</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmDeleteUser(null)}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleDeleteUser}
+                                disabled={!!deletingUser}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/30 transition-all disabled:opacity-40"
+                            >
+                                {deletingUser ? 'Suppression...' : 'Supprimer définitivement'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <header className="flex justify-between items-center mb-10">
                 <div>
@@ -997,7 +1055,7 @@ export default function AdminDashboard() {
                                                 {user.is_active !== false ? 'Actif' : 'Banni'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => handleToggleUser(user.user_id, user.is_active !== false)}
                                                 disabled={togglingUser === user.user_id}
@@ -1007,6 +1065,17 @@ export default function AdminDashboard() {
                                                 {togglingUser === user.user_id
                                                     ? <RefreshCw size={15} className="animate-spin" />
                                                     : user.is_active !== false ? <Lock size={15} /> : <Unlock size={15} />
+                                                }
+                                            </button>
+                                            <button
+                                                onClick={() => setConfirmDeleteUser({ user_id: user.user_id, email: user.email, name: user.name })}
+                                                disabled={deletingUser === user.user_id}
+                                                className="p-2 rounded-lg transition-all text-slate-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+                                                title="Supprimer le compte"
+                                            >
+                                                {deletingUser === user.user_id
+                                                    ? <RefreshCw size={15} className="animate-spin" />
+                                                    : <Trash2 size={15} />
                                                 }
                                             </button>
                                         </td>

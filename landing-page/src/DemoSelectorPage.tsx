@@ -176,93 +176,46 @@ export default function DemoSelectorPage() {
         <div className="section-title">
           <span className="badge-premium">{t('demo_page.badge')}</span>
           <h1>{t('demo_page.h1')}</h1>
-          <p className="text-muted">{t('demo_page.subtitle')}</p>
+          <p className="text-muted">{t('demo_page.subtitle_short')}</p>
         </div>
-      </section>
-
-      <section className="container reveal">
-        <div className="glass-card demo-intro-card">
-          <div className="demo-steps">
-            <div className="demo-step">
-              <span className="demo-step-number">1</span>
-              <div>
-                <strong>{t('demo_page.instant_step1_title')}</strong>
-                <p>{t('demo_page.instant_step1_desc')}</p>
-              </div>
+        {error ? <p className="signup-error">{error}</p> : null}
+        {success ? (
+          <div className="glass-card demo-success-panel" style={{ marginTop: 'var(--spacing-md)' }}>
+            <h3>{t('demo_page.success_title')}</h3>
+            <p>{t('demo_page.success_desc', {
+              title: t(`demo_page.choices.${success.choiceId}.title`),
+            })}</p>
+            <p className="text-muted">
+              {t('demo_page.success_meta', {
+                label: success.demoSession.label,
+                surface: t(`demo_page.surface_${success.demoSession.surface}`),
+                expiresAt: formatExpiration(success.demoSession.expires_at),
+              })}
+            </p>
+            <div className="hero-btns">
+              <a href={success.launchUrl} className="btn-primary">
+                {success.demoSession.surface === 'web' ? t('demo_page.open_web') : t('demo_page.open_mobile')}
+              </a>
+              {DEMO_CHOICE_NEXT_LINKS[success.choiceId].map((link, i) =>
+                link.external ? (
+                  <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                    {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
+                  </a>
+                ) : (
+                  <Link key={i} to={link.href} className="btn-secondary">
+                    {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
+                  </Link>
+                )
+              )}
             </div>
-            <div className="demo-step">
-              <span className="demo-step-number">2</span>
-              <div>
-                <strong>{t('demo_page.instant_step2_title')}</strong>
-                <p>{t('demo_page.instant_step2_desc')}</p>
-              </div>
-            </div>
           </div>
-          <div className="demo-enterprise-callout">
-            <strong>{t('demo_page.callout_title')}</strong>
-            <p>{t('demo_page.callout_desc')}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="container reveal">
-        <div className="demo-email-form glass-card">
-          <div className="demo-email-copy">
-            <h2>{t('demo_page.instant_title')}</h2>
-            <p className="text-muted">{t('demo_page.instant_subtitle')}</p>
-          </div>
-          <div className="demo-email-controls">
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={loading || !selectedId}
-              onClick={() => { void startDemo(selectedId); }}
-            >
-              {loading ? t('demo_page.instant_loading') : t('demo_page.instant_submit')}
-            </button>
-          </div>
-          {error ? <p className="signup-error">{error}</p> : null}
-          {success ? (
-            <div className="demo-success-panel">
-              <h3>{t('demo_page.success_title')}</h3>
-              <p>{t('demo_page.success_desc', {
-                title: t(`demo_page.choices.${success.choiceId}.title`),
-              })}</p>
-              <p className="text-muted">
-                {t('demo_page.success_meta', {
-                  label: success.demoSession.label,
-                  surface: t(`demo_page.surface_${success.demoSession.surface}`),
-                  expiresAt: formatExpiration(success.demoSession.expires_at),
-                })}
-              </p>
-              <div className="hero-btns">
-                <a href={success.launchUrl} className="btn-primary">
-                  {success.demoSession.surface === 'web' ? t('demo_page.open_web') : t('demo_page.open_mobile')}
-                </a>
-                {DEMO_CHOICE_NEXT_LINKS[success.choiceId].map((link, i) =>
-                  link.external ? (
-                    <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                      {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
-                    </a>
-                  ) : (
-                    <Link key={i} to={link.href} className="btn-secondary">
-                      {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
-                    </Link>
-                  )
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </section>
 
       <section className="container demo-options-grid reveal">
         {DEMO_CHOICE_IDS.map((id) => {
           const isSelected = selectedId === id;
-          const recommendationBadge = t(`demo_page.choices.${id}.recommendation_badge`, { defaultValue: '' });
           const businessTypes = t(`demo_page.choices.${id}.business_types`, { returnObjects: true }) as string[];
-          const whatTheyWillSee = t(`demo_page.choices.${id}.what_they_will_see`, { returnObjects: true }) as string[];
-          const whyChooseIt = t(`demo_page.choices.${id}.why_choose_it`, { returnObjects: true }) as string[];
 
           return (
             <article
@@ -277,34 +230,16 @@ export default function DemoSelectorPage() {
                   <span className="demo-option-pill">{t(`demo_page.choices.${id}.surface`)}</span>
                   <span className="demo-option-pill demo-option-pill-soft">{t(`demo_page.choices.${id}.duration`)}</span>
                 </div>
-                {recommendationBadge ? (
-                  <div className="demo-option-highlight">{recommendationBadge}</div>
-                ) : null}
                 <p className="business-card-eyebrow">{t(`demo_page.choices.${id}.audience`)}</p>
                 <h2>{t(`demo_page.choices.${id}.title`)}</h2>
                 <p className="text-muted">{t(`demo_page.choices.${id}.summary`)}</p>
 
                 <div className="demo-option-block">
-                  <h3>{t('demo_page.ideal_for')}</h3>
                   <div className="tag-list">
                     {businessTypes.map((item) => (
                       <span key={item} className="tag-pill">{item}</span>
                     ))}
                   </div>
-                </div>
-
-                <div className="demo-option-block">
-                  <h3>{t('demo_page.you_will_see')}</h3>
-                  <ul className="business-type-list">
-                    {whatTheyWillSee.map((item) => <li key={item}>{item}</li>)}
-                  </ul>
-                </div>
-
-                <div className="demo-option-block">
-                  <h3>{t('demo_page.why_choose')}</h3>
-                  <ul className="business-type-list">
-                    {whyChooseIt.map((item) => <li key={item}>{item}</li>)}
-                  </ul>
                 </div>
 
                 <button
