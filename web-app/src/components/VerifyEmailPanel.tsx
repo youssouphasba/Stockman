@@ -35,7 +35,12 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
     try {
       const response = await auth.verifyEmail(otp);
       setMessage(response.message);
-      onVerified(response.user);
+      try {
+        const hydratedUser = await auth.me();
+        onVerified(hydratedUser);
+      } catch {
+        onVerified(response.user);
+      }
     } catch (err: any) {
       setError(err?.message || 'Le code email est incorrect.');
     } finally {

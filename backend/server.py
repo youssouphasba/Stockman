@@ -7931,7 +7931,7 @@ async def resend_otp(request: Request, current_user: User = Depends(require_auth
 
 @api_router.post("/auth/verify-email")
 @limiter.limit("5/minute")
-async def verify_email(request: Request, data: VerifyEmailRequest, current_user: User = Depends(require_auth)):
+async def verify_email(request: Request, response: Response, data: VerifyEmailRequest, current_user: User = Depends(require_auth)):
     user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
@@ -7979,7 +7979,30 @@ async def verify_email(request: Request, data: VerifyEmailRequest, current_user:
             detail="verify_email",
         )
         updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
-        return {"message": "Email verifie avec succes", "user": await build_user_from_doc(updated_user)}
+        if updated_user:
+            try:
+                await create_authenticated_session(updated_user, request, response, session_label="email_verification")
+            except Exception as session_err:
+                logger.warning(f"verify_email session refresh failed: {session_err}")
+
+        try:
+            resolved_user = await build_user_from_doc(updated_user or {"user_id": current_user.user_id})
+        except Exception as build_err:
+            logger.error(f"verify_email user rebuild failed: {build_err}", exc_info=True)
+            fallback_payload = current_user.model_dump()
+            fallback_payload.update({
+                "is_email_verified": True,
+                "verification_completed_at": (
+                    update_payload.get("verification_completed_at").isoformat()
+                    if isinstance(update_payload.get("verification_completed_at"), datetime)
+                    else update_payload.get("verification_completed_at")
+                ),
+                "can_access_app": True,
+                "can_access_web": True,
+            })
+            resolved_user = User(**fallback_payload)
+
+        return {"message": "Email verifie avec succes", "user": resolved_user}
 
     await db.users.update_one({"user_id": current_user.user_id}, {"$inc": {"email_otp_attempts": 1}})
     await log_verification_event(

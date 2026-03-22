@@ -102,6 +102,11 @@ export default function DemoSelectorPage() {
     setSelectedId(targetChoice);
     setLoading(true);
     try {
+      if (targetChoice === 'enterprise') {
+        window.location.assign(`${APP_WEB_URL}?demo=enterprise`);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/demo/session`, {
         method: 'POST',
         credentials: 'include',
@@ -129,9 +134,7 @@ export default function DemoSelectorPage() {
       }
 
       const payload = await response.json() as DemoSessionResponse;
-      const launchUrl = payload.demo_session.surface === 'web'
-        ? APP_WEB_URL
-        : buildMobileLaunchUrl(MOBILE_DEMO_SCHEME, payload);
+      const launchUrl = buildMobileLaunchUrl(MOBILE_DEMO_SCHEME, payload);
 
       setSuccess({
         choiceId: targetChoice,

@@ -416,6 +416,13 @@ export type DemoSessionInfo = {
     pricing_region: string;
 };
 
+export type DemoSessionResponse = {
+    access_token: string;
+    refresh_token?: string;
+    user: User;
+    demo_session: DemoSessionInfo;
+};
+
 export type DashboardLayoutSettings = {
     show_kpi: boolean;
     show_stock_status: boolean;
@@ -2099,6 +2106,8 @@ export const subscription = {
 };
 
 export const demo = {
+    createSession: (demoType: string) =>
+        request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType } }),
     getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
     captureContact: (email: string) =>
         request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),

@@ -53,6 +53,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [demoBootLoading, setDemoBootLoading] = useState(false);
   const searchParams = useSearchParams();
 
   const [showSignup, setShowSignup] = useState(false);
@@ -119,6 +120,14 @@ export default function Home() {
     }
   }, [hydrateAuthenticatedUser]);
 
+  const clearQueryParam = useCallback((key: string) => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(key)) return;
+    url.searchParams.delete(key);
+    window.history.replaceState({}, '', url.toString());
+  }, []);
+
   // Clean up legacy demo URL params (runs once on mount)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -130,6 +139,45 @@ export default function Home() {
       window.history.replaceState({}, '', url.toString());
     }
   }, []);
+
+  useEffect(() => {
+    const demoIntent = searchParams.get('demo');
+    if (!demoIntent) return;
+
+    if (demoIntent !== 'enterprise') {
+      clearQueryParam('demo');
+      return;
+    }
+
+    if (initialLoading || isLogged || demoBootLoading) return;
+
+    let cancelled = false;
+    setDemoBootLoading(true);
+    setError(null);
+
+    demoApi.createSession('enterprise')
+      .then((payload) => {
+        if (cancelled) return;
+        hydrateAuthenticatedUser(payload.user);
+        setDemoSessionInfo(payload.demo_session);
+        setDemoLeadEmail(payload.demo_session.contact_email || '');
+        setShowDemoLeadPrompt(!payload.demo_session.contact_email);
+        clearQueryParam('demo');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        clearQueryParam('demo');
+        setError(err instanceof ApiError ? err.message : "Impossible de lancer la demo Enterprise.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setDemoBootLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clearQueryParam, demoBootLoading, hydrateAuthenticatedUser, initialLoading, isLogged, searchParams]);
 
   // Load authenticated user (runs once on mount)
   useEffect(() => {
@@ -238,7 +286,19 @@ export default function Home() {
     }
   }, [activeTab, isBillingOnly, isLogged]);
 
-  if (!mounted || !ready || initialLoading) return <div className="min-h-screen bg-[#0F172A]" />;
+  if (!mounted || !ready || initialLoading || demoBootLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+        <div className="glass-card p-8 text-center max-w-md w-full">
+          <div className="w-10 h-10 mx-auto mb-4 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <h1 className="text-xl font-black text-white mb-2">Preparation de la demo Enterprise</h1>
+          <p className="text-slate-400 text-sm">
+            Nous ouvrons votre session de demonstration sur l&apos;app web.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (needsEmailVerification) {
     return (
