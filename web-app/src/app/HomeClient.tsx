@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles } from "lucide-react";
+import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
@@ -57,6 +57,7 @@ export default function Home() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [demoBootLoading, setDemoBootLoading] = useState(false);
   const searchParams = useSearchParams();
+  const parsedDemoIntent = useRef(false);
 
   const [showSignup, setShowSignup] = useState(false);
   const [demoSessionInfo, setDemoSessionInfo] = useState<DemoSessionInfo | null>(null);
@@ -89,6 +90,23 @@ export default function Home() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const TAB_GUIDE_KEYS: Record<string, string> = {
+    dashboard: 'dashboard_tour',
+    pos: 'pos_tour',
+    inventory: 'inventory_tour',
+    alerts: 'alerts_tour',
+    stock_history: 'stock_history_tour',
+    inventory_counting: 'counting_tour',
+    expiry_alerts: 'expiry_tour',
+    stats: 'abc_tour',
+    accounting: 'accounting_tour',
+    crm: 'crm_tour',
+    orders: 'orders_tour',
+    reports: 'reports_tour',
+    staff: 'staff_tour',
+    suppliers: 'suppliers_tour',
+  };
+  const activeGuideKey = TAB_GUIDE_KEYS[activeTab];
   const formatDemoExpiration = (value?: string | null) => {
     if (!value) return t('demo_lead.not_available');
     return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
@@ -147,15 +165,17 @@ export default function Home() {
 
   useEffect(() => {
     const demoIntent = searchParams.get('demo');
-    if (!demoIntent) return;
+    if (!demoIntent || parsedDemoIntent.current) return;
 
     if (demoIntent !== 'enterprise') {
       clearQueryParam('demo');
+      parsedDemoIntent.current = true;
       return;
     }
 
     if (initialLoading || isLogged || demoBootLoading) return;
 
+    parsedDemoIntent.current = true;
     let cancelled = false;
     setDemoBootLoading(true);
     setError(null);
@@ -301,6 +321,13 @@ export default function Home() {
       setActiveTab('subscription');
     }
   }, [activeTab, isBillingOnly, isLogged]);
+
+  const openActiveTabGuide = useCallback(() => {
+    if (!activeGuideKey || typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('stockman:open-guide', {
+      detail: { guideKey: activeGuideKey, reset: true },
+    }));
+  }, [activeGuideKey]);
 
   if (!mounted || !ready || initialLoading) {
     return (
@@ -740,6 +767,15 @@ export default function Home() {
             </div>
 
             {/* Floating AI chat button */}
+            {activeGuideKey && (
+              <button
+                onClick={openActiveTabGuide}
+                className="fixed bottom-24 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-2xl border border-white/15 shadow-xl transition-all hover:scale-105 active:scale-95"
+              >
+                <HelpCircle size={18} />
+                <span className="text-sm">{t('home.current_tab_guide', { defaultValue: "Guide de cet onglet" })}</span>
+              </button>
+            )}
             <button
               onClick={() => setIsChatOpen(true)}
               className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
