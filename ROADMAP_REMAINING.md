@@ -179,13 +179,199 @@
 
 ---
 
-## ✅ Phase IA — Améliorations Intelligentes (Web)
+## ✅ Phase IA — Améliorations Intelligentes (Tous plans)
 - [x] **Accounting.tsx** : P&L auto-analysis (Gemini, auto-load) + Rapport mensuel IA (modal markdown + download)
 - [x] **CRM.tsx** : Churn prediction auto-load (banner violet, liste clients à risque)
 - [x] **Alerts.tsx** : Détection anomalies auto-load au montage (affichage si ≥1 anomalie)
 - [x] **Inventory.tsx** : Bouton "IA Réappro" → conseil réapprovisionnement (banner violet, priority_count)
 - [x] Backend : 3 nouveaux endpoints `/ai/pl-analysis`, `/ai/churn-prediction`, `/ai/monthly-report`
 - [x] `api.ts` web : 4 méthodes AI ajoutées (plAnalysis, churnPrediction, monthlyReport, replenishmentAdvice)
+- [x] **AiSupportModal** (mobile) : Chatbot IA support + dictée vocale (expo-audio)
+
+---
+
+## 🤖 Phase IA Enterprise — Intelligence Artificielle Avancée
+*Toutes ces features sont gated `plan === 'enterprise'`. Backend : vérifier le plan avant chaque endpoint IA Enterprise.*
+
+### Catalogue & Saisie
+
+**Saisie produit par photo**
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Bouton "Photo IA" dans formulaire création/édition → upload image → pré-remplissage champs
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Bouton caméra dans modal ajout → `expo-camera` capture → pré-remplissage
+- [ ] Backend : `POST /ai/scan-product` — Vision Gemini : extraction nom, catégorie, prix estimé, code-barre
+- [ ] API : `ai.scanProduct(image)` dans `web-app/src/services/api.ts` + `frontend/services/api.ts`
+
+**Détection de doublons produits/fournisseurs**
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Banner "X doublons détectés" + modal fusion
+- [ ] Web : `web-app/src/components/Suppliers.tsx` — Idem pour fournisseurs
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Banner doublons + action fusionner
+- [ ] Mobile : `frontend/app/(tabs)/suppliers.tsx` — Idem
+- [ ] Backend : `POST /ai/detect-duplicates?type=products|suppliers` — Analyse similarité textuelle
+
+### Ventes & Prévisions
+
+**Prévision de ventes**
+- [ ] Web : `web-app/src/components/Dashboard.tsx` — Carte "Prévision CA" avec projection J+7/J+30
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Colonne "Ventes prévues J+7" dans tableau produits
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte prévision sur dashboard
+- [ ] Mobile : `frontend/components/ForecastCard.tsx` — Enrichir avec données IA
+- [ ] Backend : `POST /ai/sales-forecast` — Modèle saisonnalité + vélocité → projection
+
+**Caisse Intelligente Vocale (Voice POS)**
+- [ ] Web : `web-app/src/components/POS.tsx` — Bouton micro dans barre recherche → voice → matching produits → ajout panier
+- [ ] Mobile : `frontend/app/(tabs)/pos.tsx` — Bouton micro (infra `expo-audio` déjà en place) → matching catalogue
+- [ ] Backend : `POST /ai/voice-to-cart` — `voiceToText` existant + nouveau matching produits catalogue
+
+**Recherche en langage naturel**
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Barre de recherche intelligente : si pas un nom exact → envoi à l'IA
+- [ ] Web : `web-app/src/components/Accounting.tsx` — Idem pour requêtes financières
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Barre de recherche avec mode IA
+- [ ] Backend : `POST /ai/natural-query` — Parse langage naturel → requête MongoDB → résultats
+
+### Finance & Comptabilité
+
+**Catégorisation automatique des dépenses**
+- [ ] Web : `web-app/src/components/Accounting.tsx` — Auto-suggest catégorie dès saisie de la description dans formulaire dépense
+- [ ] Mobile : `frontend/app/(tabs)/accounting.tsx` — Auto-catégorisation au blur du champ description
+- [ ] Backend : `POST /ai/categorize-expense` — Input: description texte → Output: catégorie suggérée
+
+**Score de santé business**
+- [ ] Web : `web-app/src/components/Dashboard.tsx` — Nouvelle carte en haut : jauge 0-100 colorée + détail au clic (marge, rotation, dettes, tendance)
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte score santé au-dessus des KPIs existants
+- [ ] Backend : `GET /ai/business-health-score` — Composite : marge brute + rotation stock + dette clients + tendance CA → score 0-100
+
+**Tableau de bord prédictif**
+- [ ] Web : `web-app/src/components/Dashboard.tsx` — Ligne pointillée de projection sur le graphe CA + label "CA estimé fin de mois"
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte "Projection mensuelle" avec delta vs mois dernier
+- [ ] Backend : `GET /ai/dashboard-prediction` — Projection CA mensuel basée sur tendance + saisonnalité
+
+### Stock & Approvisionnement
+
+**Commandes Fournisseurs "Zéro Clic"**
+- [ ] Web : `web-app/src/components/Orders.tsx` — Bouton "IA : Générer commandes" → liste brouillons pré-remplis → validation 1 clic
+- [ ] Mobile : `frontend/app/(tabs)/orders.tsx` — Idem, bouton génération auto
+- [ ] Backend : `POST /ai/auto-draft-orders` — Analyse vélocité + stock actuel + délais fournisseurs → brouillons
+
+**Meilleur jour pour commander**
+- [ ] Web : `web-app/src/components/Suppliers.tsx` — Encart "Jour optimal de commande" sur fiche fournisseur
+- [ ] Mobile : `frontend/app/(tabs)/suppliers.tsx` — Badge IA avec jour recommandé sur chaque fournisseur
+- [ ] Backend : `GET /ai/optimal-order-day/{supplier_id}` — Analyse cycles vente + délais livraison
+
+**Détection de saisonnalité**
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Badge saisonnier sur produits + banner "Saison haute dans X semaines"
+- [ ] Web : `web-app/src/components/Dashboard.tsx` — Alerte saisonnière
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Badge saisonnier
+- [ ] Backend : `GET /ai/seasonality-alerts` — Détection patterns cycliques sur 3-12 mois
+
+**Produits à déstocker**
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Onglet/filtre "À déstocker" avec liste IA + valeur immobilisée + suggestions (promo, retour)
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Filtre "Dormants" avec badge valeur bloquée
+- [ ] Backend : `GET /ai/deadstock-analysis` — Produits sans vente > N jours + valeur stock immobilisé
+
+**Estimation vol/perte (démarque inconnue)**
+- [ ] Web : `web-app/src/components/InventoryCounting.tsx` — Après soumission comptage, afficher analyse IA des écarts
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Section "Démarque inconnue" avec tableau écarts suspects
+- [ ] Mobile : `frontend/app/inventory/batch-scan.tsx` — Après scan inventaire, résumé écarts IA
+- [ ] Backend : `POST /ai/shrinkage-analysis` — Comparaison stock théorique vs physique → produits suspects
+
+### Fournisseurs
+
+**Notation fournisseur automatique**
+- [ ] Web : `web-app/src/components/Suppliers.tsx` — Score X/100 sur chaque carte fournisseur + détail au clic (délais, écarts, prix)
+- [ ] Mobile : `frontend/app/(tabs)/suppliers.tsx` — Badge score sur chaque fournisseur dans la liste
+- [ ] Backend : `GET /ai/supplier-rating/{supplier_id}` — Score basé sur historique : respect délais, écarts quantité, stabilité prix
+
+### CRM & Clients
+
+**Résumé client IA**
+- [ ] Web : `web-app/src/components/CRM.tsx` — Bouton "Résumé IA" sur fiche client → modal avec profil généré
+- [ ] Mobile : `frontend/app/(tabs)/crm.tsx` — Bouton sur fiche client → bottom sheet avec résumé
+- [ ] Backend : `GET /ai/customer-summary/{customer_id}` — Agrégation achats + fréquence + panier moyen + dette + produits préférés → texte
+
+**Messages personnalisés IA**
+- [ ] Web : `web-app/src/components/CRM.tsx` — Bouton "Générer message" → choix canal (SMS/WhatsApp) → message pré-rédigé → envoi
+- [ ] Mobile : `frontend/app/(tabs)/crm.tsx` — Bouton message IA → preview → partage via `Share.share()` ou lien WhatsApp
+- [ ] Backend : `POST /ai/generate-customer-message` — Input: customer_id + contexte (promo/relance/anniversaire) → message personnalisé
+
+### Multi-Boutiques (Enterprise exclusif)
+
+**Rééquilibrage de stock inter-boutiques**
+- [ ] Web : `web-app/src/components/MultiStoreDashboard.tsx` — Section "Transferts suggérés" + bouton "Transférer" (appelle `stores.transferStock` existant)
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte "Rééquilibrage suggéré" si multi-boutiques
+- [ ] Backend : `GET /ai/rebalance-suggestions` — Analyse stock vs vélocité par boutique → suggestions de transfert
+
+**Benchmark entre boutiques**
+- [ ] Web : `web-app/src/components/MultiStoreDashboard.tsx` — Section "Benchmark IA" avec comparaison par catégorie + explications écarts
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte benchmark condensée (résumé top 3 différences)
+- [ ] Backend : `GET /ai/store-benchmark` — Comparaison CA, marges, produits par boutique → insights textuels
+
+### Analytics Avancés
+
+**Corrélation produits cachée**
+- [ ] Web : `web-app/src/components/AbcAnalysis.tsx` — Section "Corrélations" avec graphe de liens entre produits
+- [ ] Web : `web-app/src/components/Inventory.tsx` — Sur fiche produit : "Produits liés"
+- [ ] Mobile : `frontend/app/(tabs)/products.tsx` — Badge "Lié à X" sur produits corrélés
+- [ ] Backend : `GET /ai/product-correlations` — Analyse paniers de vente → co-occurrences significatives
+
+**Conseils contextuels proactifs**
+- [ ] Web : `web-app/src/components/Dashboard.tsx` — Banner conseil IA en haut du dashboard (rotatif, dismissable)
+- [ ] Mobile : `frontend/app/(tabs)/index.tsx` — Carte conseil du jour (composant `TipCard.tsx` existant à enrichir)
+- [ ] Mobile : `frontend/hooks/useNotifications.ts` — Push notification IA périodique
+- [ ] Backend : `GET /ai/contextual-tips` — Cron analyse usage + données → génère 1 conseil pertinent/jour
+
+### Récapitulatif endpoints backend à créer
+
+| Endpoint | Type | Méthode |
+|----------|------|---------|
+| `/ai/scan-product` | Vision | POST |
+| `/ai/detect-duplicates` | Similarité texte | POST |
+| `/ai/sales-forecast` | Prédiction | POST |
+| `/ai/voice-to-cart` | Audio + Matching | POST |
+| `/ai/natural-query` | NLP | POST |
+| `/ai/categorize-expense` | Classification | POST |
+| `/ai/business-health-score` | Scoring | GET |
+| `/ai/dashboard-prediction` | Prédiction | GET |
+| `/ai/auto-draft-orders` | Automatisation | POST |
+| `/ai/optimal-order-day/{supplier_id}` | Analyse | GET |
+| `/ai/seasonality-alerts` | Pattern detection | GET |
+| `/ai/deadstock-analysis` | Analytics | GET |
+| `/ai/shrinkage-analysis` | Comparaison | POST |
+| `/ai/supplier-rating/{supplier_id}` | Scoring | GET |
+| `/ai/customer-summary/{customer_id}` | Génération texte | GET |
+| `/ai/generate-customer-message` | Génération texte | POST |
+| `/ai/rebalance-suggestions` | Optimisation | GET |
+| `/ai/store-benchmark` | Analyse comparative | GET |
+| `/ai/product-correlations` | Data mining | GET |
+| `/ai/contextual-tips` | Génération conseil | GET |
+
+*Tous gated `plan === 'enterprise'` côté backend via middleware `check_enterprise_plan`.*
+
+### Ordre de priorité recommandé
+1. Score de santé business + Tableau de bord prédictif (valeur perçue immédiate sur le dashboard)
+2. Saisie produit par photo (wow effect, gain de temps massif)
+3. Catégorisation dépenses + Prévision de ventes (fondations analytiques)
+4. Caisse vocale + Recherche langage naturel (UX différenciante)
+5. Notation fournisseur + Meilleur jour commande + Détection saisonnalité (intelligence approvisionnement)
+6. Résumé client + Messages personnalisés (CRM intelligent)
+7. Produits à déstocker + Estimation vol/perte + Détection doublons (optimisation stock)
+8. Commandes zéro clic (automatisation complète)
+9. Rééquilibrage + Benchmark boutiques (multi-store intelligence)
+10. Corrélation produits + Conseils proactifs (analytics avancés)
+
+---
+
+## 🚀 Vision Stratégique Future (Non planifié)
+*Idées validées pour l'évolution long-terme, pas encore priorisées.*
+
+1. **Alertes Proactives Météo/Calendrier** : Cron job backend analyse météo + jours fériés + stock → notifications push anticipées ("Canicule prévue vendredi : commandez 50 packs d'eau").
+2. **CRM Marketing Hyper-Personnalisé** : Campagnes SMS ciblées automatiques (promo produit favori le jour de l'anniversaire client).
+3. **Dynamic Pricing Anti-gaspillage** : Proposition auto de baisses de prix pour produits proches de la péremption ou stagnants.
+4. **Détection de Fraudes Internes** : Analyse comportementale des caissiers (annulations, retours suspects) avec alerte discrète au gérant.
+5. **Studio Photo Vision IA** : Détourage automatique de la photo produit pour rendu studio propre.
+6. **Optimisation Rayons (Merchandising)** : Analyse achats groupés pour conseiller le placement physique en boutique.
+7. **Gestion FEFO Automatisée** : To-do list quotidienne intelligente pour magasiniers ("Avancer les 12 bouteilles du lot #456, expire dans 3 jours").
+
+---
 
 ## 📚 Post-Développement — Documentation & Formation
 - [x] **Formation complète utilisateur** : générer un guide multi-chapitres couvrant toutes les fonctionnalités (Dashboard, Inventaire, POS, Alertes, Fournisseurs, Comptabilité, CRM, IA, Multi-boutiques, Mobile vs Web, Abonnements). Format : Markdown/PDF + version Help Center. À générer quand le développement est considéré terminé (ou en version intermédiaire si besoin).
@@ -211,19 +397,4 @@
 - **Web = Enterprise exclusif** : guard au login, Starter/Pro redirigés vers page upgrade
 - **PremiumGate actuel** gate `plan === 'premium'` → à remplacer par `plan !== 'starter' && plan !== 'pro' && plan !== 'enterprise'` (i.e. seulement trial expiré)
 - **EnterpriseGate** (nouveau) : `plan !== 'enterprise'` pour les features avancées mobile
-
----
-
-## 🚀 Vision Stratégique Future (Intelligence Artificielle Proactive)
-*Ces idées ont été validées pour l'évolution long-terme de Stockman, axées sur la proactivité de l'IA.*
-
-1. **📊 Analyste de Données Intégré (Chatbot)** : L'IA peut générer des graphiques complexes (ex: "Top 3 marges de la semaine") et croiser les données financières à la demande.
-2. **🛒 Commandes Fournisseurs "Zéro Clic" (Auto-Drafting)** : Création automatique de brouillons de Bons de Commande en fonction des délais de livraison et de la vélocité.
-3. **🎙️ Caisse Intelligente Vocale (Voice POS)** : Le caissier dicte la commande au micro ("Deux baguettes, un coca") et le panier se remplit tout seul en une fraction de seconde.
-4. **📅 Alertes Proactives avec Météo/Calendrier (Cron Jobs)** : Le serveur (backend) analyse silencieusement chaque jour la météo, les jours fériés et le stock. Il envoie des **Notifications Push autonomes** au commerçant plusieurs jours à l'avance (ex: "Canicule prévue vendredi : commandez 50 packs d'eau avant demain").
-5. **🎯 CRM et Marketing Hyper-Personnalisé** : Segmentation automatique des clients pour la génération de campagnes SMS ciblées (ex: promos sur le produit favori du client le jour de son anniversaire).
-6. **📉 "Dynamic Pricing" (Anti-gaspillage)** : Proposition automatique de baisses de prix sur la caisse pour les produits approchant de leur date de péremption ou stagnant en rayon.
-7. **🕵️ Détection de Fraudes Internes** : Analyse comportementale silencieuse des caissiers (annulations, retours massifs à des heures suspectes) avec alerte discrète au gérant.
-8. **📸 Studio Photo Magique (Vision IA)** : Lors de la création d'un produit, l'IA détoure automatiquement la photo prise au smartphone pour la transformer en rendu studio propre pour le catalogue.
-9. **🧠 Optimisation des Rayons (Merchandising)** : Analyse des tickets de caisse pour repérer les achats groupés et conseiller le placement physique des produits en boutique.
-10. **🗓️ Gestion Automatisée des Péremptions (FEFO)** : Création quotidienne d'une "To-Do List" intelligente pour les magasiniers (ex: "Avancer les 12 bouteilles de lait du lot #456 qui expirent dans 3 jours").
+- **IA Enterprise gating** : tous les endpoints IA avancés vérifient `plan === 'enterprise'` via middleware backend + gate frontend

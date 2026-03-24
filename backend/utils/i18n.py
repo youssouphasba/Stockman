@@ -16,7 +16,9 @@ class TranslationHelper:
         candidates = [
             os.path.join(base_dir, "frontend", "locales"),
             os.path.join(os.path.dirname(base_dir), "frontend", "locales"), # If backend is nested
-            os.path.join(base_dir, "locales"), # If copied into backend
+            os.path.join(os.path.dirname(base_dir), "locales"), # project_root/locales
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales"), # backend/locales (Railway)
+            os.path.join(base_dir, "locales"), # If copied at base level
             "/frontend/locales", # Docker absolute path (mapped volume)
             "./locales" # Relative to CWD
         ]
