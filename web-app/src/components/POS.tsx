@@ -633,29 +633,78 @@ export default function POS() {
 
     const displayProducts = (Array.isArray(filteredProducts) ? filteredProducts : []).filter((p: any) => !restaurantMode || p.is_menu_item);
 
-    const posSteps: GuideStep[] = [
+    const posSteps: GuideStep[] = restaurantMode ? [
         {
-            title: restaurantMode ? t('pos.guide_restaurant_welcome_title', 'Welcome to restaurant checkout') : t('pos.guide_welcome_title', 'Welcome to POS'),
-            content: restaurantMode ? t('pos.guide_restaurant_welcome_content', 'Manage table orders, send dishes to kitchen, and close the bill from here.') : t('pos.guide_welcome_content', 'This is where you process sales quickly.'),
-            position: "center"
+            title: t('guide.pos.role_title', "Rôle du terminal"),
+            content: t('guide.pos.role_content_resto', "Le terminal de vente restaurant permet de gérer les commandes par table ou à emporter. Vous envoyez les plats en cuisine, ajoutez des articles en cours de service et clôturez l'addition en fin de table."),
         },
         {
-            title: restaurantMode ? t('pos.guide_restaurant_menu_title', 'Menu and table') : t('pos.guide_search_title', 'Search and scan'),
-            content: restaurantMode ? t('pos.guide_restaurant_menu_content', 'Choose menu dishes, then attach the order to a table or keep it as takeaway.') : t('pos.guide_search_content', 'Search for a product by name or use the barcode scanner to move faster.'),
-            targetId: "pos-search"
+            title: t('guide.pos.resto_menu_title', "Sélection des plats"),
+            content: t('guide.pos.resto_menu_content', "Parcourez le menu par catégorie ou utilisez la barre de recherche. Cliquez sur un plat pour l'ajouter à la commande."),
+            details: [
+                { label: t('guide.pos.search', "Barre de recherche"), description: t('guide.pos.search_desc', "Tapez le nom d'un plat pour filtrer la liste en temps réel."), type: 'filter' },
+                { label: t('guide.pos.categories', "Filtres de catégorie"), description: t('guide.pos.categories_desc', "Cliquez sur une catégorie (entrées, plats, desserts, boissons…) pour afficher uniquement ces articles."), type: 'filter' },
+            ],
         },
         {
-            title: restaurantMode ? t('pos.guide_restaurant_cart_title', 'Open order flow') : t('pos.guide_cart_title', 'Cart management'),
-            content: restaurantMode ? t('pos.guide_restaurant_cart_content', 'Already-sent lines stay locked so you can add new dishes without losing service history.') : t('pos.guide_cart_content', 'Your items appear here. You can adjust quantities or remove products.'),
-            targetId: "pos-cart"
+            title: t('guide.pos.resto_cart_title', "Commande en cours"),
+            content: t('guide.pos.resto_cart_content', "Les plats déjà envoyés en cuisine apparaissent verrouillés. Vous pouvez toujours ajouter de nouveaux articles. Les lignes verrouillées ne peuvent pas être modifiées pour garder la cohérence avec la cuisine."),
+            details: [
+                { label: t('guide.pos.qty_controls', "Boutons + / −"), description: t('guide.pos.qty_controls_desc', "Ajustez la quantité d'un article non encore envoyé. Un article à 0 est supprimé du panier."), type: 'button' },
+                { label: t('guide.pos.send_kitchen', "Envoyer en cuisine"), description: t('guide.pos.send_kitchen_desc', "Envoie les nouveaux plats à l'écran cuisine. Ces lignes deviennent alors verrouillées."), type: 'button' },
+                { label: t('guide.pos.table_selector', "Sélecteur de table"), description: t('guide.pos.table_selector_desc', "Attribuez la commande à une table ou laissez en 'à emporter'."), type: 'button' },
+            ],
         },
         {
-            title: restaurantMode ? t('pos.guide_restaurant_checkout_title', 'Kitchen and payment') : t('pos.guide_checkout_title', 'Payment and validation'),
-
-
-            content: restaurantMode ? t('pos.guide_restaurant_checkout_content', 'Send dishes to kitchen during service, then finalize payment when the table is ready to close.') : t('pos.guide_checkout_content', 'Choose a payment method to complete the sale.'),
-            targetId: "pos-checkout"
-        }
+            title: t('guide.pos.resto_checkout_title', "Clôture et paiement"),
+            content: t('guide.pos.resto_checkout_content', "Quand la table est prête à payer, sélectionnez le mode de règlement et validez. Le stock des ingrédients est mis à jour automatiquement."),
+            details: [
+                { label: t('guide.pos.payment_cash', "Espèces"), description: t('guide.pos.payment_cash_desc', "Calculatrice de monnaie intégrée : saisissez le montant remis pour voir le rendu de monnaie."), type: 'button' },
+                { label: t('guide.pos.payment_card', "Carte"), description: t('guide.pos.payment_card_desc', "Paiement par carte bancaire ou TPE."), type: 'button' },
+                { label: t('guide.pos.payment_mobile', "Mobile Money"), description: t('guide.pos.payment_mobile_desc', "Orange Money, Wave, MTN…"), type: 'button' },
+                { label: t('guide.pos.split_pay', "Paiement partagé"), description: t('guide.pos.split_pay_desc', "Divisez la note entre plusieurs modes de paiement ou plusieurs clients."), type: 'button' },
+            ],
+        },
+    ] : [
+        {
+            title: t('guide.pos.role_title', "Rôle du terminal de vente"),
+            content: t('guide.pos.role_content', "Le POS (Point of Sale) est l'écran d'encaissement. Il est divisé en deux zones : à gauche le catalogue produits, à droite le panier et le paiement. Chaque vente validée met à jour le stock automatiquement."),
+        },
+        {
+            title: t('guide.pos.products_title', "Catalogue produits (gauche)"),
+            content: t('guide.pos.products_content', "La partie gauche liste tous vos produits actifs. Cliquez sur un produit pour l'ajouter au panier."),
+            details: [
+                { label: t('guide.pos.search', "Barre de recherche"), description: t('guide.pos.search_desc', "Recherchez un produit par nom, SKU ou code-barres. La liste se filtre à chaque caractère saisi."), type: 'filter' },
+                { label: t('guide.pos.scan_btn', "Bouton scan (🔍)"), description: t('guide.pos.scan_btn_desc', "Active le scanner de code-barres de votre appareil. L'article est ajouté directement au panier après scan."), type: 'button' },
+                { label: t('guide.pos.category_chips', "Filtres de catégorie"), description: t('guide.pos.category_chips_desc', "Cliquez sur une catégorie pour afficher uniquement ses produits. Cliquez sur 'Tous' pour tout afficher."), type: 'filter' },
+                { label: t('guide.pos.product_card', "Carte produit"), description: t('guide.pos.product_card_desc', "Affiche le nom, le prix et le stock disponible. Un produit en rupture est grisé et ne peut pas être vendu."), type: 'card' },
+            ],
+        },
+        {
+            title: t('guide.pos.cart_title', "Panier (droite)"),
+            content: t('guide.pos.cart_content', "La partie droite affiche les articles sélectionnés, le sous-total, les remises et le total à payer."),
+            details: [
+                { label: t('guide.pos.qty_controls', "Boutons + / −"), description: t('guide.pos.qty_controls_desc', "Modifiez la quantité d'un article. Mettre à 0 supprime la ligne."), type: 'button' },
+                { label: t('guide.pos.delete_line', "Icône 🗑️"), description: t('guide.pos.delete_line_desc', "Supprime la ligne du panier."), type: 'button' },
+                { label: t('guide.pos.line_discount', "Remise ligne"), description: t('guide.pos.line_discount_desc', "Cliquez sur le prix d'une ligne pour appliquer une remise en % ou en montant fixe sur cet article uniquement."), type: 'button' },
+                { label: t('guide.pos.global_discount', "Remise globale"), description: t('guide.pos.global_discount_desc', "Appliquez une remise sur l'ensemble du panier."), type: 'button' },
+                { label: t('guide.pos.customer', "Sélecteur de client"), description: t('guide.pos.customer_desc', "Associez la vente à un client pour créditer ses points de fidélité et suivre son historique."), type: 'button' },
+                { label: t('guide.pos.add_customer', "Nouveau client (+)"), description: t('guide.pos.add_customer_desc', "Créez un client à la volée sans quitter le POS."), type: 'button' },
+            ],
+        },
+        {
+            title: t('guide.pos.payment_title', "Paiement et validation"),
+            content: t('guide.pos.payment_content', "Choisissez le mode de paiement et validez la vente. Le stock est décrédité instantanément."),
+            details: [
+                { label: t('guide.pos.payment_cash', "Espèces"), description: t('guide.pos.payment_cash_desc', "Ouvre la calculatrice de monnaie : entrez le montant reçu pour afficher le rendu."), type: 'button' },
+                { label: t('guide.pos.payment_card', "Carte"), description: t('guide.pos.payment_card_desc', "Paiement par carte / TPE."), type: 'button' },
+                { label: t('guide.pos.payment_mobile', "Mobile Money"), description: t('guide.pos.payment_mobile_desc', "Orange Money, Wave, MTN et autres opérateurs locaux."), type: 'button' },
+                { label: t('guide.pos.split_pay', "Paiement partagé"), description: t('guide.pos.split_pay_desc', "Permet de régler avec plusieurs modes de paiement (ex : partie en cash, partie en mobile money)."), type: 'button' },
+                { label: t('guide.pos.validate_btn', "Bouton Valider la vente"), description: t('guide.pos.validate_btn_desc', "Confirme la transaction, met à jour le stock, enregistre la vente et propose d'imprimer ou partager le reçu."), type: 'button' },
+                { label: t('guide.pos.receipt', "Reçu numérique"), description: t('guide.pos.receipt_desc', "Après validation, un reçu s'affiche. Vous pouvez le partager via WhatsApp, SMS ou l'imprimer."), type: 'info' },
+                { label: t('guide.pos.cancel_tip', "Annuler une vente"), description: t('guide.pos.cancel_tip_desc', "Pour annuler une vente déjà validée, allez dans Comptabilité > onglet Ventes et cliquez sur Annuler."), type: 'tip' },
+            ],
+        },
     ];
 
     if (loading && allProducts.length === 0) {

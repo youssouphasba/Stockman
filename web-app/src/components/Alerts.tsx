@@ -229,20 +229,37 @@ export default function Alerts() {
 
     const alertsSteps: GuideStep[] = [
         {
-            title: t('guide.alerts.step1_title', { defaultValue: 'Centre de notifications' }),
-            content: t('guide.alerts.step1', { defaultValue: 'Consultez vos alertes de stock, fournisseurs et anomalies IA.' }),
+            title: t('guide.alerts.role_title', "Rôle du centre d'alertes"),
+            content: t('guide.alerts.role_content', "Cet écran centralise toutes les alertes automatiques générées par Stockman : ruptures de stock, stocks faibles, anomalies IA, livraisons en retard, etc. C'est votre tableau de bord de vigilance opérationnelle."),
         },
         {
-            title: t('guide.alerts.step2_title', { defaultValue: 'Détection IA' }),
-            content: t('guide.alerts.step2', { defaultValue: 'Cliquez sur la carte IA pour lancer une analyse intelligente de vos données.' }),
+            title: t('guide.alerts.ai_title', "Détection d'anomalies IA"),
+            content: t('guide.alerts.ai_content', "La carte 'Détecter des anomalies IA' lance une analyse intelligente de vos données."),
+            details: [
+                { label: t('guide.alerts.btn_detect', "Bouton Détecter"), description: t('guide.alerts.btn_detect_desc', "L'IA analyse vos ventes, stocks et mouvements pour détecter des incohérences : écarts suspects, ventes inhabituelles, stocks qui ne correspondent pas aux mouvements enregistrés."), type: 'button' as const },
+                { label: t('guide.alerts.anomaly_card', "Carte d'anomalie"), description: t('guide.alerts.anomaly_card_desc', "Affiche le titre, la description et la sévérité (critique en rouge, avertissement en orange, info en bleu). Chaque anomalie suggère une action corrective."), type: 'card' as const },
+            ],
         },
         {
-            title: t('guide.alerts.step3_title', { defaultValue: 'Gestion des alertes' }),
-            content: t('guide.alerts.step3', { defaultValue: 'Marquez vos alertes comme lues ou ignorez-les une fois traitées.' }),
+            title: t('guide.alerts.list_title', "Liste des alertes actives"),
+            content: t('guide.alerts.list_content', "Toutes les alertes non résolues apparaissent ici, classées par date."),
+            details: [
+                { label: t('guide.alerts.alert_unread', "Alerte non lue"), description: t('guide.alerts.alert_unread_desc', "Les alertes non lues ont le titre en gras. Un badge rouge en haut du menu latéral indique le nombre total d'alertes non lues."), type: 'info' as const },
+                { label: t('guide.alerts.btn_read', "Bouton ✓ (marquer lu)"), description: t('guide.alerts.btn_read_desc', "Marque l'alerte comme traitée sans la supprimer. Elle reste consultable dans l'historique."), type: 'button' as const },
+                { label: t('guide.alerts.btn_dismiss', "Bouton 🗑️ (ignorer)"), description: t('guide.alerts.btn_dismiss_desc', "Supprime définitivement l'alerte. À utiliser uniquement si l'alerte est un faux positif."), type: 'button' as const },
+                { label: t('guide.alerts.severity', "Niveaux de sévérité"), description: t('guide.alerts.severity_desc', "Critique (rouge) : action urgente requise. Avertissement (orange) : à traiter bientôt. Info (bleu) : informatif, pas d'urgence."), type: 'info' as const },
+            ],
         },
         {
-            title: t('guide.alerts.step4_title', { defaultValue: 'Règles d\u2019alertes' }),
-            content: t('guide.alerts.step4', { defaultValue: 'Configurez vos seuils et canaux de notification dans ⚙.' }),
+            title: t('guide.alerts.rules_title', "Configuration des règles (⚙️)"),
+            content: t('guide.alerts.rules_content', "Cliquez sur l'icône engrenage pour configurer les règles qui déclenchent les alertes."),
+            details: [
+                { label: t('guide.alerts.rule_scope', "Portée"), description: t('guide.alerts.rule_scope_desc', "Choisissez si la règle s'applique à tout votre compte ou uniquement à la boutique active."), type: 'filter' as const },
+                { label: t('guide.alerts.rule_toggle', "Activer / désactiver une règle"), description: t('guide.alerts.rule_toggle_desc', "Chaque règle peut être activée ou désactivée indépendamment (ex : désactivez les alertes de stock faible pendant un inventaire)."), type: 'button' as const },
+                { label: t('guide.alerts.rule_threshold', "Seuil"), description: t('guide.alerts.rule_threshold_desc', "Pour les alertes de stock, définissez à quel niveau de quantité l'alerte se déclenche."), type: 'info' as const },
+                { label: t('guide.alerts.rule_channels', "Canaux de notification"), description: t('guide.alerts.rule_channels_desc', "In-app (toujours actif) + Push mobile + Email. Activez les canaux souhaités par règle."), type: 'info' as const },
+                { label: t('guide.alerts.rule_recipients', "Destinataires"), description: t('guide.alerts.rule_recipients_desc', "Choisissez quels groupes de votre équipe reçoivent cette alerte : stock, comptabilité, CRM, opérations…"), type: 'info' as const },
+            ],
         },
     ];
 

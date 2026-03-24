@@ -306,20 +306,30 @@ export default function Staff() {
 
     const staffSteps: GuideStep[] = [
         {
-            title: t('guide.staff.step1_title', { defaultValue: 'Bienvenue dans Personnel' }),
-            content: t('guide.staff.step1', { defaultValue: 'Gérez votre équipe et les niveaux d\u2019accès à chaque module.' }),
+            title: t('guide.staff.role_title', "Rôle de l'écran Personnel"),
+            content: t('guide.staff.role_content', "Cet écran permet de gérer les comptes de votre équipe et de contrôler finement ce que chaque membre peut voir et faire dans l'application. Chaque employé a un identifiant et un mot de passe pour se connecter."),
         },
         {
-            title: t('guide.staff.step2_title', { defaultValue: 'Ajouter un employé' }),
-            content: t('guide.staff.step2', { defaultValue: 'Créez un compte avec rôle et permissions adaptés à chaque poste.' }),
+            title: t('guide.staff.list_title', "Liste du personnel"),
+            content: t('guide.staff.list_content', "Chaque membre de l'équipe est affiché sous forme de carte."),
+            details: [
+                { label: t('guide.staff.search', "Barre de recherche"), description: t('guide.staff.search_desc', "Trouvez un employé par nom ou email."), type: 'filter' as const },
+                { label: t('guide.staff.btn_add', "Bouton + Ajouter un employé"), description: t('guide.staff.btn_add_desc', "Ouvre le formulaire de création d'un nouveau compte employé."), type: 'button' as const },
+                { label: t('guide.staff.card_member', "Carte membre"), description: t('guide.staff.card_member_desc', "Affiche nom, email, nombre de boutiques assignées, badges de permissions et rôles spéciaux."), type: 'card' as const },
+                { label: t('guide.staff.btn_edit', "Modifier (crayon)"), description: t('guide.staff.btn_edit_desc', "Modifie les permissions, les boutiques assignées et les rôles de l'employé."), type: 'button' as const },
+                { label: t('guide.staff.btn_delete', "Supprimer (🗑️)"), description: t('guide.staff.btn_delete_desc', "Supprime le compte de l'employé. L'historique des actions reste conservé."), type: 'button' as const },
+                { label: t('guide.staff.btn_whatsapp', "Icône WhatsApp"), description: t('guide.staff.btn_whatsapp_desc', "Envoie un message WhatsApp avec les identifiants de connexion à l'employé."), type: 'button' as const },
+            ],
         },
         {
-            title: t('guide.staff.step3_title', { defaultValue: 'Permissions' }),
-            content: t('guide.staff.step3', { defaultValue: 'Contrôlez finement l\u2019accès (lecture, écriture, aucun) pour chaque module.' }),
-        },
-        {
-            title: t('guide.staff.step4_title', { defaultValue: 'Magasins' }),
-            content: t('guide.staff.step4', { defaultValue: 'Assignez des employés à des boutiques spécifiques avec des droits personnalisés.' }),
+            title: t('guide.staff.form_title', "Formulaire d'ajout / modification"),
+            content: t('guide.staff.form_content', "Le formulaire permet de configurer précisément l'accès de chaque employé."),
+            details: [
+                { label: t('guide.staff.role_templates', "Modèles de rôle"), description: t('guide.staff.role_templates_desc', "Boutons préconfigurés : Caissier, Gestionnaire de stock, Comptable, Manager, Agent CRM. Chaque modèle préremplit les permissions standard du poste."), type: 'button' as const },
+                { label: t('guide.staff.permissions', "Permissions par module"), description: t('guide.staff.permissions_desc', "Pour chaque module (POS, Stock, Comptabilité, CRM, Fournisseurs, Personnel), définissez : Aucun accès / Lecture seule / Lecture + écriture."), type: 'info' as const },
+                { label: t('guide.staff.special_roles', "Rôles spéciaux"), description: t('guide.staff.special_roles_desc', "Admin facturation : gère l'abonnement. Admin organisation : peut gérer le personnel et les boutiques."), type: 'info' as const },
+                { label: t('guide.staff.store_assign', "Assignation aux boutiques"), description: t('guide.staff.store_assign_desc', "Choisissez à quelle(s) boutique(s) l'employé a accès. Vous pouvez définir des permissions différentes par boutique."), type: 'info' as const },
+            ],
         },
     ];
 

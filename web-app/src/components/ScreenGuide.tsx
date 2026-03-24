@@ -2,13 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ChevronRight, ChevronLeft, CheckCircle2, HelpCircle } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, BookOpen, MousePointerClick, SlidersHorizontal, LayoutGrid, Info, Lightbulb } from 'lucide-react';
+
+export interface GuideDetail {
+    label: string;
+    description: string;
+    type?: 'button' | 'filter' | 'card' | 'info' | 'tip';
+}
 
 export interface GuideStep {
     targetId?: string;
     title: string;
     content: string;
     position?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+    details?: GuideDetail[];
 }
 
 interface ScreenGuideProps {
@@ -17,17 +24,31 @@ interface ScreenGuideProps {
     autoStart?: boolean;
 }
 
+const DETAIL_ICONS = {
+    button: MousePointerClick,
+    filter: SlidersHorizontal,
+    card: LayoutGrid,
+    info: Info,
+    tip: Lightbulb,
+};
+
+const DETAIL_COLORS = {
+    button: 'text-blue-400 bg-blue-400/10',
+    filter: 'text-amber-400 bg-amber-400/10',
+    card: 'text-emerald-400 bg-emerald-400/10',
+    info: 'text-slate-400 bg-slate-400/10',
+    tip: 'text-purple-400 bg-purple-400/10',
+};
+
 export default function ScreenGuide({ guideKey, steps, autoStart = true }: ScreenGuideProps) {
     const { t } = useTranslation();
-    const [currentStep, setCurrentStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
-    const [hasCompleted, setHasCompleted] = useState(false);
+    const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
-        const completed = localStorage.getItem(`guide_completed_${guideKey}`);
-        if (completed) {
-            setHasCompleted(true);
-        } else if (autoStart) {
+        const shown = localStorage.getItem(`guide_completed_${guideKey}`);
+        if (!shown && autoStart) {
             const timer = setTimeout(() => setIsVisible(true), 1500);
             return () => clearTimeout(timer);
         }
@@ -35,130 +56,163 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
 
     useEffect(() => {
         const onOpenGuide = (event: Event) => {
-            const customEvent = event as CustomEvent<{ guideKey?: string; reset?: boolean }>;
+            const customEvent = event as CustomEvent<{ guideKey?: string }>;
             const requestedKey = customEvent.detail?.guideKey;
-            const shouldReset = Boolean(customEvent.detail?.reset);
             if (requestedKey && requestedKey !== guideKey) return;
-            if (shouldReset) {
-                localStorage.removeItem(`guide_completed_${guideKey}`);
-                setHasCompleted(false);
-            }
-            setCurrentStep(0);
             setIsVisible(true);
         };
-
         window.addEventListener('stockman:open-guide', onOpenGuide as EventListener);
         return () => window.removeEventListener('stockman:open-guide', onOpenGuide as EventListener);
     }, [guideKey]);
 
-    const handleNext = () => {
-        if (currentStep < steps.length - 1) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            handleComplete();
-        }
+    const toggleSection = (idx: number) => {
+        setExpandedSections(prev => {
+            const next = new Set(prev);
+            if (next.has(idx)) next.delete(idx);
+            else next.add(idx);
+            return next;
+        });
     };
 
-    const handleBack = () => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
-        }
-    };
-
-    const handleComplete = () => {
+    const handleClose = () => {
         localStorage.setItem(`guide_completed_${guideKey}`, 'true');
         setIsVisible(false);
-        setHasCompleted(true);
     };
 
-    const handleSkip = () => {
-        localStorage.setItem(`guide_completed_${guideKey}`, 'true');
-        setIsVisible(false);
-        setHasCompleted(true);
-    };
+    if (!isVisible) return null;
 
-    if (!isVisible) {
-        if (hasCompleted) {
-            return (
-                <button
-                    onClick={() => setIsVisible(true)}
-                    className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-primary/20 hover:bg-primary/40 border border-primary/20 text-primary flex items-center justify-center backdrop-blur-md shadow-lg transition-all z-40 group"
-                >
-                    <HelpCircle size={24} />
-                    <span className="absolute right-14 bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-white opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap">
-                        Besoin d'aide ?
-                    </span>
-                </button>
-            );
-        }
-        return null;
-    }
-
-    const step = steps[currentStep];
+    const query = searchQuery.toLowerCase();
+    const filteredSteps = query
+        ? steps.filter(s =>
+            s.title.toLowerCase().includes(query) ||
+            s.content.toLowerCase().includes(query) ||
+            s.details?.some(d => d.label.toLowerCase().includes(query) || d.description.toLowerCase().includes(query))
+        )
+        : steps;
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 pointer-events-none">
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-auto" onClick={handleSkip} />
+        <>
+            <div
+                className="fixed inset-0 z-[9999] bg-slate-950/30 backdrop-blur-[1px] transition-opacity"
+                onClick={handleClose}
+            />
 
-            {/* Guide Card */}
-            <div className="relative w-full max-w-sm glass-card p-8 shadow-2xl animate-in zoom-in-95 duration-300 pointer-events-auto border-primary/30">
-                <button
-                    onClick={handleSkip}
-                    className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white transition-colors"
-                >
-                    <X size={20} />
-                </button>
-
-                <div className="flex flex-col items-center text-center gap-6">
-                    <div className="w-16 h-16 rounded-3xl bg-primary/20 flex items-center justify-center">
-                        <span className="text-3xl font-black text-primary">
-                            {currentStep + 1}
-                        </span>
-                    </div>
-
-                    <div className="space-y-2">
-                        <h4 className="text-xl font-black text-white uppercase tracking-tighter">
-                            {step.title}
-                        </h4>
-                        <p className="text-slate-400 text-sm leading-relaxed">
-                            {step.content}
-                        </p>
-                    </div>
-
-                    {/* Progress dots */}
-                    <div className="flex gap-2">
-                        {steps.map((_, idx) => (
-                            <div
-                                key={idx}
-                                className={`h-1 rounded-full transition-all ${idx === currentStep ? 'w-6 bg-primary' : 'w-2 bg-white/10'
-                                    }`}
-                            />
-                        ))}
-                    </div>
-
-                    <div className="flex w-full gap-3 mt-4">
-                        {currentStep > 0 && (
-                            <button
-                                onClick={handleBack}
-                                className="flex-1 py-4 rounded-xl border border-white/10 text-slate-400 font-black uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all"
-                            >
-                                <ChevronLeft className="inline -mt-0.5 mr-1" size={14} /> Retour
-                            </button>
-                        )}
+            <div className="fixed top-0 right-0 bottom-0 z-[10000] w-full max-w-lg bg-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-white/10">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                                <BookOpen size={20} className="text-primary" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-white tracking-tight">
+                                    {t('guide.help_center', { defaultValue: "Centre d'aide" })}
+                                </h2>
+                                <p className="text-xs text-slate-400">
+                                    {filteredSteps.length} {t('guide.sections', { defaultValue: 'sections' })}
+                                </p>
+                            </div>
+                        </div>
                         <button
-                            onClick={handleNext}
-                            className="flex-[2] py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                            onClick={handleClose}
+                            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                         >
-                            {currentStep === steps.length - 1 ? (
-                                <>Terminer <CheckCircle2 size={14} /></>
-                            ) : (
-                                <>Continuer <ChevronRight size={14} /></>
-                            )}
+                            <X size={20} />
                         </button>
                     </div>
+                    {/* Search */}
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder={t('guide.search_placeholder', { defaultValue: 'Rechercher dans le guide...' })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-primary/50 transition-colors"
+                    />
+                </div>
+
+                {/* Sections */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4 space-y-2">
+                    {filteredSteps.map((step, idx) => {
+                        const realIdx = steps.indexOf(step);
+                        const isExpanded = expandedSections.has(realIdx);
+                        const hasDetails = step.details && step.details.length > 0;
+
+                        return (
+                            <div key={realIdx} className="rounded-2xl border border-white/10 overflow-hidden transition-all">
+                                <button
+                                    onClick={() => toggleSection(realIdx)}
+                                    className="w-full text-left px-4 py-3.5 flex items-start gap-3 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0 text-xs font-black text-primary">
+                                        {realIdx + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-bold text-white">{step.title}</h4>
+                                        {!isExpanded && (
+                                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{step.content}</p>
+                                        )}
+                                    </div>
+                                    <div className="mt-1 shrink-0 text-slate-500">
+                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    </div>
+                                </button>
+
+                                {isExpanded && (
+                                    <div className="px-4 pb-4 pt-0 border-t border-white/5">
+                                        <p className="text-sm text-slate-300 leading-relaxed mt-3 mb-3">
+                                            {step.content}
+                                        </p>
+
+                                        {hasDetails && (
+                                            <div className="space-y-2 mt-3">
+                                                {step.details!.map((detail, dIdx) => {
+                                                    const dtype = detail.type || 'info';
+                                                    const Icon = DETAIL_ICONS[dtype];
+                                                    const colorClass = DETAIL_COLORS[dtype];
+                                                    return (
+                                                        <div key={dIdx} className="flex items-start gap-2.5 rounded-xl bg-white/[0.03] p-3">
+                                                            <div className={`mt-0.5 w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                                <Icon size={13} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="text-xs font-bold text-white">{detail.label}</span>
+                                                                <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{detail.description}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {filteredSteps.length === 0 && (
+                        <div className="text-center py-12 text-slate-500 text-sm">
+                            {t('guide.no_results', { defaultValue: 'Aucun résultat pour cette recherche' })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-3 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex gap-4 text-[10px] uppercase tracking-widest text-slate-500">
+                        <span className="flex items-center gap-1"><MousePointerClick size={10} className="text-blue-400" /> {t('guide.legend_button', { defaultValue: 'Bouton' })}</span>
+                        <span className="flex items-center gap-1"><SlidersHorizontal size={10} className="text-amber-400" /> {t('guide.legend_filter', { defaultValue: 'Filtre' })}</span>
+                        <span className="flex items-center gap-1"><LayoutGrid size={10} className="text-emerald-400" /> {t('guide.legend_card', { defaultValue: 'Carte' })}</span>
+                        <span className="flex items-center gap-1"><Lightbulb size={10} className="text-purple-400" /> {t('guide.legend_tip', { defaultValue: 'Astuce' })}</span>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                        {t('guide.close', { defaultValue: 'Fermer' })}
+                    </button>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

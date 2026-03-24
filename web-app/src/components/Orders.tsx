@@ -223,24 +223,50 @@ export default function Orders() {
 
     const ordersSteps: GuideStep[] = [
         {
-            title: t('guide.orders.step1_title', { defaultValue: 'Bienvenue dans Commandes' }),
-            content: t('guide.orders.step1', { defaultValue: 'Suivez vos commandes fournisseurs de la commande à la livraison.' }),
+            title: t('guide.orders.role_title', "Rôle des commandes fournisseurs"),
+            content: t('guide.orders.role_content', "Cet écran gère le cycle complet d'approvisionnement : de la création d'une commande jusqu'à sa réception en stock. Chaque commande livrée met à jour le stock automatiquement."),
         },
         {
-            title: t('guide.orders.step2_title', { defaultValue: 'Filtrez par statut' }),
-            content: t('guide.orders.step2', { defaultValue: 'Utilisez les onglets de statut pour afficher uniquement les commandes en attente, expédiées ou livrées.' }),
+            title: t('guide.orders.header_title', "Actions globales"),
+            content: t('guide.orders.header_content', "Les boutons en haut permettent d'exporter et d'utiliser la reconnaissance de facture par IA."),
+            details: [
+                { label: t('guide.orders.btn_export', "Exporter"), description: t('guide.orders.btn_export_desc', "Télécharge la liste des commandes en Excel ou PDF selon les filtres actifs."), type: 'button' },
+                { label: t('guide.orders.btn_scan', "Scanner facture"), description: t('guide.orders.btn_scan_desc', "Photographiez une facture fournisseur. L'IA lit les articles, quantités et montants et crée la commande automatiquement."), type: 'button' },
+            ],
         },
         {
-            title: t('guide.orders.step3_title', { defaultValue: 'Actions rapides' }),
-            content: t('guide.orders.step3', { defaultValue: 'Chaque commande affiche un bouton d\u2019action adapté à son statut : confirmer, expédier, livrer ou retourner.' }),
+            title: t('guide.orders.tabs_title', "Onglets Commandes / Retours"),
+            content: t('guide.orders.tabs_content', "L'écran est divisé en deux onglets."),
+            details: [
+                { label: t('guide.orders.tab_orders', "Onglet Commandes"), description: t('guide.orders.tab_orders_desc', "Liste toutes vos commandes fournisseurs avec statut, montant et actions disponibles."), type: 'info' },
+                { label: t('guide.orders.tab_returns', "Onglet Retours"), description: t('guide.orders.tab_returns_desc', "Gère les retours fournisseurs et les avoirs. La carte KPI affiche le total des avoirs cumulés."), type: 'info' },
+            ],
         },
         {
-            title: t('guide.orders.step4_title', { defaultValue: 'Scanner une facture' }),
-            content: t('guide.orders.step4', { defaultValue: 'Photographiez une facture fournisseur et l\u2019IA en extraira automatiquement les articles et le total.' }),
+            title: t('guide.orders.filters_title', "Filtres"),
+            content: t('guide.orders.filters_content', "Filtrez les commandes pour trouver rapidement ce que vous cherchez."),
+            details: [
+                { label: t('guide.orders.filter_status', "Filtres de statut"), description: t('guide.orders.filter_status_desc', "Tous · En attente · Confirmé · Expédié · Livraison partielle · Livré · Annulé. Le badge indique le nombre de commandes par état."), type: 'filter' },
+                { label: t('guide.orders.filter_supplier', "Filtre fournisseur"), description: t('guide.orders.filter_supplier_desc', "Dropdown pour afficher uniquement les commandes d'un fournisseur donné."), type: 'filter' },
+                { label: t('guide.orders.filter_dates', "Plage de dates"), description: t('guide.orders.filter_dates_desc', "Restreint l'affichage à une période. Utile pour retrouver une commande d'un mois précis."), type: 'filter' },
+            ],
         },
         {
-            title: t('guide.orders.step5_title', { defaultValue: 'Retours et avoirs' }),
-            content: t('guide.orders.step5', { defaultValue: 'Basculez sur l\u2019onglet « Retours » pour créer des retours fournisseurs et gérer vos avoirs.' }),
+            title: t('guide.orders.cards_title', "Cartes de commande"),
+            content: t('guide.orders.cards_content', "Chaque commande est affichée sous forme de carte."),
+            details: [
+                { label: t('guide.orders.card_status', "Badge de statut"), description: t('guide.orders.card_status_desc', "Couleur indiquant l'état : gris (attente), bleu (confirmé), violet (expédié), orange (partiel), vert (livré), rouge (annulé)."), type: 'card' },
+                { label: t('guide.orders.card_action', "Bouton d'action contextuel"), description: t('guide.orders.card_action_desc', "S'adapte au statut : 'Confirmer', 'Marquer expédié', 'Confirmer réception', 'Livraison partielle'. Chaque clic avance la commande dans le cycle."), type: 'button' },
+                { label: t('guide.orders.card_detail', "Icône détail (↗)"), description: t('guide.orders.card_detail_desc', "Ouvre le détail complet : articles, quantités, prix unitaires, notes et historique des statuts."), type: 'button' },
+            ],
+        },
+        {
+            title: t('guide.orders.returns_title', "Retours et avoirs"),
+            content: t('guide.orders.returns_content', "Dans l'onglet Retours, gérez les produits renvoyés à vos fournisseurs."),
+            details: [
+                { label: t('guide.orders.btn_new_return', "Nouveau retour manuel"), description: t('guide.orders.btn_new_return_desc', "Créez un retour fournisseur en sélectionnant la commande d'origine, les articles et les quantités concernées."), type: 'button' },
+                { label: t('guide.orders.return_effect', "Effet sur le stock"), description: t('guide.orders.return_effect_desc', "Un retour validé diminue le stock des articles retournés et enregistre un mouvement dans l'historique."), type: 'info' },
+            ],
         },
     ];
 

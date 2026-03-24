@@ -444,24 +444,50 @@ export default function CRM({ user }: CRMProps) {
 
     const crmSteps: GuideStep[] = [
         {
-            title: t('guide.crm.step1_title', { defaultValue: 'Bienvenue dans le CRM' }),
-            content: t('guide.crm.step1', { defaultValue: 'Gérez vos clients, leur fidélité et suivez les dettes depuis cet écran.' }),
+            title: t('guide.crm.role_title', "Rôle du CRM"),
+            content: t('guide.crm.role_content', "Le CRM centralise vos clients, leur historique d'achats, leurs points de fidélité, leurs dettes et vos actions marketing. Tout client créé ici est disponible au POS lors d'une vente."),
         },
         {
-            title: t('guide.crm.step2_title', { defaultValue: 'Ajouter un client' }),
-            content: t('guide.crm.step2', { defaultValue: 'Cliquez \u00ab Nouveau Client \u00bb pour créer une fiche avec nom, téléphone, catégorie et anniversaire.' }),
+            title: t('guide.crm.clients_title', "Onglet Clients"),
+            content: t('guide.crm.clients_content', "Liste de tous vos clients avec filtres et actions."),
+            details: [
+                { label: t('guide.crm.btn_new', "Bouton + Nouveau Client"), description: t('guide.crm.btn_new_desc', "Crée une fiche client : nom, téléphone, email, catégorie (particulier, professionnel, VIP), date d'anniversaire."), type: 'button' as const },
+                { label: t('guide.crm.search', "Barre de recherche"), description: t('guide.crm.search_desc', "Recherche par nom, téléphone ou email."), type: 'filter' as const },
+                { label: t('guide.crm.filter_category', "Filtre catégorie"), description: t('guide.crm.filter_category_desc', "Particulier, professionnel, VIP, etc."), type: 'filter' as const },
+                { label: t('guide.crm.filter_tier', "Filtre niveau"), description: t('guide.crm.filter_tier_desc', "Gold, Silver, Bronze, Standard — basé sur les points de fidélité."), type: 'filter' as const },
+                { label: t('guide.crm.card_client', "Carte client"), description: t('guide.crm.card_client_desc', "Affiche nom, points, niveau, indicateur de dette. Cliquez pour ouvrir la fiche complète."), type: 'card' as const },
+                { label: t('guide.crm.btn_whatsapp', "Icône WhatsApp"), description: t('guide.crm.btn_whatsapp_desc', "Ouvre WhatsApp avec le numéro du client pré-rempli."), type: 'button' as const },
+            ],
         },
         {
-            title: t('guide.crm.step3_title', { defaultValue: 'Segments et analytics' }),
-            content: t('guide.crm.step3', { defaultValue: 'Analysez votre clientèle grâce aux segments IA (VIP, fidèles, à risque) et aux KPI.' }),
+            title: t('guide.crm.detail_title', "Fiche client"),
+            content: t('guide.crm.detail_content', "Ouvrez une fiche client pour accéder à l'historique complet et gérer la relation."),
+            details: [
+                { label: t('guide.crm.tab_info', "Onglet Info"), description: t('guide.crm.tab_info_desc', "Coordonnées, catégorie, points accumulés, solde de dette, niveau de fidélité."), type: 'info' as const },
+                { label: t('guide.crm.tab_history', "Onglet Historique"), description: t('guide.crm.tab_history_desc', "Toutes les transactions et paiements du client classés par date."), type: 'info' as const },
+                { label: t('guide.crm.tab_purchases', "Onglet Achats"), description: t('guide.crm.tab_purchases_desc', "Liste des ventes associées à ce client avec montant et articles."), type: 'info' as const },
+                { label: t('guide.crm.btn_debt', "Gérer la dette"), description: t('guide.crm.btn_debt_desc', "Ajoutez ou enregistrez un remboursement de dette. Le solde se met à jour en temps réel."), type: 'button' as const },
+            ],
         },
         {
-            title: t('guide.crm.step4_title', { defaultValue: 'Promotions' }),
-            content: t('guide.crm.step4', { defaultValue: 'Créez des offres de fidélisation pour animer votre communauté et récompenser vos meilleurs clients.' }),
+            title: t('guide.crm.segments_title', "Onglet Segments"),
+            content: t('guide.crm.segments_content', "L'IA segmente automatiquement vos clients en groupes selon leur comportement d'achat : VIP, fidèles, inactifs, à risque de churn. Utilisez ces segments pour cibler vos actions marketing."),
         },
         {
-            title: t('guide.crm.step5_title', { defaultValue: 'Gestion de dette' }),
-            content: t('guide.crm.step5', { defaultValue: 'Suivez et gérez les encours de vos clients à crédit depuis la fiche client.' }),
+            title: t('guide.crm.promos_title', "Onglet Promotions"),
+            content: t('guide.crm.promos_content', "Créez et gérez vos offres promotionnelles."),
+            details: [
+                { label: t('guide.crm.btn_new_promo', "Créer une promotion"), description: t('guide.crm.btn_new_promo_desc', "Définissez le nom, le type de remise (%), les produits concernés, la période de validité et les clients éligibles."), type: 'button' as const },
+                { label: t('guide.crm.promo_toggle', "Activer / désactiver"), description: t('guide.crm.promo_toggle_desc', "Activez ou mettez en pause une promotion sans la supprimer."), type: 'button' as const },
+            ],
+        },
+        {
+            title: t('guide.crm.birthdays_title', "Onglet Anniversaires"),
+            content: t('guide.crm.birthdays_content', "Liste des clients dont l'anniversaire approche. Envoyez un message WhatsApp personnalisé directement depuis cet onglet pour renforcer la relation client."),
+        },
+        {
+            title: t('guide.crm.campaigns_title', "Onglet Campagnes"),
+            content: t('guide.crm.campaigns_content', "Créez des campagnes de communication ciblées. Chaque campagne peut être envoyée via WhatsApp à un segment ou à l'ensemble de vos clients."),
         },
     ];
 

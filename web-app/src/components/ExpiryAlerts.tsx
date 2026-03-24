@@ -60,20 +60,33 @@ export default function ExpiryAlerts() {
 
     const expirySteps: GuideStep[] = [
         {
-            title: t('guide.expiry.step1_title', { defaultValue: 'Alertes d\u2019expiration' }),
-            content: t('guide.expiry.step1', { defaultValue: 'Surveillez les dates limites de vos produits périssables.' }),
+            title: t('guide.expiry.role_title', "Rôle des alertes d'expiration"),
+            content: t('guide.expiry.role_content', "Cet écran surveille les dates de péremption de vos produits périssables. Il vous alerte avant que les produits expirent pour que vous puissiez agir : vente accélérée, retrait ou enregistrement d'une perte. Consultez-le régulièrement pour limiter les pertes."),
         },
         {
-            title: t('guide.expiry.step2_title', { defaultValue: 'Produits à risque' }),
-            content: t('guide.expiry.step2', { defaultValue: 'Les produits expirant bientôt sont mis en avant avec un code couleur.' }),
+            title: t('guide.expiry.cards_title', "Cartes d'alerte"),
+            content: t('guide.expiry.cards_content', "Chaque carte représente un produit (ou un lot) avec une date de péremption."),
+            details: [
+                { label: t('guide.expiry.badge_expired', "Badge rouge — Expiré"), description: t('guide.expiry.badge_expired_desc', "Le produit est déjà périmé. Retirez-le immédiatement de la vente."), type: 'card' as const },
+                { label: t('guide.expiry.badge_soon', "Badge orange — Expire bientôt (< 30 jours)"), description: t('guide.expiry.badge_soon_desc', "Le produit expire dans moins de 30 jours. Priorisez sa vente ou planifiez son retrait."), type: 'card' as const },
+                { label: t('guide.expiry.badge_ok', "Badge vert — OK (> 30 jours)"), description: t('guide.expiry.badge_ok_desc', "Le produit est encore dans sa durée de vie normale. Surveillez quand même l'évolution."), type: 'card' as const },
+                { label: t('guide.expiry.card_lot', "Numéro de lot"), description: t('guide.expiry.card_lot_desc', "Référence du lot concerné, utile pour la traçabilité et les retraits ciblés."), type: 'info' as const },
+            ],
         },
         {
-            title: t('guide.expiry.step3_title', { defaultValue: 'Agir' }),
-            content: t('guide.expiry.step3', { defaultValue: 'Gérez le retrait ou enregistrez une perte de stock.' }),
+            title: t('guide.expiry.actions_title', "Actions disponibles"),
+            content: t('guide.expiry.actions_content', "Pour chaque produit, vous pouvez agir directement depuis la carte."),
+            details: [
+                { label: t('guide.expiry.btn_withdraw', "Gérer le retrait (→)"), description: t('guide.expiry.btn_withdraw_desc', "Ouvre la modale de retrait : enregistrez la quantité retirée, la raison (perte, retour fournisseur, destruction) et la date. Le stock est mis à jour."), type: 'button' as const },
+                { label: t('guide.expiry.btn_delete', "Supprimer la carte (🗑️)"), description: t('guide.expiry.btn_delete_desc', "Retire l'alerte de la liste sans ajustement de stock. À utiliser si l'alerte est un faux positif ou si le produit a déjà été traité."), type: 'button' as const },
+            ],
         },
         {
-            title: t('guide.expiry.step4_title', { defaultValue: 'Prévention' }),
-            content: t('guide.expiry.step4', { defaultValue: 'Consultez régulièrement cette liste pour anticiper les pertes.' }),
+            title: t('guide.expiry.search_title', "Recherche"),
+            content: t('guide.expiry.search_content', "Utilisez la barre de recherche pour trouver un produit spécifique par nom dans la liste des alertes d'expiration."),
+            details: [
+                { label: t('guide.expiry.search_tip', "Astuce prévention"), description: t('guide.expiry.search_tip_desc', "Quand vous entrez un produit dans l'inventaire, saisissez toujours la date de péremption pour que le système puisse vous alerter à temps."), type: 'tip' as const },
+            ],
         },
     ];
 

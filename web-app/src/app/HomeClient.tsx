@@ -46,7 +46,22 @@ import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from ".
 export default function Home() {
   const { t, ready, i18n } = useTranslation();
   const [isLogged, setIsLogged] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabRaw] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) return hash;
+      return localStorage.getItem('stockman_active_tab') || 'dashboard';
+    }
+    return 'dashboard';
+  });
+
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabRaw(tab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('stockman_active_tab', tab);
+      window.history.replaceState(null, '', `#${tab}`);
+    }
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [user, setUser] = useState<any>(null);
@@ -286,8 +301,10 @@ export default function Home() {
     await auth.logout().catch(() => undefined);
     removeToken();
     localStorage.removeItem('user_currency');
+    localStorage.removeItem('stockman_active_tab');
     setUser(null);
     setIsLogged(false);
+    setActiveTab('dashboard');
   };
 
   const handleSaveDemoLead = async () => {
@@ -766,23 +783,25 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Floating AI chat button */}
-            {activeGuideKey && (
+            {/* Floating action buttons */}
+            <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+              {activeGuideKey && (
+                <button
+                  onClick={openActiveTabGuide}
+                  className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-2xl border border-white/15 shadow-xl transition-all hover:scale-105 active:scale-95"
+                >
+                  <HelpCircle size={18} />
+                  <span className="text-sm">{t('home.current_tab_guide', { defaultValue: "Guide de cet onglet" })}</span>
+                </button>
+              )}
               <button
-                onClick={openActiveTabGuide}
-                className="fixed bottom-24 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-2xl border border-white/15 shadow-xl transition-all hover:scale-105 active:scale-95"
+                onClick={() => setIsChatOpen(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
               >
-                <HelpCircle size={18} />
-                <span className="text-sm">{t('home.current_tab_guide', { defaultValue: "Guide de cet onglet" })}</span>
+                <Sparkles size={18} />
+                <span className="text-sm">{t('home.ai_assistant')}</span>
               </button>
-            )}
-            <button
-              onClick={() => setIsChatOpen(true)}
-              className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95"
-            >
-              <Sparkles size={18} />
-              <span className="text-sm">{t('home.ai_assistant')}</span>
-            </button>
+            </div>
 
             {/* AI chat panel */}
             <AiChatPanel

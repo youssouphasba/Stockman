@@ -655,24 +655,47 @@ export default function Suppliers() {
 
     const suppliersSteps: GuideStep[] = [
         {
-            title: t('guide.suppliers.step1_title', { defaultValue: 'Bienvenue dans Fournisseurs' }),
-            content: t('guide.suppliers.step1', { defaultValue: 'Gérez vos partenaires fournisseurs et vos approvisionnements.' }),
+            title: t('guide.suppliers.role_title', "Rôle de l'écran Fournisseurs"),
+            content: t('guide.suppliers.role_content', "Cet écran centralise la gestion de vos fournisseurs et de vos approvisionnements. Il est divisé en 5 onglets : vos fournisseurs, les bons de commande, la suggestion IA, la marketplace et les analyses."),
         },
         {
-            title: t('guide.suppliers.step2_title', { defaultValue: 'Mes fournisseurs' }),
-            content: t('guide.suppliers.step2', { defaultValue: 'Ajoutez et consultez vos fournisseurs enregistrés avec leurs coordonnées et performances.' }),
+            title: t('guide.suppliers.tab_manual_title', "Onglet Mes fournisseurs"),
+            content: t('guide.suppliers.tab_manual_content', "Répertoire de tous vos fournisseurs avec leurs coordonnées et historique."),
+            details: [
+                { label: t('guide.suppliers.btn_add', "Ajouter un fournisseur"), description: t('guide.suppliers.btn_add_desc', "Créez une fiche fournisseur : nom, contact, région, produits associés, délai de livraison habituel."), type: 'button' as const },
+                { label: t('guide.suppliers.search', "Recherche"), description: t('guide.suppliers.search_desc', "Filtrez par nom de fournisseur ou région."), type: 'filter' as const },
+                { label: t('guide.suppliers.card_supplier', "Carte fournisseur"), description: t('guide.suppliers.card_supplier_desc', "Nom, contact, note de performance, région. Cliquez pour ouvrir la fiche complète."), type: 'card' as const },
+                { label: t('guide.suppliers.supplier_menu', "Menu contextuel (⋯)"), description: t('guide.suppliers.supplier_menu_desc', "WhatsApp, modifier la fiche, supprimer."), type: 'button' as const },
+                { label: t('guide.suppliers.supplier_detail', "Fiche fournisseur"), description: t('guide.suppliers.supplier_detail_desc', "Contient les onglets : Performance (délai, ponctualité), Logs (historique des échanges), Factures (historique des commandes et paiements), Produits liés."), type: 'info' as const },
+            ],
         },
         {
-            title: t('guide.suppliers.step3_title', { defaultValue: 'Bons de commande' }),
-            content: t('guide.suppliers.step3', { defaultValue: 'Créez et suivez vos commandes fournisseurs avec génération de PDF.' }),
+            title: t('guide.suppliers.tab_orders_title', "Onglet Bons de commande"),
+            content: t('guide.suppliers.tab_orders_content', "Créez et suivez vos commandes fournisseurs. Voir aussi l'écran Commandes pour le cycle complet."),
+            details: [
+                { label: t('guide.suppliers.btn_new_order', "Créer un bon de commande"), description: t('guide.suppliers.btn_new_order_desc', "Sélectionnez un fournisseur, ajoutez les articles et quantités, définissez la date de livraison prévue. Génère un PDF téléchargeable."), type: 'button' as const },
+                { label: t('guide.suppliers.order_status', "Suivi du statut"), description: t('guide.suppliers.order_status_desc', "Avancez chaque commande : En attente → Confirmé → Expédié → Livré. Chaque étape peut être tracée avec une date."), type: 'info' as const },
+            ],
         },
         {
-            title: t('guide.suppliers.step4_title', { defaultValue: 'Réapprovisionnement IA' }),
-            content: t('guide.suppliers.step4', { defaultValue: 'L\u2019IA suggère les produits à commander en priorité selon votre historique.' }),
+            title: t('guide.suppliers.tab_replenish_title', "Onglet Réapprovisionnement IA"),
+            content: t('guide.suppliers.tab_replenish_content', "L'IA analyse votre stock actuel et votre historique de ventes pour suggérer les produits à commander en priorité et les quantités recommandées par fournisseur."),
+            details: [
+                { label: t('guide.suppliers.replenish_auto', "Automatisation"), description: t('guide.suppliers.replenish_auto_desc', "Activez l'automatisation pour recevoir des suggestions régulières sans avoir à lancer l'analyse manuellement."), type: 'button' as const },
+                { label: t('guide.suppliers.replenish_tip', "Astuce"), description: t('guide.suppliers.replenish_tip_desc', "Les suggestions sont plus précises quand vos produits sont bien rattachés à leurs fournisseurs dans leur fiche."), type: 'tip' as const },
+            ],
         },
         {
-            title: t('guide.suppliers.step5_title', { defaultValue: 'Marketplace' }),
-            content: t('guide.suppliers.step5', { defaultValue: 'Découvrez de nouveaux fournisseurs B2B connectés et comparez les prix.' }),
+            title: t('guide.suppliers.tab_marketplace_title', "Onglet Marketplace"),
+            content: t('guide.suppliers.tab_marketplace_content', "Découvrez des fournisseurs B2B partenaires Stockman. Vous pouvez lier leurs produits à votre catalogue, comparer les prix et passer commande directement."),
+            details: [
+                { label: t('guide.suppliers.marketplace_link', "Lier un produit"), description: t('guide.suppliers.marketplace_link_desc', "Associez un produit du catalogue marketplace à votre propre produit pour bénéficier des prix et délais du fournisseur."), type: 'button' as const },
+                { label: t('guide.suppliers.marketplace_benchmark', "Comparer les prix"), description: t('guide.suppliers.marketplace_benchmark_desc', "La modale de benchmark affiche les prix de plusieurs fournisseurs pour un même article."), type: 'button' as const },
+            ],
+        },
+        {
+            title: t('guide.suppliers.tab_insights_title', "Onglet Analyses"),
+            content: t('guide.suppliers.tab_insights_content', "Tableau de bord de vos achats : dépenses totales par fournisseur, concentration des achats, délais moyens de livraison, performance comparative des fournisseurs."),
         },
     ];
 

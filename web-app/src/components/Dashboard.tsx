@@ -198,46 +198,102 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
 
     const dashboardSteps: GuideStep[] = isRestaurant ? [
         {
-            title: t('dashboard.restaurant_guide_welcome_title', 'Welcome to your restaurant dashboard'),
-            content: t('dashboard.restaurant_guide_welcome_content', 'Monitor service, covers, kitchen flow, and reservations from one place.'),
-            position: "center"
+            title: t('guide.dashboard.role_title', "Rôle du tableau de bord"),
+            content: t('guide.dashboard.role_content', "Le tableau de bord restaurant est votre vue d'ensemble en temps réel. Il regroupe le chiffre d'affaires du jour, les couverts servis, le ticket moyen et l'occupation des tables. Consultez-le en début de service pour anticiper la charge."),
         },
         {
-            title: t('dashboard.restaurant_guide_kpi_title', 'Service KPIs'),
-            content: t('dashboard.restaurant_guide_kpi_content', 'Track daily revenue, covers served, average ticket, and occupied tables in real time.'),
-            targetId: "kpi-stats"
+            title: t('guide.dashboard.restaurant_kpi_title', "Cartes KPI du service"),
+            content: t('guide.dashboard.restaurant_kpi_content', "Les 4 cartes en haut affichent les indicateurs clés du service en cours. Elles se mettent à jour automatiquement."),
+            details: [
+                { label: t('guide.dashboard.card_today_revenue', "CA du jour"), description: t('guide.dashboard.card_today_revenue_desc', "Total des ventes encaissées aujourd'hui."), type: 'card' },
+                { label: t('guide.dashboard.card_covers', "Couverts servis"), description: t('guide.dashboard.card_covers_desc', "Nombre de clients servis depuis l'ouverture."), type: 'card' },
+                { label: t('guide.dashboard.card_avg_ticket', "Ticket moyen"), description: t('guide.dashboard.card_avg_ticket_desc', "Montant moyen dépensé par client."), type: 'card' },
+                { label: t('guide.dashboard.card_tables', "Tables occupées"), description: t('guide.dashboard.card_tables_desc', "Ratio tables occupées / total + commandes en cuisine."), type: 'card' },
+            ],
         },
         {
-            title: t('dashboard.restaurant_guide_sales_title', 'Peak service hours'),
-            content: t('dashboard.restaurant_guide_sales_content', 'Use hourly revenue to understand rush periods and organize the team.'),
-            targetId: "sales-forecast"
+            title: t('guide.dashboard.restaurant_hourly_title', "Graphique CA par heure"),
+            content: t('guide.dashboard.restaurant_hourly_content', "Courbe du chiffre d'affaires heure par heure. Identifiez les pics de service (rush du midi, du soir) pour mieux organiser votre équipe. Survolez la courbe pour voir le montant exact par tranche horaire."),
         },
         {
-            title: t('dashboard.restaurant_guide_reservations_title', 'Reservations and dining room'),
-            content: t('dashboard.restaurant_guide_reservations_content', 'Keep an eye on upcoming reservations and current kitchen workload before service starts.'),
-            targetId: "smart-reminders"
-        }
+            title: t('guide.dashboard.restaurant_dishes_title', "Top 5 plats & Réservations"),
+            content: t('guide.dashboard.restaurant_dishes_content', "En colonne droite : les 5 plats les plus vendus du jour et les réservations à venir avec le nom du client, le nombre de couverts et le statut (confirmé / arrivé)."),
+        },
     ] : [
         {
-            title: t('dashboard.guide_welcome_title', 'Welcome to your Dashboard'),
-            content: t('dashboard.guide_welcome_content', 'Monitor your business health at a glance.'),
-            position: "center"
+            title: t('guide.dashboard.role_title', "Rôle du tableau de bord"),
+            content: t('guide.dashboard.role_content_commerce', "Le tableau de bord est la première page que vous voyez après connexion. Il donne une vue d'ensemble de la santé de votre commerce : chiffre d'affaires, ventes, stock et alertes. Toutes les données sont filtrées par la boutique active sélectionnée dans la barre latérale."),
         },
         {
-            title: t('dashboard.guide_kpi_title', 'Key Indicators (KPI)'),
-            content: t('dashboard.guide_kpi_content', 'Track your revenue, sales count and stock value in real time.'),
-            targetId: "kpi-stats"
+            title: t('guide.dashboard.header_title', "Barre d'en-tête"),
+            content: t('guide.dashboard.header_content', "La barre en haut du tableau de bord contient les contrôles principaux pour personnaliser votre vue et agir rapidement."),
+            details: [
+                { label: t('guide.dashboard.btn_anomalies', "Badge anomalies"), description: t('guide.dashboard.btn_anomalies_desc', "S'affiche en rouge clignotant si l'IA a détecté des anomalies (écarts de stock, ventes inhabituelles). Cliquez pour les consulter dans le rapport IA."), type: 'info' },
+                { label: t('guide.dashboard.btn_settings', "Bouton ⚙️ (paramètres d'affichage)"), description: t('guide.dashboard.btn_settings_desc', "Ouvre un panneau pour masquer ou afficher les sections du tableau de bord (KPI, prévisions, graphique stock, ventes récentes, rappels, distribution, statut stock)."), type: 'button' },
+                { label: t('guide.dashboard.filter_period', "Sélecteur de période"), description: t('guide.dashboard.filter_period_desc', "Filtrez les données par : Aujourd'hui, 7 jours, 30 jours ou 90 jours. Change les graphiques, les KPI et les statistiques affichées."), type: 'filter' },
+                { label: t('guide.dashboard.btn_export_xls', "Bouton XLS"), description: t('guide.dashboard.btn_export_xls_desc', "Exporte les données du tableau de bord au format Excel. Utile pour le reporting ou la comptabilité."), type: 'button' },
+                { label: t('guide.dashboard.btn_export_pdf', "Bouton PDF"), description: t('guide.dashboard.btn_export_pdf_desc', "Exporte un résumé visuel en PDF. Pratique pour partager avec un associé ou imprimer."), type: 'button' },
+                { label: t('guide.dashboard.btn_new_sale', "Bouton + Vente"), description: t('guide.dashboard.btn_new_sale_desc', "Ouvre directement le terminal de vente (POS) pour enregistrer une nouvelle vente."), type: 'button' },
+            ],
         },
         {
-            title: t('dashboard.guide_forecast_title', 'AI Forecast'),
-            content: t('dashboard.guide_forecast_content', 'Our AI analyses your data to predict future sales.'),
-            targetId: "sales-forecast"
+            title: t('guide.dashboard.kpi_title', "Cartes KPI"),
+            content: t('guide.dashboard.kpi_content', "Les 4 cartes colorées en haut affichent les indicateurs clés de performance. Elles se mettent à jour à chaque changement de période."),
+            details: [
+                { label: t('guide.dashboard.card_revenue', "CA du jour"), description: t('guide.dashboard.card_revenue_desc', "Chiffre d'affaires encaissé aujourd'hui (toutes méthodes de paiement confondues)."), type: 'card' },
+                { label: t('guide.dashboard.card_sales_count', "Ventes du jour"), description: t('guide.dashboard.card_sales_count_desc', "Nombre total de transactions effectuées aujourd'hui."), type: 'card' },
+                { label: t('guide.dashboard.card_stock_value', "Valeur du stock"), description: t('guide.dashboard.card_stock_value_desc', "Valeur totale de votre inventaire au prix d'achat. Un stock élevé immobilise de la trésorerie."), type: 'card' },
+                { label: t('guide.dashboard.card_month_revenue', "CA du mois"), description: t('guide.dashboard.card_month_revenue_desc', "Chiffre d'affaires cumulé sur le mois en cours."), type: 'card' },
+            ],
         },
         {
-            title: t('dashboard.smart_reminders'),
-            content: t('dashboard.guide_reminders_content', 'Get personalised AI advice and urgent action reminders.'),
-            targetId: "smart-reminders"
-        }
+            title: t('guide.dashboard.forecast_title', "Prévisions IA"),
+            content: t('guide.dashboard.forecast_content', "Ce graphique montre les prévisions de ventes générées par l'intelligence artificielle à partir de votre historique. La courbe bleue représente le chiffre d'affaires attendu jour par jour. Le badge en haut à droite indique le niveau de confiance du modèle."),
+            details: [
+                { label: t('guide.dashboard.forecast_chart', "Graphique prévisionnel"), description: t('guide.dashboard.forecast_chart_desc', "Survolez un point pour voir le montant prévu. Les données réelles et les prédictions sont différenciées."), type: 'info' },
+                { label: t('guide.dashboard.forecast_table', "Tableau prévisions par produit"), description: t('guide.dashboard.forecast_table_desc', "Cliquez sur 'Prévisions par produit' pour voir le détail : stock actuel, vitesse de vente/jour, prévision à 7j et 30j, tendance (hausse/baisse) et niveau de risque."), type: 'button' },
+                { label: t('guide.dashboard.forecast_export', "Exporter CSV prévisions"), description: t('guide.dashboard.forecast_export_desc', "Dans le tableau de prévisions, cliquez 'Exporter CSV' pour télécharger les données complètes de tous vos produits."), type: 'button' },
+                { label: t('guide.dashboard.forecast_tip', "Astuce"), description: t('guide.dashboard.forecast_tip_desc', "Plus vous avez d'historique de ventes, plus les prévisions sont précises. Après 30 jours de données, les prévisions deviennent fiables."), type: 'tip' },
+            ],
+        },
+        {
+            title: t('guide.dashboard.stock_evolution_title', "Évolution de la valeur du stock"),
+            content: t('guide.dashboard.stock_evolution_content', "Graphique en courbe montrant comment la valeur de votre stock évolue dans le temps sur la période sélectionnée. Une courbe descendante constante peut indiquer un problème de réapprovisionnement. Une courbe montante peut signaler un surstock."),
+        },
+        {
+            title: t('guide.dashboard.recent_sales_title', "Ventes récentes"),
+            content: t('guide.dashboard.recent_sales_content', "Tableau listant les dernières transactions enregistrées avec la référence, le nombre d'articles, le montant et l'heure."),
+            details: [
+                { label: t('guide.dashboard.sale_ref', "Référence (#)"), description: t('guide.dashboard.sale_ref_desc', "Identifiant unique de la vente (4 derniers caractères)."), type: 'info' },
+                { label: t('guide.dashboard.sale_receipt', "Bouton flèche (↗)"), description: t('guide.dashboard.sale_receipt_desc', "Ouvre le reçu numérique de la vente avec le détail des articles, le mode de paiement et la possibilité de le partager."), type: 'button' },
+                { label: t('guide.dashboard.sale_see_more', "Voir plus"), description: t('guide.dashboard.sale_see_more_desc', "Lien vers le terminal POS pour consulter l'historique complet des ventes."), type: 'button' },
+            ],
+        },
+        {
+            title: t('guide.dashboard.reminders_title', "Rappels intelligents & IA"),
+            content: t('guide.dashboard.reminders_content', "Cette section combine deux fonctions : les rappels automatiques basés sur vos données et le résumé IA quotidien."),
+            details: [
+                { label: t('guide.dashboard.reminder_oos', "Rupture de stock"), description: t('guide.dashboard.reminder_oos_desc', "Nombre de produits à stock zéro. Action urgente : réapprovisionnez ces produits pour ne pas perdre de ventes."), type: 'info' },
+                { label: t('guide.dashboard.reminder_low', "Stock faible"), description: t('guide.dashboard.reminder_low_desc', "Produits dont la quantité est en dessous du seuil minimum défini."), type: 'info' },
+                { label: t('guide.dashboard.reminder_alerts', "Alertes non lues"), description: t('guide.dashboard.reminder_alerts_desc', "Nombre d'alertes système non encore consultées."), type: 'info' },
+                { label: t('guide.dashboard.reminder_overstock', "Surstock"), description: t('guide.dashboard.reminder_overstock_desc', "Produits dont la quantité dépasse le seuil maximum. Risque d'immobilisation de trésorerie."), type: 'info' },
+                { label: t('guide.dashboard.reminder_ai', "Résumé IA quotidien"), description: t('guide.dashboard.reminder_ai_desc', "L'IA analyse vos données et produit un résumé en langage naturel. Cliquez 'Voir le rapport complet' pour le détail."), type: 'button' },
+            ],
+        },
+        {
+            title: t('guide.dashboard.distribution_title', "Distribution par catégorie"),
+            content: t('guide.dashboard.distribution_content', "Graphique en camembert (donut) montrant la répartition de votre stock par catégorie de produits. Les 4 premières catégories sont affichées en légende. Utile pour identifier si votre stock est trop concentré sur une seule catégorie."),
+        },
+        {
+            title: t('guide.dashboard.stock_status_title', "Statut du stock"),
+            content: t('guide.dashboard.stock_status_content', "Liste détaillée des produits en rupture, en stock faible et en surstock avec le nom, le SKU, la quantité actuelle et le seuil configuré."),
+            details: [
+                { label: t('guide.dashboard.status_oos', "Section rouge — Rupture"), description: t('guide.dashboard.status_oos_desc', "Produits à quantité 0. Chaque ligne affiche le nom et l'unité."), type: 'card' },
+                { label: t('guide.dashboard.status_low', "Section orange — Stock faible"), description: t('guide.dashboard.status_low_desc', "Produits sous le seuil minimum. Affiche la quantité actuelle et le minimum configuré."), type: 'card' },
+                { label: t('guide.dashboard.status_over', "Section bleue — Surstock"), description: t('guide.dashboard.status_over_desc', "Produits au-dessus du seuil maximum. Affiche la quantité actuelle et le maximum configuré."), type: 'card' },
+                { label: t('guide.dashboard.status_tip', "Astuce"), description: t('guide.dashboard.status_tip_desc', "Configurez les seuils min/max de chaque produit dans l'inventaire pour que ces alertes soient pertinentes."), type: 'tip' },
+            ],
+        },
     ];
 
     return (

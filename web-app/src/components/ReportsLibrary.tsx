@@ -724,20 +724,59 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
 
     const reportsSteps: GuideStep[] = [
         {
-            title: 'Bienvenue dans Rapports',
-            content: 'Analysez toutes les données de votre activité depuis un seul endroit.',
+            title: "Rôle de la bibliothèque de rapports",
+            content: "La bibliothèque de rapports centralise tous les exports métier de votre activité. Chaque rapport est exportable en Excel ou PDF. Utilisez-les pour le pilotage mensuel, les réunions d'équipe ou les déclarations fiscales.",
         },
         {
-            title: 'Filtres',
-            content: 'Ajustez la période, la boutique et la catégorie via le panneau de filtres.',
+            title: "Filtres globaux",
+            content: "Tous les rapports s'adaptent aux filtres sélectionnés en haut de l'écran.",
+            details: [
+                { label: "Période", description: "Boutons rapides (7j, 30j, 90j, 1an) ou plage de dates personnalisée.", type: 'filter' as const },
+                { label: "Boutique", description: "Filtrez les données par boutique active ou toutes boutiques confondues.", type: 'filter' as const },
+                { label: "Catégorie / Fournisseur", description: "Affinez certains rapports par catégorie de produits ou fournisseur.", type: 'filter' as const },
+            ],
         },
         {
-            title: 'Catégories de rapports',
-            content: 'Chaque carte représente un rapport exportable : direction, stock, finance, CRM, achats.',
+            title: "Rapports de direction",
+            content: "Vue d'ensemble pour le pilotage stratégique de votre activité.",
+            details: [
+                { label: "Rapport exécutif", description: "Synthèse : CA, marge, dépenses, résultat net, tendance. Idéal pour la réunion mensuelle.", type: 'card' as const },
+                { label: "Analyse de rentabilité", description: "Détail des marges par produit, catégorie et période.", type: 'card' as const },
+            ],
         },
         {
-            title: 'Export Excel & PDF',
-            content: 'Téléchargez vos rapports en Excel ou PDF depuis les boutons de chaque carte.',
+            title: "Rapports de stock",
+            content: "Analyse complète de votre inventaire et de ses mouvements.",
+            details: [
+                { label: "État du stock", description: "Valorisation de l'inventaire actuel par produit et catégorie.", type: 'card' as const },
+                { label: "Mouvements de stock", description: "Historique des entrées, sorties et ajustements sur la période.", type: 'card' as const },
+                { label: "Analyse ABC", description: "Classement des produits par contribution au CA (A/B/C).", type: 'card' as const },
+            ],
+        },
+        {
+            title: "Rapports financiers",
+            content: "Documents comptables et analyses financières.",
+            details: [
+                { label: "Compte de résultat", description: "CA, coût des ventes, marge brute, dépenses, résultat net.", type: 'card' as const },
+                { label: "Rapport de caisse", description: "Détail des encaissements par mode de paiement.", type: 'card' as const },
+                { label: "Rapport de TVA", description: "Récapitulatif de la TVA collectée sur la période.", type: 'card' as const },
+            ],
+        },
+        {
+            title: "Rapports CRM et achats",
+            content: "Analyse de la clientèle et des approvisionnements.",
+            details: [
+                { label: "Rapport clients", description: "Top clients, fidélité, dettes en cours, nouveaux clients.", type: 'card' as const },
+                { label: "Rapport fournisseurs", description: "Dépenses par fournisseur, délais moyens, performance.", type: 'card' as const },
+            ],
+        },
+        {
+            title: "Exporter un rapport",
+            content: "Chaque carte de rapport dispose de boutons d'export.",
+            details: [
+                { label: "Bouton Excel", description: "Télécharge les données brutes en tableur (.xlsx). Idéal pour retravailler les données ou les importer dans votre logiciel comptable.", type: 'button' as const },
+                { label: "Bouton PDF", description: "Génère un rapport mis en page, prêt à imprimer ou partager.", type: 'button' as const },
+            ],
         },
     ];
 

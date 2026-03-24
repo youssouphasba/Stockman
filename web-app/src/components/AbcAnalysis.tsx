@@ -73,20 +73,41 @@ export default function AbcAnalysis() {
 
     const abcSteps: GuideStep[] = [
         {
-            title: 'Analyse ABC',
-            content: 'Identifiez vos produits phares (A) et ceux à faible rotation (C).',
+            title: "Rôle de l'analyse ABC",
+            content: "L'analyse ABC classe vos produits selon leur contribution au chiffre d'affaires. Classe A : les 20% de produits qui génèrent 80% du CA. Classe B : les produits moyens. Classe C : les produits à faible contribution. Cette classification aide à prioriser les efforts de gestion de stock.",
         },
         {
-            title: 'Classe A — Stratégique',
-            content: 'Vos top produits : surveillez leur stock de près pour éviter les ruptures.',
+            title: "Cartes KPI et résumé des classes",
+            content: "En haut de l'écran, les KPI globaux et les 3 cartes de classe donnent une vue d'ensemble.",
+            details: [
+                { label: "CA analysé", description: "Chiffre d'affaires total pris en compte dans l'analyse sur la période.", type: 'card' as const },
+                { label: "Produits classés", description: "Nombre de produits ayant suffisamment de données pour être classés.", type: 'card' as const },
+                { label: "Carte Classe A (vert)", description: "Nombre de produits classés A. Ces produits doivent toujours être en stock.", type: 'card' as const },
+                { label: "Carte Classe B (bleu)", description: "Produits à rotation normale. Gestion standard.", type: 'card' as const },
+                { label: "Carte Classe C (gris)", description: "Produits à faible contribution. Évaluez s'il faut les maintenir ou les retirer.", type: 'card' as const },
+            ],
         },
         {
-            title: 'Classe C — À surveiller',
-            content: 'Produits à faible contribution : évaluez s\u2019il faut les maintenir ou les déréférencer.',
+            title: "Tableau de classement",
+            content: "Le tableau liste tous vos produits avec leur classe, leurs ventes et les conseils associés.",
+            details: [
+                { label: "Barre de recherche", description: "Filtrez le tableau par nom de produit.", type: 'filter' as const },
+                { label: "Colonne Produit", description: "Nom du produit + % de contribution au CA total (ex : 12,4% du CA).", type: 'info' as const },
+                { label: "Colonne Classe", description: "Badge A (vert), B (bleu) ou C (gris). Calculé automatiquement selon la part de CA.", type: 'info' as const },
+                { label: "Colonne Ventes", description: "Nombre de fois que le produit a été vendu sur la période analysée.", type: 'info' as const },
+                { label: "Colonne CA généré", description: "Chiffre d'affaires généré + marge brute du produit.", type: 'info' as const },
+                { label: "Colonne Stock actuel", description: "Quantité disponible + unité de mesure.", type: 'info' as const },
+                { label: "Colonne Conseil", description: "Recommandation IA : 'Maintenir le stock', 'Réduire', 'Déréférencer'…", type: 'tip' as const },
+            ],
         },
         {
-            title: 'Recherche & filtres',
-            content: 'Utilisez la barre de recherche et les filtres analytics pour affiner l\u2019analyse.',
+            title: "Filtres globaux",
+            content: "L'analyse peut être affinée selon plusieurs axes.",
+            details: [
+                { label: "Période", description: "Choisissez la durée d'analyse : 30, 60 ou 90 jours. Une période plus longue donne une analyse plus stable.", type: 'filter' as const },
+                { label: "Boutique", description: "Filtrez l'analyse par boutique active pour voir le classement local.", type: 'filter' as const },
+                { label: "Catégorie / Fournisseur", description: "Focalisez l'analyse sur une catégorie ou un fournisseur spécifique.", type: 'filter' as const },
+            ],
         },
     ];
 

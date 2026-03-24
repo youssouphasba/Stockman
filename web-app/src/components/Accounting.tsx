@@ -404,36 +404,54 @@ export default function Accounting() {
 
     const accountingSteps: GuideStep[] = [
         {
-            title: t('guide.accounting.step1_title', { defaultValue: 'Bienvenue dans Finance & Comptabilité' }),
-            content: t('guide.accounting.step1', { defaultValue: 'Suivez la rentabilité de votre activité : chiffre d\u2019affaires, marges, charges et résultat net.' }),
+            title: t('guide.accounting.role_title', "Rôle de la comptabilité"),
+            content: t('guide.accounting.role_content', "Cet écran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dépenses, pertes et résultat. Les données proviennent de vos ventes POS et des dépenses saisies manuellement."),
         },
         {
-            title: t('guide.accounting.step2_title', { defaultValue: 'Indicateurs clés' }),
-            content: t('guide.accounting.step2', { defaultValue: 'Consultez vos KPI en un coup d\u2019\u0153il. Cliquez sur n\u2019importe quel indicateur pour afficher son détail.' }),
+            title: t('guide.accounting.filters_title', "Filtres de période"),
+            content: t('guide.accounting.filters_content', "Toutes les données s'adaptent à la période sélectionnée."),
+            details: [
+                { label: t('guide.accounting.filter_periods', "Boutons de période"), description: t('guide.accounting.filter_periods_desc', "7 jours · 30 jours · 90 jours · 1 an. Cliquez pour changer la période d'analyse."), type: 'filter' },
+                { label: t('guide.accounting.filter_custom', "Icône calendrier — plage personnalisée"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour définir une période sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
+            ],
         },
         {
-            title: t('guide.accounting.step3_title', { defaultValue: 'Analyse IA' }),
-            content: t('guide.accounting.step3', { defaultValue: 'L\u2019IA analyse automatiquement vos données P&L et vous donne des recommandations personnalisées.' }),
+            title: t('guide.accounting.kpi_title', "Cartes KPI financières"),
+            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut résument la performance financière de la période."),
+            details: [
+                { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Cliquez pour afficher le détail jour par jour."), type: 'card' },
+                { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "CA − coût d'achat des produits vendus. Exprimée en montant et en %."), type: 'card' },
+                { label: t('guide.accounting.kpi_expenses', "Dépenses"), description: t('guide.accounting.kpi_expenses_desc', "Total des charges enregistrées manuellement (loyer, salaires, etc.)."), type: 'card' },
+                { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Marge brute − dépenses. Positif = bénéfice, négatif = perte."), type: 'card' },
+            ],
         },
         {
-            title: t('guide.accounting.step4_title', { defaultValue: 'Gérez vos dépenses' }),
-            content: t('guide.accounting.step4', { defaultValue: 'Enregistrez loyer, salaires et autres charges pour un suivi précis du résultat net.' }),
+            title: t('guide.accounting.actions_title', "Boutons d'action globaux"),
+            content: t('guide.accounting.actions_content', "Les boutons en haut à droite permettent de générer des rapports et d'exporter."),
+            details: [
+                { label: t('guide.accounting.btn_report', "Bouton Rapport IA (violet)"), description: t('guide.accounting.btn_report_desc', "Génère un rapport de rentabilité complet rédigé par l'IA avec analyse et recommandations. Disponible en PDF."), type: 'button' },
+                { label: t('guide.accounting.btn_export', "Exporter XLS / PDF"), description: t('guide.accounting.btn_export_desc', "Exporte les données comptables de la période (ventes, dépenses, marges) en tableur ou en rapport PDF."), type: 'button' },
+            ],
         },
         {
-            title: t('guide.accounting.step5_title', { defaultValue: 'Rapports et export' }),
-            content: t('guide.accounting.step5', { defaultValue: 'Générez des rapports IA mensuels ou téléchargez des rapports PDF formatés.' }),
+            title: t('guide.accounting.expenses_title', "Gestion des dépenses"),
+            content: t('guide.accounting.expenses_content', "La colonne gauche liste les dépenses enregistrées par catégorie. Les dépenses sont essentielles pour calculer le résultat net réel."),
+            details: [
+                { label: t('guide.accounting.btn_add_expense', "Bouton + Dépense"), description: t('guide.accounting.btn_add_expense_desc', "Saisissez une dépense : catégorie (loyer, salaire, énergie, marketing…), montant, date et description."), type: 'button' },
+                { label: t('guide.accounting.expense_tip', "Astuce"), description: t('guide.accounting.expense_tip_desc', "Enregistrez vos dépenses récurrentes chaque mois pour avoir un résultat net fiable. Sans dépenses, le résultat net = marge brute."), type: 'tip' },
+            ],
         },
         {
-            title: t('guide.accounting.step6_title', { defaultValue: 'Détail des KPI' }),
-            content: t('guide.accounting.step6', { defaultValue: 'Cliquez sur n\u2019importe quel indicateur pour afficher un tableau détaillé et exportable.' }),
-        },
-        {
-            title: t('guide.accounting.step7_title', { defaultValue: 'Facturation' }),
-            content: t('guide.accounting.step7', { defaultValue: 'Créez des factures depuis vos ventes ou librement (sans vente associée). Consultez l\u2019historique, téléchargez en PDF et imprimez.' }),
-        },
-        {
-            title: t('guide.accounting.step8_title', { defaultValue: 'Panneau d\u2019analyse' }),
-            content: t('guide.accounting.step8', { defaultValue: 'Le panneau droit contient P&L, paiements, pertes, charges, ventes et factures. Naviguez entre les onglets pour explorer vos données.' }),
+            title: t('guide.accounting.panel_title', "Panneau d'analyse (onglets)"),
+            content: t('guide.accounting.panel_content', "La partie droite contient plusieurs onglets d'analyse détaillée."),
+            details: [
+                { label: t('guide.accounting.tab_pl', "Onglet P&L"), description: t('guide.accounting.tab_pl_desc', "Compte de résultat visuel : graphique revenus vs dépenses, évolution sur la période."), type: 'info' },
+                { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement (espèces, carte, mobile money) et factures clients en attente."), type: 'info' },
+                { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Produits avec écarts de stock non expliqués. Permet de régulariser ou d'imputer en perte."), type: 'info' },
+                { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par CA généré, marge et quantité vendue sur la période."), type: 'info' },
+                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec possibilité d'annuler une vente (remise en stock automatique)."), type: 'info' },
+                { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients : depuis une vente existante ou librement. Téléchargez en PDF ou imprimez."), type: 'info' },
+            ],
         },
     ];
 

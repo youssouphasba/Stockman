@@ -62,20 +62,33 @@ export default function InventoryCounting() {
 
     const countingSteps: GuideStep[] = [
         {
-            title: t('guide.counting.step1_title', { defaultValue: 'Inventaire tournant' }),
-            content: t('guide.counting.step1', { defaultValue: 'Vérifiez votre stock par rotation régulière sans tout compter.' }),
+            title: t('guide.counting.role_title', "Rôle de l'inventaire tournant"),
+            content: t('guide.counting.role_content', "L'inventaire tournant permet de vérifier régulièrement votre stock sans tout compter d'un coup. L'IA sélectionne chaque session un sous-ensemble de produits à vérifier en priorité (ruptures probables, produits à forte rotation, articles non vérifiés depuis longtemps)."),
         },
         {
-            title: t('guide.counting.step2_title', { defaultValue: 'Générer les tâches' }),
-            content: t('guide.counting.step2', { defaultValue: 'Cliquez le bouton en haut à droite pour générer les produits à compter.' }),
+            title: t('guide.counting.generate_title', "Générer les tâches de comptage"),
+            content: t('guide.counting.generate_content', "Cliquez sur le bouton 'Générer les tâches' pour lancer une session d'inventaire."),
+            details: [
+                { label: t('guide.counting.btn_generate', "Bouton Générer les tâches"), description: t('guide.counting.btn_generate_desc', "L'IA analyse votre stock et sélectionne les produits à compter en priorité. Une liste de tâches est générée sous forme de cartes."), type: 'button' as const },
+                { label: t('guide.counting.generate_tip', "Astuce"), description: t('guide.counting.generate_tip_desc', "Faites un inventaire tournant chaque semaine pour maintenir votre stock à jour sans interruption d'activité."), type: 'tip' as const },
+            ],
         },
         {
-            title: t('guide.counting.step3_title', { defaultValue: 'Compter' }),
-            content: t('guide.counting.step3', { defaultValue: 'Saisissez la quantité réelle sur chaque carte produit.' }),
+            title: t('guide.counting.count_title', "Comptage des produits"),
+            content: t('guide.counting.count_content', "Chaque carte représente un produit à compter."),
+            details: [
+                { label: t('guide.counting.card_product', "Carte produit"), description: t('guide.counting.card_product_desc', "Affiche le nom du produit, sa catégorie et la quantité théorique attendue selon le système."), type: 'card' as const },
+                { label: t('guide.counting.input_qty', "Champ de saisie"), description: t('guide.counting.input_qty_desc', "Saisissez la quantité physique que vous avez réellement comptée pour ce produit."), type: 'button' as const },
+                { label: t('guide.counting.btn_submit', "Bouton Soumettre"), description: t('guide.counting.btn_submit_desc', "Valide le comptage pour ce produit. Si la quantité saisie diffère de la quantité théorique, un ajustement de stock est enregistré automatiquement."), type: 'button' as const },
+            ],
         },
         {
-            title: t('guide.counting.step4_title', { defaultValue: 'Validation' }),
-            content: t('guide.counting.step4', { defaultValue: 'Les écarts sont corrigés automatiquement dans le stock.' }),
+            title: t('guide.counting.validation_title', "Validation et écarts"),
+            content: t('guide.counting.validation_content', "Quand tous les produits sont comptés, la session est clôturée."),
+            details: [
+                { label: t('guide.counting.discrepancy', "Écart de stock"), description: t('guide.counting.discrepancy_desc', "Si la quantité comptée ≠ quantité théorique, un mouvement d'ajustement est créé automatiquement dans l'historique de stock avec la mention 'Inventaire tournant'."), type: 'info' as const },
+                { label: t('guide.counting.all_done', "État 'Tout compté'"), description: t('guide.counting.all_done_desc', "Quand toutes les tâches sont soumises, un écran de confirmation s'affiche avec un bouton pour relancer une nouvelle session."), type: 'info' as const },
+            ],
         },
     ];
 

@@ -211,3 +211,19 @@
 - **Web = Enterprise exclusif** : guard au login, Starter/Pro redirigés vers page upgrade
 - **PremiumGate actuel** gate `plan === 'premium'` → à remplacer par `plan !== 'starter' && plan !== 'pro' && plan !== 'enterprise'` (i.e. seulement trial expiré)
 - **EnterpriseGate** (nouveau) : `plan !== 'enterprise'` pour les features avancées mobile
+
+---
+
+## 🚀 Vision Stratégique Future (Intelligence Artificielle Proactive)
+*Ces idées ont été validées pour l'évolution long-terme de Stockman, axées sur la proactivité de l'IA.*
+
+1. **📊 Analyste de Données Intégré (Chatbot)** : L'IA peut générer des graphiques complexes (ex: "Top 3 marges de la semaine") et croiser les données financières à la demande.
+2. **🛒 Commandes Fournisseurs "Zéro Clic" (Auto-Drafting)** : Création automatique de brouillons de Bons de Commande en fonction des délais de livraison et de la vélocité.
+3. **🎙️ Caisse Intelligente Vocale (Voice POS)** : Le caissier dicte la commande au micro ("Deux baguettes, un coca") et le panier se remplit tout seul en une fraction de seconde.
+4. **📅 Alertes Proactives avec Météo/Calendrier (Cron Jobs)** : Le serveur (backend) analyse silencieusement chaque jour la météo, les jours fériés et le stock. Il envoie des **Notifications Push autonomes** au commerçant plusieurs jours à l'avance (ex: "Canicule prévue vendredi : commandez 50 packs d'eau avant demain").
+5. **🎯 CRM et Marketing Hyper-Personnalisé** : Segmentation automatique des clients pour la génération de campagnes SMS ciblées (ex: promos sur le produit favori du client le jour de son anniversaire).
+6. **📉 "Dynamic Pricing" (Anti-gaspillage)** : Proposition automatique de baisses de prix sur la caisse pour les produits approchant de leur date de péremption ou stagnant en rayon.
+7. **🕵️ Détection de Fraudes Internes** : Analyse comportementale silencieuse des caissiers (annulations, retours massifs à des heures suspectes) avec alerte discrète au gérant.
+8. **📸 Studio Photo Magique (Vision IA)** : Lors de la création d'un produit, l'IA détoure automatiquement la photo prise au smartphone pour la transformer en rendu studio propre pour le catalogue.
+9. **🧠 Optimisation des Rayons (Merchandising)** : Analyse des tickets de caisse pour repérer les achats groupés et conseiller le placement physique des produits en boutique.
+10. **🗓️ Gestion Automatisée des Péremptions (FEFO)** : Création quotidienne d'une "To-Do List" intelligente pour les magasiniers (ex: "Avancer les 12 bouteilles de lait du lot #456 qui expirent dans 3 jours").

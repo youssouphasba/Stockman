@@ -109,20 +109,40 @@ export default function StockHistory() {
 
     const stockHistorySteps: GuideStep[] = [
         {
-            title: 'Journal d\u2019audit',
-            content: 'Consultez tous les mouvements de stock enregistr\u00e9s : entr\u00e9es, sorties et ajustements.',
+            title: "Rôle de l'historique de stock",
+            content: "L'historique de stock est votre journal d'audit complet. Il trace chaque mouvement de stock : entrées fournisseurs, sorties de vente, ajustements manuels, transferts entre boutiques et corrections d'inventaire. Utile pour comprendre comment votre stock évolue et détecter des anomalies.",
         },
         {
-            title: 'Filtrez par type',
-            content: 'Utilisez les boutons Entr\u00e9es, Sorties ou Ajustements pour affiner l\u2019affichage.',
+            title: "Cartes KPI",
+            content: "Les 4 cartes en haut donnent un aperçu rapide de l'activité de stock sur la période.",
+            details: [
+                { label: "Total mouvements", description: "Nombre total d'opérations de stock enregistrées sur la période.", type: 'card' as const },
+                { label: "Entrées", description: "Nombre de mouvements d'entrée (réceptions fournisseurs, retours clients, corrections positives).", type: 'card' as const },
+                { label: "Sorties", description: "Nombre de mouvements de sortie (ventes, pertes, casses, corrections négatives).", type: 'card' as const },
+                { label: "Produits uniques", description: "Nombre de références distinctes ayant eu un mouvement sur la période.", type: 'card' as const },
+            ],
         },
         {
-            title: 'Recherche',
-            content: 'Trouvez rapidement un produit ou une raison de mouvement gr\u00e2ce \u00e0 la barre de recherche.',
+            title: "Filtres",
+            content: "Affinez la liste pour trouver exactement ce que vous cherchez.",
+            details: [
+                { label: "Barre de recherche", description: "Recherche par nom de produit ou mot-clé dans les raisons de mouvement.", type: 'filter' as const },
+                { label: "Boutons de type (Tous / Entrées / Sorties / Ajustements)", description: "Filtrez par type de mouvement. 'Tous' affiche l'intégralité du journal.", type: 'filter' as const },
+                { label: "Filtre de période", description: "Limitez l'affichage à une plage de dates. Par défaut : 30 derniers jours.", type: 'filter' as const },
+            ],
         },
         {
-            title: 'Export CSV',
-            content: 'T\u00e9l\u00e9chargez l\u2019historique filtr\u00e9 en CSV pour une analyse approfondie.',
+            title: "Tableau des mouvements",
+            content: "Chaque ligne du tableau représente un mouvement de stock avec toutes les informations associées.",
+            details: [
+                { label: "Date & heure", description: "Horodatage exact du mouvement.", type: 'info' as const },
+                { label: "Produit", description: "Nom du produit concerné avec son initiale en avatar.", type: 'info' as const },
+                { label: "Type de mouvement", description: "Badge coloré : vert (entrée), rouge (sortie), orange (ajustement).", type: 'info' as const },
+                { label: "Quantité", description: "La quantité du mouvement. En vert pour les entrées, rouge pour les sorties.", type: 'info' as const },
+                { label: "Auteur", description: "L'utilisateur ou le système qui a déclenché le mouvement (vente POS, import, modification manuelle).", type: 'info' as const },
+                { label: "Raison / Notes", description: "La justification saisie lors de l'ajustement manuel.", type: 'info' as const },
+                { label: "Export CSV", description: "Télécharge l'historique filtré au format CSV pour une analyse dans Excel.", type: 'button' as const },
+            ],
         },
     ];
 

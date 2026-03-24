@@ -570,28 +570,57 @@ export default function Inventory() {
 
     const inventorySteps: GuideStep[] = [
         {
-            title: t('guide.inventory.step1_title', { defaultValue: 'Bienvenue dans votre inventaire' }),
-            content: t('guide.inventory.step1', { defaultValue: 'Gérez tous vos produits et votre stock depuis cet écran. Ajoutez, modifiez et suivez vos produits en temps réel.' }),
+            title: t('guide.inventory.role_title', "Rôle de l'inventaire"),
+            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous créez, modifiez, suivez et exportez votre catalogue. Chaque modification de stock est tracée dans l'historique. Les données sont filtrées par la boutique active."),
         },
         {
-            title: t('guide.inventory.step2_title', { defaultValue: 'Créer un produit' }),
-            content: t('guide.inventory.step2', { defaultValue: 'Cliquez sur « Créer / importer » pour ajouter des produits manuellement, par texte libre avec l\'IA, par import CSV ou depuis le catalogue métier.' }),
+            title: t('guide.inventory.header_title', "Barre d'en-tête"),
+            content: t('guide.inventory.header_content', "Les boutons en haut permettent de créer ou importer des produits et d'exporter l'inventaire."),
+            details: [
+                { label: t('guide.inventory.btn_add', "Bouton + Produit"), description: t('guide.inventory.btn_add_desc', "Ouvre le formulaire de création d'un nouveau produit : nom, catégorie, prix d'achat, prix de vente, stock initial, seuils min/max, SKU, unité."), type: 'button' },
+                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Importez un fichier CSV pour créer plusieurs produits d'un coup. Le format attendu est affiché dans la modale."), type: 'button' },
+                { label: t('guide.inventory.btn_import_text', "Import texte (IA)"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste de produits en texte libre (ex : depuis un bon de livraison). L'IA détecte automatiquement les noms, quantités et prix."), type: 'button' },
+                { label: t('guide.inventory.btn_scan', "Scanner en lot"), description: t('guide.inventory.btn_scan_desc', "Scannez plusieurs codes-barres à la suite pour effectuer une entrée de stock rapide."), type: 'button' },
+                { label: t('guide.inventory.btn_export_xls', "Exporter XLS"), description: t('guide.inventory.btn_export_xls_desc', "Télécharge l'inventaire complet au format Excel avec toutes les colonnes (nom, SKU, stock, prix…)."), type: 'button' },
+                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "Génère un PDF de l'inventaire, utile pour l'impression ou le partage avec un fournisseur."), type: 'button' },
+            ],
         },
         {
-            title: t('guide.inventory.step3_title', { defaultValue: 'Rechercher et filtrer' }),
-            content: t('guide.inventory.step3', { defaultValue: 'Utilisez la barre de recherche pour trouver un produit par nom ou SKU. Filtrez par emplacement grâce aux puces en dessous.' }),
+            title: t('guide.inventory.search_title', "Recherche et filtres"),
+            content: t('guide.inventory.search_content', "Trouvez rapidement un produit parmi des centaines grâce à la recherche et aux filtres."),
+            details: [
+                { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche en temps réel par nom de produit ou SKU."), type: 'filter' },
+                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Filtrez les produits par boutique ou emplacement de stockage."), type: 'filter' },
+                { label: t('guide.inventory.filter_toggle', "Icône filtre avancé"), description: t('guide.inventory.filter_toggle_desc', "Ouvre des filtres supplémentaires : catégorie, statut de stock (faible, rupture, surstock), fournisseur."), type: 'filter' },
+            ],
         },
         {
-            title: t('guide.inventory.step4_title', { defaultValue: 'Mouvements de stock' }),
-            content: t('guide.inventory.step4', { defaultValue: 'Enregistrez les entrées et sorties de stock via le menu actions de chaque produit (icône ⋯).' }),
+            title: t('guide.inventory.product_list_title', "Liste des produits"),
+            content: t('guide.inventory.product_list_content', "Chaque ligne du tableau représente un produit. Les colonnes affichent les informations clés du stock."),
+            details: [
+                { label: t('guide.inventory.col_name', "Nom / Initiale"), description: t('guide.inventory.col_name_desc', "Nom du produit avec l'initiale en avatar coloré. Cliquez sur le nom pour ouvrir la fiche complète."), type: 'card' },
+                { label: t('guide.inventory.col_sku', "SKU"), description: t('guide.inventory.col_sku_desc', "Référence interne du produit. Utilisée pour les exports et les imports."), type: 'info' },
+                { label: t('guide.inventory.col_qty', "Quantité"), description: t('guide.inventory.col_qty_desc', "Stock disponible actuel. Affiché en rouge si en rupture, en orange si sous le seuil minimum."), type: 'card' },
+                { label: t('guide.inventory.col_price', "Prix d'achat / vente"), description: t('guide.inventory.col_price_desc', "Prix d'achat (coût) et prix de vente. La marge est calculée automatiquement."), type: 'info' },
+            ],
         },
         {
-            title: t('guide.inventory.step5_title', { defaultValue: 'Conseils IA' }),
-            content: t('guide.inventory.step5', { defaultValue: 'Cliquez sur « IA Réappro » pour obtenir des conseils de réapprovisionnement intelligents basés sur votre historique.' }),
+            title: t('guide.inventory.actions_title', "Actions sur un produit"),
+            content: t('guide.inventory.actions_content', "Chaque produit dispose d'un menu d'actions accessible via l'icône ⋯ à droite de la ligne."),
+            details: [
+                { label: t('guide.inventory.action_edit', "Modifier (crayon)"), description: t('guide.inventory.action_edit_desc', "Ouvre le formulaire d'édition du produit : tous les champs sont modifiables."), type: 'button' },
+                { label: t('guide.inventory.action_movement', "Mouvement de stock (+ / −)"), description: t('guide.inventory.action_movement_desc', "Enregistrez une entrée (réception fournisseur, retour) ou une sortie (perte, casse, correction) avec une raison et une quantité."), type: 'button' },
+                { label: t('guide.inventory.action_transfer', "Transfert"), description: t('guide.inventory.action_transfer_desc', "Transférez une quantité de ce produit vers une autre boutique (multi-boutiques uniquement)."), type: 'button' },
+                { label: t('guide.inventory.action_history', "Historique (horloge)"), description: t('guide.inventory.action_history_desc', "Affiche tous les mouvements de stock de ce produit : date, type, quantité, auteur."), type: 'button' },
+                { label: t('guide.inventory.action_delete', "Supprimer (🗑️)"), description: t('guide.inventory.action_delete_desc', "Supprime définitivement le produit. Cette action est irréversible. Les ventes passées restent conservées."), type: 'button' },
+            ],
         },
         {
-            title: t('guide.inventory.step6_title', { defaultValue: 'Exporter' }),
-            content: t('guide.inventory.step6', { defaultValue: 'Téléchargez votre inventaire complet en Excel ou PDF via le bouton « Exporter ».' }),
+            title: t('guide.inventory.ai_title', "Réapprovisionnement IA"),
+            content: t('guide.inventory.ai_content', "Le bouton 'IA Réappro' analyse votre historique de ventes et votre stock actuel pour suggérer les produits à commander en priorité, avec les quantités recommandées."),
+            details: [
+                { label: t('guide.inventory.ai_tip', "Astuce"), description: t('guide.inventory.ai_tip_desc', "La suggestion IA est plus pertinente après 2 à 4 semaines de données de ventes. Plus vous avez d'historique, plus la recommandation est précise."), type: 'tip' },
+            ],
         },
     ];
 

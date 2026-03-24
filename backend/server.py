@@ -13767,6 +13767,8 @@ async def build_analytics_snapshot(
     supplier_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     owner_id = get_owner_id(user)
+    # Default to active store so analytics reflect the selected store
+    effective_store_id = store_id or user.active_store_id
     normalized_days = normalize_analytics_days(days)
     now = datetime.now(timezone.utc)
     current_start = now - timedelta(days=normalized_days)
@@ -13775,14 +13777,14 @@ async def build_analytics_snapshot(
     sales_window_start = min(previous_start, dormant_start)
 
     stores = await load_accessible_stores(user)
-    if store_id:
-        stores = [store for store in stores if store.get("store_id") == store_id]
+    if effective_store_id:
+        stores = [store for store in stores if store.get("store_id") == effective_store_id]
     visible_store_ids = build_visible_store_ids(stores)
     allow_legacy_unassigned = len(visible_store_ids) == 1
 
     products = await load_analytics_products(
         user,
-        store_id=store_id,
+        store_id=effective_store_id,
         category_id=category_id,
         supplier_id=supplier_id,
     )
@@ -13818,7 +13820,7 @@ async def build_analytics_snapshot(
         "created_at": {"$gte": sales_window_start, "$lt": now},
         "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
     }
-    sales_query = apply_accessible_store_scope(sales_query, user, store_id)
+    sales_query = apply_accessible_store_scope(sales_query, user, effective_store_id)
     sales_docs = await db.sales.find(sales_query, {"_id": 0}).to_list(10000)
     if visible_store_ids:
         sales_docs = [
