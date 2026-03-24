@@ -2,7 +2,7 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.7",
+    "version": "1.0.9",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
