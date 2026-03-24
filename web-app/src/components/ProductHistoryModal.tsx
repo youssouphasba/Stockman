@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, History, Package, DollarSign, X, Undo2 } from 'lucide-react';
+import { TrendingUp, History, Package, DollarSign, X, Undo2, Sparkles } from 'lucide-react';
 import {
     AreaChart,
     Area,
@@ -28,7 +28,9 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
     const [movements, setMovements] = useState<any[]>([]);
     const [priceHistory, setPriceHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState<'stock' | 'price'>('stock');
+    const [tab, setTab] = useState<'stock' | 'price' | 'stats'>('stock');
+    const [productForecast, setProductForecast] = useState<any>(null);
+    const [productStats, setProductStats] = useState<any>(null);
 
     useEffect(() => {
         if (isOpen && product) {
@@ -39,12 +41,16 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
     const loadHistory = async () => {
         setLoading(true);
         try {
-            const [movRes, priceRes] = await Promise.all([
+            const [movRes, priceRes, forecastRes, statsRes] = await Promise.all([
                 stockApi.getMovements(product.product_id, 30),
-                productsApi.getPriceHistory(product.product_id)
+                productsApi.getPriceHistory(product.product_id),
+                salesApi.productForecast(product.product_id).catch(() => null),
+                productsApi.getStats(product.product_id).catch(() => null)
             ]);
             setMovements(movRes.items || movRes);
             setPriceHistory(priceRes || []);
+            setProductForecast(forecastRes);
+            setProductStats(statsRes);
         } catch (err) {
             console.error("History load error", err);
         } finally {
@@ -87,7 +93,52 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                     >
                         Prix
                     </button>
+                    <button
+                        onClick={() => setTab('stats')}
+                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${tab === 'stats' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Statistiques
+                    </button>
                 </div>
+
+                {/* Résumé IA */}
+                {!loading && productForecast && (
+                    <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="flex items-center gap-3 mb-2 md:mb-0">
+                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                <Sparkles size={20} />
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-sm">Prévisions & Ventes</h4>
+                                <p className="text-xs text-slate-400">Basé sur l'historique (30j)</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-4 md:gap-6 text-center justify-center">
+                            <div>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Stock Actuel</p>
+                                <p className="text-lg font-black text-white">{productForecast.current_stock}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Ventes (30j)</p>
+                                <p className="text-lg font-black text-white">
+                                    {movements.filter((m: any) => m.type === 'out').reduce((s: number, m: any) => s + m.quantity, 0)}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Prév. (+30j)</p>
+                                <p className="text-lg font-black text-emerald-400">+{productForecast.predicted_sales_30d}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Tendance</p>
+                                <p className="text-sm font-bold mt-1">
+                                    {productForecast.trend === 'up' || productForecast.trend === 'en hausse' ? <span className="text-emerald-400 flex items-center gap-1 justify-center"><TrendingUp size={14}/> Hausse</span> :
+                                     productForecast.trend === 'down' || productForecast.trend === 'en baisse' ? <span className="text-rose-400 flex items-center gap-1 justify-center"><TrendingUp size={14} className="rotate-180"/> Baisse</span> :
+                                     <span className="text-slate-400">Stable</span>}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="h-64 flex items-center justify-center">
@@ -128,7 +179,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-                        ) : (
+                        ) : tab === 'price' ? (
                             <div className="glass-card p-4 md:p-6 h-[280px] md:h-[400px]">
                                 <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2">
                                     <DollarSign size={18} className="text-emerald-500" />
@@ -155,6 +206,56 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                         <Bar dataKey="purchase_price" fill="#6366f1" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="glass-card p-4 md:p-6 mb-8">
+                                <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                                    <TrendingUp size={18} className="text-blue-500" />
+                                    Statistiques globales du produit (Historique Complet)
+                                </h3>
+                                
+                                {productStats ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <p className="text-xs text-slate-400 mb-1">Nombre total de Ventes</p>
+                                            <p className="text-2xl font-bold text-white">{productStats.lifetime_sales}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1 uppercase">Unités vendues</p>
+                                        </div>
+                                        <div className="bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20">
+                                            <p className="text-xs text-emerald-400/80 mb-1">Chiffre d'affaires généré</p>
+                                            <p className="text-2xl font-bold text-emerald-400">{productStats.lifetime_revenue.toLocaleString()} F</p>
+                                            <p className="text-[10px] text-emerald-500/50 mt-1 uppercase">Total historique</p>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <p className="text-xs text-slate-400 mb-1">Total Entrées (Achat/Réception)</p>
+                                            <p className="text-2xl font-bold text-blue-400">{productStats.total_stock_in}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1 uppercase">Unités reçues</p>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <p className="text-xs text-slate-400 mb-1">Total Sorties (Ventes + Pertes)</p>
+                                            <p className="text-2xl font-bold text-rose-400">{productStats.total_stock_out}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1 uppercase">Unités sorties</p>
+                                        </div>
+                                        
+                                        <div className="col-span-2 md:col-span-4 mt-4 bg-white/5 p-4 rounded-xl border border-white/5 flex items-center justify-between">
+                                           <div>
+                                               <p className="text-sm font-bold text-white mb-1">Ratio de performance</p>
+                                               <p className="text-xs text-slate-400">Pourcentage des produits achetés qui ont été effectivement vendus.</p>
+                                           </div>
+                                           <div className="text-right">
+                                               <p className="text-2xl font-black text-amber-400">
+                                                   {productStats.total_stock_in > 0 
+                                                       ? Math.round((productStats.lifetime_sales / productStats.total_stock_in) * 100) 
+                                                       : 0}%
+                                               </p>
+                                           </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-slate-500 text-sm">
+                                        Statistiques indisponibles pour ce produit.
+                                    </div>
+                                )}
                             </div>
                         )}
 

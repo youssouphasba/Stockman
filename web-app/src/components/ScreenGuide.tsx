@@ -28,9 +28,28 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
         if (completed) {
             setHasCompleted(true);
         } else if (autoStart) {
-            setTimeout(() => setIsVisible(true), 1500);
+            const timer = setTimeout(() => setIsVisible(true), 1500);
+            return () => clearTimeout(timer);
         }
     }, [guideKey, autoStart]);
+
+    useEffect(() => {
+        const onOpenGuide = (event: Event) => {
+            const customEvent = event as CustomEvent<{ guideKey?: string; reset?: boolean }>;
+            const requestedKey = customEvent.detail?.guideKey;
+            const shouldReset = Boolean(customEvent.detail?.reset);
+            if (requestedKey && requestedKey !== guideKey) return;
+            if (shouldReset) {
+                localStorage.removeItem(`guide_completed_${guideKey}`);
+                setHasCompleted(false);
+            }
+            setCurrentStep(0);
+            setIsVisible(true);
+        };
+
+        window.addEventListener('stockman:open-guide', onOpenGuide as EventListener);
+        return () => window.removeEventListener('stockman:open-guide', onOpenGuide as EventListener);
+    }, [guideKey]);
 
     const handleNext = () => {
         if (currentStep < steps.length - 1) {

@@ -9044,6 +9044,54 @@ async def get_products(
 
     return {"items": [_product_response(prod) for prod in products], "total": total}
 
+class ProductStats(BaseModel):
+    lifetime_sales: float
+    lifetime_revenue: float
+    total_stock_in: float
+    total_stock_out: float
+
+@api_router.get("/products/{product_id}/stats", response_model=ProductStats)
+async def get_product_stats(product_id: str, user: User = Depends(require_permission("stock", "read"))):
+    owner_id = get_owner_id(user)
+    
+    # 1. Total sales & revenue
+    sales_pipeline = [
+        {"$match": {
+            "user_id": owner_id, 
+            "$or": [{"status": {"$exists": False}}, {"status": "completed"}], 
+            "items.product_id": product_id
+        }},
+        {"$unwind": "$items"},
+        {"$match": {"items.product_id": product_id}},
+        {"$group": {
+            "_id": None,
+            "total_quantity_sold": {"$sum": "$items.quantity"},
+            "total_revenue": {"$sum": {"$multiply": ["$items.quantity", {"$ifNull": ["$items.unit_price", 0]}]}}
+        }}
+    ]
+    sales_res = await db.sales.aggregate(sales_pipeline).to_list(1)
+    sales_data = sales_res[0] if sales_res else {"total_quantity_sold": 0, "total_revenue": 0}
+
+    # 2. Stock movements summary
+    mov_pipeline = [
+        {"$match": {"user_id": owner_id, "product_id": product_id}},
+        {"$group": {
+            "_id": "$type",
+            "total_quantity": {"$sum": "$quantity"}
+        }}
+    ]
+    mov_res = await db.stock_movements.aggregate(mov_pipeline).to_list(None)
+    
+    total_in = next((m.get("total_quantity", 0) for m in mov_res if m["_id"] == "in"), 0)
+    total_out = next((m.get("total_quantity", 0) for m in mov_res if m["_id"] == "out"), 0)
+
+    return ProductStats(
+        lifetime_sales=float(sales_data.get("total_quantity_sold", 0)),
+        lifetime_revenue=float(sales_data.get("total_revenue", 0)),
+        total_stock_in=float(total_in),
+        total_stock_out=float(total_out)
+    )
+
 @api_router.get("/products/{product_id}", response_model=Product)
 async def get_product(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)

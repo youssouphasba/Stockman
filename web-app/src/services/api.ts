@@ -1518,6 +1518,7 @@ export const products = {
     getPriceHistory: (id: string) => request<any[]>(`/products/${id}/price-history`),
     batchStockUpdate: (codes: string[], increment: number = 1) =>
         request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
+    getStats: (id: string) => request<any>(`/products/${id}/stats`),
 };
 
 export const projects = {
@@ -1768,6 +1769,7 @@ export const sales = {
     cancel: (saleId: string, reason?: string) =>
         request<any>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
     forecast: () => request<any>('/sales/forecast'),
+    productForecast: (productId: string) => request<any>(`/sales/forecast/${productId}`),
 };
 
 export const accounting = {
