@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
+import ContactSection from './components/ContactSection';
 import { useScrollReveal } from './hooks/useScrollReveal';
+import { getObjectArray, getStringArray } from './utils/translation';
 import {
   BUSINESS_TYPE_SLUGS,
   ENTERPRISE_FEATURES_URL,
@@ -18,22 +20,22 @@ export default function EnterprisePage() {
   useScrollReveal();
   const { t } = useTranslation();
 
-  const highlights = t('enterprise_highlights', { returnObjects: true }) as Array<{ title: string; desc: string }>;
-  const sideList = t('enterprise_page.side_li', { returnObjects: true }) as string[];
-  const showcaseCards = t('enterprise_page.showcase_cards', { returnObjects: true }) as Array<{
+  const highlights = getObjectArray<{ title: string; desc: string }>(t, 'enterprise_highlights');
+  const sideList = getStringArray(t, 'enterprise_page.side_li');
+  const showcaseCards = getObjectArray<{
     eyebrow: string;
     title: string;
     desc: string;
     points: string[];
-  }>;
-  const steps = t('enterprise_page.steps', { returnObjects: true }) as Array<{ title: string; desc: string }>;
+  }>(t, 'enterprise_page.showcase_cards');
+  const steps = getObjectArray<{ title: string; desc: string }>(t, 'enterprise_page.steps');
   const showcaseImages = [
-    '/assets/screenshots/enterprise-stock-overview.png',
-    '/assets/screenshots/enterprise-finance-overview.png',
-    '/assets/screenshots/enterprise-suppliers-overview.png',
-    '/assets/screenshots/enterprise-team-overview.png',
-    '/assets/screenshots/enterprise-crm-overview.png',
-    '/assets/screenshots/enterprise-pos-overview.png',
+    '/assets/screenshots/enterprise-showcase-1.png',
+    '/assets/screenshots/enterprise-showcase-2.png',
+    '/assets/screenshots/enterprise-showcase-3.png',
+    '/assets/screenshots/enterprise-showcase-4.png',
+    '/assets/screenshots/enterprise-showcase-5.png',
+    '/assets/screenshots/enterprise-showcase-6.png',
   ];
 
   const structuredData = [
@@ -180,7 +182,7 @@ export default function EnterprisePage() {
               <h3>{t(`enterprise_page.${slug}_h3`)}</h3>
               <p>{t(`business_types.${slug}.overview`)}</p>
               <div className="tag-list">
-                {(t(`business_types.${slug}.tags`, { returnObjects: true }) as string[]).map((tag) => (
+                {getStringArray(t, `business_types.${slug}.tags`).map((tag) => (
                   <span key={tag} className="tag-pill">{tag}</span>
                 ))}
               </div>
@@ -212,6 +214,7 @@ export default function EnterprisePage() {
         </div>
       </section>
 
+      <ContactSection />
       <MarketingFooter />
     </div>
   );
