@@ -6,7 +6,7 @@
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 8,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
