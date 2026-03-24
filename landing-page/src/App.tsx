@@ -205,6 +205,28 @@ function Landing() {
         </div>
       </section>
 
+      <section className="demo-banner-section reveal" style={{ padding: 'var(--spacing-xl) 0' }}>
+        <div className="container">
+          <div className="glass-card demo-highlight-card" style={{ 
+            padding: 'var(--spacing-xl) var(--spacing-lg)', 
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.1) 0%, rgba(255,255,255,0.02) 100%)',
+            border: '1px solid rgba(var(--primary-rgb), 0.2)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }}>
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+              {t('demo_banner.title', 'Essayez Stockman immédiatement')}
+            </h2>
+            <p className="text-muted" style={{ fontSize: '1.2rem', maxWidth: '700px', margin: '0 auto 2rem' }}>
+              {t('demo_banner.subtitle', "Testez l'application en conditions réelles avec nos bases de données de démonstration. Pas d'inscription requise, 100% gratuit.")}
+            </p>
+            <Link to="/demo" className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.2rem' }}>
+              {t('demo_banner.cta', 'Lancer la Démo Interactive')}
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
           <h2>{t('pricing.title')}</h2>
