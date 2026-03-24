@@ -28,12 +28,14 @@ import {
     customers as customersApi,
     stores as storesApi,
     expenses as expensesApi,
+    settings as settingsApi,
     sales as salesApi,
     AccountingStats,
     AccountingSaleHistoryItem,
     Customer,
     Store,
     Expense,
+    UserSettings,
     CustomerInvoice,
     Sale,
     API_URL,
@@ -54,6 +56,7 @@ import {
     printAndShare
 } from '../../utils/pdfReports';
 import { mergeAccountingOfflineState } from '../../services/offlineState';
+import KpiInfoButton from '../../components/KpiInfoButton';
 
 
 const screenWidth = Dimensions.get('window').width;
@@ -68,9 +71,29 @@ const PAYMENT_LABELS: Record<string, string> = {
     credit: 'accounting.payment_credit',
 };
 
-const EXPENSE_CATEGORIES = [
+const DEFAULT_EXPENSE_CATEGORIES = [
     'rent', 'salary', 'transport', 'merchandise', 'electricity', 'water', 'internet', 'other'
 ];
+
+function normalizeExpenseCategory(category: string) {
+    return category.trim().replace(/\s+/g, ' ');
+}
+
+function buildExpenseCategories(savedCategories: string[] = [], expenses: Expense[] = []) {
+    const seen = new Set<string>();
+    const merged: string[] = [];
+
+    [...DEFAULT_EXPENSE_CATEGORIES, ...savedCategories, ...expenses.map((expense) => expense.category)].forEach((category) => {
+        const value = normalizeExpenseCategory(String(category || ''));
+        if (!value) return;
+        const key = value.toLocaleLowerCase('fr-FR');
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(value);
+    });
+
+    return merged;
+}
 
 export default function AccountingScreen() {
     const { colors, glassStyle, isDark } = useTheme();
@@ -96,11 +119,15 @@ export default function AccountingScreen() {
 
     // Expenses
     const [expensesList, setExpensesList] = useState<Expense[]>([]);
+    const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
+    const [expenseCategories, setExpenseCategories] = useState<string[]>(DEFAULT_EXPENSE_CATEGORIES);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [expenseCategory, setExpenseCategory] = useState('other');
+    const [expenseCategoryDraft, setExpenseCategoryDraft] = useState('');
     const [expenseAmount, setExpenseAmount] = useState('');
     const [expenseDescription, setExpenseDescription] = useState('');
     const [savingExpense, setSavingExpense] = useState(false);
+    const [savingExpenseCategory, setSavingExpenseCategory] = useState(false);
 
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [showAllPerf, setShowAllPerf] = useState(false);
@@ -115,12 +142,13 @@ export default function AccountingScreen() {
     const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
         try {
             const days = period === 'custom' ? undefined : period;
-            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes] = await Promise.all([
+            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.all([
                 accountingApi.getStats(days, start, end),
                 accountingApi.getSalesHistory(days, start, end, 0, 100),
                 accountingApi.getInvoices(days, start, end, 0, 100),
                 expensesApi.list(days, start, end, 0, 500),
                 storesApi.list(),
+                settingsApi.get().catch(() => null),
             ]);
             const merged = await mergeAccountingOfflineState({
                 recentSales: Array.isArray(salesRes?.items) ? salesRes.items : [],
@@ -131,6 +159,8 @@ export default function AccountingScreen() {
             setRecentSales(merged.recentSales);
             setInvoiceHistory(merged.invoiceHistory);
             setExpensesList(merged.expensesList);
+            setSettingsData(userSettingsRes);
+            setExpenseCategories(buildExpenseCategories(userSettingsRes?.expense_categories || [], merged.expensesList));
             setPendingSummary(merged.summary);
             const active = (storesRes || []).find(s => s.store_id === user?.active_store_id) || null;
             setCurrentStore(active);
@@ -327,9 +357,45 @@ export default function AccountingScreen() {
     const openExpenseModal = () => {
         // console.log("Opening expense modal");
         setExpenseCategory('other');
+        setExpenseCategoryDraft('');
         setExpenseAmount('');
         setExpenseDescription('');
         setShowExpenseModal(true);
+    };
+
+    const addExpenseCategory = async () => {
+        const nextCategory = normalizeExpenseCategory(expenseCategoryDraft);
+        if (!nextCategory) {
+            Alert.alert(t('common.error'), 'Saisissez un nom de catégorie.');
+            return;
+        }
+
+        if (expenseCategories.some((category) => category.toLocaleLowerCase('fr-FR') === nextCategory.toLocaleLowerCase('fr-FR'))) {
+            setExpenseCategory(nextCategory);
+            setExpenseCategoryDraft('');
+            return;
+        }
+
+        const nextCategories = buildExpenseCategories(
+            [...(settingsData?.expense_categories || []), nextCategory],
+            expensesList,
+        );
+
+        setSavingExpenseCategory(true);
+        try {
+            const updatedSettings = await settingsApi.update({
+                expense_categories: nextCategories.filter((category) => !DEFAULT_EXPENSE_CATEGORIES.includes(category)),
+            } as any);
+            setSettingsData(updatedSettings);
+            setExpenseCategories(buildExpenseCategories(updatedSettings?.expense_categories || [], expensesList));
+            setExpenseCategory(nextCategory);
+            setExpenseCategoryDraft('');
+        } catch (error) {
+            console.error(error);
+            Alert.alert(t('common.error'), 'Impossible d’enregistrer cette catégorie.');
+        } finally {
+            setSavingExpenseCategory(false);
+        }
     };
 
     const saveExpense = async () => {
@@ -339,11 +405,17 @@ export default function AccountingScreen() {
             return;
         }
 
+        const normalizedCategory = normalizeExpenseCategory(expenseCategory);
+        if (!normalizedCategory) {
+            Alert.alert(t('common.error'), 'Choisissez une catégorie de dépense.');
+            return;
+        }
+
         const performSave = async () => {
             setSavingExpense(true);
             try {
                 await expensesApi.create({
-                    category: expenseCategory,
+                    category: normalizedCategory,
                     amount,
                     description: expenseDescription
                 });
@@ -376,12 +448,22 @@ export default function AccountingScreen() {
     };
 
     const deleteExpense = async (id: string) => {
-        try {
-            await expensesApi.delete(id);
-            loadData(selectedPeriod, appliedStart, appliedEnd);
-        } catch (error) {
-            console.error(error);
-            alert(t('accounting.delete_error'));
+        const performDelete = async () => {
+            try {
+                await expensesApi.delete(id);
+                loadData(selectedPeriod, appliedStart, appliedEnd);
+            } catch (error) {
+                console.error(error);
+                Alert.alert(t('common.error'), t('accounting.delete_error'));
+            }
+        };
+        if (Platform.OS === 'web') {
+            if (window.confirm(t('accounting.confirm_delete_expense'))) await performDelete();
+        } else {
+            Alert.alert(t('common.confirmation'), t('accounting.confirm_delete_expense'), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('common.delete'), style: 'destructive', onPress: performDelete },
+            ]);
         }
     };
 
@@ -766,11 +848,9 @@ export default function AccountingScreen() {
                         {/* KPI Grid */}
                         <View style={styles.kpiGrid}>
                             <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_revenue')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="cash-outline" size={20} color={colors.success} />
-                                    <TouchableOpacity onPress={() => alert(t('accounting.revenue_info'))}>
-                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.revenue')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.success }]}>
@@ -780,11 +860,9 @@ export default function AccountingScreen() {
                             </View>
 
                             <View style={[styles.kpiCard, { borderColor: colors.primary + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_gross_profit')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="trending-up-outline" size={20} color={colors.primary} />
-                                    <TouchableOpacity onPress={() => alert(t('accounting.margin_on_sales_info'))}>
-                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.margin_on_sales')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.primary }]}>
@@ -794,6 +872,7 @@ export default function AccountingScreen() {
                             </View>
 
                             <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_expenses')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="calculator-outline" size={20} color={colors.warning} />
                                 </View>
@@ -805,11 +884,9 @@ export default function AccountingScreen() {
                             </View>
 
                             <View style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_net_profit')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
-                                    <TouchableOpacity onPress={() => alert(t('accounting.net_profit_info'))}>
-                                        <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
                                 <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
@@ -895,6 +972,7 @@ export default function AccountingScreen() {
                         {/* KPI Grid 2: Stock & Losses */}
                         <View style={[styles.kpiGrid, { marginTop: 10 }]}>
                             <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_stock_purchase')} />
                                 <Ionicons name="cube-outline" size={20} color={colors.warning} />
                                 <Text style={styles.kpiLabel}>{t('accounting.stock_value_purchase')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.warning }]}>
@@ -918,6 +996,7 @@ export default function AccountingScreen() {
                         {/* KPI Grid 3: Items & Purchases */}
                         <View style={[styles.kpiGrid, { marginTop: 10 }]}>
                             <View style={[styles.kpiCard, { borderColor: colors.secondary + '40' }]}>
+                                <KpiInfoButton info={t('accounting.info_sales_count')} />
                                 <Ionicons name="cart-outline" size={20} color={colors.secondary} />
                                 <Text style={styles.kpiLabel}>{t('accounting.items_sold')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.secondary }]}>
@@ -1419,7 +1498,7 @@ export default function AccountingScreen() {
                             <ScrollView>
                                 <Text style={styles.fieldLabel}>{t('accounting.category')}</Text>
                                 <View style={styles.categoryPicker}>
-                                    {EXPENSE_CATEGORIES.map(cat => (
+                                    {expenseCategories.map(cat => (
                                         <TouchableOpacity
                                             key={cat}
                                             style={[styles.catBadge, expenseCategory === cat && styles.catBadgeActive]}
@@ -1431,6 +1510,38 @@ export default function AccountingScreen() {
                                         </TouchableOpacity>
                                     ))}
                                 </View>
+
+                                <Text style={styles.fieldLabel}>Ajouter une catégorie personnalisée</Text>
+                                <View style={styles.customCategoryRow}>
+                                    <TextInput
+                                        style={[styles.input, styles.customCategoryInput]}
+                                        value={expenseCategoryDraft}
+                                        onChangeText={setExpenseCategoryDraft}
+                                        placeholder="Ex : Marketing, Entretien, Frais bancaires"
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.addCategoryBtn,
+                                            (savingExpenseCategory || !expenseCategoryDraft.trim()) && styles.addCategoryBtnDisabled,
+                                        ]}
+                                        onPress={addExpenseCategory}
+                                        disabled={savingExpenseCategory || !expenseCategoryDraft.trim()}
+                                    >
+                                        {savingExpenseCategory ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="add-outline" size={18} color="#fff" />
+                                                <Text style={styles.addCategoryBtnText}>Ajouter</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.categoryHint}>
+                                    Les catégories ajoutées ici seront réutilisables pour vos prochaines dépenses sur ce compte.
+                                </Text>
+
                                 <Text style={styles.fieldLabel}>{t('accounting.amount')}</Text>
                                 <TextInput
                                     style={styles.input}
@@ -1670,6 +1781,24 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     catBadgeActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     catBadgeText: { color: colors.text, fontSize: 12 },
     catBadgeTextActive: { color: '#fff', fontWeight: 'bold' },
+    customCategoryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
+    customCategoryInput: { flex: 1, marginBottom: 0 },
+    addCategoryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        backgroundColor: colors.primary,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.md,
+        minWidth: 110,
+    },
+    addCategoryBtnDisabled: {
+        opacity: 0.5,
+    },
+    addCategoryBtnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
+    categoryHint: { color: colors.textMuted, fontSize: FontSize.xs, marginBottom: Spacing.sm },
     cancelBtn: { padding: Spacing.md },
     cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
     saveBtn: { backgroundColor: colors.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.md },

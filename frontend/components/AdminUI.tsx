@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import KpiInfoButton from './KpiInfoButton';
 
 // ============ FILTER BAR ============
 export function FilterBar({ filters, active, onSelect, colors }: {
@@ -32,11 +33,12 @@ export function SearchBar({ value, onChangeText, placeholder, colors }: {
 }
 
 // ============ STAT CARD ============
-export function StatCard({ label, value, icon, color, colors }: {
-    label: string; value: string | number; icon: string; color: string; colors: any;
+export function StatCard({ label, value, icon, color, colors, info }: {
+    label: string; value: string | number; icon: string; color: string; colors: any; info?: string;
 }) {
     return (
         <View style={[s.statCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+            {info ? <KpiInfoButton info={info} /> : null}
             <View style={[s.statIcon, { backgroundColor: color + '22' }]}>
                 <Ionicons name={icon as any} size={20} color={color} />
             </View>

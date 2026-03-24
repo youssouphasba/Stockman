@@ -350,23 +350,37 @@ export default function RegisterScreen() {
                 </InputWrapper>
               </Field>
 
-              <TouchableOpacity style={styles.checkRow} onPress={() => setAcceptedTerms((prev) => !prev)}>
-                <Ionicons
-                  name={acceptedTerms ? 'checkbox-outline' : 'square-outline'}
-                  size={22}
-                  color={acceptedTerms ? Colors.primaryLight : Colors.textMuted}
-                />
-                <Text style={styles.checkText}>{t('auth.register.acceptTerms')}</Text>
-              </TouchableOpacity>
+              <View style={styles.checkRow}>
+                <TouchableOpacity onPress={() => setAcceptedTerms((prev) => !prev)}>
+                  <Ionicons
+                    name={acceptedTerms ? 'checkbox-outline' : 'square-outline'}
+                    size={22}
+                    color={acceptedTerms ? Colors.primaryLight : Colors.textMuted}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.checkText}>
+                  {t('auth.register.acceptTerms')}{' '}
+                  <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
+                    {t('common.terms')}
+                  </Text>
+                </Text>
+              </View>
 
-              <TouchableOpacity style={styles.checkRow} onPress={() => setAcceptedPrivacy((prev) => !prev)}>
-                <Ionicons
-                  name={acceptedPrivacy ? 'checkbox-outline' : 'square-outline'}
-                  size={22}
-                  color={acceptedPrivacy ? Colors.primaryLight : Colors.textMuted}
-                />
-                <Text style={styles.checkText}>{t('auth.register.acceptPrivacy')}</Text>
-              </TouchableOpacity>
+              <View style={styles.checkRow}>
+                <TouchableOpacity onPress={() => setAcceptedPrivacy((prev) => !prev)}>
+                  <Ionicons
+                    name={acceptedPrivacy ? 'checkbox-outline' : 'square-outline'}
+                    size={22}
+                    color={acceptedPrivacy ? Colors.primaryLight : Colors.textMuted}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.checkText}>
+                  {t('auth.register.acceptPrivacy')}{' '}
+                  <Text style={styles.legalLink} onPress={() => router.push('/privacy')}>
+                    {t('common.privacy')}
+                  </Text>
+                </Text>
+              </View>
 
               <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
                 {loading ? (
@@ -630,6 +644,7 @@ const styles = StyleSheet.create({
   inputWithPrefix: { flex: 1, color: Colors.text, fontSize: FontSize.md, paddingVertical: 14 },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   checkText: { color: Colors.textMuted, marginLeft: 10, flex: 1, lineHeight: 20 },
+  legalLink: { color: Colors.primaryLight, fontWeight: '700' },
   button: {
     marginTop: 8,
     minHeight: 54,

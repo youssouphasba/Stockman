@@ -23,6 +23,7 @@
         "cost_purchase": "Purchase Cost",
         "default_address": "Address not provided",
         "default_store_name": "My Stock Shop",
+        "confirm_delete_expense": "Delete this expense? This action cannot be undone.",
         "delete_error": "Error deleting",
         "description_optional": "Description (optional)",
         "details_placeholder": "Expense details...",
@@ -109,7 +110,15 @@
         "title": "Accounting",
         "total_expenses": "Total Expenses",
         "total_expenses_kpi": "Total Expenses",
-        "total_revenue_kpi": "Total Revenue"
+        "total_revenue_kpi": "Total Revenue",
+        "info_revenue": "Total sales collected over the selected period, all payment methods combined.",
+        "info_gross_profit": "Difference between revenue and the purchase cost of products sold.",
+        "info_expenses": "Sum of all recorded expenses (rent, salaries, transport, etc.) over the period.",
+        "info_net_profit": "Actual profit after deducting all costs: revenue − purchase cost − expenses.",
+        "info_sales_count": "Total number of transactions completed at the register over the period.",
+        "info_avg_basket": "Average amount per transaction: revenue divided by number of sales.",
+        "info_stock_purchase": "Total value of your stock based on purchase prices.",
+        "info_stock_selling": "Potential value if all stock were sold at current selling prices."
     },
     "activity": {
         "no_activity": "No activity recorded",
@@ -544,7 +553,23 @@
         "search_placeholder": "Search product...",
         "stock_available": "Stock available",
         "title": "My Catalog",
-        "unit_placeholder": "unit"
+        "unit_placeholder": "unit",
+        "sku": "Reference / SKU",
+        "sku_placeholder": "E.g.: PRD-001",
+        "barcode": "Barcode",
+        "barcode_placeholder": "E.g.: 6001234567890",
+        "brand": "Brand",
+        "brand_placeholder": "E.g.: Nestlé, Samsung...",
+        "origin": "Origin / Source",
+        "origin_placeholder": "E.g.: Senegal, France...",
+        "weight": "Weight",
+        "weight_placeholder": "0",
+        "weight_unit": "Weight unit",
+        "delivery_time": "Delivery time",
+        "delivery_time_placeholder": "E.g.: 2-3 days",
+        "section_identification": "Identification",
+        "section_pricing": "Pricing & Stock",
+        "section_logistics": "Logistics"
     },
     "common": {
         "add": "Add",
@@ -725,6 +750,10 @@
         "promo_title_placeholder": "e.g., Loyalty Discount",
         "promotions": "Promotions",
         "record_payment": "Record a payment",
+        "cancel_payment": "Cancel",
+        "payment_cancelled": "Payment cancelled successfully",
+        "confirm_cancel_payment": "Cancel this payment of {{amount}}? The customer's debt will be restored.",
+        "cancel_payment_error": "Error cancelling payment",
         "repay": "Settle",
         "report_clients": "Customers",
         "report_debts": "Debts",
@@ -767,7 +796,10 @@
         "yesterday": "Yesterday",
         "call": "Call",
         "send_message": "Send a message",
-        "send_sms": "Send an SMS"
+        "send_sms": "Send an SMS",
+        "info_clients": "Total number of customers registered in your customer file.",
+        "info_total_sales": "Cumulative amount of all purchases made by your customers.",
+        "info_active_30d": "Customers who made at least one purchase in the last 30 days."
     },
     "dashboard": {
         "abc_analysis": "ABC Analysis (Priorities)",
@@ -863,7 +895,11 @@
         "widget_reorder": "Reorder",
         "widget_smart_reminders": "Smart reminders",
         "widget_stock_chart": " Stock value evolution",
-        "widget_stock_status": "Stock Status"
+        "widget_stock_status": "Stock Status",
+        "info_today_revenue": "Total sales collected today, all payment methods combined.",
+        "info_today_sales": "Number of transactions completed today at the register.",
+        "info_stock_value": "Total value of your stock based on purchase prices of all products.",
+        "info_month_revenue": "Cumulative revenue since the 1st of the current month."
     },
     "delivery": {
         "ai_analysis": "AI product analysis...",
@@ -965,6 +1001,22 @@
             "q18": {
                 "q": "Is ingredient stock linked to recipes?",
                 "a": "Yes. A dish linked to a service recipe consumes ingredients according to its production mode. A prepared dish can also deduct a finished product produced in advance."
+            },
+            "q19": {
+                "q": "How to bulk import my products?",
+                "a": "In Products, use CSV import (Excel/CSV file) or text import (copy-paste). AI parsing automatically detects names, prices, and quantities."
+            },
+            "q20": {
+                "q": "How does the change calculator work?",
+                "a": "At checkout, choose cash payment. Enter the amount given by the customer. The app instantly calculates the change and suggests bills to return."
+            },
+            "q21": {
+                "q": "What is the (i) button on KPI cards?",
+                "a": "The info (i) button at the top right of each KPI card opens an explanation of the indicator: what it measures, how it's calculated, and how to interpret it."
+            },
+            "q22": {
+                "q": "How to recover my subscription after changing phones?",
+                "a": "In Subscription, tap 'Restore my subscription'. The app finds your purchase via your Play Store, App Store, or Flutterwave account without paying again."
             }
         },
         "faq_title": "FREQUENT QUESTIONS",
@@ -997,6 +1049,18 @@
                 "f6": {
                     "t": "Stats & History",
                     "d": "Access detailed charts (stock evolution, breakdown by category) and full movement history with filters and CSV export."
+                },
+                "f7": {
+                    "t": "Customize Dashboard",
+                    "d": "Tap the options icon in the header to choose which sections to display: KPIs, stock health, reminders, AI forecasts."
+                },
+                "f8": {
+                    "t": "Share Report",
+                    "d": "Generate an HTML report of your day and share it via WhatsApp, Email, or any other sharing app."
+                },
+                "f9": {
+                    "t": "KPI Info (i)",
+                    "d": "Each KPI card has an (i) button that explains the calculation of the indicator. Tap it to understand your numbers."
                 }
             },
             "products": {
@@ -1028,6 +1092,22 @@
                 "f7": {
                     "t": "Price History",
                     "d": "Check the buy and sell price history of each product to optimize your margins."
+                },
+                "f8": {
+                    "t": "Bulk Import",
+                    "d": "Import your products via a CSV/Excel file or by copy-pasting free text. AI parsing automatically detects products."
+                },
+                "f9": {
+                    "t": "Batch Scan",
+                    "d": "Scan multiple barcodes in a row for quick stock-in/stock-out or a complete inventory without interruption."
+                },
+                "f10": {
+                    "t": "CSV Export",
+                    "d": "Export your product list as CSV via the download icon in the header for external analysis or backup."
+                },
+                "f11": {
+                    "t": "Movement Cancellation",
+                    "d": "In a product's history, cancel an erroneous movement. Stock is automatically corrected."
                 }
             },
             "pos": {
@@ -1055,6 +1135,22 @@
                 "f6": {
                     "t": "Auto Loyalty",
                     "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze → Platinum)."
+                },
+                "f7": {
+                    "t": "Multi-Sessions",
+                    "d": "Manage multiple carts in parallel via tabs (Client 1, Client 2...). Ideal when a customer hesitates while you serve the next one."
+                },
+                "f8": {
+                    "t": "Line Discount",
+                    "d": "Apply a percentage or fixed amount discount on a specific item via the tag icon on the line."
+                },
+                "f9": {
+                    "t": "Change Calculator",
+                    "d": "For cash payments, enter the amount received. The app instantly calculates the change and suggests bills to return."
+                },
+                "f10": {
+                    "t": "Digital Receipt",
+                    "d": "After validation, send the receipt via WhatsApp, Email, or print it. The receipt includes full transaction details."
                 }
             },
             "orders": {
@@ -1078,6 +1174,22 @@
                 "f5": {
                     "t": "Advanced Filters",
                     "d": "Filter by status, supplier, or period to find an order."
+                },
+                "f6": {
+                    "t": "Partial Receipt",
+                    "d": "Receive an incomplete delivery by entering quantities received per line. Stock is updated proportionally."
+                },
+                "f7": {
+                    "t": "Goods Return",
+                    "d": "After delivery, select items to return with a reason. Stock is adjusted accordingly."
+                },
+                "f8": {
+                    "t": "Supplier Rating",
+                    "d": "After receipt, rate the supplier (1 to 5 stars) with a comment. Ratings are visible on the marketplace."
+                },
+                "f9": {
+                    "t": "Scan an Invoice",
+                    "d": "Capture the supplier's paper invoice with the camera to archive it directly in the order."
                 }
             },
             "suppliers": {
@@ -1105,6 +1217,14 @@
                 "f6": {
                     "t": "Restock Suggestions",
                     "d": "The system identifies products below the minimum threshold and suggests quantities to order per supplier."
+                },
+                "f7": {
+                    "t": "Supplier Invoices",
+                    "d": "Scan or create supplier invoices from the profile. Keep your full purchase history in one place."
+                },
+                "f8": {
+                    "t": "Interaction Journal",
+                    "d": "Log your exchanges (calls, visits, emails) with each supplier to keep a complete record of the relationship."
                 }
             },
             "crm": {
@@ -1132,6 +1252,14 @@
                 "f6": {
                     "t": "Birthdays",
                     "d": "Record birth dates for automatic personalized offers and to strengthen customer relations."
+                },
+                "f7": {
+                    "t": "Direct Contact",
+                    "d": "From the customer profile: call, send SMS, open WhatsApp, or send email with a single tap."
+                },
+                "f8": {
+                    "t": "PDF & CSV Export",
+                    "d": "Export your customer list as PDF (detailed report) or CSV (raw data) from the header icons."
                 }
             },
             "accounting": {
@@ -1159,6 +1287,14 @@
                 "f6": {
                     "t": "CSV Export",
                     "d": "Export all your financial data in CSV format for your accountant or accounting software."
+                },
+                "f7": {
+                    "t": "Top Products & Margins",
+                    "d": "Discover your best-selling products (quantity + revenue), top categories, and most profitable items by margin."
+                },
+                "f8": {
+                    "t": "KPI Info (i)",
+                    "d": "Each KPI card (revenue, profit, expenses, etc.) has an (i) button explaining the calculation of the indicator."
                 }
             },
             "alerts": {
@@ -1178,6 +1314,14 @@
                 "f4": {
                     "t": "Alert Management",
                     "d": "Mark alerts as read, delete them, or clear all resolved alerts with one click."
+                },
+                "f5": {
+                    "t": "AI Anomalies",
+                    "d": "Artificial intelligence detects suspicious movements and unusual trends. Purple alerts signal these anomalies."
+                },
+                "f6": {
+                    "t": "Push Notifications",
+                    "d": "Receive an instant notification on your phone when a product goes out of stock or hits low stock."
                 }
             },
             "activity": {
@@ -1212,6 +1356,14 @@
                 "f4": {
                     "t": "Account Management",
                     "d": "Modify permissions, reset password, or disable an account at any time."
+                },
+                "f5": {
+                    "t": "Authorized Shops",
+                    "d": "Each employee only has access to the shops you assign. Data stays isolated per shop."
+                },
+                "f6": {
+                    "t": "Share via WhatsApp",
+                    "d": "Send login credentials via WhatsApp with one tap. The employee logs in with their email and password."
                 }
             },
             "settings": {
@@ -1231,6 +1383,45 @@
                 "f4": {
                     "t": "Push Notifications",
                     "d": "Enable notifications to be alerted in real-time about out of stock, low stock, and dormant products."
+                },
+                "f5": {
+                    "t": "Language",
+                    "d": "15 languages available: French, English, Wolof, Fula, Arabic, Spanish, Portuguese, German, Italian, and more."
+                },
+                "f6": {
+                    "t": "Sales Documents",
+                    "d": "Customize your receipts (shop name, footer) and invoices (company name, prefix, legal mentions)."
+                },
+                "f7": {
+                    "t": "Tax & VAT",
+                    "d": "Enable VAT, set the default rate, and the legal mention displayed on your invoices."
+                },
+                "f8": {
+                    "t": "Security PIN & Biometrics",
+                    "d": "Enable PIN code to lock the app on launch. Add biometrics (fingerprint, Face ID) for quick access."
+                },
+                "f9": {
+                    "t": "Data & GDPR",
+                    "d": "Export all your data as JSON (GDPR right). Account deletion is permanent and irreversible."
+                }
+            },
+            "subscription": {
+                "title": "Subscription",
+                "f1": {
+                    "t": "Compare Plans",
+                    "d": "Starter (2,500 FCFA/month): 1 shop, 1 employee. Pro (4,900): 2 shops, 5 employees. Enterprise (9,900): unlimited + web."
+                },
+                "f2": {
+                    "t": "Upgrade",
+                    "d": "Upgrade to a higher plan at any time to unlock more shops, employees, and features."
+                },
+                "f3": {
+                    "t": "Payment",
+                    "d": "Mobile Money via Flutterwave (Africa), in-app purchase Play Store/App Store, or Stripe in EUR. Choose what suits you."
+                },
+                "f4": {
+                    "t": "Restore Subscription",
+                    "d": "After reinstalling or changing phones, recover your existing subscription without paying again."
                 }
             },
             "supplierDashboard": {
@@ -1250,6 +1441,10 @@
                 "f4": {
                     "t": "Active Clients",
                     "d": "See how many different merchants have ordered from you. Track your client base evolution."
+                },
+                "f5": {
+                    "t": "Recent Orders",
+                    "d": "The last 5 orders with status, amount, and date. Access the detail to process each order quickly."
                 }
             },
             "supplierCatalog": {
@@ -1418,13 +1613,24 @@
         "close": "Close",
         "confirm": "Confirm",
         "contactSupport": {
-            "title": "Contact Support",
+            "title": "Support",
             "subjectLabel": "Subject",
             "subjectPlaceholder": "e.g., Printing problem, Suggestion...",
             "messageLabel": "Message",
             "messagePlaceholder": "Describe your problem in detail...",
             "send": "Send message",
-            "successMessage": "Your message has been sent. Our team will reply soon."
+            "success": "Ticket sent! Our team will reply soon.",
+            "error": "Error sending ticket.",
+            "newTicket": "New",
+            "myTickets": "My tickets",
+            "noTickets": "No tickets yet",
+            "statusOpen": "Pending",
+            "statusPending": "Replied",
+            "statusClosed": "Closed",
+            "replied": "Reply received",
+            "you": "You",
+            "replyPlaceholder": "Your reply...",
+            "replyError": "Error sending reply."
         },
         "deleteAccount": {
             "dangerZone": "Danger Zone ⚠️",
@@ -1963,6 +2169,10 @@
         "stock_movement_in_title": "Stock entry for",
         "stock_movement_out_title": "Stock exit for",
         "stock_update_error": "Could not update stock",
+        "movement_reversed": "Movement reversed successfully",
+        "confirm_reverse_movement": "Reverse this movement of {{qty}} ({{type}})? An opposite movement will be created.",
+        "reverse_movement_error": "Error reversing movement",
+        "reverse_movement": "Reverse this movement",
         "stock_value": "Stock Value",
         "suggest_price": "Suggest price (AI)",
         "title": "Products",
@@ -2177,7 +2387,7 @@
         "premium_active_text": "Your Premium subscription is active. Thank you for your trust!",
         "renewal": "Renewal: {{date}}",
         "restore_error": "Could not restore purchases.",
-        "restore_purchase": "Restore a purchase",
+        "restore_purchase": "Recover my subscription",
         "restored": "Restored",
         "restored_success": "Your subscription has been restored.",
         "title": "My Subscription",
@@ -2193,12 +2403,12 @@
         "categories": "Categories",
         "dashboard": "Supplier Dashboard",
         "delivery_zones": "Delivery Zones",
-        "filter_all": "Tous",
-        "filter_cancelled": "Annulées",
-        "filter_confirmed": "Confirmées",
-        "filter_delivered": "Livrées",
-        "filter_pending": "En attente",
-        "filter_shipped": "Expédiées",
+        "filter_all": "All",
+        "filter_cancelled": "Cancelled",
+        "filter_confirmed": "Confirmed",
+        "filter_delivered": "Delivered",
+        "filter_pending": "Pending",
+        "filter_shipped": "Shipped",
         "min_order": "Min Order",
         "order_id": "Order code",
         "orders": "Orders Received",
@@ -2207,13 +2417,47 @@
         "revenue_month": "Revenue this month",
         "reviews": "Customer Reviews",
         "ship": "Ship",
-        "status_cancelled": "Annulée",
-        "status_confirmed": "Confirmée",
-        "status_delivered": "Livrée",
-        "status_pending": "En attente",
-        "status_shipped": "Expédiée",
+        "status_cancelled": "Cancelled",
+        "status_confirmed": "Confirmed",
+        "status_delivered": "Delivered",
+        "status_pending": "Pending",
+        "status_shipped": "Shipped",
         "top_products": "Top Products",
-        "unavailable": "Unavailable"
+        "unavailable": "Unavailable",
+        "info_products": "Number of products published in your supplier catalog.",
+        "info_orders": "Total number of orders received from your merchant customers.",
+        "info_revenue": "Total cumulative revenue from all delivered orders.",
+        "info_rating": "Average rating given by your customers after delivery.",
+        "info_pending": "Orders awaiting your validation (accept or refuse).",
+        "info_revenue_month": "Revenue generated since the 1st of the current month.",
+        "info_avg_basket": "Average amount per order: total revenue divided by number of orders.",
+        "info_active_clients": "Number of merchants who recently placed at least one order.",
+        "dashboard_title": "Supplier Dashboard",
+        "rating": "Rating",
+        "recent_orders": "Recent Orders",
+        "client_reviews": "Customer Reviews",
+        "average_basket": "Average Basket",
+        "revenue_this_month": "Revenue this month",
+        "sold_count": "{{count}} sold",
+        "no_product_data": "No product data",
+        "no_recent_orders": "No recent orders",
+        "no_reviews_yet": "No reviews yet",
+        "items_count": "{{count}} item(s)",
+        "product_fallback": "Product #{{id}}",
+        "all_shopkeepers": "All shopkeepers",
+        "status_change_error": "Unable to change status",
+        "tab_dashboard": "Dashboard",
+        "tab_catalog": "Catalog",
+        "tab_orders": "Orders",
+        "tab_messages": "Messages",
+        "tab_settings": "Settings",
+        "no_conversations": "No conversations",
+        "marketplace_hint": "Shopkeepers can contact you from the Marketplace",
+        "new_conversation": "New conversation",
+        "write_message": "Write a message...",
+        "supplier_role": "Supplier",
+        "shopkeeper_role": "Shopkeeper",
+        "just_now": "just now"
     },
     "supplier_old": {
         "active_clients": "Active customers",

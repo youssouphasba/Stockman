@@ -1005,6 +1005,30 @@ export default function ProductsScreen() {
     }
   }
 
+  async function handleReverseMovement(movementId: string, qty: number, type: string) {
+    const performReverse = async () => {
+      try {
+        await stockApi.reverseMovement(movementId);
+        Alert.alert(t('common.success'), t('products.movement_reversed'));
+        await loadData();
+        if (selectedProduct) {
+          loadHistory(historyPeriod);
+        }
+      } catch (err: any) {
+        Alert.alert(t('common.error'), err?.message || t('products.reverse_movement_error'));
+      }
+    };
+    const msg = t('products.confirm_reverse_movement', { qty, type: type === 'in' ? t('products.mov_in') : t('products.mov_out') });
+    if (Platform.OS === 'web') {
+      if (window.confirm(msg)) await performReverse();
+    } else {
+      Alert.alert(t('common.confirmation'), msg, [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.confirm'), style: 'destructive', onPress: performReverse },
+      ]);
+    }
+  }
+
   const CAT_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#64748b'];
 
   function openEditCategory(cat: Category) {
@@ -1554,7 +1578,10 @@ export default function ProductsScreen() {
                 <Ionicons name="document-text-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.iconBtn} onPress={handleExportCSV}>
+            <TouchableOpacity
+              style={[styles.iconBtn, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
+              onPress={handleExportCSV}
+            >
               <Ionicons name="download-outline" size={20} color={colors.primary} />
             </TouchableOpacity>
             {canWrite && (
@@ -1941,11 +1968,11 @@ export default function ProductsScreen() {
                       <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                         {!isRestaurant && (
                           <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: colors.secondary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                            style={[styles.actionBtn, { backgroundColor: colors.info + '18', borderWidth: 1, borderColor: colors.info + '38', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
                             onPress={() => openHistoryModal(product)}
                           >
-                            <Ionicons name="time-outline" size={16} color={colors.secondary} />
-                            <Text style={[styles.actionText, { color: colors.secondary }]}>{t('products.history')}</Text>
+                            <Ionicons name="time-outline" size={16} color={colors.info} />
+                            <Text style={[styles.actionText, { color: colors.info }]}>{t('products.history')}</Text>
                           </TouchableOpacity>
                         )}
 
@@ -2605,7 +2632,19 @@ export default function ProductsScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.actionBtn, { alignSelf: 'flex-end', marginBottom: Spacing.sm }]}
+              style={[
+                styles.actionBtn,
+                {
+                  alignSelf: 'flex-end',
+                  marginBottom: Spacing.sm,
+                  backgroundColor: colors.success + '18',
+                  borderWidth: 1,
+                  borderColor: colors.success + '38',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                }
+              ]}
               onPress={handleExportHistoryCSV}
             >
               <Ionicons name="download-outline" size={18} color={colors.success} />
@@ -2671,6 +2710,14 @@ export default function ProductsScreen() {
                           <Text style={[styles.historyQty, { color: mov.type === 'in' ? colors.success : colors.warning }]}>
                             {mov.type === 'in' ? '+' : '-'}{mov.quantity}
                           </Text>
+                          {!mov.reason?.startsWith('Annulation de') && (
+                            <TouchableOpacity
+                              style={{ marginLeft: 8, padding: 4 }}
+                              onPress={() => handleReverseMovement(mov.movement_id, mov.quantity, mov.type)}
+                            >
+                              <Ionicons name="arrow-undo-outline" size={18} color={colors.danger} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))}
                       {historyMovements.length > 5 && (

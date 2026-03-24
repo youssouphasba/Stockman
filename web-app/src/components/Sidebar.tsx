@@ -30,6 +30,8 @@ import {
     UtensilsCrossed,
     CalendarCheck,
     ChefHat,
+    Bell,
+    HelpCircle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
@@ -44,7 +46,10 @@ interface SidebarProps {
     isMobileOpen: boolean;
     onMobileClose: () => void;
     onOpenChat: () => void;
+    onOpenSupport: () => void;
+    onOpenNotifications: () => void;
     unreadMessages?: number;
+    unreadNotifications?: number;
     features?: {
         has_production: boolean;
         is_restaurant?: boolean;
@@ -90,7 +95,10 @@ export default function Sidebar({
     isMobileOpen,
     onMobileClose,
     onOpenChat,
+    onOpenSupport,
+    onOpenNotifications,
     unreadMessages = 0,
+    unreadNotifications = 0,
     features,
     modules = {},
 }: SidebarProps) {
@@ -504,6 +512,42 @@ export default function Sidebar({
                         )}
                     </button>
                 </div>
+
+                {/* Notifications button */}
+                    <button
+                        onClick={() => {
+                            onOpenNotifications();
+                            onMobileClose();
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all group"
+                    >
+                        <div className="relative shrink-0">
+                            <Bell size={16} className="group-hover:text-primary transition-colors" />
+                            {unreadNotifications > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                                </span>
+                            )}
+                        </div>
+                        <span className="font-medium text-sm flex-1 text-left">{t('sidebar.notifications')}</span>
+                        {unreadNotifications > 0 && (
+                            <span className="bg-rose-500/20 text-rose-400 text-[9px] font-black px-2 py-0.5 rounded-full">
+                                {unreadNotifications}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Support button */}
+                    <button
+                        onClick={() => {
+                            onOpenSupport();
+                            onMobileClose();
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all group"
+                    >
+                        <HelpCircle size={16} className="group-hover:text-primary transition-colors" />
+                        <span className="font-medium text-sm flex-1 text-left">{t('sidebar.support')}</span>
+                    </button>
 
                 {/* Logout */}
                 <button

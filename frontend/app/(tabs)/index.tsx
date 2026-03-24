@@ -58,6 +58,7 @@ import ForecastCard from '../../components/ForecastCard';
 import SmartRemindersCard from '../../components/SmartRemindersCard';
 import AiDailySummary from '../../components/AiDailySummary';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
+import KpiInfoButton from '../../components/KpiInfoButton';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -71,14 +72,16 @@ type KpiCardProps = {
   value: string | number;
   color: string;
   isCurrency?: boolean;
+  info?: string;
 };
 
-function KpiCard({ icon, label, value, color, isCurrency = false, user, colors, styles }: KpiCardProps & { user: any, colors: any, styles: any }) {
+function KpiCard({ icon, label, value, color, isCurrency = false, info, user, colors, styles }: KpiCardProps & { user: any, colors: any, styles: any }) {
   const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
   const isNumber = !isNaN(numericValue);
 
   return (
     <View style={[styles.kpiCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+      {info ? <KpiInfoButton info={info} /> : null}
       <View style={[styles.kpiIcon, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={22} color={color} />
       </View>
@@ -251,6 +254,7 @@ export default function DashboardScreen() {
           value={data?.today_revenue ?? 0}
           color={colors.success}
           isCurrency
+          info={t('dashboard.info_today_revenue')}
           user={user}
           colors={colors}
           styles={styles}
@@ -260,6 +264,7 @@ export default function DashboardScreen() {
           label={t('dashboard.today_sales')}
           value={data?.today_sales_count ?? 0}
           color={colors.info}
+          info={t('dashboard.info_today_sales')}
           user={user}
           colors={colors}
           styles={styles}
@@ -270,6 +275,7 @@ export default function DashboardScreen() {
           value={data?.total_stock_value ?? 0}
           color={colors.warning}
           isCurrency
+          info={t('dashboard.info_stock_value')}
           user={user}
           colors={colors}
           styles={styles}
@@ -280,6 +286,7 @@ export default function DashboardScreen() {
           value={data?.month_revenue ?? 0}
           color={colors.primary}
           isCurrency
+          info={t('dashboard.info_month_revenue')}
           user={user}
           colors={colors}
           styles={styles}

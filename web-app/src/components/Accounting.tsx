@@ -49,6 +49,7 @@ import AccountingReportModal from './AccountingReportModal';
 import InvoiceModal from './InvoiceModal';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const PERIODS = [
     { label: '7j', value: 7 },
@@ -208,7 +209,7 @@ export default function Accounting() {
     };
 
     const handleDeleteExpense = async (id: string) => {
-        if (!confirm("Supprimer cette dépense ?")) return;
+        if (!confirm(t('accounting.confirm_delete_expense'))) return;
         try {
             await expensesApi.delete(id);
             loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
@@ -325,8 +326,36 @@ export default function Accounting() {
 
     const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
 
+    const accountingSteps: GuideStep[] = [
+        {
+            title: t('guide.accounting.step1_title', { defaultValue: 'Bienvenue dans Finance & Comptabilité' }),
+            content: t('guide.accounting.step1', { defaultValue: 'Suivez la rentabilité de votre activité : chiffre d\u2019affaires, marges, charges et résultat net.' }),
+        },
+        {
+            title: t('guide.accounting.step2_title', { defaultValue: 'Indicateurs clés' }),
+            content: t('guide.accounting.step2', { defaultValue: 'Consultez vos KPI en un coup d\u2019\u0153il. Cliquez sur n\u2019importe quel indicateur pour afficher son détail.' }),
+        },
+        {
+            title: t('guide.accounting.step3_title', { defaultValue: 'Analyse IA' }),
+            content: t('guide.accounting.step3', { defaultValue: 'L\u2019IA analyse automatiquement vos données P&L et vous donne des recommandations personnalisées.' }),
+        },
+        {
+            title: t('guide.accounting.step4_title', { defaultValue: 'Gérez vos dépenses' }),
+            content: t('guide.accounting.step4', { defaultValue: 'Enregistrez loyer, salaires et autres charges pour un suivi précis du résultat net.' }),
+        },
+        {
+            title: t('guide.accounting.step5_title', { defaultValue: 'Rapports et export' }),
+            content: t('guide.accounting.step5', { defaultValue: 'Générez des rapports IA mensuels ou téléchargez des rapports PDF formatés.' }),
+        },
+        {
+            title: t('guide.accounting.step6_title', { defaultValue: 'Détail des KPI' }),
+            content: t('guide.accounting.step6', { defaultValue: 'Cliquez sur n\u2019importe quel indicateur pour afficher un tableau détaillé et exportable.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={accountingSteps} guideKey="accounting_tour" />
             {/* Header */}
             <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-10">
                 <div>

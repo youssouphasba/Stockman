@@ -62,6 +62,7 @@ from enterprise_access import (
     is_billing_admin_doc as shared_is_billing_admin_doc,
     is_org_admin_doc as shared_is_org_admin_doc,
     merge_effective_settings,
+    normalize_expense_categories,
     normalize_notification_contacts,
     normalize_notification_preferences,
     normalize_account_roles as shared_normalize_account_roles,
@@ -1453,6 +1454,7 @@ class UserSettings(BaseModel):
     })
     language: str = "fr"
     push_notifications: bool = True
+    expense_categories: List[str] = Field(default_factory=list)
     notification_preferences: Dict[str, Any] = Field(default_factory=shared_default_notification_preferences)
     notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
     store_notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
@@ -1805,6 +1807,7 @@ class AdminMessage(BaseModel):
     sent_by: str = "Admin"
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     read_count: int = 0
+    read_by: List[str] = []
 
 class AdminMessageCreate(BaseModel):
     title: str
@@ -3792,7 +3795,67 @@ async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(
         messages=[SupportMessage(sender_id=user.user_id, sender_name=user.name, content=data.message)]
     )
     await db.support_tickets.insert_one(ticket.model_dump())
+
+    # Notify superadmin(s) via push
+    try:
+        admins = await db.users.find(
+            {"role": {"$in": ["superadmin", "admin"]}, "push_tokens": {"$exists": True, "$ne": []}},
+            {"push_tokens": 1}
+        ).to_list(10)
+        admin_tokens = []
+        for a in admins:
+            admin_tokens.extend(a.get("push_tokens", []))
+        if admin_tokens:
+            await notification_service.send_push_notification(
+                list(set(admin_tokens)),
+                f"Nouveau ticket: {data.subject}",
+                f"{user.name}: {data.message[:100]}",
+                {"type": "support_ticket", "ticket_id": ticket.ticket_id}
+            )
+    except Exception as e:
+        logger.warning(f"Failed to notify admins of new ticket: {e}")
+
     return ticket
+
+@api_router.get("/support/tickets/mine")
+async def get_my_tickets(user: User = Depends(require_auth)):
+    """Get the authenticated user's own support tickets with messages."""
+    tickets = await db.support_tickets.find(
+        {"user_id": user.user_id}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(50)
+    return [SupportTicket(**t) for t in tickets]
+
+@api_router.post("/support/tickets/{ticket_id}/reply")
+async def user_reply_ticket(ticket_id: str, reply: SupportReply, user: User = Depends(require_auth)):
+    """Allow user to reply to their own ticket."""
+    ticket = await db.support_tickets.find_one({"ticket_id": ticket_id, "user_id": user.user_id})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket non trouvé")
+    msg = SupportMessage(sender_id=user.user_id, sender_name=user.name, content=reply.content)
+    await db.support_tickets.update_one(
+        {"ticket_id": ticket_id},
+        {"$push": {"messages": msg.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc), "status": "open"}}
+    )
+    # Notify admins
+    try:
+        admins = await db.users.find(
+            {"role": {"$in": ["superadmin", "admin"]}, "push_tokens": {"$exists": True, "$ne": []}},
+            {"push_tokens": 1}
+        ).to_list(10)
+        admin_tokens = []
+        for a in admins:
+            admin_tokens.extend(a.get("push_tokens", []))
+        if admin_tokens:
+            await notification_service.send_push_notification(
+                list(set(admin_tokens)),
+                f"Réponse ticket: {ticket.get('subject', '')}",
+                f"{user.name}: {reply.content[:100]}",
+                {"type": "support_ticket", "ticket_id": ticket_id}
+            )
+    except Exception as e:
+        logger.warning(f"Failed to notify admins of ticket reply: {e}")
+    result = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
+    return SupportTicket(**result)
 
 # ===================== USER DISPUTE ENDPOINT =====================
 
@@ -3810,6 +3873,26 @@ async def create_dispute(data: DisputeCreate, user: User = Depends(require_auth)
     )
     await db.disputes.insert_one(dispute.model_dump())
     logger.info(f"DISPUTE created by {user.name}: {data.subject}")
+
+    # Notify superadmin(s) via push
+    try:
+        admins = await db.users.find(
+            {"role": {"$in": ["superadmin", "admin"]}, "push_tokens": {"$exists": True, "$ne": []}},
+            {"push_tokens": 1}
+        ).to_list(10)
+        admin_tokens = []
+        for a in admins:
+            admin_tokens.extend(a.get("push_tokens", []))
+        if admin_tokens:
+            await notification_service.send_push_notification(
+                list(set(admin_tokens)),
+                f"Nouveau litige: {data.subject}",
+                f"{user.name}: {data.description[:100]}",
+                {"type": "dispute", "dispute_id": dispute.dispute_id}
+            )
+    except Exception as e:
+        logger.warning(f"Failed to notify admins of new dispute: {e}")
+
     return {"message": "Litige créé avec succès", "dispute_id": dispute.dispute_id}
 
 @api_router.get("/disputes/mine")
@@ -3831,7 +3914,31 @@ async def get_user_notifications(user: User = Depends(require_auth), skip: int =
     ]}
     messages = await db.admin_messages.find(query, {"_id": 0}).sort("sent_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.admin_messages.count_documents(query)
-    return {"items": messages, "total": total}
+    # Add is_read flag per user
+    for m in messages:
+        m["is_read"] = user.user_id in (m.get("read_by") or [])
+    unread = await db.admin_messages.count_documents({**query, "read_by": {"$ne": user.user_id}})
+    return {"items": messages, "total": total, "unread": unread}
+
+@api_router.post("/user/notifications/{message_id}/read")
+async def mark_notification_read(message_id: str, user: User = Depends(require_auth)):
+    """Mark a notification as read for the current user."""
+    await db.admin_messages.update_one(
+        {"message_id": message_id},
+        {"$addToSet": {"read_by": user.user_id}, "$inc": {"read_count": 1}}
+    )
+    return {"status": "ok"}
+
+@api_router.post("/user/notifications/read-all")
+async def mark_all_notifications_read(user: User = Depends(require_auth)):
+    """Mark all notifications as read for the current user."""
+    query = {"$or": [
+        {"target": "all"},
+        {"target": user.role},
+        {"target": user.user_id},
+    ], "read_by": {"$ne": user.user_id}}
+    result = await db.admin_messages.update_many(query, {"$addToSet": {"read_by": user.user_id}})
+    return {"marked": result.modified_count}
 
 # ===================== ADMIN ROUTES =====================
 
@@ -3887,45 +3994,145 @@ async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends
 
 @admin_router.get("/products")
 async def admin_list_all_products(
-    category_id: Optional[str] = None, 
+    category_id: Optional[str] = None,
     min_stock: Optional[int] = None,
+    store_id: Optional[str] = None,
+    owner_user_id: Optional[str] = None,
+    business_sector: Optional[str] = None,
+    is_active: Optional[bool] = None,
     search: Optional[str] = None,
-    skip: int = 0, 
+    skip: int = 0,
     limit: int = 50,
-    user: User = Depends(require_superadmin)
+    user: User = Depends(require_superadmin),
 ):
     query = {}
-    if category_id: query["category_id"] = category_id
-    if min_stock is not None: query["quantity"] = {"$lte": min_stock}
-    if search: query["name"] = {"$regex": safe_regex(search), "$options": "i"}
-    
+    if category_id:
+        query["category_id"] = category_id
+    if min_stock is not None:
+        query["quantity"] = {"$lte": min_stock}
+    if is_active is not None:
+        query["is_active"] = is_active
+    if search:
+        safe = safe_regex(search)
+        query["$or"] = [
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"barcode": {"$regex": safe, "$options": "i"}},
+            {"sku": {"$regex": safe, "$options": "i"}},
+        ]
+
+    store_query: Dict[str, Any] = {}
+    if store_id:
+        store_query["store_id"] = store_id
+    if owner_user_id:
+        store_query["user_id"] = owner_user_id
+
+    store_docs: List[Dict[str, Any]] = []
+    if store_query or business_sector:
+        store_docs = await db.stores.find(
+            store_query,
+            {"_id": 0, "store_id": 1, "name": 1, "user_id": 1},
+        ).to_list(None)
+
+    if business_sector:
+        requested_sector = normalize_sector(business_sector)
+        owner_ids = list({doc.get("user_id") for doc in store_docs if doc.get("user_id")})
+        owner_docs = await db.users.find(
+            {"user_id": {"$in": owner_ids}} if owner_ids else {},
+            {"_id": 0, "user_id": 1, "business_type": 1},
+        ).to_list(None)
+        allowed_owner_ids = {
+            owner_doc["user_id"]
+            for owner_doc in owner_docs
+            if normalize_sector(owner_doc.get("business_type") or "") == requested_sector
+        }
+        allowed_store_ids = [
+            doc["store_id"]
+            for doc in store_docs
+            if doc.get("store_id") and doc.get("user_id") in allowed_owner_ids
+        ]
+        if not allowed_store_ids:
+            return {"items": [], "total": 0}
+        query["store_id"] = {"$in": allowed_store_ids}
+    elif store_query:
+        allowed_store_ids = [doc["store_id"] for doc in store_docs if doc.get("store_id")]
+        if not allowed_store_ids:
+            return {"items": [], "total": 0}
+        query["store_id"] = {"$in": allowed_store_ids}
+
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
-    
-    # Enrichment with owner info for easier monitoring
+
+    # Enrichment with owner and store info for easier monitoring.
     enriched_products = []
-    user_cache = {}
-    
+    user_cache: Dict[str, Any] = {}
+    store_cache: Dict[str, Any] = {doc["store_id"]: doc for doc in store_docs if doc.get("store_id")}
+
     try:
+        product_store_ids = list({p.get("store_id") for p in products if p.get("store_id")})
+        missing_store_ids = [sid for sid in product_store_ids if sid not in store_cache]
+        if missing_store_ids:
+            extra_stores = await db.stores.find(
+                {"store_id": {"$in": missing_store_ids}},
+                {"_id": 0, "store_id": 1, "name": 1, "user_id": 1},
+            ).to_list(len(missing_store_ids))
+            for store_doc in extra_stores:
+                if store_doc.get("store_id"):
+                    store_cache[store_doc["store_id"]] = store_doc
+
+        owner_ids = set()
         for p in products:
-            u_id = p.get("user_id")
-            if u_id:
-                if u_id not in user_cache:
-                    user_doc = await db.users.find_one({"user_id": u_id}, {"name": 1, "email": 1, "phone": 1, "_id": 0})
-                    user_cache[u_id] = user_doc or {"name": "Inconnu", "email": "N/A", "phone": "N/A"}
-                p["owner_info"] = user_cache[u_id]
-            else:
-                p["owner_info"] = {"name": "Inconnu", "email": "N/A", "phone": "N/A"}
+            if p.get("user_id"):
+                owner_ids.add(p["user_id"])
+            store_doc = store_cache.get(p.get("store_id"))
+            if store_doc and store_doc.get("user_id"):
+                owner_ids.add(store_doc["user_id"])
+
+        if owner_ids:
+            owner_docs = await db.users.find(
+                {"user_id": {"$in": list(owner_ids)}},
+                {
+                    "_id": 0,
+                    "user_id": 1,
+                    "name": 1,
+                    "email": 1,
+                    "phone": 1,
+                    "business_type": 1,
+                    "account_id": 1,
+                },
+            ).to_list(len(owner_ids))
+            for owner_doc in owner_docs:
+                user_cache[owner_doc["user_id"]] = owner_doc
+
+        for p in products:
+            store_doc = store_cache.get(p.get("store_id")) or {}
+            resolved_owner_user_id = store_doc.get("user_id") or p.get("user_id")
+            owner_doc = user_cache.get(resolved_owner_user_id) or {}
+            sector = normalize_sector(owner_doc.get("business_type") or "")
+            p["store_name"] = store_doc.get("name") or "Inconnue"
+            p["owner_user_id"] = resolved_owner_user_id
+            p["owner_info"] = {
+                "user_id": resolved_owner_user_id,
+                "name": owner_doc.get("name") or "Inconnu",
+                "email": owner_doc.get("email") or "N/A",
+                "phone": owner_doc.get("phone") or "N/A",
+            }
+            p["business_type"] = owner_doc.get("business_type")
+            p["business_sector"] = sector
+            p["business_sector_label"] = BUSINESS_SECTORS.get(
+                sector,
+                BUSINESS_SECTORS.get("autre", {}),
+            ).get("label", "Autre")
+            p["account_id"] = owner_doc.get("account_id")
             enriched_products.append(p)
     except Exception as e:
         logger.error(f"Error enriching products: {e}")
         # Fallback to non-enriched products if something fails
         enriched_products = products
-        
+
     total = await db.products.count_documents(query)
     return {"items": enriched_products, "total": total}
 
 @admin_router.delete("/products/{product_id}")
-async def admin_delete_product(product_id: str):
+async def admin_delete_product(product_id: str, user: User = Depends(require_superadmin)):
     """Permanently delete any product (Superadmin only)"""
     result = await db.products.delete_one({"product_id": product_id})
     if result.deleted_count == 0:
@@ -3933,7 +4140,7 @@ async def admin_delete_product(product_id: str):
     
     # Log the action
     await log_activity(
-        user_id="admin", # Or use current user
+        user_id=user.user_id,
         module="admin",
         action="delete_product",
         details={"product_id": product_id}
@@ -3941,7 +4148,7 @@ async def admin_delete_product(product_id: str):
     return {"message": "Produit supprimé par l'administrateur"}
 
 @admin_router.put("/products/{product_id}/toggle")
-async def admin_toggle_product(product_id: str):
+async def admin_toggle_product(product_id: str, user: User = Depends(require_superadmin)):
     """Activate/Deactivate any product (Superadmin only)"""
     product = await db.products.find_one({"product_id": product_id})
     if not product:
@@ -3955,7 +4162,7 @@ async def admin_toggle_product(product_id: str):
     
     # Log the action
     await log_activity(
-        user_id="admin",
+        user_id=user.user_id,
         module="admin",
         action="toggle_product",
         details={"product_id": product_id, "is_active": new_status}
@@ -3996,6 +4203,29 @@ async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = D
         {"$push": {"messages": msg.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc), "status": "pending"}}
     )
     result = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
+
+    # Notify the ticket owner via push + email
+    try:
+        ticket_owner_id = result.get("user_id")
+        ticket_subject = result.get("subject", "Support")
+        if ticket_owner_id:
+            await notification_service.notify_user(
+                db, ticket_owner_id,
+                f"Réponse à votre ticket: {ticket_subject}",
+                reply.content[:200],
+                {"type": "ticket_reply", "ticket_id": ticket_id}
+            )
+            # Also send email
+            owner_doc = await db.users.find_one({"user_id": ticket_owner_id}, {"email": 1})
+            if owner_doc and owner_doc.get("email"):
+                await notification_service.send_email_notification(
+                    [owner_doc["email"]],
+                    f"Stockman Support — {ticket_subject}",
+                    f"<h3>Réponse de l'équipe Stockman</h3><p>{reply.content}</p><p style='color:#666;font-size:12px;'>Connectez-vous à l'app pour répondre.</p>"
+                )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of admin reply: {e}")
+
     return SupportTicket(**result)
 
 @admin_router.post("/support/tickets/{ticket_id}/close")
@@ -6518,6 +6748,28 @@ async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User =
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Litige non trouvé")
     updated = await db.disputes.find_one({"dispute_id": dispute_id}, {"_id": 0})
+
+    # Notify dispute reporter via push + email
+    try:
+        reporter_id = updated.get("reporter_id")
+        dispute_subject = updated.get("subject", "Litige")
+        if reporter_id:
+            await notification_service.notify_user(
+                db, reporter_id,
+                f"Réponse à votre litige: {dispute_subject}",
+                reply.content[:200],
+                {"type": "dispute_reply", "dispute_id": dispute_id}
+            )
+            reporter_email = updated.get("reporter_email")
+            if reporter_email:
+                await notification_service.send_email_notification(
+                    [reporter_email],
+                    f"Stockman — Litige: {dispute_subject}",
+                    f"<h3>Réponse de l'équipe Stockman</h3><p>{reply.content}</p><p style='color:#666;font-size:12px;'>Connectez-vous à l'app pour répondre.</p>"
+                )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of dispute reply: {e}")
+
     return updated
 
 @admin_router.put("/disputes/{dispute_id}/status")
@@ -7006,7 +7258,7 @@ async def production_dashboard(user: User = Depends(require_auth)):
 # ===================== ADMIN CATALOGUE GLOBAL =====================
 
 @admin_router.get("/catalog/stats")
-async def admin_catalog_stats():
+async def admin_catalog_stats(user: User = Depends(require_superadmin)):
     """Stats globales du catalogue communautaire."""
     return await catalog_service.admin_stats()
 
@@ -7014,21 +7266,29 @@ async def admin_catalog_stats():
 @admin_router.get("/catalog/products")
 async def admin_catalog_list(
     sector: Optional[str] = None,
+    country: Optional[str] = None,
     verified: Optional[bool] = None,
     search: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
+    user: User = Depends(require_superadmin),
 ):
     """Liste paginée des produits du catalogue global (admin)."""
-    return await catalog_service.admin_list(sector, verified, search, skip, limit)
+    return await catalog_service.admin_list(sector, verified, search, skip, limit, country=country)
 
 
 @admin_router.put("/catalog/{catalog_id}/verify")
-async def admin_catalog_verify(catalog_id: str):
+async def admin_catalog_verify(catalog_id: str, user: User = Depends(require_superadmin)):
     """Marquer un produit du catalogue comme vérifié."""
     success = await catalog_service.admin_verify(catalog_id)
     if not success:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="verify_catalog_product",
+        details={"catalog_id": catalog_id},
+    )
     return {"status": "verified", "catalog_id": catalog_id}
 
 
@@ -7036,21 +7296,84 @@ class CatalogMergeRequest(BaseModel):
     keep_id: str
     merge_ids: List[str]
 
+class AdminCatalogProductUpsert(BaseModel):
+    display_name: Optional[str] = None
+    category: Optional[str] = None
+    sector: Optional[str] = None
+    barcodes: Optional[List[str]] = None
+    aliases: Optional[List[str]] = None
+    country_codes: Optional[List[str]] = None
+    image_url: Optional[str] = None
+    verified: Optional[bool] = None
+    added_by_count: Optional[int] = Field(default=None, ge=1)
+
+
+@admin_router.post("/catalog/products")
+async def admin_catalog_create(
+    data: AdminCatalogProductUpsert,
+    user: User = Depends(require_superadmin),
+):
+    try:
+        doc = await catalog_service.admin_create(data.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="create_catalog_product",
+        details={"catalog_id": doc.get("catalog_id"), "display_name": doc.get("display_name")},
+    )
+    return doc
+
+
+@admin_router.put("/catalog/{catalog_id}")
+async def admin_catalog_update(
+    catalog_id: str,
+    data: AdminCatalogProductUpsert,
+    user: User = Depends(require_superadmin),
+):
+    try:
+        doc = await catalog_service.admin_update(catalog_id, data.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not doc:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="update_catalog_product",
+        details={"catalog_id": catalog_id, "display_name": doc.get("display_name")},
+    )
+    return doc
+
+
 @admin_router.post("/catalog/merge")
-async def admin_catalog_merge(data: CatalogMergeRequest):
+async def admin_catalog_merge(data: CatalogMergeRequest, user: User = Depends(require_superadmin)):
     """Fusionner des doublons du catalogue."""
     result = await catalog_service.admin_merge(data.keep_id, data.merge_ids)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="merge_catalog_product",
+        details={"keep_id": data.keep_id, "merge_ids": data.merge_ids},
+    )
     return result
 
 
 @admin_router.delete("/catalog/{catalog_id}")
-async def admin_catalog_delete(catalog_id: str):
+async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_superadmin)):
     """Supprimer un produit du catalogue global."""
     success = await catalog_service.admin_delete(catalog_id)
     if not success:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="delete_catalog_product",
+        details={"catalog_id": catalog_id},
+    )
     return {"status": "deleted", "catalog_id": catalog_id}
 
 
@@ -7250,6 +7573,43 @@ async def create_customer_payment(
 
     return payment
 
+@api_router.delete("/customers/{customer_id}/payments/{payment_id}")
+async def cancel_customer_payment(
+    customer_id: str,
+    payment_id: str,
+    user: User = Depends(require_permission("crm", "write")),
+):
+    """Cancel a customer payment and restore the debt."""
+    ensure_subscription_write_allowed(user)
+    owner_id = get_owner_id(user)
+
+    payment = await db.customer_payments.find_one({"payment_id": payment_id, "customer_id": customer_id, "user_id": owner_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Paiement non trouvé")
+
+    customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+    ensure_scoped_document_access(user, customer, detail="Acces refuse pour ce client")
+
+    # 1. Restore debt
+    customer_update_query = {"customer_id": customer_id, "user_id": owner_id}
+    if customer.get("store_id"):
+        customer_update_query["store_id"] = customer["store_id"]
+    await db.customers.update_one(customer_update_query, {"$inc": {"current_debt": payment["amount"]}})
+
+    # 2. Delete payment record
+    await db.customer_payments.delete_one({"payment_id": payment_id})
+
+    await log_activity(
+        user=user,
+        action="customer_payment_cancelled",
+        module="crm",
+        description=f"Paiement de {payment['amount']} annulé pour {customer.get('name', customer_id)}",
+        details={"payment_id": payment_id, "customer_id": customer_id, "amount": payment["amount"]},
+    )
+    return {"message": "Paiement annulé, dette restaurée"}
+
 @api_router.get("/customers/{customer_id}/debt-history")
 async def get_customer_debt_history(
     customer_id: str,
@@ -7292,6 +7652,7 @@ async def get_customer_debt_history(
     for p in payments:
         history.append({
             "type": "payment",
+            "payment_id": p.get("payment_id"),
             "date": p["created_at"],
             "amount": p["amount"],
             "reference": "Remboursement",
@@ -7473,6 +7834,13 @@ class CatalogProduct(BaseModel):
     min_order_quantity: int = 1
     stock_available: int = 0
     available: bool = True
+    sku: str = ""
+    barcode: str = ""
+    brand: str = ""
+    origin: str = ""
+    weight: Optional[float] = None
+    weight_unit: str = "kg"
+    delivery_time: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -7486,6 +7854,13 @@ class CatalogProductCreate(BaseModel):
     min_order_quantity: int = 1
     stock_available: int = 0
     available: bool = True
+    sku: str = ""
+    barcode: str = ""
+    brand: str = ""
+    origin: str = ""
+    weight: Optional[float] = None
+    weight_unit: str = "kg"
+    delivery_time: str = ""
 
 class CatalogProductMapping(BaseModel):
     mapping_id: str = Field(default_factory=lambda: f"map_{uuid.uuid4().hex[:12]}")
@@ -8503,13 +8878,74 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
         )
         raise HTTPException(status_code=500, detail="Le transfert n'a pas pu être finalisé. Le stock source a été restauré.")
 
+    # Save transfer record
+    transfer_record = {
+        "transfer_id": f"tr_{uuid.uuid4().hex[:12]}",
+        "user_id": owner_id,
+        "product_id": data.product_id,
+        "product_name": from_product.get("name", ""),
+        "from_store_id": data.from_store_id,
+        "from_store_name": from_store.get("name", ""),
+        "to_store_id": data.to_store_id,
+        "to_store_name": to_store.get("name", ""),
+        "quantity": data.quantity,
+        "note": data.note or "",
+        "transferred_by": user.name,
+        "created_at": now,
+    }
+    await db.stock_transfers.insert_one(transfer_record)
+
     await log_activity(user, "stock_transfer", "stock",
         f"Transfert {data.quantity}x '{from_product['name']}' : {from_store['name']} → {to_store['name']}",
         {"product_id": data.product_id, "quantity": data.quantity,
          "from_store": data.from_store_id, "to_store": data.to_store_id}
     )
 
-    return {"message": f"Transfert de {data.quantity} unité(s) effectué"}
+    return {"message": f"Transfert de {data.quantity} unité(s) effectué", "transfer_id": transfer_record["transfer_id"]}
+
+@api_router.get("/stock/transfers")
+async def get_stock_transfers(
+    user: User = Depends(require_permission("stock", "read")),
+    skip: int = 0, limit: int = 50
+):
+    """List stock transfer history."""
+    owner_id = get_owner_id(user)
+    query: dict = {"user_id": owner_id}
+    transfers = await db.stock_transfers.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.stock_transfers.count_documents(query)
+    return {"items": transfers, "total": total}
+
+class StockTransferReverse(BaseModel):
+    product_id: str
+    from_store_id: str
+    to_store_id: str
+    quantity: float
+    note: Optional[str] = None
+
+@api_router.post("/stock/transfer/reverse")
+async def reverse_stock_transfer(data: StockTransferReverse, user: User = Depends(require_permission("stock", "write"))):
+    """Reverse a stock transfer by transferring back in the opposite direction."""
+    ensure_subscription_write_allowed(user)
+    # Simply perform a transfer in the opposite direction
+    reverse_data = StockTransfer(
+        product_id=data.product_id,
+        from_store_id=data.to_store_id,
+        to_store_id=data.from_store_id,
+        quantity=data.quantity,
+        note=f"Annulation de transfert" + (f" — {data.note}" if data.note else ""),
+    )
+    result = await transfer_stock(reverse_data, user)
+
+    await log_activity(
+        user=user,
+        action="stock_transfer_reversed",
+        module="stock",
+        description=f"Transfert inversé : {data.quantity}x retournés de {data.to_store_id} → {data.from_store_id}",
+        details={"product_id": data.product_id, "quantity": data.quantity,
+                 "from_store": data.to_store_id, "to_store": data.from_store_id},
+    )
+
+    return {"message": f"Transfert inversé : {data.quantity} unité(s) retournées"}
 
 # ===================== CATEGORY ROUTES =====================
 
@@ -8900,6 +9336,49 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     await check_and_create_alerts(_product_response(product), owner_id, store_id=product.get("store_id") or user.active_store_id)
 
     return movement
+
+@api_router.post("/stock/movement/{movement_id}/reverse", response_model=StockMovement)
+async def reverse_stock_movement(movement_id: str, user: User = Depends(require_permission("stock", "write"))):
+    """Create a reverse movement to undo a previous stock movement."""
+    ensure_subscription_write_allowed(user)
+    owner_id = get_owner_id(user)
+
+    original = await db.stock_movements.find_one({"movement_id": movement_id, "user_id": owner_id})
+    if not original:
+        raise HTTPException(status_code=404, detail="Mouvement non trouvé")
+
+    # Check not already reversed
+    already_reversed = await db.stock_movements.find_one({
+        "user_id": owner_id,
+        "reason": {"$regex": f"^Annulation de {movement_id}"},
+    })
+    if already_reversed:
+        raise HTTPException(status_code=400, detail="Ce mouvement a déjà été annulé")
+
+    reverse_type = "out" if original["type"] == "in" else "in"
+    reverse_reason = f"Annulation de {movement_id}" + (f" ({original.get('reason', '')})" if original.get("reason") else "")
+
+    # Create the reverse movement through the existing endpoint logic
+    reverse_movement = await create_stock_movement(
+        StockMovementCreate(
+            product_id=original["product_id"],
+            type=reverse_type,
+            quantity=original["quantity"],
+            reason=reverse_reason,
+            batch_id=original.get("batch_id"),
+        ),
+        user,
+    )
+
+    await log_activity(
+        user=user,
+        action="stock_movement_reversed",
+        module="stock",
+        description=f"Mouvement {movement_id} annulé ({original['type']} {original['quantity']}x {original.get('product_name', '')})",
+        details={"original_movement_id": movement_id, "reverse_movement_id": reverse_movement.movement_id},
+    )
+
+    return reverse_movement
 
 # ===================== BATCH ROUTES =====================
 
@@ -12747,6 +13226,9 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
         user_updates["notification_preferences"] = notification_preferences
         user_updates["push_notifications"] = bool(notification_preferences.get("push", push_enabled))
 
+    if "expense_categories" in settings_update:
+        user_updates["expense_categories"] = normalize_expense_categories(settings_update.pop("expense_categories"))
+
     allowed_user_keys = USER_SELF_SETTING_FIELDS | ORG_ADMIN_SETTING_FIELDS
     user_updates.update({key: value for key, value in settings_update.items() if key in allowed_user_keys})
 
@@ -16115,6 +16597,95 @@ async def supplier_update_order_status(order_id: str, status_data: OrderStatusUp
 
     return {"message": f"Statut mis à jour par le fournisseur: {status_data.status}"}
 
+
+# ── Supplier Invoices ──────────────────────────────────────────────
+
+class SupplierInvoiceCreate(BaseModel):
+    order_id: str
+    invoice_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class SupplierInvoiceOut(BaseModel):
+    invoice_id: str
+    supplier_user_id: str
+    order_id: str
+    shopkeeper_name: str
+    invoice_number: str
+    items: list = []
+    total_amount: float = 0
+    status: str = "unpaid"
+    notes: Optional[str] = None
+    created_at: datetime
+
+@api_router.get("/supplier/invoices")
+async def get_supplier_invoices_list(user: User = Depends(require_supplier)):
+    """List all invoices created by this supplier"""
+    invoices = await db.supplier_generated_invoices.find(
+        {"supplier_user_id": user.user_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
+    return invoices
+
+@api_router.post("/supplier/invoices")
+async def create_supplier_invoice_from_order(data: SupplierInvoiceCreate, user: User = Depends(require_supplier)):
+    """Generate an invoice from a delivered/confirmed order"""
+    order = await db.orders.find_one(
+        {"order_id": data.order_id, "supplier_user_id": user.user_id, "is_connected": True},
+        {"_id": 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Check not already invoiced
+    existing = await db.supplier_generated_invoices.find_one(
+        {"order_id": data.order_id, "supplier_user_id": user.user_id}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Invoice already exists for this order")
+
+    # Get order items
+    items = await db.order_items.find(
+        {"order_id": data.order_id}, {"_id": 0}
+    ).to_list(100)
+
+    # Get shopkeeper name
+    shopkeeper = await db.users.find_one({"user_id": order.get("user_id")}, {"_id": 0, "business_name": 1, "name": 1})
+    shopkeeper_name = (shopkeeper or {}).get("business_name") or (shopkeeper or {}).get("name", "")
+
+    # Auto-generate invoice number if not provided
+    count = await db.supplier_generated_invoices.count_documents({"supplier_user_id": user.user_id})
+    inv_number = data.invoice_number or f"INV-{count + 1:04d}"
+
+    invoice = {
+        "invoice_id": f"sinv_{uuid.uuid4().hex[:12]}",
+        "supplier_user_id": user.user_id,
+        "order_id": data.order_id,
+        "shopkeeper_user_id": order.get("user_id", ""),
+        "shopkeeper_name": shopkeeper_name,
+        "invoice_number": inv_number,
+        "items": [{"name": it.get("product_name", ""), "quantity": it.get("quantity", 0), "unit_price": it.get("unit_price", 0), "total": it.get("total_price", 0)} for it in items],
+        "total_amount": order.get("total_amount", 0),
+        "status": "unpaid",
+        "notes": data.notes,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.supplier_generated_invoices.insert_one(invoice)
+    invoice.pop("_id", None)
+    return invoice
+
+@api_router.put("/supplier/invoices/{invoice_id}/status")
+async def update_supplier_invoice_status(invoice_id: str, status_data: dict, user: User = Depends(require_supplier)):
+    """Mark invoice as paid/partial/unpaid"""
+    new_status = status_data.get("status", "")
+    if new_status not in ("paid", "unpaid", "partial"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    result = await db.supplier_generated_invoices.update_one(
+        {"invoice_id": invoice_id, "supplier_user_id": user.user_id},
+        {"$set": {"status": new_status}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return {"message": "Status updated"}
+
 # ===================== MARKETPLACE ROUTES (CAS 1) =====================
 
 # ===================== MARKETPLACE ROUTES (CAS 1) =====================
@@ -17990,24 +18561,28 @@ async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User =
         raise HTTPException(status_code=404, detail="Produit non trouvé dans votre inventaire")
 
     # Verify the catalog product exists
-    catalog_prod = await db.catalog_products.find_one({"catalog_id": data.catalog_id})
+    catalog_prod = await db.catalog_products.find_one({"catalog_id": mapping.catalog_id})
     if not catalog_prod:
         raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
 
     # Upsert mapping
     await db.catalog_product_mappings.update_one(
-        {"user_id": owner_id, "catalog_id": data.catalog_id},
+        {"user_id": owner_id, "catalog_id": mapping.catalog_id},
         {"$set": {
             "mapping_id": f"map_{uuid.uuid4().hex[:12]}",
-            "product_id": data.product_id,
+            "product_id": mapping.product_id,
             "user_id": owner_id,
-            "catalog_id": data.catalog_id,
+            "catalog_id": mapping.catalog_id,
             "created_at": datetime.now(timezone.utc)
         }},
         upsert=True
     )
 
-    return {"message": "Association enregistrée", "catalog_id": data.catalog_id, "product_id": data.product_id}
+    return {
+        "message": "Association enregistrée",
+        "catalog_id": mapping.catalog_id,
+        "product_id": mapping.product_id,
+    }
 
 
 

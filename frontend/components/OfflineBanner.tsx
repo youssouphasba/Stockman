@@ -2,10 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Spacing } from '../constants/theme';
+import { FontSize, Spacing } from '../constants/theme';
 import { useSync } from '../contexts/SyncContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function OfflineBanner() {
+    const { colors } = useTheme();
     const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue } = useSync();
     const insets = useSafeAreaInsets();
     const slideAnim = useRef(new Animated.Value(-100)).current;
@@ -26,10 +28,10 @@ export default function OfflineBanner() {
     const isSynced = syncStatus === 'synced';
 
     const bgColor = isSynced
-        ? Colors.success
+        ? colors.success
         : isSyncing
-            ? Colors.warning
-            : Colors.danger;
+            ? colors.warning
+            : colors.danger;
 
     const icon = isSynced
         ? 'checkmark-circle'

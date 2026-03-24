@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { statistics as statsApi } from '../services/api';
 import OrderReturnModal from './OrderReturnModal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function ExpiryAlerts() {
     const { t } = useTranslation();
@@ -57,8 +58,28 @@ export default function ExpiryAlerts() {
         a.name.toLowerCase().includes(search.toLowerCase())
     );
 
+    const expirySteps: GuideStep[] = [
+        {
+            title: t('guide.expiry.step1_title', { defaultValue: 'Alertes d\u2019expiration' }),
+            content: t('guide.expiry.step1', { defaultValue: 'Surveillez les dates limites de vos produits périssables.' }),
+        },
+        {
+            title: t('guide.expiry.step2_title', { defaultValue: 'Produits à risque' }),
+            content: t('guide.expiry.step2', { defaultValue: 'Les produits expirant bientôt sont mis en avant avec un code couleur.' }),
+        },
+        {
+            title: t('guide.expiry.step3_title', { defaultValue: 'Agir' }),
+            content: t('guide.expiry.step3', { defaultValue: 'Gérez le retrait ou enregistrez une perte de stock.' }),
+        },
+        {
+            title: t('guide.expiry.step4_title', { defaultValue: 'Prévention' }),
+            content: t('guide.expiry.step4', { defaultValue: 'Consultez régulièrement cette liste pour anticiper les pertes.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={expirySteps} guideKey="expiry_tour" />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">

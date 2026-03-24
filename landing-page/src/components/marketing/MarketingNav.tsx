@@ -82,6 +82,7 @@ export default function MarketingNav({ active }: MarketingNavProps) {
             {t('nav.web_app')}
           </a>
           <Link to="/blog" className="nav-link desktop-only" onClick={closeMenu}>{t('nav.blog')}</Link>
+          <a href="/#contact-form" className="nav-link desktop-only" onClick={closeMenu}>{t('nav.contact', 'Contact')}</a>
 
           <div className="mobile-menu-section">
             <span className="mobile-menu-label">{t('nav.paths')}</span>
@@ -89,6 +90,7 @@ export default function MarketingNav({ active }: MarketingNavProps) {
             <Link to="/enterprise" className="nav-link" onClick={closeMenu}>{t('nav.enterprise')}</Link>
             <Link to={LANDING_BUSINESS_TYPES_PATH} className="nav-link" onClick={closeMenu}>{t('nav.business_types')}</Link>
             <Link to={LANDING_DEMO_PATH} className="nav-link" onClick={closeMenu}>{t('nav.demo')}</Link>
+            <a href="/#contact-form" className="nav-link" onClick={closeMenu}>{t('nav.contact', 'Contact')}</a>
           </div>
 
           <div className="mobile-menu-section">

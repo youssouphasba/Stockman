@@ -10,7 +10,8 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Props = {
     visible: boolean;
@@ -22,8 +23,10 @@ type Props = {
 
 export default function BarcodeScanner({ visible, onClose, onScanned, continuous, onToggleContinuous }: Props) {
     const { t } = useTranslation();
+    const { colors } = useTheme();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
+    const styles = createStyles(colors);
 
     useEffect(() => {
         if (visible && !permission?.granted) {
@@ -66,7 +69,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
             <View style={styles.container}>
                 {!permission.granted ? (
                     <View style={styles.permissionContainer}>
-                        <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
+                        <Ionicons name="camera-outline" size={64} color={colors.textMuted} />
                         <Text style={styles.permissionText}>{t('scanner.permission_text')}</Text>
                         <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
                             <Text style={styles.permissionButtonText}>{t('scanner.allow_camera')}</Text>
@@ -100,7 +103,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
 
                             <View style={styles.footer}>
                                 <TouchableOpacity
-                                    style={[styles.continuousToggle, continuous && { backgroundColor: Colors.primary }]}
+                                    style={[styles.continuousToggle, continuous && { backgroundColor: colors.primary }]}
                                     onPress={onToggleContinuous}
                                 >
                                     <Ionicons name={continuous ? "infinite" : "stop-circle-outline"} size={20} color="#fff" />
@@ -116,7 +119,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
@@ -126,17 +129,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: Spacing.xl,
-        backgroundColor: Colors.bgDark,
+        backgroundColor: colors.bgDark,
     },
     permissionText: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: FontSize.md,
         textAlign: 'center',
         marginTop: Spacing.md,
         marginBottom: Spacing.xl,
     },
     permissionButton: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: Spacing.xl,
         paddingVertical: Spacing.md,
         borderRadius: BorderRadius.md,
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
         padding: Spacing.md,
     },
     closeButtonText: {
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontSize: FontSize.md,
     },
     overlay: {
@@ -186,7 +189,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: 40,
         height: 40,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
         borderWidth: 4,
     },
     topLeft: {

@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpRight, Check, CheckCircle, Info, RefreshCw, Setti
 import { alerts as alertsApi, ai as aiApi, alertRules as alertRulesApi, auth } from '../services/api';
 import type { AlertRule, NotificationChannel, NotificationContactMap, NotificationSeverity, User as AppUser } from '../services/api';
 import Modal from './Modal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type RuleScope = 'account' | 'store';
 type RuleTemplate = {
@@ -226,8 +227,28 @@ export default function Alerts() {
 
     const unreadCount = alerts.filter((alert) => !alert.is_read).length;
 
+    const alertsSteps: GuideStep[] = [
+        {
+            title: t('guide.alerts.step1_title', { defaultValue: 'Centre de notifications' }),
+            content: t('guide.alerts.step1', { defaultValue: 'Consultez vos alertes de stock, fournisseurs et anomalies IA.' }),
+        },
+        {
+            title: t('guide.alerts.step2_title', { defaultValue: 'Détection IA' }),
+            content: t('guide.alerts.step2', { defaultValue: 'Cliquez sur la carte IA pour lancer une analyse intelligente de vos données.' }),
+        },
+        {
+            title: t('guide.alerts.step3_title', { defaultValue: 'Gestion des alertes' }),
+            content: t('guide.alerts.step3', { defaultValue: 'Marquez vos alertes comme lues ou ignorez-les une fois traitées.' }),
+        },
+        {
+            title: t('guide.alerts.step4_title', { defaultValue: 'Règles d\u2019alertes' }),
+            content: t('guide.alerts.step4', { defaultValue: 'Configurez vos seuils et canaux de notification dans ⚙.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+            <ScreenGuide steps={alertsSteps} guideKey="alerts_tour" />
             <header className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('alerts.title') || 'Centre de notifications'}</h1>

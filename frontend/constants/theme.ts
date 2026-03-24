@@ -6,9 +6,9 @@ export const DarkTheme = {
   background: '#0F0C29',
 
   // Glass cards
-  glass: 'rgba(255, 255, 255, 0.08)',
-  glassBorder: 'rgba(255, 255, 255, 0.15)',
-  glassHover: 'rgba(255, 255, 255, 0.12)',
+  glass: 'rgba(255, 255, 255, 0.12)',
+  glassBorder: 'rgba(255, 255, 255, 0.22)',
+  glassHover: 'rgba(255, 255, 255, 0.16)',
 
   // Accent colors
   primary: '#10B981', // Emerald Green
@@ -25,14 +25,14 @@ export const DarkTheme = {
 
   // Text
   text: '#FFFFFF',
-  textSecondary: 'rgba(255, 255, 255, 0.7)',
-  textMuted: 'rgba(255, 255, 255, 0.4)',
+  textSecondary: 'rgba(255, 255, 255, 0.84)',
+  textMuted: 'rgba(255, 255, 255, 0.62)',
 
   // Misc
-  card: 'rgba(255, 255, 255, 0.08)',
-  border: 'rgba(255, 255, 255, 0.15)',
-  inputBg: 'rgba(255, 255, 255, 0.06)',
-  divider: 'rgba(255, 255, 255, 0.1)',
+  card: 'rgba(255, 255, 255, 0.14)',
+  border: 'rgba(255, 255, 255, 0.22)',
+  inputBg: 'rgba(255, 255, 255, 0.10)',
+  divider: 'rgba(255, 255, 255, 0.18)',
 };
 
 export const LightTheme = {
@@ -43,9 +43,9 @@ export const LightTheme = {
   background: '#F8FAFC',
 
   // Glass cards (White glass)
-  glass: 'rgba(255, 255, 255, 0.85)',
-  glassBorder: 'rgba(0, 0, 0, 0.1)',
-  glassHover: 'rgba(255, 255, 255, 0.95)',
+  glass: 'rgba(255, 255, 255, 0.92)',
+  glassBorder: 'rgba(15, 23, 42, 0.12)',
+  glassHover: 'rgba(255, 255, 255, 0.98)',
 
   // Accent colors (Slightly more saturated)
   primary: '#059669', // Emerald Green (Stronger for light mode)
@@ -62,14 +62,14 @@ export const LightTheme = {
 
   // Text
   text: '#0F172A',
-  textSecondary: '#334155', // Darker for better contrast
-  textMuted: '#64748B',    // Darker for better contrast
+  textSecondary: '#1E293B',
+  textMuted: '#475569',
 
   // Misc
   card: '#FFFFFF',
-  border: '#CBD5E1',
-  inputBg: '#F8FAFC',      // Slightly grey input bg to distinguish from white cards
-  divider: '#CBD5E1',      // Darker divider for visibility
+  border: '#B8C5D6',
+  inputBg: '#EEF2F7',
+  divider: '#B8C5D6',
 };
 
 // Default export for backward compatibility during transition

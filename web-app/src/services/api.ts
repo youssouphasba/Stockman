@@ -1742,6 +1742,8 @@ export const stock = {
     },
     addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string }) =>
         request<any>('/stock/movement', { method: 'POST', body: data }),
+    reverseMovement: (movementId: string) =>
+        request<any>(`/stock/movement/${movementId}/reverse`, { method: 'POST' }),
 };
 
 export const statistics = {
@@ -1862,6 +1864,25 @@ export const customers = {
                 notes: data.description,
             }
         }),
+    cancelPayment: (customerId: string, paymentId: string) =>
+        request<any>(`/customers/${customerId}/payments/${paymentId}`, { method: 'DELETE' }),
+};
+
+export const promotions = {
+    list: () => request<Promotion[]>('/promotions'),
+    create: (data: Partial<Promotion>) => request<Promotion>('/promotions', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<Promotion>) => request<Promotion>(`/promotions/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => request<{ message: string }>(`/promotions/${id}`, { method: 'DELETE' }),
+};
+
+export type Promotion = {
+    promotion_id: string;
+    title: string;
+    description: string;
+    discount_percentage?: number;
+    points_required?: number;
+    target_tier?: string;
+    is_active: boolean;
 };
 
 export const crmAnalytics = {
@@ -2143,6 +2164,38 @@ export const stores = {
         request<any>(`/stores/consolidated-stats?days=${days}`),
     transferStock: (data: { product_id: string; from_store_id: string; to_store_id: string; quantity: number; note?: string }) =>
         request<any>('/stock/transfer', { method: 'POST', body: data }),
+    reverseTransfer: (data: { product_id: string; from_store_id: string; to_store_id: string; quantity: number; note?: string }) =>
+        request<any>('/stock/transfer/reverse', { method: 'POST', body: data }),
+    getTransfers: (skip = 0, limit = 50) =>
+        request<{ items: any[]; total: number }>(`/stock/transfers?skip=${skip}&limit=${limit}`),
+};
+
+function toQueryString(params?: Record<string, unknown>) {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        query.set(key, String(value));
+    });
+    return query.toString();
+}
+
+// User support tickets
+export const support = {
+    createTicket: (subject: string, message: string) =>
+        request<any>('/support/tickets', { method: 'POST', body: { subject, message } }),
+    getMyTickets: () => request<any[]>('/support/tickets/mine'),
+    replyTicket: (ticketId: string, content: string) =>
+        request<any>(`/support/tickets/${ticketId}/reply`, { method: 'POST', body: { content } }),
+};
+
+// User notifications
+export const userNotifications = {
+    list: (skip = 0, limit = 20) =>
+        request<{ items: any[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
+    markRead: (messageId: string) =>
+        request<any>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
+    markAllRead: () =>
+        request<any>('/user/notifications/read-all', { method: 'POST' }),
 };
 
 export const admin = {
@@ -2156,15 +2209,15 @@ export const admin = {
     getSubscriptionsOverview: (days = 30) => request<any>(`/admin/subscriptions/overview?days=${days}`),
     getDemoSessionsOverview: (days = 30) => request<any>(`/admin/demo-sessions/overview?days=${days}`),
     listDemoSessions: (params?: { search?: string; status?: string; demo_type?: string; surface?: string; skip?: number; limit?: number }) => {
-        const query = new URLSearchParams(params as any || {}).toString();
+        const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/demo-sessions${query ? `?${query}` : ''}`);
     },
     listSubscriptionAccounts: (params?: { search?: string; status?: string; plan?: string; provider?: string; country_code?: string; skip?: number; limit?: number }) => {
-        const query = new URLSearchParams(params as any || {}).toString();
+        const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/subscriptions/accounts${query ? `?${query}` : ''}`);
     },
     listSubscriptionEvents: (params?: { provider?: string; event_type?: string; source?: string; account_id?: string; status?: string; skip?: number; limit?: number }) => {
-        const query = new URLSearchParams(params as any || {}).toString();
+        const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/subscriptions/events${query ? `?${query}` : ''}`);
     },
     getSubscriptionAlerts: () => request<any>('/admin/subscriptions/alerts'),
@@ -2172,15 +2225,46 @@ export const admin = {
     enableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=true`, { method: 'POST', body: { note } }),
     disableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=false`, { method: 'POST', body: { note } }),
     listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
-        const query = new URLSearchParams(params as any || {}).toString();
+        const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
     },
     listUsers: (skip = 0, limit = 100) => request<any[]>(`/admin/users?skip=${skip}&limit=${limit}`),
     listStores: (skip = 0, limit = 50) => request<any>(`/admin/stores?skip=${skip}&limit=${limit}`),
-    listAllProducts: (params: any) => {
-        const qs = new URLSearchParams(params);
-        return request<any>(`/admin/products?${qs.toString()}`);
+    listAllProducts: (params?: { category_id?: string; min_stock?: number; store_id?: string; owner_user_id?: string; business_sector?: string; is_active?: boolean; search?: string; skip?: number; limit?: number }) => {
+        const qs = toQueryString(params as Record<string, unknown> | undefined);
+        return request<any>(`/admin/products${qs ? `?${qs}` : ''}`);
     },
+    getCatalogStats: () => request<any>('/admin/catalog/stats'),
+    listCatalogProducts: (params?: { sector?: string; country?: string; verified?: boolean; search?: string; skip?: number; limit?: number }) => {
+        const query = toQueryString(params as Record<string, unknown> | undefined);
+        return request<{ products: any[]; total: number }>(`/admin/catalog/products${query ? `?${query}` : ''}`);
+    },
+    createCatalogProduct: (data: {
+        display_name?: string;
+        category?: string;
+        sector?: string;
+        barcodes?: string[];
+        aliases?: string[];
+        country_codes?: string[];
+        image_url?: string;
+        verified?: boolean;
+        added_by_count?: number;
+    }) => request<any>('/admin/catalog/products', { method: 'POST', body: data }),
+    updateCatalogProduct: (catalogId: string, data: {
+        display_name?: string;
+        category?: string;
+        sector?: string;
+        barcodes?: string[];
+        aliases?: string[];
+        country_codes?: string[];
+        image_url?: string;
+        verified?: boolean;
+        added_by_count?: number;
+    }) => request<any>(`/admin/catalog/${catalogId}`, { method: 'PUT', body: data }),
+    verifyCatalogProduct: (catalogId: string) => request<any>(`/admin/catalog/${catalogId}/verify`, { method: 'PUT' }),
+    mergeCatalogProducts: (keepId: string, mergeIds: string[]) =>
+        request<any>('/admin/catalog/merge', { method: 'POST', body: { keep_id: keepId, merge_ids: mergeIds } }),
+    deleteCatalogProduct: (catalogId: string) => request<any>(`/admin/catalog/${catalogId}`, { method: 'DELETE' }),
     toggleUser: (id: string) => request<any>(`/admin/users/${id}/toggle`, { method: 'PUT' }),
     deleteUser: (email: string) => request<any>(`/admin/users?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
     toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),
@@ -2191,7 +2275,7 @@ export const admin = {
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
     // Disputes
     listDisputes: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
-        const query = new URLSearchParams(params as any || {}).toString();
+        const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/disputes?${query}`);
     },
     replyDispute: (id: string, content: string) =>
@@ -2211,6 +2295,10 @@ export const admin = {
         request<any>('/admin/broadcast', { method: 'POST', body: { message, title } }),
     sendMessage: (data: { title: string; content: string; target?: string }) =>
         request<any>('/admin/messages/send', { method: 'POST', body: data }),
+    listMessages: (type?: string, skip = 0, limit = 50) => {
+        const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
+        return request<{ items: any[]; total: number }>(`/admin/messages?${params}`);
+    },
 };
 
 // ── Chat / Messagerie ────────────────────────────────────────────────────────

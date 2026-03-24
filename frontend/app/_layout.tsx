@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { Colors } from '../constants/theme';
 import PinScreen from './pin';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import OfflineBanner from '../components/OfflineBanner';
@@ -18,6 +17,7 @@ import '../services/i18n';
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked } = useAuth();
   const { isOnline, processQueue, prefetchData } = useSync();
+  const { isDark, colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -57,12 +57,10 @@ function RootLayoutNav() {
     }
   }, [isOnline, isAuthenticated]);
 
-  const { isDark } = useTheme();
-
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.loading, { backgroundColor: colors.bgDark }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -107,6 +105,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.bgDark,
   },
 });

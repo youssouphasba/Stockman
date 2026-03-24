@@ -31,14 +31,17 @@ import {
     Calendar,
     ArrowUpDown,
     ShoppingBag,
-    X
+    X,
+    Undo2
 } from 'lucide-react';
 import {
     ai as aiApi,
     crmAnalytics as crmAnalyticsApi,
     customers as customersApi,
+    promotions as promotionsApi,
     type AnalyticsKpiDetail,
     type CrmAnalyticsOverview,
+    type Promotion,
     type User,
 } from '../services/api';
 import Modal from './Modal';
@@ -54,6 +57,7 @@ import {
     getPendingDebtEntries,
     mergeCustomersOfflineState,
 } from '../services/offlineState';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type CRMProps = {
     user?: User | null;
@@ -79,7 +83,9 @@ export default function CRM({ user }: CRMProps) {
     const { formatDate, formatCurrency } = useDateFormatter();
     const access = getAccessContext(user);
     const canManageLoyalty = access.isOrgAdmin;
+    const canManagePromotions = access.isOrgAdmin || access.effectivePermissions.crm === 'write';
     const [customers, setCustomers] = useState<any[]>([]);
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -88,7 +94,9 @@ export default function CRM({ user }: CRMProps) {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isLoyaltyModalOpen, setIsLoyaltyModalOpen] = useState(false);
     const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+    const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
     const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases'>('info');
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -101,6 +109,15 @@ export default function CRM({ user }: CRMProps) {
         birthday: ''
     });
     const [saving, setSaving] = useState(false);
+    const [promotionSaving, setPromotionSaving] = useState(false);
+    const [promotionsLoading, setPromotionsLoading] = useState(false);
+    const [promotionForm, setPromotionForm] = useState({
+        title: '',
+        description: '',
+        discount_percentage: '',
+        points_required: '',
+        is_active: true,
+    });
 
     // Debt Management State
     const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
@@ -156,6 +173,7 @@ export default function CRM({ user }: CRMProps) {
     useEffect(() => {
         loadCustomers();
         loadBirthdays();
+        loadPromotions();
     }, []);
 
     useEffect(() => {
@@ -184,6 +202,19 @@ export default function CRM({ user }: CRMProps) {
         }
     };
 
+    const loadPromotions = async () => {
+        setPromotionsLoading(true);
+        try {
+            const res = await promotionsApi.list();
+            setPromotions(Array.isArray(res) ? res : []);
+        } catch (err) {
+            console.error('CRM promotions load error', err);
+            setPromotions([]);
+        } finally {
+            setPromotionsLoading(false);
+        }
+    };
+
     const loadAnalytics = async () => {
         setAnalyticsLoading(true);
         try {
@@ -206,6 +237,29 @@ export default function CRM({ user }: CRMProps) {
             const res = await customersApi.getBirthdays(7);
             setBirthdays(Array.isArray(res) ? res : []);
         } catch { /* silent */ }
+    };
+
+    const openPromotionModal = (promotion?: Promotion) => {
+        if (promotion) {
+            setEditingPromotion(promotion);
+            setPromotionForm({
+                title: promotion.title || '',
+                description: promotion.description || '',
+                discount_percentage: promotion.discount_percentage?.toString() || '',
+                points_required: promotion.points_required?.toString() || '',
+                is_active: promotion.is_active ?? true,
+            });
+        } else {
+            setEditingPromotion(null);
+            setPromotionForm({
+                title: '',
+                description: '',
+                discount_percentage: '',
+                points_required: '',
+                is_active: true,
+            });
+        }
+        setIsPromotionModalOpen(true);
     };
 
     const handleOpenAddModal = () => {
@@ -257,6 +311,58 @@ export default function CRM({ user }: CRMProps) {
         }
     };
 
+    const handleSavePromotion = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!promotionForm.title.trim()) return;
+        setPromotionSaving(true);
+        try {
+            const payload = {
+                title: promotionForm.title.trim(),
+                description: promotionForm.description.trim(),
+                discount_percentage: promotionForm.discount_percentage ? Number(promotionForm.discount_percentage) : undefined,
+                points_required: promotionForm.points_required ? Number(promotionForm.points_required) : undefined,
+                is_active: promotionForm.is_active,
+            };
+            if (editingPromotion) {
+                await promotionsApi.update(editingPromotion.promotion_id, payload);
+            } else {
+                await promotionsApi.create(payload);
+            }
+            setIsPromotionModalOpen(false);
+            setEditingPromotion(null);
+            await loadPromotions();
+        } catch (err) {
+            console.error('Save promotion error', err);
+        } finally {
+            setPromotionSaving(false);
+        }
+    };
+
+    const handleDeletePromotion = async (promotionId: string) => {
+        if (!window.confirm('Supprimer cette promotion ?')) return;
+        try {
+            await promotionsApi.delete(promotionId);
+            await loadPromotions();
+        } catch (err) {
+            console.error('Delete promotion error', err);
+        }
+    };
+
+    const handleTogglePromotion = async (promotion: Promotion) => {
+        try {
+            await promotionsApi.update(promotion.promotion_id, {
+                title: promotion.title,
+                description: promotion.description || '',
+                discount_percentage: promotion.discount_percentage,
+                points_required: promotion.points_required,
+                is_active: !promotion.is_active,
+            });
+            await loadPromotions();
+        } catch (err) {
+            console.error('Toggle promotion error', err);
+        }
+    };
+
     const handleOpenDetail = async (customer: any) => {
         setSelectedCustomer(customer);
         setDetailTab('info');
@@ -281,6 +387,22 @@ export default function CRM({ user }: CRMProps) {
             setDebtHistory(getPendingDebtEntries(customer.customer_id));
         } finally {
             setLoadingHistory(false);
+        }
+    };
+
+    const handleCancelPayment = async (paymentId: string, amount: number) => {
+        if (!selectedCustomer) return;
+        if (!window.confirm(t('crm.confirm_cancel_payment', { amount: formatCurrency(Math.abs(amount)) }))) return;
+        try {
+            await customersApi.cancelPayment(selectedCustomer.customer_id, paymentId);
+            const [debtsRes] = await Promise.all([customersApi.getDebts(selectedCustomer.customer_id)]);
+            const baseHistory = Array.isArray(debtsRes?.items) ? debtsRes.items : (Array.isArray(debtsRes) ? debtsRes : []);
+            setDebtHistory(baseHistory);
+            await loadCustomers();
+            const updated = customers.find((c: any) => c.customer_id === selectedCustomer.customer_id);
+            if (updated) setSelectedCustomer(updated);
+        } catch {
+            alert(t('crm.cancel_payment_error'));
         }
     };
 
@@ -320,8 +442,32 @@ export default function CRM({ user }: CRMProps) {
         });
     })();
 
+    const crmSteps: GuideStep[] = [
+        {
+            title: t('guide.crm.step1_title', { defaultValue: 'Bienvenue dans le CRM' }),
+            content: t('guide.crm.step1', { defaultValue: 'Gérez vos clients, leur fidélité et suivez les dettes depuis cet écran.' }),
+        },
+        {
+            title: t('guide.crm.step2_title', { defaultValue: 'Ajouter un client' }),
+            content: t('guide.crm.step2', { defaultValue: 'Cliquez \u00ab Nouveau Client \u00bb pour créer une fiche avec nom, téléphone, catégorie et anniversaire.' }),
+        },
+        {
+            title: t('guide.crm.step3_title', { defaultValue: 'Segments et analytics' }),
+            content: t('guide.crm.step3', { defaultValue: 'Analysez votre clientèle grâce aux segments IA (VIP, fidèles, à risque) et aux KPI.' }),
+        },
+        {
+            title: t('guide.crm.step4_title', { defaultValue: 'Promotions' }),
+            content: t('guide.crm.step4', { defaultValue: 'Créez des offres de fidélisation pour animer votre communauté et récompenser vos meilleurs clients.' }),
+        },
+        {
+            title: t('guide.crm.step5_title', { defaultValue: 'Gestion de dette' }),
+            content: t('guide.crm.step5', { defaultValue: 'Suivez et gérez les encours de vos clients à crédit depuis la fiche client.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+            <ScreenGuide steps={crmSteps} guideKey="crm_tour" />
             <header className="flex flex-wrap justify-between items-start gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('crm.title') || 'Gestion Clients (CRM)'}</h1>
@@ -375,6 +521,96 @@ export default function CRM({ user }: CRMProps) {
                     </button>
                 </div>
             </header>
+
+            <div className="mb-8 glass-card p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">Promotions</p>
+                        <h2 className="mt-2 text-2xl font-black text-white">Offres de fidélisation</h2>
+                        <p className="mt-2 max-w-3xl text-sm text-slate-400">
+                            Prépare les avantages visibles dans le CRM pour animer les campagnes, récompenser la fidélité et cadrer les offres en boutique.
+                        </p>
+                    </div>
+                    {canManagePromotions && (
+                        <button
+                            type="button"
+                            onClick={() => openPromotionModal()}
+                            className="rounded-xl bg-primary px-4 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:brightness-110"
+                        >
+                            Nouvelle promotion
+                        </button>
+                    )}
+                </div>
+                {promotionsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+                    </div>
+                ) : promotions.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-10 text-center">
+                        <Megaphone size={28} className="mx-auto text-slate-600" />
+                        <p className="mt-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Aucune promotion active</p>
+                        <p className="mt-2 text-sm text-slate-400">Crée une offre pour préparer tes campagnes et tes récompenses de fidélité.</p>
+                    </div>
+                ) : (
+                    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {promotions.map((promotion) => (
+                            <div key={promotion.promotion_id} className={`rounded-3xl border p-5 transition-all ${promotion.is_active ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/10 bg-white/[0.03]'}`}>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="text-lg font-black text-white">{promotion.title}</h3>
+                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${promotion.is_active ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-slate-500/20 bg-slate-500/10 text-slate-300'}`}>
+                                                {promotion.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                        <p className="mt-2 text-sm leading-relaxed text-slate-400">{promotion.description || 'Sans description.'}</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Remise</p>
+                                        <p className="mt-1 text-lg font-black text-white">
+                                            {promotion.discount_percentage ? `${promotion.discount_percentage}%` : '—'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Points</p>
+                                        <p className="mt-1 text-lg font-black text-white">
+                                            {promotion.points_required ?? '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleTogglePromotion(promotion)}
+                                        disabled={!canManagePromotions}
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-300 transition-all hover:border-primary/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {promotion.is_active ? 'Désactiver' : 'Activer'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => openPromotionModal(promotion)}
+                                        disabled={!canManagePromotions}
+                                        className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-primary transition-all hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Modifier
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeletePromotion(promotion.promotion_id)}
+                                        disabled={!canManagePromotions}
+                                        className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Birthday banner */}
             {birthdays.length > 0 && (
@@ -1053,11 +1289,22 @@ export default function CRM({ user }: CRMProps) {
                                                         <p className="text-[10px] text-slate-500 font-medium">{formatDate(debt.date)} • {debt.reference || '-'}{debt.pending ? ' • Hors ligne' : ''}</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className={`text-sm font-black ${debt.is_payment ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                        {debt.is_payment ? '-' : '+'}{formatCurrency(debt.amount || 0)}
-                                                    </p>
-                                                    <p className="text-[9px] text-slate-600 font-bold uppercase">Solde: {formatCurrency(debt.remaining || 0)}</p>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-right">
+                                                        <p className={`text-sm font-black ${debt.is_payment ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                            {debt.is_payment ? '-' : '+'}{formatCurrency(debt.amount || 0)}
+                                                        </p>
+                                                        <p className="text-[9px] text-slate-600 font-bold uppercase">Solde: {formatCurrency(debt.remaining || 0)}</p>
+                                                    </div>
+                                                    {rawDebt.type === 'payment' && rawDebt.payment_id && (
+                                                        <button
+                                                            onClick={() => handleCancelPayment(rawDebt.payment_id, rawDebt.amount)}
+                                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400"
+                                                            title={t('crm.cancel_payment')}
+                                                        >
+                                                            <Undo2 size={14} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             );
@@ -1157,6 +1404,93 @@ export default function CRM({ user }: CRMProps) {
                 isOpen={isCampaignModalOpen}
                 onClose={() => setIsCampaignModalOpen(false)}
             />
+            <Modal
+                isOpen={isPromotionModalOpen}
+                onClose={() => {
+                    setIsPromotionModalOpen(false);
+                    setEditingPromotion(null);
+                }}
+                title={editingPromotion ? 'Modifier la promotion' : 'Nouvelle promotion'}
+            >
+                <form className="space-y-4" onSubmit={handleSavePromotion}>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-slate-400 font-medium">Titre</label>
+                        <input
+                            type="text"
+                            value={promotionForm.title}
+                            onChange={(e) => setPromotionForm((current) => ({ ...current, title: e.target.value }))}
+                            className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all"
+                            placeholder="Ex : 10 % de remise VIP"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-slate-400 font-medium">Description</label>
+                        <textarea
+                            value={promotionForm.description}
+                            onChange={(e) => setPromotionForm((current) => ({ ...current, description: e.target.value }))}
+                            rows={4}
+                            className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all resize-none"
+                            placeholder="Explique les conditions ou l’usage conseillé de cette promotion."
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Remise (%)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={promotionForm.discount_percentage}
+                                onChange={(e) => setPromotionForm((current) => ({ ...current, discount_percentage: e.target.value }))}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-slate-400 font-medium">Points requis</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={promotionForm.points_required}
+                                onChange={(e) => setPromotionForm((current) => ({ ...current, points_required: e.target.value }))}
+                                className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+                    <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                        <input
+                            type="checkbox"
+                            checked={promotionForm.is_active}
+                            onChange={(e) => setPromotionForm((current) => ({ ...current, is_active: e.target.checked }))}
+                            className="h-4 w-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/40"
+                        />
+                        <div>
+                            <p className="text-sm font-bold text-white">Promotion active</p>
+                            <p className="text-xs text-slate-500">La promotion pourra être visible immédiatement dans le CRM.</p>
+                        </div>
+                    </label>
+                    <div className="flex gap-4 pt-4 border-t border-white/10">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsPromotionModalOpen(false);
+                                setEditingPromotion(null);
+                            }}
+                            className="flex-1 px-4 py-3 text-slate-400 hover:text-white transition-colors font-bold"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={promotionSaving || !promotionForm.title.trim()}
+                            className="flex-1 rounded-xl bg-primary px-4 py-3 text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50"
+                        >
+                            {promotionSaving ? 'Enregistrement…' : editingPromotion ? 'Mettre à jour' : 'Créer la promotion'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
             {/* Manual Debt Modal */}
             <Modal
                 isOpen={isDebtModalOpen}

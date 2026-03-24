@@ -33,6 +33,7 @@ import {
     type ProcurementOverview,
 } from '../services/api';
 import { exportToExcel, exportToPDF, type ExcelConfig, type PDFConfig } from '../utils/ExportService';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type ReportsLibraryProps = {
     user?: any;
@@ -721,8 +722,28 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
         },
     ];
 
+    const reportsSteps: GuideStep[] = [
+        {
+            title: 'Bienvenue dans Rapports',
+            content: 'Analysez toutes les données de votre activité depuis un seul endroit.',
+        },
+        {
+            title: 'Filtres',
+            content: 'Ajustez la période, la boutique et la catégorie via le panneau de filtres.',
+        },
+        {
+            title: 'Catégories de rapports',
+            content: 'Chaque carte représente un rapport exportable : direction, stock, finance, CRM, achats.',
+        },
+        {
+            title: 'Export Excel & PDF',
+            content: 'Téléchargez vos rapports en Excel ou PDF depuis les boutons de chaque carte.',
+        },
+    ];
+
     return (
         <div className="flex-1 overflow-y-auto bg-[#0F172A] custom-scrollbar p-8">
+            <ScreenGuide steps={reportsSteps} guideKey="reports_tour" />
             <div className="max-w-7xl mx-auto space-y-8">
                 <div className="glass-card p-6">
                     <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">

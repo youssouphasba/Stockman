@@ -17,6 +17,8 @@ import { supplierDashboard, SupplierDashboardData } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
+import KpiInfoButton from '../../components/KpiInfoButton';
+import i18n from '../../services/i18n';
 
 interface RatingRecord {
   rating_id: string;
@@ -99,10 +101,12 @@ export default function SupplierDashboard() {
         {/* KPIs */}
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
+            <KpiInfoButton info={t('supplier.info_products')} />
             <Text style={styles.kpiValue}>{data?.catalog_products ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('tabs.products')}</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.warning }]}>
+            <KpiInfoButton info={t('supplier.info_orders')} />
             <Text style={styles.kpiValue}>{data?.total_orders ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('tabs.orders')}</Text>
           </View>
@@ -110,10 +114,12 @@ export default function SupplierDashboard() {
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
+            <KpiInfoButton info={t('supplier.info_revenue')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.total_revenue ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('dashboard.total_revenue_kpi')} ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.primary }]}>
+            <KpiInfoButton info={t('supplier.info_rating')} />
             <View style={styles.ratingRow}>
               <Text style={styles.kpiValue}>{data?.rating_average?.toFixed(1) ?? '-'}</Text>
               <Text style={styles.kpiLabel}>/5</Text>
@@ -125,10 +131,12 @@ export default function SupplierDashboard() {
         {/* New KPI row: pending, revenue this month, avg order, active clients */}
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.danger }]}>
+            <KpiInfoButton info={t('supplier.info_pending')} />
             <Text style={styles.kpiValue}>{data?.pending_action ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.pending_orders')}</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.info }]}>
+            <KpiInfoButton info={t('supplier.info_revenue_month')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.revenue_this_month ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.revenue_this_month')} ({t('common.currency_default')})</Text>
           </View>
@@ -136,10 +144,12 @@ export default function SupplierDashboard() {
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
+            <KpiInfoButton info={t('supplier.info_avg_basket')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.avg_order_value ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.average_basket')} ({t('common.currency_default')})</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
+            <KpiInfoButton info={t('supplier.info_active_clients')} />
             <Text style={styles.kpiValue}>{data?.active_clients ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.active_clients')}</Text>
           </View>
@@ -155,11 +165,11 @@ export default function SupplierDashboard() {
                   <Text style={styles.topProductRankText}>{index + 1}</Text>
                 </View>
                 <Text style={styles.topProductName} numberOfLines={1}>{product.name}</Text>
-                <Text style={styles.topProductQty}>{product.total_qty} vendus</Text>
+                <Text style={styles.topProductQty}>{t('supplier.sold_count', { count: product.total_qty })}</Text>
               </View>
             ))
           ) : (
-            <Text style={styles.emptyText}>Aucune donnée produit</Text>
+            <Text style={styles.emptyText}>{t('supplier.no_product_data')}</Text>
           )}
         </View>
 
@@ -172,7 +182,7 @@ export default function SupplierDashboard() {
                 <View style={styles.orderInfo}>
                   <Text style={styles.orderId}>#{order.order_id.slice(-6).toUpperCase()}</Text>
                   <Text style={styles.orderDate}>
-                    {order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : ''}
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''}
                   </Text>
                 </View>
                 <View style={styles.orderRight}>
@@ -186,7 +196,7 @@ export default function SupplierDashboard() {
               </View>
             ))
           ) : (
-            <Text style={styles.emptyText}>Aucune commande récente</Text>
+            <Text style={styles.emptyText}>{t('supplier.no_recent_orders')}</Text>
           )}
         </View>
 
@@ -215,12 +225,12 @@ export default function SupplierDashboard() {
                   <Text style={styles.reviewComment}>{rating.comment}</Text>
                 )}
                 <Text style={styles.reviewDate}>
-                  {rating.created_at ? new Date(rating.created_at).toLocaleDateString('fr-FR') : ''}
+                  {rating.created_at ? new Date(rating.created_at).toLocaleDateString(i18n.language) : ''}
                 </Text>
               </View>
             ))
           ) : (
-            <Text style={styles.emptyText}>Aucun avis pour le moment</Text>
+            <Text style={styles.emptyText}>{t('supplier.no_reviews_yet')}</Text>
           )}
         </View>
 

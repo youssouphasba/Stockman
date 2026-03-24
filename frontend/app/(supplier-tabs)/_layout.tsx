@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useState, useEffect } from 'react';
 import { View, TouchableOpacity } from 'react-native';
@@ -12,7 +13,8 @@ import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
 
 export default function SupplierTabLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
 
@@ -75,7 +77,7 @@ export default function SupplierTabLayout() {
             </View>
           ),
           tabBarStyle: {
-            backgroundColor: colors.bgDark === '#F8FAFC' ? '#FFFFFF' : 'rgba(15, 12, 41, 0.95)',
+            backgroundColor: isDark ? 'rgba(15, 12, 41, 0.95)' : '#FFFFFF',
             borderTopColor: colors.glassBorder,
             borderTopWidth: 1,
             height: 60 + insets.bottom,
@@ -93,7 +95,7 @@ export default function SupplierTabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Dashboard',
+            title: t('supplier.tab_dashboard'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -102,7 +104,7 @@ export default function SupplierTabLayout() {
         <Tabs.Screen
           name="catalog"
           options={{
-            title: 'Catalogue',
+            title: t('supplier.tab_catalog'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="pricetags-outline" size={size} color={color} />
             ),
@@ -111,7 +113,7 @@ export default function SupplierTabLayout() {
         <Tabs.Screen
           name="orders"
           options={{
-            title: 'Commandes',
+            title: t('supplier.tab_orders'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
             ),
@@ -120,7 +122,7 @@ export default function SupplierTabLayout() {
         <Tabs.Screen
           name="messages"
           options={{
-            title: 'Messages',
+            title: t('supplier.tab_messages'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="chatbubbles-outline" size={size} color={color} />
             ),
@@ -129,7 +131,7 @@ export default function SupplierTabLayout() {
         <Tabs.Screen
           name="settings"
           options={{
-            title: 'Paramètres',
+            title: t('supplier.tab_settings'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),

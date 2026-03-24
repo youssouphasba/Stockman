@@ -11,7 +11,7 @@ import { FilterBar, SearchBar, StatCard, Badge, SectionHeader, Card, ActionButto
 import { formatCurrency, formatNumber } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
-type Segment = 'global' | 'users' | 'stores' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
+type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
 
 import { useTranslation } from 'react-i18next';
 
@@ -44,6 +44,8 @@ export default function AdminDashboard() {
         { id: 'global', label: t('admin.segments.global'), icon: 'grid' },
         { id: 'users', label: t('admin.segments.users'), icon: 'people' },
         { id: 'stores', label: t('admin.segments.stores'), icon: 'business' },
+        { id: 'subscriptions', label: 'Abonnements', icon: 'card' },
+        { id: 'demos', label: 'Démos', icon: 'sparkles' },
         { id: 'stock', label: t('admin.segments.stock'), icon: 'cube' },
         { id: 'finance', label: t('admin.segments.finance'), icon: 'cash' },
         { id: 'crm', label: t('admin.segments.crm'), icon: 'person-add' },
@@ -77,6 +79,15 @@ export default function AdminDashboard() {
     const [messages, setMessages] = useState<any[]>([]);
     const [secEvents, setSecEvents] = useState<any[]>([]);
     const [secStats, setSecStats] = useState<any>(null);
+    const [verificationEvents, setVerificationEvents] = useState<any[]>([]);
+    const [activeSessions, setActiveSessions] = useState<any[]>([]);
+    const [subscriptionOverview, setSubscriptionOverview] = useState<any>(null);
+    const [subscriptionAccounts, setSubscriptionAccounts] = useState<any[]>([]);
+    const [subscriptionEvents, setSubscriptionEvents] = useState<any[]>([]);
+    const [subscriptionAlerts, setSubscriptionAlerts] = useState<any>(null);
+    const [demoOverview, setDemoOverview] = useState<any>(null);
+    const [demoSessions, setDemoSessions] = useState<any[]>([]);
+    const [demoSessionsTotal, setDemoSessionsTotal] = useState(0);
     // Filters
     const [roleFilter, setRoleFilter] = useState('all');
     const [ticketFilter, setTicketFilter] = useState('open');
@@ -84,6 +95,14 @@ export default function AdminDashboard() {
     const [logModule, setLogModule] = useState('all');
     const [secFilter, setSecFilter] = useState('all');
     const [countryFilter, setCountryFilter] = useState('all');
+    const [subscriptionSearch, setSubscriptionSearch] = useState('');
+    const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState('all');
+    const [subscriptionProviderFilter, setSubscriptionProviderFilter] = useState('all');
+    const [demoSearch, setDemoSearch] = useState('');
+    const [demoStatusFilter, setDemoStatusFilter] = useState('all');
+    const [demoTypeFilter, setDemoTypeFilter] = useState('all');
+    const [demoSurfaceFilter, setDemoSurfaceFilter] = useState('all');
+    const [verificationProviderFilter, setVerificationProviderFilter] = useState('all');
     // Compose
     const [msgTitle, setMsgTitle] = useState('');
     const [msgContent, setMsgContent] = useState('');
@@ -97,6 +116,7 @@ export default function AdminDashboard() {
     const [cguUpdating, setCguUpdating] = useState(false);
     const [privacyContent, setPrivacyContent] = useState('');
     const [privacyUpdating, setPrivacyUpdating] = useState(false);
+    const [subscriptionActionId, setSubscriptionActionId] = useState<string | null>(null);
     // Anim
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
@@ -115,6 +135,38 @@ export default function AdminDashboard() {
             if (seg === 'global') { try { setDetailed(await admin.getDetailedStats()); } catch { } }
             if (seg === 'users') setUsers(await admin.listUsers());
             if (seg === 'stores') { const r = await admin.listStores(); setStores(r.items); }
+            if (seg === 'subscriptions') {
+                const [overview, accounts, events, alerts] = await Promise.all([
+                    admin.getSubscriptionsOverview(),
+                    admin.listSubscriptionAccounts({
+                        search: subscriptionSearch || undefined,
+                        status: subscriptionStatusFilter === 'all' ? undefined : subscriptionStatusFilter,
+                        provider: subscriptionProviderFilter === 'all' ? undefined : subscriptionProviderFilter,
+                    }),
+                    admin.listSubscriptionEvents({
+                        provider: subscriptionProviderFilter === 'all' ? undefined : subscriptionProviderFilter,
+                    }),
+                    admin.getSubscriptionAlerts(),
+                ]);
+                setSubscriptionOverview(overview);
+                setSubscriptionAccounts(accounts.items || []);
+                setSubscriptionEvents(events.items || []);
+                setSubscriptionAlerts(alerts);
+            }
+            if (seg === 'demos') {
+                const [overview, sessions] = await Promise.all([
+                    admin.getDemoSessionsOverview(),
+                    admin.listDemoSessions({
+                        search: demoSearch || undefined,
+                        status: demoStatusFilter === 'all' ? undefined : demoStatusFilter,
+                        demo_type: demoTypeFilter === 'all' ? undefined : demoTypeFilter,
+                        surface: demoSurfaceFilter === 'all' ? undefined : demoSurfaceFilter,
+                    }),
+                ]);
+                setDemoOverview(overview);
+                setDemoSessions(sessions.items || []);
+                setDemoSessionsTotal(sessions.total || 0);
+            }
             if (seg === 'stock') { const r = await admin.listAllProducts({ search: search || undefined }); setProducts(r.items); }
             if (seg === 'crm') { const r = await admin.listAllCustomers({ search: search || undefined }); setCustomers(r.items); }
             if (seg === 'support') setTickets(await admin.listTickets(ticketFilter === 'all' ? undefined : ticketFilter));
@@ -126,9 +178,16 @@ export default function AdminDashboard() {
             }
             if (seg === 'comms') { const r = await admin.listMessages(); setMessages(r.items); }
             if (seg === 'security') {
-                const r = await admin.listSecurityEvents(secFilter === 'all' ? undefined : secFilter);
-                setSecEvents(r.items);
-                try { setSecStats(await admin.getSecurityStats()); } catch { }
+                const [events, securityStats, verifications, sessions] = await Promise.all([
+                    admin.listSecurityEvents(secFilter === 'all' ? undefined : secFilter),
+                    admin.getSecurityStats(),
+                    admin.listVerificationEvents({ provider: verificationProviderFilter === 'all' ? undefined : verificationProviderFilter }),
+                    admin.getActiveSessions(),
+                ]);
+                setSecEvents(events.items);
+                setSecStats(securityStats);
+                setVerificationEvents(verifications.items || []);
+                setActiveSessions(sessions || []);
             }
             if (seg === 'cgu') {
                 const res = await system.getCGU();
@@ -140,12 +199,65 @@ export default function AdminDashboard() {
             }
         } catch (e: any) { console.error('Admin load error:', e); }
         finally { setLoading(false); setRefreshing(false); }
-    }, [seg, search, ticketFilter, logModule, disputeFilter, secFilter]);
+    }, [
+        seg,
+        search,
+        ticketFilter,
+        logModule,
+        disputeFilter,
+        secFilter,
+        subscriptionSearch,
+        subscriptionStatusFilter,
+        subscriptionProviderFilter,
+        demoSearch,
+        demoStatusFilter,
+        demoTypeFilter,
+        demoSurfaceFilter,
+        verificationProviderFilter,
+    ]);
 
     useEffect(() => { setLoading(true); loadData(); }, [loadData]);
     const onRefresh = () => { setRefreshing(true); loadData(); };
 
     const fmtMoney = (n: any, currency?: string) => formatCurrency(n, currency);
+    const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString() : '—';
+    const formatPlanLabel = (plan?: string | null) => {
+        if (plan === 'enterprise') return 'Enterprise';
+        if (plan === 'pro') return 'Pro';
+        if (plan === 'starter') return 'Starter';
+        return 'Trial';
+    };
+    const formatProviderLabel = (provider?: string | null) => {
+        if (!provider || provider === 'none') return 'Aucun';
+        return provider.charAt(0).toUpperCase() + provider.slice(1);
+    };
+    const formatAccessPhase = (phase?: string | null) => {
+        if (phase === 'active') return 'Actif';
+        if (phase === 'grace') return 'Grâce';
+        if (phase === 'restricted') return 'Restreint';
+        if (phase === 'read_only') return 'Lecture seule';
+        return phase || '—';
+    };
+    const formatDemoTypeLabel = (demoType?: string | null) => {
+        if (demoType === 'retail') return 'Commerce';
+        if (demoType === 'restaurant') return 'Restaurant';
+        if (demoType === 'enterprise') return 'Enterprise';
+        return demoType || '—';
+    };
+    const formatDemoStatusLabel = (status?: string | null) => {
+        if (status === 'active') return 'Active';
+        if (status === 'expired') return 'Expirée';
+        if (status === 'cleaned') return 'Nettoyée';
+        return status || '—';
+    };
+    const formatRemainingDuration = (seconds?: number | null) => {
+        if (seconds === null || seconds === undefined) return '—';
+        if (seconds <= 0) return 'Expirée';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours <= 0) return `${minutes} min`;
+        return `${hours} h ${minutes} min`;
+    };
 
     const handleToggleUser = async (u: User) => {
         const action = (u as any).is_active === false ? t('admin.users.reactivateBtn') : t('admin.users.banBtn');
@@ -211,6 +323,31 @@ export default function AdminDashboard() {
                 }
             ]
         );
+    };
+    const handleGrantGrace = async (accountId: string, days = 7) => {
+        setSubscriptionActionId(`${accountId}:grace:${days}`);
+        try {
+            await admin.grantSubscriptionGrace(accountId, days);
+            await loadData();
+            Alert.alert('Succès', `Grâce de ${days} jours accordée.`);
+        } catch {
+            Alert.alert(t('admin.actions.error'));
+        } finally {
+            setSubscriptionActionId(null);
+        }
+    };
+    const handleToggleReadOnly = async (accountId: string, enabled: boolean) => {
+        setSubscriptionActionId(`${accountId}:readonly:${enabled ? 'on' : 'off'}`);
+        try {
+            if (enabled) await admin.enableSubscriptionReadOnly(accountId);
+            else await admin.disableSubscriptionReadOnly(accountId);
+            await loadData();
+            Alert.alert('Succès', enabled ? 'Lecture seule activée.' : 'Lecture seule retirée.');
+        } catch {
+            Alert.alert(t('admin.actions.error'));
+        } finally {
+            setSubscriptionActionId(null);
+        }
     };
     const handleCloseTicket = async (id: string) => {
         try { await admin.closeTicket(id); loadData(); } catch { Alert.alert(t('admin.actions.error')); }
@@ -509,6 +646,206 @@ export default function AdminDashboard() {
                 </View>
             );
         })()
+    );
+
+    const renderSubscriptions = () => (
+        <View>
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Tous' },
+                    { id: 'active', label: 'Actifs' },
+                    { id: 'expired', label: 'Expirés' },
+                    { id: 'cancelled', label: 'Annulés' },
+                ]}
+                active={subscriptionStatusFilter}
+                onSelect={setSubscriptionStatusFilter as any}
+                colors={colors}
+            />
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Tous les providers' },
+                    { id: 'stripe', label: 'Stripe' },
+                    { id: 'flutterwave', label: 'Flutterwave' },
+                    { id: 'revenuecat', label: 'RevenueCat' },
+                    { id: 'none', label: 'Sans provider' },
+                ]}
+                active={subscriptionProviderFilter}
+                onSelect={setSubscriptionProviderFilter as any}
+                colors={colors}
+            />
+            <SearchBar value={subscriptionSearch} onChangeText={setSubscriptionSearch} placeholder="Compte, propriétaire, e-mail, devise..." colors={colors} />
+
+            {subscriptionOverview && (
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <StatCard label="Payants actifs" value={subscriptionOverview.active_paid_accounts || 0} icon="card" color="#3B82F6" colors={colors} />
+                    <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon="flash" color="#8B5CF6" colors={colors} />
+                    <StatCard label="Trials < 7 j" value={subscriptionOverview.trials_expiring_7d || 0} icon="time" color="#F59E0B" colors={colors} />
+                    <StatCard label="Expirations proches" value={subscriptionOverview.subscriptions_expiring_soon || 0} icon="alert-circle" color="#EF4444" colors={colors} />
+                </View>
+            )}
+
+            {subscriptionAlerts?.items?.length > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                    <SectionHeader title="Alertes abonnements" count={subscriptionAlerts.items.length} colors={colors} />
+                    {subscriptionAlerts.items.map((alert: any, index: number) => (
+                        <Card key={`${alert.code}-${index}`} colors={colors}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{alert.title}</Text>
+                                <Badge label={`${alert.count || 0}`} color={alert.severity === 'critical' ? '#EF4444' : '#F59E0B'} />
+                            </View>
+                            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{alert.message}</Text>
+                        </Card>
+                    ))}
+                </View>
+            )}
+
+            <SectionHeader title="Comptes abonnés" count={subscriptionAccounts.length} colors={colors} />
+            {subscriptionAccounts.map((account: any) => {
+                const actionGraceId = `${account.account_id}:grace:7`;
+                const actionReadOnlyId = `${account.account_id}:readonly:${account.manual_read_only_enabled ? 'off' : 'on'}`;
+                return (
+                    <Card key={account.account_id} colors={colors}>
+                        <View style={{ gap: 8 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{account.display_name || account.owner_name || account.account_id}</Text>
+                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{account.owner_email || account.billing_contact_email || '—'}</Text>
+                                </View>
+                                <Badge label={formatPlanLabel(account.plan)} color={account.plan === 'enterprise' ? '#8B5CF6' : account.plan === 'pro' ? '#3B82F6' : '#10B981'} />
+                            </View>
+
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                                {formatProviderLabel(account.subscription_provider)} • {formatAccessPhase(account.subscription_access_phase)} • {account.country_code || '—'} • {account.currency || '—'}
+                            </Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                Boutiques : {account.stores_count || 0} • Utilisateurs : {account.users_count || 0}
+                            </Text>
+                            {(account.last_payment_amount || account.last_payment_at) && (
+                                <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                    Dernier paiement : {account.last_payment_amount ? fmtMoney(account.last_payment_amount, account.last_payment_currency || account.currency) : '—'} • {formatDateTime(account.last_payment_at)}
+                                </Text>
+                            )}
+
+                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                                <TouchableOpacity
+                                    onPress={() => handleGrantGrace(account.account_id, 7)}
+                                    disabled={subscriptionActionId === actionGraceId}
+                                    style={{ backgroundColor: '#3B82F622', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, opacity: subscriptionActionId === actionGraceId ? 0.6 : 1 }}
+                                >
+                                    <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '700' }}>
+                                        {subscriptionActionId === actionGraceId ? 'Traitement…' : 'Accorder 7 jours'}
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => handleToggleReadOnly(account.account_id, !account.manual_read_only_enabled)}
+                                    disabled={subscriptionActionId === actionReadOnlyId}
+                                    style={{ backgroundColor: account.manual_read_only_enabled ? '#10B98122' : '#F59E0B22', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, opacity: subscriptionActionId === actionReadOnlyId ? 0.6 : 1 }}
+                                >
+                                    <Text style={{ color: account.manual_read_only_enabled ? '#10B981' : '#F59E0B', fontSize: 12, fontWeight: '700' }}>
+                                        {subscriptionActionId === actionReadOnlyId
+                                            ? 'Traitement…'
+                                            : account.manual_read_only_enabled
+                                                ? 'Retirer lecture seule'
+                                                : 'Passer en lecture seule'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Card>
+                );
+            })}
+            {subscriptionAccounts.length === 0 && <EmptyState icon="card-outline" message="Aucun compte ne correspond aux filtres." colors={colors} />}
+
+            <SectionHeader title="Événements récents" count={subscriptionEvents.length} colors={colors} />
+            {subscriptionEvents.slice(0, 12).map((event: any, index: number) => (
+                <Card key={event.event_id || `${event.account_id}-${index}`} colors={colors}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{event.event_type || 'Événement'}</Text>
+                        <Badge label={formatProviderLabel(event.provider)} color="#8B5CF6" />
+                    </View>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{event.account_id || '—'} • {event.status || '—'}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{formatDateTime(event.created_at)}</Text>
+                </Card>
+            ))}
+        </View>
+    );
+
+    const renderDemos = () => (
+        <View>
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Tous statuts' },
+                    { id: 'active', label: 'Actives' },
+                    { id: 'expired', label: 'Expirées' },
+                    { id: 'cleaned', label: 'Nettoyées' },
+                ]}
+                active={demoStatusFilter}
+                onSelect={setDemoStatusFilter as any}
+                colors={colors}
+            />
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Tous types' },
+                    { id: 'retail', label: 'Commerce' },
+                    { id: 'restaurant', label: 'Restaurant' },
+                    { id: 'enterprise', label: 'Enterprise' },
+                ]}
+                active={demoTypeFilter}
+                onSelect={setDemoTypeFilter as any}
+                colors={colors}
+            />
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Toutes surfaces' },
+                    { id: 'mobile', label: 'Mobile' },
+                    { id: 'web', label: 'Web' },
+                ]}
+                active={demoSurfaceFilter}
+                onSelect={setDemoSurfaceFilter as any}
+                colors={colors}
+            />
+            <SearchBar value={demoSearch} onChangeText={setDemoSearch} placeholder="Session, e-mail, compte..." colors={colors} />
+
+            {demoOverview && (
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <StatCard label="Actives" value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
+                    <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
+                    <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
+                    <StatCard label="Contacts captés" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
+                </View>
+            )}
+
+            <SectionHeader title="Sessions démo" count={demoSessionsTotal || demoSessions.length} colors={colors} />
+            {demoSessions.map((session: any) => (
+                <Card key={session.demo_session_id} colors={colors}>
+                    <View style={{ gap: 8 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: colors.text, fontWeight: '700' }}>{session.demo_session_id}</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{session.account_id || session.owner_user_id || '—'}</Text>
+                            </View>
+                            <Badge
+                                label={formatDemoStatusLabel(session.status)}
+                                color={session.status === 'active' ? '#10B981' : session.status === 'expired' ? '#F59E0B' : '#8B5CF6'}
+                            />
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                            {formatDemoTypeLabel(session.demo_type)} • {(session.surface || '—').toUpperCase()} • {session.country_code || '—'} • {session.currency || '—'}
+                        </Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                            Contact : {session.contact_email || 'Non capté'}
+                        </Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                            Début : {formatDateTime(session.started_at || session.created_at)}
+                        </Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                            Expiration : {formatDateTime(session.expires_at)} • Restant : {formatRemainingDuration(session.remaining_seconds)}
+                        </Text>
+                    </View>
+                </Card>
+            ))}
+            {demoSessions.length === 0 && <EmptyState icon="sparkles-outline" message="Aucune session démo ne correspond aux filtres." colors={colors} />}
+        </View>
     );
 
     const renderStock = () => (
@@ -818,6 +1155,8 @@ export default function AdminDashboard() {
                     <StatCard label={t('admin.security.statsFailures')} value={secStats.failed_logins_24h || 0} icon="lock-closed" color="#EF4444" colors={colors} />
                     <StatCard label={t('admin.security.statsSuspicious')} value={secStats.successful_logins_24h || 0} icon="eye" color="#F59E0B" colors={colors} />
                     <StatCard label={t('admin.security.statsAlerts')} value={secStats.blocked_users || 0} icon="notifications" color="#EF4444" colors={colors} />
+                    <StatCard label="Vérifications" value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
+                    <StatCard label="Sessions actives" value={activeSessions.length} icon="pulse" color="#8B5CF6" colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.security')} count={secEvents.length} colors={colors} />
@@ -837,6 +1176,48 @@ export default function AdminDashboard() {
                 );
             })}
             {secEvents.length === 0 && <EmptyState icon="shield-outline" message={t('admin.security.empty')} colors={colors} />}
+
+            <SectionHeader title="Journal des vérifications" count={verificationEvents.length} colors={colors} />
+            <FilterBar
+                filters={[
+                    { id: 'all', label: 'Tous les providers' },
+                    { id: 'firebase', label: 'Firebase' },
+                    { id: 'resend', label: 'Resend' },
+                ]}
+                active={verificationProviderFilter}
+                onSelect={setVerificationProviderFilter as any}
+                colors={colors}
+            />
+            {verificationEvents.map((event: any, index: number) => (
+                <Card key={event.verification_id || `${event.created_at}-${index}`} colors={colors}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>
+                            {(event.channel || 'canal').toUpperCase()} • {(event.type || 'verification').replace(/_/g, ' ')}
+                        </Text>
+                        <Badge label={formatProviderLabel(event.provider)} color={event.provider === 'firebase' ? '#3B82F6' : '#10B981'} />
+                    </View>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        {event.email || event.phone || event.user_id || 'Utilisateur non précisé'}
+                    </Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{formatDateTime(event.created_at)}</Text>
+                </Card>
+            ))}
+            {verificationEvents.length === 0 && <EmptyState icon="mail-outline" message="Aucune vérification remontée." colors={colors} />}
+
+            <SectionHeader title="Sessions actives" count={activeSessions.length} colors={colors} />
+            {activeSessions.map((session: any, index: number) => (
+                <Card key={session.session_id || `${session.user_id}-${index}`} colors={colors}>
+                    <Text style={{ color: colors.text, fontWeight: '700' }}>{session.user_name || 'Inconnu'}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{session.user_email || session.user_id || '—'}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
+                        Créée : {formatDateTime(session.created_at)}
+                    </Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
+                        Expire : {formatDateTime(session.expires_at)}
+                    </Text>
+                </Card>
+            ))}
+            {activeSessions.length === 0 && <EmptyState icon="pulse-outline" message="Aucune session active remontée." colors={colors} />}
         </View>
     );
 
@@ -1046,7 +1427,7 @@ export default function AdminDashboard() {
     );
 
     const segMap: Record<Segment, () => React.ReactNode> = {
-        global: renderGlobal, users: renderUsers, stores: renderStores, stock: renderStock,
+        global: renderGlobal, users: renderUsers, stores: renderStores, subscriptions: renderSubscriptions, demos: renderDemos, stock: renderStock,
         finance: renderFinance, crm: renderCRM, support: renderSupport, disputes: renderDisputes,
         comms: renderComms, security: renderSecurity, logs: renderLogs, settings: renderSettings,
         cgu: renderCGU, privacy: renderPrivacy,

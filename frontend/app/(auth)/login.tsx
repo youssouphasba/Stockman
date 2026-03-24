@@ -16,9 +16,10 @@ import * as SecureStore from 'expo-secure-store';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useTheme } from '../../contexts/ThemeContext';
 
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +27,7 @@ const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
+  const { colors, glassStyle } = useTheme();
   const { login, isBiometricsEnabled, restoreSession } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -36,6 +38,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
 
   React.useEffect(() => {
     loadSavedCredentials();
@@ -152,7 +155,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -160,7 +163,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Ionicons name="cube" size={40} color={Colors.primary} />
+              <Ionicons name="cube" size={40} color={colors.primary} />
             </View>
             <Text style={styles.title}>{t('auth.login.title')}</Text>
             <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
@@ -169,7 +172,7 @@ export default function LoginScreen() {
           <View style={styles.card}>
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={18} color={Colors.danger} />
+                <Ionicons name="alert-circle" size={18} color={colors.danger} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
@@ -177,11 +180,11 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('auth.login.email')}</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder={t('auth.login.emailPlaceholder')}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -194,11 +197,11 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('auth.login.password')}</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder={t('auth.login.passwordPlaceholder')}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -208,7 +211,7 @@ export default function LoginScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               </View>
@@ -240,11 +243,11 @@ export default function LoginScreen() {
 
               {isBiometricAvailable && (
                 <TouchableOpacity
-                  style={[styles.button, { width: 56, backgroundColor: Colors.inputBg, borderWidth: 1, borderColor: Colors.primary }]}
+                  style={[styles.button, { width: 56, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.primary }]}
                   onPress={handleBiometricLogin}
                   disabled={loading}
                 >
-                  <Ionicons name="finger-print" size={24} color={Colors.primary} />
+                  <Ionicons name="finger-print" size={24} color={colors.primary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -272,10 +275,10 @@ export default function LoginScreen() {
                 disabled={demoLoading || loading}
               >
                 {demoType === 'retail' ? (
-                  <ActivityIndicator color={Colors.primary} size="small" />
+                  <ActivityIndicator color={colors.primary} size="small" />
                 ) : (
                   <>
-                    <Ionicons name="storefront-outline" size={18} color={Colors.primary} />
+                    <Ionicons name="storefront-outline" size={18} color={colors.primary} />
                     <Text style={styles.demoButtonText}>{t('auth.login.demoRetail')}</Text>
                   </>
                 )}
@@ -286,10 +289,10 @@ export default function LoginScreen() {
                 disabled={demoLoading || loading}
               >
                 {demoType === 'restaurant' ? (
-                  <ActivityIndicator color={Colors.primary} size="small" />
+                  <ActivityIndicator color={colors.primary} size="small" />
                 ) : (
                   <>
-                    <Ionicons name="restaurant-outline" size={18} color={Colors.primary} />
+                    <Ionicons name="restaurant-outline" size={18} color={colors.primary} />
                     <Text style={styles.demoButtonText}>{t('auth.login.demoRestaurant')}</Text>
                   </>
                 )}
@@ -300,9 +303,9 @@ export default function LoginScreen() {
               onPress={() => handleDemo('enterprise')}
               disabled={demoLoading || loading}
             >
-              <Ionicons name="globe-outline" size={18} color={Colors.text} />
+              <Ionicons name="globe-outline" size={18} color={colors.text} />
               <Text style={styles.demoEnterpriseText}>{t('auth.login.demoEnterprise')}</Text>
-              <Ionicons name="open-outline" size={14} color={Colors.textMuted} />
+              <Ionicons name="open-outline" size={14} color={colors.textMuted} />
             </TouchableOpacity>
             <Text style={styles.demoHint}>{t('auth.login.demoHint')}</Text>
           </View>
@@ -312,7 +315,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   scroll: {
@@ -328,7 +331,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    backgroundColor: colors.glass,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -336,15 +339,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.xxl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   card: {
-    ...GlassStyle,
+    ...glassStyle,
     padding: Spacing.lg,
   },
   errorBox: {
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   errorText: {
-    color: Colors.danger,
+    color: colors.danger,
     fontSize: FontSize.sm,
     flex: 1,
   },
@@ -365,7 +368,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   label: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
     fontWeight: '600',
     marginBottom: Spacing.xs,
@@ -373,17 +376,17 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBg,
+    backgroundColor: colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
   inputIcon: {
     paddingLeft: Spacing.md,
   },
   input: {
     flex: 1,
-    color: Colors.text,
+    color: colors.text,
     fontSize: FontSize.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
@@ -392,7 +395,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
@@ -402,7 +405,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: Colors.text,
+    color: '#fff',
     fontSize: FontSize.md,
     fontWeight: '700',
   },
@@ -412,11 +415,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   footerText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
   },
   footerLink: {
-    color: Colors.primaryLight,
+    color: colors.primary,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },
@@ -431,18 +434,18 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     marginRight: Spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.inputBg,
   },
   checkboxActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   rememberText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
   },
   divider: {
@@ -454,15 +457,15 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
   },
   dividerText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: FontSize.sm,
     marginHorizontal: Spacing.sm,
   },
   demoTitle: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
     fontWeight: '700',
     textAlign: 'center',
@@ -478,13 +481,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.sm + 2,
-    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+    backgroundColor: colors.primary + '12',
   },
   demoButtonText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },
@@ -494,19 +497,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.sm + 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.inputBg,
     marginTop: Spacing.sm,
   },
   demoEnterpriseText: {
-    color: Colors.text,
+    color: colors.text,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },
   demoHint: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: FontSize.xs,
     textAlign: 'center',
     marginTop: Spacing.xs,

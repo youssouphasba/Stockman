@@ -8,6 +8,8 @@ import {
     BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle
 } from 'lucide-react';
 import { admin as adminApi } from '../services/api';
+import AdminProductsPanel from './admin/AdminProductsPanel';
+import AdminCatalogPanel from './admin/AdminCatalogPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub?: string }) {
     return (
@@ -143,7 +145,7 @@ function formatRemainingDuration(seconds?: number | null) {
 }
 
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -164,7 +166,12 @@ export default function AdminDashboard() {
     const [disputeFilter, setDisputeFilter] = useState<'all' | 'open' | 'resolved'>('all');
     const [securityEvents, setSecurityEvents] = useState<any[]>([]);
     const [securityStats, setSecurityStats] = useState<any>(null);
+    const [verificationEvents, setVerificationEvents] = useState<any[]>([]);
+    const [verificationEventsTotal, setVerificationEventsTotal] = useState(0);
+    const [activeSessions, setActiveSessions] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
+    const [messageHistory, setMessageHistory] = useState<any[]>([]);
+    const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
     const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '' });
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -180,9 +187,13 @@ export default function AdminDashboard() {
     const [demoStatusFilter, setDemoStatusFilter] = useState<'all' | 'active' | 'expired' | 'cleaned'>('all');
     const [demoTypeFilter, setDemoTypeFilter] = useState<'all' | 'retail' | 'restaurant' | 'enterprise'>('all');
     const [demoSurfaceFilter, setDemoSurfaceFilter] = useState<'all' | 'mobile' | 'web'>('all');
+    const [verificationProviderFilter, setVerificationProviderFilter] = useState<'all' | 'firebase' | 'resend'>('all');
+    const [verificationChannelFilter, setVerificationChannelFilter] = useState<'all' | 'phone' | 'email'>('all');
+    const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | 'broadcast' | 'announcement' | 'individual'>('all');
     const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [sectionRefreshTick, setSectionRefreshTick] = useState(0);
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
     const [deletingUser, setDeletingUser] = useState<string | null>(null);
     const [confirmDeleteUser, setConfirmDeleteUser] = useState<{ user_id: string; email: string; name: string } | null>(null);
@@ -317,12 +328,17 @@ export default function AdminDashboard() {
     const loadSecurity = async () => {
         setRefreshing(true);
         try {
-            const [eventsRes, statsRes] = await Promise.all([
+            const [eventsRes, statsRes, verificationRes, sessionsRes] = await Promise.all([
                 adminApi.listSecurityEvents(),
                 adminApi.getSecurityStats(),
+                adminApi.listVerificationEvents({ limit: 50 }),
+                adminApi.getActiveSessions(),
             ]);
             setSecurityEvents(eventsRes?.items || []);
             setSecurityStats(statsRes);
+            setVerificationEvents(verificationRes?.items || []);
+            setVerificationEventsTotal(verificationRes?.total || 0);
+            setActiveSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
         } finally { setRefreshing(false); }
     };
 
@@ -330,6 +346,17 @@ export default function AdminDashboard() {
         setRefreshing(true);
         try { setTickets(await adminApi.listTickets() || []); }
         finally { setRefreshing(false); }
+    };
+
+    const loadBroadcastHistory = async () => {
+        setRefreshing(true);
+        try {
+            const response = await adminApi.listMessages(messageTypeFilter === 'all' ? undefined : messageTypeFilter, 0, 80);
+            setMessageHistory(response?.items || []);
+            setMessageHistoryTotal(response?.total || 0);
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     useEffect(() => {
@@ -340,7 +367,12 @@ export default function AdminDashboard() {
         if (activeSection === 'disputes') loadDisputes();
         if (activeSection === 'security') loadSecurity();
         if (activeSection === 'support') loadTickets();
+        if (activeSection === 'broadcast') loadBroadcastHistory();
     }, [activeSection]);
+
+    useEffect(() => {
+        if (activeSection === 'broadcast') loadBroadcastHistory();
+    }, [activeSection, messageTypeFilter]);
 
     const handleToggleUser = async (userId: string, currentStatus: boolean) => {
         setTogglingUser(userId);
@@ -448,6 +480,14 @@ export default function AdminDashboard() {
         });
     }, [demoSearch, demoSessions, demoStatusFilter, demoSurfaceFilter, demoTypeFilter]);
 
+    const filteredVerificationEvents = useMemo(() => {
+        return verificationEvents.filter((event) => {
+            const matchesProvider = verificationProviderFilter === 'all' || event.provider === verificationProviderFilter;
+            const matchesChannel = verificationChannelFilter === 'all' || event.channel === verificationChannelFilter;
+            return matchesProvider && matchesChannel;
+        });
+    }, [verificationChannelFilter, verificationEvents, verificationProviderFilter]);
+
     if (loading) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -462,6 +502,8 @@ export default function AdminDashboard() {
         { id: 'demos', icon: Clock, label: 'Demos' },
         { id: 'users', icon: Users, label: 'Utilisateurs' },
         { id: 'stores', icon: Store, label: 'Boutiques' },
+        { id: 'products', icon: Package, label: 'Produits' },
+        { id: 'catalog', icon: BarChart2, label: 'Catalogue' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
         { id: 'security', icon: Shield, label: 'Sécurité' },
         { id: 'support', icon: MessageSquare, label: 'Support' },
@@ -528,9 +570,11 @@ export default function AdminDashboard() {
                         else if (activeSection === 'demos') loadDemos();
                         else if (activeSection === 'users') loadUsers();
                         else if (activeSection === 'stores') loadStores();
+                        else if (activeSection === 'products' || activeSection === 'catalog') setSectionRefreshTick((current) => current + 1);
                         else if (activeSection === 'disputes') loadDisputes();
                         else if (activeSection === 'security') loadSecurity();
                         else if (activeSection === 'support') loadTickets();
+                        else if (activeSection === 'broadcast') loadBroadcastHistory();
                         else loadInitialData();
                     }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
@@ -556,7 +600,7 @@ export default function AdminDashboard() {
             {activeSection === 'overview' && (
                 <div className="space-y-8">
                     {/* KPI Row 1 */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Shopkeepers" value={stats?.users_by_role?.shopkeeper || 0} icon={Users} color="bg-primary" sub={`+${stats?.signups_today || 0} aujourd'hui`} />
                         <StatCard label="CA Global (30j)" value={`${(stats?.revenue_month || 0).toLocaleString()} F`} icon={TrendingUp} color="bg-emerald-500" sub={`Aujourd'hui : ${(stats?.revenue_today || 0).toLocaleString()} F`} />
                         <StatCard label="Tickets Ouverts" value={stats?.open_tickets || 0} icon={MessageSquare} color="bg-amber-500" />
@@ -564,7 +608,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* KPI Row 2 — Plans & Trials */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Enterprise" value={stats?.users_by_plan?.enterprise || 0} icon={Crown} color="bg-purple-500" />
                         <StatCard label="Pro" value={stats?.users_by_plan?.pro || 0} icon={Zap} color="bg-blue-500" />
                         <StatCard label="Starter" value={stats?.users_by_plan?.starter || 0} icon={Package} color="bg-emerald-500" />
@@ -621,7 +665,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                         <StatCard label="OTP envoyes" value={otpStats?.sent_today || 0} icon={Bell} color="bg-indigo-500" sub="Aujourd'hui" />
                         <StatCard label="OTP verifies" value={otpStats?.verified_today || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Aujourd'hui" />
                         <StatCard label="Taux verification" value={`${onboardingStats?.verification_rate || 0}%`} icon={TrendingUp} color="bg-sky-500" sub={`${onboardingStats?.verified_total || 0} verifies`} />
@@ -1135,6 +1179,14 @@ export default function AdminDashboard() {
             )}
 
             {/* ── DISPUTES ── */}
+            {activeSection === 'products' && (
+                <AdminProductsPanel refreshToken={sectionRefreshTick} showToast={showToast} />
+            )}
+
+            {activeSection === 'catalog' && (
+                <AdminCatalogPanel refreshToken={sectionRefreshTick} showToast={showToast} />
+            )}
+
             {activeSection === 'disputes' && (
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
@@ -1362,6 +1414,8 @@ export default function AdminDashboard() {
                         <StatCard label="Connexions Réussies" value={securityStats?.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" />
                         <StatCard label="Changements MDP (7j)" value={securityStats?.password_changes_7d || 0} icon={Lock} color="bg-amber-500" />
                         <StatCard label="Utilisateurs Bloqués" value={securityStats?.blocked_users || 0} icon={Trash2} color="bg-primary" />
+                        <StatCard label="Vérifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" />
+                        <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" />
                     </div>
                     <div className="glass-card overflow-hidden">
                         <div className="p-5 border-b border-white/5 bg-white/5">
@@ -1377,14 +1431,123 @@ export default function AdminDashboard() {
                                                 <span className="text-white font-bold text-xs uppercase tracking-widest">{event.type}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400 text-xs font-mono">{event.ip_address}</td>
-                                        <td className="px-6 py-4 text-slate-500 text-xs">{new Date(event.created_at).toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-slate-400 text-xs font-mono">{event.ip_address || '—'}</td>
+                                        <td className="px-6 py-4 text-slate-500 text-xs">{formatAdminDate(event.created_at)}</td>
                                     </tr>
                                 )) : (
                                     <tr><td className="p-10 text-center text-slate-600 text-sm">Aucun événement suspect.</td></tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Journal des vérifications</h3>
+                                <p className="mt-1 text-xs text-slate-500">Historique des vérifications e-mail et téléphone, avec le provider utilisé.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <select
+                                    value={verificationChannelFilter}
+                                    onChange={(e) => setVerificationChannelFilter(e.target.value as typeof verificationChannelFilter)}
+                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white outline-none transition-all focus:border-primary/40"
+                                >
+                                    <option value="all">Tous les canaux</option>
+                                    <option value="phone">Téléphone</option>
+                                    <option value="email">E-mail</option>
+                                </select>
+                                <select
+                                    value={verificationProviderFilter}
+                                    onChange={(e) => setVerificationProviderFilter(e.target.value as typeof verificationProviderFilter)}
+                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white outline-none transition-all focus:border-primary/40"
+                                >
+                                    <option value="all">Tous les providers</option>
+                                    <option value="firebase">Firebase</option>
+                                    <option value="resend">Resend</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+                                    <tr>
+                                        <th className="px-6 py-4">Type</th>
+                                        <th className="px-6 py-4">Canal</th>
+                                        <th className="px-6 py-4">Provider</th>
+                                        <th className="px-6 py-4">Utilisateur</th>
+                                        <th className="px-6 py-4">Cible</th>
+                                        <th className="px-6 py-4">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {filteredVerificationEvents.length > 0 ? filteredVerificationEvents.map((event: any) => (
+                                        <tr key={event.event_id || `${event.type}-${event.created_at}`} className="hover:bg-white/5">
+                                            <td className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">{event.type || '—'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-300">{event.channel || '—'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-300">{event.provider || '—'}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-semibold text-white">{event.user_name || event.user_email || 'Inconnu'}</p>
+                                                    <p className="text-xs text-slate-500">{event.user_id || '—'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-400">{event.target || event.identifier || event.email || event.phone_number || '—'}</td>
+                                            <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(event.created_at)}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-12 text-center text-slate-600 text-sm">
+                                                Aucun événement de vérification pour ces filtres.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Sessions actives</h3>
+                                <p className="mt-1 text-xs text-slate-500">Vue d’ensemble des sessions encore valides pour les utilisateurs.</p>
+                            </div>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                                {activeSessions.length} session(s)
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+                                    <tr>
+                                        <th className="px-6 py-4">Utilisateur</th>
+                                        <th className="px-6 py-4">Session</th>
+                                        <th className="px-6 py-4">Créée</th>
+                                        <th className="px-6 py-4">Expire</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {activeSessions.length > 0 ? activeSessions.map((session: any) => (
+                                        <tr key={session.session_id || `${session.user_id}-${session.created_at}`} className="hover:bg-white/5">
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-semibold text-white">{session.user_name || 'Inconnu'}</p>
+                                                    <p className="text-xs text-slate-500">{session.user_email || session.user_id || '—'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-xs font-mono text-slate-400">{session.session_id || '—'}</td>
+                                            <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(session.created_at)}</td>
+                                            <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(session.expires_at)}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-600 text-sm">
+                                                Aucune session active remontée.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1446,7 +1609,7 @@ export default function AdminDashboard() {
 
             {/* ── BROADCAST ── */}
             {activeSection === 'broadcast' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-8">
                     <div className="glass-card p-8 bg-gradient-to-br from-primary/5 to-transparent">
                         <div className="flex items-center gap-3 mb-8">
                             <Bell size={28} className="text-primary" />
@@ -1481,6 +1644,7 @@ export default function AdminDashboard() {
                                         await adminApi.broadcast(broadcastForm.message, broadcastForm.title);
                                         showToast('Message diffusé à tous les utilisateurs.');
                                         setBroadcastForm({ title: '', message: '' });
+                                        await loadBroadcastHistory();
                                     } catch {
                                         showToast('Erreur lors de la diffusion.', 'error');
                                     } finally {
@@ -1508,6 +1672,58 @@ export default function AdminDashboard() {
                                 <Bell size={24} className="text-primary" />
                                 <p className="text-white font-black text-sm">{broadcastForm.title || 'Titre du message'}</p>
                                 <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu apparaîtra ici.'}</p>
+                            </div>
+                        </div>
+                        <div className="glass-card overflow-hidden">
+                            <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h4 className="text-base font-black text-white uppercase tracking-tighter">Historique des messages</h4>
+                                    <p className="mt-1 text-xs text-slate-500">{messageHistoryTotal} message(s) archivÃ©(s) pour suivi admin.</p>
+                                </div>
+                                <select
+                                    value={messageTypeFilter}
+                                    onChange={(e) => setMessageTypeFilter(e.target.value as typeof messageTypeFilter)}
+                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white outline-none transition-all focus:border-primary/40"
+                                >
+                                    <option value="all">Tous les types</option>
+                                    <option value="broadcast">Broadcast</option>
+                                    <option value="announcement">Annonce</option>
+                                    <option value="individual">Individuel</option>
+                                </select>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
+                                {messageHistory.length > 0 ? messageHistory.map((message: any) => (
+                                    <div key={message.message_id || `${message.sent_at}-${message.title}`} className="p-5 hover:bg-white/5 transition-all">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div className="space-y-2">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${message.type === 'broadcast'
+                                                        ? 'border-violet-500/20 bg-violet-500/10 text-violet-300'
+                                                        : message.type === 'individual'
+                                                            ? 'border-sky-500/20 bg-sky-500/10 text-sky-300'
+                                                            : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                                                        }`}>
+                                                        {message.type || 'message'}
+                                                    </span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                        {formatAdminDate(message.sent_at)}
+                                                    </span>
+                                                </div>
+                                                <h5 className="text-sm font-bold text-white">{message.title || 'Sans titre'}</h5>
+                                                <p className="text-sm leading-relaxed text-slate-300">{message.content}</p>
+                                            </div>
+                                            <div className="min-w-[180px] space-y-1 text-right">
+                                                <p className="text-xs text-slate-500">Cible</p>
+                                                <p className="text-sm font-semibold text-white">{message.target || 'all'}</p>
+                                                <p className="text-xs text-slate-500">Envoyé par {message.sent_by || 'admin'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="p-12 text-center text-slate-600 text-sm">
+                                        Aucun message admin pour ce filtre.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

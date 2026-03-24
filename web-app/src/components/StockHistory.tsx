@@ -16,6 +16,7 @@ import {
 import { stock as stockApi } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function StockHistory() {
     const [movements, setMovements] = useState<any[]>([]);
@@ -106,8 +107,28 @@ export default function StockHistory() {
         URL.revokeObjectURL(url);
     };
 
+    const stockHistorySteps: GuideStep[] = [
+        {
+            title: 'Journal d\u2019audit',
+            content: 'Consultez tous les mouvements de stock enregistr\u00e9s : entr\u00e9es, sorties et ajustements.',
+        },
+        {
+            title: 'Filtrez par type',
+            content: 'Utilisez les boutons Entr\u00e9es, Sorties ou Ajustements pour affiner l\u2019affichage.',
+        },
+        {
+            title: 'Recherche',
+            content: 'Trouvez rapidement un produit ou une raison de mouvement gr\u00e2ce \u00e0 la barre de recherche.',
+        },
+        {
+            title: 'Export CSV',
+            content: 'T\u00e9l\u00e9chargez l\u2019historique filtr\u00e9 en CSV pour une analyse approfondie.',
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={stockHistorySteps} guideKey="stock_history_tour" />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">

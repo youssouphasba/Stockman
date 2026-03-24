@@ -10,8 +10,6 @@ import {
   Alert,
   Platform,
   TextInput,
-  Modal,
-  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,14 +56,79 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
 };
 
 const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; label: string; placeholder: string }[] = [
-  { key: 'default', label: 'Par defaut', placeholder: 'direction@entreprise.com' },
+  { key: 'default', label: 'Par défaut', placeholder: 'direction@entreprise.com' },
   { key: 'stock', label: 'Stock', placeholder: 'stock@entreprise.com' },
   { key: 'procurement', label: 'Appro', placeholder: 'appro@entreprise.com' },
   { key: 'finance', label: 'Finance', placeholder: 'finance@entreprise.com' },
   { key: 'crm', label: 'CRM', placeholder: 'crm@entreprise.com' },
-  { key: 'operations', label: 'Operations', placeholder: 'ops@entreprise.com' },
+  { key: 'operations', label: 'Opérations', placeholder: 'ops@entreprise.com' },
   { key: 'billing', label: 'Facturation', placeholder: 'billing@entreprise.com' },
 ];
+
+type SettingsSectionKey =
+  | 'profile'
+  | 'notifications'
+  | 'team'
+  | 'organization'
+  | 'storeIdentity'
+  | 'storeDocuments'
+  | 'storeEmpty'
+  | 'storeAlerts'
+  | 'billing'
+  | 'accountAlerts'
+  | 'tax'
+  | 'reminders'
+  | 'sync'
+  | 'support'
+  | 'incident'
+  | 'security'
+  | 'legal'
+  | 'data';
+
+type SettingsAccordionSectionProps = {
+  title: string;
+  description: string;
+  icon: string;
+  accentColor: string;
+  expanded: boolean;
+  onToggle: () => void;
+  styles: ReturnType<typeof getStyles>;
+  colors: any;
+  children: React.ReactNode;
+};
+
+function SettingsAccordionSection({
+  title,
+  description,
+  icon,
+  accentColor,
+  expanded,
+  onToggle,
+  styles,
+  colors,
+  children,
+}: SettingsAccordionSectionProps) {
+  return (
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.accordionHeader} onPress={onToggle} activeOpacity={0.85}>
+        <View style={[styles.accordionIconWrap, { backgroundColor: accentColor + '20' }]}>
+          <Ionicons name={icon as any} size={20} color={accentColor} />
+        </View>
+        <View style={styles.accordionCopy}>
+          <Text style={styles.accordionTitle}>{title}</Text>
+          <Text style={styles.accordionDescription}>{description}</Text>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+          size={20}
+          color={colors.textMuted}
+        />
+      </TouchableOpacity>
+
+      {expanded ? <View style={styles.accordionBody}>{children}</View> : null}
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -77,11 +140,32 @@ export default function SettingsScreen() {
   const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionKey, boolean>>({
+    profile: true,
+    notifications: false,
+    team: false,
+    organization: false,
+    storeIdentity: true,
+    storeDocuments: false,
+    storeEmpty: true,
+    storeAlerts: false,
+    billing: false,
+    accountAlerts: false,
+    tax: false,
+    reminders: false,
+    sync: false,
+    support: false,
+    incident: false,
+    security: false,
+    legal: false,
+    data: false,
+  });
   const [billingContactName, setBillingContactName] = useState('');
   const [billingContactEmail, setBillingContactEmail] = useState('');
   const [notificationContacts, setNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
@@ -182,6 +266,13 @@ export default function SettingsScreen() {
     }, [loadSettings])
   );
 
+  function toggleSection(section: SettingsSectionKey) {
+    setExpandedSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  }
+
   async function toggleModule(key: string) {
     if (!settingsData) return;
     const newModules = { ...settingsData.modules, [key]: !settingsData.modules[key] };
@@ -257,7 +348,7 @@ export default function SettingsScreen() {
       setSettingsData(updated);
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre a jour vos notifications.');
+      Alert.alert(t('common.error'), 'Impossible de mettre à jour vos notifications.');
     }
   }
 
@@ -269,7 +360,7 @@ export default function SettingsScreen() {
       setSettingsData(updated);
       setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.notification_contacts || {}) });
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre a jour les emails de notification.');
+      Alert.alert(t('common.error'), 'Impossible de mettre à jour les e-mails de notification.');
     }
   }
 
@@ -281,7 +372,7 @@ export default function SettingsScreen() {
       setSettingsData(updated);
       setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.store_notification_contacts || {}) });
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre a jour les emails de la boutique.');
+      Alert.alert(t('common.error'), 'Impossible de mettre à jour les e-mails de la boutique.');
     }
   }
 
@@ -322,9 +413,9 @@ export default function SettingsScreen() {
         invoice_footer: updatedStore.invoice_footer,
         invoice_payment_terms: updatedStore.invoice_payment_terms,
       }) : prev);
-      Alert.alert(t('common.success'), 'Boutique mise a jour.');
+      Alert.alert(t('common.success'), 'Boutique mise à jour.');
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre a jour la boutique active.');
+      Alert.alert(t('common.error'), 'Impossible de mettre à jour la boutique active.');
     }
   }
 
@@ -394,33 +485,40 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Portee des reglages</Text>
+          <Text style={styles.sectionTitle}>Portée des réglages</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Mon profil</Text>
-              <Text style={styles.settingDesc}>Langue, mode simple, notifications et securite personnelle.</Text>
+              <Text style={styles.settingDesc}>Langue, mode simple, notifications et sécurité personnelle.</Text>
             </View>
             <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
           </View>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Ma boutique</Text>
-              <Text style={styles.settingDesc}>{currentStore?.name || 'Aucune boutique active'} - identite, recu et facture du point de vente actif.</Text>
+              <Text style={styles.settingDesc}>{currentStore?.name || 'Aucune boutique active'} - identité, reçu et facture du point de vente actif.</Text>
             </View>
             <Ionicons name="storefront-outline" size={24} color={colors.info} />
           </View>
           <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Compte entreprise</Text>
-              <Text style={styles.settingDesc}>Facturation, modules et regles avancees. Le web reste la surface complete.</Text>
+              <Text style={styles.settingDesc}>Facturation, modules et règles avancées. Le web reste la surface complète.</Text>
             </View>
             <Ionicons name="business-outline" size={24} color={colors.warning} />
           </View>
         </View>
 
-        {/* App settings */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
+        <SettingsAccordionSection
+          title="Profil et application"
+          description="Préférences personnelles, apparence, langue et accès au compte."
+          icon="person-outline"
+          accentColor={colors.primary}
+          expanded={expandedSections.profile}
+          onToggle={() => toggleSection('profile')}
+          styles={styles}
+          colors={colors}
+        >
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -465,7 +563,7 @@ export default function SettingsScreen() {
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Zone manager</Text>
-                <Text style={styles.settingDesc}>Affiche ou masque les reglages avances de gestion sur mobile.</Text>
+                <Text style={styles.settingDesc}>Affiche ou masque les réglages avancés de gestion sur mobile.</Text>
               </View>
               <Switch
                 value={settingsData?.mobile_preferences?.show_manager_zone ?? true}
@@ -486,18 +584,26 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="language-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Mes notifications</Text>
+        <SettingsAccordionSection
+          title="Notifications personnelles"
+          description="Canaux d’alerte, seuils de sévérité et préférences de diffusion."
+          icon="notifications-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.notifications}
+          onToggle={() => toggleSection('notifications')}
+          styles={styles}
+          colors={colors}
+        >
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
             Choisissez comment vous souhaitez recevoir les alertes importantes sur votre profil.
           </Text>
 
           {[
-            { key: 'in_app', label: 'Dans l application', desc: 'Toujours visibles dans le centre d alertes.' },
+            { key: 'in_app', label: 'Dans l’application', desc: 'Toujours visibles dans le centre d’alertes.' },
             { key: 'push', label: 'Push mobile', desc: 'Notification push sur votre appareil.' },
-            { key: 'email', label: 'Email', desc: 'Copie email sur votre adresse utilisateur.' },
+            { key: 'email', label: 'E-mail', desc: 'Copie envoyée sur votre adresse utilisateur.' },
           ].map((item, index, array) => (
             <View
               key={item.key}
@@ -525,7 +631,7 @@ export default function SettingsScreen() {
           ))}
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Severite minimale pour les push</Text>
+            <Text style={styles.settingLabel}>Sévérité minimale pour les push</Text>
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
               {(['info', 'warning', 'critical'] as const).map((severity) => (
                 <TouchableOpacity
@@ -554,7 +660,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Severite minimale pour les emails</Text>
+            <Text style={styles.settingLabel}>Sévérité minimale pour les e-mails</Text>
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
               {(['info', 'warning', 'critical'] as const).map((severity) => (
                 <TouchableOpacity
@@ -591,12 +697,20 @@ export default function SettingsScreen() {
               Enregistrer mes notifications
             </Text>
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
 
         {/* Team / Manager zone */}
         {canViewTeam && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>{t('settings.team_title')}</Text>
+          <SettingsAccordionSection
+            title="Organisation · Équipe"
+            description="Accès au personnel et aux permissions de l’organisation."
+            icon="people-outline"
+            accentColor={colors.success}
+            expanded={expandedSections.team}
+            onToggle={() => toggleSection('team')}
+            styles={styles}
+            colors={colors}
+          >
             <Link href="/(tabs)/users" asChild>
               <TouchableOpacity style={styles.supportRow}>
                 <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
@@ -609,13 +723,22 @@ export default function SettingsScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
               </TouchableOpacity>
             </Link>
-          </View>
+          </SettingsAccordionSection>
         )}
 
         {/* Modules */}
         {isOrgAdmin && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.modules')}</Text>
+        <SettingsAccordionSection
+          title="Organisation · Modules"
+          description="Modules activés et paramètres généraux de fonctionnement."
+          icon="grid-outline"
+          accentColor={colors.success}
+          expanded={expandedSections.organization}
+          onToggle={() => toggleSection('organization')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.subsectionTitle}>{t('settings.modules')}</Text>
           {settingsData && Object.entries(settingsData.modules).map(([key, enabled]) => (
             <View key={key} style={styles.settingRow}>
               <Text style={styles.settingLabel}>{moduleLabels[key] ?? key}</Text>
@@ -627,13 +750,21 @@ export default function SettingsScreen() {
               />
             </View>
           ))}
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {isOrgAdmin && currentStore && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Ma boutique</Text>
-          <Text style={styles.settingDesc}>Mettez a jour le nom et l adresse de la boutique actuellement selectionnee.</Text>
+        <SettingsAccordionSection
+          title="Boutique · Identité"
+          description="Nom, adresse et identité du point de vente actuellement sélectionné."
+          icon="storefront-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.storeIdentity}
+          onToggle={() => toggleSection('storeIdentity')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.settingDesc}>Mettez à jour le nom et l’adresse de la boutique actuellement sélectionnée.</Text>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
             <TextInput
@@ -661,28 +792,36 @@ export default function SettingsScreen() {
               Enregistrer ma boutique
             </Text>
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {isOrgAdmin && currentStore && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Documents de la boutique</Text>
-          <Text style={styles.settingDesc}>Recu et facture de la boutique active. Les regles avancees restent mieux gerees sur le web.</Text>
+        <SettingsAccordionSection
+          title="Boutique · Documents"
+          description="Reçus et factures de la boutique active."
+          icon="document-text-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.storeDocuments}
+          onToggle={() => toggleSection('storeDocuments')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.settingDesc}>Reçu et facture de la boutique active. Les règles avancées restent mieux gérées sur le web.</Text>
 
-          <Text style={[styles.sectionTitle, { marginTop: Spacing.sm, marginBottom: Spacing.sm }]}>Recu</Text>
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.sm, marginBottom: Spacing.sm }]}>Reçu</Text>
           <View style={{ gap: Spacing.sm }}>
             <TextInput
               style={styles.input}
               value={receiptName}
               onChangeText={setReceiptName}
-              placeholder="Nom sur le recu"
+              placeholder="Nom sur le reçu"
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={receiptFooter}
               onChangeText={setReceiptFooter}
-              placeholder="Pied de recu"
+              placeholder="Pied de reçu"
               placeholderTextColor={colors.textMuted}
             />
           </View>
@@ -714,7 +853,7 @@ export default function SettingsScreen() {
               style={styles.input}
               value={invoicePrefix}
               onChangeText={setInvoicePrefix}
-              placeholder="Prefixe"
+              placeholder="Préfixe"
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
@@ -742,27 +881,44 @@ export default function SettingsScreen() {
               Enregistrer les documents
             </Text>
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {isOrgAdmin && !currentStore && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Boutique active</Text>
-          <Text style={styles.settingDesc}>Aucune boutique active n est selectionnee pour personnaliser les documents.</Text>
-        </View>
+        <SettingsAccordionSection
+          title="Boutique · Paramètres"
+          description="Aucune boutique sélectionnée pour les réglages du point de vente."
+          icon="storefront-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.storeEmpty}
+          onToggle={() => toggleSection('storeEmpty')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.settingDesc}>Aucune boutique active n’est sélectionnée pour personnaliser les documents.</Text>
+        </SettingsAccordionSection>
         )}
 
         {isOrgAdmin && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Emails de notification du compte</Text>
+        <SettingsAccordionSection
+          title="Entreprise · Alertes du compte"
+          description="Destinataires des alertes au niveau de l’entreprise."
+          icon="mail-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.accountAlerts}
+          onToggle={() => toggleSection('accountAlerts')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.sectionTitle}>E-mails de notification du compte</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Utilises pour router les alertes entreprise par equipe ou par domaine.
+            Utilisés pour router les alertes entreprise par équipe ou par domaine.
           </Text>
           <View style={{ gap: Spacing.sm }}>
             {NOTIFICATION_CONTACT_FIELDS.map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDesc}>Exemple: {field.placeholder}</Text>
+                <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
                 <TextInput
                   style={styles.input}
                   value={(notificationContacts[field.key] || []).join(', ')}
@@ -781,23 +937,32 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les emails du compte
+              Enregistrer les e-mails du compte
             </Text>
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {isOrgAdmin && currentStore && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Emails de la boutique active</Text>
+        <SettingsAccordionSection
+          title="Boutique · Alertes"
+          description="Destinataires propres à la boutique active."
+          icon="mail-open-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.storeAlerts}
+          onToggle={() => toggleSection('storeAlerts')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.sectionTitle}>E-mails de la boutique active</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Surcharges locales pour {currentStore.name || 'la boutique active'} quand une alerte ne doit pas remonter a tout le compte.
+            Surcharges locales pour {currentStore.name || 'la boutique active'} quand une alerte ne doit pas remonter à tout le compte.
           </Text>
           <View style={{ gap: Spacing.sm }}>
             {NOTIFICATION_CONTACT_FIELDS.map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDesc}>Exemple: {field.placeholder}</Text>
+                <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
                 <TextInput
                   style={styles.input}
                   value={(storeNotificationContacts[field.key] || []).join(', ')}
@@ -816,15 +981,24 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les emails de la boutique
+              Enregistrer les e-mails de la boutique
             </Text>
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {/* TVA / Taxes */}
         {isOrgAdmin && (
-        <View style={styles.card}>
+        <SettingsAccordionSection
+          title="Entreprise · Fiscalité"
+          description="TVA, mode de calcul et taux appliqué au compte."
+          icon="calculator-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.tax}
+          onToggle={() => toggleSection('tax')}
+          styles={styles}
+          colors={colors}
+        >
           <Text style={styles.sectionTitle}>{t('settings.tax')}</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -903,13 +1077,22 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {/* Reminder Rules */}
         {isOrgAdmin && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.reminders')}</Text>
+        <SettingsAccordionSection
+          title="Entreprise · Rappels intelligents"
+          description="Règles automatiques pour les relances, contrôles et actions de pilotage."
+          icon="alarm-outline"
+          accentColor={colors.success}
+          expanded={expandedSections.reminders}
+          onToggle={() => toggleSection('reminders')}
+          styles={styles}
+          colors={colors}
+        >
+          <Text style={styles.subsectionTitle}>{t('settings.reminders')}</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
             {t('settings.reminders_desc')}
           </Text>
@@ -928,11 +1111,20 @@ export default function SettingsScreen() {
             }}
             onUpdate={updateReminderRules}
           />
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {/* Synchronisation */}
-        <View style={styles.card}>
+        <SettingsAccordionSection
+          title="Synchronisation"
+          description="État de connexion, dernière synchronisation et actions hors ligne."
+          icon="sync-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.sync}
+          onToggle={() => toggleSection('sync')}
+          styles={styles}
+          colors={colors}
+        >
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.connection_status')}</Text>
@@ -985,11 +1177,20 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </SettingsAccordionSection>
 
         {/* Subscription */}
         {showManagerZone && isBillingAdmin && (
-        <View style={styles.card}>
+        <SettingsAccordionSection
+          title="Entreprise · Abonnement"
+          description="Plan actif, espace d’abonnement et contact de facturation."
+          icon="card-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.billing}
+          onToggle={() => toggleSection('billing')}
+          styles={styles}
+          colors={colors}
+        >
           <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
           <TouchableOpacity
             style={styles.supportRow}
@@ -1007,7 +1208,7 @@ export default function SettingsScreen() {
 
           <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
             <Text style={styles.settingLabel}>Contact de facturation</Text>
-            <Text style={styles.settingDesc}>Reçoit les échanges et informations d abonnement du compte entreprise.</Text>
+            <Text style={styles.settingDesc}>Reçoit les échanges et informations d’abonnement du compte entreprise.</Text>
             <TextInput
               style={styles.input}
               value={billingContactName}
@@ -1044,13 +1245,21 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </SettingsAccordionSection>
         )}
 
         {/* Support */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('settings.help_support')}</Text>
-          <TouchableOpacity style={styles.supportRow}>
+        <SettingsAccordionSection
+          title="Aide et support"
+          description="Centre d’aide, assistant IA et contact rapide."
+          icon="help-circle-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.support}
+          onToggle={() => toggleSection('support')}
+          styles={styles}
+          colors={colors}
+        >
+          <TouchableOpacity style={styles.supportRow} onPress={() => setShowAiModal(true)}>
             <View style={styles.supportIconWrapper}>
               <Ionicons name="sparkles" size={20} color="#fff" />
             </View>
@@ -1079,11 +1288,19 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
 
         {/* Signaler un problème */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>⚠️ {t('settings.report_problem')}</Text>
+        <SettingsAccordionSection
+          title="Aide · Signaler un problème"
+          description="Déclare un incident de paiement, produit, service ou livraison."
+          icon="warning-outline"
+          accentColor={colors.danger}
+          expanded={expandedSections.incident}
+          onToggle={() => toggleSection('incident')}
+          styles={styles}
+          colors={colors}
+        >
           {!showDisputeForm ? (
             <TouchableOpacity onPress={() => setShowDisputeForm(true)} style={styles.supportRow}>
               <View style={[styles.supportIconWrapper, { backgroundColor: '#EF4444' }]}>
@@ -1123,10 +1340,19 @@ export default function SettingsScreen() {
               </View>
             </View>
           )}
-        </View>
+        </SettingsAccordionSection>
 
         {/* Security */}
-        <View style={styles.card}>
+        <SettingsAccordionSection
+          title="Sécurité du compte"
+          description="Code PIN, biométrie et protection locale de l’application."
+          icon="shield-checkmark-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.security}
+          onToggle={() => toggleSection('security')}
+          styles={styles}
+          colors={colors}
+        >
           <Text style={styles.sectionTitle}>{t('settings.security')}</Text>
 
           <View style={styles.settingRow}>
@@ -1156,10 +1382,19 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
           {!isPinSet && <Text style={[styles.settingDesc, { marginTop: 4, color: colors.warning }]}>{t('settings.pin_required')}</Text>}
-        </View>
+        </SettingsAccordionSection>
 
         {/* About */}
-        <View style={styles.card}>
+        <SettingsAccordionSection
+          title="Informations légales"
+          description="Version de l’application, conditions d’utilisation et politique de confidentialité."
+          icon="information-circle-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.legal}
+          onToggle={() => toggleSection('legal')}
+          styles={styles}
+          colors={colors}
+        >
           <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>{t('settings.version')}</Text>
@@ -1181,10 +1416,20 @@ export default function SettingsScreen() {
             <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.privacy')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </TouchableOpacity>
-        </View>
+        </SettingsAccordionSection>
 
         {/* GDPR - Danger Zone */}
-        <View style={[styles.card, { borderColor: colors.danger + '30', borderWidth: 1 }]}>
+        <SettingsAccordionSection
+          title="Données et suppression"
+          description="Export de données et suppression définitive du compte."
+          icon="warning-outline"
+          accentColor={colors.danger}
+          expanded={expandedSections.data}
+          onToggle={() => toggleSection('data')}
+          styles={styles}
+          colors={colors}
+        >
+          <View style={[styles.dangerZoneCard, { borderColor: colors.danger + '30', borderWidth: 1 }]}>
           <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('settings.danger_zone')}</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
             {t('settings.danger_zone_desc')}
@@ -1205,7 +1450,8 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="trash-outline" size={24} color={colors.danger} />
           </TouchableOpacity>
-        </View>
+          </View>
+        </SettingsAccordionSection>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -1227,6 +1473,11 @@ export default function SettingsScreen() {
             setHelpGuide(guide);
           }
         }}
+      />
+
+      <AiSupportModal
+        visible={showAiModal}
+        onClose={() => setShowAiModal(false)}
       />
 
       {
@@ -1281,11 +1532,54 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.md,
   },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  accordionIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accordionCopy: {
+    flex: 1,
+  },
+  accordionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  accordionDescription: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  accordionBody: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
   sectionTitle: {
     fontSize: FontSize.md,
     fontWeight: '700',
     color: colors.text,
     marginBottom: Spacing.md,
+  },
+  subsectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: Spacing.sm,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginVertical: Spacing.md,
   },
   userSection: {
     flexDirection: 'row',
@@ -1428,5 +1722,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   toggleCircleActive: {
     alignSelf: 'flex-end',
+  },
+  dangerZoneCard: {
+    borderRadius: BorderRadius.lg,
+    backgroundColor: colors.danger + '0F',
+    padding: Spacing.md,
   },
 });

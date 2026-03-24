@@ -12,9 +12,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../constants/theme';
+import { Spacing, FontSize } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const PIN_LENGTH = 4;
@@ -22,12 +23,14 @@ const PIN_LENGTH = 4;
 export default function PinScreen() {
     const { isPinSet, isBiometricsEnabled, setPin, unlockWithPin, unlockWithBiometrics, logout } = useAuth();
     const { t } = useTranslation();
+    const { colors } = useTheme();
     const router = useRouter();
     const [pin, setPinValue] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [isConfirming, setIsConfirming] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const styles = createStyles(colors);
 
     useEffect(() => {
         if (isPinSet && isBiometricsEnabled) {
@@ -101,7 +104,7 @@ export default function PinScreen() {
                 key={index}
                 style={[
                     styles.dot,
-                    isActive && { backgroundColor: Colors.primary, transform: [{ scale: 1.2 }] },
+                    isActive && { backgroundColor: colors.primary, transform: [{ scale: 1.2 }] },
                 ]}
             />
         );
@@ -114,7 +117,7 @@ export default function PinScreen() {
             onPress={() => (icon === 'backspace' ? handleBackspace() : handlePress(val))}
         >
             {icon ? (
-                <Ionicons name={icon as any} size={28} color={Colors.text} />
+                <Ionicons name={icon as any} size={28} color={colors.text} />
             ) : (
                 <Text style={styles.keyText}>{val}</Text>
             )}
@@ -122,10 +125,10 @@ export default function PinScreen() {
     );
 
     return (
-        <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.container}>
+        <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
-                    <Ionicons name="lock-closed" size={48} color={Colors.primary} />
+                    <Ionicons name="lock-closed" size={48} color={colors.primary} />
                     <Text style={styles.title}>
                         {!isPinSet
                             ? (isConfirming ? t('pin.confirm_title') : t('pin.create_title'))
@@ -143,7 +146,7 @@ export default function PinScreen() {
                         {[...Array(PIN_LENGTH)].map((_, i) => renderDot(i))}
                     </View>
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                    {loading && <ActivityIndicator color={Colors.primary} style={{ marginTop: 10 }} />}
+                    {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 10 }} />}
                 </View>
 
                 <View style={styles.keypad}>
@@ -159,7 +162,7 @@ export default function PinScreen() {
                     <View style={styles.row}>
                         {isPinSet && isBiometricsEnabled ? (
                             <TouchableOpacity style={styles.key} onPress={handleBiometrics}>
-                                <Ionicons name="finger-print" size={32} color={Colors.primary} />
+                                <Ionicons name="finger-print" size={32} color={colors.primary} />
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.key} />
@@ -179,7 +182,7 @@ export default function PinScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -196,12 +199,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: FontSize.xl,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginTop: Spacing.md,
     },
     subtitle: {
         fontSize: FontSize.md,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: Spacing.xs,
     },
     pinDisplay: {
@@ -217,11 +220,11 @@ const styles = StyleSheet.create({
         height: 16,
         borderRadius: 8,
         borderWidth: 2,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
         backgroundColor: 'transparent',
     },
     errorText: {
-        color: Colors.danger,
+        color: colors.danger,
         fontSize: FontSize.sm,
         marginTop: Spacing.md,
     },
@@ -238,22 +241,22 @@ const styles = StyleSheet.create({
         width: width * 0.2,
         height: width * 0.2,
         borderRadius: width * 0.1,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: colors.inputBg,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: colors.divider,
     },
     keyText: {
         fontSize: FontSize.xxl,
-        color: Colors.text,
+        color: colors.text,
         fontWeight: '600',
     },
     logoutBtn: {
         marginBottom: Spacing.lg,
     },
     logoutText: {
-        color: Colors.danger,
+        color: colors.danger,
         fontSize: FontSize.sm,
         fontWeight: '600',
     },

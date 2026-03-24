@@ -24,7 +24,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 
 export default function TabLayout() {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -220,7 +220,7 @@ export default function TabLayout() {
             </View>
           ),
           tabBarStyle: {
-            backgroundColor: colors.bgDark === '#F8FAFC' ? '#FFFFFF' : 'rgba(15, 12, 41, 0.95)',
+            backgroundColor: isDark ? 'rgba(15, 12, 41, 0.95)' : '#FFFFFF',
             borderTopColor: colors.glassBorder,
             borderTopWidth: 1,
             height: 70 + insets.bottom,

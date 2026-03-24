@@ -38,6 +38,7 @@ export default function MarketingFooter() {
               <li><a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer">{t('marketing_footer.mobile_app')}</a></li>
               <li><a href={APP_LOGIN_URL} target="_blank" rel="noopener noreferrer">{t('marketing_footer.login')}</a></li>
               <li><Link to="/blog">{t('marketing_footer.blog')}</Link></li>
+              <li><a href="/#contact-form">{t('nav.contact', 'Contact')}</a></li>
             </ul>
           </div>
 

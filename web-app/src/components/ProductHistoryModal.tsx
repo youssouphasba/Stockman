@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, History, Package, DollarSign, X } from 'lucide-react';
+import { TrendingUp, History, Package, DollarSign, X, Undo2 } from 'lucide-react';
 import {
     AreaChart,
     Area,
@@ -49,6 +49,17 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
             console.error("History load error", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleReverseMovement = async (movementId: string, qty: number, type: string) => {
+        const label = type === 'in' ? t('products.mov_in') : t('products.mov_out');
+        if (!window.confirm(t('products.confirm_reverse_movement', { qty, type: label }))) return;
+        try {
+            await stockApi.reverseMovement(movementId);
+            await loadHistory();
+        } catch (err: any) {
+            alert(err?.message || t('products.reverse_movement_error'));
         }
     };
 
@@ -151,7 +162,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                             <h4 className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-4">Mouvements récents</h4>
                             <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                 {movements.slice(0, 10).map((m: any) => (
-                                    <div key={m.movement_id} className="flex justify-between items-center py-2 border-b border-white/5">
+                                    <div key={m.movement_id} className="flex justify-between items-center py-2 border-b border-white/5 group">
                                         <div>
                                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mr-2 ${m.type === 'in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                                                 {m.type === 'in' ? 'Entrée' : 'Sortie'}
@@ -159,11 +170,22 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                             <span className="text-white font-bold text-sm">{m.reason || 'Régularisation'}</span>
                                             <p className="text-[10px] text-slate-500">{new Date(m.created_at).toLocaleString()}</p>
                                         </div>
-                                        <div className="text-right">
-                                            <span className={`font-black ${m.type === 'in' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {m.type === 'in' ? '+' : '-'}{m.quantity}
-                                            </span>
-                                            <p className="text-[10px] text-slate-500">Nouveau: {m.new_quantity}</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <span className={`font-black ${m.type === 'in' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    {m.type === 'in' ? '+' : '-'}{m.quantity}
+                                                </span>
+                                                <p className="text-[10px] text-slate-500">Nouveau: {m.new_quantity}</p>
+                                            </div>
+                                            {!m.reason?.startsWith('Annulation de') && (
+                                                <button
+                                                    onClick={() => handleReverseMovement(m.movement_id, m.quantity, m.type)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400"
+                                                    title={t('products.reverse_movement')}
+                                                >
+                                                    <Undo2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

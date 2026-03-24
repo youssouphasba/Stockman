@@ -5,6 +5,7 @@ import { BarChart3, Boxes, Search, TrendingUp } from 'lucide-react';
 import { analytics as analyticsApi, AnalyticsStockAbc, AnalyticsStockAbcItem } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 function formatCurrency(amount: number, currency = 'XOF') {
     try {
@@ -70,8 +71,28 @@ export default function AbcAnalysis() {
         { key: 'C', title: 'Classe C', accent: 'text-slate-400', hint: 'Le stock à surveiller pour éviter l’immobilisation.' },
     ] as const;
 
+    const abcSteps: GuideStep[] = [
+        {
+            title: 'Analyse ABC',
+            content: 'Identifiez vos produits phares (A) et ceux à faible rotation (C).',
+        },
+        {
+            title: 'Classe A — Stratégique',
+            content: 'Vos top produits : surveillez leur stock de près pour éviter les ruptures.',
+        },
+        {
+            title: 'Classe C — À surveiller',
+            content: 'Produits à faible contribution : évaluez s\u2019il faut les maintenir ou les déréférencer.',
+        },
+        {
+            title: 'Recherche & filtres',
+            content: 'Utilisez la barre de recherche et les filtres analytics pour affiner l\u2019analyse.',
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={abcSteps} guideKey="abc_tour" />
             <header className="mb-10">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <BarChart3 className="text-primary" size={32} />

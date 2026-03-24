@@ -121,9 +121,17 @@ export default function SuppliersScreen() {
   const [detailOrders, setDetailOrders] = useState<OrderWithDetails[]>([]);
   const [detailInvoices, setDetailInvoices] = useState<SupplierInvoice[]>([]);
   const [detailLogs, setDetailLogs] = useState<SupplierCommunicationLog[]>([]);
+  const [detailPriceHistory, setDetailPriceHistory] = useState<any[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showAllLinked, setShowAllLinked] = useState(false);
   const [showAllMpCatalog, setShowAllMpCatalog] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [invoiceStatus, setInvoiceStatus] = useState<'paid' | 'unpaid' | 'partial'>('unpaid');
+  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [invoiceOrderId, setInvoiceOrderId] = useState('');
+  const [invoiceSaving, setInvoiceSaving] = useState(false);
 
   // Log creation
   const [newLogType, setNewLogType] = useState<'call' | 'visit' | 'other'>('call');
@@ -331,20 +339,28 @@ export default function SuppliersScreen() {
     setDetailTab('info');
     setShowDetailModal(true);
     setShowAllLinked(false);
+    setInvoiceNumber('');
+    setInvoiceAmount('');
+    setInvoiceStatus('unpaid');
+    setInvoiceDueDate('');
+    setInvoiceNotes('');
+    setInvoiceOrderId('');
     setDetailLoading(true);
     try {
-      const [products, stats, orders, invoices, logs] = await Promise.all([
+      const [products, stats, orders, invoices, logs, priceHistory] = await Promise.all([
         suppliersApi.getProducts(supplier.supplier_id),
         suppliersApi.getStats(supplier.supplier_id),
         ordersApi.list(undefined, supplier.supplier_id).then(r => r.items ?? r as any),
         suppliersApi.getInvoices(supplier.supplier_id),
-        suppliersApi.getLogs(supplier.supplier_id)
+        suppliersApi.getLogs(supplier.supplier_id),
+        suppliersApi.getPriceHistory(supplier.supplier_id),
       ]);
       setLinkedProducts(products);
       setDetailStats(stats);
       setDetailOrders(orders);
       setDetailInvoices(invoices);
       setDetailLogs(logs);
+      setDetailPriceHistory(Array.isArray(priceHistory) ? priceHistory : []);
     } catch (err) {
       console.error('Error loading detail data:', err);
       setLinkedProducts([]);
@@ -352,6 +368,7 @@ export default function SuppliersScreen() {
       setDetailOrders([]);
       setDetailInvoices([]);
       setDetailLogs([]);
+      setDetailPriceHistory([]);
     } finally {
       setDetailLoading(false);
     }
@@ -394,6 +411,34 @@ export default function SuppliersScreen() {
       Alert.alert(t('common.error'), t('suppliers.log_error'));
     } finally {
       setIsLogging(false);
+    }
+  }
+
+  async function handleCreateInvoice() {
+    if (!detailSupplier || !invoiceNumber.trim() || !invoiceAmount) return;
+    setInvoiceSaving(true);
+    try {
+      const created = await suppliersApi.createInvoice(detailSupplier.supplier_id, {
+        invoice_number: invoiceNumber.trim(),
+        amount: parseFloat(invoiceAmount),
+        status: invoiceStatus,
+        due_date: invoiceDueDate ? new Date(invoiceDueDate).toISOString() : undefined,
+        notes: invoiceNotes.trim() || undefined,
+        order_id: invoiceOrderId || undefined,
+      });
+      setDetailInvoices(prev => [created, ...prev]);
+      setInvoiceNumber('');
+      setInvoiceAmount('');
+      setInvoiceStatus('unpaid');
+      setInvoiceDueDate('');
+      setInvoiceNotes('');
+      setInvoiceOrderId('');
+      Alert.alert(t('admin.actions.success'), t('suppliers.invoice_added') || 'Facture ajoutée.');
+    } catch (err) {
+      console.error('Create supplier invoice error', err);
+      Alert.alert(t('common.error'), t('suppliers.invoice_error') || 'Impossible d’ajouter la facture.');
+    } finally {
+      setInvoiceSaving(false);
     }
   }
 
@@ -1369,11 +1414,102 @@ export default function SuppliersScreen() {
                       <View style={styles.tabContent}>
                         <View style={styles.linkedHeader}>
                           <Text style={styles.sectionTitle}>{t('suppliers.invoices_safe')}</Text>
-                          <TouchableOpacity style={styles.linkBtn} onPress={() => Alert.alert('Info', t('suppliers.add_invoice_feature'))}>
-                            <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
-                            <Text style={styles.linkBtnText}>{t('common.add')}</Text>
+                          <TouchableOpacity
+                            style={[styles.linkBtn, (invoiceSaving || !invoiceNumber.trim() || !invoiceAmount) && { opacity: 0.5 }]}
+                            onPress={handleCreateInvoice}
+                            disabled={invoiceSaving || !invoiceNumber.trim() || !invoiceAmount}
+                          >
+                            {invoiceSaving ? (
+                              <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                              <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
+                            )}
+                            <Text style={styles.linkBtnText}>Ajouter</Text>
                           </TouchableOpacity>
                         </View>
+
+                        <View style={styles.logForm}>
+                          <FormField
+                            label="Numéro de facture"
+                            value={invoiceNumber}
+                            onChangeText={setInvoiceNumber}
+                            placeholder="FAC-2026-001"
+                            colors={colors}
+                            styles={styles}
+                          />
+                          <FormField
+                            label="Montant"
+                            value={invoiceAmount}
+                            onChangeText={setInvoiceAmount}
+                            placeholder="0"
+                            keyboardType="numeric"
+                            colors={colors}
+                            styles={styles}
+                          />
+                          <FormField
+                            label="Échéance (AAAA-MM-JJ)"
+                            value={invoiceDueDate}
+                            onChangeText={setInvoiceDueDate}
+                            placeholder="2026-03-31"
+                            colors={colors}
+                            styles={styles}
+                          />
+                          <View style={styles.formGroup}>
+                            <Text style={styles.formLabel}>Statut</Text>
+                            <View style={styles.logTypeRow}>
+                              {([
+                                { id: 'unpaid', label: 'Impayée' },
+                                { id: 'partial', label: 'Partielle' },
+                                { id: 'paid', label: 'Payée' },
+                              ] as const).map((statusOption) => (
+                                <TouchableOpacity
+                                  key={statusOption.id}
+                                  style={[styles.typeChip, invoiceStatus === statusOption.id && styles.typeChipActive]}
+                                  onPress={() => setInvoiceStatus(statusOption.id)}
+                                >
+                                  <Text style={[styles.typeText, invoiceStatus === statusOption.id && styles.typeTextActive]}>
+                                    {statusOption.label}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                          <View style={styles.formGroup}>
+                            <Text style={styles.formLabel}>Commande liée</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                              <TouchableOpacity
+                                style={[styles.typeChip, !invoiceOrderId && styles.typeChipActive]}
+                                onPress={() => setInvoiceOrderId('')}
+                              >
+                                <Text style={[styles.typeText, !invoiceOrderId && styles.typeTextActive]}>Aucune</Text>
+                              </TouchableOpacity>
+                              {detailOrders.map((order) => (
+                                <TouchableOpacity
+                                  key={order.order_id}
+                                  style={[styles.typeChip, invoiceOrderId === order.order_id && styles.typeChipActive]}
+                                  onPress={() => setInvoiceOrderId(order.order_id)}
+                                >
+                                  <Text style={[styles.typeText, invoiceOrderId === order.order_id && styles.typeTextActive]}>
+                                    #{order.order_id.slice(-6).toUpperCase()}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
+                          <View style={styles.formGroup}>
+                            <Text style={styles.formLabel}>Notes</Text>
+                            <TextInput
+                              style={[styles.formInput, { minHeight: 88, textAlignVertical: 'top' }]}
+                              multiline
+                              placeholder="Conditions, référence interne ou commentaire"
+                              placeholderTextColor={colors.textMuted}
+                              value={invoiceNotes}
+                              onChangeText={setInvoiceNotes}
+                            />
+                          </View>
+                        </View>
+
+                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historique des factures</Text>
                         {detailInvoices.length === 0 ? (
                           <View style={styles.emptyStateContainer}>
                             <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
@@ -1384,11 +1520,51 @@ export default function SuppliersScreen() {
                             <View key={inv.invoice_id} style={styles.historyItem}>
                               <View style={styles.historyHeader}>
                                 <Text style={styles.historyRef}>{inv.invoice_number}</Text>
-                                <Text style={[styles.statusText, { color: inv.status === 'paid' ? colors.success : colors.warning }]}>
-                                  {inv.status === 'paid' ? t('suppliers.status_paid') : t('suppliers.status_unpaid')}
+                                <Text
+                                  style={[
+                                    styles.statusText,
+                                    {
+                                      color:
+                                        inv.status === 'paid'
+                                          ? colors.success
+                                          : inv.status === 'partial'
+                                            ? colors.warning
+                                            : colors.danger,
+                                    },
+                                  ]}
+                                >
+                                  {inv.status === 'paid'
+                                    ? 'Payée'
+                                    : inv.status === 'partial'
+                                      ? 'Partielle'
+                                      : 'Impayée'}
                                 </Text>
                               </View>
-                              <Text style={styles.historyAmount}>{formatUserCurrency(inv.amount, user)}</Text>
+                              <View style={styles.historyDetails}>
+                                <Text style={styles.historyAmount}>{formatUserCurrency(inv.amount, user)}</Text>
+                                <Text style={styles.historyDate}>
+                                  {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : ''}
+                                </Text>
+                              </View>
+                              {(inv.due_date || inv.order_id || inv.notes) && (
+                                <View style={{ marginTop: 8, gap: 4 }}>
+                                  {inv.due_date && (
+                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                      Échéance : {new Date(inv.due_date).toLocaleDateString()}
+                                    </Text>
+                                  )}
+                                  {inv.order_id && (
+                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                      Commande : #{String(inv.order_id).slice(-6).toUpperCase()}
+                                    </Text>
+                                  )}
+                                  {inv.notes && (
+                                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                                      {inv.notes}
+                                    </Text>
+                                  )}
+                                </View>
+                              )}
                             </View>
                           ))
                         )}
@@ -1496,6 +1672,80 @@ export default function SuppliersScreen() {
                               : t('suppliers.warning_supplier')}
                           </Text>
                         </View>
+
+                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historique des prix</Text>
+                        {detailPriceHistory.length === 0 ? (
+                          <View style={styles.emptyStateContainer}>
+                            <Ionicons name="trending-up-outline" size={48} color={colors.textMuted} />
+                            <Text style={styles.emptyLinked}>Aucun historique de prix disponible.</Text>
+                          </View>
+                        ) : (
+                          detailPriceHistory.map((entry: any) => (
+                            <View key={entry.product_id} style={styles.historyItem}>
+                              <View style={styles.historyHeader}>
+                                <View style={{ flex: 1, marginRight: 12 }}>
+                                  <Text style={styles.historyRef}>{entry.product_name}</Text>
+                                  <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>
+                                    {entry.unit || 'unité'}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.statusText,
+                                    { color: (entry.latest_change_pct || 0) <= 0 ? colors.success : colors.warning },
+                                  ]}
+                                >
+                                  {(entry.latest_change_pct || 0) > 0 ? '+' : ''}
+                                  {Number(entry.latest_change_pct || 0).toFixed(1)}%
+                                </Text>
+                              </View>
+                              <View style={{ gap: 6 }}>
+                                <View style={styles.historyDetails}>
+                                  <Text style={styles.historyDate}>Prix fournisseur</Text>
+                                  <Text style={styles.historyAmount}>
+                                    {formatUserCurrency(entry.current_supplier_price || 0, user)}
+                                  </Text>
+                                </View>
+                                <View style={styles.historyDetails}>
+                                  <Text style={styles.historyDate}>Dernière commande</Text>
+                                  <Text style={{ color: colors.text, fontWeight: '600' }}>
+                                    {formatUserCurrency(entry.last_order_price || 0, user)}
+                                  </Text>
+                                </View>
+                                {entry.average_price_30d != null && (
+                                  <View style={styles.historyDetails}>
+                                    <Text style={styles.historyDate}>Moyenne 30 jours</Text>
+                                    <Text style={{ color: colors.text, fontWeight: '600' }}>
+                                      {formatUserCurrency(entry.average_price_30d || 0, user)}
+                                    </Text>
+                                  </View>
+                                )}
+                                {entry.last_ordered_at && (
+                                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                                    Dernière commande : {new Date(entry.last_ordered_at).toLocaleDateString()}
+                                  </Text>
+                                )}
+                                {Array.isArray(entry.competitor_prices) && entry.competitor_prices.length > 0 && (
+                                  <View style={{ marginTop: 4 }}>
+                                    <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 6 }}>
+                                      Autres fournisseurs liés
+                                    </Text>
+                                    <View style={{ gap: 6 }}>
+                                      {entry.competitor_prices.slice(0, 3).map((competitor: any, index: number) => (
+                                        <View key={`${entry.product_id}-${competitor.supplier_id || index}`} style={styles.historyDetails}>
+                                          <Text style={styles.historyDate}>{competitor.supplier_name || 'Fournisseur'}</Text>
+                                          <Text style={{ color: colors.text, fontWeight: '600' }}>
+                                            {formatUserCurrency(competitor.supplier_price || 0, user)}
+                                          </Text>
+                                        </View>
+                                      ))}
+                                    </View>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          ))
+                        )}
                       </View>
                     )}
                   </ScrollView>

@@ -4,6 +4,7 @@
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
   },
   "accounting": {
+    "confirm_delete_expense": "Delete this expense? This action cannot be undone.",
     "amount": "Amount",
     "cat_rent": "Rent",
     "cat_salaries": "Salaries",
@@ -583,6 +584,10 @@
     "last_90_days": "Last 90 days"
   },
   "crm": {
+    "cancel_payment": "Cancel",
+    "payment_cancelled": "Payment cancelled successfully",
+    "confirm_cancel_payment": "Cancel this payment of {{amount}}? The customer's debt will be restored.",
+    "cancel_payment_error": "Error cancelling payment",
     "active_30d": "Active (30d)",
     "active_clients": "Active (30d)",
     "add_credit_debit": "Add credit/debit",
@@ -1720,6 +1725,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "confirm_reverse_movement": "Reverse this movement of {{qty}} ({{type}})? An opposite movement will be created.",
+    "reverse_movement_error": "Error reversing movement",
+    "reverse_movement": "Reverse this movement",
+    "mov_in": "Entry",
+    "mov_out": "Exit",
     "add_btn": "Add",
     "add_photo_title": "Add a photo",
     "add_product": "Add Product",
@@ -2012,7 +2022,36 @@
     "recipes": "Recipes",
     "reports": "Reports",
     "system": "System",
-    "system_history": "System History"
+    "system_history": "System History",
+    "notifications": "Notifications",
+    "support": "Support"
+  },
+  "support": {
+    "title": "Support",
+    "myTickets": "My tickets",
+    "newTicket": "New",
+    "noTickets": "No tickets yet",
+    "createFirst": "Create a ticket",
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "e.g., Printing problem, Suggestion...",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Describe your problem in detail...",
+    "send": "Send",
+    "createError": "Error creating ticket.",
+    "replyError": "Error sending reply.",
+    "replyPlaceholder": "Your reply...",
+    "statusOpen": "Pending",
+    "statusPending": "Replied",
+    "statusClosed": "Closed",
+    "replied": "Reply received",
+    "you": "You",
+    "back": "Back"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unread": "unread",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications"
   },
   "stock": {
     "reasons": {
@@ -2022,6 +2061,13 @@
       "loss_damage": "Loss or Damage",
       "sale_cancelled": "Sale cancelled"
     }
+  },
+  "inventory": {
+    "transfer_history": "Transfer history",
+    "no_transfers": "No transfers recorded",
+    "confirm_reverse_transfer": "Reverse transfer of {{qty}}x {{product}} ({{from}} → {{to}})? Stock will be transferred back.",
+    "reverse_transfer_error": "Error reversing transfer",
+    "reverse_transfer": "Reverse this transfer"
   },
   "store_selector": {
     "category_placeholder": "Filter by category...",

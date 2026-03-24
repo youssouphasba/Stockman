@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { ApiError } from '../../services/api';
 import {
     clearPhoneVerificationState,
@@ -22,6 +22,7 @@ import {
     resendPhoneVerification,
     sendPhoneVerification,
 } from '../../services/firebasePhoneAuth';
+import { useTheme } from '../../contexts/ThemeContext';
 
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +30,7 @@ const RESEND_COOLDOWN = 60; // seconds
 
 export default function VerifyPhoneScreen() {
     const { t } = useTranslation();
+    const { colors, glassStyle } = useTheme();
     const { verifyPhone, user } = useAuth();
     const router = useRouter();
     const [otp, setOtp] = useState('');
@@ -38,6 +40,7 @@ export default function VerifyPhoneScreen() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [cooldown, setCooldown] = useState(0);
+    const styles = createStyles(colors, glassStyle);
 
     // Cooldown timer
     useEffect(() => {
@@ -118,7 +121,7 @@ export default function VerifyPhoneScreen() {
     }, [cooldown, resending, t, user?.phone]);
 
     return (
-        <LinearGradient colors={[Colors.bgDark, Colors.bgMid]} style={styles.gradient}>
+        <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.container}
@@ -126,7 +129,7 @@ export default function VerifyPhoneScreen() {
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <View style={styles.header}>
                         <View style={styles.iconCircle}>
-                            <Ionicons name="shield-checkmark" size={40} color={Colors.primary} />
+                            <Ionicons name="shield-checkmark" size={40} color={colors.primary} />
                         </View>
                         <Text style={styles.title}>{t('auth.verifyPhone.title')}</Text>
                         <Text style={styles.subtitle}>
@@ -137,14 +140,14 @@ export default function VerifyPhoneScreen() {
                     <View style={styles.card}>
                         {error ? (
                             <View style={styles.errorBox}>
-                                <Ionicons name="alert-circle" size={18} color={Colors.danger} />
+                                <Ionicons name="alert-circle" size={18} color={colors.danger} />
                                 <Text style={styles.errorText}>{error}</Text>
                             </View>
                         ) : null}
 
                         {success ? (
                             <View style={styles.successBox}>
-                                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+                                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                                 <Text style={styles.successText}>{success}</Text>
                             </View>
                         ) : null}
@@ -155,7 +158,7 @@ export default function VerifyPhoneScreen() {
                                 <TextInput
                                     style={[styles.otpInput, { letterSpacing: 10 }]}
                                     placeholder={t('auth.verifyPhone.placeholder')}
-                                    placeholderTextColor={Colors.textMuted}
+                                    placeholderTextColor={colors.textMuted}
                                     value={otp}
                                     onChangeText={setOtp}
                                     keyboardType="number-pad"
@@ -183,7 +186,7 @@ export default function VerifyPhoneScreen() {
                             disabled={cooldown > 0 || resending}
                         >
                             {resending ? (
-                                <ActivityIndicator size="small" color={Colors.primaryLight} />
+                                <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
                                 <Text style={styles.resendText}>
                                     {cooldown > 0
@@ -200,7 +203,7 @@ export default function VerifyPhoneScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     gradient: { flex: 1 },
     container: { flex: 1 },
     scroll: {
@@ -216,7 +219,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(124, 58, 237, 0.15)',
+        backgroundColor: colors.glass,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: Spacing.md,
@@ -224,17 +227,17 @@ const styles = StyleSheet.create({
     title: {
         fontSize: FontSize.xxl,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: Spacing.xs,
     },
     subtitle: {
         fontSize: FontSize.md,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         paddingHorizontal: Spacing.lg,
     },
     card: {
-        ...GlassStyle,
+        ...glassStyle,
         padding: Spacing.lg,
     },
     errorBox: {
@@ -247,7 +250,7 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
     },
     errorText: {
-        color: Colors.danger,
+        color: colors.danger,
         fontSize: FontSize.sm,
         flex: 1,
     },
@@ -261,7 +264,7 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
     },
     successText: {
-        color: Colors.success,
+        color: colors.success,
         fontSize: FontSize.sm,
         flex: 1,
     },
@@ -269,26 +272,26 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.xl,
     },
     label: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: FontSize.sm,
         fontWeight: '600',
         marginBottom: Spacing.sm,
         textAlign: 'center',
     },
     inputWrapper: {
-        backgroundColor: Colors.inputBg,
+        backgroundColor: colors.inputBg,
         borderRadius: BorderRadius.md,
         borderWidth: 1,
-        borderColor: Colors.divider,
+        borderColor: colors.divider,
     },
     otpInput: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: 28,
         fontWeight: '700',
         paddingVertical: Spacing.md,
     },
     button: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: BorderRadius.md,
         paddingVertical: Spacing.md,
         alignItems: 'center',
@@ -297,7 +300,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonText: {
-        color: Colors.text,
+        color: '#fff',
         fontSize: FontSize.md,
         fontWeight: '700',
     },
@@ -306,7 +309,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     resendText: {
-        color: Colors.primaryLight,
+        color: colors.primary,
         fontSize: FontSize.sm,
         fontWeight: '600',
     },

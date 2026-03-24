@@ -32,6 +32,8 @@ import KitchenDisplay from "../components/KitchenDisplay";
 import ReportsLibrary from "../components/ReportsLibrary";
 import ChatModal from "../components/ChatModal";
 import AiChatPanel from "../components/AiChatPanel";
+import SupportPanel from "../components/SupportPanel";
+import NotificationCenter from "../components/NotificationCenter";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
 import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { getAccessContext } from "../utils/access";
@@ -83,7 +85,10 @@ export default function Home() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const formatDemoExpiration = (value?: string | null) => {
     if (!value) return t('demo_lead.not_available');
     return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
@@ -648,7 +653,10 @@ export default function Home() {
               isMobileOpen={isSidebarOpen}
               onMobileClose={() => setIsSidebarOpen(false)}
               onOpenChat={() => setIsChatOpen(true)}
+              onOpenSupport={() => setIsSupportOpen(true)}
+              onOpenNotifications={() => setIsNotificationsOpen(true)}
               unreadMessages={unreadMessages}
+              unreadNotifications={unreadNotifications}
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -723,6 +731,19 @@ export default function Home() {
               onClose={() => setIsChatOpen(false)}
               currentUser={user}
               features={features}
+            />
+
+            {/* Support panel */}
+            <SupportPanel
+              isOpen={isSupportOpen}
+              onClose={() => setIsSupportOpen(false)}
+            />
+
+            {/* Notification center */}
+            <NotificationCenter
+              isOpen={isNotificationsOpen}
+              onClose={() => setIsNotificationsOpen(false)}
+              onUnreadChange={setUnreadNotifications}
             />
 
           </main>

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -47,7 +47,7 @@ interface LanguagePickerModalProps {
 
 const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onClose }) => {
     const { i18n, t } = useTranslation();
-    const { colors, glassStyle } = useTheme();
+    const { colors } = useTheme();
 
     const currentLanguage = i18n.language.split('-')[0]; // Handle cases like 'en-US'
 

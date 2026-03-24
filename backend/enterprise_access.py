@@ -15,6 +15,7 @@ USER_SELF_SETTING_FIELDS: Set[str] = {
     "language",
     "push_notifications",
     "notification_preferences",
+    "expense_categories",
     "simple_mode",
     "mobile_preferences",
     "web_preferences",
@@ -84,6 +85,21 @@ def default_dashboard_layout() -> Dict[str, bool]:
         "show_expiry_alerts": True,
         "show_profitability": True,
     }
+
+
+def normalize_expense_categories(categories: Optional[List[str]]) -> List[str]:
+    seen: Set[str] = set()
+    normalized: List[str] = []
+    for category in categories or []:
+        value = str(category or "").strip()
+        if not value:
+            continue
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(value)
+    return normalized
 
 
 def default_notification_contacts() -> Dict[str, List[str]]:
@@ -484,6 +500,7 @@ def merge_effective_settings(
         "language": user_settings.get("language", "fr"),
         "push_notifications": user_settings.get("push_notifications", True),
         "notification_preferences": notification_preferences,
+        "expense_categories": normalize_expense_categories(user_settings.get("expense_categories")),
         "notification_contacts": notification_contacts,
         "store_notification_contacts": store_notification_contacts,
         "dashboard_layout": web_preferences.get("dashboard_layout") or default_dashboard_layout(),

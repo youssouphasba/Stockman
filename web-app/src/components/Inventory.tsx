@@ -25,7 +25,9 @@ import {
     FileText,
     X,
     TrendingUp,
-    TrendingDown
+    TrendingDown,
+    Undo2,
+    Clock
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
 import {
@@ -56,6 +58,7 @@ import {
     inferMeasurementType,
     normalizeProductMeasurement,
 } from '../utils/measurement';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function Inventory() {
     const { t, i18n } = useTranslation();
@@ -77,6 +80,7 @@ export default function Inventory() {
     const [selectedProductForHistory, setSelectedProductForHistory] = useState<any>(null);
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [formLoading, setFormLoading] = useState(false);
+    const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
     const [aiLoading, setAiLoading] = useState({ category: false, description: false, price: false });
 
     const [form, setForm] = useState({
@@ -111,6 +115,9 @@ export default function Inventory() {
     const [transferQty, setTransferQty] = useState(1);
     const [transferDest, setTransferDest] = useState('');
     const [transferring, setTransferring] = useState(false);
+    const [showTransferHistory, setShowTransferHistory] = useState(false);
+    const [transferHistory, setTransferHistory] = useState<any[]>([]);
+    const [transferHistoryLoading, setTransferHistoryLoading] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -361,6 +368,61 @@ export default function Inventory() {
         }
     };
 
+    const loadTransferHistory = async () => {
+        setTransferHistoryLoading(true);
+        try {
+            const res = await storesApi.getTransfers(0, 50);
+            setTransferHistory(res.items || []);
+        } catch { /* silent */ }
+        finally { setTransferHistoryLoading(false); }
+    };
+
+    const handleReverseTransfer = async (tr: any) => {
+        if (!window.confirm(t('inventory.confirm_reverse_transfer', {
+            qty: tr.quantity,
+            product: tr.product_name,
+            from: tr.from_store_name,
+            to: tr.to_store_name,
+        }))) return;
+        try {
+            await storesApi.reverseTransfer({
+                product_id: tr.product_id,
+                from_store_id: tr.from_store_id,
+                to_store_id: tr.to_store_id,
+                quantity: tr.quantity,
+            });
+            loadTransferHistory();
+            fetchProducts();
+        } catch (err: any) {
+            alert(err?.message || t('inventory.reverse_transfer_error'));
+        }
+    };
+
+    const handleDeleteProduct = async (product: any) => {
+        if (!product?.product_id || deletingProductId) return;
+
+        const confirmed = window.confirm(
+            `Supprimer définitivement le produit "${product.name}" ?`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingProductId(product.product_id);
+        try {
+            await productsApi.delete(product.product_id);
+            setProducts(prev => prev.filter(item => item.product_id !== product.product_id));
+            setPendingInventorySummary(getPendingInventorySummary());
+            await fetchProducts();
+            await loadStockHealth();
+        } catch (err: any) {
+            alert(err?.message || 'Erreur lors de la suppression du produit');
+        } finally {
+            setDeletingProductId(null);
+        }
+    };
+
     const handleSubmitProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
@@ -506,8 +568,36 @@ export default function Inventory() {
         );
     }
 
+    const inventorySteps: GuideStep[] = [
+        {
+            title: t('guide.inventory.step1_title', { defaultValue: 'Bienvenue dans votre inventaire' }),
+            content: t('guide.inventory.step1', { defaultValue: 'Gérez tous vos produits et votre stock depuis cet écran. Ajoutez, modifiez et suivez vos produits en temps réel.' }),
+        },
+        {
+            title: t('guide.inventory.step2_title', { defaultValue: 'Créer un produit' }),
+            content: t('guide.inventory.step2', { defaultValue: 'Cliquez sur « Créer / importer » pour ajouter des produits manuellement, par texte libre avec l\'IA, par import CSV ou depuis le catalogue métier.' }),
+        },
+        {
+            title: t('guide.inventory.step3_title', { defaultValue: 'Rechercher et filtrer' }),
+            content: t('guide.inventory.step3', { defaultValue: 'Utilisez la barre de recherche pour trouver un produit par nom ou SKU. Filtrez par emplacement grâce aux puces en dessous.' }),
+        },
+        {
+            title: t('guide.inventory.step4_title', { defaultValue: 'Mouvements de stock' }),
+            content: t('guide.inventory.step4', { defaultValue: 'Enregistrez les entrées et sorties de stock via le menu actions de chaque produit (icône ⋯).' }),
+        },
+        {
+            title: t('guide.inventory.step5_title', { defaultValue: 'Conseils IA' }),
+            content: t('guide.inventory.step5', { defaultValue: 'Cliquez sur « IA Réappro » pour obtenir des conseils de réapprovisionnement intelligents basés sur votre historique.' }),
+        },
+        {
+            title: t('guide.inventory.step6_title', { defaultValue: 'Exporter' }),
+            content: t('guide.inventory.step6', { defaultValue: 'Téléchargez votre inventaire complet en Excel ou PDF via le bouton « Exporter ».' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <ScreenGuide steps={inventorySteps} guideKey="inventory_tour" />
             <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 md:mb-10">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
@@ -829,7 +919,13 @@ export default function Inventory() {
                                                 >
                                                     <Edit size={18} />
                                                 </button>
-                                                <button className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleDeleteProduct(p)}
+                                                    disabled={deletingProductId === p.product_id}
+                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                                    title="Supprimer"
+                                                >
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -1318,6 +1414,74 @@ export default function Inventory() {
                             >
                                 {transferring ? 'Transfert...' : 'Confirmer'}
                             </button>
+                        </div>
+                        <button
+                            onClick={() => { loadTransferHistory(); setShowTransferHistory(true); }}
+                            className="w-full mt-3 py-2 text-xs text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors"
+                        >
+                            <Clock size={14} /> {t('inventory.transfer_history')}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer History Modal */}
+            {showTransferHistory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                                    <ArrowLeftRight size={20} />
+                                </div>
+                                <h3 className="text-lg font-black text-white">{t('inventory.transfer_history')}</h3>
+                            </div>
+                            <button onClick={() => setShowTransferHistory(false)} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                            {transferHistoryLoading ? (
+                                <div className="flex justify-center py-10">
+                                    <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                </div>
+                            ) : transferHistory.length === 0 ? (
+                                <div className="text-center py-10">
+                                    <ArrowLeftRight size={40} className="mx-auto text-slate-700 mb-3" />
+                                    <p className="text-sm text-slate-500 font-bold">{t('inventory.no_transfers')}</p>
+                                </div>
+                            ) : (
+                                transferHistory.map((tr) => {
+                                    const isReverse = (tr.note || '').startsWith('Annulation');
+                                    return (
+                                        <div key={tr.transfer_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center group hover:bg-white/10 transition-all">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-white truncate">{tr.product_name}</p>
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    {tr.from_store_name} → {tr.to_store_name}
+                                                </p>
+                                                <p className="text-[10px] text-slate-600 mt-1">
+                                                    {new Date(tr.created_at).toLocaleString()} • {tr.transferred_by}
+                                                    {tr.note ? ` • ${tr.note}` : ''}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-black text-blue-400">{tr.quantity}</span>
+                                                {!isReverse && (
+                                                    <button
+                                                        onClick={() => handleReverseTransfer(tr)}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400"
+                                                        title={t('inventory.reverse_transfer')}
+                                                    >
+                                                        <Undo2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </div>

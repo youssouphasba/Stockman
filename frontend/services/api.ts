@@ -862,6 +862,14 @@ export const projects = {
 export const stock = {
   createMovement: (data: StockMovementCreate) =>
     request<StockMovement>('/stock/movement', { method: 'POST', body: data }),
+  reverseMovement: (movementId: string) =>
+    request<StockMovement>(`/stock/movement/${movementId}/reverse`, { method: 'POST' }),
+  transfer: (data: { product_id: string; from_store_id: string; to_store_id: string; quantity: number; note?: string }) =>
+    request<{ message: string }>('/stock/transfer', { method: 'POST', body: data }),
+  reverseTransfer: (data: { product_id: string; from_store_id: string; to_store_id: string; quantity: number; note?: string }) =>
+    request<{ message: string }>('/stock/transfer/reverse', { method: 'POST', body: data }),
+  getTransfers: (skip = 0, limit = 50) =>
+    request<{ items: any[]; total: number }>(`/stock/transfers?skip=${skip}&limit=${limit}`),
   getMovements: (productId?: string, days?: number, startDate?: string, endDate?: string, skip = 0, limit = 50) => {
     const qs = new URLSearchParams();
     if (productId) qs.set('product_id', productId);
@@ -930,6 +938,7 @@ export const suppliers = {
   getProducts: (supplierId: string) =>
     request<SupplierProductLink[]>(`/suppliers/${supplierId}/products`),
   getStats: (id: string) => request<SupplierStats>(`/suppliers/${id}/stats`),
+  getPriceHistory: (id: string) => request<any[]>(`/suppliers/${id}/price-history`),
   getInvoices: (id: string) => request<SupplierInvoice[]>(`/suppliers/${id}/invoices`),
   createInvoice: (id: string, data: Partial<SupplierInvoice>) =>
     request<SupplierInvoice>(`/suppliers/${id}/invoices`, { method: 'POST', body: data }),
@@ -1156,6 +1165,27 @@ export const admin = {
   getOtpStats: (days = 30) => request<any>(`/admin/stats/otp?days=${days}`),
   getEnterpriseSignupStats: (days = 30) => request<any>(`/admin/stats/enterprise-signups?days=${days}`),
   getConversionStats: () => request<any>('/admin/stats/conversion'),
+  getSubscriptionsOverview: (days = 30) => request<any>(`/admin/subscriptions/overview?days=${days}`),
+  getDemoSessionsOverview: (days = 30) => request<any>(`/admin/demo-sessions/overview?days=${days}`),
+  listDemoSessions: (params?: { search?: string; status?: string; demo_type?: string; surface?: string; skip?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any || {}).toString();
+    return request<{ items: any[]; total: number }>(`/admin/demo-sessions${query ? `?${query}` : ''}`);
+  },
+  listSubscriptionAccounts: (params?: { search?: string; status?: string; plan?: string; provider?: string; country_code?: string; skip?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any || {}).toString();
+    return request<{ items: any[]; total: number }>(`/admin/subscriptions/accounts${query ? `?${query}` : ''}`);
+  },
+  listSubscriptionEvents: (params?: { provider?: string; event_type?: string; source?: string; account_id?: string; status?: string; skip?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any || {}).toString();
+    return request<{ items: any[]; total: number }>(`/admin/subscriptions/events${query ? `?${query}` : ''}`);
+  },
+  getSubscriptionAlerts: () => request<any>('/admin/subscriptions/alerts'),
+  grantSubscriptionGrace: (accountId: string, days = 7, note?: string) =>
+    request<any>(`/admin/subscriptions/${accountId}/grace?days=${days}`, { method: 'POST', body: { note } }),
+  enableSubscriptionReadOnly: (accountId: string, note?: string) =>
+    request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=true`, { method: 'POST', body: { note } }),
+  disableSubscriptionReadOnly: (accountId: string, note?: string) =>
+    request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=false`, { method: 'POST', body: { note } }),
   listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
     const query = new URLSearchParams(params as any || {}).toString();
     return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
@@ -1248,6 +1278,10 @@ export const system = {
 export const support = {
   createTicket: (subject: string, message: string) =>
     request<SupportTicket>('/support/tickets', { method: 'POST', body: { subject, message } }),
+  getMyTickets: () =>
+    request<SupportTicket[]>('/support/tickets/mine'),
+  replyTicket: (ticketId: string, content: string) =>
+    request<SupportTicket>(`/support/tickets/${ticketId}/reply`, { method: 'POST', body: { content } }),
 };
 
 export const ai = {
@@ -1338,7 +1372,11 @@ export const disputes = {
 // User Notifications (Phase 29)
 export const userNotifications = {
   list: (skip = 0, limit = 20) =>
-    request<{ items: any[]; total: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
+    request<{ items: any[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
+  markRead: (messageId: string) =>
+    request<{ status: string }>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
+  markAllRead: () =>
+    request<{ marked: number }>('/user/notifications/read-all', { method: 'POST' }),
 };
 
 // Smart Reminders
@@ -1858,6 +1896,8 @@ export const customers = {
     request<{ message: string }>('/customers/campaign', { method: 'POST', body: data }),
   addPayment: (customerId: string, amount: number, notes?: string) =>
     request<CustomerPayment>(`/customers/${customerId}/payments`, { method: 'POST', body: { amount, notes } }),
+  cancelPayment: (customerId: string, paymentId: string) =>
+    request<{ message: string }>(`/customers/${customerId}/payments/${paymentId}`, { method: 'DELETE' }),
   getPayments: (customerId: string) => request<CustomerPayment[]>(`/customers/${customerId}/payments`),
   getDebtHistory: (customerId: string) => request<DebtTransaction[]>(`/customers/${customerId}/debt-history`),
 };
@@ -2096,6 +2136,7 @@ export type CustomerPayment = {
 
 export type DebtTransaction = {
   type: 'credit_sale' | 'payment';
+  payment_id?: string;
   date: string;
   amount: number;
   reference: string;
@@ -2244,6 +2285,7 @@ export type UserSettings = {
   };
   language: string;
   push_notifications: boolean;
+  expense_categories?: string[];
   dashboard_layout?: {
     show_kpi: boolean;
     show_stock_status: boolean;
@@ -2631,6 +2673,13 @@ export type CatalogProductData = {
   min_order_quantity: number;
   stock_available: number;
   available: boolean;
+  sku: string;
+  barcode: string;
+  brand: string;
+  origin: string;
+  weight: number | null;
+  weight_unit: string;
+  delivery_time: string;
   created_at: string;
   updated_at: string;
 };
@@ -2645,6 +2694,13 @@ export type CatalogProductCreate = {
   min_order_quantity?: number;
   stock_available?: number;
   available?: boolean;
+  sku?: string;
+  barcode?: string;
+  brand?: string;
+  origin?: string;
+  weight?: number | null;
+  weight_unit?: string;
+  delivery_time?: string;
 };
 
 export type SupplierDashboardData = {

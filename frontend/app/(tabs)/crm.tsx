@@ -37,6 +37,7 @@ import AccessDenied from '../../components/AccessDenied';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateAndSharePdf } from '../../utils/pdfReports';
+import KpiInfoButton from '../../components/KpiInfoButton';
 import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import PremiumGate from '../../components/PremiumGate';
 
@@ -566,6 +567,32 @@ export default function CRMScreen() {
         }
     }
 
+    async function handleCancelPayment(paymentId: string, amount: number) {
+        if (!detailCustomer) return;
+        const performCancel = async () => {
+            try {
+                await customersApi.cancelPayment(detailCustomer.customer_id, paymentId);
+                Alert.alert(t('common.success'), t('crm.payment_cancelled'));
+                const updated = await customersApi.get(detailCustomer.customer_id);
+                setDetailCustomer(updated);
+                loadCustomerDebtHistory(detailCustomer.customer_id);
+                loadData();
+            } catch {
+                Alert.alert(t('common.error'), t('crm.cancel_payment_error'));
+            }
+        };
+
+        const msg = t('crm.confirm_cancel_payment', { amount: formatCurrency(Math.abs(amount), user?.currency) });
+        if (Platform.OS === 'web') {
+            if (window.confirm(msg)) await performCancel();
+        } else {
+            Alert.alert(t('common.confirmation'), msg, [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('common.confirm'), style: 'destructive', onPress: performCancel },
+            ]);
+        }
+    }
+
     // --- Filtering ---
     const filteredCustomers = customerList.filter(c => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -584,6 +611,18 @@ export default function CRMScreen() {
     }).length;
 
     const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
+    const accountBalance = detailCustomer?.current_debt || 0;
+    const accountHasDebt = accountBalance > 0;
+    const accountHasCredit = accountBalance < 0;
+    const accountAccentColor = accountHasDebt ? colors.danger : accountHasCredit ? colors.success : colors.primary;
+    const accountStatusLabel = accountHasDebt ? t('crm.debt_in_progress') : accountHasCredit ? t('crm.credit_advance') : t('crm.no_debt');
+    const accountActionLabel = accountHasDebt ? t('crm.repay') : t('crm.add_credit_debit');
+    const latestDebtEntry = customerDebtHistory[0];
+    const accountHistoryHint = latestDebtEntry
+        ? `${t('common.history')} · ${timeAgo(latestDebtEntry.date, t)}`
+        : t('crm.no_history');
+    const accountPaymentCount = customerDebtHistory.filter(item => item.type === 'payment').length;
+    const accountDebtCount = customerDebtHistory.filter(item => item.type === 'credit_sale').length;
 
     if (accessDenied) {
         return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
@@ -626,14 +665,17 @@ export default function CRMScreen() {
                     {/* Stats Summary */}
                     <View style={styles.statsRow}>
                         <View style={styles.statCard}>
+                            <KpiInfoButton info={t('crm.info_clients')} />
                             <Text style={styles.statValue}>{totalClients}</Text>
                             <Text style={styles.statLabel}>{t('crm.clients')}</Text>
                         </View>
                         <View style={styles.statCard}>
+                            <KpiInfoButton info={t('crm.info_total_sales')} />
                             <Text style={styles.statValue}>{formatCurrency(totalSpent, user?.currency)}</Text>
                             <Text style={styles.statLabel}>{t('crm.total_sales')}</Text>
                         </View>
                         <View style={styles.statCard}>
+                            <KpiInfoButton info={t('crm.info_active_30d')} />
                             <Text style={styles.statValue}>{activeClients}</Text>
                             <Text style={styles.statLabel}>{t('crm.active_30d')}</Text>
                         </View>
@@ -953,7 +995,7 @@ export default function CRMScreen() {
                                     </View>
 
                                     {/* Hero summary */}
-                                    <View style={{ alignItems: 'center', paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: Spacing.sm }}>
+                                    <View style={{ alignItems: 'center', width: '100%', paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: Spacing.sm }}>
                                         <View style={[styles.detailAvatarLarge, { borderColor: getTierConfig(detailCustomer.tier).color, borderWidth: 3, marginBottom: 6 }]}>
                                             <Text style={styles.detailAvatarText}>{detailCustomer.name.charAt(0).toUpperCase()}</Text>
                                         </View>
@@ -998,7 +1040,7 @@ export default function CRMScreen() {
                                         </View>
 
                                         {/* Tab Content */}
-                                        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: Spacing.xl }}>
+                                        <ScrollView style={{ width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingBottom: Spacing.xl }}>
                                             {detailTab === 'infos' && (
                                                 <View style={[styles.detailSection, { width: '100%' }]}>
                                                     {/* Tier progress */}
@@ -1093,19 +1135,28 @@ export default function CRMScreen() {
                                             )}
 
                                             {detailTab === 'achats' && (
-                                                <View style={{ paddingVertical: Spacing.md }}>
+                                                <View style={styles.tabSection}>
                                                     {/* Mini stats */}
                                                     <View style={styles.miniStatsRow}>
                                                         <View style={styles.miniStat}>
-                                                            <Text style={styles.miniStatValue}>{customerSalesStats.visit_count}</Text>
+                                                            <Text style={styles.miniStatValue} numberOfLines={1} adjustsFontSizeToFit>
+                                                                {customerSalesStats.visit_count}
+                                                            </Text>
                                                             <Text style={styles.miniStatLabel}>{t('crm.tab_purchases')}</Text>
                                                         </View>
                                                         <View style={styles.miniStat}>
-                                                            <Text style={styles.miniStatValue}>{formatNumber(customerSalesStats.average_basket)}</Text>
+                                                            <Text style={styles.miniStatValue} numberOfLines={1} adjustsFontSizeToFit>
+                                                                {formatNumber(customerSalesStats.average_basket)}
+                                                            </Text>
                                                             <Text style={styles.miniStatLabel}>{t('crm.avg_basket')}</Text>
                                                         </View>
                                                         <View style={styles.miniStat}>
-                                                            <Text style={styles.miniStatValue}>{timeAgo(customerSalesStats.last_purchase_date, t)}</Text>
+                                                            <Text
+                                                                style={[styles.miniStatValue, styles.miniStatValueCompact]}
+                                                                numberOfLines={2}
+                                                            >
+                                                                {timeAgo(customerSalesStats.last_purchase_date, t)}
+                                                            </Text>
                                                             <Text style={styles.miniStatLabel}>{t('crm.last_purchase_short')}</Text>
                                                         </View>
                                                     </View>
@@ -1122,9 +1173,11 @@ export default function CRMScreen() {
                                                             {(showAllSales ? customerSales : customerSales.slice(0, 5)).map((sale, idx) => (
                                                                 <View key={sale.sale_id || idx} style={styles.saleCard}>
                                                                     <View style={styles.saleHeader}>
-                                                                        <Text style={styles.saleDate}>
-                                                                            {new Date(sale.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                                        </Text>
+                                                                        <View style={styles.saleHeaderLeft}>
+                                                                            <Text style={styles.saleDate}>
+                                                                                {new Date(sale.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                            </Text>
+                                                                        </View>
                                                                         <View style={[styles.paymentBadge, { backgroundColor: sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
                                                                             <Text style={[styles.paymentBadgeText, { color: sale.payment_method === 'cash' ? colors.success : colors.info }]}>
                                                                                 {sale.payment_method === 'cash' ? t('common.cash') : sale.payment_method === 'mobile_money' ? t('common.mobile_money') : sale.payment_method}
@@ -1160,20 +1213,60 @@ export default function CRMScreen() {
                                                 </View>
                                             )}
                                             {detailTab === 'compte' && (
-                                                <View style={{ paddingVertical: Spacing.md }}>
-                                                    {/* Balance summary */}
-                                                    <View style={[styles.debtCard, (detailCustomer.current_debt || 0) < 0 && { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
-                                                        <View>
-                                                            <Text style={[styles.debtLabel, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
-                                                                {(detailCustomer.current_debt || 0) > 0 ? t('crm.debt_in_progress') : (detailCustomer.current_debt || 0) < 0 ? t('crm.credit_advance') : t('crm.no_debt')}
-                                                            </Text>
-                                                            <Text style={[styles.debtValue, (detailCustomer.current_debt || 0) < 0 && { color: colors.success }]}>
-                                                                {formatNumber(Math.abs(detailCustomer.current_debt || 0))} {t('common.currency_default')}
-                                                            </Text>
+                                                <View style={styles.tabSection}>
+                                                    <View
+                                                        style={[
+                                                            styles.accountSummaryCard,
+                                                            {
+                                                                backgroundColor: accountAccentColor + '12',
+                                                                borderColor: accountAccentColor + '30',
+                                                            },
+                                                        ]}
+                                                    >
+                                                        <View style={styles.accountSummaryTop}>
+                                                            <View style={[styles.accountSummaryIcon, { backgroundColor: accountAccentColor + '18' }]}>
+                                                                <Ionicons
+                                                                    name={accountHasDebt ? 'wallet-outline' : accountHasCredit ? 'cash-outline' : 'checkmark-circle-outline'}
+                                                                    size={22}
+                                                                    color={accountAccentColor}
+                                                                />
+                                                            </View>
+                                                            <View style={styles.accountSummaryTextWrap}>
+                                                                <Text style={[styles.accountSummaryLabel, { color: accountAccentColor }]}>{accountStatusLabel}</Text>
+                                                                <Text style={styles.accountSummaryHint}>{accountHistoryHint}</Text>
+                                                            </View>
                                                         </View>
-                                                        <TouchableOpacity style={[styles.payBtn, (detailCustomer.current_debt || 0) <= 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
-                                                            <Text style={styles.payBtnText}>{(detailCustomer.current_debt || 0) > 0 ? t('crm.repay') : t('crm.add_credit_debit')}</Text>
+
+                                                        <Text style={[styles.accountSummaryValue, { color: accountAccentColor }]}>
+                                                            {formatNumber(Math.abs(accountBalance))} {t('common.currency_default')}
+                                                        </Text>
+
+                                                        <TouchableOpacity
+                                                            style={[styles.accountPrimaryAction, { backgroundColor: accountAccentColor }]}
+                                                            onPress={openPaymentModal}
+                                                        >
+                                                            <Ionicons
+                                                                name={accountHasDebt ? 'arrow-down-circle-outline' : 'add-circle-outline'}
+                                                                size={18}
+                                                                color="#FFF"
+                                                            />
+                                                            <Text style={styles.accountPrimaryActionText}>{accountActionLabel}</Text>
                                                         </TouchableOpacity>
+                                                    </View>
+
+                                                    <View style={styles.accountStatsGrid}>
+                                                        <View style={styles.accountStatCard}>
+                                                            <Text style={styles.accountStatValue}>{customerDebtHistory.length}</Text>
+                                                            <Text style={styles.accountStatLabel}>{t('common.history')}</Text>
+                                                        </View>
+                                                        <View style={styles.accountStatCard}>
+                                                            <Text style={styles.accountStatValue}>{accountPaymentCount}</Text>
+                                                            <Text style={styles.accountStatLabel}>{t('crm.payment_received')}</Text>
+                                                        </View>
+                                                        <View style={styles.accountStatCard}>
+                                                            <Text style={styles.accountStatValue}>{accountDebtCount}</Text>
+                                                            <Text style={styles.accountStatLabel}>{t('crm.debt')}</Text>
+                                                        </View>
                                                     </View>
 
                                                     {debtHistoryLoading ? (
@@ -1185,31 +1278,72 @@ export default function CRMScreen() {
                                                         </View>
                                                     ) : (
                                                         <View>
+                                                            <View style={styles.accountHistoryHeaderRow}>
+                                                                <Text style={styles.sectionTitle}>{t('common.history')}</Text>
+                                                                <View style={styles.accountHistoryCountChip}>
+                                                                    <Text style={styles.accountHistoryCountText}>{customerDebtHistory.length}</Text>
+                                                                </View>
+                                                            </View>
+
                                                             {(showAllDebt ? customerDebtHistory : customerDebtHistory.slice(0, 5)).map((item, idx) => {
                                                                 const isDebtIncrease = item.type === 'credit_sale' || (item.type === 'payment' && item.amount < 0);
+                                                                const entryColor = isDebtIncrease ? colors.danger : colors.success;
+                                                                const entryLabel = item.type === 'payment'
+                                                                    ? item.amount < 0
+                                                                        ? t('crm.manual_debt')
+                                                                        : t('crm.payment_received')
+                                                                    : t('crm.debt');
+                                                                const entryIcon = item.type === 'payment'
+                                                                    ? item.amount < 0
+                                                                        ? 'arrow-undo-outline'
+                                                                        : 'cash-outline'
+                                                                    : 'receipt-outline';
 
                                                                 return (
-                                                                    <View key={idx} style={styles.saleCard}>
-                                                                        <View style={styles.saleHeader}>
-                                                                            <View>
-                                                                                <Text style={styles.saleDate}>
+                                                                    <View key={idx} style={[styles.saleCard, styles.accountHistoryCard]}>
+                                                                        <View style={styles.accountHistoryLead}>
+                                                                            <View style={[styles.accountHistoryIcon, { backgroundColor: entryColor + '16' }]}>
+                                                                                <Ionicons name={entryIcon} size={20} color={entryColor} />
+                                                                            </View>
+
+                                                                            <View style={styles.accountHistoryInfo}>
+                                                                                <View style={styles.accountHistoryTitleRow}>
+                                                                                    <Text style={styles.accountHistoryTitle} numberOfLines={1}>
+                                                                                        {item.reference}
+                                                                                    </Text>
+                                                                                    <View
+                                                                                        style={[
+                                                                                            styles.paymentBadge,
+                                                                                            { backgroundColor: entryColor + '12', borderColor: entryColor + '26' },
+                                                                                        ]}
+                                                                                    >
+                                                                                        <Text style={[styles.paymentBadgeText, { color: entryColor }]}>{entryLabel}</Text>
+                                                                                    </View>
+                                                                                </View>
+
+                                                                                <Text style={styles.accountHistoryMeta}>
                                                                                     {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                                                 </Text>
-                                                                                <Text style={[styles.saleItemName, { fontSize: 13, color: colors.textSecondary }]}>
-                                                                                    {item.reference}
-                                                                                </Text>
+
+                                                                                {item.details ? (
+                                                                                    <Text style={styles.accountHistoryDetails}>{item.details}</Text>
+                                                                                ) : null}
                                                                             </View>
-                                                                            <Text style={{
-                                                                                fontSize: 16,
-                                                                                fontWeight: 'bold',
-                                                                                color: isDebtIncrease ? colors.danger : colors.success
-                                                                            }}>
-                                                                                {isDebtIncrease ? '+' : '-'}{formatNumber(Math.abs(item.amount))} {t('common.currency_short')}
-                                                                            </Text>
                                                                         </View>
-                                                                        {item.details ? (
-                                                                            <Text style={[styles.saleItemQty, { marginTop: 4 }]}>{item.details}</Text>
-                                                                        ) : null}
+
+                                                                        <Text style={[styles.accountHistoryAmount, { color: entryColor }]}>
+                                                                            {isDebtIncrease ? '+' : '-'}{formatNumber(Math.abs(item.amount))} {t('common.currency_short')}
+                                                                        </Text>
+
+                                                                        {item.type === 'payment' && item.payment_id && (
+                                                                            <TouchableOpacity
+                                                                                style={styles.accountHistoryAction}
+                                                                                onPress={() => handleCancelPayment(item.payment_id!, item.amount)}
+                                                                            >
+                                                                                <Ionicons name="close-circle-outline" size={14} color={colors.danger} />
+                                                                                <Text style={styles.accountHistoryActionText}>{t('crm.cancel_payment')}</Text>
+                                                                            </TouchableOpacity>
+                                                                        )}
                                                                     </View>
                                                                 );
                                                             })}
@@ -1230,38 +1364,44 @@ export default function CRMScreen() {
                                             )}
 
                                             {detailTab === 'contact' && (
-                                                <View style={{ paddingVertical: Spacing.lg }}>
+                                                <View style={styles.tabSection}>
                                                     <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(detailCustomer.phone)}>
                                                         <View style={[styles.contactIconCircle, { backgroundColor: colors.success + '20' }]}>
                                                             <Ionicons name="call" size={24} color={colors.success} />
                                                         </View>
-                                                        <View style={{ flex: 1 }}>
+                                                        <View style={styles.contactTextWrap}>
                                                             <Text style={styles.contactBtnTitle}>{t('crm.call')}</Text>
-                                                            <Text style={styles.contactBtnSub}>{detailCustomer.phone || t('common.not_provided')}</Text>
+                                                            <Text style={styles.contactBtnSub} numberOfLines={1}>{detailCustomer.phone || t('common.not_provided')}</Text>
                                                         </View>
-                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                        <View style={styles.contactChevronWrap}>
+                                                            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                                                        </View>
                                                     </TouchableOpacity>
 
                                                     <TouchableOpacity style={styles.contactBtn} onPress={() => handleWhatsApp(detailCustomer.phone, detailCustomer.name)}>
                                                         <View style={[styles.contactIconCircle, { backgroundColor: '#25D36620' }]}>
                                                             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
                                                         </View>
-                                                        <View style={{ flex: 1 }}>
+                                                        <View style={styles.contactTextWrap}>
                                                             <Text style={styles.contactBtnTitle}>WhatsApp</Text>
-                                                            <Text style={styles.contactBtnSub}>{t('crm.send_message')}</Text>
+                                                            <Text style={styles.contactBtnSub} numberOfLines={1}>{t('crm.send_message')}</Text>
                                                         </View>
-                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                        <View style={styles.contactChevronWrap}>
+                                                            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                                                        </View>
                                                     </TouchableOpacity>
 
                                                     <TouchableOpacity style={styles.contactBtn} onPress={() => handleSMS(detailCustomer.phone, detailCustomer.name)}>
                                                         <View style={[styles.contactIconCircle, { backgroundColor: colors.info + '20' }]}>
                                                             <Ionicons name="chatbubble" size={24} color={colors.info} />
                                                         </View>
-                                                        <View style={{ flex: 1 }}>
+                                                        <View style={styles.contactTextWrap}>
                                                             <Text style={styles.contactBtnTitle}>SMS</Text>
-                                                            <Text style={styles.contactBtnSub}>{t('crm.send_sms')}</Text>
+                                                            <Text style={styles.contactBtnSub} numberOfLines={1}>{t('crm.send_sms')}</Text>
                                                         </View>
-                                                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                        <View style={styles.contactChevronWrap}>
+                                                            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                                                        </View>
                                                     </TouchableOpacity>
 
                                                     {detailCustomer.email && (
@@ -1269,11 +1409,13 @@ export default function CRMScreen() {
                                                             <View style={[styles.contactIconCircle, { backgroundColor: colors.primary + '20' }]}>
                                                                 <Ionicons name="mail" size={24} color={colors.primary} />
                                                             </View>
-                                                            <View style={{ flex: 1 }}>
+                                                            <View style={styles.contactTextWrap}>
                                                                 <Text style={styles.contactBtnTitle}>Email</Text>
-                                                                <Text style={styles.contactBtnSub}>{detailCustomer.email}</Text>
+                                                                <Text style={styles.contactBtnSub} numberOfLines={2}>{detailCustomer.email}</Text>
                                                             </View>
-                                                            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                                            <View style={styles.contactChevronWrap}>
+                                                                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                                                            </View>
                                                         </TouchableOpacity>
                                                     )}
                                                 </View>
@@ -1872,6 +2014,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     // Tabs
     tabRow: {
         flexDirection: 'row',
+        width: '100%',
         borderBottomWidth: 1,
         borderBottomColor: colors.divider,
         marginBottom: Spacing.md,
@@ -1889,7 +2032,8 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     tabTextActive: { color: colors.primary },
 
     // Detail modal
-    detailSection: { alignItems: 'center', paddingVertical: Spacing.md },
+    tabSection: { width: '100%', paddingVertical: Spacing.md },
+    detailSection: { alignItems: 'stretch', alignSelf: 'stretch', width: '100%', paddingVertical: Spacing.md },
     detailAvatarLarge: {
         width: 72,
         height: 72,
@@ -1907,7 +2051,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, alignSelf: 'stretch', borderBottomWidth: 1, borderBottomColor: colors.divider },
     detailRowText: { color: colors.text, fontSize: FontSize.md },
     detailDate: { color: colors.textMuted, fontSize: FontSize.xs, marginTop: Spacing.md },
-    detailActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+    detailActions: { flexDirection: 'row', justifyContent: 'space-around', alignSelf: 'stretch', marginTop: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
     detailActionBtn: { alignItems: 'center', gap: 4 },
     detailActionText: { fontSize: FontSize.xs, fontWeight: '600' },
 
@@ -1934,14 +2078,19 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     progressText: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 4 },
 
     // Mini stats (purchase history)
-    miniStatsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+    miniStatsRow: { flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'stretch', width: '100%', gap: Spacing.sm, marginBottom: Spacing.md },
     miniStat: {
         flex: 1,
+        minWidth: 96,
         ...glassStyle,
-        padding: Spacing.sm,
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.md,
         alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 78,
     },
     miniStatValue: { fontSize: FontSize.md, fontWeight: '700', color: colors.text },
+    miniStatValueCompact: { fontSize: 13, lineHeight: 16, textAlign: 'center' },
     saleItemDate: {
         fontSize: FontSize.xs,
         color: '#888',
@@ -2010,14 +2159,18 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         ...glassStyle,
         padding: Spacing.md,
         marginBottom: Spacing.sm,
+        width: '100%',
+        alignSelf: 'stretch',
+        backgroundColor: colors.card,
     },
-    saleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+    saleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.sm },
+    saleHeaderLeft: { flex: 1, paddingRight: Spacing.sm },
     saleDate: { color: colors.text, fontSize: FontSize.sm, fontWeight: '600' },
-    paymentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+    paymentBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: colors.glassBorder },
     paymentBadgeText: { fontSize: 10, fontWeight: '700' },
-    saleItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
-    saleItemName: { flex: 1, color: colors.textSecondary, fontSize: FontSize.sm },
-    saleItemQty: { color: colors.textMuted, fontSize: FontSize.xs, marginRight: Spacing.md },
+    saleItemRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 5 },
+    saleItemName: { flex: 1, color: colors.textSecondary, fontSize: FontSize.sm, paddingRight: Spacing.sm },
+    saleItemQty: { width: 36, textAlign: 'center', color: colors.textMuted, fontSize: FontSize.xs, marginRight: Spacing.md },
     saleItemPrice: { color: colors.text, fontSize: FontSize.sm, fontWeight: '600' },
     saleTotalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
     saleTotalLabel: { color: colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' },
@@ -2031,6 +2184,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         padding: Spacing.md,
         marginBottom: Spacing.sm,
         gap: Spacing.md,
+        width: '100%',
+        alignSelf: 'stretch',
+        backgroundColor: colors.card,
+        minHeight: 84,
     },
     contactIconCircle: {
         width: 48,
@@ -2039,8 +2196,185 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    contactTextWrap: { flex: 1, minWidth: 0 },
     contactBtnTitle: { color: colors.text, fontSize: FontSize.md, fontWeight: '600' },
     contactBtnSub: { color: colors.textSecondary, fontSize: FontSize.xs, marginTop: 2 },
+    contactChevronWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.inputBg,
+    },
+
+    // Account tab
+    accountSummaryCard: {
+        ...glassStyle,
+        width: '100%',
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+    },
+    accountSummaryTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        marginBottom: Spacing.md,
+    },
+    accountSummaryIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    accountSummaryTextWrap: { flex: 1, minWidth: 0 },
+    accountSummaryLabel: {
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+    },
+    accountSummaryHint: {
+        marginTop: 3,
+        color: colors.textSecondary,
+        fontSize: FontSize.xs,
+    },
+    accountSummaryValue: {
+        fontSize: FontSize.xl,
+        fontWeight: '700',
+        color: colors.text,
+        marginBottom: Spacing.md,
+    },
+    accountPrimaryAction: {
+        minHeight: 46,
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: Spacing.xs,
+    },
+    accountPrimaryActionText: {
+        color: '#FFF',
+        fontWeight: '700',
+        fontSize: FontSize.sm,
+    },
+    accountStatsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+        marginBottom: Spacing.lg,
+    },
+    accountStatCard: {
+        ...glassStyle,
+        flex: 1,
+        minWidth: 96,
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        backgroundColor: colors.card,
+    },
+    accountStatValue: {
+        fontSize: FontSize.md,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    accountStatLabel: {
+        marginTop: 4,
+        textAlign: 'center',
+        color: colors.textSecondary,
+        fontSize: 10,
+    },
+    accountHistoryHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.sm,
+    },
+    accountHistoryCountChip: {
+        minWidth: 32,
+        height: 32,
+        paddingHorizontal: Spacing.sm,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.inputBg,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    accountHistoryCountText: {
+        color: colors.text,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+    },
+    accountHistoryCard: {
+        marginBottom: Spacing.sm,
+    },
+    accountHistoryLead: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: Spacing.md,
+    },
+    accountHistoryIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2,
+    },
+    accountHistoryInfo: {
+        flex: 1,
+        minWidth: 0,
+    },
+    accountHistoryTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: Spacing.sm,
+    },
+    accountHistoryTitle: {
+        flex: 1,
+        color: colors.text,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+    },
+    accountHistoryMeta: {
+        marginTop: 4,
+        color: colors.textSecondary,
+        fontSize: FontSize.xs,
+    },
+    accountHistoryDetails: {
+        marginTop: Spacing.xs,
+        color: colors.textSecondary,
+        fontSize: FontSize.sm,
+        lineHeight: 18,
+    },
+    accountHistoryAmount: {
+        marginTop: Spacing.md,
+        fontSize: FontSize.md,
+        fontWeight: '700',
+        textAlign: 'right',
+    },
+    accountHistoryAction: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        marginTop: Spacing.sm,
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: colors.danger + '10',
+        borderWidth: 1,
+        borderColor: colors.danger + '20',
+    },
+    accountHistoryActionText: {
+        marginLeft: 4,
+        color: colors.danger,
+        fontSize: 12,
+        fontWeight: '600',
+    },
 
     // Debt
     debtCard: {
@@ -2052,6 +2386,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        width: '100%',
         marginTop: Spacing.md,
         marginBottom: Spacing.lg,
     },
@@ -2064,6 +2399,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        width: '100%',
         marginTop: Spacing.md,
         marginBottom: Spacing.lg,
     },

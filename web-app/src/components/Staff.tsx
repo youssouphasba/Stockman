@@ -26,6 +26,7 @@ import {
 import { subUsers as subUsersApi, stores as storesApi } from '../services/api';
 import type { PermissionLevel, UserPermissions, StorePermissions } from '../services/api';
 import Modal from './Modal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const MODULE_LABEL_KEYS: Record<string, string> = {
     pos: 'staff.module_pos',
@@ -303,8 +304,28 @@ export default function Staff() {
         u.email.toLowerCase().includes(search.toLowerCase())
     );
 
+    const staffSteps: GuideStep[] = [
+        {
+            title: t('guide.staff.step1_title', { defaultValue: 'Bienvenue dans Personnel' }),
+            content: t('guide.staff.step1', { defaultValue: 'Gérez votre équipe et les niveaux d\u2019accès à chaque module.' }),
+        },
+        {
+            title: t('guide.staff.step2_title', { defaultValue: 'Ajouter un employé' }),
+            content: t('guide.staff.step2', { defaultValue: 'Créez un compte avec rôle et permissions adaptés à chaque poste.' }),
+        },
+        {
+            title: t('guide.staff.step3_title', { defaultValue: 'Permissions' }),
+            content: t('guide.staff.step3', { defaultValue: 'Contrôlez finement l\u2019accès (lecture, écriture, aucun) pour chaque module.' }),
+        },
+        {
+            title: t('guide.staff.step4_title', { defaultValue: 'Magasins' }),
+            content: t('guide.staff.step4', { defaultValue: 'Assignez des employés à des boutiques spécifiques avec des droits personnalisés.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+            <ScreenGuide steps={staffSteps} guideKey="staff_tour" />
             {error && (
                 <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 text-rose-500">

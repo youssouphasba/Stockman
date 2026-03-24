@@ -45,6 +45,7 @@ import {
     replenishment as replenishmentApi,
     products as productsApi
 } from '../services/api';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type TabType = 'manual' | 'orders' | 'replenishment' | 'marketplace' | 'insights';
 
@@ -71,6 +72,24 @@ export default function Suppliers() {
     const [supplierDetailLoading, setSupplierDetailLoading] = useState(false);
     const [showLogModal, setShowLogModal] = useState(false);
     const [logForm, setLogForm] = useState({ type: 'other', subject: '', content: '' });
+    const [invoiceForm, setInvoiceForm] = useState<{
+        invoice_number: string;
+        amount: string;
+        status: 'paid' | 'unpaid' | 'partial';
+        due_date: string;
+        order_id: string;
+        notes: string;
+        file_url: string;
+    }>({
+        invoice_number: '',
+        amount: '',
+        status: 'unpaid',
+        due_date: '',
+        order_id: '',
+        notes: '',
+        file_url: '',
+    });
+    const [invoiceSaving, setInvoiceSaving] = useState(false);
     const [benchmarkLoading, setBenchmarkLoading] = useState(false);
     const [benchmarkProduct, setBenchmarkProduct] = useState<any | null>(null);
     const [benchmarkResults, setBenchmarkResults] = useState<any[]>([]);
@@ -354,6 +373,15 @@ export default function Suppliers() {
         setSupplierOrderHistory([]);
         setSupplierPriceHistory([]);
         setMarketplaceSupplierDetail(null);
+        setInvoiceForm({
+            invoice_number: '',
+            amount: '',
+            status: 'unpaid',
+            due_date: '',
+            order_id: '',
+            notes: '',
+            file_url: '',
+        });
         try {
             if (kind === 'manual') {
                 const [products, stats, ordersHistory, invoices, logs, priceHistory] = await Promise.all([
@@ -415,6 +443,39 @@ export default function Suppliers() {
             console.error("Supplier log create error", err);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleCreateSupplierInvoice = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedSupplier?.supplier_id || !invoiceForm.invoice_number.trim() || !invoiceForm.amount) return;
+        setInvoiceSaving(true);
+        try {
+            const created = await suppliersApi.createInvoice(selectedSupplier.supplier_id, {
+                invoice_number: invoiceForm.invoice_number.trim(),
+                amount: Number(invoiceForm.amount),
+                status: invoiceForm.status || 'unpaid',
+                due_date: invoiceForm.due_date ? new Date(invoiceForm.due_date).toISOString() : undefined,
+                order_id: invoiceForm.order_id || undefined,
+                notes: invoiceForm.notes.trim() || undefined,
+                file_url: invoiceForm.file_url.trim() || undefined,
+            });
+            setSupplierInvoices((current) => [created, ...current]);
+            setInvoiceForm({
+                invoice_number: '',
+                amount: '',
+                status: 'unpaid',
+                due_date: '',
+                order_id: '',
+                notes: '',
+                file_url: '',
+            });
+            setSuccess('Facture fournisseur ajoutée.');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            console.error('Supplier invoice create error', err);
+        } finally {
+            setInvoiceSaving(false);
         }
     };
 
@@ -592,8 +653,32 @@ export default function Suppliers() {
         0
     );
 
+    const suppliersSteps: GuideStep[] = [
+        {
+            title: t('guide.suppliers.step1_title', { defaultValue: 'Bienvenue dans Fournisseurs' }),
+            content: t('guide.suppliers.step1', { defaultValue: 'Gérez vos partenaires fournisseurs et vos approvisionnements.' }),
+        },
+        {
+            title: t('guide.suppliers.step2_title', { defaultValue: 'Mes fournisseurs' }),
+            content: t('guide.suppliers.step2', { defaultValue: 'Ajoutez et consultez vos fournisseurs enregistrés avec leurs coordonnées et performances.' }),
+        },
+        {
+            title: t('guide.suppliers.step3_title', { defaultValue: 'Bons de commande' }),
+            content: t('guide.suppliers.step3', { defaultValue: 'Créez et suivez vos commandes fournisseurs avec génération de PDF.' }),
+        },
+        {
+            title: t('guide.suppliers.step4_title', { defaultValue: 'Réapprovisionnement IA' }),
+            content: t('guide.suppliers.step4', { defaultValue: 'L\u2019IA suggère les produits à commander en priorité selon votre historique.' }),
+        },
+        {
+            title: t('guide.suppliers.step5_title', { defaultValue: 'Marketplace' }),
+            content: t('guide.suppliers.step5', { defaultValue: 'Découvrez de nouveaux fournisseurs B2B connectés et comparez les prix.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar flex flex-col">
+            <ScreenGuide steps={suppliersSteps} guideKey="suppliers_tour" />
             <header className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Fournisseurs & Commandes</h1>
@@ -2182,7 +2267,103 @@ export default function Suppliers() {
                                 ))}
                             </div>
                         ) : supplierTab === 'invoices' && selectedSupplier.kind !== 'marketplace' ? (
-                            <div className="overflow-hidden bg-white/5 rounded-2xl border border-white/5">
+                            <div className="space-y-4">
+                                <form onSubmit={handleCreateSupplierInvoice} className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Nouvelle facture fournisseur</p>
+                                            <p className="text-sm text-slate-400 mt-1">Enregistrez une facture, rattachez-la à une commande si besoin et suivez son statut.</p>
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={invoiceSaving || !invoiceForm.invoice_number.trim() || !invoiceForm.amount}
+                                            className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+                                        >
+                                            {invoiceSaving ? 'Enregistrement…' : 'Ajouter la facture'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Numéro</label>
+                                            <input
+                                                type="text"
+                                                value={invoiceForm.invoice_number}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, invoice_number: e.target.value }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                                placeholder="FAC-2026-001"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Montant</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={invoiceForm.amount}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, amount: e.target.value }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Statut</label>
+                                            <select
+                                                value={invoiceForm.status}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, status: e.target.value as 'paid' | 'unpaid' | 'partial' }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                            >
+                                                <option value="unpaid">Impayée</option>
+                                                <option value="partial">Partielle</option>
+                                                <option value="paid">Payée</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Échéance</label>
+                                            <input
+                                                type="date"
+                                                value={invoiceForm.due_date}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, due_date: e.target.value }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Commande liée</label>
+                                            <select
+                                                value={invoiceForm.order_id}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, order_id: e.target.value }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                            >
+                                                <option value="">Aucune</option>
+                                                {supplierOrderHistory.map((order: any) => (
+                                                    <option key={order.order_id} value={order.order_id}>
+                                                        {`#${order.order_id.substring(0, 8)} • ${new Date(order.created_at).toLocaleDateString()}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fichier</label>
+                                            <input
+                                                type="url"
+                                                value={invoiceForm.file_url}
+                                                onChange={(e) => setInvoiceForm((current) => ({ ...current, file_url: e.target.value }))}
+                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                                placeholder="https://…"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notes</label>
+                                        <textarea
+                                            value={invoiceForm.notes}
+                                            onChange={(e) => setInvoiceForm((current) => ({ ...current, notes: e.target.value }))}
+                                            rows={3}
+                                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all resize-none focus:border-primary/40"
+                                            placeholder="Conditions, référence interne, commentaire de réception…"
+                                        />
+                                    </div>
+                                </form>
+                                <div className="overflow-hidden bg-white/5 rounded-2xl border border-white/5">
                                 <table className="w-full text-left text-xs">
                                     <thead className="bg-white/10 text-slate-500 font-bold">
                                         <tr>
@@ -2197,8 +2378,18 @@ export default function Suppliers() {
                                             <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Aucune facture fournisseur</td></tr>
                                         ) : supplierInvoices.map((invoice: any) => (
                                             <tr key={invoice.invoice_id} className="hover:bg-white/5">
-                                                <td className="px-4 py-3 font-mono text-white">{invoice.invoice_number}</td>
-                                                <td className="px-4 py-3 text-slate-400">{new Date(invoice.created_at).toLocaleDateString()}</td>
+                                                <td className="px-4 py-3 font-mono text-white">
+                                                    <div className="space-y-1">
+                                                        <p>{invoice.invoice_number}</p>
+                                                        {invoice.order_id && <p className="text-[10px] text-slate-500">Commande #{String(invoice.order_id).substring(0, 8)}</p>}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-400">
+                                                    <div className="space-y-1">
+                                                        <p>{new Date(invoice.created_at).toLocaleDateString()}</p>
+                                                        {invoice.due_date && <p className="text-[10px] text-slate-500">Échéance {new Date(invoice.due_date).toLocaleDateString()}</p>}
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-3 text-right font-bold text-white">{formatCurrency(invoice.amount || 0)}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${invoice.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : invoice.status === 'partial' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>{invoice.status}</span>
@@ -2207,6 +2398,7 @@ export default function Suppliers() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
                             </div>
                         ) : supplierTab === 'perf' ? (
                             <div className="animate-in fade-in duration-300 space-y-6">

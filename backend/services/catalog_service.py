@@ -365,11 +365,14 @@ class CatalogService:
         search: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
+        country: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Liste paginée pour l'admin."""
         query: Dict[str, Any] = {}
         if sector:
             query["sector"] = normalize_sector(sector)
+        if country:
+            query["country_codes"] = country.strip().upper()
         if verified is not None:
             query["verified"] = verified
         if search and search.strip():
@@ -438,9 +441,135 @@ class CatalogService:
 
         return {"merged": len(to_merge), "kept": keep_id}
 
+    async def admin_create(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        display_name = (payload.get("display_name") or "").strip()
+        if not display_name:
+            raise ValueError("Le nom du produit est obligatoire.")
+
+        sector = normalize_sector(payload.get("sector") or "autre")
+        canonical = self._simple_normalize(display_name)
+        barcodes = self._normalize_string_list(payload.get("barcodes"))
+        aliases = self._normalize_string_list(payload.get("aliases"))
+        country_codes = self._normalize_country_codes(payload.get("country_codes"))
+        image_url = (payload.get("image_url") or "").strip() or None
+        verified = bool(payload.get("verified", True))
+        added_by_count = max(1, int(payload.get("added_by_count") or 1))
+        category = (payload.get("category") or "").strip()
+
+        if display_name.lower() not in [alias.lower() for alias in aliases]:
+            aliases.insert(0, display_name)
+
+        conflict_query: Dict[str, Any] = {"sector": sector, "$or": [{"canonical_name": canonical}]}
+        if barcodes:
+            conflict_query["$or"].append({"barcodes": {"$in": barcodes}})
+        conflict = await self.db.global_catalog.find_one(conflict_query, {"_id": 0, "catalog_id": 1, "display_name": 1})
+        if conflict:
+            raise ValueError(
+                f'Un produit catalogue similaire existe déjà ({conflict.get("display_name") or conflict.get("catalog_id")}).'
+            )
+
+        doc = {
+            "catalog_id": f"gcat_{uuid.uuid4().hex[:12]}",
+            "canonical_name": canonical,
+            "display_name": display_name,
+            "barcodes": barcodes,
+            "aliases": aliases,
+            "category": category,
+            "sector": sector,
+            "country_codes": country_codes,
+            "image_url": image_url,
+            "added_by_count": added_by_count,
+            "verified": verified,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        await self.db.global_catalog.insert_one(doc)
+        return doc
+
+    async def admin_update(self, catalog_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        existing = await self.db.global_catalog.find_one({"catalog_id": catalog_id}, {"_id": 0})
+        if not existing:
+            return None
+
+        display_name = (payload.get("display_name") or existing.get("display_name") or "").strip()
+        if not display_name:
+            raise ValueError("Le nom du produit est obligatoire.")
+
+        sector = normalize_sector(payload.get("sector") or existing.get("sector") or "autre")
+        canonical = self._simple_normalize(display_name)
+        barcodes = self._normalize_string_list(payload.get("barcodes", existing.get("barcodes", [])))
+        aliases = self._normalize_string_list(payload.get("aliases", existing.get("aliases", [])))
+        country_codes = self._normalize_country_codes(payload.get("country_codes", existing.get("country_codes", [])))
+        image_url = (payload.get("image_url") or existing.get("image_url") or "").strip() or None
+        verified = bool(payload.get("verified", existing.get("verified", False)))
+        added_by_count = max(1, int(payload.get("added_by_count") or existing.get("added_by_count") or 1))
+        category = (payload.get("category") if payload.get("category") is not None else existing.get("category") or "").strip()
+
+        if display_name.lower() not in [alias.lower() for alias in aliases]:
+            aliases.insert(0, display_name)
+
+        conflict_query: Dict[str, Any] = {
+            "catalog_id": {"$ne": catalog_id},
+            "sector": sector,
+            "$or": [{"canonical_name": canonical}],
+        }
+        if barcodes:
+            conflict_query["$or"].append({"barcodes": {"$in": barcodes}})
+        conflict = await self.db.global_catalog.find_one(conflict_query, {"_id": 0, "catalog_id": 1, "display_name": 1})
+        if conflict:
+            raise ValueError(
+                f'Un autre produit catalogue similaire existe déjà ({conflict.get("display_name") or conflict.get("catalog_id")}).'
+            )
+
+        updates = {
+            "canonical_name": canonical,
+            "display_name": display_name,
+            "barcodes": barcodes,
+            "aliases": aliases,
+            "category": category,
+            "sector": sector,
+            "country_codes": country_codes,
+            "image_url": image_url,
+            "added_by_count": added_by_count,
+            "verified": verified,
+            "updated_at": datetime.now(timezone.utc),
+        }
+        await self.db.global_catalog.update_one({"catalog_id": catalog_id}, {"$set": updates})
+        existing.update(updates)
+        return existing
+
     # ──────────────────────────────────────────────────────────────────────────
     # UTILITAIRES
     # ──────────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _normalize_string_list(values: Optional[List[str]]) -> List[str]:
+        cleaned: List[str] = []
+        seen = set()
+        for value in values or []:
+            item = str(value or "").strip()
+            if not item:
+                continue
+            lowered = item.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            cleaned.append(item)
+        return cleaned
+
+    @staticmethod
+    def _normalize_country_codes(values: Optional[List[str]]) -> List[str]:
+        cleaned: List[str] = []
+        seen = set()
+        for value in values or []:
+            item = str(value or "").strip().upper()
+            if not item:
+                continue
+            if item in seen:
+                continue
+            seen.add(item)
+            cleaned.append(item)
+        return cleaned
+
     @staticmethod
     def _simple_normalize(name: str) -> str:
         """Normalisation simple (lowercase, trim, supprime accents basiques)."""

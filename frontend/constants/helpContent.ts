@@ -39,6 +39,9 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'repeat-outline', title: 'help.modules.dashboard.f4.t', description: "help.modules.dashboard.f4.d" },
       { icon: 'analytics-outline', title: 'help.modules.dashboard.f5.t', description: "help.modules.dashboard.f5.d" },
       { icon: 'bar-chart-outline', title: 'help.modules.dashboard.f6.t', description: "help.modules.dashboard.f6.d" },
+      { icon: 'options-outline', title: 'help.modules.dashboard.f7.t', description: "help.modules.dashboard.f7.d" },
+      { icon: 'share-outline', title: 'help.modules.dashboard.f8.t', description: "help.modules.dashboard.f8.d" },
+      { icon: 'information-circle-outline', title: 'help.modules.dashboard.f9.t', description: "help.modules.dashboard.f9.d" },
     ],
   },
   {
@@ -57,6 +60,10 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'settings-outline', title: 'help.modules.products.f5.t', description: "help.modules.products.f5.d" },
       { icon: 'layers-outline', title: 'help.modules.products.f6.t', description: "help.modules.products.f6.d" },
       { icon: 'trending-up-outline', title: 'help.modules.products.f7.t', description: "help.modules.products.f7.d" },
+      { icon: 'cloud-upload-outline', title: 'help.modules.products.f8.t', description: "help.modules.products.f8.d" },
+      { icon: 'scan-outline', title: 'help.modules.products.f9.t', description: "help.modules.products.f9.d" },
+      { icon: 'download-outline', title: 'help.modules.products.f10.t', description: "help.modules.products.f10.d" },
+      { icon: 'arrow-undo-outline', title: 'help.modules.products.f11.t', description: "help.modules.products.f11.d" },
     ],
   },
   {
@@ -74,6 +81,10 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'card-outline', title: 'help.modules.pos.f4.t', description: "help.modules.pos.f4.d" },
       { icon: 'receipt-outline', title: 'help.modules.pos.f5.t', description: "help.modules.pos.f5.d" },
       { icon: 'ribbon-outline', title: 'help.modules.pos.f6.t', description: "help.modules.pos.f6.d" },
+      { icon: 'layers-outline', title: 'help.modules.pos.f7.t', description: "help.modules.pos.f7.d" },
+      { icon: 'pricetag-outline', title: 'help.modules.pos.f8.t', description: "help.modules.pos.f8.d" },
+      { icon: 'calculator-outline', title: 'help.modules.pos.f9.t', description: "help.modules.pos.f9.d" },
+      { icon: 'share-outline', title: 'help.modules.pos.f10.t', description: "help.modules.pos.f10.d" },
     ],
   },
   {
@@ -90,6 +101,10 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'sparkles-outline', title: 'help.modules.orders.f3.t', description: "help.modules.orders.f3.d" },
       { icon: 'link-outline', title: 'help.modules.orders.f4.t', description: "help.modules.orders.f4.d" },
       { icon: 'filter-outline', title: 'help.modules.orders.f5.t', description: "help.modules.orders.f5.d" },
+      { icon: 'checkbox-outline', title: 'help.modules.orders.f6.t', description: "help.modules.orders.f6.d" },
+      { icon: 'arrow-undo-outline', title: 'help.modules.orders.f7.t', description: "help.modules.orders.f7.d" },
+      { icon: 'star-outline', title: 'help.modules.orders.f8.t', description: "help.modules.orders.f8.d" },
+      { icon: 'camera-outline', title: 'help.modules.orders.f9.t', description: "help.modules.orders.f9.d" },
     ],
   },
   {
@@ -107,6 +122,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'link-outline', title: 'help.modules.suppliers.f4.t', description: "help.modules.suppliers.f4.d" },
       { icon: 'chatbubble-outline', title: 'help.modules.suppliers.f5.t', description: "help.modules.suppliers.f5.d" },
       { icon: 'arrow-up-circle-outline', title: 'help.modules.suppliers.f6.t', description: "help.modules.suppliers.f6.d" },
+      { icon: 'document-text-outline', title: 'help.modules.suppliers.f7.t', description: "help.modules.suppliers.f7.d" },
+      { icon: 'journal-outline', title: 'help.modules.suppliers.f8.t', description: "help.modules.suppliers.f8.d" },
     ],
   },
   {
@@ -124,6 +141,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'megaphone-outline', title: 'help.modules.crm.f4.t', description: "help.modules.crm.f4.d" },
       { icon: 'gift-outline', title: 'help.modules.crm.f5.t', description: "help.modules.crm.f5.d" },
       { icon: 'calendar-outline', title: 'help.modules.crm.f6.t', description: "help.modules.crm.f6.d" },
+      { icon: 'call-outline', title: 'help.modules.crm.f7.t', description: "help.modules.crm.f7.d" },
+      { icon: 'download-outline', title: 'help.modules.crm.f8.t', description: "help.modules.crm.f8.d" },
     ],
   },
   {
@@ -141,6 +160,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'cash-outline', title: 'help.modules.accounting.f4.t', description: "help.modules.accounting.f4.d" },
       { icon: 'pie-chart-outline', title: 'help.modules.accounting.f5.t', description: "help.modules.accounting.f5.d" },
       { icon: 'download-outline', title: 'help.modules.accounting.f6.t', description: "help.modules.accounting.f6.d" },
+      { icon: 'trophy-outline', title: 'help.modules.accounting.f7.t', description: "help.modules.accounting.f7.d" },
+      { icon: 'information-circle-outline', title: 'help.modules.accounting.f8.t', description: "help.modules.accounting.f8.d" },
     ],
   },
   {
@@ -156,6 +177,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'flash-outline', title: 'help.modules.alerts.f2.t', description: "help.modules.alerts.f2.d" },
       { icon: 'bed-outline', title: 'help.modules.alerts.f3.t', description: "help.modules.alerts.f3.d" },
       { icon: 'checkmark-done-outline', title: 'help.modules.alerts.f4.t', description: "help.modules.alerts.f4.d" },
+      { icon: 'sparkles-outline', title: 'help.modules.alerts.f5.t', description: "help.modules.alerts.f5.d" },
+      { icon: 'notifications-outline', title: 'help.modules.alerts.f6.t', description: "help.modules.alerts.f6.d" },
     ],
   },
   {
@@ -185,6 +208,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'lock-closed-outline', title: 'help.modules.users.f2.t', description: "help.modules.users.f2.d" },
       { icon: 'key-outline', title: 'help.modules.users.f3.t', description: "help.modules.users.f3.d" },
       { icon: 'trash-outline', title: 'help.modules.users.f4.t', description: "help.modules.users.f4.d" },
+      { icon: 'business-outline', title: 'help.modules.users.f5.t', description: "help.modules.users.f5.d" },
+      { icon: 'share-social-outline', title: 'help.modules.users.f6.t', description: "help.modules.users.f6.d" },
     ],
   },
   {
@@ -200,8 +225,29 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'moon-outline', title: 'help.modules.settings.f2.t', description: "help.modules.settings.f2.d" },
       { icon: 'toggle-outline', title: 'help.modules.settings.f3.t', description: "help.modules.settings.f3.d" },
       { icon: 'notifications-outline', title: 'help.modules.settings.f4.t', description: "help.modules.settings.f4.d" },
+      { icon: 'language-outline', title: 'help.modules.settings.f5.t', description: "help.modules.settings.f5.d" },
+      { icon: 'document-text-outline', title: 'help.modules.settings.f6.t', description: "help.modules.settings.f6.d" },
+      { icon: 'receipt-outline', title: 'help.modules.settings.f7.t', description: "help.modules.settings.f7.d" },
+      { icon: 'lock-closed-outline', title: 'help.modules.settings.f8.t', description: "help.modules.settings.f8.d" },
+      { icon: 'download-outline', title: 'help.modules.settings.f9.t', description: "help.modules.settings.f9.d" },
     ],
   },
+  {
+    key: 'subscription',
+    title: 'help.modules.subscription.title',
+    icon: 'diamond-outline',
+    color: '#a855f7',
+    guideKey: 'subscription',
+    role: 'all',
+    audience: 'all',
+    features: [
+      { icon: 'card-outline', title: 'help.modules.subscription.f1.t', description: "help.modules.subscription.f1.d" },
+      { icon: 'swap-horizontal-outline', title: 'help.modules.subscription.f2.t', description: "help.modules.subscription.f2.d" },
+      { icon: 'phone-portrait-outline', title: 'help.modules.subscription.f3.t', description: "help.modules.subscription.f3.d" },
+      { icon: 'refresh-outline', title: 'help.modules.subscription.f4.t', description: "help.modules.subscription.f4.d" },
+    ],
+  },
+  // ============ SUPPLIER ============
   {
     key: 'supplierDashboard',
     title: 'help.modules.supplierDashboard.title',
@@ -215,6 +261,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'star-outline', title: 'help.modules.supplierDashboard.f2.t', description: "help.modules.supplierDashboard.f2.d" },
       { icon: 'trophy-outline', title: 'help.modules.supplierDashboard.f3.t', description: "help.modules.supplierDashboard.f3.d" },
       { icon: 'people-outline', title: 'help.modules.supplierDashboard.f4.t', description: "help.modules.supplierDashboard.f4.d" },
+      { icon: 'receipt-outline', title: 'help.modules.supplierDashboard.f5.t', description: "help.modules.supplierDashboard.f5.d" },
     ],
   },
   {
@@ -247,6 +294,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'funnel-outline', title: 'help.modules.supplierOrders.f4.t', description: "help.modules.supplierOrders.f4.d" },
     ],
   },
+  // ============ RESTAURANT ============
   {
     key: 'restaurantHub',
     title: 'help.modules.restaurantHub.title',
@@ -337,83 +385,26 @@ export const HELP_MODULES: HelpModule[] = [
 ];
 
 export const FAQ: FAQItem[] = [
-  {
-    question: 'help.faq.q1.q',
-    answer: "help.faq.q1.a",
-  },
-  {
-    question: 'help.faq.q2.q',
-    answer: "help.faq.q2.a",
-  },
-  {
-    question: 'help.faq.q3.q',
-    answer: "help.faq.q3.a",
-  },
-  {
-    question: 'help.faq.q4.q',
-    answer: "help.faq.q4.a",
-  },
-  {
-    question: 'help.faq.q5.q',
-    answer: "help.faq.q5.a",
-  },
-  {
-    question: 'help.faq.q6.q',
-    answer: "help.faq.q6.a",
-  },
-  {
-    question: 'help.faq.q7.q',
-    answer: "help.faq.q7.a",
-  },
-  {
-    question: 'help.faq.q8.q',
-    answer: "help.faq.q8.a",
-  },
-  {
-    question: 'help.faq.q9.q',
-    answer: "help.faq.q9.a",
-  },
-  {
-    question: 'help.faq.q10.q',
-    answer: "help.faq.q10.a",
-  },
-  {
-    question: 'help.faq.q11.q',
-    answer: "help.faq.q11.a",
-  },
-  {
-    question: 'help.faq.q12.q',
-    answer: "help.faq.q12.a",
-    audience: 'default',
-  },
-  {
-    question: 'help.faq.q13.q',
-    answer: "help.faq.q13.a",
-    audience: 'restaurant',
-  },
-  {
-    question: 'help.faq.q14.q',
-    answer: "help.faq.q14.a",
-    audience: 'restaurant',
-  },
-  {
-    question: 'help.faq.q15.q',
-    answer: "help.faq.q15.a",
-    audience: 'restaurant',
-  },
-  {
-    question: 'help.faq.q16.q',
-    answer: "help.faq.q16.a",
-    audience: 'restaurant',
-  },
-  {
-    question: 'help.faq.q17.q',
-    answer: "help.faq.q17.a",
-    audience: 'restaurant',
-  },
-  {
-    question: 'help.faq.q18.q',
-    answer: "help.faq.q18.a",
-    audience: 'restaurant',
-  },
+  { question: 'help.faq.q1.q', answer: "help.faq.q1.a" },
+  { question: 'help.faq.q2.q', answer: "help.faq.q2.a" },
+  { question: 'help.faq.q3.q', answer: "help.faq.q3.a" },
+  { question: 'help.faq.q4.q', answer: "help.faq.q4.a" },
+  { question: 'help.faq.q5.q', answer: "help.faq.q5.a" },
+  { question: 'help.faq.q6.q', answer: "help.faq.q6.a" },
+  { question: 'help.faq.q7.q', answer: "help.faq.q7.a" },
+  { question: 'help.faq.q8.q', answer: "help.faq.q8.a" },
+  { question: 'help.faq.q9.q', answer: "help.faq.q9.a" },
+  { question: 'help.faq.q10.q', answer: "help.faq.q10.a" },
+  { question: 'help.faq.q11.q', answer: "help.faq.q11.a" },
+  { question: 'help.faq.q12.q', answer: "help.faq.q12.a", audience: 'default' },
+  { question: 'help.faq.q13.q', answer: "help.faq.q13.a", audience: 'restaurant' },
+  { question: 'help.faq.q14.q', answer: "help.faq.q14.a", audience: 'restaurant' },
+  { question: 'help.faq.q15.q', answer: "help.faq.q15.a", audience: 'restaurant' },
+  { question: 'help.faq.q16.q', answer: "help.faq.q16.a", audience: 'restaurant' },
+  { question: 'help.faq.q17.q', answer: "help.faq.q17.a", audience: 'restaurant' },
+  { question: 'help.faq.q18.q', answer: "help.faq.q18.a", audience: 'restaurant' },
+  { question: 'help.faq.q19.q', answer: "help.faq.q19.a" },
+  { question: 'help.faq.q20.q', answer: "help.faq.q20.a" },
+  { question: 'help.faq.q21.q', answer: "help.faq.q21.a" },
+  { question: 'help.faq.q22.q', answer: "help.faq.q22.a" },
 ];

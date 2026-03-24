@@ -4,6 +4,7 @@
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
   },
   "accounting": {
+    "confirm_delete_expense": "Supprimer cette dépense ? Cette action est irréversible.",
     "amount": "Montant",
     "cat_rent": "Loyer",
     "cat_salaries": "Salaires",
@@ -583,6 +584,10 @@
     "last_90_days": "90 derniers jours"
   },
   "crm": {
+    "cancel_payment": "Annuler",
+    "payment_cancelled": "Paiement annulé avec succès",
+    "confirm_cancel_payment": "Annuler ce paiement de {{amount}} ? La dette du client sera restaurée.",
+    "cancel_payment_error": "Erreur lors de l'annulation du paiement",
     "active_30d": "Actifs (30j)",
     "active_clients": "Actifs (30j)",
     "add_credit_debit": "Ajouter crédit/débit",
@@ -1719,6 +1724,11 @@
     "with_premium_you_can": "Avec Premium, vous pouvez :"
   },
   "products": {
+    "confirm_reverse_movement": "Annuler ce mouvement de {{qty}} ({{type}}) ? Un mouvement inverse sera créé.",
+    "reverse_movement_error": "Erreur lors de l'annulation du mouvement",
+    "reverse_movement": "Annuler ce mouvement",
+    "mov_in": "Entrée",
+    "mov_out": "Sortie",
     "add_btn": "Ajouter",
     "add_photo_title": "Ajouter une photo",
     "add_product": "Ajouter un produit",
@@ -2011,7 +2021,36 @@
     "recipes": "Recettes",
     "reports": "Rapports",
     "system": "Système",
-    "system_history": "Historique Système"
+    "system_history": "Historique Système",
+    "notifications": "Notifications",
+    "support": "Support"
+  },
+  "support": {
+    "title": "Support",
+    "myTickets": "Mes tickets",
+    "newTicket": "Nouveau",
+    "noTickets": "Aucun ticket pour l'instant",
+    "createFirst": "Créer un ticket",
+    "subjectLabel": "Sujet",
+    "subjectPlaceholder": "Ex: Problème d'impression, Suggestion...",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Décrivez votre problème en détail...",
+    "send": "Envoyer",
+    "createError": "Erreur lors de la création du ticket.",
+    "replyError": "Erreur lors de l'envoi de la réponse.",
+    "replyPlaceholder": "Votre réponse...",
+    "statusOpen": "En attente",
+    "statusPending": "Répondu",
+    "statusClosed": "Fermé",
+    "replied": "Réponse reçue",
+    "you": "Vous",
+    "back": "Retour"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unread": "non lues",
+    "markAllRead": "Tout marquer lu",
+    "empty": "Aucune notification"
   },
   "stock": {
     "reasons": {
@@ -2021,6 +2060,13 @@
       "loss_damage": "Perte ou casse",
       "sale_cancelled": "Vente annulée"
     }
+  },
+  "inventory": {
+    "transfer_history": "Historique des transferts",
+    "no_transfers": "Aucun transfert enregistré",
+    "confirm_reverse_transfer": "Annuler le transfert de {{qty}}x {{product}} ({{from}} → {{to}}) ? Le stock sera retransféré en sens inverse.",
+    "reverse_transfer_error": "Erreur lors de l'annulation du transfert",
+    "reverse_transfer": "Annuler ce transfert"
   },
   "store_selector": {
     "category_placeholder": "Filtrer par catégorie...",

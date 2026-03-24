@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, Ale
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { stores as storesApi, Store } from '../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 export default function StoreSelector() {
     const { t } = useTranslation();
+    const { colors, glassStyle } = useTheme();
     const { user, switchStore, isLoading: authLoading } = useAuth();
     const [stores, setStores] = useState<Store[]>([]);
     const [showModal, setShowModal] = useState(false);
@@ -67,6 +68,7 @@ export default function StoreSelector() {
     }
 
     const activeStore = stores.find(s => s.store_id === user?.active_store_id) || { name: t('store_selector.default_name') };
+    const styles = createStyles(colors, glassStyle);
 
     if (!user || user.role !== 'shopkeeper') return null;
 
@@ -76,9 +78,9 @@ export default function StoreSelector() {
                 style={styles.selectorBtn}
                 onPress={() => setShowModal(true)}
             >
-                <Ionicons name="storefront-outline" size={20} color={Colors.text} />
+                <Ionicons name="storefront-outline" size={20} color={colors.text} />
                 <Text style={styles.selectorText} numberOfLines={1}>{activeStore.name}</Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
+                <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
             </TouchableOpacity>
 
             <Modal visible={showModal} transparent animationType="fade">
@@ -87,12 +89,12 @@ export default function StoreSelector() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('store_selector.my_stores')}</Text>
                             <TouchableOpacity onPress={() => setShowModal(false)}>
-                                <Ionicons name="close" size={24} color={Colors.text} />
+                                <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
 
                         {loading ? (
-                            <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: Spacing.xl }} />
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
                         ) : (
                             <View>
                                 {!showCreateForm ? (
@@ -110,7 +112,7 @@ export default function StoreSelector() {
                                                     <Ionicons
                                                         name={store.store_id === user.active_store_id ? "radio-button-on" : "radio-button-off"}
                                                         size={20}
-                                                        color={store.store_id === user.active_store_id ? Colors.primary : Colors.textMuted}
+                                                        color={store.store_id === user.active_store_id ? colors.primary : colors.textMuted}
                                                     />
                                                 </View>
                                                 <Text style={[
@@ -121,7 +123,7 @@ export default function StoreSelector() {
                                         ))}
 
                                         <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateForm(true)}>
-                                            <Ionicons name="add" size={20} color={Colors.primary} />
+                                            <Ionicons name="add" size={20} color={colors.primary} />
                                             <Text style={styles.createBtnText}>{t('store_selector.new_store')}</Text>
                                         </TouchableOpacity>
                                     </>
@@ -131,7 +133,7 @@ export default function StoreSelector() {
                                         <TextInput
                                             style={styles.input}
                                             placeholder={t('store_selector.store_name_placeholder')}
-                                            placeholderTextColor={Colors.textMuted}
+                                            placeholderTextColor={colors.textMuted}
                                             value={newStoreName}
                                             onChangeText={setNewStoreName}
                                             autoFocus
@@ -159,20 +161,20 @@ export default function StoreSelector() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     selectorBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.glass,
+        backgroundColor: colors.glass,
         paddingHorizontal: Spacing.sm,
         paddingVertical: 6,
         borderRadius: BorderRadius.full,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         maxWidth: 200,
     },
     selectorText: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: FontSize.sm,
         fontWeight: '600',
         marginHorizontal: Spacing.xs,
@@ -185,8 +187,8 @@ const styles = StyleSheet.create({
         padding: Spacing.md,
     },
     modalContent: {
-        ...GlassStyle,
-        backgroundColor: Colors.bgMid,
+        ...glassStyle,
+        backgroundColor: colors.card,
         padding: Spacing.md,
         borderRadius: BorderRadius.lg,
     },
@@ -196,33 +198,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: Spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        borderBottomColor: colors.glassBorder,
         paddingBottom: Spacing.sm,
     },
     modalTitle: {
         fontSize: FontSize.lg,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
     storeItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: Spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        borderBottomColor: colors.glassBorder,
     },
     storeItemActive: {
-        backgroundColor: Colors.primary + '10', // 10% opacity
+        backgroundColor: colors.primary + '14',
     },
     storeIcon: {
         marginRight: Spacing.md,
     },
     storeName: {
         fontSize: FontSize.md,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
     storeNameActive: {
-        color: Colors.text,
+        color: colors.text,
         fontWeight: '700',
     },
     createBtn: {
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
         marginTop: Spacing.sm,
     },
     createBtnText: {
-        color: Colors.primary,
+        color: colors.primary,
         fontWeight: '600',
         marginLeft: Spacing.xs,
     },
@@ -241,16 +243,16 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.sm,
     },
     subTitle: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: FontSize.md,
         fontWeight: '600',
         marginBottom: Spacing.sm,
     },
     input: {
-        ...GlassStyle,
-        backgroundColor: Colors.bgDark,
+        ...glassStyle,
+        backgroundColor: colors.inputBg,
         padding: Spacing.sm,
-        color: Colors.text,
+        color: colors.text,
         fontSize: FontSize.md,
         marginBottom: Spacing.md,
     },
@@ -263,10 +265,10 @@ const styles = StyleSheet.create({
         marginRight: Spacing.sm,
     },
     cancelText: {
-        color: Colors.textMuted,
+        color: colors.textMuted,
     },
     confirmBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.sm,
         borderRadius: BorderRadius.md,

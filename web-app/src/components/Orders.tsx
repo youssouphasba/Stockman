@@ -25,6 +25,7 @@ import Modal from './Modal';
 import OrderReturnModal from './OrderReturnModal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import { exportOrders } from '../utils/ExportService';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'] as const;
 
@@ -220,8 +221,32 @@ export default function Orders() {
         }
     };
 
+    const ordersSteps: GuideStep[] = [
+        {
+            title: t('guide.orders.step1_title', { defaultValue: 'Bienvenue dans Commandes' }),
+            content: t('guide.orders.step1', { defaultValue: 'Suivez vos commandes fournisseurs de la commande à la livraison.' }),
+        },
+        {
+            title: t('guide.orders.step2_title', { defaultValue: 'Filtrez par statut' }),
+            content: t('guide.orders.step2', { defaultValue: 'Utilisez les onglets de statut pour afficher uniquement les commandes en attente, expédiées ou livrées.' }),
+        },
+        {
+            title: t('guide.orders.step3_title', { defaultValue: 'Actions rapides' }),
+            content: t('guide.orders.step3', { defaultValue: 'Chaque commande affiche un bouton d\u2019action adapté à son statut : confirmer, expédier, livrer ou retourner.' }),
+        },
+        {
+            title: t('guide.orders.step4_title', { defaultValue: 'Scanner une facture' }),
+            content: t('guide.orders.step4', { defaultValue: 'Photographiez une facture fournisseur et l\u2019IA en extraira automatiquement les articles et le total.' }),
+        },
+        {
+            title: t('guide.orders.step5_title', { defaultValue: 'Retours et avoirs' }),
+            content: t('guide.orders.step5', { defaultValue: 'Basculez sur l\u2019onglet « Retours » pour créer des retours fournisseurs et gérer vos avoirs.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 overflow-y-auto bg-[#0F172A] p-8 custom-scrollbar">
+            <ScreenGuide steps={ordersSteps} guideKey="orders_tour" />
             <header className="mb-10 flex items-center justify-between">
                 <div>
                     <h1 className="mb-2 text-3xl font-bold text-white">Commandes fournisseurs</h1>

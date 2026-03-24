@@ -20,6 +20,7 @@ import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../const
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
+import i18n from '../../services/i18n';
 import ChatModal from '../../components/ChatModal';
 
 const FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
@@ -137,7 +138,7 @@ export default function SupplierOrdersScreen() {
         loadOrders();
         setShowDetail(false);
       } catch {
-        Alert.alert('Erreur', 'Impossible de changer le statut');
+        Alert.alert(t('common.error'), t('supplier.status_change_error'));
       } finally {
         setUpdating(false);
       }
@@ -148,10 +149,10 @@ export default function SupplierOrdersScreen() {
         await executeChange();
       }
     } else {
-      Alert.alert('Confirmer', confirmText, [
-        { text: 'Annuler', style: 'cancel' },
+      Alert.alert(t('common.confirm'), confirmText, [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('common.confirm'),
           onPress: executeChange,
         },
       ]);
@@ -224,7 +225,7 @@ export default function SupplierOrdersScreen() {
                 onPress={() => setShopkeeperFilter(null)}
               >
                 <Text style={[styles.filterText, !shopkeeperFilter && styles.filterTextActive]}>
-                  Tous les commerçants
+                  {t('supplier.all_shopkeepers')}
                 </Text>
               </TouchableOpacity>
               {clients.map((client) => (
@@ -252,7 +253,7 @@ export default function SupplierOrdersScreen() {
                 <View>
                   <Text style={styles.orderShopkeeper}>{order.shopkeeper_name}</Text>
                   <Text style={styles.orderDate}>
-                    {order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : ''}
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
@@ -263,7 +264,7 @@ export default function SupplierOrdersScreen() {
               </View>
 
               <View style={styles.orderDetails}>
-                <Text style={styles.orderItems}>{order.items_count} article{order.items_count > 1 ? 's' : ''}</Text>
+                <Text style={styles.orderItems}>{t('supplier.items_count', { count: order.items_count })}</Text>
                 <Text style={styles.orderTotal}>{formatNumber(order.total_amount)} {t('common.currency_default')}</Text>
               </View>
 
@@ -334,7 +335,7 @@ export default function SupplierOrdersScreen() {
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>{t('common.date')}</Text>
                   <Text style={styles.detailText}>
-                    {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {
+                    {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString(i18n.language, {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                     }) : ''}
                   </Text>
@@ -345,7 +346,7 @@ export default function SupplierOrdersScreen() {
                   {selectedOrder.items?.map((item, idx) => (
                     <View key={idx} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
-                        <Text style={styles.itemName}>{item.product?.name ?? `Produit #${item.product_id.slice(-6)} `}</Text>
+                        <Text style={styles.itemName}>{item.product?.name ?? t('supplier.product_fallback', { id: item.product_id.slice(-6) })}</Text>
                         <Text style={styles.itemQty}>{item.quantity} x {formatNumber(item.unit_price)} {t('common.currency_short')}</Text>
                       </View>
                       <Text style={styles.itemTotal}>{formatNumber(item.total_price)} {t('common.currency_short')}</Text>

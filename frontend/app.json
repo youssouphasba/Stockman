@@ -51,7 +51,7 @@
       "expo-image-picker",
       "expo-local-authentication",
       "expo-updates",
-      "expo-screen-orientation",
+      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
       "expo-font",
       [
         "expo-build-properties",

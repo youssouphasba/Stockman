@@ -46,6 +46,13 @@ export default function SupplierCatalogScreen() {
   const [formMinQty, setFormMinQty] = useState('1');
   const [formStock, setFormStock] = useState('0');
   const [formAvailable, setFormAvailable] = useState(true);
+  const [formSku, setFormSku] = useState('');
+  const [formBarcode, setFormBarcode] = useState('');
+  const [formBrand, setFormBrand] = useState('');
+  const [formOrigin, setFormOrigin] = useState('');
+  const [formWeight, setFormWeight] = useState('');
+  const [formWeightUnit, setFormWeightUnit] = useState('kg');
+  const [formDeliveryTime, setFormDeliveryTime] = useState('');
 
   const loadProducts = useCallback(async () => {
     try {
@@ -77,10 +84,17 @@ export default function SupplierCatalogScreen() {
     setFormCategory('');
     setFormSubcategory('');
     setFormPrice('');
-    setFormUnit('unité');
+    setFormUnit(t('catalog.unit_placeholder'));
     setFormMinQty('1');
     setFormStock('0');
     setFormAvailable(true);
+    setFormSku('');
+    setFormBarcode('');
+    setFormBrand('');
+    setFormOrigin('');
+    setFormWeight('');
+    setFormWeightUnit('kg');
+    setFormDeliveryTime('');
     setShowModal(true);
   }
 
@@ -91,10 +105,17 @@ export default function SupplierCatalogScreen() {
     setFormCategory(product.category || '');
     setFormSubcategory(product.subcategory || '');
     setFormPrice(product.price.toString());
-    setFormUnit(product.unit || 'unité');
+    setFormUnit(product.unit || t('catalog.unit_placeholder'));
     setFormMinQty(product.min_order_quantity.toString());
     setFormStock(product.stock_available.toString());
     setFormAvailable(product.available);
+    setFormSku(product.sku || '');
+    setFormBarcode(product.barcode || '');
+    setFormBrand(product.brand || '');
+    setFormOrigin(product.origin || '');
+    setFormWeight(product.weight ? product.weight.toString() : '');
+    setFormWeightUnit(product.weight_unit || 'kg');
+    setFormDeliveryTime(product.delivery_time || '');
     setShowModal(true);
   }
 
@@ -107,10 +128,17 @@ export default function SupplierCatalogScreen() {
       category: formCategory.trim() || undefined,
       subcategory: formSubcategory.trim() || undefined,
       price: parseFloat(formPrice) || 0,
-      unit: formUnit.trim() || 'unité',
+      unit: formUnit.trim() || t('catalog.unit_placeholder'),
       min_order_quantity: parseInt(formMinQty) || 1,
       stock_available: parseInt(formStock) || 0,
       available: formAvailable,
+      sku: formSku.trim() || undefined,
+      barcode: formBarcode.trim() || undefined,
+      brand: formBrand.trim() || undefined,
+      origin: formOrigin.trim() || undefined,
+      weight: formWeight ? parseFloat(formWeight) : undefined,
+      weight_unit: formWeightUnit.trim() || 'kg',
+      delivery_time: formDeliveryTime.trim() || undefined,
     };
     try {
       if (editing) {
@@ -220,9 +248,17 @@ export default function SupplierCatalogScreen() {
             <View style={styles.productTop}>
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.name}</Text>
-                {product.category ? (
-                  <Text style={styles.productCategory}>{product.category}</Text>
-                ) : null}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+                  {product.category ? (
+                    <Text style={styles.productCategory}>{product.category}</Text>
+                  ) : null}
+                  {product.brand ? (
+                    <Text style={styles.productCategory}>{product.brand}</Text>
+                  ) : null}
+                  {product.sku ? (
+                    <Text style={styles.productCategory}>{product.sku}</Text>
+                  ) : null}
+                </View>
               </View>
               <Switch
                 value={product.available}
@@ -282,6 +318,9 @@ export default function SupplierCatalogScreen() {
             </View>
 
             <ScrollView style={styles.modalScroll}>
+              {/* Section: Identification */}
+              <Text style={styles.sectionLabel}>{t('catalog.section_identification')}</Text>
+
               <Text style={styles.label}>{t('common.name')} *</Text>
               <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder={t('catalog.product_name_placeholder')} placeholderTextColor={Colors.textMuted} />
 
@@ -299,7 +338,33 @@ export default function SupplierCatalogScreen() {
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.sku')}</Text>
+                  <TextInput style={styles.input} value={formSku} onChangeText={setFormSku} placeholder={t('catalog.sku_placeholder')} placeholderTextColor={Colors.textMuted} />
+                </View>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.barcode')}</Text>
+                  <TextInput style={styles.input} value={formBarcode} onChangeText={setFormBarcode} placeholder={t('catalog.barcode_placeholder')} placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.brand')}</Text>
+                  <TextInput style={styles.input} value={formBrand} onChangeText={setFormBrand} placeholder={t('catalog.brand_placeholder')} placeholderTextColor={Colors.textMuted} />
+                </View>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.origin')}</Text>
+                  <TextInput style={styles.input} value={formOrigin} onChangeText={setFormOrigin} placeholder={t('catalog.origin_placeholder')} placeholderTextColor={Colors.textMuted} />
+                </View>
+              </View>
+
+              {/* Section: Pricing & Stock */}
+              <Text style={[styles.sectionLabel, { marginTop: Spacing.lg }]}>{t('catalog.section_pricing')}</Text>
+
+              <View style={styles.formRow}>
+                <View style={styles.formHalf}>
                   <Text style={styles.label}>{t('common.price')} ({t('common.currency_default')})</Text>
+                  <TextInput style={styles.input} value={formPrice} onChangeText={setFormPrice} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
                 <View style={styles.formHalf}>
                   <Text style={styles.label}>{t('common.unit')}</Text>
@@ -317,6 +382,23 @@ export default function SupplierCatalogScreen() {
                   <TextInput style={styles.input} value={formStock} onChangeText={setFormStock} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
                 </View>
               </View>
+
+              {/* Section: Logistics */}
+              <Text style={[styles.sectionLabel, { marginTop: Spacing.lg }]}>{t('catalog.section_logistics')}</Text>
+
+              <View style={styles.formRow}>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.weight')}</Text>
+                  <TextInput style={styles.input} value={formWeight} onChangeText={setFormWeight} placeholder={t('catalog.weight_placeholder')} placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+                </View>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>{t('catalog.weight_unit')}</Text>
+                  <TextInput style={styles.input} value={formWeightUnit} onChangeText={setFormWeightUnit} placeholder="kg" placeholderTextColor={Colors.textMuted} />
+                </View>
+              </View>
+
+              <Text style={styles.label}>{t('catalog.delivery_time')}</Text>
+              <TextInput style={styles.input} value={formDeliveryTime} onChangeText={setFormDeliveryTime} placeholder={t('catalog.delivery_time_placeholder')} placeholderTextColor={Colors.textMuted} />
 
               <View style={styles.switchRow}>
                 <Text style={styles.label}>{t('catalog.available_for_sale')}</Text>
@@ -478,6 +560,15 @@ const styles = StyleSheet.create({
   },
   modalScroll: {
     padding: Spacing.md,
+  },
+  sectionLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   label: {
     fontSize: FontSize.sm,

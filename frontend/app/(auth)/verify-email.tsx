@@ -15,12 +15,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { auth as authApi, ApiError } from '../../services/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const RESEND_COOLDOWN = 60;
 
 export default function VerifyEmailScreen() {
+  const { colors, glassStyle } = useTheme();
   const { verifyEmail, user } = useAuth();
   const router = useRouter();
   const [otp, setOtp] = useState('');
@@ -29,6 +31,7 @@ export default function VerifyEmailScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const styles = createStyles(colors, glassStyle);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -38,7 +41,7 @@ export default function VerifyEmailScreen() {
 
   async function handleVerify() {
     if (otp.length !== 6) {
-      setError('Entrez le code a 6 chiffres recu par email.');
+      setError('Entrez le code à 6 chiffres reçu par email.');
       return;
     }
 
@@ -75,7 +78,7 @@ export default function VerifyEmailScreen() {
   }, [cooldown, resending]);
 
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid]} style={styles.gradient}>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -83,25 +86,25 @@ export default function VerifyEmailScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Ionicons name="mail-open-outline" size={40} color={Colors.primary} />
+              <Ionicons name="mail-open-outline" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.title}>Verifiez votre email</Text>
+            <Text style={styles.title}>Vérifiez votre email</Text>
             <Text style={styles.subtitle}>
-              Nous avons envoye un code a 6 chiffres a {user?.email || 'votre adresse email'}.
+              Nous avons envoyé un code à 6 chiffres à {user?.email || 'votre adresse email'}.
             </Text>
           </View>
 
           <View style={styles.card}>
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={18} color={Colors.danger} />
+                <Ionicons name="alert-circle" size={18} color={colors.danger} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
             {success ? (
               <View style={styles.successBox}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                 <Text style={styles.successText}>{success}</Text>
               </View>
             ) : null}
@@ -112,7 +115,7 @@ export default function VerifyEmailScreen() {
                 <TextInput
                   style={[styles.otpInput, { letterSpacing: 10 }]}
                   placeholder="000000"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={otp}
                   onChangeText={setOtp}
                   keyboardType="number-pad"
@@ -127,7 +130,7 @@ export default function VerifyEmailScreen() {
               onPress={handleVerify}
               disabled={loading || otp.length !== 6}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verifier mon email</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Vérifier mon email</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -136,7 +139,7 @@ export default function VerifyEmailScreen() {
               disabled={cooldown > 0 || resending}
             >
               {resending ? (
-                <ActivityIndicator size="small" color={Colors.primaryLight} />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Text style={styles.resendText}>
                   {cooldown > 0 ? `Renvoyer le code (${cooldown}s)` : 'Renvoyer le code'}
@@ -150,7 +153,7 @@ export default function VerifyEmailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   scroll: {
@@ -166,7 +169,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    backgroundColor: colors.glass,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -174,17 +177,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.xxl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: Spacing.lg,
   },
   card: {
-    ...GlassStyle,
+    ...glassStyle,
     padding: Spacing.lg,
   },
   errorBox: {
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   errorText: {
-    color: Colors.danger,
+    color: colors.danger,
     fontSize: FontSize.sm,
     flex: 1,
   },
@@ -211,7 +214,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   successText: {
-    color: Colors.success,
+    color: colors.success,
     fontSize: FontSize.sm,
     flex: 1,
   },
@@ -219,26 +222,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   label: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
     fontWeight: '600',
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   inputWrapper: {
-    backgroundColor: Colors.inputBg,
+    backgroundColor: colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
   otpInput: {
-    color: Colors.text,
+    color: colors.text,
     fontSize: 28,
     fontWeight: '700',
     paddingVertical: Spacing.md,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
@@ -247,7 +250,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: Colors.text,
+    color: '#fff',
     fontSize: FontSize.md,
     fontWeight: '700',
   },
@@ -256,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resendText: {
-    color: Colors.primaryLight,
+    color: colors.primary,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },

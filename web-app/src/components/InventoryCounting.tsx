@@ -11,6 +11,7 @@ import {
     Box
 } from 'lucide-react';
 import { inventory as inventoryApi } from '../services/api';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function InventoryCounting() {
     const { t } = useTranslation();
@@ -59,8 +60,28 @@ export default function InventoryCounting() {
         }
     };
 
+    const countingSteps: GuideStep[] = [
+        {
+            title: t('guide.counting.step1_title', { defaultValue: 'Inventaire tournant' }),
+            content: t('guide.counting.step1', { defaultValue: 'Vérifiez votre stock par rotation régulière sans tout compter.' }),
+        },
+        {
+            title: t('guide.counting.step2_title', { defaultValue: 'Générer les tâches' }),
+            content: t('guide.counting.step2', { defaultValue: 'Cliquez le bouton en haut à droite pour générer les produits à compter.' }),
+        },
+        {
+            title: t('guide.counting.step3_title', { defaultValue: 'Compter' }),
+            content: t('guide.counting.step3', { defaultValue: 'Saisissez la quantité réelle sur chaque carte produit.' }),
+        },
+        {
+            title: t('guide.counting.step4_title', { defaultValue: 'Validation' }),
+            content: t('guide.counting.step4', { defaultValue: 'Les écarts sont corrigés automatiquement dans le stock.' }),
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={countingSteps} guideKey="counting_tour" />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
