@@ -522,6 +522,7 @@ async def run_startup_migrations():
         # Détection d'anomalies IA : passé de 30 min (1800s) à 12 heures (43200s) pour économiser des tokens
         asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
         asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
+        asyncio.create_task(supervised_loop("late_deliveries", check_late_deliveries_loop, 21600))
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
@@ -7377,7 +7378,6 @@ async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_sup
     return {"status": "deleted", "catalog_id": catalog_id}
 
 
-
 async def check_ai_anomalies_loop():
     """Logic for AI anomaly detection check (called by supervised_loop) (I8)"""
     logger.info("Starting global AI anomaly detection check...")
@@ -7928,7 +7928,7 @@ class CustomerInvoice(BaseModel):
     invoice_prefix: str = "FAC"
     user_id: str
     store_id: str
-    sale_id: str
+    sale_id: Optional[str] = None
     customer_id: Optional[str] = None
     customer_name: Optional[str] = None
     status: str = "issued"
@@ -8055,7 +8055,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             raise HTTPException(status_code=400, detail="Le numero de telephone est requis pour verifier ce compte.")
         otp = generate_otp_code() if required_verification == "email" else None
         otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
-        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=90)  # 3 months free trial
+        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=30)  # 1 month free trial
         user_doc = {
             "user_id": user_id,
             "email": user_data.email,
@@ -12250,6 +12250,96 @@ async def create_customer_invoice_from_sale(
     if sale_doc.get("status") == "cancelled":
         raise HTTPException(status_code=400, detail="Impossible de creer une facture pour une vente annulee")
     return await _create_or_get_invoice_from_sale_doc(sale_doc, user)
+
+
+class FreeInvoiceItemCreate(BaseModel):
+    description: str
+    quantity: float = 1
+    unit_price: float = 0
+    tax_rate: float = 0.0
+
+class FreeInvoiceCreate(BaseModel):
+    customer_name: Optional[str] = None
+    customer_id: Optional[str] = None
+    items: List[FreeInvoiceItemCreate]
+    discount_amount: float = 0.0
+    payment_method: Optional[str] = None
+    payment_terms: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.post("/invoices/free", response_model=CustomerInvoice)
+async def create_free_invoice(
+    data: FreeInvoiceCreate,
+    user: User = Depends(require_permission("accounting", "write")),
+):
+    """Create a free invoice not tied to any sale"""
+    ensure_subscription_advanced_allowed(user, detail="La creation de facture necessite un abonnement actif.")
+    owner_id = get_owner_id(user)
+
+    if not data.items:
+        raise HTTPException(status_code=400, detail="At least one item is required")
+
+    # Get invoice settings from user doc
+    user_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    settings = (user_doc or {}).get("invoice_settings") or {}
+    prefix = settings.get("invoice_prefix", "FAC")
+    label = settings.get("invoice_label", "Facture")
+    business_name = settings.get("invoice_business_name") or (user_doc or {}).get("business_name", "")
+    business_address = settings.get("invoice_business_address", "")
+    footer = settings.get("invoice_footer", "")
+    payment_terms_default = settings.get("invoice_payment_terms", "")
+
+    # Build items
+    invoice_items = []
+    subtotal_ht = 0.0
+    tax_total = 0.0
+    for item in data.items:
+        line_total = round(item.quantity * item.unit_price, 2)
+        tax_amount = round(line_total * item.tax_rate / 100, 2)
+        subtotal_ht += line_total
+        tax_total += tax_amount
+        invoice_items.append(CustomerInvoiceItem(
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            line_total=line_total,
+            tax_rate=item.tax_rate,
+            tax_amount=tax_amount,
+        ))
+
+    total_amount = round(subtotal_ht + tax_total - data.discount_amount, 2)
+
+    # Auto invoice number
+    count = await db.customer_invoices.count_documents({"user_id": owner_id})
+    invoice_number = f"{prefix}-{count + 1:05d}"
+
+    store_id = getattr(user, "active_store_id", None) or ""
+    currency = getattr(user, "currency", None) or "XOF"
+
+    invoice = CustomerInvoice(
+        invoice_number=invoice_number,
+        invoice_label=label,
+        invoice_prefix=prefix,
+        user_id=owner_id,
+        store_id=store_id,
+        sale_id=None,
+        customer_id=data.customer_id,
+        customer_name=data.customer_name,
+        currency=currency,
+        items=invoice_items,
+        discount_amount=data.discount_amount,
+        subtotal_ht=round(subtotal_ht, 2),
+        tax_total=round(tax_total, 2),
+        total_amount=total_amount,
+        payment_method=data.payment_method,
+        payment_terms=data.payment_terms or payment_terms_default,
+        notes=data.notes,
+        business_name=business_name,
+        business_address=business_address,
+        footer=footer,
+    )
+    await db.customer_invoices.insert_one(invoice.model_dump())
+    return invoice
 
 
 @api_router.get("/accounting/kpi-details")
@@ -16985,6 +17075,20 @@ async def check_late_deliveries_internal(user_id: str):
 async def check_late_deliveries(user: User = Depends(require_auth)):
     await check_late_deliveries_internal(user.user_id)
     return {"message": "Vérification des livraisons en retard effectuée"}
+
+
+async def check_late_deliveries_loop():
+    """Check late deliveries for all shopkeepers (called by supervised_loop)."""
+    logger.info("Checking for late deliveries...")
+    users = await db.users.find(
+        {"role": "shopkeeper", "active_store_id": {"$ne": None}},
+        {"user_id": 1}
+    ).to_list(None)
+    for u in users:
+        try:
+            await check_late_deliveries_internal(u["user_id"])
+        except Exception as e:
+            logger.warning(f"check_late_deliveries for {u['user_id']}: {e}")
 
 # ===================== EXPORT CSV ROUTES =====================
 

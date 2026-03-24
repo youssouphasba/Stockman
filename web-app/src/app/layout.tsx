@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: "Stockman — Back-Office Enterprise",
     template: "%s | Stockman",
   },
-  description: "Le back-office web pour commerçants : stock, caisse, comptabilité, CRM. Plan Enterprise — essai gratuit 3 mois.",
+  description: "Le back-office web pour commerçants : stock, caisse, comptabilité, CRM. Plan Enterprise — essai gratuit 1 mois.",
   manifest: "/manifest.json",
   icons: {
     apple: "/apple-touch-icon.png",

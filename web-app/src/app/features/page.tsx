@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Fonctionnalites Stockman Enterprise",
-    description: "12 modules pour gerer votre activite depuis le web. Essai gratuit 3 mois.",
+    description: "12 modules pour gerer votre activite depuis le web. Essai gratuit 1 mois.",
     images: ["https://app.stockman.pro/og-image.png"],
   },
   keywords: [
@@ -120,7 +120,7 @@ export default function FeaturesPage() {
       <section className="border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
         <div className="max-w-6xl mx-auto px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-bold px-4 py-2 rounded-full border border-primary/20 mb-6">
-            <Zap size={13} /> Plan Enterprise - Essai gratuit 3 mois
+            <Zap size={13} /> Plan Enterprise - Essai gratuit 1 mois
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
             12 modules professionnels<br />
@@ -193,7 +193,7 @@ export default function FeaturesPage() {
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-8 text-center">
           <h2 className="text-2xl font-black text-white mb-2">Pret a passer au niveau superieur ?</h2>
           <p className="text-slate-400 text-sm max-w-lg mx-auto mb-6">
-            Essai gratuit 3 mois inclus. Aucune carte bancaire requise.
+            Essai gratuit 1 mois inclus. Aucune carte bancaire requise.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a

@@ -19,13 +19,13 @@ const structuredData = {
 export const metadata: Metadata = {
   title: 'Tarifs - Starter mobile, Pro mobile et Enterprise web + mobile',
   description:
-    'Choisissez le bon parcours Stockman: Starter et Pro sur mobile, Enterprise avec back-office web et mobile terrain. Essai gratuit 3 mois.',
+    'Choisissez le bon parcours Stockman: Starter et Pro sur mobile, Enterprise avec back-office web et mobile terrain. Essai gratuit 1 mois.',
   alternates: { canonical: 'https://app.stockman.pro/pricing' },
   openGraph: {
     type: 'website',
     url: 'https://app.stockman.pro/pricing',
     title: 'Tarifs Stockman - Plans Starter, Pro & Enterprise',
-    description: 'Starter et Pro sur mobile. Enterprise avec back-office web, analyses et multi-boutiques. Essai gratuit 3 mois.',
+    description: 'Starter et Pro sur mobile. Enterprise avec back-office web, analyses et multi-boutiques. Essai gratuit 1 mois.',
     images: [{ url: 'https://app.stockman.pro/og-image.png', width: 1200, height: 630 }],
     locale: 'fr_FR',
   },

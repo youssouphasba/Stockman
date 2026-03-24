@@ -1982,7 +1982,7 @@
     "restored": "Geri yüklendi",
     "restored_success": "Aboneliğiniz geri yüklendi.",
     "title": "Aboneliğim",
-    "trial_banner": "3 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
+    "trial_banner": "1 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
     "trial_remaining": "{{count}} gün ücretsiz deneme süresi kaldı"
   },
   "supplier": {

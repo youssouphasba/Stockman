@@ -2036,7 +2036,7 @@
     "restored": "Restauré",
     "restored_success": "Votre abonnement a été restauré.",
     "title": "Mon Abonnement",
-    "trial_banner": "3 mois d'essai gratuit, puis {{price}}/mois. Sans engagement.",
+    "trial_banner": "1 mois d'essai gratuit, puis {{price}}/mois. Sans engagement.",
     "trial_remaining": "{{count}} jours restants d'essai gratuit"
   },
   "supplier": {

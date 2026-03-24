@@ -413,7 +413,7 @@
             "errorRegister": "Kayıt sırasında hata oluştu",
             "choosePlan": "Choose your plan",
             "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
-            "trialNote": "90 days free • No credit card required",
+            "trialNote": "30 days free • No credit card required",
             "planSelected": "Selected",
             "backToRole": "Back",
             "continueToPlan": "Continue"
@@ -1967,7 +1967,7 @@
         "restored": "Geri yüklendi",
         "restored_success": "Aboneliğiniz geri yüklendi.",
         "title": "Aboneliğim",
-        "trial_banner": "3 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
+        "trial_banner": "1 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
         "trial_remaining": "{{count}} gün ücretsiz deneme süresi kaldı"
     },
     "supplier": {

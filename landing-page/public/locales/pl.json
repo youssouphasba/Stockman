@@ -100,7 +100,7 @@
             "f2": "1 Sklep",
             "f3": "Pełny dostęp do wszystkich funkcji",
             "f4": "3-miesięczny bezpłatny okres próbny",
-            "cta": "3 Mois Gratuits"
+            "cta": "1 Mois Gratuit"
         },
         "business": {
             "name": "Pro",
@@ -109,7 +109,7 @@
             "f3": "Pełny dostęp do wszystkich funkcji",
             "f4": "Marketplace Bouton-à-Bouton",
             "f5": "3-miesięczny bezpłatny okres próbny",
-            "cta": "3 Mois Gratuits"
+            "cta": "1 Mois Gratuit"
         },
         "enterprise": {
             "name": "Enterprise",

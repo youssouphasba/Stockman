@@ -91,7 +91,7 @@ export default function PricingPageClient() {
                         <span className="text-primary">taille de commerce</span>
                     </h1>
                     <p className="text-slate-400 max-w-2xl mx-auto text-base">
-                        Starter et Pro se gerent depuis l&apos;application mobile. Enterprise ajoute le back-office web complet. Essai gratuit 3 mois.
+                        Starter et Pro se gerent depuis l&apos;application mobile. Enterprise ajoute le back-office web complet. Essai gratuit 1 mois.
                     </p>
                     <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-bold text-primary">
                         <Smartphone size={14} />

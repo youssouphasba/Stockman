@@ -413,10 +413,10 @@
             "errorRegister": "Error durante el registro",
             "backToRole": "Retour",
             "choosePlan": "Choisissez votre plan",
-            "choosePlanSubtitle": "Vous testerez ce plan pendant votre essai gratuit de 90 jours",
+            "choosePlanSubtitle": "Vous testerez ce plan pendant votre essai gratuit de 30 jours",
             "continueToPlan": "Continuer",
             "planSelected": "Sélectionné",
-            "trialNote": "90 jours gratuits • Sans carte bancaire"
+            "trialNote": "30 jours gratuits • Sans carte bancaire"
         },
         "verifyPhone": {
             "title": "Verificación",

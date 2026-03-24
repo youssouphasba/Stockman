@@ -1945,7 +1945,7 @@
     "restored": "Restored",
     "restored_success": "Your subscription has been restored.",
     "title": "My Subscription",
-    "trial_banner": "3 months free trial, then {{price}}/month. No commitment.",
+    "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
     "trial_remaining": "{{count}} days left of free trial"
   },
   "supplier": {

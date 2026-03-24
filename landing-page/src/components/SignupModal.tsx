@@ -167,9 +167,9 @@ export default function SignupModal({ plan, onClose }: Props) {
         {step === 'form' ? (
           <>
             <div className="signup-modal-header">
-              <span className="signup-modal-badge">3 mois gratuits — sans carte bancaire</span>
+              <span className="signup-modal-badge">1 mois gratuit — sans carte bancaire</span>
               <h2>Créer mon compte {planLabel}</h2>
-              <p>Accès complet à toutes les fonctionnalités pendant 3 mois.</p>
+              <p>Accès complet à toutes les fonctionnalités pendant 1 mois.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="signup-form">
@@ -360,7 +360,7 @@ export default function SignupModal({ plan, onClose }: Props) {
             <div className="signup-success-icon">🎉</div>
             <h2>Compte créé !</h2>
             <p>
-              Votre essai gratuit de <strong>3 mois</strong> démarre maintenant.
+              Votre essai gratuit de <strong>1 mois</strong> démarre maintenant.
               Téléchargez l'application et connectez-vous avec votre email et mot de passe.
             </p>
 

@@ -1930,7 +1930,7 @@
       "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
       "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman."
     },
-    "free_trial": "3 weeru Esey",
+    "free_trial": "1 Lewru Esey",
     "iap_not_available": "In-app purchases are not available. Use Mobile Money.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
@@ -1950,7 +1950,7 @@
     "restored": "Dellusi na",
     "restored_success": "Sa abonnement dellusi na.",
     "title": "Sama Abonnement",
-    "trial_banner": "3 months free trial, then {{price}}/month. No commitment.",
+    "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
     "trial_remaining": "{{count}} fan yu des ci esey bi"
   },
   "supplier": {

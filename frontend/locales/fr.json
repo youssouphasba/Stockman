@@ -427,7 +427,7 @@
             "businessTypePlaceholder": "Ex: Boutique, Quincaillerie...",
             "changeProfile": "Changer de profil",
             "choosePlan": "Choisissez votre plan",
-            "choosePlanSubtitle": "Vous testerez ce plan pendant votre essai gratuit de 90 jours",
+            "choosePlanSubtitle": "Vous testerez ce plan pendant votre essai gratuit de 30 jours",
             "chooseProfile": "Choisissez votre profil",
             "confirmPassword": "Confirmer le mot de passe",
             "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
@@ -469,7 +469,7 @@
             "supplierAccount": "Compte Fournisseur",
             "supplierDesc": "Publiez votre catalogue, recevez des commandes",
             "title": "Créer un compte",
-            "trialNote": "90 jours gratuits • Sans carte bancaire"
+            "trialNote": "30 jours gratuits • Sans carte bancaire"
         },
         "verifyPhone": {
             "title": "Vérification",
@@ -2434,7 +2434,7 @@
         "restored": "Restauré",
         "restored_success": "Votre abonnement a été restauré.",
         "title": "Mon Abonnement",
-        "trial_banner": "3 mois d'essai gratuit, puis {{price}}/mois. Sans engagement.",
+        "trial_banner": "1 mois d'essai gratuit, puis {{price}}/mois. Sans engagement.",
         "trial_remaining": "{{count}} jours restants d'essai gratuit"
     },
     "supplier": {
@@ -2500,7 +2500,31 @@
         "write_message": "Écrire un message...",
         "supplier_role": "Fournisseur",
         "shopkeeper_role": "Commerçant",
-        "just_now": "à l'instant"
+        "just_now": "à l'instant",
+        "invoices": "Factures",
+        "invoice_title": "Mes Factures",
+        "create_invoice": "Créer une facture",
+        "generate_from_order": "Générer depuis commande",
+        "invoice_number": "N° Facture",
+        "invoice_number_placeholder": "Auto-généré si vide",
+        "invoice_notes": "Notes",
+        "invoice_notes_placeholder": "Notes ou conditions...",
+        "invoice_status_paid": "Payée",
+        "invoice_status_unpaid": "Impayée",
+        "invoice_status_partial": "Partielle",
+        "mark_paid": "Marquer payée",
+        "mark_unpaid": "Marquer impayée",
+        "mark_partial": "Paiement partiel",
+        "invoice_created": "Facture créée",
+        "invoice_already_exists": "Une facture existe déjà pour cette commande",
+        "no_invoices": "Aucune facture",
+        "no_invoices_hint": "Créez des factures depuis vos commandes livrées",
+        "select_order": "Sélectionner une commande",
+        "no_invoiceable_orders": "Aucune commande facturable",
+        "invoice_total": "Total",
+        "invoice_client": "Client",
+        "invoice_date": "Date",
+        "invoice_items": "Articles facturés"
     },
     "supplier_old": {
         "active_clients": "Clients actifs",

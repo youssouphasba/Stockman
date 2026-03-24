@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { CheckCircle2, Eye, EyeOff, X, ChevronDown, Search } from 'lucide-react';
 import { auth, type AuthResponse } from '../services/api';
 import { COUNTRIES } from '@/data/countries';
 
@@ -29,6 +29,29 @@ const SECTORS = [
   { key: 'autre', label: 'Autre', icon: '🔀' },
 ] as const;
 
+const HOW_OPTIONS = [
+  { key: '', label: 'Selectionnez...' },
+  { key: 'google', label: 'Recherche Google' },
+  { key: 'social_media', label: 'Reseaux sociaux' },
+  { key: 'friend', label: 'Recommandation' },
+  { key: 'app_store', label: 'App Store / Play Store' },
+  { key: 'other', label: 'Autre' },
+];
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+  if (!pw) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score: 1, label: 'Faible', color: '#ef4444' };
+  if (score <= 2) return { score: 2, label: 'Moyen', color: '#f59e0b' };
+  if (score <= 3) return { score: 3, label: 'Bon', color: '#3b82f6' };
+  return { score: 4, label: 'Fort', color: '#22c55e' };
+}
+
 type Props = {
   onClose: () => void;
   onSuccess: (response: AuthResponse) => void;
@@ -48,8 +71,38 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [howDidYouHear, setHowDidYouHear] = useState('');
 
-  const selectedCountry = COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0];
+  // Sector dropdown state
+  const [sectorOpen, setSectorOpen] = useState(false);
+  const [sectorSearch, setSectorSearch] = useState('');
+  const sectorRef = useRef<HTMLDivElement>(null);
+  const sectorSearchRef = useRef<HTMLInputElement>(null);
+
+  const selectedCountry = COUNTRIES.find((c) => c.code === selectedCountryCode) || COUNTRIES[0];
+  const selectedSector = SECTORS.find((s) => s.key === businessType);
+  const passwordStrength = getPasswordStrength(password);
+
+  const filteredSectors = useMemo(() => {
+    const q = sectorSearch.trim().toLowerCase();
+    if (!q) return SECTORS;
+    return SECTORS.filter((s) => s.label.toLowerCase().includes(q) || s.key.toLowerCase().includes(q));
+  }, [sectorSearch]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sectorRef.current && !sectorRef.current.contains(e.target as Node)) {
+        setSectorOpen(false);
+      }
+    }
+    if (sectorOpen) {
+      document.addEventListener('mousedown', handleClick);
+      sectorSearchRef.current?.focus();
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [sectorOpen]);
+
   const inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm';
   const labelClass = 'block text-xs font-semibold text-slate-400 mb-1';
 
@@ -94,6 +147,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
         currency: selectedCountry.currency,
         country_code: selectedCountry.code,
         business_type: businessType,
+        how_did_you_hear: howDidYouHear || undefined,
         signup_surface: 'web',
       });
       setSuccess(true);
@@ -106,10 +160,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="relative bg-[#0f0c29] border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <button
           onClick={onClose}
@@ -134,7 +185,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
           <div className="p-6">
             <div className="mb-5">
               <span className="text-xs font-bold bg-primary/20 text-primary px-3 py-1 rounded-full">
-                3 mois gratuits - sans carte bancaire
+                1 mois gratuit - sans carte bancaire
               </span>
               <h2 className="text-xl font-bold text-white mt-3">Creer mon compte Enterprise</h2>
               <p className="text-slate-400 text-sm mt-1">
@@ -143,6 +194,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              {/* Country */}
               <div>
                 <label className={labelClass}>Pays</label>
                 <select
@@ -158,6 +210,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 </select>
               </div>
 
+              {/* Name */}
               <div>
                 <label className={labelClass}>Nom complet</label>
                 <input
@@ -171,6 +224,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 />
               </div>
 
+              {/* Phone */}
               <div>
                 <label className={labelClass}>Telephone (optionnel)</label>
                 <div className="flex gap-2">
@@ -187,6 +241,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <label className={labelClass}>Email professionnel</label>
                 <input
@@ -199,6 +254,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 />
               </div>
 
+              {/* Password */}
               <div>
                 <label className={labelClass}>Mot de passe</label>
                 <div className="relative">
@@ -220,8 +276,22 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {password && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${passwordStrength.score * 25}%`, backgroundColor: passwordStrength.color }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-semibold" style={{ color: passwordStrength.color }}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                )}
               </div>
 
+              {/* Confirm Password */}
               <div>
                 <label className={labelClass}>Confirmer le mot de passe</label>
                 <input
@@ -232,29 +302,81 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   className={inputClass}
                   required
                 />
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="text-[10px] text-red-400 mt-1">Les mots de passe ne correspondent pas</p>
+                )}
               </div>
 
-              <div>
+              {/* Business type dropdown */}
+              <div ref={sectorRef} className="relative">
                 <label className={labelClass}>Secteur d&apos;activite</label>
-                <div className="grid grid-cols-3 gap-1.5 mt-1">
-                  {SECTORS.map((sector) => (
-                    <button
-                      key={sector.key}
-                      type="button"
-                      onClick={() => setBusinessType(businessType === sector.key ? '' : sector.key)}
-                      className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border text-center transition-all ${
-                        businessType === sector.key
-                          ? 'bg-primary/20 border-primary text-white'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{sector.icon}</span>
-                      <span className="text-[10px] font-semibold leading-tight">{sector.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => { setSectorOpen(!sectorOpen); setSectorSearch(''); }}
+                  className={`${inputClass} flex items-center justify-between cursor-pointer text-left ${
+                    businessType ? 'text-white' : 'text-white/30'
+                  }`}
+                >
+                  <span>
+                    {selectedSector ? `${selectedSector.icon} ${selectedSector.label}` : 'Selectionnez un secteur'}
+                  </span>
+                  <ChevronDown size={16} className={`text-white/40 transition-transform ${sectorOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {sectorOpen && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
+                      <Search size={14} className="text-white/30" />
+                      <input
+                        ref={sectorSearchRef}
+                        type="text"
+                        value={sectorSearch}
+                        onChange={(e) => setSectorSearch(e.target.value)}
+                        placeholder="Rechercher..."
+                        className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredSectors.map((sector) => (
+                        <button
+                          key={sector.key}
+                          type="button"
+                          onClick={() => { setBusinessType(sector.key); setSectorOpen(false); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
+                            businessType === sector.key
+                              ? 'bg-primary/20 text-white'
+                              : 'text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="text-base">{sector.icon}</span>
+                          <span>{sector.label}</span>
+                        </button>
+                      ))}
+                      {filteredSectors.length === 0 && (
+                        <p className="text-center text-white/30 text-xs py-4">Aucun resultat</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* How did you hear */}
+              <div>
+                <label className={labelClass}>Comment nous avez-vous connu ? (optionnel)</label>
+                <select
+                  value={howDidYouHear}
+                  onChange={(e) => setHowDidYouHear(e.target.value)}
+                  className={`${inputClass} cursor-pointer`}
+                >
+                  {HOW_OPTIONS.map((opt) => (
+                    <option key={opt.key} value={opt.key} style={{ backgroundColor: '#1a1040' }}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Terms */}
               <div className="flex flex-col gap-2 mt-1">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input

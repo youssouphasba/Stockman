@@ -1051,6 +1051,30 @@ export const supplierOrders = {
       body: { status },
     }),
 };
+
+// Supplier Invoices (CAS 1)
+export type SupplierInvoiceData = {
+  invoice_id: string;
+  supplier_user_id: string;
+  order_id: string;
+  shopkeeper_user_id: string;
+  shopkeeper_name: string;
+  invoice_number: string;
+  items: { name: string; quantity: number; unit_price: number; total: number }[];
+  total_amount: number;
+  status: 'paid' | 'unpaid' | 'partial';
+  notes: string | null;
+  created_at: string;
+};
+
+export const supplierInvoices = {
+  list: () => request<SupplierInvoiceData[]>('/supplier/invoices'),
+  create: (data: { order_id: string; invoice_number?: string; notes?: string }) =>
+    request<SupplierInvoiceData>('/supplier/invoices', { method: 'POST', body: data }),
+  updateStatus: (invoiceId: string, status: string) =>
+    request<any>(`/supplier/invoices/${invoiceId}/status`, { method: 'PUT', body: { status } }),
+};
+
 // Notifications
 export const notifications = {
   registerToken: (token: string) => request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { token } }),

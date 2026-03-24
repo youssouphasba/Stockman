@@ -1807,6 +1807,15 @@ export const accounting = {
     },
     createInvoiceFromSale: (saleId: string) =>
         request<CustomerInvoice>(`/invoices/from-sale/${saleId}`, { method: 'POST' }),
+    createFreeInvoice: (data: {
+        customer_name?: string;
+        customer_id?: string;
+        items: { description: string; quantity: number; unit_price: number; tax_rate?: number }[];
+        discount_amount?: number;
+        payment_method?: string;
+        payment_terms?: string;
+        notes?: string;
+    }) => request<CustomerInvoice>('/invoices/free', { method: 'POST', body: data }),
     getInvoice: (invoiceId: string) =>
         request<CustomerInvoice>(`/invoices/${invoiceId}`),
     getKpiDetails: (metric: string, days?: number, startDate?: string, endDate?: string) => {

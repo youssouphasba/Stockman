@@ -1950,7 +1950,7 @@
     "restored": "Restaurat",
     "restored_success": "Abonamentul dvs. a fost restaurat.",
     "title": "Abonamentul Meu",
-    "trial_banner": "3 luni de probă gratuită, apoi {{price}}/lună. Fără angajament.",
+    "trial_banner": "1 lună de probă gratuită, apoi {{price}}/lună. Fără angajament.",
     "trial_remaining": "{{count}} zile rămase din perioada de probă gratuită"
   },
   "supplier": {

@@ -111,7 +111,7 @@
             "f2": "1 Store",
             "f3": "Full access to all features",
             "f4": "3-month free trial",
-            "cta": "3 Months Free"
+            "cta": "1 Month Free"
         },
         "business": {
             "name": "Pro",
@@ -120,7 +120,7 @@
             "f3": "Full access to all features",
             "f4": "Button-to-Button Marketplace",
             "f5": "3-month free trial",
-            "cta": "3 Months Free"
+            "cta": "1 Month Free"
         },
         "enterprise": {
             "name": "Enterprise",

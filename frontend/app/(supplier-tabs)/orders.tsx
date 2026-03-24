@@ -11,11 +11,12 @@ import {
   Alert,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { supplierOrders, SupplierOrderData } from '../../services/api';
+import { supplierOrders, supplierInvoices, SupplierOrderData, SupplierInvoiceData } from '../../services/api';
 import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
@@ -47,6 +48,81 @@ export default function SupplierOrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<SupplierOrderData | null>(null);
   const [updating, setUpdating] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  // Invoice state
+  const [viewMode, setViewMode] = useState<'orders' | 'invoices'>('orders');
+  const [invoices, setInvoices] = useState<SupplierInvoiceData[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [showInvoiceCreate, setShowInvoiceCreate] = useState(false);
+  const [invoiceOrderId, setInvoiceOrderId] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [creatingSaving, setCreatingSaving] = useState(false);
+  const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoiceData | null>(null);
+
+  const loadInvoices = useCallback(async () => {
+    setInvoicesLoading(true);
+    try {
+      const result = await supplierInvoices.list();
+      setInvoices(result);
+    } catch { /* ignore */ }
+    finally { setInvoicesLoading(false); }
+  }, []);
+
+  async function handleCreateInvoice() {
+    if (!invoiceOrderId) return;
+    setCreatingSaving(true);
+    try {
+      await supplierInvoices.create({
+        order_id: invoiceOrderId,
+        invoice_number: invoiceNumber.trim() || undefined,
+        notes: invoiceNotes.trim() || undefined,
+      });
+      setShowInvoiceCreate(false);
+      setInvoiceOrderId('');
+      setInvoiceNumber('');
+      setInvoiceNotes('');
+      loadInvoices();
+    } catch (e: any) {
+      Alert.alert(t('common.error'), t('supplier.invoice_already_exists'));
+    } finally {
+      setCreatingSaving(false);
+    }
+  }
+
+  async function handleGenerateFromDetail() {
+    if (!selectedOrder) return;
+    setInvoiceOrderId(selectedOrder.order_id);
+    setInvoiceNumber('');
+    setInvoiceNotes('');
+    setShowDetail(false);
+    setShowInvoiceCreate(true);
+  }
+
+  async function handleInvoiceStatusChange(invoiceId: string, newStatus: string) {
+    try {
+      await supplierInvoices.updateStatus(invoiceId, newStatus);
+      loadInvoices();
+      setShowInvoiceDetail(false);
+    } catch {
+      Alert.alert(t('common.error'), t('supplier.status_change_error'));
+    }
+  }
+
+  function getInvoiceStatusColor(status: string): string {
+    switch (status) {
+      case 'paid': return Colors.success;
+      case 'partial': return Colors.warning;
+      case 'unpaid': return Colors.danger;
+      default: return Colors.textMuted;
+    }
+  }
+
+  // Get orders eligible for invoicing (confirmed/shipped/delivered, not already invoiced)
+  const invoiceableOrders = ordersList.filter(o =>
+    ['confirmed', 'shipped', 'delivered'].includes(o.status)
+  );
 
   const getStatusLabel = (status: string) => t(`supplier.status_${status}`, { defaultValue: status });
   const getFilterLabel = (f: string) => f === 'all' ? t('supplier.filter_all') : t(`supplier.filter_${f}`, { defaultValue: f });
@@ -115,7 +191,8 @@ export default function SupplierOrdersScreen() {
     useCallback(() => {
       loadOrders();
       loadClients();
-    }, [loadOrders, loadClients])
+      loadInvoices();
+    }, [loadOrders, loadClients, loadInvoices])
   );
 
   function onRefresh() {
@@ -187,8 +264,30 @@ export default function SupplierOrdersScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
       >
-        <Text style={styles.pageTitle}>{t('orders.received_orders')}</Text>
+        {/* Orders / Invoices toggle */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, viewMode === 'orders' && styles.toggleBtnActive]}
+            onPress={() => setViewMode('orders')}
+          >
+            <Ionicons name="receipt-outline" size={16} color={viewMode === 'orders' ? '#fff' : Colors.textMuted} />
+            <Text style={[styles.toggleText, viewMode === 'orders' && styles.toggleTextActive]}>
+              {t('orders.received_orders')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleBtn, viewMode === 'invoices' && styles.toggleBtnActive]}
+            onPress={() => { setViewMode('invoices'); loadInvoices(); }}
+          >
+            <Ionicons name="document-text-outline" size={16} color={viewMode === 'invoices' ? '#fff' : Colors.textMuted} />
+            <Text style={[styles.toggleText, viewMode === 'invoices' && styles.toggleTextActive]}>
+              {t('supplier.invoices')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
+        {viewMode === 'orders' ? (
+        <>
         {/* Date Filter */}
         <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
           <PeriodSelector
@@ -292,6 +391,66 @@ export default function SupplierOrdersScreen() {
             <Text style={styles.emptyText}>{t('orders.no_orders')} {filter !== 'all' ? getFilterLabel(filter).toLowerCase() : ''}</Text>
           </View>
         )}
+        </>
+        ) : (
+        /* ── INVOICES VIEW ── */
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.pageTitle}>{t('supplier.invoice_title')}</Text>
+            <TouchableOpacity
+              style={styles.addInvoiceBtn}
+              onPress={() => {
+                setInvoiceOrderId('');
+                setInvoiceNumber('');
+                setInvoiceNotes('');
+                setShowInvoiceCreate(true);
+              }}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {invoicesLoading ? (
+            <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: Spacing.xl }} />
+          ) : invoices.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>{t('supplier.no_invoices')}</Text>
+              <Text style={{ color: Colors.textMuted, fontSize: FontSize.sm, textAlign: 'center' }}>{t('supplier.no_invoices_hint')}</Text>
+            </View>
+          ) : (
+            invoices.map((inv) => {
+              const statusColor = getInvoiceStatusColor(inv.status);
+              return (
+                <TouchableOpacity
+                  key={inv.invoice_id}
+                  style={styles.orderCard}
+                  onPress={() => { setSelectedInvoice(inv); setShowInvoiceDetail(true); }}
+                >
+                  <View style={styles.orderHeader}>
+                    <View>
+                      <Text style={styles.orderShopkeeper}>{inv.invoice_number}</Text>
+                      <Text style={styles.orderDate}>{inv.shopkeeper_name}</Text>
+                      <Text style={styles.orderDate}>
+                        {inv.created_at ? new Date(inv.created_at).toLocaleDateString(i18n.language) : ''}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+                      <Text style={[styles.statusText, { color: statusColor }]}>
+                        {t(`supplier.invoice_status_${inv.status}`)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.orderDetails}>
+                    <Text style={styles.orderItems}>{inv.items.length} {t('orders.items').toLowerCase()}</Text>
+                    <Text style={styles.orderTotal}>{formatNumber(inv.total_amount)} {t('common.currency_default')}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </>
+        )}
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
@@ -381,6 +540,17 @@ export default function SupplierOrdersScreen() {
                     ))}
                   </View>
                 )}
+
+                {/* Generate Invoice button */}
+                {['confirmed', 'shipped', 'delivered'].includes(selectedOrder.status) && (
+                  <TouchableOpacity
+                    style={[styles.modalActionBtn, { backgroundColor: Colors.info, marginTop: Spacing.sm, flex: 0 }]}
+                    onPress={handleGenerateFromDetail}
+                  >
+                    <Ionicons name="document-text-outline" size={18} color="#fff" />
+                    <Text style={styles.modalActionText}>{t('supplier.create_invoice')}</Text>
+                  </TouchableOpacity>
+                )}
               </ScrollView>
             )}
           </View>
@@ -395,6 +565,181 @@ export default function SupplierOrdersScreen() {
           partnerName={selectedOrder.shopkeeper_name}
         />
       )}
+
+      {/* Invoice Create Modal */}
+      <Modal visible={showInvoiceCreate} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('supplier.create_invoice')}</Text>
+              <TouchableOpacity onPress={() => setShowInvoiceCreate(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.detailSectionTitle}>{t('supplier.select_order')}</Text>
+              {invoiceableOrders.length === 0 ? (
+                <Text style={{ color: Colors.textMuted, padding: Spacing.md }}>{t('supplier.no_invoiceable_orders')}</Text>
+              ) : (
+                invoiceableOrders.map((order) => (
+                  <TouchableOpacity
+                    key={order.order_id}
+                    style={[
+                      styles.orderSelectItem,
+                      invoiceOrderId === order.order_id && styles.orderSelectItemActive,
+                    ]}
+                    onPress={() => setInvoiceOrderId(order.order_id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: Colors.text, fontWeight: '600', fontSize: FontSize.sm }}>
+                        {order.shopkeeper_name}
+                      </Text>
+                      <Text style={{ color: Colors.textMuted, fontSize: FontSize.xs }}>
+                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
+                      </Text>
+                    </View>
+                    <Text style={{ color: Colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
+                      {formatNumber(order.total_amount)} {t('common.currency_short')}
+                    </Text>
+                    {invoiceOrderId === order.order_id && (
+                      <Ionicons name="checkmark-circle" size={20} color={Colors.success} style={{ marginLeft: 8 }} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              )}
+
+              <Text style={[styles.detailSectionTitle, { marginTop: Spacing.lg }]}>{t('supplier.invoice_number')}</Text>
+              <TextInput
+                style={styles.invoiceInput}
+                value={invoiceNumber}
+                onChangeText={setInvoiceNumber}
+                placeholder={t('supplier.invoice_number_placeholder')}
+                placeholderTextColor={Colors.textMuted}
+              />
+
+              <Text style={[styles.detailSectionTitle, { marginTop: Spacing.md }]}>{t('supplier.invoice_notes')}</Text>
+              <TextInput
+                style={[styles.invoiceInput, { minHeight: 80, textAlignVertical: 'top' }]}
+                value={invoiceNotes}
+                onChangeText={setInvoiceNotes}
+                placeholder={t('supplier.invoice_notes_placeholder')}
+                placeholderTextColor={Colors.textMuted}
+                multiline
+              />
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.invoiceSaveBtn, (!invoiceOrderId || creatingSaving) && { opacity: 0.5 }]}
+              onPress={handleCreateInvoice}
+              disabled={!invoiceOrderId || creatingSaving}
+            >
+              {creatingSaving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.modalActionText}>{t('supplier.create_invoice')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Invoice Detail Modal */}
+      <Modal visible={showInvoiceDetail} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedInvoice?.invoice_number}</Text>
+              <TouchableOpacity onPress={() => setShowInvoiceDetail(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedInvoice && (
+              <ScrollView style={styles.modalScroll}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>{t('supplier.invoice_client')}</Text>
+                  <Text style={styles.detailText}>{selectedInvoice.shopkeeper_name}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getInvoiceStatusColor(selectedInvoice.status) + '20', alignSelf: 'flex-start' }]}>
+                    <Text style={[styles.statusText, { color: getInvoiceStatusColor(selectedInvoice.status) }]}>
+                      {t(`supplier.invoice_status_${selectedInvoice.status}`)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>{t('supplier.invoice_date')}</Text>
+                  <Text style={styles.detailText}>
+                    {selectedInvoice.created_at ? new Date(selectedInvoice.created_at).toLocaleDateString(i18n.language, {
+                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                    }) : ''}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>{t('supplier.invoice_items')}</Text>
+                  {selectedInvoice.items.map((item, idx) => (
+                    <View key={idx} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemQty}>{item.quantity} x {formatNumber(item.unit_price)} {t('common.currency_short')}</Text>
+                      </View>
+                      <Text style={styles.itemTotal}>{formatNumber(item.total)} {t('common.currency_short')}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t('supplier.invoice_total')}</Text>
+                  <Text style={styles.totalValue}>{formatNumber(selectedInvoice.total_amount)} {t('common.currency_default')}</Text>
+                </View>
+
+                {selectedInvoice.notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>{t('supplier.invoice_notes')}</Text>
+                    <Text style={styles.detailText}>{selectedInvoice.notes}</Text>
+                  </View>
+                )}
+
+                {/* Status actions */}
+                <View style={[styles.modalActions, { marginTop: Spacing.lg }]}>
+                  {selectedInvoice.status !== 'paid' && (
+                    <TouchableOpacity
+                      style={[styles.modalActionBtn, { backgroundColor: Colors.success }]}
+                      onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'paid')}
+                    >
+                      <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                      <Text style={styles.modalActionText}>{t('supplier.mark_paid')}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {selectedInvoice.status !== 'partial' && (
+                    <TouchableOpacity
+                      style={[styles.modalActionBtn, { backgroundColor: Colors.warning }]}
+                      onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'partial')}
+                    >
+                      <Ionicons name="hourglass-outline" size={18} color="#fff" />
+                      <Text style={styles.modalActionText}>{t('supplier.mark_partial')}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {selectedInvoice.status !== 'unpaid' && (
+                    <TouchableOpacity
+                      style={[styles.modalActionBtn, { backgroundColor: Colors.danger }]}
+                      onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'unpaid')}
+                    >
+                      <Ionicons name="close-circle-outline" size={18} color="#fff" />
+                      <Text style={styles.modalActionText}>{t('supplier.mark_unpaid')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -404,6 +749,83 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  viewToggle: {
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.glass,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    padding: 3,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  toggleBtnActive: {
+    backgroundColor: Colors.secondary,
+  },
+  toggleText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  toggleTextActive: {
+    color: '#fff',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  addInvoiceBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderSelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    marginBottom: Spacing.sm,
+  },
+  orderSelectItemActive: {
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.secondary + '10',
+  },
+  invoiceInput: {
+    backgroundColor: Colors.inputBg || Colors.glass,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    color: Colors.text,
+    fontSize: FontSize.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  invoiceSaveBtn: {
+    backgroundColor: Colors.secondary,
+    marginHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   pageTitle: {
     fontSize: FontSize.xl,
     fontWeight: '700',

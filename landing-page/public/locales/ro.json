@@ -99,8 +99,8 @@
             "f1": "1 Utilizator",
             "f2": "1 Magazin",
             "f3": "Acces complet la toate funcțiile",
-            "f4": "3 luni de probă gratuită",
-            "cta": "3 Mois Gratuits"
+            "f4": "1 lună de probă gratuită",
+            "cta": "1 Mois Gratuit"
         },
         "business": {
             "name": "Pro",
@@ -108,8 +108,8 @@
             "f2": "2 Magazine",
             "f3": "Acces complet la toate funcțiile",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3 luni de probă gratuită",
-            "cta": "3 Mois Gratuits"
+            "f5": "1 lună de probă gratuită",
+            "cta": "1 Mois Gratuit"
         },
         "enterprise": {
             "name": "Enterprise",

@@ -100,7 +100,7 @@
             "f2": "1 متجر",
             "f3": "وصول كامل لجميع الميزات",
             "f4": "3 أشهر تجريبية مجانية",
-            "cta": "3 Mois Gratuits"
+            "cta": "1 Mois Gratuit"
         },
         "business": {
             "name": "Pro",
@@ -109,7 +109,7 @@
             "f3": "وصول كامل لجميع الميزات",
             "f4": "Marketplace Bouton-à-Bouton",
             "f5": "3 أشهر تجريبية مجانية",
-            "cta": "3 Mois Gratuits"
+            "cta": "1 Mois Gratuit"
         },
         "enterprise": {
             "name": "Enterprise",

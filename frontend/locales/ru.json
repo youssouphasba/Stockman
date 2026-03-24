@@ -413,7 +413,7 @@
             "errorRegister": "Ошибка при регистрации",
             "choosePlan": "Choose your plan",
             "choosePlanSubtitle": "You'll test this plan during your 90-day free trial",
-            "trialNote": "90 days free • No credit card required",
+            "trialNote": "30 days free • No credit card required",
             "planSelected": "Selected",
             "backToRole": "Back",
             "continueToPlan": "Continue"
@@ -1967,7 +1967,7 @@
         "restored": "Восстановлено",
         "restored_success": "Ваша подписка восстановлена.",
         "title": "Моя подписка",
-        "trial_banner": "3 месяца бесплатной пробной версии, затем {{price}}/месяц. Без обязательств.",
+        "trial_banner": "1 месяц бесплатной пробной версии, затем {{price}}/месяц. Без обязательств.",
         "trial_remaining": "{{count}} дней осталось бесплатного пробного периода"
     },
     "supplier": {

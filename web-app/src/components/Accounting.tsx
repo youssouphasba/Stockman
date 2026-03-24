@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
 import {
@@ -100,6 +100,18 @@ export default function Accounting() {
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
+    const rightPanelRef = useRef<HTMLDivElement>(null);
+
+    // Free invoice creation
+    const [showFreeInvoiceModal, setShowFreeInvoiceModal] = useState(false);
+    const [freeInvCustomerName, setFreeInvCustomerName] = useState('');
+    const [freeInvItems, setFreeInvItems] = useState<{ description: string; quantity: string; unit_price: string; tax_rate: string }[]>([
+        { description: '', quantity: '1', unit_price: '', tax_rate: '0' },
+    ]);
+    const [freeInvDiscount, setFreeInvDiscount] = useState('');
+    const [freeInvPaymentTerms, setFreeInvPaymentTerms] = useState('');
+    const [freeInvNotes, setFreeInvNotes] = useState('');
+    const [freeInvSaving, setFreeInvSaving] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
@@ -245,6 +257,70 @@ export default function Accounting() {
         }
     };
 
+    const handleScrollToInvoices = () => {
+        setRightTab('invoices');
+        setTimeout(() => {
+            rightPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    };
+
+    const handleOpenFreeInvoice = () => {
+        setFreeInvCustomerName('');
+        setFreeInvItems([{ description: '', quantity: '1', unit_price: '', tax_rate: '0' }]);
+        setFreeInvDiscount('');
+        setFreeInvPaymentTerms('');
+        setFreeInvNotes('');
+        setShowFreeInvoiceModal(true);
+    };
+
+    const handleAddFreeInvItem = () => {
+        setFreeInvItems(prev => [...prev, { description: '', quantity: '1', unit_price: '', tax_rate: '0' }]);
+    };
+
+    const handleRemoveFreeInvItem = (idx: number) => {
+        setFreeInvItems(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    const handleFreeInvItemChange = (idx: number, field: string, value: string) => {
+        setFreeInvItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+    };
+
+    const freeInvTotal = freeInvItems.reduce((sum, item) => {
+        const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.unit_price) || 0;
+        const tax = parseFloat(item.tax_rate) || 0;
+        const line = qty * price;
+        return sum + line + (line * tax / 100);
+    }, 0) - (parseFloat(freeInvDiscount) || 0);
+
+    const handleCreateFreeInvoice = async () => {
+        const validItems = freeInvItems.filter(i => i.description.trim() && parseFloat(i.unit_price) > 0);
+        if (validItems.length === 0) return;
+        setFreeInvSaving(true);
+        try {
+            const invoice = await accountingApi.createFreeInvoice({
+                customer_name: freeInvCustomerName.trim() || undefined,
+                items: validItems.map(i => ({
+                    description: i.description.trim(),
+                    quantity: parseFloat(i.quantity) || 1,
+                    unit_price: parseFloat(i.unit_price) || 0,
+                    tax_rate: parseFloat(i.tax_rate) || 0,
+                })),
+                discount_amount: parseFloat(freeInvDiscount) || 0,
+                payment_terms: freeInvPaymentTerms.trim() || undefined,
+                notes: freeInvNotes.trim() || undefined,
+            });
+            setSelectedInvoice(invoice);
+            setShowFreeInvoiceModal(false);
+            setRightTab('invoices');
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
+        } catch (err) {
+            console.error('Free invoice error', err);
+        } finally {
+            setFreeInvSaving(false);
+        }
+    };
+
     const handleCancelSale = async (saleId: string) => {
         if (!confirm(t('accounting.cancel_sale_confirm', { defaultValue: 'Annuler cette vente et remettre le stock en place ?' }))) {
             return;
@@ -351,6 +427,14 @@ export default function Accounting() {
             title: t('guide.accounting.step6_title', { defaultValue: 'Détail des KPI' }),
             content: t('guide.accounting.step6', { defaultValue: 'Cliquez sur n\u2019importe quel indicateur pour afficher un tableau détaillé et exportable.' }),
         },
+        {
+            title: t('guide.accounting.step7_title', { defaultValue: 'Facturation' }),
+            content: t('guide.accounting.step7', { defaultValue: 'Créez des factures depuis vos ventes ou librement (sans vente associée). Consultez l\u2019historique, téléchargez en PDF et imprimez.' }),
+        },
+        {
+            title: t('guide.accounting.step8_title', { defaultValue: 'Panneau d\u2019analyse' }),
+            content: t('guide.accounting.step8', { defaultValue: 'Le panneau droit contient P&L, paiements, pertes, charges, ventes et factures. Naviguez entre les onglets pour explorer vos données.' }),
+        },
     ];
 
     return (
@@ -425,10 +509,16 @@ export default function Accounting() {
                         <FileText size={18} className="text-primary" /> Rapports PDF
                     </button>
                     <button
-                        onClick={() => setRightTab('invoices')}
+                        onClick={handleScrollToInvoices}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
                         <Files size={18} className="text-primary" /> Historique factures
+                    </button>
+                    <button
+                        onClick={handleOpenFreeInvoice}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
+                    >
+                        <FileText size={18} className="text-emerald-400" /> Nouvelle facture
                     </button>
                     <button
                         onClick={handleOpenAddExpense}
@@ -782,7 +872,7 @@ export default function Accounting() {
                 </div>
 
                 {/* Right Panel — tabs */}
-                <div className="flex flex-col gap-6">
+                <div ref={rightPanelRef} className="flex flex-col gap-6">
                     {/* Tab selector */}
                     <div className="glass-card p-1.5 flex gap-1">
                         {([
@@ -1011,9 +1101,17 @@ export default function Accounting() {
 
                     {rightTab === 'invoices' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <Files size={16} className="text-primary" /> Historique des factures
-                            </h3>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Files size={16} className="text-primary" /> Historique des factures
+                                </h3>
+                                <button
+                                    onClick={handleOpenFreeInvoice}
+                                    className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                                >
+                                    <Plus size={14} /> Nouvelle
+                                </button>
+                            </div>
                             <div className="space-y-3">
                                 {invoiceHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune facture sur cette periode.</p>
@@ -1053,6 +1151,152 @@ export default function Accounting() {
             {/* Modals */}
             <AccountingReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} stats={stats} expenses={expenses} period={period} startDate={startDate} endDate={endDate} />
             <InvoiceModal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} invoice={selectedInvoice} />
+
+            {/* Free Invoice Creation Modal */}
+            {showFreeInvoiceModal && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowFreeInvoiceModal(false)}>
+                    <div className="bg-[#1E293B] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-white/10">
+                            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                                <FileText size={20} className="text-emerald-400" /> Nouvelle facture libre
+                            </h2>
+                            <button onClick={() => setShowFreeInvoiceModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+                            {/* Client */}
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Client</label>
+                                <input
+                                    type="text"
+                                    value={freeInvCustomerName}
+                                    onChange={e => setFreeInvCustomerName(e.target.value)}
+                                    placeholder="Nom du client (optionnel)"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Items */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Articles</label>
+                                    <button onClick={handleAddFreeInvItem} className="text-xs text-primary hover:text-primary/80 font-bold flex items-center gap-1">
+                                        <Plus size={14} /> Ajouter une ligne
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    {freeInvItems.map((item, idx) => (
+                                        <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={item.description}
+                                                    onChange={e => handleFreeInvItemChange(idx, 'description', e.target.value)}
+                                                    placeholder="Description *"
+                                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-slate-500 focus:border-primary focus:outline-none"
+                                                />
+                                                {freeInvItems.length > 1 && (
+                                                    <button onClick={() => handleRemoveFreeInvItem(idx)} className="text-slate-500 hover:text-rose-400 p-1">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">Quantité</label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={e => handleFreeInvItemChange(idx, 'quantity', e.target.value)}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">Prix unitaire</label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.unit_price}
+                                                        onChange={e => handleFreeInvItemChange(idx, 'unit_price', e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">TVA %</label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.tax_rate}
+                                                        onChange={e => handleFreeInvItemChange(idx, 'tax_rate', e.target.value)}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Discount */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Remise</label>
+                                    <input
+                                        type="number"
+                                        value={freeInvDiscount}
+                                        onChange={e => setFreeInvDiscount(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Conditions de paiement</label>
+                                    <input
+                                        type="text"
+                                        value={freeInvPaymentTerms}
+                                        onChange={e => setFreeInvPaymentTerms(e.target.value)}
+                                        placeholder="Ex: Paiement à 30 jours"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Notes</label>
+                                <textarea
+                                    value={freeInvNotes}
+                                    onChange={e => setFreeInvNotes(e.target.value)}
+                                    placeholder="Notes ou remarques..."
+                                    rows={2}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none resize-none"
+                                />
+                            </div>
+
+                            {/* Total preview */}
+                            <div className="flex justify-between items-center bg-primary/10 rounded-xl p-4 border border-primary/20">
+                                <span className="text-sm font-bold text-slate-300">Total estimé</span>
+                                <span className="text-xl font-black text-primary">{freeInvTotal.toLocaleString('fr-FR')} F</span>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-white/10">
+                            <button
+                                onClick={handleCreateFreeInvoice}
+                                disabled={freeInvSaving || freeInvItems.every(i => !i.description.trim() || !parseFloat(i.unit_price))}
+                                className="w-full btn-primary rounded-xl py-3 font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {freeInvSaving ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <FileText size={18} /> Créer la facture
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <AnalyticsKpiDetailsModal
                 open={detailOpen}
                 detail={detail}
