@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,22 +59,19 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const recordingRef = useRef<Audio.Recording | null>(null);
+    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
     const startRecording = async () => {
         try {
-            const { status } = await Audio.requestPermissionsAsync();
+            const { status } = await requestRecordingPermissionsAsync();
             if (status !== 'granted') return;
 
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
+            await setAudioModeAsync({
+                allowsRecording: true,
+                playsInSilentMode: true,
             });
 
-            const { recording } = await Audio.Recording.createAsync(
-                Audio.RecordingOptionsPresets.HIGH_QUALITY
-            );
-            recordingRef.current = recording;
+            recorder.record();
             setIsRecording(true);
         } catch (err) {
             console.error('Failed to start recording', err);
@@ -82,14 +79,13 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     };
 
     const stopRecording = async () => {
-        if (!recordingRef.current) return;
+        if (!isRecording) return;
         setIsRecording(false);
         setIsTranscribing(true);
 
         try {
-            await recordingRef.current.stopAndUnloadAsync();
-            const uri = recordingRef.current.getURI();
-            recordingRef.current = null;
+            await recorder.stop();
+            const uri = recorder.uri;
 
             if (!uri) throw new Error('No recording URI');
 
@@ -105,8 +101,8 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
             console.error('Voice transcription failed', err);
         } finally {
             setIsTranscribing(false);
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: false,
+            await setAudioModeAsync({
+                allowsRecording: false,
             });
         }
     };
