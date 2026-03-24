@@ -6,12 +6,13 @@ import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { API_URL } from './config';
+import { getStringArray } from './utils/translation';
 import {
   APP_WEB_URL,
   DEMO_CHOICE_IDS,
-  DEMO_CHOICE_NEXT_LINKS,
   DEMO_CHOICE_SCREENSHOTS,
   LANDING_KEYWORDS,
+  MOBILE_APP_URL,
 } from './data/marketing';
 import type { DemoChoiceId } from './data/marketing';
 
@@ -70,6 +71,11 @@ export default function DemoSelectorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<DemoSuccessState | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     if (preset === 'enterprise') setSelectedId('enterprise');
@@ -77,13 +83,7 @@ export default function DemoSelectorPage() {
     else if (preset === 'commerce') setSelectedId('commerce');
   }, [preset]);
 
-  useEffect(() => {
-    if (!success || typeof window === 'undefined') return;
-    const timer = window.setTimeout(() => {
-      window.location.assign(success.launchUrl);
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [success]);
+
 
   const formatExpiration = (value: string) =>
     new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
@@ -181,32 +181,72 @@ export default function DemoSelectorPage() {
         {error ? <p className="signup-error">{error}</p> : null}
         {success ? (
           <div className="glass-card demo-success-panel" style={{ marginTop: 'var(--spacing-md)' }}>
-            <h3>{t('demo_page.success_title')}</h3>
-            <p>{t('demo_page.success_desc', {
-              title: t(`demo_page.choices.${success.choiceId}.title`),
-            })}</p>
-            <p className="text-muted">
-              {t('demo_page.success_meta', {
-                label: success.demoSession.label,
-                surface: t(`demo_page.surface_${success.demoSession.surface}`),
-                expiresAt: formatExpiration(success.demoSession.expires_at),
-              })}
-            </p>
-            <div className="hero-btns">
-              <a href={success.launchUrl} className="btn-primary">
-                {success.demoSession.surface === 'web' ? t('demo_page.open_web') : t('demo_page.open_mobile')}
-              </a>
-              {DEMO_CHOICE_NEXT_LINKS[success.choiceId].map((link, i) =>
-                link.external ? (
-                  <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                    {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
-                  </a>
-                ) : (
-                  <Link key={i} to={link.href} className="btn-secondary">
-                    {t(`demo_page.choices.${success.choiceId}.link_${i + 1}`)}
-                  </Link>
-                )
-              )}
+            <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>
+              <span className="badge-premium" style={{ display: 'inline-block', marginBottom: '10px' }}>
+                {t('demo_page.success_title')}
+              </span>
+              <h3>
+                {t('demo_page.success_desc', {
+                  title: t(`demo_page.choices.${success.choiceId}.title`),
+                })}
+              </h3>
+            </div>
+
+            {success.demoSession.surface === 'web' ? (
+              <div className="hero-btns" style={{ justifyContent: 'center' }}>
+                <a href={success.launchUrl} className="btn-primary">
+                  {t('demo_page.open_web')}
+                </a>
+              </div>
+            ) : !isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px' }}>
+                <p style={{ fontWeight: 600 }}>Scannez ce QR Code avec votre téléphone</p>
+                <div style={{ background: 'white', padding: '15px', borderRadius: '12px' }}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(success.launchUrl)}`}
+                    alt="QR Code Stockman"
+                    width={200}
+                    height={200}
+                  />
+                </div>
+                <p className="text-muted" style={{ fontSize: '0.9rem', marginTop: '10px' }}>
+                  Vous n'avez pas l'application ? <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Téléchargez-la ici</a>.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px', background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--primary)', color: 'white', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>1</div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ display: 'block', marginBottom: '5px' }}>Téléchargez l'application</strong>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0 0 10px 0' }}>Si vous ne l'avez pas encore installée sur votre appareil</p>
+                    <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ width: '100%', display: 'inline-block', textAlign: 'center' }}>
+                      Ouvrir Play Store
+                    </a>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px', background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', border: '1px solid var(--primary)' }}>
+                  <div style={{ background: 'var(--primary)', color: 'white', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>2</div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ display: 'block', marginBottom: '5px' }}>Lancez la démo immersive</strong>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0 0 10px 0' }}>Votre session est générée et prête !</p>
+                    <a href={success.launchUrl} className="btn-primary" style={{ width: '100%', display: 'inline-block', textAlign: 'center' }}>
+                      Lancer la démo
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-muted" style={{ fontSize: '0.85rem', textAlign: 'center' }}>
+                {t('demo_page.success_meta', {
+                  label: success.demoSession.label,
+                  surface: t(`demo_page.surface_${success.demoSession.surface}`),
+                  expiresAt: formatExpiration(success.demoSession.expires_at),
+                })}
+              </p>
             </div>
           </div>
         ) : null}
@@ -215,7 +255,7 @@ export default function DemoSelectorPage() {
       <section className="container demo-options-grid reveal">
         {DEMO_CHOICE_IDS.map((id) => {
           const isSelected = selectedId === id;
-          const businessTypes = t(`demo_page.choices.${id}.business_types`, { returnObjects: true }) as string[];
+          const businessTypes = getStringArray(t, `demo_page.choices.${id}.business_types`);
 
           return (
             <article
@@ -226,11 +266,12 @@ export default function DemoSelectorPage() {
                 <img src={DEMO_CHOICE_SCREENSHOTS[id]} alt={t(`demo_page.choices.${id}.title`)} className="demo-option-image" />
               </div>
               <div className="demo-option-body">
-                <div className="demo-option-meta">
-                  <span className="demo-option-pill">{t(`demo_page.choices.${id}.surface`)}</span>
+                <div className="demo-option-meta" style={{ marginBottom: '15px' }}>
+                  <span className="demo-option-pill" style={{ background: 'var(--primary)', color: 'white', fontWeight: 'bold' }}>
+                    {t(`demo_page.choices.${id}.surface`)}
+                  </span>
                   <span className="demo-option-pill demo-option-pill-soft">{t(`demo_page.choices.${id}.duration`)}</span>
                 </div>
-                <p className="business-card-eyebrow">{t(`demo_page.choices.${id}.audience`)}</p>
                 <h2>{t(`demo_page.choices.${id}.title`)}</h2>
                 <p className="text-muted">{t(`demo_page.choices.${id}.summary`)}</p>
 
