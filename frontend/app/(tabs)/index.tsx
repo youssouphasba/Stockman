@@ -1324,8 +1324,8 @@ export default function DashboardScreen() {
       <ScreenGuide
         visible={showGuide}
         onClose={() => { setShowGuide(false); markSeen(); }}
-        title={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.sales).title}
-        steps={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.sales).steps}
+        title={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard).title}
+        steps={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard).steps}
       />
 
       {/* Notifications Modal */}
