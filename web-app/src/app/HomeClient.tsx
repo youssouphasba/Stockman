@@ -160,6 +160,15 @@ export default function Home() {
     setDemoBootLoading(true);
     setError(null);
 
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) {
+        cancelled = true;
+        clearQueryParam('demo');
+        setDemoBootLoading(false);
+        setError("La préparation de la démo a pris trop de temps. Veuillez actualiser la page.");
+      }
+    }, 15000);
+
     demoApi.createSession('enterprise')
       .then((payload) => {
         if (cancelled) return;
@@ -176,11 +185,13 @@ export default function Home() {
       })
       .finally(() => {
         if (cancelled) return;
+        window.clearTimeout(timeout);
         setDemoBootLoading(false);
       });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
     };
   }, [clearQueryParam, demoBootLoading, hydrateAuthenticatedUser, initialLoading, isLogged, searchParams]);
 
@@ -291,7 +302,19 @@ export default function Home() {
     }
   }, [activeTab, isBillingOnly, isLogged]);
 
-  if (!mounted || !ready || initialLoading || demoBootLoading) {
+  if (!mounted || !ready || initialLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+        <div className="glass-card p-8 text-center max-w-md w-full">
+          <div className="w-10 h-10 mx-auto mb-4 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <h1 className="text-xl font-black text-white mb-2">Stockman</h1>
+          <p className="text-slate-400 text-sm">Chargement&hellip;</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (demoBootLoading) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
         <div className="glass-card p-8 text-center max-w-md w-full">
