@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import FeaturePage from './FeaturePage';
 import TermsOfService from './TermsOfService';
@@ -38,7 +38,20 @@ import {
 
 function Landing() {
   const { t } = useTranslation();
+  const location = useLocation();
   useScrollReveal();
+
+  useEffect(() => {
+    if (location.hash) {
+      setTimeout(() => {
+        const id = location.hash.replace('#', '');
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+    }
+  }, [location]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
