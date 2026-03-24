@@ -365,16 +365,15 @@ export default function SignupModal({ plan, onClose }: Props) {
             </p>
 
             <div className="signup-download-buttons">
-              <a
-                href="https://apps.apple.com/app/stockman/id0000000000"
-                target="_blank"
-                rel="noopener noreferrer"
+              <span
                 className="store-download-btn"
+                style={{ display: 'none' }}
+                aria-hidden="true"
               >
                 🍎 App Store
-              </a>
+              </span>
               <a
-                href="https://play.google.com/store/apps/details?id=com.stockman.app"
+                href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="store-download-btn"

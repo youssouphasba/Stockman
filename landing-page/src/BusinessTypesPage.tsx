@@ -4,6 +4,7 @@ import SEO from './components/SEO';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
 import { useScrollReveal } from './hooks/useScrollReveal';
+import { getStringArray } from './utils/translation';
 import {
   BUSINESS_TYPE_SLUGS,
   ENTERPRISE_FEATURES_URL,
@@ -60,7 +61,7 @@ export default function BusinessTypesPage() {
             <div className="business-type-block">
               <h3>{t('business_types_page.use_cases_title')}</h3>
               <ul className="business-type-list">
-                {(t(`business_types.${slug}.use_cases`, { returnObjects: true }) as string[]).map((item) => (
+                {getStringArray(t, `business_types.${slug}.use_cases`).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -69,7 +70,7 @@ export default function BusinessTypesPage() {
             <div className="business-type-block">
               <h3>{t('business_types_page.sectors_title')}</h3>
               <div className="tag-list">
-                {(t(`business_types.${slug}.tags`, { returnObjects: true }) as string[]).map((tag) => (
+                {getStringArray(t, `business_types.${slug}.tags`).map((tag) => (
                   <span key={tag} className="tag-pill">{tag}</span>
                 ))}
               </div>

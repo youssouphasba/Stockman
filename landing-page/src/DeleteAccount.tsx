@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './App.css';
+import { getStringArray } from './utils/translation';
 
 function DeleteAccount() {
     const { t } = useTranslation();
@@ -35,7 +36,7 @@ function DeleteAccount() {
                         <h3 style={{ color: 'var(--text-light)', marginBottom: '15px' }}>{t('delete_account.method_app_title')}</h3>
                         <p style={{ marginBottom: '20px' }}>{t('delete_account.method_app_desc')}</p>
                         <ol style={{ paddingLeft: '20px', lineHeight: '2' }}>
-                            {(t('delete_account.method_app_steps', { returnObjects: true }) as string[]).map((step, i) => (
+                            {getStringArray(t, 'delete_account.method_app_steps').map((step, i) => (
                                 <li key={i}>{step}</li>
                             ))}
                         </ol>
@@ -58,7 +59,7 @@ function DeleteAccount() {
                         </h3>
                         <p style={{ marginBottom: '20px' }}>{t('delete_account.data_erased_desc')}</p>
                         <ul style={{ paddingLeft: '20px', lineHeight: '2' }}>
-                            {(t('delete_account.data_erased_list', { returnObjects: true }) as string[]).map((item, i) => (
+                            {getStringArray(t, 'delete_account.data_erased_list').map((item, i) => (
                                 <li key={i}>{item}</li>
                             ))}
                         </ul>

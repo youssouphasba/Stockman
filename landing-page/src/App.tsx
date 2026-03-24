@@ -20,11 +20,10 @@ import SEO from './components/SEO';
 import ContactSection from './components/ContactSection';
 import Analytics from './components/Analytics';
 import AdminLeads from './components/AdminLeads';
-import Hero, { type Profile } from './components/landing/Hero';
+import Hero from './components/landing/Hero';
 import Features from './components/landing/Features';
 import MarketingNav from './components/marketing/MarketingNav';
 import MarketingFooter from './components/marketing/MarketingFooter';
-import WebAppShowcase from './components/landing/WebAppShowcase';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import './App.css';
 
@@ -33,14 +32,12 @@ import { COUNTRIES } from '../../shared/countries';
 import {
   BUSINESS_TYPE_GROUPS,
   ENTERPRISE_FEATURES_URL,
-  ENTERPRISE_SIGNUP_URL,
   LANDING_KEYWORDS,
   MOBILE_APP_URL,
 } from './data/marketing';
 
 function Landing() {
   const { t } = useTranslation();
-  const [profile, setProfile] = useState<Profile>('merchant');
   useScrollReveal();
 
   useEffect(() => {
@@ -53,7 +50,7 @@ function Landing() {
       });
     }, 50);
     return () => clearTimeout(timer);
-  }, [profile]);
+  }, []);
 
   const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
   const [pricingData, setPricingData] = useState<PublicPricingResponse | null>(null);
@@ -135,7 +132,7 @@ function Landing() {
 
       <MarketingNav active="home" />
 
-      <Hero profile={profile} onProfileChange={setProfile} />
+      <Hero />
 
       <section className="container business-preview reveal">
         <div className="section-title">
@@ -183,7 +180,7 @@ function Landing() {
         </div>
       </section>
 
-      {profile === 'enterprise' && <WebAppShowcase />}
+
 
       <Features />
 
@@ -210,9 +207,9 @@ function Landing() {
 
       <section id="pricing" className="pricing container reveal">
         <div className="section-title">
-          <h2>{profile === 'enterprise' ? t('pricing.enterprise_title') : t('pricing.title')}</h2>
+          <h2>{t('pricing.title')}</h2>
           <p className="text-muted">
-            {profile === 'enterprise' ? t('pricing.enterprise_subtitle') : t('pricing.subtitle')}
+            {t('pricing.subtitle')}
           </p>
           <div className="pricing-currency-switcher">
             <span className="pricing-currency-label">{t('pricing.currency_label')}</span>
@@ -233,7 +230,6 @@ function Landing() {
           </div>
         </div>
 
-        {profile === 'merchant' ? (
           <div className="pricing-grid pricing-grid--mobile">
             <div className="pricing-card glass-card">
               <h3>{t('pricing.starter.name')}</h3>
@@ -277,42 +273,6 @@ function Landing() {
               </a>
             </div>
           </div>
-        ) : (
-          <div className="pricing-enterprise-redirect">
-            <div className="pricing-card glass-card popular" style={{ maxWidth: 520, margin: '0 auto' }}>
-              <div className="popular-tag">Enterprise</div>
-              <h3>Enterprise</h3>
-              <div className="price">{pricingData?.plans.enterprise.display_price || '9 900 FCFA'} <span>{t('pricing.month')}</span></div>
-              <ul className="pricing-features">
-                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f1')}</li>
-                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f2')}</li>
-                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f3')}</li>
-                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f4')}</li>
-                <li><span className="check-icon">OK</span> {t('pricing.enterprise.f5')}</li>
-              </ul>
-              <div className="section-cta-row">
-                <a
-                  href={ENTERPRISE_FEATURES_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary"
-                  style={{ display: 'block', textAlign: 'center' }}
-                >
-                  {t('pricing.enterprise.cta_discover')}
-                </a>
-                <a
-                  href={ENTERPRISE_SIGNUP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary"
-                  style={{ display: 'block', textAlign: 'center' }}
-                >
-                  {t('pricing.enterprise.cta_signup')}
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
       <ContactSection />
