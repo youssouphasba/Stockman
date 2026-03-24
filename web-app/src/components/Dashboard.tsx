@@ -19,6 +19,7 @@ import {
     PieChart as PieChartIcon,
     X,
     Bell,
+    Download,
 } from 'lucide-react';
 import {
     LineChart as ReLineChart,
@@ -538,6 +539,73 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 </ResponsiveContainer>
                                 )}
                             </div>
+
+                            {/* Tableau Détaillé par Produit */}
+                            {forecast?.products && forecast.products.length > 0 && (
+                                <div className="mt-8 border-t border-white/10 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">{t('dashboard.forecast_details', 'Prévisions par produit')}</h4>
+                                        <button
+                                            onClick={() => {
+                                                const header = ['Produit', 'Stock', 'Vit. (j)', 'Prév. 7j', 'Prév. 30j', 'Tendance', 'Risque'].join(',');
+                                                const rows = forecast.products.map((p: any) => `"${p.name.replace(/"/g, '""')}",${p.current_stock},${p.velocity.toFixed(2)},${p.predicted_sales_7d},${p.predicted_sales_30d},"${p.trend}","${p.risk_level}"`);
+                                                const csv = [header, ...rows].join('\n');
+                                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                                const link = document.createElement('a');
+                                                link.href = URL.createObjectURL(blob);
+                                                link.download = `forecast_${new Date().toISOString().split('T')[0]}.csv`;
+                                                link.click();
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors border border-white/5"
+                                            title={t('dashboard.export_csv', 'Exporter CSV')}
+                                        >
+                                            <Download size={14} /> {t('common.export', 'Exporter CSV')}
+                                        </button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm text-slate-400">
+                                            <thead className="text-xs uppercase bg-white/5 text-slate-500">
+                                                <tr>
+                                                    <th className="px-4 py-3 rounded-tl-lg">{t('dashboard.col_product', 'Produit')}</th>
+                                                    <th className="px-4 py-3">{t('dashboard.col_stock', 'Stock')}</th>
+                                                    <th className="px-4 py-3">{t('dashboard.col_velocity', 'Vit. (j)')}</th>
+                                                    <th className="px-4 py-3">{t('dashboard.col_forecast_7d', '7j')}</th>
+                                                    <th className="px-4 py-3">{t('dashboard.col_forecast_30d', '30j')}</th>
+                                                    <th className="px-4 py-3 rounded-tr-lg">{t('dashboard.col_trend', 'Tendance')}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {forecast.products.slice(0, 5).map((p: any, i: number) => (
+                                                    <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                                        <td className="px-4 py-3 font-medium text-slate-200">
+                                                            <div className="truncate max-w-[150px]" title={p.name}>{p.name}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={p.risk_level === 'critical' ? 'text-rose-400 font-bold' : p.risk_level === 'warning' ? 'text-amber-400 font-bold' : 'text-slate-300'}>
+                                                                {p.current_stock}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3">{p.velocity.toFixed(1)}</td>
+                                                        <td className="px-4 py-3 text-emerald-400 font-semibold">+{p.predicted_sales_7d}</td>
+                                                        <td className="px-4 py-3 text-emerald-500 font-semibold">+{p.predicted_sales_30d}</td>
+                                                        <td className="px-4 py-3">
+                                                            {p.trend === 'up' || p.trend === 'en hausse' ? <TrendingUp size={14} className="text-emerald-400" /> :
+                                                             p.trend === 'down' || p.trend === 'en baisse' ? <TrendingUp size={14} className="text-rose-400 rotate-180" /> :
+                                                             <span className="text-slate-500">—</span>}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {forecast.products.length > 5 && (
+                                            <div className="text-center mt-3 pt-3 border-t border-white/5 text-xs text-slate-500">
+                                                {t('dashboard.export_csv_for_more', 'Exportez au format CSV pour voir la totalité des produits')}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     )}
 
