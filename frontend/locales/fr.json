@@ -118,7 +118,15 @@
     "info_sales_count": "Nombre total de transactions validées à la caisse sur la période.",
     "info_avg_basket": "Montant moyen par transaction : chiffre d'affaires divisé par le nombre de ventes.",
     "info_stock_purchase": "Valeur totale de votre stock calculée sur les prix d'achat.",
-    "info_stock_selling": "Valeur potentielle si tout le stock était vendu au prix de vente actuel."
+    "info_stock_selling": "Valeur potentielle si tout le stock était vendu au prix de vente actuel.",
+    "export_error": "Erreur Export",
+    "free_invoice": "Free Invoice",
+    "invoice_create_error": "Erreur Invoice Create",
+    "invoice_history": "Invoice History",
+    "invoice_open_error": "Erreur Invoice Open",
+    "no_invoices": "No Invoices",
+    "report_activity_dialog": "Report Activity Dialog",
+    "revenue_kpi": "Revenue KPI"
   },
   "activity": {
     "no_activity": "Aucune activité enregistrée",
@@ -132,7 +140,16 @@
       "success": "Succès",
       "error": "Erreur",
       "sendSuccess": "✅ Envoyé",
-      "statusUpdated": "✅ Statut mis à jour"
+      "statusUpdated": "✅ Statut mis à jour",
+      "broadcast": "Broadcast",
+      "close": "Fermer Actions",
+      "disable": "Disable",
+      "enable": "Enable",
+      "preview": "Preview",
+      "reply": "Reply",
+      "save_cgu": "Save CGU",
+      "save_privacy": "Save Privacy",
+      "send": "Envoyer Actions"
     },
     "alerts": {
       "title": "Alertes",
@@ -146,7 +163,13 @@
       "send": "Envoyer",
       "broadcast": "Diffuser",
       "history": "Historique",
-      "broadcastSuccess": "📢 Diffusion : Envoyé à {{count}} appareils"
+      "broadcastSuccess": "📢 Diffusion : Envoyé à {{count}} appareils",
+      "empty": "Aucun ?l?ment Comms",
+      "targetAll": "Targetall",
+      "targetLabel": "Targetlabel",
+      "targetShopkeepers": "Targetshopkeepers",
+      "targetSpecific": "Targetspecific",
+      "targetSuppliers": "Targetsuppliers"
     },
     "dashboard": "Tableau de Bord Admin",
     "data_explorer": {
@@ -162,7 +185,21 @@
       "resolve": "Résoudre",
       "reject": "Rejeter",
       "resolution": "RÉSOLUTION :",
-      "adminNotes": "NOTES ADMIN :"
+      "adminNotes": "NOTES ADMIN :",
+      "empty": "Aucun ?l?ment Disputes",
+      "filterAll": "Filterall",
+      "filterInvestigating": "Filterinvestigating",
+      "filterOpen": "Filteropen",
+      "filterRejected": "Filterrejected",
+      "filterResolved": "Filterresolved",
+      "investigateBtn": "Investigatebtn",
+      "rejectBtn": "Rejectbtn",
+      "resolutionLabel": "Resolutionlabel",
+      "resolveBtn": "Resolvebtn",
+      "statsInvestigating": "Statsinvestigating",
+      "statsOpen": "Statsopen",
+      "statsResolved": "Statsresolved",
+      "type": "Type"
     },
     "distribution": {
       "country": "Répartition par pays",
@@ -180,10 +217,19 @@
       "database": "Base de données",
       "online": "EN LIGNE",
       "error": "ERREUR",
-      "version": "Version {{version}}"
+      "version": "Version {{version}}",
+      "db_label": "Libell? Db",
+      "status_label": "Libell? Status",
+      "version_label": "Libell? Version"
     },
     "logs": {
-      "title": "Logs"
+      "title": "Logs",
+      "empty": "Aucun ?l?ment Logs",
+      "filterAll": "Filterall",
+      "filterAuth": "Filterauth",
+      "filterCRM": "Filtercrm",
+      "filterStock": "Filterstock",
+      "filterSystem": "Filtersystem"
     },
     "placeholders": {
       "searchUsers": "Rechercher un utilisateur...",
@@ -196,7 +242,9 @@
       "replyPlaceholder": "Votre réponse...",
       "resolutionPlaceholder": "Résolution (facultatif)...",
       "adminNotesPlaceholder": "Notes administratives...",
-      "markdown": "Markdown supporté..."
+      "markdown": "Markdown supporté...",
+      "disputeResolution": "Disputeresolution",
+      "reply": "Reply"
     },
     "retention": {
       "title": "Rétention",
@@ -214,7 +262,15 @@
       "failed24h": "Échecs 24h",
       "success24h": "Connexions 24h",
       "blocked": "Bloqués",
-      "events": "Événements"
+      "events": "Événements",
+      "empty": "Aucun ?l?ment Security",
+      "filterAll": "Filterall",
+      "filterLoginFailed": "Filterloginfailed",
+      "filterLoginSuccess": "Filterloginsuccess",
+      "filterPwdChanged": "Filterpwdchanged",
+      "statsAlerts": "Statsalerts",
+      "statsFailures": "Statsfailures",
+      "statsSuspicious": "Statssuspicious"
     },
     "segments": {
       "global": "Global",
@@ -238,7 +294,11 @@
       "appVersion": "Version de l'app",
       "serverStatus": "Statut du serveur",
       "actions": "Actions",
-      "dataExplorer": "📊 Explorateur de Données (MongoDB)"
+      "dataExplorer": "📊 Explorateur de Données (MongoDB)",
+      "change_password": "Change Password",
+      "data_explorer": "Data Explorer",
+      "logout": "Logout",
+      "system_info": "System Info"
     },
     "stock": {
       "title": "Produits",
@@ -246,13 +306,15 @@
       "seller": "Vendeur",
       "deleteConfirmTitle": "⚠️ Suppression Définitive",
       "deleteConfirmDesc": "Voulez-vous vraiment supprimer le produit \"{{name}}\" ? Cette action est irréversible.",
-      "empty": "Aucun produit"
+      "empty": "Aucun produit",
+      "deleteBtn": "Deletebtn"
     },
     "stores": {
       "title": "Magasins",
       "owner": "Propriétaire",
       "products": "Produits",
-      "sales": "Ventes"
+      "sales": "Ventes",
+      "empty": "Aucun ?l?ment Stores"
     },
     "support": {
       "title": "Tickets",
@@ -282,6 +344,17 @@
       "banned": "Banni",
       "countryLabel": "Pays: {{country}}",
       "empty": "Aucun utilisateur"
+    },
+    "cgu": {
+      "editor_desc": "Description Editor",
+      "save_error": "Erreur Save",
+      "save_success": "Save Success"
+    },
+    "dashboard_title": "Dashboard Title",
+    "privacy": {
+      "editor_desc": "Description Editor",
+      "save_error": "Erreur Save",
+      "save_success": "Save Success"
     }
   },
   "ai": {
@@ -318,7 +391,9 @@
       }
     },
     "voice_to_text_error": "Impossible de transcrire l'audio",
-    "voice_to_text_prompt": "Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Répondez UNIQUEMENT avec la transcription, rien d'autre."
+    "voice_to_text_prompt": "Transcris exactement ce que dit cette personne. La langue principale est {lang_name}. Répondez UNIQUEMENT avec la transcription, rien d'autre.",
+    "ai_analysis": "IA Analysis",
+    "error_summarizing": "Error Summarizing"
   },
   "alerts": {
     "ai_anomaly_detection": "Détection d'anomalies IA",
@@ -672,7 +747,44 @@
     "yesterday": "Hier",
     "terms": "Conditions Générales d'Utilisation",
     "privacy": "Politique de Confidentialité",
-    "chat": "Discuter"
+    "chat": "Discuter",
+    "amount": "Montant Common",
+    "apply": "Appliquer Common",
+    "associate": "Associate",
+    "batch": "Batch",
+    "change": "Change",
+    "city": "City",
+    "clear_search": "Clear Search",
+    "comment": "Comment",
+    "comment_placeholder": "Comment Placeholder",
+    "confirmation": "Confirmation",
+    "count_critical": "Count Critical",
+    "date": "Date",
+    "day_short": "Day Short",
+    "days": "Days",
+    "days_short": "Days Short",
+    "email": "Email",
+    "generated": "Generated",
+    "history": "Historique Common",
+    "import": "Importer Common",
+    "item": "Item",
+    "max": "Max",
+    "my_store": "My Store",
+    "new": "Nouveau Common",
+    "no_results": "No Results",
+    "offline_mode": "Offline Mode",
+    "pending": "En attente Common",
+    "phone": "Phone",
+    "quantity_short": "Quantity Short",
+    "recipe": "Recipe",
+    "reset": "R?initialiser Common",
+    "retry": "R?essayer Common",
+    "see_more_count": "See More Count",
+    "subtotal": "Subtotal",
+    "this_product": "This Product",
+    "unit_price_short": "Unit Price Short",
+    "unknown": "Unknown",
+    "warning": "Avertissement Common"
   },
   "crm": {
     "active_30d": "Actifs (30j)",
@@ -828,7 +940,9 @@
     "send_sms": "Envoyer un SMS",
     "info_clients": "Nombre total de clients enregistrés dans votre fichier client.",
     "info_total_sales": "Montant cumulé de tous les achats effectués par vos clients.",
-    "info_active_30d": "Clients ayant effectué au moins un achat dans les 30 derniers jours."
+    "info_active_30d": "Clients ayant effectué au moins un achat dans les 30 derniers jours.",
+    "error_delete_promo": "Error Delete Promo",
+    "error_title_required": "Error Title Required"
   },
   "dashboard": {
     "abc_analysis": "Analyse ABC (Priorités)",
@@ -928,7 +1042,19 @@
     "info_today_revenue": "Total des ventes encaissées aujourd'hui, tous modes de paiement confondus.",
     "info_today_sales": "Nombre de transactions validées aujourd'hui à la caisse.",
     "info_stock_value": "Valeur totale de votre stock calculée sur les prix d'achat de tous vos produits.",
-    "info_month_revenue": "Chiffre d'affaires cumulé depuis le 1er du mois en cours."
+    "info_month_revenue": "Chiffre d'affaires cumulé depuis le 1er du mois en cours.",
+    "ca_predicted_30d": "Ca Predicted 30d",
+    "ca_predicted_7d": "Ca Predicted 7d",
+    "days_remaining": "Days Remaining",
+    "export_error": "Erreur Export",
+    "imminent_stockout": "Imminent Stockout",
+    "monitoring_stock": "Monitoring Stock",
+    "movement_history": "Movement History",
+    "no_sales": "No Sales",
+    "products_count": "Products Count",
+    "sales_forecast": "Sales Forecast",
+    "total_revenue_kpi": "Total Revenue KPI",
+    "yesterday": "Yesterday"
   },
   "delivery": {
     "ai_analysis": "Analyse IA des produits...",
@@ -955,7 +1081,9 @@
     "server_error": "Erreur interne du serveur",
     "task_not_found": "Tâche non trouvée",
     "unauthorized": "Accès non autorisé",
-    "user_not_found": "Utilisateur non trouvé"
+    "user_not_found": "Utilisateur non trouvé",
+    "access_denied": "Access Denied",
+    "access_denied_title": "Access Denied Title"
   },
   "help": {
     "faq": {
@@ -1621,7 +1749,8 @@
     "no_results": "Aucun résultat pour \"{{query}}\"",
     "results": "RÉSULTATS",
     "search_placeholder": "Rechercher une fonctionnalité...",
-    "title": "Centre d'Aide"
+    "title": "Centre d'Aide",
+    "features_count": "Features Count"
   },
   "invoice": {
     "add_line": "Ajouter une ligne",
@@ -1634,7 +1763,8 @@
     "note_optional": "Note (facultatif)",
     "note_placeholder": "Commentaire sur la facture...",
     "price_placeholder": "Prix unitaire",
-    "total": "TOTAL"
+    "total": "TOTAL",
+    "tva_percentage": "TVA Percentage"
   },
   "legal": {
     "error_loading_cgu": "Impossible de charger les CGU.",
@@ -1672,7 +1802,11 @@
     "title": "Marketplace",
     "verified_only": "Vérifiés uniquement",
     "catalog": "Catalogue",
-    "delivery": "livraison"
+    "delivery": "livraison",
+    "city_placeholder": "City Placeholder",
+    "min_rating_supplier": "Min Rating Supplier",
+    "no_products_in_catalog": "No Products In Catalog",
+    "see_more_products": "See More Products"
   },
   "modals": {
     "ai_assistant_title": "AI Assistant",
@@ -1698,7 +1832,8 @@
       "update": "Mettre à jour",
       "errorMismatch": "Les nouveaux mots de passe ne correspondent pas",
       "errorLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "successMessage": "Votre mot de passe a été modifié. Veuillez vous reconnecter."
+      "successMessage": "Votre mot de passe a été modifié. Veuillez vous reconnecter.",
+      "errorUpdate": "Errorupdate"
     },
     "chat": "Messages",
     "chat_empty": "Commencez la conversation !",
@@ -1908,7 +2043,10 @@
     "updated_at": "Mise à jour",
     "validate_receipt": "Valider la réception",
     "validate_reception": "Validate Reception",
-    "view_detailed_history": "Voir l'historique détaillé"
+    "view_detailed_history": "Voir l'historique détaillé",
+    "amount": "Montant Orders",
+    "confirm_send_to": "Confirm Send To",
+    "items_detected": "Items Detected"
   },
   "pin": {
     "confirm_title": "Confirmez votre PIN",
@@ -2019,7 +2157,11 @@
     "unknown_product_msg": "Aucun produit trouvé avec le SKU: {{sku}}",
     "unknown_product_title": "Produit inconnu",
     "update_line": "Mettre à jour la ligne",
-    "vat": "TVA"
+    "vat": "TVA",
+    "apply_discount": "Apply Discount",
+    "client": "Client",
+    "max_sessions_reached": "Max Sessions Reached",
+    "send_pending_items_before_payment": "Send Pending Items Before Payment"
   },
   "restaurant": {
     "menu_category": "Catégorie menu",
@@ -2049,7 +2191,62 @@
     "kitchen_ready_error": "Impossible de marquer cet article comme prêt.",
     "kitchen_served_error": "Impossible de marquer cette commande comme servie.",
     "kitchen_subtitle": "Liste des tickets envoyés en cuisine et encore en attente.",
-    "kitchen_empty_desc": "Les commandes envoyées depuis la caisse apparaîtront ici."
+    "kitchen_empty_desc": "Les commandes envoyées depuis la caisse apparaîtront ici.",
+    "hub": {
+      "accounting_desc": "Description Accounting",
+      "kitchen_desc": "Description Kitchen",
+      "menu_desc": "Description Menu",
+      "pos_desc": "Description POS",
+      "reservations_desc": "Description Reservations",
+      "subtitle": "Sous-titre Hub",
+      "tables_desc": "Description Tables",
+      "title": "Titre Hub"
+    },
+    "kitchen": {
+      "empty": "Aucun ?l?ment Kitchen",
+      "pending": "En attente Kitchen",
+      "walkin": "Walkin"
+    },
+    "reservations": {
+      "arrived": "Arrived",
+      "arrived_label": "Libell? Arrived",
+      "cancelled": "Cancelled",
+      "confirm": "Confirmer Reservations",
+      "confirmed": "Confirmed",
+      "covers": "Covers",
+      "covers_only": "Covers Only",
+      "create_error": "Erreur Create",
+      "customer_name": "Customer Name",
+      "empty": "Aucun ?l?ment Reservations",
+      "empty_desc": "Aucune donn?e Reservations",
+      "new": "Nouveau Reservations",
+      "no_show": "No Show",
+      "pending": "En attente Reservations",
+      "phone": "Phone",
+      "subtitle": "Sous-titre Reservations",
+      "table_optional": "Table Optional",
+      "update_error": "Erreur Update"
+    },
+    "tables": {
+      "action_clean": "Action Clean",
+      "action_free": "Action Free",
+      "action_reserve": "Action Reserve",
+      "action_seat": "Action Seat",
+      "amount": "Montant Tables",
+      "capacity": "Capacity",
+      "capacity_only": "Capacity Only",
+      "cleaning": "Cleaning",
+      "create_error": "Erreur Create",
+      "empty": "Aucun ?l?ment Tables",
+      "empty_desc": "Aucune donn?e Tables",
+      "free": "Free",
+      "name": "Name",
+      "new_table": "New Table",
+      "occupied": "Occupied",
+      "reserved": "Reserved",
+      "subtitle": "Sous-titre Tables",
+      "update_error": "Erreur Update"
+    }
   },
   "premium": {
     "features": {
@@ -2297,7 +2494,42 @@
     "import_catalog": "Import catalogue secteur",
     "export_pdf": "Export PDF inventaire",
     "supplier": "Fournisseur",
-    "no_supplier": "Aucun"
+    "no_supplier": "Aucun",
+    "actual_stock": "Actual Stock",
+    "add_photo": "Add Photo",
+    "current_stock": "Current Stock",
+    "delete_error": "Erreur Delete",
+    "edit_product": "Edit Product",
+    "error_categories_update_failed": "Error Categories Update Failed",
+    "error_delete_failed": "Error Delete Failed",
+    "error_export_catalog_failed": "Error Export Catalog Failed",
+    "error_export_history": "Error Export History",
+    "error_export_products": "Error Export Products",
+    "error_invalid_quantity": "Error Invalid Quantity",
+    "error_no_products_to_export": "Error No Products To Export",
+    "error_print_label_failed": "Error Print Label Failed",
+    "expired": "Expired",
+    "expiry_date": "Expiry Date",
+    "expiry_in_days": "Expiry In Days",
+    "expiry_today": "Expiry Today",
+    "expiry_tomorrow": "Expiry Tomorrow",
+    "filter_placeholder": "Filter Placeholder",
+    "has_variants_label": "Libell? Has Variants",
+    "no_movements_period": "No Movements Period",
+    "no_products": "No Products",
+    "no_products_desc": "Description No Products",
+    "no_results_for": "No Results For",
+    "no_sales_period": "No Sales Period",
+    "offline_delete_error": "Erreur Offline Delete",
+    "offline_delete_queued": "Offline Delete Queued",
+    "sale_hash": "Sale Hash",
+    "status_low": "Status Low",
+    "status_normal": "Status Normal",
+    "status_out": "Status Out",
+    "status_over": "Status Over",
+    "success_categories_updated": "Success Categories Updated",
+    "success_deleted": "Success Deleted",
+    "uploading": "Uploading"
   },
   "reminders": {
     "birthdays_desc": "Notification pour les anniversaires",
@@ -2326,7 +2558,9 @@
     "aim": "Placez le code-barres dans le cadre",
     "allow_camera": "Autoriser la caméra",
     "permission_text": "L'accès à la caméra est nécessaire pour scanner les codes-barres.",
-    "title": "Scanner un Produit"
+    "title": "Scanner un Produit",
+    "continuous_off": "Continuous Off",
+    "continuous_on": "Continuous On"
   },
   "settings": {
     "about": "À propos",
@@ -2419,7 +2653,10 @@
     "terms": "Conditions Générales (CGU)",
     "users_permissions": "Utilisateurs & Permissions",
     "users_permissions_desc": "Gérez les accès de vos employés",
-    "version": "Version"
+    "version": "Version",
+    "simple_mode": "Simple Mode",
+    "simple_mode_desc": "Description Simple Mode",
+    "tax": "Tax"
   },
   "stock": {
     "reasons": {
@@ -2801,7 +3038,15 @@
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil",
     "with_email": "Avec email",
     "with_phone": "Avec téléphone",
-    "no_supplier_linked": "Ce produit n'a pas de fournisseur associé. Ajoutez un fournisseur au produit d'abord."
+    "no_supplier_linked": "Ce produit n'a pas de fournisseur associé. Ajoutez un fournisseur au produit d'abord.",
+    "invite_desc": "Description Invite",
+    "invite_to_register": "Invite To Register",
+    "invoice_added": "Invoice Added",
+    "invoice_error": "Erreur Invoice",
+    "send_invite": "Send Invite",
+    "stock_value_short": "Stock Value Short",
+    "supplier": "Supplier",
+    "supplier_email": "Supplier Email"
   },
   "tabs": {
     "accounting": "Compta",
@@ -2818,7 +3063,12 @@
     "settings": "Réglages",
     "subscription": "Abonnement",
     "suppliers": "Fourn.",
-    "users": "Utilisateurs"
+    "users": "Utilisateurs",
+    "kitchen": "Kitchen",
+    "menu": "Menu",
+    "reservations": "Reservations",
+    "restaurant": "Restaurant",
+    "tables": "Tables"
   },
   "tips": {
     "accounting_01_desc": "Générez des rapports comptables mensuels pour suivre votre rentabilité.",
@@ -2983,7 +3233,9 @@
     "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\nVous pouvez accéder à l'application ici : {{url}}\n\nBon travail !",
     "whatsapp_invite_prompt": "Voulez-vous envoyer les accès par WhatsApp ?",
     "whatsapp_invite_send": "Envoyer",
-    "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."
+    "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil.",
+    "staff_label": "Libell? Staff",
+    "stock_label": "Libell? Stock"
   },
   "production": {
     "today": "Aujourd'hui",
@@ -3105,5 +3357,13 @@
     "required": "Ajoutez votre email pour que notre équipe puisse vous recontacter.",
     "save_error": "Impossible d'enregistrer votre email pour le moment.",
     "not_available": "Indisponible"
+  },
+  "enterprise": {
+    "upgrade_now": "Upgrade Now",
+    "with_enterprise_you_can": "With Enterprise You Can"
+  },
+  "trial": {
+    "banner": "Banner",
+    "banner_one": "Banner One"
   }
 }
