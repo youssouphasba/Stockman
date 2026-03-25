@@ -607,7 +607,7 @@ export default function OrdersScreen() {
     }
   }
 
-  const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
+  const isLocked = !isSuperAdmin && user?.role !== 'supplier' && !['starter', 'pro', 'enterprise'].includes(user?.plan || '');
 
   if (accessDenied) {
     return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
@@ -641,6 +641,7 @@ export default function OrdersScreen() {
         <ScrollView
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+          keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
@@ -1016,7 +1017,7 @@ export default function OrdersScreen() {
         />
 
         {/* AI Invoice Scan Result Modal */}
-        <Modal visible={showScanResult} animationType="slide" transparent>
+        {showScanResult && <Modal visible={showScanResult} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1110,7 +1111,7 @@ export default function OrdersScreen() {
               )}
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Delivery Confirmation Modal (marketplace orders) */}
         <DeliveryConfirmationModal
@@ -1125,7 +1126,7 @@ export default function OrdersScreen() {
         />
 
         {/* Order Detail Modal */}
-        <Modal visible={showDetailModal} animationType="slide" transparent>
+        {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1299,10 +1300,10 @@ export default function OrdersScreen() {
               ) : null}
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Rating Modal */}
-        <Modal visible={showRatingModal} animationType="fade" transparent>
+        {showRatingModal && <Modal visible={showRatingModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '60%' }]}>
               <View style={styles.modalHeader}>
@@ -1353,10 +1354,10 @@ export default function OrdersScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Supplier History Modal */}
-        <Modal visible={showHistoryModal} animationType="slide" transparent>
+        {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '80%' }]}>
               <View style={styles.modalHeader}>
@@ -1405,10 +1406,10 @@ export default function OrdersScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Partial Delivery Modal */}
-        <Modal visible={showPartialModal} animationType="slide" transparent>
+        {showPartialModal && <Modal visible={showPartialModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '85%' }]}>
               <View style={styles.modalHeader}>
@@ -1541,10 +1542,10 @@ export default function OrdersScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Return Detail Modal */}
-        <Modal visible={showReturnDetailModal} animationType="slide" transparent>
+        {showReturnDetailModal && <Modal visible={showReturnDetailModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1638,10 +1639,10 @@ export default function OrdersScreen() {
               ) : null}
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Create Return Modal */}
-        <Modal visible={showReturnModal} animationType="slide" transparent>
+        {showReturnModal && <Modal visible={showReturnModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '90%' }]}>
               <View style={styles.modalHeader}>
@@ -1802,7 +1803,7 @@ export default function OrdersScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         <ScreenGuide
           visible={showGuide}
