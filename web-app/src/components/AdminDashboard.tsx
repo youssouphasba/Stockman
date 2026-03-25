@@ -196,6 +196,7 @@ export default function AdminDashboard() {
     const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
     const [refreshingPaymentLinksAccountId, setRefreshingPaymentLinksAccountId] = useState<string | null>(null);
+    const [sendingReminderAccountId, setSendingReminderAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [sectionRefreshTick, setSectionRefreshTick] = useState(0);
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
@@ -289,6 +290,19 @@ export default function AdminDashboard() {
             showToast('Impossible de regenerer les liens.', 'error');
         } finally {
             setRefreshingPaymentLinksAccountId(null);
+        }
+    };
+
+    const handleSendReminder = async (accountId: string, daysLeft = 1) => {
+        setSendingReminderAccountId(accountId);
+        try {
+            await adminApi.sendSubscriptionReminder(accountId, daysLeft);
+            await loadSubscriptions();
+            showToast('Rappel envoye.');
+        } catch {
+            showToast("Impossible d'envoyer le rappel.", 'error');
+        } finally {
+            setSendingReminderAccountId(null);
         }
     };
 
@@ -1064,10 +1078,17 @@ export default function AdminDashboard() {
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         onClick={() => void handleRegeneratePaymentLinks(account.account_id)}
-                                                        disabled={refreshingPaymentLinksAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
+                                                        disabled={refreshingPaymentLinksAccountId === account.account_id || sendingReminderAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
                                                         className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
                                                     >
                                                         {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Regenerer'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => void handleSendReminder(account.account_id, 1)}
+                                                        disabled={sendingReminderAccountId === account.account_id || refreshingPaymentLinksAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
+                                                        className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs font-bold text-sky-200 hover:bg-sky-500/20 disabled:opacity-40"
+                                                    >
+                                                        {sendingReminderAccountId === account.account_id ? '...' : 'Envoyer rappel'}
                                                     </button>
                                                     {[7, 14, 30].map(days => {
                                                         const actionKey = `${account.account_id}:${days}`;
