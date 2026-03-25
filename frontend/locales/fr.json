@@ -553,9 +553,12 @@
       "label": "Code à 6 chiffres",
       "placeholder": "000000",
       "verify": "Vérifier le numéro",
+      "sendCode": "Envoyer le code",
+      "resendCode": "Renvoyer le code",
       "notReceived": "Je n'ai pas reçu le code",
       "errorCode": "Veuillez entrer le code à 6 chiffres",
       "errorIncorrect": "Code incorrect ou expiré",
+      "limitReached": "Limite atteinte. Réessayez plus tard.",
       "resendError": "Erreur lors du renvoi du code",
       "resendTip": "Fonctionnalité de renvoi bientôt disponible"
     }

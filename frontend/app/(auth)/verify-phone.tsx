@@ -31,10 +31,9 @@ const RESEND_COOLDOWN = 60; // seconds
 export default function VerifyPhoneScreen() {
     const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
-    const { verifyPhone, user } = useAuth();
+    const { verifyPhone, user, logout } = useAuth();
     const router = useRouter();
     const [otp, setOtp] = useState('');
-    const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
@@ -42,15 +41,11 @@ export default function VerifyPhoneScreen() {
     const [cooldown, setCooldown] = useState(0);
     const styles = createStyles(colors, glassStyle);
 
-    const handleExit = () => {
+    const handleExit = async () => {
         try {
-            // @ts-ignore - canGoBack is available in expo-router
-            if (router.canGoBack && router.canGoBack()) {
-                router.back();
-                return;
-            }
+            await logout();
         } catch {
-            // ignore and fallback
+            // ignore logout errors
         }
         router.replace('/(auth)/login');
     };
@@ -63,39 +58,10 @@ export default function VerifyPhoneScreen() {
     }, [cooldown]);
 
     useEffect(() => {
-        let cancelled = false;
-
-        async function bootstrapVerification() {
-            if (!user?.phone) {
-                setError(t('auth.verifyPhone.errorIncorrect'));
-                return;
-            }
-
-            setSending(true);
-            setError('');
-            setSuccess('');
-            try {
-                await sendPhoneVerification(user.phone);
-                if (!cancelled) {
-                    setCooldown(RESEND_COOLDOWN);
-                }
-            } catch (e) {
-                if (!cancelled) {
-                    setError(e instanceof Error ? e.message : t('auth.verifyPhone.resendError'));
-                }
-            } finally {
-                if (!cancelled) {
-                    setSending(false);
-                }
-            }
-        }
-
-        void bootstrapVerification();
         return () => {
-            cancelled = true;
             clearPhoneVerificationState();
         };
-    }, [t, user?.phone]);
+    }, []);
 
     async function handleVerify() {
         if (otp.length !== 6) {
@@ -117,7 +83,7 @@ export default function VerifyPhoneScreen() {
         }
     }
 
-    const handleResend = useCallback(async () => {
+    const handleSendCode = useCallback(async () => {
         if (cooldown > 0 || resending || !user?.phone) return;
         setResending(true);
         setError('');
@@ -127,7 +93,12 @@ export default function VerifyPhoneScreen() {
             setSuccess(t('auth.verifyPhone.sentTo', { phone: user.phone || t('common.none') }));
             setCooldown(RESEND_COOLDOWN);
         } catch (e) {
-            setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.resendError'));
+            const message = e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.resendError');
+            if (typeof message === 'string' && message.toLowerCase().includes('quota')) {
+                setError(t('auth.verifyPhone.limitReached') || message);
+            } else {
+                setError(message as string);
+            }
         } finally {
             setResending(false);
         }
@@ -198,7 +169,7 @@ export default function VerifyPhoneScreen() {
 
                         <TouchableOpacity
                             style={[styles.resendBtn, (cooldown > 0 || resending) && styles.buttonDisabled]}
-                            onPress={handleResend}
+                            onPress={handleSendCode}
                             disabled={cooldown > 0 || resending}
                         >
                             {resending ? (
@@ -206,9 +177,8 @@ export default function VerifyPhoneScreen() {
                             ) : (
                                 <Text style={styles.resendText}>
                                     {cooldown > 0
-                                        ? `${t('auth.verifyPhone.notReceived')} (${cooldown}s)`
-                                        : t('auth.verifyPhone.notReceived')
-                                    }
+                                        ? `${t('auth.verifyPhone.resendCode')} (${cooldown}s)`
+                                        : t('auth.verifyPhone.sendCode')}
                                 </Text>
                             )}
                         </TouchableOpacity>
