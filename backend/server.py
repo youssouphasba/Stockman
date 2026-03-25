@@ -7424,7 +7424,7 @@ async def check_alerts_loop():
     now = datetime.now(timezone.utc)
     since_24h = now - timedelta(hours=24)
 
-    # 1. Low stock alerts — Pro + Enterprise only, with 24h dedup
+    # 1. Low stock alerts — Pro + Enterprise only, dedup on active (non-dismissed) alerts
     async for product in db.products.find({
         "min_stock": {"$gt": 0},
         "$expr": {"$lte": ["$quantity", "$min_stock"]}
@@ -7443,12 +7443,12 @@ async def check_alerts_loop():
 
         product_id = product.get("product_id")
 
-        # Dedup: skip if already alerted for this product in the last 24h
+        # Dedup: skip if an active (non-dismissed) alert already exists for this product
         existing = await db.alerts.find_one({
             "user_id": owner_id,
             "product_id": product_id,
             "type": "low_stock",
-            "created_at": {"$gte": since_24h}
+            "is_dismissed": False,
         })
         if existing:
             continue
@@ -7472,23 +7472,46 @@ async def check_alerts_loop():
             data={"screen": "products", "filter": "low_stock"},
         )
 
-    # 2. Expiry alerts (within 7 days)
+    # 2. Expiry alerts (within 7 days) — dedup on active alerts
     seven_days_later = now + timedelta(days=7)
     async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
         owner_id = batch.get("user_id")
         if not owner_id:
             continue
-        
+
         # Plan check (I6)
-        owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1})
+        owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1, "account_id": 1})
         if not owner or owner.get("plan") not in ("pro", "enterprise"):
             continue
 
-        await notification_service.notify_user(
-            db,
+        batch_id = batch.get("batch_id") or batch.get("batch_number")
+
+        # Dedup: skip if an active expiry alert already exists for this batch
+        existing = await db.alerts.find_one({
+            "user_id": owner_id,
+            "type": "expiry",
+            "message": {"$regex": batch.get("batch_number", "")},
+            "is_dismissed": False,
+        })
+        if existing:
+            continue
+
+        alert = Alert(
+            user_id=owner_id,
+            store_id=batch.get("store_id"),
+            product_id=batch.get("product_id"),
+            type="expiry",
+            title="Expiration Proche",
+            message=f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}.",
+            severity="warning",
+        )
+        await db.alerts.insert_one(alert.model_dump())
+        await dispatch_alert_channels(
             owner_id,
-            "Expiration Proche",
-            f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}."
+            owner.get("account_id"),
+            batch.get("store_id"),
+            alert,
+            data={"screen": "products", "filter": "expiry"},
         )
 
 

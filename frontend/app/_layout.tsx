@@ -15,7 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../services/i18n';
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked } = useAuth();
+  const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked, user } = useAuth();
   const { isOnline, processQueue, prefetchData } = useSync();
   const { isDark, colors } = useTheme();
   const segments = useSegments();
@@ -36,9 +36,14 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     const isPublicPage = segments[0] === 'terms' || segments[0] === 'privacy';
 
+    // User is authenticated but still needs verification — stay in auth group
+    const needsVerification = isAuthenticated && user && !user.can_access_app && !!user.required_verification;
+    const onVerificationScreen = inAuthGroup && (segments[1] === 'verify-phone' || segments[1] === 'verify-email');
+
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && inAuthGroup && !needsVerification) {
+      // Verified user still on auth screens — redirect to main app
       if (isSuperAdmin) {
         router.replace('/(admin)' as any);
       } else if (isSupplier) {
@@ -46,8 +51,15 @@ function RootLayoutNav() {
       } else {
         router.replace('/(tabs)');
       }
+    } else if (needsVerification && !onVerificationScreen) {
+      // User needs verification but isn't on the verification screen — redirect there
+      if (user.required_verification === 'phone') {
+        router.replace('/(auth)/verify-phone');
+      } else if (user.required_verification === 'email') {
+        router.replace('/(auth)/verify-email');
+      }
     }
-  }, [isAuthenticated, isLoading, isAppLocked, segments]);
+  }, [isAuthenticated, isLoading, isAppLocked, segments, user?.can_access_app]);
 
   // Auto-sync and prefetch when online and authenticated
   useEffect(() => {

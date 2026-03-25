@@ -530,6 +530,7 @@ export type UserSettings = {
     };
     dashboard_layout?: DashboardLayoutSettings;
     reminder_rules?: Record<string, any>;
+    expense_categories?: string[];
 };
 
 export type Store = {
