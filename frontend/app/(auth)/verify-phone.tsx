@@ -42,6 +42,19 @@ export default function VerifyPhoneScreen() {
     const [cooldown, setCooldown] = useState(0);
     const styles = createStyles(colors, glassStyle);
 
+    const handleExit = () => {
+        try {
+            // @ts-ignore - canGoBack is available in expo-router
+            if (router.canGoBack && router.canGoBack()) {
+                router.back();
+                return;
+            }
+        } catch {
+            // ignore and fallback
+        }
+        router.replace('/(auth)/login');
+    };
+
     // Cooldown timer
     useEffect(() => {
         if (cooldown <= 0) return;
@@ -128,6 +141,9 @@ export default function VerifyPhoneScreen() {
             >
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <View style={styles.header}>
+                        <TouchableOpacity style={styles.backBtn} onPress={handleExit}>
+                            <Ionicons name="arrow-back" size={22} color={colors.text} />
+                        </TouchableOpacity>
                         <View style={styles.iconCircle}>
                             <Ionicons name="shield-checkmark" size={40} color={colors.primary} />
                         </View>
@@ -214,6 +230,12 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     header: {
         alignItems: 'center',
         marginBottom: Spacing.xl,
+    },
+    backBtn: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        padding: 6,
     },
     iconCircle: {
         width: 80,
