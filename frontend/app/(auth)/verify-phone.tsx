@@ -169,11 +169,11 @@ export default function VerifyPhoneScreen() {
                         </View>
 
                         <TouchableOpacity
-                            style={[styles.button, (loading || sending || otp.length !== 6) && styles.buttonDisabled]}
+                            style={[styles.button, (loading || otp.length !== 6) && styles.buttonDisabled]}
                             onPress={handleVerify}
-                            disabled={loading || sending || otp.length !== 6}
+                            disabled={loading || otp.length !== 6}
                         >
-                            {loading || sending ? (
+                            {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
                                 <Text style={styles.buttonText}>{t('auth.verifyPhone.verify')}</Text>
