@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
@@ -73,6 +74,14 @@ export default function RegisterScreen() {
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [sectorSearch, setSectorSearch] = useState('');
   const [howDidYouHear, setHowDidYouHear] = useState('');
+
+  const openLegalDoc = async (url: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      setError(t('auth.register.errorRegister'));
+    }
+  };
 
   const filteredCountries = useMemo(() => {
     const query = countrySearch.trim().toLowerCase();
@@ -360,7 +369,7 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
                 <Text style={styles.checkText}>
                   {t('auth.register.acceptTerms')}{' '}
-                  <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
+                  <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/terms')}>
                     {t('common.terms')}
                   </Text>
                 </Text>
@@ -376,7 +385,7 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
                 <Text style={styles.checkText}>
                   {t('auth.register.acceptPrivacy')}{' '}
-                  <Text style={styles.legalLink} onPress={() => router.push('/privacy')}>
+                  <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/privacy')}>
                     {t('common.privacy')}
                   </Text>
                 </Text>
