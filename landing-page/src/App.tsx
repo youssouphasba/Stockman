@@ -82,11 +82,11 @@ function Landing() {
     };
   }, [selectedCountryCode]);
 
-  const testimonials = [
-    { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
-    { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
-    { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
-  ];
+  // const testimonials = [
+  //   { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
+  //   { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
+  //   { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
+  // ];
 
   const homepageStructuredData = [
     {
