@@ -311,10 +311,12 @@ export default function SubscriptionScreen() {
                 )}
 
                 {/* Payment Buttons */}
-                {(!isActive || isFreeTrial) && selectedPlan !== 'enterprise' && (
+                {selectedPlan !== 'enterprise' && (
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>
-                            {t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
+                            {isActive && !isFreeTrial
+                                ? (t('subscription.change_plan') || 'Changer de plan')
+                                : t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
                         </Text>
 
                         {isNative && (
@@ -344,7 +346,7 @@ export default function SubscriptionScreen() {
                 )}
 
                 {/* Enterprise contact CTA */}
-                {(!isActive || isFreeTrial) && selectedPlan === 'enterprise' && (
+                {selectedPlan === 'enterprise' && (
                     <View style={styles.card}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                             <Ionicons name="business-outline" size={24} color="#7C3AED" />
