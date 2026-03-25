@@ -166,6 +166,7 @@ function Landing() {
         </div>
       </section>
 
+      {/* Stats section — hidden until real data is available
       <section className="stats-section reveal reveal-left">
         <div className="container">
           <div className="stats-grid">
@@ -188,11 +189,13 @@ function Landing() {
           </div>
         </div>
       </section>
+      */}
 
 
 
       <Features />
 
+      {/* Testimonials section — hidden until real testimonials are collected
       <section className="testimonials container reveal">
         <div className="section-title">
           <h2>{t('testimonials.title')}</h2>
@@ -213,6 +216,7 @@ function Landing() {
           ))}
         </div>
       </section>
+      */}
 
       <section className="demo-banner-section reveal" style={{ padding: 'var(--spacing-xl) 0' }}>
         <div className="container">
