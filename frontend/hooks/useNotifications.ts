@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
@@ -37,6 +37,10 @@ export function useNotifications(userId?: string) {
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data as any;
+            if (data?.url) {
+                Linking.openURL(String(data.url)).catch(() => null);
+                return;
+            }
             if (data?.screen === 'products') {
                 const filter = data?.filter;
                 if (filter) {

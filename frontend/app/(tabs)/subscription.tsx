@@ -137,22 +137,6 @@ export default function SubscriptionScreen() {
         }
     };
 
-    const handleFlutterwavePurchase = async (plan: PlanKey = selectedPlan) => {
-        try {
-            setPayLoading(true);
-            const res = await subscription.checkout(plan);
-            if (res.payment_url) {
-                await WebBrowser.openBrowserAsync(res.payment_url);
-                await subscription.sync();
-                fetchSubscription();
-            }
-        } catch (error) {
-            Alert.alert(t('common.error'), t('subscription.payment_init_error') || 'Erreur lors de l\'initialisation du paiement.');
-        } finally {
-            setPayLoading(false);
-        }
-    };
-
     const handleEnterpriseContact = async () => {
         await WebBrowser.openBrowserAsync('https://app.stockman.pro/features');
     };
@@ -333,44 +317,29 @@ export default function SubscriptionScreen() {
                             {t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
                         </Text>
 
-                        {useMobileMoney ? (
-                            <>
-                                <TouchableOpacity
-                                    style={[styles.payButton, styles.mobileMoneyButton]}
-                                    onPress={() => handleFlutterwavePurchase(selectedPlan)}
-                                    disabled={payLoading}
-                                >
-                                    {payLoading ? <ActivityIndicator size="small" color="white" /> : (
-                                        <>
-                                            <Ionicons name="phone-portrait-outline" size={22} color="white" />
-                                            <Text style={styles.payButtonText}>{t('subscription.pay_mobile_money')}</Text>
-                                        </>
-                                    )}
-                                </TouchableOpacity>
-                                <Text style={styles.mmSubtext}>{t('subscription.mm_providers')}</Text>
-                            </>
-                        ) : (
-                            isNative && (
-                                <TouchableOpacity
-                                    style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
-                                    onPress={() => handleRevenueCatPurchase(selectedPlan)}
-                                    disabled={payLoading}
-                                >
-                                    {payLoading ? <ActivityIndicator size="small" color="white" /> : (
-                                        <>
-                                            <Ionicons
-                                                name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
-                                                size={22}
-                                                color="white"
-                                            />
-                                            <Text style={styles.payButtonText}>
-                                                {Platform.OS === 'ios' ? t('subscription.pay_app_store') : t('subscription.pay_google_play')}
-                                            </Text>
-                                        </>
-                                    )}
-                                </TouchableOpacity>
-                            )
+                        {isNative && (
+                            <TouchableOpacity
+                                style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
+                                onPress={() => handleRevenueCatPurchase(selectedPlan)}
+                                disabled={payLoading}
+                            >
+                                {payLoading ? <ActivityIndicator size="small" color="white" /> : (
+                                    <>
+                                        <Ionicons
+                                            name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
+                                            size={22}
+                                            color="white"
+                                        />
+                                        <Text style={styles.payButtonText}>
+                                            {Platform.OS === 'ios' ? t('subscription.pay_app_store') : t('subscription.pay_google_play')}
+                                        </Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
                         )}
+                        <Text style={styles.helperText}>
+                            Vous pouvez aussi régler par lien sécurisé (carte ou Mobile Money) envoyé par e‑mail ou notification.
+                        </Text>
                     </View>
                 )}
 

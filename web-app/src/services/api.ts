@@ -2236,6 +2236,7 @@ export const admin = {
     grantSubscriptionGrace: (accountId: string, days = 7, note?: string) => request<any>(`/admin/subscriptions/${accountId}/grace?days=${days}`, { method: 'POST', body: { note } }),
     enableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=true`, { method: 'POST', body: { note } }),
     disableSubscriptionReadOnly: (accountId: string, note?: string) => request<any>(`/admin/subscriptions/${accountId}/read-only?enabled=false`, { method: 'POST', body: { note } }),
+    regenerateSubscriptionLinks: (accountId: string) => request<any>(`/admin/subscriptions/${accountId}/payment-links`, { method: 'POST' }),
     listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
         const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);

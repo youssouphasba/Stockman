@@ -703,6 +703,93 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             except Exception as e:
                 logger.error(f"Failed to send trial reminder to {to_email}: {e}")
 
+        async def build_payment_links_for_account(account_doc: dict, owner_doc: dict, plan: str) -> dict:
+            merged = {**owner_doc, **account_doc}
+            links = {"stripe_url": None, "flutterwave_url": None}
+            try:
+                stripe_session = await create_stripe_session(merged, plan)
+                links["stripe_url"] = stripe_session.get("checkout_url")
+            except Exception as exc:
+                logger.warning("Stripe link generation failed for %s: %s", owner_doc.get("user_id"), exc)
+
+            currency = (merged.get("currency") or DEFAULT_CURRENCY).upper()
+            if currency in FLUTTERWAVE_CURRENCIES:
+                try:
+                    flw_session = await create_flutterwave_session(merged, plan)
+                    links["flutterwave_url"] = flw_session.get("payment_url")
+                except Exception as exc:
+                    logger.warning("Flutterwave link generation failed for %s: %s", owner_doc.get("user_id"), exc)
+            return links
+
+        async def send_subscription_payment_reminder(account_doc: dict, owner_doc: dict, days_left: int) -> None:
+            plan = normalize_plan(account_doc.get("plan") or "starter")
+            links = await build_payment_links_for_account(account_doc, owner_doc, plan)
+            billing_email = (account_doc.get("billing_contact_email") or "").strip()
+            owner_email = (owner_doc.get("email") or "").strip()
+            recipients = [email for email in [billing_email, owner_email] if email]
+            now_local = datetime.now(timezone.utc)
+
+            if days_left <= 1:
+                subject = "⏳ Votre abonnement Stockman expire demain"
+            else:
+                subject = f"⏳ Votre abonnement Stockman expire dans {days_left} jours"
+
+            line_stripe = f"<a href=\"{links['stripe_url']}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if links["stripe_url"] else ""
+            line_flt = f"<a href=\"{links['flutterwave_url']}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if links["flutterwave_url"] else ""
+            body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
+Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
+Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
+{line_stripe}<br><br>
+{line_flt if line_flt else ''}
+<br><br>
+À bientôt,<br>L’équipe Stockman."""
+
+            if recipients:
+                await notification_service.send_email_notification(
+                    recipients,
+                    subject,
+                    body,
+                )
+
+            reminder_url = links["stripe_url"] or links["flutterwave_url"]
+            if reminder_url:
+                await notification_service.notify_user(
+                    db,
+                    owner_doc.get("user_id"),
+                    "Rappel d’abonnement",
+                    f"Votre abonnement expire dans {days_left} jour(s). Régularisez pour continuer.",
+                    data={"url": reminder_url, "days_left": days_left, "plan": plan},
+                )
+
+            await db.business_accounts.update_one(
+                {"owner_user_id": owner_doc.get("user_id")},
+                {"$set": {
+                    "last_payment_links": {
+                        "stripe_url": links["stripe_url"],
+                        "flutterwave_url": links["flutterwave_url"],
+                        "plan": plan,
+                        "days_left": days_left,
+                    },
+                    "last_payment_links_generated_at": now_local,
+                }}
+            )
+
+            await log_subscription_event(
+                event_type="payment_reminder_sent",
+                provider="system",
+                source="scheduler",
+                owner_user_id=owner_doc.get("user_id"),
+                plan=plan,
+                status=account_doc.get("subscription_status", "active"),
+                currency=account_doc.get("currency"),
+                message=f"Rappel J-{days_left} envoyé (email/push)",
+                metadata={
+                    "days_left": days_left,
+                    "stripe": bool(links["stripe_url"]),
+                    "flutterwave": bool(links["flutterwave_url"]),
+                },
+            )
+
         # Daily subscription expiry checker + trial reminders
         async def check_expired_subscriptions():
             """Check and expire subscriptions + send trial reminders (called by supervised_loop)"""
@@ -754,6 +841,31 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                     await db.users.update_one(
                         {"user_id": u["user_id"]},
                         {"$set": {f"trial_reminder_{days_left}d_sent": True}}
+                    )
+
+            # 4. Rappels abonnement payant J-7, J-3, J-1 (Stripe + Flutterwave + In-App)
+            for days_left in (7, 3, 1):
+                target_date_start = now + timedelta(days=days_left)
+                target_date_end = now + timedelta(days=days_left, hours=24)
+                accounts_to_remind = await db.business_accounts.find({
+                    "subscription_end": {"$gte": target_date_start, "$lt": target_date_end},
+                    "subscription_status": "active",
+                    "plan": {"$in": ["starter", "pro", "premium", "enterprise"]},
+                    "is_demo": {"$ne": True},
+                    f"payment_reminder_{days_left}d_sent": {"$ne": True},
+                }, {"_id": 0, "owner_user_id": 1, "plan": 1, "currency": 1, "country_code": 1, "billing_contact_email": 1}).to_list(length=500)
+
+                for account in accounts_to_remind:
+                    owner_doc = await db.users.find_one(
+                        {"user_id": account["owner_user_id"]},
+                        {"_id": 0, "user_id": 1, "email": 1, "name": 1, "currency": 1, "country_code": 1},
+                    )
+                    if not owner_doc:
+                        continue
+                    await send_subscription_payment_reminder(account, owner_doc, days_left)
+                    await db.business_accounts.update_one(
+                        {"owner_user_id": account["owner_user_id"]},
+                        {"$set": {f"payment_reminder_{days_left}d_sent": True, "payment_reminder_last_sent_at": now}}
                     )
 
         async def cleanup_demo_sessions_loop():
@@ -1036,6 +1148,12 @@ class BusinessAccount(BaseModel):
     notification_contacts: Dict[str, List[str]] = Field(default_factory=shared_default_notification_contacts)
     billing_contact_name: Optional[str] = None
     billing_contact_email: Optional[EmailStr] = None
+    payment_reminder_7d_sent: Optional[bool] = None
+    payment_reminder_3d_sent: Optional[bool] = None
+    payment_reminder_1d_sent: Optional[bool] = None
+    payment_reminder_last_sent_at: Optional[datetime] = None
+    last_payment_links: Optional[Dict[str, Optional[str]]] = None
+    last_payment_links_generated_at: Optional[datetime] = None
     is_demo: bool = False
     demo_session_id: Optional[str] = None
     demo_type: Optional[str] = None
@@ -2163,6 +2281,14 @@ def verification_provider(channel: Optional[str]) -> str:
 
 def is_required_verification_complete(user_doc: dict) -> bool:
     required = user_doc.get("required_verification")
+    if not required:
+        return True
+    # Accounts created before the verification system have no verification_completed_at
+    # and no signup_surface — treat them as already verified
+    if not user_doc.get("signup_surface") and not user_doc.get("verification_completed_at"):
+        created = user_doc.get("created_at")
+        if isinstance(created, datetime) and created < datetime(2026, 3, 20, tzinfo=timezone.utc):
+            return True
     if required == "phone":
         return bool(user_doc.get("is_phone_verified"))
     if required == "email":
@@ -2996,8 +3122,6 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
         currency=user_doc.get("currency") or DEFAULT_CURRENCY,
         locked=has_locked_billing_country(account_doc or user_doc),
     )
-    if pricing_payload["recommended_checkout_provider"] != "flutterwave":
-        raise HTTPException(status_code=400, detail="Ce compte doit utiliser le paiement par carte pour cette devise.")
     user_doc["currency"] = pricing_payload["currency"]
     user_doc["country_code"] = pricing_payload["country_code"]
     user_currency = user_doc.get("currency", DEFAULT_CURRENCY)
@@ -3070,8 +3194,6 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
         currency=user_doc.get("currency") or DEFAULT_CURRENCY,
         locked=has_locked_billing_country(account_doc or user_doc),
     )
-    if pricing_payload["recommended_checkout_provider"] != "stripe":
-        raise HTTPException(status_code=400, detail="Ce compte doit utiliser Mobile Money pour cette devise.")
     user_doc["currency"] = pricing_payload["currency"]
     user_doc["country_code"] = pricing_payload["country_code"]
     try:
@@ -3107,6 +3229,214 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
     return {"checkout_url": session["checkout_url"], "session_id": session["session_id"]}
 
 
+@admin_router.post("/generate-payment-link")
+async def generate_payment_link(
+    user_id: str,
+    plan: str = "starter",
+    admin: User = Depends(require_superadmin),
+):
+    """Génère un lien Stripe Checkout pour un user (superadmin only).
+    Le lien peut être envoyé par WhatsApp/SMS au client."""
+    if plan not in ("starter", "pro", "enterprise"):
+        raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    try:
+        session = await create_stripe_session(user_doc, plan)
+    except Exception as e:
+        logger.error(f"Stripe payment link error for {user_id}: {e}")
+        raise HTTPException(status_code=502, detail=f"Erreur Stripe: {e}")
+    await log_subscription_event(
+        event_type="payment_link_generated",
+        provider="stripe",
+        source="admin",
+        owner_user_id=user_id,
+        plan=plan,
+        status="pending",
+        provider_reference=session["session_id"],
+        message=f"Lien de paiement généré par {admin.user_id}",
+    )
+    return {
+        "checkout_url": session["checkout_url"],
+        "session_id": session["session_id"],
+        "user_id": user_id,
+        "plan": plan,
+    }
+
+
+@admin_router.post("/subscriptions/{account_id}/payment-links")
+async def regenerate_subscription_payment_links(
+    account_id: str,
+    admin: User = Depends(require_superadmin),
+):
+    """Regenere les liens Stripe/Flutterwave pour un compte (admin only)."""
+    account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    owner_id = account_doc.get("owner_user_id")
+    if not owner_id:
+        raise HTTPException(status_code=404, detail="Proprietaire introuvable")
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    plan = normalize_plan(account_doc.get("plan") or "starter")
+    merged_doc = {**owner_doc, **account_doc}
+    stripe_url = None
+    flutterwave_url = None
+
+    try:
+        stripe_session = await create_stripe_session(merged_doc, plan)
+        stripe_url = stripe_session.get("checkout_url")
+    except Exception as exc:
+        logger.warning("Stripe link generation failed for account %s: %s", account_id, exc)
+
+    currency = (merged_doc.get("currency") or DEFAULT_CURRENCY).upper()
+    if currency in FLUTTERWAVE_CURRENCIES:
+        try:
+            flw_session = await create_flutterwave_session(merged_doc, plan)
+            flutterwave_url = flw_session.get("payment_url")
+        except Exception as exc:
+            logger.warning("Flutterwave link generation failed for account %s: %s", account_id, exc)
+
+    now = datetime.now(timezone.utc)
+    await db.business_accounts.update_one(
+        {"account_id": account_id},
+        {"$set": {
+            "last_payment_links": {
+                "stripe_url": stripe_url,
+                "flutterwave_url": flutterwave_url,
+                "plan": plan,
+            },
+            "last_payment_links_generated_at": now,
+        }}
+    )
+
+    await log_subscription_event(
+        event_type="payment_link_generated",
+        provider="admin",
+        source="admin",
+        owner_user_id=owner_id,
+        account_id=account_id,
+        plan=plan,
+        status=account_doc.get("subscription_status", "active"),
+        currency=merged_doc.get("currency"),
+        country_code=merged_doc.get("country_code"),
+        message=f"Liens de paiement regeneres par {admin.user_id}",
+        metadata={"stripe": bool(stripe_url), "flutterwave": bool(flutterwave_url)},
+    )
+
+    return {
+        "account_id": account_id,
+        "stripe_url": stripe_url,
+        "flutterwave_url": flutterwave_url,
+        "generated_at": now,
+    }
+
+
+@admin_router.post("/subscriptions/{account_id}/send-reminder")
+async def admin_send_subscription_reminder(
+    account_id: str,
+    days_left: int = 1,
+    admin: User = Depends(require_superadmin),
+):
+    """Envoie un rappel d’abonnement immédiat (email + push)."""
+    days_left = max(1, min(days_left, 30))
+    account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    owner_id = account_doc.get("owner_user_id")
+    if not owner_id:
+        raise HTTPException(status_code=404, detail="Proprietaire introuvable")
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    plan = normalize_plan(account_doc.get("plan") or "starter")
+    merged_doc = {**owner_doc, **account_doc}
+
+    stripe_url = None
+    flutterwave_url = None
+    try:
+        stripe_session = await create_stripe_session(merged_doc, plan)
+        stripe_url = stripe_session.get("checkout_url")
+    except Exception as exc:
+        logger.warning("Stripe link generation failed for account %s: %s", account_id, exc)
+
+    currency = (merged_doc.get("currency") or DEFAULT_CURRENCY).upper()
+    if currency in FLUTTERWAVE_CURRENCIES:
+        try:
+            flw_session = await create_flutterwave_session(merged_doc, plan)
+            flutterwave_url = flw_session.get("payment_url")
+        except Exception as exc:
+            logger.warning("Flutterwave link generation failed for account %s: %s", account_id, exc)
+
+    billing_email = (account_doc.get("billing_contact_email") or "").strip()
+    owner_email = (owner_doc.get("email") or "").strip()
+    recipients = [email for email in [billing_email, owner_email] if email]
+
+    subject = "⏳ Votre abonnement Stockman expire demain" if days_left <= 1 else f"⏳ Votre abonnement Stockman expire dans {days_left} jours"
+    line_stripe = f"<a href=\"{stripe_url}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if stripe_url else ""
+    line_flt = f"<a href=\"{flutterwave_url}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if flutterwave_url else ""
+    body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
+Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
+Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
+{line_stripe}<br><br>
+{line_flt if line_flt else ''}
+<br><br>
+À bientôt,<br>L’équipe Stockman."""
+
+    if recipients:
+        await notification_service.send_email_notification(recipients, subject, body)
+
+    reminder_url = stripe_url or flutterwave_url
+    if reminder_url:
+        await notification_service.notify_user(
+            db,
+            owner_doc.get("user_id"),
+            "Rappel d’abonnement",
+            f"Votre abonnement expire dans {days_left} jour(s). Régularisez pour continuer.",
+            data={"url": reminder_url, "days_left": days_left, "plan": plan},
+        )
+
+    now = datetime.now(timezone.utc)
+    await db.business_accounts.update_one(
+        {"account_id": account_id},
+        {"$set": {
+            "last_payment_links": {
+                "stripe_url": stripe_url,
+                "flutterwave_url": flutterwave_url,
+                "plan": plan,
+                "days_left": days_left,
+            },
+            "last_payment_links_generated_at": now,
+        }}
+    )
+
+    await log_subscription_event(
+        event_type="payment_reminder_sent",
+        provider="admin",
+        source="admin",
+        owner_user_id=owner_id,
+        account_id=account_id,
+        plan=plan,
+        status=account_doc.get("subscription_status", "active"),
+        currency=merged_doc.get("currency"),
+        country_code=merged_doc.get("country_code"),
+        message=f"Rappel manuel envoye par {admin.user_id}",
+        metadata={"days_left": days_left, "stripe": bool(stripe_url), "flutterwave": bool(flutterwave_url)},
+    )
+
+    return {
+        "account_id": account_id,
+        "stripe_url": stripe_url,
+        "flutterwave_url": flutterwave_url,
+        "recipients": recipients,
+        "days_left": days_left,
+    }
+
+
 @api_router.post("/webhooks/stripe")
 async def stripe_webhook(request: Request):
     """Webhook Stripe — déclenché après un paiement réussi."""
@@ -3132,7 +3462,38 @@ async def stripe_webhook(request: Request):
         # Subscription created — store stripe IDs, plan activated on invoice.paid
         metadata = obj.get("metadata", {})
         user_id = metadata.get("user_id")
+
+        # Fallback: if no user_id in metadata (manual Payment Link), find user by email
+        if not user_id:
+            customer_email = obj.get("customer_details", {}).get("email") or obj.get("customer_email")
+            if customer_email:
+                user_by_email = await db.users.find_one(
+                    {"email": customer_email.strip().lower()},
+                    {"user_id": 1, "parent_user_id": 1},
+                )
+                if user_by_email:
+                    user_id = user_by_email.get("parent_user_id") or user_by_email["user_id"]
+                    logger.info(f"Stripe checkout: matched user by email {customer_email} -> {user_id}")
+
         if user_id:
+            # Detect plan from metadata, or from line items, or default to starter
+            plan_from_meta = metadata.get("plan")
+            if not plan_from_meta:
+                # Try to detect plan from Stripe Price ID
+                line_items = obj.get("line_items", {}).get("data") or []
+                if not line_items:
+                    # line_items may not be expanded — check display_items or amount
+                    amount_total = obj.get("amount_total", 0)
+                    if amount_total:
+                        # Rough detection by amount (cents)
+                        plan_from_meta = "enterprise" if amount_total >= 1200 else "pro" if amount_total >= 800 else "starter"
+                else:
+                    price_id = (line_items[0].get("price") or {}).get("id", "")
+                    for p_name, p_id in STRIPE_PRICES.items():
+                        if price_id == p_id:
+                            plan_from_meta = p_name
+                            break
+
             await db.users.update_one(
                 {"user_id": user_id},
                 {"$set": {
@@ -3146,7 +3507,7 @@ async def stripe_webhook(request: Request):
                 provider="stripe",
                 source="web",
                 owner_user_id=user_id,
-                plan=normalize_plan(metadata.get("plan")),
+                plan=normalize_plan(plan_from_meta or metadata.get("plan")),
                 status="pending_activation",
                 currency=metadata.get("currency"),
                 provider_reference=obj.get("subscription") or obj.get("id"),
@@ -4694,6 +5055,8 @@ async def admin_subscription_accounts(
             "business_type": 1,
             "invoice_business_name": 1,
             "receipt_business_name": 1,
+            "last_payment_links": 1,
+            "last_payment_links_generated_at": 1,
             "created_at": 1,
         },
     ).sort("created_at", -1).to_list(None)
@@ -4772,6 +5135,8 @@ async def admin_subscription_accounts(
             "last_payment_amount": last_payment.get("amount"),
             "last_payment_currency": last_payment.get("currency"),
             "last_payment_provider": last_payment.get("provider"),
+            "last_payment_links": item.get("last_payment_links"),
+            "last_payment_links_generated_at": item.get("last_payment_links_generated_at"),
             "created_at": item.get("created_at"),
         })
 

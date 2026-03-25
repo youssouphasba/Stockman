@@ -195,6 +195,7 @@ export default function AdminDashboard() {
     const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | 'broadcast' | 'announcement' | 'individual'>('all');
     const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
+    const [refreshingPaymentLinksAccountId, setRefreshingPaymentLinksAccountId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [sectionRefreshTick, setSectionRefreshTick] = useState(0);
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
@@ -275,6 +276,19 @@ export default function AdminDashboard() {
             showToast("Impossible de modifier l'etat lecture seule.", 'error');
         } finally {
             setTogglingReadOnlyAccountId(null);
+        }
+    };
+
+    const handleRegeneratePaymentLinks = async (accountId: string) => {
+        setRefreshingPaymentLinksAccountId(accountId);
+        try {
+            await adminApi.regenerateSubscriptionLinks(accountId);
+            await loadSubscriptions();
+            showToast('Liens de paiement regeneres.');
+        } catch {
+            showToast('Impossible de regenerer les liens.', 'error');
+        } finally {
+            setRefreshingPaymentLinksAccountId(null);
         }
     };
 
@@ -963,6 +977,7 @@ export default function AdminDashboard() {
                                         <th className="px-6 py-4">Pays / Devise</th>
                                         <th className="px-6 py-4">Echeance</th>
                                         <th className="px-6 py-4">Dernier paiement</th>
+                                        <th className="px-6 py-4">Liens paiement</th>
                                         <th className="px-6 py-4 text-right">Action</th>
                                     </tr>
                                 </thead>
@@ -1012,8 +1027,48 @@ export default function AdminDashboard() {
                                                 <p>{formatAdminMoney(account.last_payment_amount, account.last_payment_currency)}</p>
                                                 <p className="text-[11px] text-slate-500">{formatAdminDate(account.last_payment_at)}</p>
                                             </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-2 text-xs">
+                                                    {account.last_payment_links?.stripe_url ? (
+                                                        <a
+                                                            href={account.last_payment_links.stripe_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-primary hover:bg-primary/20 transition"
+                                                        >
+                                                            Stripe
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-slate-600">Stripe: —</span>
+                                                    )}
+                                                    {account.last_payment_links?.flutterwave_url ? (
+                                                        <a
+                                                            href={account.last_payment_links.flutterwave_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-200 hover:bg-emerald-500/20 transition"
+                                                        >
+                                                            Mobile Money
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-slate-600">Mobile Money: —</span>
+                                                    )}
+                                                    {account.last_payment_links_generated_at ? (
+                                                        <span className="text-[10px] text-slate-500">
+                                                            Genere le {formatAdminDate(account.last_payment_links_generated_at)}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => void handleRegeneratePaymentLinks(account.account_id)}
+                                                        disabled={refreshingPaymentLinksAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
+                                                        className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
+                                                    >
+                                                        {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Regenerer'}
+                                                    </button>
                                                     {[7, 14, 30].map(days => {
                                                         const actionKey = `${account.account_id}:${days}`;
                                                         return (

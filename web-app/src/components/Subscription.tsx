@@ -183,6 +183,7 @@ export default function Subscription() {
     const isActive = subDetails?.status === 'active';
     const accessPhase = subDetails?.subscription_access_phase || 'active';
     const currency = subDetails?.currency || 'XOF';
+    const canUseMobileMoney = Boolean(subDetails?.use_mobile_money);
     const billingCountry = COUNTRIES.find((country) => country.code === subDetails?.country_code) || COUNTRIES[0];
     const plans = (['starter', 'pro', 'enterprise'] as PlanId[]).map((planId) => {
         const quote = subDetails?.effective_prices?.[planId];
@@ -349,24 +350,27 @@ export default function Subscription() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                {plan.provider === 'flutterwave' ? (
+                                <button
+                                    onClick={() => void handleStripe(plan.id)}
+                                    disabled={!!purchasing}
+                                    className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                >
+                                    {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                                    Payer par carte bancaire ({currency}) <ArrowRight size={16} />
+                                </button>
+                                {canUseMobileMoney ? (
                                     <button
                                         onClick={() => void handleFlutterwave(plan.id)}
                                         disabled={!!purchasing}
-                                        className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                        className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold bg-emerald-500/90 text-white shadow-xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                                     >
                                         {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                                         Payer via Mobile Money ({currency})
                                     </button>
                                 ) : (
-                                    <button
-                                        onClick={() => void handleStripe(plan.id)}
-                                        disabled={!!purchasing}
-                                        className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                                    >
-                                        {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
-                                        Payer par carte bancaire ({currency}) <ArrowRight size={16} />
-                                    </button>
+                                    <div className="text-xs text-slate-500 text-center">
+                                        Mobile Money indisponible pour cette devise.
+                                    </div>
                                 )}
                             </div>
                         )}
