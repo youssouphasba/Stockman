@@ -238,9 +238,11 @@ export default function SubscriptionScreen() {
                         <Text style={styles.cardSubtitle}>
                             Type: {formatDemoTypeLabel(data.demo_type)} · Surface: {data.demo_surface || 'mobile'}
                         </Text>
-                        <Text style={styles.helperText}>
+                        {Platform.OS !== 'ios' && (
+                            <Text style={styles.helperText}>
                             Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '—'}
-                        </Text>
+                            </Text>
+                        )}
                     </View>
                 )}
 
