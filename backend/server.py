@@ -25,6 +25,7 @@ import io
 import asyncio
 import base64
 import re
+from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 from PIL import Image
 from starlette.responses import StreamingResponse
@@ -721,6 +722,12 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                     logger.warning("Flutterwave link generation failed for %s: %s", owner_doc.get("user_id"), exc)
             return links
 
+        def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optional[str]:
+            if not target_url:
+                return None
+            base = os.environ.get("PAYMENT_REDIRECT_BASE_URL", "https://app.stockman.pro").rstrip("/")
+            return f"{base}/pay?provider={provider}&url={quote(target_url, safe='')}"
+
         async def send_subscription_payment_reminder(account_doc: dict, owner_doc: dict, days_left: int) -> None:
             plan = normalize_plan(account_doc.get("plan") or "starter")
             links = await build_payment_links_for_account(account_doc, owner_doc, plan)
@@ -730,12 +737,14 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             now_local = datetime.now(timezone.utc)
 
             if days_left <= 1:
-                subject = "⏳ Votre abonnement Stockman expire demain"
+                subject = "Votre abonnement Stockman expire demain"
             else:
-                subject = f"⏳ Votre abonnement Stockman expire dans {days_left} jours"
+                subject = f"Votre abonnement Stockman expire dans {days_left} jours"
 
-            line_stripe = f"<a href=\"{links['stripe_url']}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if links["stripe_url"] else ""
-            line_flt = f"<a href=\"{links['flutterwave_url']}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if links["flutterwave_url"] else ""
+            public_stripe = build_public_payment_link("stripe", links["stripe_url"])
+            public_flt = build_public_payment_link("flutterwave", links["flutterwave_url"])
+            line_stripe = f"<a href=\"{public_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if public_stripe else ""
+            line_flt = f"<a href=\"{public_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if public_flt else ""
             body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
 Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
 Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
@@ -744,14 +753,23 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
 <br><br>
 À bientôt,<br>L’équipe Stockman."""
 
+            text_body = (
+                f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
+                f"Votre abonnement {plan.title()} arrive Ã  expiration dans {days_left} jour(s).\n"
+                "Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.\n\n"
+                + (f"Payer par carte (Stripe): {public_stripe}\n" if public_stripe else "")
+                + (f"Payer par Mobile Money (Flutterwave): {public_flt}\n" if public_flt else "")
+                + "\nÃ€ bientÃ´t,\nLâ€™Ã©quipe Stockman."
+            )
             if recipients:
                 await notification_service.send_email_notification(
                     recipients,
                     subject,
                     body,
+                    text_body=text_body,
                 )
 
-            reminder_url = links["stripe_url"] or links["flutterwave_url"]
+            reminder_url = public_stripe or public_flt
             if reminder_url:
                 await notification_service.notify_user(
                     db,
@@ -2037,6 +2055,13 @@ def normalize_phone_e164(phone: Optional[str]) -> Optional[str]:
     if not digits:
         return None
     return f"+{digits}"
+
+
+def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optional[str]:
+    if not target_url:
+        return None
+    base = os.environ.get("PAYMENT_REDIRECT_BASE_URL", "https://app.stockman.pro").rstrip("/")
+    return f"{base}/pay?provider={provider}&url={quote(target_url, safe='')}"
 
 
 def new_session_id() -> str:
@@ -3376,9 +3401,11 @@ async def admin_send_subscription_reminder(
     owner_email = (owner_doc.get("email") or "").strip()
     recipients = [email for email in [billing_email, owner_email] if email]
 
-    subject = "⏳ Votre abonnement Stockman expire demain" if days_left <= 1 else f"⏳ Votre abonnement Stockman expire dans {days_left} jours"
-    line_stripe = f"<a href=\"{stripe_url}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if stripe_url else ""
-    line_flt = f"<a href=\"{flutterwave_url}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if flutterwave_url else ""
+    subject = "Votre abonnement Stockman expire demain" if days_left <= 1 else f"Votre abonnement Stockman expire dans {days_left} jours"
+    public_stripe = build_public_payment_link("stripe", stripe_url)
+    public_flt = build_public_payment_link("flutterwave", flutterwave_url)
+    line_stripe = f"<a href=\"{public_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if public_stripe else ""
+    line_flt = f"<a href=\"{public_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if public_flt else ""
     body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
 Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
 Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
@@ -3387,10 +3414,19 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
 <br><br>
 À bientôt,<br>L’équipe Stockman."""
 
-    if recipients:
-        await notification_service.send_email_notification(recipients, subject, body)
+    text_body = (
+        f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
+        f"Votre abonnement {plan.title()} arrive Ã  expiration dans {days_left} jour(s).\n"
+        "Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.\n\n"
+        + (f"Payer par carte (Stripe): {public_stripe}\n" if public_stripe else "")
+        + (f"Payer par Mobile Money (Flutterwave): {public_flt}\n" if public_flt else "")
+        + "\nÃ€ bientÃ´t,\nLâ€™Ã©quipe Stockman."
+    )
 
-    reminder_url = stripe_url or flutterwave_url
+    if recipients:
+        await notification_service.send_email_notification(recipients, subject, body, text_body=text_body)
+
+    reminder_url = public_stripe or public_flt
     if reminder_url:
         await notification_service.notify_user(
             db,
