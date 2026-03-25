@@ -5,7 +5,7 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package,
-    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper
 } from 'lucide-react';
 import { admin as adminApi } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
@@ -145,7 +145,7 @@ function formatRemainingDuration(seconds?: number | null) {
 }
 
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -173,6 +173,9 @@ export default function AdminDashboard() {
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
     const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '' });
+    const [leadContacts, setLeadContacts] = useState<any[]>([]);
+    const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
+    const [leadsLoading, setLeadsLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -368,6 +371,13 @@ export default function AdminDashboard() {
         if (activeSection === 'security') loadSecurity();
         if (activeSection === 'support') loadTickets();
         if (activeSection === 'broadcast') loadBroadcastHistory();
+        if (activeSection === 'leads') {
+            setLeadsLoading(true);
+            adminApi.getLeads().then(r => {
+                setLeadContacts(r.contacts || []);
+                setLeadSubscribers(r.subscribers || []);
+            }).catch(() => {}).finally(() => setLeadsLoading(false));
+        }
     }, [activeSection]);
 
     useEffect(() => {
@@ -508,6 +518,7 @@ export default function AdminDashboard() {
         { id: 'security', icon: Shield, label: 'Sécurité' },
         { id: 'support', icon: MessageSquare, label: 'Support' },
         { id: 'broadcast', icon: Bell, label: 'Broadcast' },
+        { id: 'leads', icon: Mail, label: 'Leads' },
     ];
 
     return (
@@ -575,6 +586,10 @@ export default function AdminDashboard() {
                         else if (activeSection === 'security') loadSecurity();
                         else if (activeSection === 'support') loadTickets();
                         else if (activeSection === 'broadcast') loadBroadcastHistory();
+                        else if (activeSection === 'leads') {
+                            setLeadsLoading(true);
+                            adminApi.getLeads().then(r => { setLeadContacts(r.contacts || []); setLeadSubscribers(r.subscribers || []); }).catch(() => {}).finally(() => setLeadsLoading(false));
+                        }
                         else loadInitialData();
                     }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
@@ -1608,6 +1623,83 @@ export default function AdminDashboard() {
             )}
 
             {/* ── BROADCAST ── */}
+            {activeSection === 'leads' && (
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <StatCard label="Contact Messages" value={leadContacts.length} icon={Mail} color="bg-blue-500" />
+                        <StatCard label="Newsletter Subscribers" value={leadSubscribers.length} icon={Newspaper} color="bg-emerald-500" />
+                    </div>
+
+                    {leadsLoading && (
+                        <div className="text-center py-12 text-slate-500">Chargement...</div>
+                    )}
+
+                    {/* Contact Messages */}
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <Mail size={20} className="text-blue-400" />
+                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Messages de contact</h4>
+                                <span className="text-xs text-slate-500 ml-auto">{leadContacts.length} message(s)</span>
+                            </div>
+                        </div>
+                        <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto custom-scrollbar">
+                            {leadContacts.length > 0 ? leadContacts.map((c: any) => (
+                                <div key={c._id || c.email + c.created_at} className="p-5 hover:bg-white/5 transition-all">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="space-y-1.5 flex-1">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-bold text-white">{c.name}</span>
+                                                {c.type && (
+                                                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-300 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                                                        {c.type}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-primary">{c.email}</p>
+                                            {c.company && <p className="text-xs text-slate-500">🏢 {c.company}</p>}
+                                            <p className="text-sm text-slate-300 leading-relaxed mt-2">{c.message}</p>
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                                            {formatAdminDate(c.created_at)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )) : !leadsLoading ? (
+                                <div className="p-12 text-center text-slate-600 text-sm">
+                                    Aucun message de contact pour le moment.
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {/* Newsletter Subscribers */}
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <Newspaper size={20} className="text-emerald-400" />
+                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Abonnés newsletter</h4>
+                                <span className="text-xs text-slate-500 ml-auto">{leadSubscribers.length} abonné(s)</span>
+                            </div>
+                        </div>
+                        <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
+                            {leadSubscribers.length > 0 ? leadSubscribers.map((s: any) => (
+                                <div key={s._id || s.email} className="p-4 hover:bg-white/5 transition-all flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-white">{s.email}</span>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                        {formatAdminDate(s.created_at)}
+                                    </span>
+                                </div>
+                            )) : !leadsLoading ? (
+                                <div className="p-12 text-center text-slate-600 text-sm">
+                                    Aucun abonné newsletter pour le moment.
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {activeSection === 'broadcast' && (
                 <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-8">
                     <div className="glass-card p-8 bg-gradient-to-br from-primary/5 to-transparent">

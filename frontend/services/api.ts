@@ -1183,6 +1183,7 @@ export type StoreAdmin = {
 export const admin = {
   // Global
   getHealth: () => request<SystemHealth>('/admin/health'),
+  getLeads: () => request<{ contacts: any[]; subscribers: any[] }>('/public/leads'),
   getGlobalStats: () => request<GlobalStats>('/admin/stats'),
   getDetailedStats: () => request<DetailedStats>('/admin/stats/detailed'),
   getOnboardingStats: (days = 30) => request<any>(`/admin/stats/onboarding?days=${days}`),

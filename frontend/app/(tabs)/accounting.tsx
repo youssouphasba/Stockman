@@ -995,11 +995,11 @@ export default function AccountingScreen() {
 
                         {/* KPI Grid 3: Items & Purchases */}
                         <View style={[styles.kpiGrid, { marginTop: 10 }]}>
-                            <View style={[styles.kpiCard, { borderColor: colors.secondary + '40' }]}>
+                            <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
                                 <KpiInfoButton info={t('accounting.info_sales_count')} />
-                                <Ionicons name="cart-outline" size={20} color={colors.secondary} />
+                                <Ionicons name="cart-outline" size={20} color={colors.success} />
                                 <Text style={styles.kpiLabel}>{t('accounting.items_sold')}</Text>
-                                <Text style={[styles.kpiValue, { color: colors.secondary }]}>
+                                <Text style={[styles.kpiValue, { color: colors.success }]}>
                                     {stats?.total_items_sold ?? 0}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.avg_sale', { value: formatCurrency(stats?.avg_sale ?? 0) })}</Text>
@@ -1044,8 +1044,8 @@ export default function AccountingScreen() {
                                                 decimalPlaces: 0,
                                                 color: (opacity = 1) => isDark
                                                     ? `rgba(255, 255, 255, ${opacity})`
-                                                    : `rgba(0, 0, 0, ${opacity * 0.15})`,
-                                                labelColor: () => colors.textSecondary,
+                                                    : `rgba(15, 23, 42, ${opacity * 0.5})`,
+                                                labelColor: () => isDark ? colors.textSecondary : '#334155',
                                                 propsForDots: { r: '3', strokeWidth: '1', stroke: colors.success },
                                             }}
                                             bezier
@@ -1113,7 +1113,7 @@ export default function AccountingScreen() {
                                             chartConfig={{
                                                 color: (opacity = 1) => isDark
                                                     ? `rgba(255, 255, 255, ${opacity})`
-                                                    : `rgba(0, 0, 0, ${opacity * 0.2})`,
+                                                    : `rgba(15, 23, 42, ${opacity * 0.5})`,
                                             }}
                                             accessor="population"
                                             backgroundColor="transparent"

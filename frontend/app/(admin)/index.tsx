@@ -11,7 +11,7 @@ import { FilterBar, SearchBar, StatCard, Badge, SectionHeader, Card, ActionButto
 import { formatCurrency, formatNumber } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
-type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
+type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'leads' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
 
 import { useTranslation } from 'react-i18next';
 
@@ -52,6 +52,7 @@ export default function AdminDashboard() {
         { id: 'support', label: t('admin.segments.support'), icon: 'help-buoy' },
         { id: 'disputes', label: t('admin.segments.disputes'), icon: 'warning' },
         { id: 'comms', label: t('admin.segments.comms'), icon: 'megaphone' },
+        { id: 'leads', label: 'Leads', icon: 'mail' },
         { id: 'security', label: t('admin.segments.security'), icon: 'shield' },
         { id: 'logs', label: t('admin.segments.logs'), icon: 'list' },
         { id: 'settings', label: t('admin.segments.settings'), icon: 'settings' },
@@ -116,6 +117,9 @@ export default function AdminDashboard() {
     const [cguUpdating, setCguUpdating] = useState(false);
     const [privacyContent, setPrivacyContent] = useState('');
     const [privacyUpdating, setPrivacyUpdating] = useState(false);
+    const [leadContacts, setLeadContacts] = useState<any[]>([]);
+    const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
+    const [leadsLoading, setLeadsLoading] = useState(false);
     const [subscriptionActionId, setSubscriptionActionId] = useState<string | null>(null);
     // Anim
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -177,6 +181,14 @@ export default function AdminDashboard() {
                 try { setDisputeStats(await admin.getDisputeStats()); } catch { }
             }
             if (seg === 'comms') { const r = await admin.listMessages(); setMessages(r.items); }
+            if (seg === 'leads') {
+                setLeadsLoading(true);
+                try {
+                    const r = await admin.getLeads();
+                    setLeadContacts(r.contacts || []);
+                    setLeadSubscribers(r.subscribers || []);
+                } finally { setLeadsLoading(false); }
+            }
             if (seg === 'security') {
                 const [events, securityStats, verifications, sessions] = await Promise.all([
                     admin.listSecurityEvents(secFilter === 'all' ? undefined : secFilter),
@@ -1137,6 +1149,37 @@ export default function AdminDashboard() {
         </View>
     );
 
+    const renderLeads = () => (
+        <View>
+            <SectionHeader title="Contact Messages" count={leadContacts.length} colors={colors} />
+            {leadsLoading && <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />}
+            {leadContacts.map((c: any, i: number) => (
+                <Card key={c._id || i} colors={colors}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{c.name}</Text>
+                        <Badge label={c.type || 'contact'} color="#3B82F6" />
+                    </View>
+                    <Text style={{ color: colors.primary, fontSize: 13, marginBottom: 4 }}>{c.email}</Text>
+                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>🏢 {c.company}</Text> : null}
+                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{c.message}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(c.created_at).toLocaleDateString()}</Text>
+                </Card>
+            ))}
+            {!leadsLoading && leadContacts.length === 0 && <EmptyState icon="mail-outline" message="No contact messages yet" colors={colors} />}
+
+            <SectionHeader title="Newsletter Subscribers" count={leadSubscribers.length} colors={colors} />
+            {leadSubscribers.map((s: any, i: number) => (
+                <Card key={s._id || i} colors={colors}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: colors.text, fontWeight: '600' }}>{s.email}</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(s.created_at).toLocaleDateString()}</Text>
+                    </View>
+                </Card>
+            ))}
+            {!leadsLoading && leadSubscribers.length === 0 && <EmptyState icon="newspaper-outline" message="No subscribers yet" colors={colors} />}
+        </View>
+    );
+
     const renderSecurity = () => (
         <View>
             <FilterBar
@@ -1429,7 +1472,7 @@ export default function AdminDashboard() {
     const segMap: Record<Segment, () => React.ReactNode> = {
         global: renderGlobal, users: renderUsers, stores: renderStores, subscriptions: renderSubscriptions, demos: renderDemos, stock: renderStock,
         finance: renderFinance, crm: renderCRM, support: renderSupport, disputes: renderDisputes,
-        comms: renderComms, security: renderSecurity, logs: renderLogs, settings: renderSettings,
+        comms: renderComms, leads: renderLeads, security: renderSecurity, logs: renderLogs, settings: renderSettings,
         cgu: renderCGU, privacy: renderPrivacy,
     };
 

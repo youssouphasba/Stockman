@@ -54,6 +54,9 @@ import {
   uploads,
   ApiError,
   userFeatures as userFeaturesApi,
+  suppliers as suppliersApi,
+  supplierProducts as spApi,
+  Supplier,
 } from '../../services/api';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
@@ -137,6 +140,8 @@ export default function ProductsScreen() {
   const [formCategoryName, setFormCategoryName] = useState('');
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formRfidTag, setFormRfidTag] = useState('');
+  const [formSupplierId, setFormSupplierId] = useState<string | null>(null);
+  const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [imageUploading, setImageUploading] = useState(false);
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -189,6 +194,7 @@ export default function ProductsScreen() {
   // Global Catalog states
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
   const previousStoreIdRef = useRef<string | undefined>(undefined);
@@ -283,6 +289,11 @@ export default function ProductsScreen() {
             console.warn('[Products] recipes unavailable', recipeError);
           }
         }
+
+        try {
+          const supRes = await suppliersApi.list(0, 200);
+          setAllSuppliers((supRes.items ?? supRes) as Supplier[]);
+        } catch { /* silent */ }
 
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
@@ -719,6 +730,7 @@ export default function ProductsScreen() {
     setAiPriceReasoning('');
     setFormHasVariants(false);
     setFormVariants([]);
+    setFormSupplierId(null);
   }
 
   function resetVariantForm() {
@@ -804,6 +816,7 @@ export default function ProductsScreen() {
     setFormLinkedRecipeId(product.linked_recipe_id || '');
     setFormHasVariants(product.has_variants || false);
     setFormVariants(product.variants || []);
+    setFormSupplierId(null);
     setShowAddModal(true);
   }
 
@@ -905,10 +918,19 @@ export default function ProductsScreen() {
       };
 
       if (isConnected) {
+        let savedProductId: string | undefined;
         if (editingProduct) {
           await productsApi.update(editingProduct.product_id, data);
+          savedProductId = editingProduct.product_id;
         } else {
-          await productsApi.create(data);
+          const created = await productsApi.create(data);
+          savedProductId = created.product_id;
+        }
+        // Link supplier if selected
+        if (formSupplierId && savedProductId) {
+          try {
+            await spApi.link({ supplier_id: formSupplierId, product_id: savedProductId, is_preferred: true });
+          } catch { /* link may already exist, ignore */ }
         }
         // Reload data from server
         await loadData();
@@ -1554,95 +1576,110 @@ export default function ProductsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={{ paddingTop: Spacing.xs }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
-            {!isRestaurant && (
+        <View style={{ paddingTop: Spacing.xs, flexDirection: 'row', gap: 8, paddingHorizontal: 4, alignItems: 'center' }}>
+          {!isRestaurant && (
+            <TouchableOpacity
+              style={[styles.iconBtn, isInventoryMode && { backgroundColor: colors.primary + '20' }]}
+              onPress={() => {
+                setIsInventoryMode(!isInventoryMode);
+                if (!isInventoryMode) {
+                  setInventoryValues({});
+                }
+                Alert.alert(
+                  isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
+                  isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
+                );
+              }}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
+            onPress={handleExportCSV}
+          >
+            <Ionicons name="download-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          {canWrite && (
+            <>
               <TouchableOpacity
-                style={[styles.iconBtn, isInventoryMode && { backgroundColor: colors.primary + '20' }]}
+                style={[styles.iconBtn, isSelectionMode && { backgroundColor: colors.primary + '30', borderColor: colors.primary }]}
                 onPress={() => {
-                  setIsInventoryMode(!isInventoryMode);
-                  if (!isInventoryMode) {
-                    setInventoryValues({});
-                  }
-                  Alert.alert(
-                    isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
-                    isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
-                  );
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedProductIds(new Set());
                 }}
               >
-                <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+                <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
+              </TouchableOpacity>
+              <View style={{ marginLeft: 'auto' }}>
+                <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddMenu(!showAddMenu)}>
+                  <Ionicons name={showAddMenu ? "close" : "add"} size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+        {showAddMenu && canWrite && (
+          <View style={{ backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: Spacing.sm, marginTop: Spacing.xs, gap: 6 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+              onPress={() => { setShowAddMenu(false); setEditingProduct(null); resetForm(); setShowAddModal(true); }}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontSize: FontSize.md }}>{isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}</Text>
+            </TouchableOpacity>
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); router.push('/inventory/batch-scan'); }}
+              >
+                <Ionicons name="scan-outline" size={20} color={colors.info} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.batch_scan', 'Scan en lot')}</Text>
               </TouchableOpacity>
             )}
             {!isRestaurant && (
-              <TouchableOpacity style={styles.iconBtn} onPress={exportInventoryPdf}>
-                <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); setShowBulkImportModal(true); }}
+              >
+                <Ionicons name="cloud-upload-outline" size={20} color={colors.warning} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_csv', 'Import CSV')}</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
-              onPress={handleExportCSV}
-            >
-              <Ionicons name="download-outline" size={20} color={colors.primary} />
-            </TouchableOpacity>
-            {canWrite && (
-              <>
-                <TouchableOpacity
-                  style={[styles.iconBtn, isSelectionMode && { backgroundColor: colors.primary + '30', borderColor: colors.primary }]}
-                  onPress={() => {
-                    setIsSelectionMode(!isSelectionMode);
-                    if (isSelectionMode) setSelectedProductIds(new Set());
-                  }}
-                >
-                  <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
-                </TouchableOpacity>
-                {!isRestaurant && (
-                  <TouchableOpacity
-                    style={[styles.iconBtn, { backgroundColor: colors.info + '20' }]}
-                    onPress={() => router.push('/inventory/batch-scan')}
-                  >
-                    <Ionicons name="scan-outline" size={20} color={colors.info} />
-                  </TouchableOpacity>
-                )}
-                {!isRestaurant && (
-                  <TouchableOpacity
-                    style={[styles.iconBtn, { backgroundColor: colors.secondary + '20' }]}
-                    onPress={() => setShowBulkImportModal(true)}
-                  >
-                    <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
-                  </TouchableOpacity>
-                )}
-                {!isRestaurant && (
-                  <TouchableOpacity
-                    style={[styles.iconBtn, { backgroundColor: colors.primary + '20' }]}
-                    onPress={() => setShowTextImportModal(true)}
-                  >
-                    <Ionicons name="text-outline" size={20} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
-                {!isRestaurant && userSector && (
-                  <TouchableOpacity
-                    style={[styles.iconBtn, { backgroundColor: colors.success + '20' }]}
-                    onPress={handleImportCatalog}
-                    disabled={catalogLoading}
-                  >
-                    {catalogLoading ? (
-                      <ActivityIndicator size="small" color={colors.success} />
-                    ) : (
-                      <Ionicons name="storefront-outline" size={20} color={colors.success} />
-                    )}
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={styles.addBtn} onPress={() => {
-                  setEditingProduct(null);
-                  resetForm();
-                  setShowAddModal(true);
-                }}>
-                  <Ionicons name="add" size={24} color="#fff" />
-                </TouchableOpacity>
-              </>
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); setShowTextImportModal(true); }}
+              >
+                <Ionicons name="text-outline" size={20} color={colors.primary} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.text_import', 'Import texte')}</Text>
+              </TouchableOpacity>
             )}
-          </ScrollView>
-        </View>
+            {!isRestaurant && userSector && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); handleImportCatalog(); }}
+                disabled={catalogLoading}
+              >
+                {catalogLoading ? (
+                  <ActivityIndicator size="small" color={colors.success} />
+                ) : (
+                  <Ionicons name="storefront-outline" size={20} color={colors.success} />
+                )}
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_catalog', 'Import catalogue')}</Text>
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); exportInventoryPdf(); }}
+              >
+                <Ionicons name="document-text-outline" size={20} color={colors.danger} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.export_pdf', 'Export PDF inventaire')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <View style={styles.searchWrapper}>
           <Ionicons name="search-outline" size={20} color={colors.textMuted} />
@@ -2322,6 +2359,30 @@ export default function ProductsScreen() {
                     <Ionicons name="pricetag-outline" size={18} color={colors.info} />
                     <Text style={[styles.actionText, { color: colors.info }]}>{t('products.print_label_rfid')}</Text>
                   </TouchableOpacity>
+                )}
+
+                {/* Supplier selector */}
+                {!isRestaurant && allSuppliers.length > 0 && (
+                  <View style={{ marginBottom: Spacing.sm }}>
+                    <Text style={styles.formLabel}>{t('products.supplier')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                      <TouchableOpacity
+                        style={[styles.filterChip, !formSupplierId && styles.filterChipActive]}
+                        onPress={() => setFormSupplierId(null)}
+                      >
+                        <Text style={[styles.filterChipText, !formSupplierId && styles.filterChipTextActive]}>{t('products.no_supplier')}</Text>
+                      </TouchableOpacity>
+                      {allSuppliers.map(sup => (
+                        <TouchableOpacity
+                          key={sup.supplier_id}
+                          style={[styles.filterChip, formSupplierId === sup.supplier_id && styles.filterChipActive]}
+                          onPress={() => setFormSupplierId(sup.supplier_id)}
+                        >
+                          <Text style={[styles.filterChipText, formSupplierId === sup.supplier_id && styles.filterChipTextActive]}>{sup.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
                 )}
 
                 {!isRestaurant && (

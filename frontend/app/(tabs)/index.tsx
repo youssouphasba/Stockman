@@ -917,7 +917,7 @@ export default function DashboardScreen() {
             </View>
             <TouchableOpacity
               style={styles.abcFooter}
-              onPress={() => setShowStatsModal(true)}
+              onPress={openStatsModal}
             >
               <Text style={styles.abcFooterText}>{t('dashboard.see_detail_product')}</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.primaryLight} />

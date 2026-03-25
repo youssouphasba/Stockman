@@ -62,7 +62,7 @@ export default function OrdersScreen() {
 
   const STATUS_CONFIG: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
     pending: { label: t('orders.pending'), color: colors.warning, icon: 'time-outline' },
-    confirmed: { label: t('orders.confirmed'), color: colors.secondary, icon: 'checkmark-circle-outline' },
+    confirmed: { label: t('orders.confirmed'), color: colors.info, icon: 'checkmark-circle-outline' },
     shipped: { label: t('orders.shipped'), color: colors.info, icon: 'airplane-outline' },
     partially_delivered: { label: t('orders.partially_delivered'), color: '#FF9800', icon: 'layers-outline' },
     delivered: { label: t('orders.delivered'), color: colors.success, icon: 'checkmark-done-outline' },
@@ -725,18 +725,23 @@ export default function OrdersScreen() {
             </View>
 
             {/* Status filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              {['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'].map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  style={[styles.filterChip, (f === 'all' ? statusFilter === null : statusFilter === f) && styles.filterChipActive]}
-                  onPress={() => setStatusFilter(f === 'all' ? null : (f as any))}
-                >
-                  <Text style={[styles.filterText, (f === 'all' ? statusFilter === null : statusFilter === f) && styles.filterTextActive]}>
-                    {t(`orders.${f}`)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
+              {['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'].map((f) => {
+                const isActive = f === 'all' ? statusFilter === null : statusFilter === f;
+                const cfg = f !== 'all' ? STATUS_CONFIG[f] : null;
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    style={[styles.filterChip, isActive && styles.filterChipActive]}
+                    onPress={() => setStatusFilter(f === 'all' ? null : (f as any))}
+                  >
+                    {cfg && <View style={[styles.filterDot, { backgroundColor: cfg.color }]} />}
+                    <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                      {f === 'all' ? t('common.all') : cfg?.label || f}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             {/* Supplier filter */}

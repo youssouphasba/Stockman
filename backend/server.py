@@ -18284,10 +18284,10 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
     updated_count = 0
     not_found = []
     for code in data.codes:
-        # Search by RFID or SKU
+        # Search by barcode, RFID or SKU
         query = {
             "user_id": owner_id,
-            "$or": [{"rfid_tag": code}, {"sku": code}]
+            "$or": [{"barcode": code}, {"rfid_tag": code}, {"sku": code}]
         }
         query = apply_store_scope(query, user)
         target = await db.products.find_one(query)

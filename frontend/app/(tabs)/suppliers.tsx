@@ -782,7 +782,10 @@ export default function SuppliersScreen() {
                     <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                         <Ionicons name="sparkles" size={13} color={colors.primary} />
-                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('suppliers.ai_advice')}</Text>
+                        <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700', flex: 1 }}>{t('suppliers.ai_advice')}</Text>
+                        <TouchableOpacity onPress={() => setReplenishAdvice(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                          <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                        </TouchableOpacity>
                       </View>
                       <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{replenishAdvice}</Text>
                     </View>
@@ -810,7 +813,7 @@ export default function SuppliersScreen() {
                                 text: t('suppliers.order_action'),
                                 onPress: async () => {
                                   if (!sug.supplier_id) {
-                                    Alert.alert(t('common.error'), t('suppliers.supplier_no_phone_error'));
+                                    Alert.alert(t('common.error'), t('suppliers.no_supplier_linked'));
                                     return;
                                   }
                                   try {
@@ -2015,9 +2018,9 @@ export default function SuppliersScreen() {
                         <Text style={[styles.mpKpiText, { color: colors.info }]}>{mpDetail.profile.city}</Text>
                       </View>
                     ) : null}
-                    <View style={[styles.mpKpiPill, { backgroundColor: colors.secondary + '15' }]}>
-                      <Ionicons name="time" size={14} color={colors.secondary} />
-                      <Text style={[styles.mpKpiText, { color: colors.secondary }]}>{mpDetail.profile.average_delivery_days}j {t('marketplace.delivery')}</Text>
+                    <View style={[styles.mpKpiPill, { backgroundColor: colors.warning + '15' }]}>
+                      <Ionicons name="time" size={14} color={colors.warning} />
+                      <Text style={[styles.mpKpiText, { color: colors.warning }]}>{mpDetail.profile.average_delivery_days}j {t('marketplace.delivery')}</Text>
                     </View>
                     {mpDetail.profile.min_order_amount > 0 && (
                       <View style={[styles.mpKpiPill, { backgroundColor: colors.warning + '15' }]}>

@@ -2310,6 +2310,7 @@ export const admin = {
         const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
         return request<{ items: any[]; total: number }>(`/admin/messages?${params}`);
     },
+    getLeads: () => request<{ contacts: any[]; subscribers: any[] }>('/public/leads'),
 };
 
 // ── Chat / Messagerie ────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { smartReminders, SmartReminder, SmartRemindersResponse } from '../services/api';
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
 
@@ -26,6 +27,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 export default function SmartRemindersCard({ onNavigate }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [data, setData] = useState<SmartRemindersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -33,8 +35,10 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
+    setDismissedIds(new Set());
     loadReminders();
-  }, []);
+  }, [user?.active_store_id]);
 
   async function loadReminders() {
     try {

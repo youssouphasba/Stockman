@@ -1038,9 +1038,10 @@ export default function CRMScreen() {
                                                 </TouchableOpacity>
                                             ))}
                                         </View>
+                                    </View>
 
-                                        {/* Tab Content */}
-                                        <ScrollView style={{ width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingBottom: Spacing.xl }}>
+                                    {/* Tab Content */}
+                                    <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingBottom: Spacing.xl }}>
                                             {detailTab === 'infos' && (
                                                 <View style={[styles.detailSection, { width: '100%' }]}>
                                                     {/* Tier progress */}
@@ -1420,8 +1421,7 @@ export default function CRMScreen() {
                                                     )}
                                                 </View>
                                             )}
-                                        </ScrollView>
-                                    </View>
+                                    </ScrollView>
                                 </>
                             )}
                         </View>
