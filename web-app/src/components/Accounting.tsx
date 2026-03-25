@@ -40,6 +40,7 @@ import {
     expenses as expensesApi,
     ai as aiApi,
     sales as salesApi,
+    settings as settingsApi,
     type AccountingSaleHistoryItem,
     type AccountingStats,
     type AnalyticsKpiDetail,
@@ -89,6 +90,8 @@ export default function Accounting() {
     const [editingExpense, setEditingExpense] = useState<any>(null);
     const [newExpense, setNewExpense] = useState({ category: 'other', amount: '', description: '' });
     const [saving, setSaving] = useState(false);
+    const [customCategories, setCustomCategories] = useState<string[]>([]);
+    const [newCategoryDraft, setNewCategoryDraft] = useState('');
 
     // Filters
     const [filterExpenseCategory, setFilterExpenseCategory] = useState('all');
@@ -128,6 +131,12 @@ export default function Accounting() {
     useEffect(() => {
         if (!useCustomRange) loadData();
     }, [period, useCustomRange]);
+
+    useEffect(() => {
+        settingsApi.get().then(s => {
+            if (Array.isArray(s?.expense_categories)) setCustomCategories(s.expense_categories);
+        }).catch(() => {});
+    }, []);
 
     const loadData = async (sd?: string, ed?: string) => {
         setLoading(true);
@@ -198,6 +207,27 @@ export default function Accounting() {
         setEditingExpense(exp);
         setNewExpense({ category: exp.category, amount: String(exp.amount), description: exp.description || '' });
         setShowExpenseModal(true);
+    };
+
+    const handleAddCategory = async () => {
+        const name = newCategoryDraft.trim();
+        if (!name) return;
+        if (EXPENSE_CATEGORY_KEYS.some(k => k.value === name) || customCategories.includes(name)) {
+            setNewExpense({ ...newExpense, category: name });
+            setNewCategoryDraft('');
+            return;
+        }
+        try {
+            const updated = await settingsApi.update({ expense_categories: [...customCategories, name] } as any);
+            const cats = Array.isArray(updated?.expense_categories) ? updated.expense_categories : [...customCategories, name];
+            setCustomCategories(cats);
+            setNewExpense({ ...newExpense, category: name });
+            setNewCategoryDraft('');
+        } catch {
+            setCustomCategories(prev => [...prev, name]);
+            setNewExpense({ ...newExpense, category: name });
+            setNewCategoryDraft('');
+        }
     };
 
     const handleSaveExpense = async (e: React.FormEvent) => {
@@ -850,6 +880,12 @@ export default function Accounting() {
                                                 {t(cat.labelKey)}
                                             </button>
                                         ))}
+                                        {customCategories.filter(c => !EXPENSE_CATEGORY_KEYS.some(k => k.value === c)).map(cat => (
+                                            <button key={cat} onClick={() => { setFilterExpenseCategory(cat); setIsExpenseFilterOpen(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                                                {cat}
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -1338,7 +1374,7 @@ export default function Accounting() {
                         </div>
                         <form onSubmit={handleSaveExpense} className="space-y-4">
                             <div className="flex flex-col gap-2">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Catégorie</label>
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{t('accounting.category')}</label>
                                 <select
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 text-sm font-bold"
                                     value={newExpense.category}
@@ -1347,7 +1383,24 @@ export default function Accounting() {
                                     {EXPENSE_CATEGORY_KEYS.map(cat => (
                                         <option key={cat.value} value={cat.value}>{t(cat.labelKey)}</option>
                                     ))}
+                                    {customCategories.filter(c => !EXPENSE_CATEGORY_KEYS.some(k => k.value === c)).map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
                                 </select>
+                                <div className="flex gap-2 mt-1">
+                                    <input
+                                        type="text"
+                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catégorie...'}
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
+                                        value={newCategoryDraft}
+                                        onChange={(e) => setNewCategoryDraft(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                                    />
+                                    <button type="button" onClick={handleAddCategory} disabled={!newCategoryDraft.trim()}
+                                        className="px-3 py-2 rounded-xl bg-primary/20 text-primary font-bold text-sm hover:bg-primary/30 transition-all disabled:opacity-30">
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Montant</label>

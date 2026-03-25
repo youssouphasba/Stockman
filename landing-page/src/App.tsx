@@ -65,12 +65,8 @@ function Landing() {
     return () => clearTimeout(timer);
   }, []);
 
-  const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
+  const [selectedCountryCode, setSelectedCountryCode] = useState(() => detectBrowserCountryCode());
   const [pricingData, setPricingData] = useState<PublicPricingResponse | null>(null);
-
-  useEffect(() => {
-    setSelectedCountryCode(detectBrowserCountryCode());
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,7 +252,7 @@ function Landing() {
                 style={{ width: '100%', textAlign: 'left' }}
               >
                 {COUNTRIES.map((country) => (
-                  <option key={country.code} value={country.code}>
+                  <option key={country.code} value={country.code} style={{ color: '#1e293b', backgroundColor: '#fff' }}>
                     {country.flag} {country.name} ({country.currency})
                   </option>
                 ))}
@@ -268,7 +264,7 @@ function Landing() {
           <div className="pricing-grid pricing-grid--mobile">
             <div className="pricing-card glass-card">
               <h3>{t('pricing.starter.name')}</h3>
-              <div className="price">{pricingData?.plans.starter.display_price || '2 500 FCFA'} <span>{t('pricing.month')}</span></div>
+              <div className="price">{pricingData?.plans.starter.display_price || '…'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">OK</span> {t('pricing.starter.f1')}</li>
                 <li><span className="check-icon">OK</span> {t('pricing.starter.f2')}</li>
@@ -289,7 +285,7 @@ function Landing() {
             <div className="pricing-card glass-card popular">
               <div className="popular-tag">{t('pricing.popular')}</div>
               <h3>{t('pricing.business.name')}</h3>
-              <div className="price">{pricingData?.plans.pro.display_price || '4 900 FCFA'} <span>{t('pricing.month')}</span></div>
+              <div className="price">{pricingData?.plans.pro.display_price || '…'} <span>{t('pricing.month')}</span></div>
               <ul className="pricing-features">
                 <li><span className="check-icon">OK</span> {t('pricing.business.f1')}</li>
                 <li><span className="check-icon">OK</span> {t('pricing.business.f2')}</li>

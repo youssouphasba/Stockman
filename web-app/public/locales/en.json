@@ -4,6 +4,14 @@
         "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
     },
     "accounting": {
+        "cat_rent": "Rent",
+        "cat_salaries": "Salaries",
+        "cat_transport": "Transport",
+        "cat_utilities": "Water / Electricity",
+        "cat_purchases": "Purchases",
+        "cat_other": "Other",
+        "confirm_delete_expense": "Delete this expense? This action cannot be undone.",
+        "new_category_placeholder": "New category...",
         "amount": "Amount",
         "amount_placeholder": "0.00",
         "articles_count": "{{count}} items",

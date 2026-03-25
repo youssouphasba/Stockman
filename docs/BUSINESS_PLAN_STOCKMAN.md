@@ -66,7 +66,7 @@ Stockman s'adresse à un marché large et encore très sous-équipé :
 
 ### Le modèle de revenus
 
-Le modèle repose sur un **essai gratuit de 3 mois**, puis sur trois offres lisibles :
+Le modèle repose sur un **essai gratuit d'1 mois**, puis sur trois offres lisibles :
 
 | Plan | Prix mensuel Sénégal | Prix mensuel Europe | Positionnement |
 |------|----------------------|---------------------|----------------|
@@ -336,7 +336,7 @@ Tout le développement ci-dessous a été réalisé et est en production.
 | **PremiumGate** | Composant React Native qui verrouille les modules avancés pour les utilisateurs Starter |
 | **Écran d'upgrade** | Interface avec description et bouton "Passer au plan supérieur" intégré dans chaque module verrouillé |
 | **Rate Limiting IA** | Limité pour Starter, étendu pour Pro, illimité pour Enterprise — géré côté backend |
-| **Essai gratuit 3 mois** | Accès complet pendant 3 mois, puis basculement automatique sur Starter |
+| **Essai gratuit 1 mois** | Accès complet pendant 1 mois, puis basculement automatique sur Starter |
 
 #### Intelligence Artificielle (Gemini 2.0 Flash)
 
@@ -572,7 +572,7 @@ Le principal concurrent de Stockman n'est pas un logiciel, mais **le cahier et l
 4. **Wolof natif** : Seule application de gestion commerciale traduite en Wolof avec audio explicatifs
 5. **Marketplace fournisseurs + messagerie** : Seule solution qui connecte commerçants et grossistes avec messagerie directe
 6. **Guides & formation intégrés** : Tutoriels, vidéos et guides métier dans l'app pour accompagner les débutants
-7. **Pricing imbattable** : Offre Starter à **2 500 FCFA** et Pro à **4 900 FCFA** (vs 29-89$/mois chez les concurrents) après 3 mois d'essai.
+7. **Pricing imbattable** : Offre Starter à **2 500 FCFA** et Pro à **4 900 FCFA** (vs 29-89$/mois chez les concurrents) après 1 mois d'essai.
 8. **Accompagnement terrain** : Agents locaux (1 000 FCFA/vendeur amené) pour former les commerçants
 9. **Double marché** : Adapté autant au boutiquier sénégalais qu'au vendeur européen
 10. **Scalabilité** : Architecture cloud permettant une expansion rapide dans toute l'Afrique
@@ -585,9 +585,9 @@ Le principal concurrent de Stockman n'est pas un logiciel, mais **le cahier et l
 
 | Plan | Prix mensuel (Sénégal) | Prix mensuel (Europe) | Limites / Conditions | Essai Gratuit |
 |------|------------------------|-----------------------|----------------------|---------------|
-| **Starter** | **2 500 FCFA** | **6,99 €** | 1 utilisateur, 1 boutique, mobile uniquement, IA limitée | **3 mois** |
-| **Pro** | **4 900 FCFA** | **9,99 €** | Jusqu'à 5 utilisateurs, 2 boutiques, mobile, IA étendue | **3 mois** |
-| **Enterprise** | **9 900 FCFA** | **14,99 €** | Mobile + web, multi-boutiques, pilotage renforcé | **3 mois** |
+| **Starter** | **2 500 FCFA** | **6,99 €** | 1 utilisateur, 1 boutique, mobile uniquement, IA limitée | **1 mois** |
+| **Pro** | **4 900 FCFA** | **9,99 €** | Jusqu'à 5 utilisateurs, 2 boutiques, mobile, IA étendue | **1 mois** |
+| **Enterprise** | **9 900 FCFA** | **14,99 €** | Mobile + web, multi-boutiques, pilotage renforcé | **1 mois** |
 
 ### 8.2 Sources de revenus secondaires (déjà en place ou An 2-3)
 
@@ -708,7 +708,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 └──────────┬──────────┘
            ▼
 ┌─────────────────────┐
-│  ESSAI GRATUIT       │  3 mois d'utilisation complète du produit
+│  ESSAI GRATUIT       │  1 mois d'utilisation complète du produit
 │  3 000 utilisateurs  │
 └──────────┬──────────┘
            ▼
@@ -819,32 +819,34 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 #### Année 1 — Détail mensuel
 
+> Avec un essai gratuit d'1 mois, les premiers paiements arrivent dès M2 (les inscrits de M1 convertissent après leur mois d'essai).
+
 | Mois | Nouveaux inscrits | Payants cumulés | MRR (€) |
 |------|-------------------|-----------------|---------|
 | M1 | 80 | 0 (essai) | 0 |
-| M2 | 120 | 0 (essai) | 0 |
-| M3 | 150 | 36 | 164 |
-| M4 | 180 | 90 | 410 |
-| M5 | 200 | 158 | 719 |
-| M6 | 250 | 248 | 1 128 |
-| M7 | 280 | 360 | 1 638 |
-| M8 | 300 | 486 | 2 211 |
-| M9 | 320 | 620 | 2 821 |
-| M10 | 350 | 770 | 3 504 |
-| M11 | 380 | 935 | 4 254 |
-| M12 | 400 | 1 120 | 5 096 |
-| **Total An 1** | **3 010** | **1 120** | **Σ 21 950 €** |
+| M2 | 120 | 36 | 164 |
+| M3 | 150 | 89 | 405 |
+| M4 | 180 | 153 | 696 |
+| M5 | 200 | 228 | 1 037 |
+| M6 | 250 | 309 | 1 406 |
+| M7 | 280 | 410 | 1 866 |
+| M8 | 300 | 520 | 2 366 |
+| M9 | 320 | 634 | 2 885 |
+| M10 | 350 | 753 | 3 426 |
+| M11 | 380 | 881 | 4 009 |
+| M12 | 400 | 1 017 | 4 627 |
+| **Total An 1** | **3 010** | **1 017** | **Σ 22 887 €** |
 
 #### Projection 3 ans
 
 | | An 1 | An 2 | An 3 |
 |--|------|------|------|
-| **Utilisateurs payants (fin)** | 1 120 | 4 500 | 10 500 |
-| **MRR fin d'année** | 5 096 € | 20 500 € | 47 800 € |
-| **Chiffre d'affaires annuel** | 21 950 € | 152 500 € | 429 500 € |
-| **Coûts opérationnels** | 10 000 € | 55 000 € | 110 000 € |
-| **Résultat net** | +11 950 € | +97 500 € | +319 500 € |
-| **Marge nette** | +54% | +64% | +74% |
+| **Utilisateurs payants (fin)** | 1 017 | 4 200 | 10 000 |
+| **MRR fin d'année** | 4 627 € | 19 100 € | 45 500 € |
+| **Chiffre d'affaires annuel** | 22 887 € | 148 000 € | 420 000 € |
+| **Coûts opérationnels** | 10 000 € | 36 600 € | 71 000 € |
+| **Résultat net** | +12 887 € | +111 400 € | +349 000 € |
+| **Marge nette** | +56% | +75% | +83% |
 
 #### Ventilation des coûts opérationnels (An 2 et An 3)
 
@@ -853,15 +855,15 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | Infrastructure (serveurs, BDD, IA, stores) | 1 200 € | 3 000 € | 6 000 € |
 | Marketing digital (ads, contenu, SEO) | 3 900 € | 12 000 € | 20 000 € |
 | Agents terrain (commissions) | inclus ci-dessus | 8 000 € | 15 000 € |
-| Développeur junior (remote Sénégal) | — | 12 000 € | 18 000 € |
-| Community manager / marketing (Sénégal) | — | 8 000 € | 12 000 € |
-| Responsable opérations terrain | — | — | 10 000 € |
-| Développeurs supplémentaires | — | — | 18 000 € |
+| Développeur junior (remote Sénégal, 350 €/mois) | — | 4 200 € | 5 400 € |
+| Community manager (Sénégal, 200 €/mois) | — | 2 400 € | 3 600 € |
+| Responsable opérations terrain (400 €/mois) | — | — | 4 800 € |
+| Développeurs supplémentaires (2 × 300 €/mois) | — | — | 7 200 € |
 | Juridique, comptabilité, assurances | 1 600 € | 3 000 € | 4 000 € |
-| Frais divers et imprévus | 3 300 € | 9 000 € | 7 000 € |
-| **Total** | **10 000 €** | **55 000 €** | **110 000 €** |
+| Frais divers et imprévus | 3 300 € | 4 000 € | 5 000 € |
+| **Total** | **10 000 €** | **36 600 €** | **71 000 €** |
 
-> **Note** : An 1, le fondateur ne se verse pas de rémunération. Les salaires An 2-3 sont calibrés sur des rémunérations compétitives au Sénégal (développeur junior remote : ~1 000 €/mois, community manager : ~650 €/mois).
+> **Note** : An 1, le fondateur ne se verse pas de rémunération. Les salaires An 2-3 sont calibrés sur le marché sénégalais : développeur junior remote ~200-350k FCFA/mois (350 €), community manager ~130-200k FCFA/mois (200 €), responsable opérations ~250k FCFA/mois (400 €).
 
 ### 12.3 Seuil de rentabilité
 
@@ -870,15 +872,15 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | Coûts fixes mensuels | ~830 € (infra + opérations) |
 | ARPU mensuel | 4,55 € |
 | **Seuil de rentabilité** | **~183 utilisateurs payants** |
-| **Mois prévu** | **M6-M7** |
+| **Mois prévu** | **M4-M5** |
 
 ### 12.4 Scénarios
 
 | Scénario | Utilisateurs An 1 | CA An 1 | Break-even |
 |----------|-------------------|---------|------------|
-| **Pessimiste** (churn 8%, conv. 30%) | 600 | 12 000 € | M10 |
-| **Réaliste** (churn 4%, conv. 45%) | 1 120 | 21 950 € | M7 |
-| **Optimiste** (churn 3%, conv. 55%) | 1 800 | 35 500 € | M5 |
+| **Pessimiste** (churn 8%, conv. 30%) | 550 | 12 500 € | M8 |
+| **Réaliste** (churn 4%, conv. 45%) | 1 017 | 22 887 € | M5 |
+| **Optimiste** (churn 3%, conv. 55%) | 1 650 | 36 500 € | M3-M4 |
 
 ---
 
@@ -888,8 +890,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | | Positif | Négatif |
 |---|---------|---------|
-| **Interne** | **Forces (Strengths)**<br>• **Produit all-in-one opérationnel** : stock, POS, CRM, approvisionnement, IA, comptabilité<br>• **Paiements intégrés** : stores et mobile money selon les marchés<br>• **15 langues** : couverture linguistique forte incluant Wolof et Peul<br>• **Prix accessible** : à partir de 2 500 FCFA/mois<br>• **Parcours de démonstration structurés** : commerce, restaurant et Enterprise web | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : équipe réduite au lancement<br>• **Marque encore peu connue** : effort marketing initial nécessaire<br>• **Dépendance au fondateur** : risque d'exécution concentrée<br>• **Besoin de financement** : acquisition et structuration commerciale |
-| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : millions de commerçants à équiper<br>• **Adoption mobile money** : forte progression des paiements digitaux<br>• **Soutien à la digitalisation** : initiatives publiques et privées<br>• **Partenariats** : grossistes, banques, opérateurs, réseaux terrain<br>• **IA accessible** : différenciation forte à coût maîtrisé | **Menaces (Threats)**<br>• **Concurrence internationale** : arrivée de solutions plus agressives<br>• **Instabilité macro** : internet, conjoncture ou tensions locales<br>• **Concurrence locale low-cost** : copies partielles ou outils simplifiés<br>• **Résistance au changement** : habitudes papier encore ancrées |
+| **Interne** | **Forces (Strengths)**<br>• **Produit all-in-one opérationnel** : stock, POS, CRM, approvisionnement, comptabilité<br>• **IA intégrée (Gemini 2.0 Flash)** : assistant conversationnel, prédictions de vente, analyse ABC, suggestions de réappro — différenciation majeure vs la concurrence locale<br>• **Mode hors-ligne complet** : l'app fonctionne sans internet (synchronisation auto au retour de la connexion), essentiel pour les marchés africains où la connectivité est intermittente<br>• **Paiements intégrés** : stores et mobile money selon les marchés<br>• **15 langues** : couverture linguistique forte incluant Wolof et Peul<br>• **Prix accessible** : à partir de 2 500 FCFA/mois<br>• **Parcours de démonstration structurés** : commerce, restaurant et Enterprise web | **Faiblesses (Weaknesses)**<br>• **Ressources limitées** : équipe réduite au lancement<br>• **Marque encore peu connue** : effort marketing initial nécessaire<br>• **Dépendance au fondateur** : risque d'exécution concentrée<br>• **Besoin de financement** : acquisition et structuration commerciale |
+| **Externe** | **Opportunités (Opportunities)**<br>• **Marché immense** : millions de commerçants à équiper<br>• **Adoption mobile money** : forte progression des paiements digitaux<br>• **Soutien à la digitalisation** : initiatives publiques et privées<br>• **Partenariats** : grossistes, banques, opérateurs, réseaux terrain<br>• **IA de plus en plus accessible** : coût des API en baisse constante, permettant des fonctionnalités avancées à prix réduit<br>• **Connectivité en progression** : la 4G/5G se déploie mais le offline reste un avantage compétitif durable sur 3-5 ans | **Menaces (Threats)**<br>• **Concurrence internationale** : arrivée de solutions plus agressives<br>• **Instabilité macro** : internet, conjoncture ou tensions locales<br>• **Concurrence locale low-cost** : copies partielles ou outils simplifiés<br>• **Résistance au changement** : habitudes papier encore ancrées<br>• **Dépendance API IA** : coûts Gemini pouvant évoluer, nécessité de surveiller la facturation |
 
 ### 13.2 Analyse PESTEL (Politique, Économique, Sociologique, Technologique, Écologique, Légal)
 
@@ -898,7 +900,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | **Politique** | Stabilité au Sénégal, volonté gouvernementale de formaliser le secteur informel. | **Positif** : Aides possibles, climat favorable. |
 | **Économique** | Inflation touchant les commerçants, besoin d'outils d'optimisation. Croissance du secteur informel. | **Positif** : Stockman aide à réduire les pertes et optimiser les marges. |
 | **Sociologique** | Population jeune, très connectée mobile. Hétérogénéité des niveaux de maîtrise digitale chez les commerçants. | **Neutre** : l'outil doit rester simple, visuel et rassurant. |
-| **Technologique** | Explosion de la 4G/5G, smartphones Android low-cost omniprésents. IA démocratisée. | **Très positif** : barrière à l'entrée technique réduite. |
+| **Technologique** | Explosion de la 4G/5G, smartphones Android low-cost omniprésents. IA démocratisée (Gemini, GPT). Connectivité encore instable en zone rurale et périurbaine. | **Très positif** : l'IA intégrée permet des fonctionnalités prédictives inaccessibles aux concurrents locaux. Le mode hors-ligne de Stockman transforme une faiblesse réseau en avantage produit. |
 | **Écologique** | Réduction du papier (tickets digitaux), optimisation des stocks (moins de gaspillage alimentaire). | **Positif** : Argument "Green IT" et réduction déchets. |
 | **Légal** | Réglementation OHADA sur la comptabilité, lois RGPD sur les données personnelles. | **Neutre** : Nécessité de conformité stricte dès le départ. |
 
@@ -906,7 +908,8 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | Risque identifié | Niveau | Solution / Mitigation |
 |------------------|--------|-----------------------|
-| **Risque Technologique**<br>Panne serveur, perte de données | Moyen | • Architecture Cloud résiliente (MongoDB Atlas)<br>• Backups quotidiens automatisés<br>• Mode hors-ligne robuste (les données restent sur le téléphone) |
+| **Risque Technologique**<br>Panne serveur, perte de données, connectivité instable | Moyen | • Architecture Cloud résiliente (MongoDB Atlas)<br>• Backups quotidiens automatisés<br>• **Mode hors-ligne complet** : toutes les opérations critiques (ventes, stock, CRM) fonctionnent sans internet avec sync automatique au retour de la connexion |
+| **Risque IA**<br>Hausse des coûts API, dépendance fournisseur IA | Faible | • Utilisation de Gemini 2.0 Flash (modèle économique)<br>• IA gated par plan (limité Starter, étendu Pro, illimité Enterprise) — les coûts IA sont proportionnels au revenu généré<br>• Architecture découplée permettant de changer de fournisseur IA |
 | **Risque Commercial**<br>Coût d'acquisition (CAC) trop élevé | Élevé | • Focus sur le viral (parrainage)<br>• Agents payés à la commission (variable uniquement)<br>• Partenariats avec grossistes (apport d'affaires) |
 | **Risque Financier**<br>Mésentente sur le pricing ou défaut de paiement | Moyen | • Modèle prépayé (pas de crédit client)<br>• Paiement mobile simple (Wave, OM)<br>• Offre de lancement pour tester disponible |
 | **Risque Humain**<br>Dépendance à une équipe clé réduite | Moyen | • Documentation rigoureuse<br>• montée en compétence progressive<br>• recrutement rapide dès la levée de fonds |
@@ -920,7 +923,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 **Persona A : Alioune, le Boutiquier (Dakar)**
 *   **Profil** : 35 ans, gère une boutique de quartier à HLM Grand Yoff.
 *   **Problème** : Perd de l'argent car ne note pas tout, oublie les dettes clients, stocke au hasard.
-*   **Besoin** : Une appli simple, en Wolof, qui marche sans internet, pour savoir "combien j'ai gagné aujourd'hui".
+*   **Besoin** : Une appli simple, en Wolof, qui marche sans internet, pour savoir "combien j'ai gagné aujourd'hui". L'IA lui suggère quand réapprovisionner et l'alerte sur ses produits les plus rentables.
 *   **Canal** : Radio locale, bouche-à-oreille, agent terrain.
 
 **Persona B : Sophie, la Créatrice (Paris/Instagram)**
@@ -932,7 +935,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 ### 14.2 Mix Marketing (4P)
 
 *   **Produit** : Application mobile SaaS. Design accessible, mais fonctionnalités métier solides.
-*   **Prix** : Stratégie de pénétration accessible. **3 mois gratuits** pour tous, puis **2 500 FCFA** (Starter), **4 900 FCFA** (Pro) ou **9 900 FCFA** (Enterprise).
+*   **Prix** : Stratégie de pénétration accessible. **1 mois gratuit** pour tous, puis **2 500 FCFA** (Starter), **4 900 FCFA** (Pro) ou **9 900 FCFA** (Enterprise).
 *   **Place (Distribution)** :
     *   Directe : Play Store / App Store.
     *   Terrain : Réseau d'agents ambassadeurs (porte-à-porte).
@@ -1026,7 +1029,7 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 |--|------------------|--------------|---------------------|----------|--------|------|
 | Prix SN | 2 500 FCFA | 4 900 FCFA | 9 900 FCFA | Gratuit | N/A | N/A |
 | Prix EU | 6,99 € | 9,99 € | 14,99 € | Gratuit | Gratuit + commission | 99 € |
-| Essai gratuit | 3 mois | 3 mois | 3 mois | N/A | N/A | 14 jours |
+| Essai gratuit | 1 mois | 1 mois | 1 mois | N/A | N/A | 14 jours |
 | Mode hors-ligne | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | POS | ✅ | ✅ | ✅ Mobile + Web | ✅ | ✅ | ✅ |
 | CRM | ❌ | ✅ | ✅ Avancé | ❌ | ❌ | ✅ |
