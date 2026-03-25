@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import FeaturePage from './FeaturePage';
 import TermsOfService from './TermsOfService';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -82,11 +83,12 @@ function Landing() {
     };
   }, [selectedCountryCode]);
 
-  const testimonials = [
-    { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
-    { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
-    { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
-  ];
+  // Testimonials - uncomment when testimonials section is enabled
+  // const testimonials = [
+  //   { key: 't1', author: t('testimonials.t1_author'), job: t('testimonials.t1_job'), avatar: 'A' },
+  //   { key: 't2', author: t('testimonials.t2_author'), job: t('testimonials.t2_job'), avatar: 'S' },
+  //   { key: 't3', author: t('testimonials.t3_author'), job: t('testimonials.t3_job'), avatar: 'P' },
+  // ];
 
   const homepageStructuredData = [
     {
@@ -361,6 +363,7 @@ function App() {
       <div dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
         <Router>
           <Analytics />
+          <VercelAnalytics />
           <CookieBanner />
           <WhatsAppButton />
 
