@@ -137,7 +137,28 @@ Générez des étiquettes à imprimer pour vos rayons :
 2. L'étiquette contient : nom, prix de vente, QR code, et code-barres.
 3. Partagez via WhatsApp ou imprimez directement.
 
-### 2.6 Mouvements de Stock (Entrées / Sorties)
+### 2.6 Organiser vos produits par emplacement
+
+Si la gestion des emplacements est disponible sur votre compte, vous pouvez structurer votre stock de façon beaucoup plus claire.
+
+**Exemples d'organisation possibles :**
+- `Allée 1 / Niveau 2 / Étagère 7`
+- `Zone froide / Rayon B / Bac 3`
+- `Réserve / Mur gauche / Colonne 4`
+
+**Comment faire :**
+
+1. Ouvrez la fiche d'un produit.
+2. Repérez le champ **« Emplacement »**.
+3. Sélectionnez l'emplacement déjà créé ou appuyez sur **« Gérer »** pour construire votre structure.
+4. Enregistrez le produit.
+
+**Bon à savoir :**
+- vous pouvez créer un emplacement isolé pour un besoin rapide ;
+- vous pouvez aussi générer une structure complète d'un seul coup au lieu de tout créer un par un ;
+- le chemin complet de l'emplacement vous aide ensuite à ranger, compter et retrouver vos articles plus vite.
+
+### 2.7 Mouvements de Stock (Entrées / Sorties)
 
 Pour ajuster le stock sans créer de vente ou de commande :
 
@@ -151,17 +172,17 @@ Pour ajuster le stock sans créer de vente ou de commande :
 
 Ces mouvements sont enregistrés dans le **Grand Livre** (voir Chapitre 5).
 
-### 2.7 Importer des produits en masse (CSV)
+### 2.8 Importer des produits en masse (CSV)
 
 Si vous avez beaucoup de produits (50, 100 ou plus), l'import CSV est beaucoup plus rapide.
 
 **Préparez votre fichier Excel/CSV :**
 
 ```csv
-Nom,Prix achat,Prix vente,Quantité,Catégorie,Stock minimum
-Riz Brisure 25kg,8500,10000,50,Alimentation,10
-Huile Niinal 1L,1200,1500,80,Alimentation,20
-Sucre 1kg,600,750,100,Alimentation,15
+Nom,Prix achat,Prix vente,Quantité,Catégorie,Stock minimum,Emplacement
+Riz Brisure 25kg,8500,10000,50,Alimentation,10,Allée 1 / Niveau 2 / Étagère 7
+Huile Niinal 1L,1200,1500,80,Alimentation,20,Zone froide / Rayon B
+Sucre 1kg,600,750,100,Alimentation,15,Réserve / Bac 3
 ```
 
 **Importez dans Stockman :**
@@ -173,7 +194,7 @@ Sucre 1kg,600,750,100,Alimentation,15
 5. **Aperçu** : Vérifiez vos produits avant de valider.
 6. Appuyez sur **« Lancer l'importation »**.
 
-### 2.8 Scanner un code-barres
+### 2.9 Scanner un code-barres
 
 Pour les produits avec un code-barres :
 
@@ -181,7 +202,7 @@ Pour les produits avec un code-barres :
 2. Visez le code-barres du produit.
 3. Si le produit existe déjà, sa fiche s'affiche. Sinon, un formulaire vierge s'ouvre avec le code pré-rempli.
 
-### 2.9 Inventaire Physique
+### 2.10 Inventaire Physique
 
 Pour compter votre stock réel et corriger les écarts :
 
@@ -192,7 +213,7 @@ Pour compter votre stock réel et corriger les écarts :
 
 > 💡 **Conseil professionnel** : Faites votre inventaire en **début ou fin de journée** quand il n'y a pas de ventes en cours. Assignez la tâche à un employé de confiance.
 
-### 2.10 Scan Rapide par Lot
+### 2.11 Scan Rapide par Lot
 
 Pour compter ou enregistrer plusieurs produits d'un coup :
 
@@ -232,9 +253,9 @@ Le tableau de bord est la première chose que vous voyez en ouvrant l'applicatio
 
 > 💡 **Astuce** : Vous pouvez **personnaliser** les sections affichées en appuyant sur l'icône ⚙️ en haut à droite du dashboard.
 
-### 3.3 Rapport Journalier (Enterprise)
+### 3.3 Rapport journalier et partage
 
-Si vous êtes sur le plan Enterprise, une section supplémentaire affiche :
+Selon votre formule, une section supplémentaire peut afficher :
 - CA du jour comparé à hier (avec variation en %).
 - Nombre de ventes comparé à hier.
 - Top 3 produits du jour.
@@ -310,9 +331,9 @@ Après chaque vente, un reçu est généré automatiquement. Vous pouvez :
 - **L'imprimer** si vous avez une imprimante connectée.
 - Partager un **lien QR code** que le client peut scanner pour consulter son reçu en ligne.
 
-### 4.7 Terminal POS (Enterprise)
+### 4.7 Terminaux de caisse
 
-Sur le plan Enterprise, vous pouvez configurer plusieurs **terminaux de caisse** dans une même boutique :
+Si cette gestion est disponible sur votre compte, vous pouvez configurer plusieurs **terminaux de caisse** dans une même boutique :
 
 1. **POS** → icône terminal en haut → **« Sélectionner le terminal »**.
 2. Choisissez le terminal actif (ex : Caisse 1, Caisse 2).
@@ -603,9 +624,9 @@ La Marketplace vous connecte directement avec des fournisseurs enregistrés sur 
 2. Activez/Désactivez les types d'alertes.
 3. Configurez les **seuils** (ex : alerte si stock < 5 unités).
 
-### 8.3 Notifications Push (Pro & Enterprise)
+### 8.3 Notifications Push
 
-Si vous êtes sur un plan Pro ou Enterprise, vous recevez des **notifications push** sur votre téléphone même quand l'application est fermée.
+Selon votre formule et votre appareil, vous pouvez recevoir des **notifications push** sur votre téléphone même quand l'application est fermée.
 
 Activez-les dans **Paramètres** → **Notifications Push**.
 
@@ -679,7 +700,9 @@ Vous pouvez **parler** à l'assistant au lieu de taper :
 
 ## Chapitre 10 — Gérer votre Équipe
 
-### 10.1 Ajouter un employé (Plan Pro & Enterprise)
+### 10.1 Ajouter un employé
+
+Si votre formule autorise plusieurs utilisateurs :
 
 1. **Plus** → **Paramètres** → **Utilisateurs & Permissions** → **« + Inviter »**.
 2. Renseignez le nom et l'email de l'employé.
@@ -714,6 +737,7 @@ Suivez ce que fait chaque membre de l'équipe dans **Plus** → **Activité** :
 - Filtrez par module (stock, caisse, CRM, comptabilité).
 - Filtrez par utilisateur.
 - Filtrez par période.
+- Si vous gérez plusieurs boutiques, vérifiez toujours la boutique active avant d'interpréter une action.
 
 > 💡 **Exemple** : Vous constatez un écart dans votre stock. Vous consultez l'historique d'activité et vous voyez que votre vendeur a créé une sortie de stock de 5 unités à 14h30. Vous pouvez lui demander des explications.
 
@@ -726,7 +750,9 @@ Suivez ce que fait chaque membre de l'équipe dans **Plus** → **Activité** :
 
 ## Chapitre 11 — Multi-Boutiques
 
-### 11.1 Ajouter une boutique (Plan Pro : 2 max, Enterprise : illimité)
+### 11.1 Ajouter une boutique
+
+Si votre formule permet de gérer plusieurs boutiques :
 
 1. **Paramètres** → **Boutiques** → **« + Ajouter »**.
 2. Renseignez le nom et l'adresse.
@@ -745,9 +771,9 @@ Appuyez sur le **nom de la boutique** en haut de l'écran pour basculer entre vo
 
 > 💡 **Exemple** : Votre boutique de Médina a 100 sachets de lait mais en vend peu. Votre boutique de Grand-Dakar n'en a plus que 5 et ils partent vite. Transférez 30 sachets de Médina vers Grand-Dakar en quelques clics.
 
-### 11.4 Dashboard consolidé (Enterprise)
+### 11.4 Vue consolidée
 
-Le dashboard multi-boutiques affiche :
+Selon votre formule, la vue multi-boutiques peut afficher :
 - Le **CA total** de toutes vos boutiques réunies.
 - Un **tableau comparatif** par boutique (ventes, produits, stock bas).
 - Les tendances de chaque point de vente.
@@ -769,6 +795,10 @@ Accédez aux paramètres depuis **Plus** → **Paramètres**.
 | **Message de reçu** | Texte personnalisé en bas des reçus |
 | **Mode Sombre** | Bascule entre le thème clair et sombre |
 | **Mode Simple** | Interface simplifiée pour les débutants |
+| **Synchronisation** | État de connexion, dernière synchronisation et actions en attente |
+| **Notifications** | Gestion des alertes et rappels envoyés sur l'appareil |
+| **Aide & Support** | Guides intégrés, aide par module et accès au support |
+| **Abonnement** | Suivi de votre formule, de votre période et des options de renouvellement |
 
 ### 12.2 Mode Sombre
 
@@ -796,7 +826,7 @@ Stockman fonctionne **même sans internet** :
 - Vos données sont sauvegardées localement.
 - Dès que la connexion revient, elles se synchronisent automatiquement.
 - Le badge de connexion (🟢 En ligne / 🔴 Hors ligne) s'affiche dans les paramètres.
-- Appuyez sur **« Sync maintenant »** pour forcer une synchronisation manuelle.
+- Appuyez sur **« Synchroniser maintenant »** pour forcer une synchronisation manuelle.
 
 ### 12.6 Exporter vos données personnelles (RGPD)
 
@@ -815,9 +845,9 @@ Conformément au RGPD et aux lois de protection des données :
 
 ---
 
-## Chapitre 13 — Abonnement & Plans
+## Chapitre 13 — Abonnement & Formules
 
-### 13.1 Comprendre les plans
+### 13.1 Comprendre les formules
 
 | Fonctionnalité | Starter | Pro | Enterprise |
 |---------------|:-------:|:---:|:----------:|
@@ -835,11 +865,12 @@ Conformément au RGPD et aux lois de protection des données :
 ### 13.2 Gérer votre abonnement
 
 1. **Plus** → **Abonnement** (ou **Paramètres** → **Mon Abonnement**).
-2. Vous voyez votre plan actuel, la date de fin d'essai et les options de renouvellement.
+2. Vous voyez votre formule actuelle, la date de fin d'essai et les options de renouvellement.
 
-**Modes de paiement disponibles :**
-- **Mobile Money** (Orange Money, Wave, Free Money, MTN Money, Moov Money — via ).
-- **Carte bancaire** (via App Store / Google Play).
+**Modes de paiement possibles :**
+- **Achat intégré mobile** sur Android ou iPhone, lorsque cette option est proposée sur votre appareil.
+- **Lien de paiement sécurisé** envoyé par email ou notification, selon votre compte.
+- **Carte bancaire** ou **Mobile Money** selon le mode de règlement affiché dans votre espace d'abonnement.
 
 ### 13.3 Après l'essai gratuit de 90 jours
 
@@ -897,7 +928,7 @@ R : Lors de l'ajout ou la modification d'un produit, renseignez le N° de lot et
 R : Depuis la Comptabilité, appuyez sur « Export CSV » pour exporter les ventes et dépenses. Depuis le Dashboard → Historique, exportez le Grand Livre complet.
 
 **Q : Comment contacter le support ?**
-R : Dans l'application : **Plus** → **Paramètres** → **Aide & Support** → Ouvrez un ticket. Notre équipe répond sous 24h (Pro) ou 2h par WhatsApp (Enterprise).
+R : Dans l'application : **Plus** → **Paramètres** → **Aide & Support**. Consultez d'abord le guide du module concerné, puis ouvrez un ticket si nécessaire. Le canal de réponse dépend de votre formule.
 
 **Q : Que se passe-t-il après les 90 jours d'essai ?**
 R : Vous pouvez souscrire à un plan payant. Si vous ne renouvelez pas, vos données restent sauvegardées mais certaines fonctionnalités avancées sont désactivées.

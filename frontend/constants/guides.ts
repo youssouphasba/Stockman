@@ -52,7 +52,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "search-outline",
                 title: "Trouver & Filtrer",
-                description: "Utilisez la barre de recherche (nom, SKU, code-barres) ou les puces catégories colorées pour naviguer dans votre catalogue."
+                description: "Utilisez la barre de recherche (nom, SKU, code-barres) et les puces catégories pour retrouver rapidement un article. Sur les comptes multi-boutiques, les produits affichés dépendent toujours de la boutique active."
             },
             {
                 icon: "pricetag-outline",
@@ -63,6 +63,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "add-circle-outline",
                 title: "Mouvements Rapides",
                 description: "Boutons 'Entrée' et 'Sortie' sur chaque produit pour ajuster le stock (livraison, perte, correction). Annulez un mouvement via l'historique."
+            },
+            {
+                icon: "create-outline",
+                title: "Créer ou Modifier un Produit",
+                description: "La fiche produit permet de renseigner le nom, le SKU, la quantité, l'unité, les prix, le stock minimum, le fournisseur, la date de péremption et les catégories. En modification, les changements sont enregistrés sur le produit déjà existant."
             },
             {
                 icon: "qr-code-outline",
@@ -78,6 +83,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "scan-outline",
                 title: "Scan par Lot",
                 description: "Scannez plusieurs codes-barres à la suite pour des entrées/sorties rapides ou un inventaire complet."
+            },
+            {
+                icon: "location-outline",
+                title: "Emplacements de Stockage",
+                description: "Si cette gestion est disponible sur votre compte, vous pouvez ranger vos produits dans une structure claire comme « Allée 1 / Niveau 2 / Étagère 7 ». Depuis la fiche produit, affectez un emplacement précis pour mieux organiser le stock, préparer l'inventaire et retrouver plus vite vos articles."
             },
             {
                 icon: "settings-outline",
@@ -322,17 +332,22 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "time-outline",
                 title: "Journal en Temps Réel",
-                description: "Toutes les actions de votre boutique : ventes, mouvements de stock, créations de clients, dépenses, modifications."
+                description: "L'écran affiche les principales actions enregistrées sur votre compte et sur la boutique active : ventes, mouvements de stock, créations, suppressions et modifications importantes."
             },
             {
                 icon: "filter-outline",
-                title: "Filtrer par Module",
-                description: "Puces en haut : Tous, Stock, Ventes, CRM, Comptabilité, Commandes, Utilisateurs, Paramètres. Retrouvez une action précise."
+                title: "Lire le Journal",
+                description: "Chaque ligne indique qui a agi, à quelle heure et sur quel module. Utilisez cet écran pour reconstituer une chronologie, comprendre une anomalie ou vérifier une opération récente."
             },
             {
                 icon: "people-outline",
                 title: "Suivi par Utilisateur",
-                description: "Identifiez quel employé a effectué chaque action. Utile pour le contrôle interne et l'audit de votre activité."
+                description: "Identifiez quel employé, manager ou administrateur a effectué une action. C'est utile pour le contrôle interne, l'organisation d'équipe et les vérifications après incident."
+            },
+            {
+                icon: "business-outline",
+                title: "Contexte Boutique",
+                description: "Sur les comptes multi-boutiques, l'historique doit être lu en tenant compte de la boutique active. Pour une analyse complète, vérifiez toujours le contexte avant d'interpréter une action."
             },
             {
                 icon: "refresh-outline",
@@ -347,7 +362,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "person-add-outline",
                 title: "Ajouter un Employé",
-                description: "Créez un compte avec email et mot de passe. Choisissez le rôle (Staff ou Manager) et les boutiques autorisées."
+                description: "Créez un compte avec email et mot de passe. Choisissez le rôle, les boutiques autorisées et le niveau d'accès adapté à la mission de la personne."
             },
             {
                 icon: "shield-checkmark-outline",
@@ -367,12 +382,17 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "business-outline",
                 title: "Boutiques Autorisées",
-                description: "Chaque employé n'accède qu'aux boutiques que vous lui assignez. Les données restent cloisonnées par boutique."
+                description: "Chaque employé n'accède qu'aux boutiques que vous lui assignez. Les données restent cloisonnées par boutique et le changement de boutique ne donne pas accès aux autres données non autorisées."
+            },
+            {
+                icon: "briefcase-outline",
+                title: "Rôles Avancés",
+                description: "Selon les accès disponibles sur votre compte, certains profils peuvent piloter plusieurs boutiques tandis que d'autres restent limités à une ou plusieurs boutiques précises. Attribuez ces rôles avec prudence."
             },
             {
                 icon: "list-circle-outline",
-                title: "Limites des Plans",
-                description: "Starter : 1 employé, Pro : 5 employés, Entreprise : illimité. Mettez à niveau si vous avez besoin de plus."
+                title: "Limites de votre Formule",
+                description: "Le nombre d'employés autorisés dépend de votre formule. Si vous atteignez la limite, l'écran Abonnement vous indique la formule la plus adaptée pour continuer à agrandir votre équipe."
             }
         ]
     },
@@ -382,7 +402,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "person-outline",
                 title: "Profil & Compte",
-                description: "Consultez votre nom, email, rôle et plan actif. Changez votre mot de passe ou votre photo de profil."
+                description: "Consultez votre nom, email, rôle et formule active. Changez votre mot de passe ou votre photo de profil."
             },
             {
                 icon: "language-outline",
@@ -402,7 +422,12 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "storefront-outline",
                 title: "Boutiques",
-                description: "Créez et gérez vos boutiques. Modifiez le nom et l'adresse. Starter : 1, Pro : 2, Entreprise : illimité."
+                description: "Créez et gérez vos boutiques. Modifiez le nom, l'adresse et les documents liés. Selon votre compte, vous pouvez avoir une ou plusieurs boutiques à administrer."
+            },
+            {
+                icon: "business-outline",
+                title: "Centre de Pilotage",
+                description: "Si cet espace est disponible sur votre compte, il regroupe le pilotage des boutiques, de l'équipe et de l'organisation avancée du stock depuis un écran dédié."
             },
             {
                 icon: "document-text-outline",
@@ -427,7 +452,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "help-circle-outline",
                 title: "Aide & Support",
-                description: "Centre d'aide (guides), assistant IA, création de tickets support avec suivi, et formulaire de litige."
+                description: "Le centre d'aide regroupe les guides de chaque module. Servez-vous-en pour comprendre un écran, une action, un bouton ou un flux complet avant de contacter le support."
             },
             {
                 icon: "download-outline",
@@ -441,23 +466,28 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "diamond-outline",
-                title: "Votre Plan Actuel",
-                description: "Consultez votre plan (Starter, Pro, Entreprise), son statut (actif, essai, expiré) et les limites associées."
+                title: "Votre Formule Actuelle",
+                description: "Consultez la formule active sur votre compte, son statut (actif, essai, expiré) et les limites qui s'appliquent à votre utilisation."
             },
             {
                 icon: "card-outline",
-                title: "Comparer les Plans",
-                description: "Starter (2 500 FCFA/mois) : 1 boutique, 1 employé. Pro (4 900) : 2 boutiques, 5 employés. Entreprise (9 900) : illimité + web."
+                title: "Comparer les Formules",
+                description: "Comparez les formules selon vos besoins : nombre de boutiques, nombre d'employés, accès web et outils avancés. Utilisez cet écran pour choisir ce qui correspond réellement à votre activité."
             },
             {
                 icon: "phone-portrait-outline",
                 title: "Paiement",
-                description: "Mobile Money via Flutterwave (Afrique) ou achat in-app via Play Store / App Store. Paiement Stripe disponible en EUR."
+                description: "Selon votre appareil et votre compte, le règlement peut se faire par achat intégré mobile ou par lien de paiement sécurisé. L'écran affiche uniquement les options réellement disponibles pour vous."
             },
             {
                 icon: "refresh-outline",
                 title: "Récupérer mon Abonnement",
                 description: "Après une réinstallation ou un changement de téléphone, retrouvez votre abonnement existant sans repayer."
+            },
+            {
+                icon: "mail-outline",
+                title: "Rappels et Renouvellement",
+                description: "Avant la fin de période, des rappels peuvent être envoyés pour éviter une interruption. Si votre accès est limité, revenez dans cet écran pour vérifier votre statut et reprendre le plan adapté."
             }
         ]
     },
