@@ -12,7 +12,7 @@ import hmac
 import google.generativeai as genai
 from pathlib import Path as PathLib
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 import uuid
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -1296,6 +1296,27 @@ class LocationUpdate(BaseModel):
     type: Optional[str] = None
     parent_id: Optional[str] = None
     is_active: Optional[bool] = None
+
+class LocationGenerationLevel(BaseModel):
+    type: Optional[str] = None
+    mode: Literal["range", "names"] = "range"
+    start: Optional[int] = None
+    end: Optional[int] = None
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    names: Optional[List[str]] = None
+
+class LocationBulkCreateRequest(BaseModel):
+    levels: List[LocationGenerationLevel]
+    root_parent_id: Optional[str] = None
+    reactivate_existing: bool = True
+
+class LocationBulkCreateResponse(BaseModel):
+    created_count: int
+    reused_count: int
+    total_count: int
+    levels_count: int
+    root_parent_id: Optional[str] = None
 
 class Product(BaseModel):
     product_id: str = Field(default_factory=lambda: f"prod_{uuid.uuid4().hex[:12]}")
@@ -10202,6 +10223,115 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_per
     
     return batch
 
+def _build_location_generation_entries(level: LocationGenerationLevel) -> List[Dict[str, str]]:
+    level_type = (level.type or "").strip()
+    stored_type = level_type or "custom"
+    mode = (level.mode or "range").strip().lower()
+
+    values: List[str] = []
+    if mode == "names":
+        values = [name.strip() for name in (level.names or []) if name and name.strip()]
+        if not values:
+            raise HTTPException(status_code=400, detail="Chaque niveau en mode noms doit contenir au moins un nom")
+    else:
+        if level.start is None or level.end is None:
+            raise HTTPException(status_code=400, detail="Chaque niveau en mode plage doit contenir un debut et une fin")
+        if level.end < level.start:
+            raise HTTPException(status_code=400, detail="La fin de plage doit etre superieure ou egale au debut")
+        if (level.end - level.start) > 200:
+            raise HTTPException(status_code=400, detail="Chaque plage est limitee a 201 valeurs maximum")
+        prefix = level.prefix or ""
+        suffix = level.suffix or ""
+        values = [f"{prefix}{number}{suffix}".strip() for number in range(level.start, level.end + 1)]
+
+    entries: List[Dict[str, str]] = []
+    for value in values:
+        token = value.strip()
+        if level_type and token:
+            label = f"{level_type} {token}".strip()
+        elif level_type:
+            label = level_type
+        else:
+            label = token
+        if not label:
+            raise HTTPException(status_code=400, detail="Un niveau d'emplacement genere un nom vide")
+        entries.append({"name": label, "type": stored_type})
+    return entries
+
+async def _generate_locations_tree(user: User, owner_id: str, payload: LocationBulkCreateRequest) -> LocationBulkCreateResponse:
+    if not payload.levels:
+        raise HTTPException(status_code=400, detail="Ajoutez au moins un niveau a generer")
+    if len(payload.levels) > 5:
+        raise HTTPException(status_code=400, detail="La generation est limitee a 5 niveaux")
+
+    root_parent_id = payload.root_parent_id or None
+    if root_parent_id:
+        root_query = apply_store_scope({"location_id": root_parent_id, "user_id": owner_id}, user, None)
+        root_parent = await db.locations.find_one(root_query, {"_id": 0})
+        if not root_parent:
+            raise HTTPException(status_code=404, detail="Emplacement parent introuvable")
+
+    level_entries: List[List[Dict[str, str]]] = []
+    combinations = 1
+    for level in payload.levels:
+        entries = _build_location_generation_entries(level)
+        level_entries.append(entries)
+        combinations *= max(len(entries), 1)
+        if combinations > 1000:
+            raise HTTPException(status_code=400, detail="La generation est limitee a 1000 emplacements d'un coup")
+
+    scoped_query = apply_store_scope({"user_id": owner_id}, user, None)
+    existing_locations = await db.locations.find(scoped_query, {"_id": 0}).to_list(5000)
+    location_index: Dict[tuple, dict] = {}
+    for loc in existing_locations:
+        location_index[(loc.get("parent_id"), loc.get("name"))] = loc
+
+    created_count = 0
+    reused_count = 0
+    parent_ids: List[Optional[str]] = [root_parent_id]
+
+    for entries in level_entries:
+        next_parent_ids: List[str] = []
+        for parent_id in parent_ids:
+            for entry in entries:
+                key = (parent_id, entry["name"])
+                existing = location_index.get(key)
+                if existing:
+                    reused_count += 1
+                    if payload.reactivate_existing and (existing.get("is_active") is False or existing.get("type") != entry["type"]):
+                        await db.locations.update_one(
+                            {"location_id": existing["location_id"], "user_id": owner_id},
+                            {"$set": {"is_active": True, "type": entry["type"], "updated_at": datetime.now(timezone.utc)}},
+                        )
+                        existing["is_active"] = True
+                        existing["type"] = entry["type"]
+                    next_parent_ids.append(existing["location_id"])
+                    continue
+
+                location = Location(
+                    user_id=owner_id,
+                    store_id=user.active_store_id,
+                    name=entry["name"],
+                    type=entry["type"],
+                    parent_id=parent_id,
+                    is_active=True,
+                    updated_at=datetime.now(timezone.utc),
+                )
+                doc = location.model_dump()
+                await db.locations.insert_one(doc)
+                location_index[key] = doc
+                next_parent_ids.append(location.location_id)
+                created_count += 1
+        parent_ids = next_parent_ids
+
+    return LocationBulkCreateResponse(
+        created_count=created_count,
+        reused_count=reused_count,
+        total_count=created_count + reused_count,
+        levels_count=len(payload.levels),
+        root_parent_id=root_parent_id,
+    )
+
 # ===================== LOCATION ROUTES =====================
 
 @api_router.get("/locations")
@@ -10231,6 +10361,12 @@ async def create_location(data: LocationCreate, user: User = Depends(require_per
     )
     await db.locations.insert_one(loc.model_dump())
     return loc
+
+@api_router.post("/locations/generate", response_model=LocationBulkCreateResponse)
+async def generate_locations(data: LocationBulkCreateRequest, user: User = Depends(require_permission("stock", "write"))):
+    ensure_enterprise_locations_allowed(user)
+    owner_id = get_owner_id(user)
+    return await _generate_locations_tree(user, owner_id, data)
 
 @api_router.put("/locations/{location_id}", response_model=Location)
 async def update_location(location_id: str, data: LocationUpdate, user: User = Depends(require_permission("stock", "write"))):

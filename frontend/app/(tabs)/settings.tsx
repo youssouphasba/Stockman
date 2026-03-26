@@ -69,6 +69,7 @@ type SettingsSectionKey =
   | 'profile'
   | 'notifications'
   | 'team'
+  | 'enterpriseHub'
   | 'organization'
   | 'storeIdentity'
   | 'storeDocuments'
@@ -150,6 +151,7 @@ export default function SettingsScreen() {
     profile: true,
     notifications: false,
     team: false,
+    enterpriseHub: false,
     organization: false,
     storeIdentity: true,
     storeDocuments: false,
@@ -209,6 +211,7 @@ export default function SettingsScreen() {
   const [disputeDesc, setDisputeDesc] = useState('');
   const [disputeType, setDisputeType] = useState('other');
   const showManagerZone = (settingsData?.mobile_preferences?.show_manager_zone ?? true) && (isOrgAdmin || isBillingAdmin);
+  const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
   const canViewTeam = isOrgAdmin || hasPermission('staff', 'read');
 
   const loadSettings = useCallback(async () => {
@@ -723,6 +726,30 @@ export default function SettingsScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
               </TouchableOpacity>
             </Link>
+          </SettingsAccordionSection>
+        )}
+
+        {showManagerZone && isOrgAdmin && hasEnterprisePlan && (
+          <SettingsAccordionSection
+            title="Entreprise Â· Pilotage"
+            description="Vue Enterprise mobile pour les boutiques, lâ€™Ã©quipe et les emplacements."
+            icon="business-outline"
+            accentColor={colors.primary}
+            expanded={expandedSections.enterpriseHub}
+            onToggle={() => toggleSection('enterpriseHub')}
+            styles={styles}
+            colors={colors}
+          >
+            <TouchableOpacity style={styles.supportRow} onPress={() => router.push('/(tabs)/enterprise' as never)}>
+              <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
+                <Ionicons name="business-outline" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Centre Enterprise</Text>
+                <Text style={styles.settingDesc}>Pilotage multi-boutiques, Ã©quipe et emplacements avancÃ©s.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
           </SettingsAccordionSection>
         )}
 

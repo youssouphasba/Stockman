@@ -363,6 +363,20 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="enterprise"
+          options={{
+            title: 'Enterprise',
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="locations"
+          options={{
+            title: 'Emplacements',
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="tables"
           options={{
             title: t('tabs.tables', 'Tables'),

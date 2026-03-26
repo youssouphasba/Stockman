@@ -1562,6 +1562,25 @@ export const locations = {
     create: (data: { name: string; type?: string | null; parent_id?: string | null; is_active?: boolean }) => request<any>('/locations', { method: 'POST', body: data }),
     update: (id: string, data: { name?: string | null; type?: string | null; parent_id?: string | null; is_active?: boolean | null }) => request<any>(`/locations/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/locations/${id}`, { method: 'DELETE' }),
+    generate: (data: {
+        levels: Array<{
+            type?: string | null;
+            mode: 'range' | 'names';
+            start?: number;
+            end?: number;
+            prefix?: string | null;
+            suffix?: string | null;
+            names?: string[];
+        }>;
+        root_parent_id?: string | null;
+        reactivate_existing?: boolean;
+    }) => request<{
+        created_count: number;
+        reused_count: number;
+        total_count: number;
+        levels_count: number;
+        root_parent_id?: string | null;
+    }>('/locations/generate', { method: 'POST', body: data }),
 };
 
 export const userFeatures = {

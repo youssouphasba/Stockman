@@ -519,6 +519,8 @@ export const products = {
     request<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
   getPriceHistory: (id: string) =>
     request<PriceHistory[]>(`/products/${id}/price-history`),
+  transferLocation: (productId: string, data: { to_location_id?: string | null; note?: string }) =>
+    request<Product>(`/products/${productId}/transfer-location`, { method: 'POST', body: data }),
   adjustStock: (productId: string, actualQuantity: number, reason?: string) =>
     request<Product>(`/products/${productId}/adjust`, { method: 'POST', body: { actual_quantity: actualQuantity, reason } }),
   addVariant: (productId: string, variant: Omit<ProductVariant, 'variant_id' | 'is_active'>) =>
@@ -922,6 +924,23 @@ export const statistics = {
   get: () => request<StatisticsData>('/statistics'),
 };
 
+export const analytics = {
+  getStoreComparison: (params?: {
+    days?: number;
+    store_id?: string;
+    category_id?: string;
+    supplier_id?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.days) qs.set('days', String(params.days));
+    if (params?.store_id) qs.set('store_id', params.store_id);
+    if (params?.category_id) qs.set('category_id', params.category_id);
+    if (params?.supplier_id) qs.set('supplier_id', params.supplier_id);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<AnalyticsStoreComparison>(`/analytics/stores/compare${suffix}`);
+  },
+};
+
 // Settings
 export const settings = {
   get: () => request<UserSettings>('/settings'),
@@ -1188,6 +1207,48 @@ export type StoreAdmin = {
   total_revenue: number;
   sales_count: number;
   created_at: string;
+};
+
+export type AnalyticsStoreComparisonRow = {
+  store_id: string;
+  store_name: string;
+  address?: string;
+  active: boolean;
+  revenue: number;
+  previous_revenue: number;
+  revenue_delta: number;
+  gross_profit: number;
+  sales_count: number;
+  previous_sales_count: number;
+  sales_count_delta: number;
+  average_ticket: number;
+  stock_turnover_ratio: number;
+  stock_value: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+  dormant_products_count: number;
+  total_products: number;
+};
+
+export type AnalyticsStoreComparison = {
+  currency: string;
+  days: number;
+  totals: {
+    store_count: number;
+    revenue: number;
+    previous_revenue: number;
+    revenue_delta: number;
+    gross_profit: number;
+    sales_count: number;
+    average_ticket: number;
+    stock_turnover_ratio: number;
+    stock_value: number;
+    low_stock_count: number;
+    out_of_stock_count: number;
+    dormant_products_count: number;
+    total_products: number;
+  };
+  stores: AnalyticsStoreComparisonRow[];
 };
 
 export const admin = {
@@ -1760,6 +1821,7 @@ export type ProductCreate = {
   lead_time_days?: number;
   image?: string;
   rfid_tag?: string;
+  location_id?: string;
   expiry_date?: string;
   variants?: ProductVariant[];
   has_variants?: boolean;
@@ -2864,12 +2926,41 @@ export const demo = {
 export type Location = {
   location_id: string;
   name: string;
+  type?: string | null;
+  parent_id?: string | null;
   description?: string;
   store_id?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export const locations = {
   list: () => request<Location[]>('/locations'),
+  create: (data: { name: string; type?: string | null; parent_id?: string | null; is_active?: boolean }) =>
+    request<Location>('/locations', { method: 'POST', body: data }),
+  update: (id: string, data: { name?: string | null; type?: string | null; parent_id?: string | null; is_active?: boolean | null }) =>
+    request<Location>(`/locations/${id}`, { method: 'PUT', body: data }),
+  delete: (id: string) => request<{ message: string }>(`/locations/${id}`, { method: 'DELETE' }),
+  generate: (data: {
+    levels: Array<{
+      type?: string | null;
+      mode: 'range' | 'names';
+      start?: number;
+      end?: number;
+      prefix?: string | null;
+      suffix?: string | null;
+      names?: string[];
+    }>;
+    root_parent_id?: string | null;
+    reactivate_existing?: boolean;
+  }) => request<{
+    created_count: number;
+    reused_count: number;
+    total_count: number;
+    levels_count: number;
+    root_parent_id?: string | null;
+  }>('/locations/generate', { method: 'POST', body: data }),
 };
 
 export const tables = {

@@ -94,6 +94,8 @@ export default function ProductsScreen() {
   const router = useRouter();
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
   const { user, hasPermission, hasProduction, isRestaurant } = useAuth();
+  const effectivePlan = user?.effective_plan || user?.plan;
+  const hasEnterpriseLocations = effectivePlan === 'enterprise';
   const insets = useSafeAreaInsets();
   const canWrite = hasPermission('stock', 'write');
   const { isConnected } = useNetwork();
@@ -124,6 +126,32 @@ export default function ProductsScreen() {
   const [locationList, setLocationList] = useState<Location[]>([]);
   const [recipeList, setRecipeList] = useState<Recipe[]>([]);
 
+  const locationMap = useMemo(() => {
+    const map = new Map<string, Location>();
+    locationList.forEach((location) => map.set(location.location_id, location));
+    return map;
+  }, [locationList]);
+
+  const getLocationPath = useCallback((locationId?: string | null) => {
+    if (!locationId) return '';
+    const parts: string[] = [];
+    let cursor = locationMap.get(locationId);
+    let guard = 0;
+    while (cursor && guard < 12) {
+      parts.push(cursor.name);
+      cursor = cursor.parent_id ? locationMap.get(cursor.parent_id) : undefined;
+      guard += 1;
+    }
+    return parts.reverse().join(' / ');
+  }, [locationMap]);
+
+  const activeLocationChoices = useMemo(
+    () => [...locationList]
+      .filter((location) => location.is_active !== false)
+      .sort((a, b) => getLocationPath(a.location_id).localeCompare(getLocationPath(b.location_id), 'fr')),
+    [getLocationPath, locationList],
+  );
+
   // Add/Edit product form
   const [formName, setFormName] = useState('');
   const [formSku, setFormSku] = useState('');
@@ -141,6 +169,7 @@ export default function ProductsScreen() {
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formRfidTag, setFormRfidTag] = useState('');
   const [formSupplierId, setFormSupplierId] = useState<string | null>(null);
+  const [formLocationId, setFormLocationId] = useState('');
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [imageUploading, setImageUploading] = useState(false);
   const [formExpiryDate, setFormExpiryDate] = useState('');
@@ -230,6 +259,7 @@ export default function ProductsScreen() {
     image: formImage || '',
     rfidTag: formRfidTag,
     supplierId: formSupplierId || '',
+    locationId: formLocationId,
     expiryDate: formExpiryDate,
     hasVariants: formHasVariants,
     variants: formVariants,
@@ -384,7 +414,7 @@ export default function ProductsScreen() {
   const loadData = useCallback(async () => {
     try {
       if (isConnected) {
-        const isEnterprise = user?.plan === 'enterprise';
+        const isEnterprise = hasEnterpriseLocations;
         const [prodsRes, cats] = await Promise.all([
           productsApi.list(selectedCategory ?? undefined, 0, 500, isRestaurant ? true : undefined),
           categoriesApi.list(),
@@ -424,7 +454,7 @@ export default function ProductsScreen() {
         setProductList(prods as Product[]);
         setCategoryList(cats);
         setForecastData(forecast);
-        if (isEnterprise) setLocationList(locsRes);
+        setLocationList(isEnterprise ? locsRes : []);
         setRecipeList(recipesRes.filter((recipe) => recipe.recipe_type !== 'prep'));
         // Determine whether to cache: only cache full list (no category filter)
         if (!selectedCategory) {
@@ -462,12 +492,13 @@ export default function ProductsScreen() {
       }
       const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
       if (cachedCats) setCategoryList(cachedCats);
+      if (!hasEnterpriseLocations) setLocationList([]);
     } finally {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
+  }, [hasEnterpriseLocations, isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
 
   useEffect(() => {
     const nextStoreId = user?.active_store_id;
@@ -856,6 +887,7 @@ export default function ProductsScreen() {
     setFormHasVariants(false);
     setFormVariants([]);
     setFormSupplierId(null);
+    setFormLocationId('');
   }
 
   function resetVariantForm() {
@@ -934,6 +966,7 @@ export default function ProductsScreen() {
     setFormImage(product.image || null);
     setFormRfidTag(product.rfid_tag || '');
     setFormExpiryDate(product.expiry_date ? product.expiry_date.split('T')[0] : '');
+    setFormLocationId(product.location_id || '');
     setFormDescription(product.description || '');
     setFormMenuCategory(product.menu_category || '');
     setFormKitchenStation((product.kitchen_station as 'plat' | 'grill' | 'froid' | 'boisson' | 'dessert') || 'plat');
@@ -1035,6 +1068,7 @@ export default function ProductsScreen() {
         expiry_date: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
         variants: formHasVariants ? formVariants : [],
         has_variants: formHasVariants,
+        location_id: hasEnterpriseLocations && !isRestaurant ? (formLocationId || undefined) : undefined,
         is_menu_item: isRestaurant || undefined,
         menu_category: isRestaurant ? (formMenuCategory.trim() || formCategoryName || undefined) : undefined,
         kitchen_station: isRestaurant ? formKitchenStation : undefined,
@@ -1045,7 +1079,14 @@ export default function ProductsScreen() {
       if (isConnected) {
         let savedProductId: string | undefined;
         if (editingProduct) {
-          await productsApi.update(editingProduct.product_id, data);
+          const { location_id: nextLocationId, ...updatePayload } = data;
+          await productsApi.update(editingProduct.product_id, updatePayload);
+          if (hasEnterpriseLocations && !isRestaurant && editingProduct.location_id !== (nextLocationId || undefined)) {
+            await productsApi.transferLocation(editingProduct.product_id, {
+              to_location_id: nextLocationId || null,
+              note: 'Emplacement mis à jour depuis la fiche produit',
+            });
+          }
           savedProductId = editingProduct.product_id;
         } else {
           const created = await productsApi.create(data);
@@ -1997,13 +2038,13 @@ export default function ProductsScreen() {
                             +{formatUserCurrency(margin, user)}
                           </Text>
                         </View>
-                        {user?.plan === 'enterprise' && product.location_id && (() => {
+                        {hasEnterpriseLocations && product.location_id && (() => {
                           const loc = locationList.find(l => l.location_id === product.location_id);
                           return loc ? (
                             <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
                               <Ionicons name="location-outline" size={10} color={colors.info} />
                               <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
-                                {loc.name}
+                                {getLocationPath(loc.location_id) || loc.name}
                               </Text>
                             </View>
                           ) : null;
@@ -2504,6 +2545,52 @@ export default function ProductsScreen() {
                           onPress={() => setFormSupplierId(sup.supplier_id)}
                         >
                           <Text style={[styles.filterChipText, formSupplierId === sup.supplier_id && styles.filterChipTextActive]}>{sup.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {!isRestaurant && hasEnterpriseLocations && (
+                  <View style={{ marginBottom: Spacing.sm }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.formLabel}>{t('products.location_label', 'Emplacement')}</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
+                          {t('products.location_help', 'Affectez ce produit à une allée, une zone, un niveau ou une étagère.')}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => router.push('/(tabs)/locations' as never)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: colors.primary + '35', backgroundColor: colors.primary + '12' }}
+                      >
+                        <Ionicons name="settings-outline" size={14} color={colors.primary} />
+                        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>
+                          {t('products.manage_locations', 'Gérer')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <TouchableOpacity
+                        style={[styles.filterChip, !formLocationId && styles.filterChipActive]}
+                        onPress={() => setFormLocationId('')}
+                      >
+                        <Text style={[styles.filterChipText, !formLocationId && styles.filterChipTextActive]}>
+                          {t('products.no_location', 'Sans emplacement')}
+                        </Text>
+                      </TouchableOpacity>
+                      {activeLocationChoices.map((location) => (
+                        <TouchableOpacity
+                          key={location.location_id}
+                          style={[styles.filterChip, formLocationId === location.location_id && styles.filterChipActive]}
+                          onPress={() => setFormLocationId(location.location_id)}
+                        >
+                          <Text
+                            style={[styles.filterChipText, formLocationId === location.location_id && styles.filterChipTextActive]}
+                            numberOfLines={1}
+                          >
+                            {getLocationPath(location.location_id) || location.name}
+                          </Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
