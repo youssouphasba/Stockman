@@ -25,8 +25,17 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
     };
 
     const handleClose = () => {
-        reset();
-        onClose();
+        if (!text.trim()) {
+            reset();
+            onClose();
+            return;
+        }
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
+        if (window.confirm(`${title}\n\n${message}`)) {
+            reset();
+            onClose();
+        }
     };
 
     const handleImport = async () => {

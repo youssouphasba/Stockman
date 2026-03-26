@@ -34,6 +34,25 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
 
     const [resultMsg, setResultMsg] = useState('');
 
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        Alert.alert(
+            t('common.unsaved_changes_title'),
+            t('common.unsaved_changes_message'),
+            [
+                { text: t('common.stay'), style: 'cancel' },
+                { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+            ]
+        );
+    };
+
+    const handleClose = () => {
+        if (!text.trim()) {
+            onClose();
+            return;
+        }
+        confirmDiscardChanges(onClose);
+    };
+
     async function handleImport() {
         if (!text.trim()) return;
         setLoading(true);
@@ -63,7 +82,7 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
     }
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
             <View style={styles.modalOverlay}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -71,7 +90,7 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
                 >
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>{t('products.import_text_title')}</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <TouchableOpacity onPress={handleClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>

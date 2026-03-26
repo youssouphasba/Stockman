@@ -625,7 +625,7 @@ export default function POS() {
 
     const filteredProducts = (Array.isArray(allProducts) ? allProducts : []).filter(p => {
         if (p.product_type === 'raw_material') return false; // Exclure les ingrédients du POS
-        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+        const matchesSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
             p.sku?.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
         return matchesSearch && matchesCategory;
@@ -771,7 +771,7 @@ export default function POS() {
                                     {p.image ? (
                                         <img src={p.image} className="w-full h-full object-cover" alt={p.name} />
                                     ) : (
-                                        <div className="text-3xl font-black text-white/10">{p.name.charAt(0)}</div>
+                                        <div className="text-3xl font-black text-white/10">{(p.name || '?').charAt(0)}</div>
                                     )}
                                 </div>
                                 <h3 className="text-sm font-bold text-white mb-1 line-clamp-2">{p.name}</h3>

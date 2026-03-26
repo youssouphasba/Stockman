@@ -108,7 +108,7 @@ export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: 
     };
 
     const filteredProducts = allProducts.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase())
+        (p.name || '').toLowerCase().includes(search.toLowerCase())
     ).slice(0, 5);
 
     return (

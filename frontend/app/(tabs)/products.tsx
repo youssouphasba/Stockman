@@ -197,6 +197,107 @@ export default function ProductsScreen() {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
+
+  const productFormBaselineRef = useRef('');
+  const stockMovementBaselineRef = useRef('');
+  const categoryFormBaselineRef = useRef('');
+
+  const confirmDiscardChanges = (onConfirm: () => void) => {
+    Alert.alert(
+      t('common.unsaved_changes_title'),
+      t('common.unsaved_changes_message'),
+      [
+        { text: t('common.stay'), style: 'cancel' },
+        { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+      ]
+    );
+  };
+
+  const getProductFormSnapshot = () => JSON.stringify({
+    name: formName,
+    sku: formSku,
+    quantity: formQuantity,
+    productType: formProductType,
+    unit: formUnit,
+    quantityPrecision: formQuantityPrecision,
+    purchasePrice: formPurchasePrice,
+    sellingPrice: formSellingPrice,
+    minStock: formMinStock,
+    maxStock: formMaxStock,
+    category: formCategory || '',
+    subcategory: formSubcategory,
+    categoryName: formCategoryName,
+    image: formImage || '',
+    rfidTag: formRfidTag,
+    supplierId: formSupplierId || '',
+    expiryDate: formExpiryDate,
+    hasVariants: formHasVariants,
+    variants: formVariants,
+    description: formDescription,
+    menuCategory: formMenuCategory,
+    kitchenStation: formKitchenStation,
+    productionMode: formProductionMode,
+    linkedRecipeId: formLinkedRecipeId,
+    inventoryMode: isInventoryMode,
+    inventoryValues,
+  });
+
+  const getStockMovementSnapshot = () => JSON.stringify({
+    type: movType,
+    quantity: movQuantity,
+    reason: movReason,
+    batch: movBatchNumber,
+    expiry: movExpiryDate,
+  });
+
+  const getCategoryFormSnapshot = () => JSON.stringify({
+    name: catFormName,
+    color: catFormColor,
+    editingId: editingCategory?.category_id || '',
+  });
+
+  const hasProductFormChanges = () => {
+    if (!productFormBaselineRef.current) return false;
+    return productFormBaselineRef.current !== getProductFormSnapshot();
+  };
+
+  const hasStockMovementChanges = () => {
+    if (!stockMovementBaselineRef.current) return false;
+    return stockMovementBaselineRef.current !== getStockMovementSnapshot();
+  };
+
+  const hasCategoryFormChanges = () => {
+    if (!categoryFormBaselineRef.current) return false;
+    return categoryFormBaselineRef.current !== getCategoryFormSnapshot();
+  };
+
+  const requestCloseAddModal = () => {
+    if (!hasProductFormChanges()) {
+      setShowAddModal(false);
+      setEditingProduct(null);
+      return;
+    }
+    confirmDiscardChanges(() => {
+      setShowAddModal(false);
+      setEditingProduct(null);
+    });
+  };
+
+  const requestCloseStockModal = () => {
+    if (!hasStockMovementChanges()) {
+      setShowStockModal(false);
+      return;
+    }
+    confirmDiscardChanges(() => setShowStockModal(false));
+  };
+
+  const requestCloseCategoryModal = () => {
+    if (!hasCategoryFormChanges()) {
+      setShowCategoryModal(false);
+      return;
+    }
+    confirmDiscardChanges(() => setShowCategoryModal(false));
+  };
   const previousStoreIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -226,6 +327,30 @@ export default function ProductsScreen() {
       setShowGuide(true);
     }
   }, [isFirstVisit]);
+
+  useEffect(() => {
+    if (showAddModal) {
+      productFormBaselineRef.current = getProductFormSnapshot();
+    } else {
+      productFormBaselineRef.current = '';
+    }
+  }, [showAddModal, editingProduct?.product_id]);
+
+  useEffect(() => {
+    if (showStockModal) {
+      stockMovementBaselineRef.current = getStockMovementSnapshot();
+    } else {
+      stockMovementBaselineRef.current = '';
+    }
+  }, [showStockModal, selectedProduct?.product_id]);
+
+  useEffect(() => {
+    if (showCategoryModal) {
+      categoryFormBaselineRef.current = getCategoryFormSnapshot();
+    } else {
+      categoryFormBaselineRef.current = '';
+    }
+  }, [showCategoryModal, editingCategory?.category_id]);
 
   // Search Debouncing
   useEffect(() => {
@@ -2106,7 +2231,7 @@ export default function ProductsScreen() {
       </ScrollView >
 
       {/* Add Product Modal */}
-      < Modal visible={showAddModal} animationType="slide" transparent >
+      < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -2115,7 +2240,7 @@ export default function ProductsScreen() {
                   ? editingProduct ? t('restaurant.edit_dish', 'Modifier le plat') : t('restaurant.add_dish', 'Ajouter un plat')
                   : editingProduct ? t('products.edit_product') : t('products.add_product')}
               </Text>
-              <TouchableOpacity onPress={() => { setShowAddModal(false); setEditingProduct(null); }}>
+              <TouchableOpacity onPress={requestCloseAddModal}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -2882,12 +3007,12 @@ export default function ProductsScreen() {
       </Modal >
 
       {/* Category Management Modal */}
-      < Modal visible={showCategoryModal} animationType="slide" transparent >
+      < Modal visible={showCategoryModal} animationType="slide" transparent onRequestClose={requestCloseCategoryModal} >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('products.manage_categories')}</Text>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+              <TouchableOpacity onPress={requestCloseCategoryModal}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -2966,14 +3091,14 @@ export default function ProductsScreen() {
       </Modal >
 
       {/* Stock Movement Modal */}
-      < Modal visible={showStockModal} animationType="slide" transparent >
+      < Modal visible={showStockModal} animationType="slide" transparent onRequestClose={requestCloseStockModal} >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {movType === 'in' ? t('products.stock_movement_in_title') : t('products.stock_movement_out_title')} {selectedProduct?.name}
               </Text>
-              <TouchableOpacity onPress={() => setShowStockModal(false)}>
+              <TouchableOpacity onPress={requestCloseStockModal}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>

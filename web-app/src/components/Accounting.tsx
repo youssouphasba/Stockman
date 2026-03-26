@@ -92,6 +92,7 @@ export default function Accounting() {
     const [saving, setSaving] = useState(false);
     const [customCategories, setCustomCategories] = useState<string[]>([]);
     const [newCategoryDraft, setNewCategoryDraft] = useState('');
+    const expenseFormBaselineRef = useRef('');
 
     // Filters
     const [filterExpenseCategory, setFilterExpenseCategory] = useState('all');
@@ -115,6 +116,7 @@ export default function Accounting() {
     const [freeInvPaymentTerms, setFreeInvPaymentTerms] = useState('');
     const [freeInvNotes, setFreeInvNotes] = useState('');
     const [freeInvSaving, setFreeInvSaving] = useState(false);
+    const freeInvoiceBaselineRef = useRef('');
     const [detailOpen, setDetailOpen] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
@@ -127,6 +129,46 @@ export default function Accounting() {
     const [reportLoading, setReportLoading] = useState(false);
 
     const { i18n } = useTranslation();
+
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
+        if (window.confirm(`${title}\n\n${message}`)) {
+            onConfirm();
+        }
+    };
+
+    const getExpenseSnapshot = () => JSON.stringify({
+        category: newExpense.category,
+        amount: newExpense.amount,
+        description: newExpense.description,
+        newCategoryDraft,
+        editingId: editingExpense?.expense_id || '',
+    });
+
+    const requestCloseExpenseModal = () => {
+        if (!expenseFormBaselineRef.current || expenseFormBaselineRef.current === getExpenseSnapshot()) {
+            setShowExpenseModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowExpenseModal(false));
+    };
+
+    const getFreeInvoiceSnapshot = () => JSON.stringify({
+        customer: freeInvCustomerName,
+        items: freeInvItems,
+        discount: freeInvDiscount,
+        paymentTerms: freeInvPaymentTerms,
+        notes: freeInvNotes,
+    });
+
+    const requestCloseFreeInvoiceModal = () => {
+        if (!freeInvoiceBaselineRef.current || freeInvoiceBaselineRef.current === getFreeInvoiceSnapshot()) {
+            setShowFreeInvoiceModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowFreeInvoiceModal(false));
+    };
 
     useEffect(() => {
         if (!useCustomRange) loadData();
@@ -199,13 +241,19 @@ export default function Accounting() {
 
     const handleOpenAddExpense = () => {
         setEditingExpense(null);
-        setNewExpense({ category: 'other', amount: '', description: '' });
+        const baseline = { category: 'other', amount: '', description: '' };
+        setNewExpense(baseline);
+        setNewCategoryDraft('');
+        expenseFormBaselineRef.current = JSON.stringify({ ...baseline, newCategoryDraft: '', editingId: '' });
         setShowExpenseModal(true);
     };
 
     const handleOpenEditExpense = (exp: any) => {
         setEditingExpense(exp);
-        setNewExpense({ category: exp.category, amount: String(exp.amount), description: exp.description || '' });
+        const baseline = { category: exp.category, amount: String(exp.amount), description: exp.description || '' };
+        setNewExpense(baseline);
+        setNewCategoryDraft('');
+        expenseFormBaselineRef.current = JSON.stringify({ ...baseline, newCategoryDraft: '', editingId: exp.expense_id || '' });
         setShowExpenseModal(true);
     };
 
@@ -295,11 +343,19 @@ export default function Accounting() {
     };
 
     const handleOpenFreeInvoice = () => {
+        const baselineItems = [{ description: '', quantity: '1', unit_price: '', tax_rate: '0' }];
         setFreeInvCustomerName('');
-        setFreeInvItems([{ description: '', quantity: '1', unit_price: '', tax_rate: '0' }]);
+        setFreeInvItems(baselineItems);
         setFreeInvDiscount('');
         setFreeInvPaymentTerms('');
         setFreeInvNotes('');
+        freeInvoiceBaselineRef.current = JSON.stringify({
+            customer: '',
+            items: baselineItems,
+            discount: '',
+            paymentTerms: '',
+            notes: '',
+        });
         setShowFreeInvoiceModal(true);
     };
 
@@ -1208,13 +1264,13 @@ export default function Accounting() {
 
             {/* Free Invoice Creation Modal */}
             {showFreeInvoiceModal && (
-                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowFreeInvoiceModal(false)}>
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={requestCloseFreeInvoiceModal}>
                     <div className="bg-[#1E293B] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2">
                                 <FileText size={20} className="text-emerald-400" /> Nouvelle facture libre
                             </h2>
-                            <button onClick={() => setShowFreeInvoiceModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+                            <button onClick={requestCloseFreeInvoiceModal} className="text-slate-400 hover:text-white"><X size={20} /></button>
                         </div>
                         <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
                             {/* Client */}
@@ -1364,11 +1420,11 @@ export default function Accounting() {
             {/* Expense Add/Edit Modal */}
             {showExpenseModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowExpenseModal(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={requestCloseExpenseModal} />
                     <div className="glass-card w-full max-w-md relative z-10 p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la dépense' : 'Nouvelle Dépense'}</h2>
-                            <button onClick={() => setShowExpenseModal(false)} className="p-2 text-slate-500 hover:text-white transition-colors">
+                            <button onClick={requestCloseExpenseModal} className="p-2 text-slate-500 hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -1424,7 +1480,7 @@ export default function Accounting() {
                                 />
                             </div>
                             <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setShowExpenseModal(false)}
+                                <button type="button" onClick={requestCloseExpenseModal}
                                     className="flex-1 px-4 py-4 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-all">
                                     Annuler
                                 </button>

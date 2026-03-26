@@ -421,7 +421,7 @@ export default function CRM({ user }: CRMProps) {
     }
 
     const filteredCustomers = (Array.isArray(customers) ? customers : []).filter(c => {
-        const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search);
+        const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search);
         const matchCategory = filterCategory === 'all' || (c.category || 'particulier') === filterCategory;
         const matchTier = filterTier === 'all' || getTier(c) === filterTier;
         return matchSearch && matchCategory && matchTier;
@@ -504,7 +504,7 @@ export default function CRM({ user }: CRMProps) {
                         <div className="flex flex-wrap items-center gap-2">
                             <AlertCircle size={14} />
                             <span>
-                                {pendingCrmSummary.pendingCustomers} client(s) et {pendingCrmSummary.pendingDebtChanges} opÃ©ration(s) de dette sont encore en attente de synchronisation.
+                                {pendingCrmSummary.pendingCustomers} client(s) et {pendingCrmSummary.pendingDebtChanges} op?ration(s) de dette sont encore en attente de synchronisation.
                             </span>
                         </div>
                     </div>
@@ -646,7 +646,7 @@ export default function CRM({ user }: CRMProps) {
                         <span className="text-amber-400 font-bold text-sm">
                             {birthdays.length === 1
                                 ? `🎂 Anniversaire dans 7 jours : ${birthdays[0].name}`
-                                : `🎂 ${birthdays.length} anniversaires à venir : ${birthdays.slice(0, 3).map((b: any) => b.name).join(', ')}${birthdays.length > 3 ? '…' : ''}`
+                                : `🎂 ${birthdays.length} anniversaires à venir : ${birthdays.filter(Boolean).slice(0, 3).map((b: any) => b.name || '—').join(', ')}${birthdays.length > 3 ? '…' : ''}`
                             }
                         </span>
                     </div>
@@ -1030,7 +1030,7 @@ export default function CRM({ user }: CRMProps) {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border-2 border-primary/10">
-                                                        {c.name.charAt(0)}
+                                                        {(c.name || '?').charAt(0)}
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-white font-bold flex items-center gap-2">
@@ -1177,7 +1177,7 @@ export default function CRM({ user }: CRMProps) {
                         <div className="flex flex-col items-center gap-6 border-b border-white/10 pb-6">
                             <div className="flex flex-col items-center gap-3 text-center">
                                 <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-3xl font-bold text-primary border-4 border-primary/10">
-                                    {selectedCustomer.name.charAt(0)}
+                                    {(selectedCustomer?.name || '?').charAt(0)}
                                 </div>
                                 <div>
                                     <div className="flex gap-2 justify-center mt-1">

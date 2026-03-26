@@ -18,12 +18,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { auth as authApi, ApiError } from '../../services/api';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const RESEND_COOLDOWN = 60;
 
 export default function VerifyEmailScreen() {
+  const { t } = useTranslation();
   const { colors, glassStyle } = useTheme();
-  const { verifyEmail, user } = useAuth();
+  const { verifyEmail, user, logout } = useAuth();
   const router = useRouter();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,17 @@ export default function VerifyEmailScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [switching, setSwitching] = useState(false);
   const styles = createStyles(colors, glassStyle);
+
+  const handleExit = async () => {
+    try {
+      await logout();
+    } catch {
+      // ignore logout errors
+    }
+    router.replace('/(auth)/login');
+  };
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -41,7 +53,7 @@ export default function VerifyEmailScreen() {
 
   async function handleVerify() {
     if (otp.length !== 6) {
-      setError('Entrez le code à 6 chiffres reçu par email.');
+      setError(t('auth.verifyEmail.errorCode'));
       return;
     }
 
@@ -52,7 +64,7 @@ export default function VerifyEmailScreen() {
       await verifyEmail(otp);
       router.replace('/(tabs)');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Le code email est incorrect.');
+      setError(e instanceof ApiError ? e.message : t('auth.verifyEmail.errorIncorrect'));
     } finally {
       setLoading(false);
     }
@@ -65,17 +77,33 @@ export default function VerifyEmailScreen() {
     setSuccess('');
     try {
       const result = await authApi.resendEmailOtp();
-      setSuccess(result.message);
+      setSuccess(result.message || t('auth.verifyEmail.resendSuccess'));
       if (result.otp_fallback) {
-        Alert.alert('Code de test (DEV)', `Votre code OTP : ${result.otp_fallback}`);
+        Alert.alert(t('auth.verifyEmail.devCodeTitle'), t('auth.verifyEmail.devCodeBody', { code: result.otp_fallback }));
       }
       setCooldown(RESEND_COOLDOWN);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Impossible de renvoyer l'email de verification.");
+      setError(e instanceof ApiError ? e.message : t('auth.verifyEmail.resendError'));
     } finally {
       setResending(false);
     }
-  }, [cooldown, resending]);
+  }, [cooldown, resending, t]);
+
+  const handleUsePhone = useCallback(async () => {
+    if (switching) return;
+    setSwitching(true);
+    setError('');
+    setSuccess('');
+    try {
+      const result = await authApi.setVerificationChannel('phone');
+      setSuccess(result.message || t('auth.verifyPhone.switchSuccess'));
+      router.replace('/(auth)/verify-phone');
+    } catch (e) {
+      setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.switchError'));
+    } finally {
+      setSwitching(false);
+    }
+  }, [router, switching, t]);
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
@@ -85,12 +113,15 @@ export default function VerifyEmailScreen() {
       >
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={handleExit}>
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
+            </TouchableOpacity>
             <View style={styles.iconCircle}>
               <Ionicons name="mail-open-outline" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.title}>Vérifiez votre email</Text>
+            <Text style={styles.title}>{t('auth.verifyEmail.title')}</Text>
             <Text style={styles.subtitle}>
-              Nous avons envoyé un code à 6 chiffres à {user?.email || 'votre adresse email'}.
+              {t('auth.verifyEmail.subtitle', { email: user?.email || t('common.none') })}
             </Text>
           </View>
 
@@ -110,11 +141,11 @@ export default function VerifyEmailScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Code email</Text>
+              <Text style={styles.label}>{t('auth.verifyEmail.label')}</Text>
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={[styles.otpInput, { letterSpacing: 10 }]}
-                  placeholder="000000"
+                  placeholder={t('auth.verifyEmail.placeholder')}
                   placeholderTextColor={colors.textMuted}
                   value={otp}
                   onChangeText={setOtp}
@@ -130,7 +161,7 @@ export default function VerifyEmailScreen() {
               onPress={handleVerify}
               disabled={loading || otp.length !== 6}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Vérifier mon email</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('auth.verifyEmail.verify')}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -142,8 +173,20 @@ export default function VerifyEmailScreen() {
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Text style={styles.resendText}>
-                  {cooldown > 0 ? `Renvoyer le code (${cooldown}s)` : 'Renvoyer le code'}
+                  {cooldown > 0 ? `${t('auth.verifyEmail.resend')} (${cooldown}s)` : t('auth.verifyEmail.resend')}
                 </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.switchBtn, switching && styles.buttonDisabled]}
+              onPress={handleUsePhone}
+              disabled={switching}
+            >
+              {switching ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.switchText}>{t('auth.verifyEmail.usePhone')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -164,6 +207,12 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    padding: 6,
   },
   iconCircle: {
     width: 80,
@@ -260,6 +309,15 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   resendText: {
     color: colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  switchBtn: {
+    marginTop: Spacing.md,
+    alignItems: 'center',
+  },
+  switchText: {
+    color: colors.textSecondary,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },

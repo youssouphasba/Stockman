@@ -2124,7 +2124,7 @@ export default function SuppliersScreen() {
                           <View style={styles.mpReviewHeader}>
                             <View style={styles.mpReviewerAvatar}>
                               <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
-                                {r.shopkeeper_name.charAt(0).toUpperCase()}
+                                {(r.shopkeeper_name || '?').charAt(0).toUpperCase()}
                               </Text>
                             </View>
                             <View style={{ flex: 1 }}>

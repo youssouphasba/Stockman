@@ -51,6 +51,24 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
     const [rawData, setRawData] = useState<any[]>([]);
     const [importSummary, setImportSummary] = useState<{ count: number; errors?: any[] } | null>(null);
 
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        Alert.alert(
+            t('common.unsaved_changes_title'),
+            t('common.unsaved_changes_message'),
+            [
+                { text: t('common.stay'), style: 'cancel' },
+                { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+            ]
+        );
+    };
+
+    const hasChanges = () => {
+        if (step > 0) return true;
+        if (file) return true;
+        if (rawData.length > 0) return true;
+        return Object.keys(mapping).length > 0;
+    };
+
     async function handlePickFile() {
         try {
             const result = await DocumentPicker.getDocumentAsync({
@@ -146,8 +164,15 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
     }
 
     function handleClose() {
-        reset();
-        onClose();
+        if (!hasChanges()) {
+            reset();
+            onClose();
+            return;
+        }
+        confirmDiscardChanges(() => {
+            reset();
+            onClose();
+        });
     }
 
     function renderStep() {
@@ -300,7 +325,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
     }
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>

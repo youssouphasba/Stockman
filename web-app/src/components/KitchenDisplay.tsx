@@ -81,7 +81,7 @@ const STATION_COLORS: Record<string, string> = {
 
 function getStationBadgeClass(station?: string): string {
     if (!station) return STATION_COLORS.default;
-    const s = station.toLowerCase();
+    const s = (station || '').toLowerCase();
     for (const tab of STATION_TABS.slice(1)) {
         if (tab.keywords.some(kw => s.includes(kw))) {
             return STATION_COLORS[tab.key] ?? STATION_COLORS.default;
@@ -91,7 +91,7 @@ function getStationBadgeClass(station?: string): string {
 }
 
 function detectStation(item: KitchenItem): StationTab | null {
-    const text = `${item.product_name} ${item.station ?? ''}`.toLowerCase();
+    const text = `${item.product_name || ''} ${item.station ?? ''}`.toLowerCase();
     for (const tab of STATION_TABS.slice(1)) {
         if (tab.keywords.some(kw => text.includes(kw))) return tab.key;
     }

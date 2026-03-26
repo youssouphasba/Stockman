@@ -118,6 +118,11 @@ export default function Inventory() {
     const [showTransferHistory, setShowTransferHistory] = useState(false);
     const [transferHistory, setTransferHistory] = useState<any[]>([]);
     const [transferHistoryLoading, setTransferHistoryLoading] = useState(false);
+    const [isLocationTransferOpen, setIsLocationTransferOpen] = useState(false);
+    const [locationTransferProduct, setLocationTransferProduct] = useState<any>(null);
+    const [locationTransferDest, setLocationTransferDest] = useState('');
+    const [locationTransferNote, setLocationTransferNote] = useState('');
+    const [locationTransferring, setLocationTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -139,6 +144,30 @@ export default function Inventory() {
     const [stockMovQty, setStockMovQty] = useState('');
     const [stockMovReason, setStockMovReason] = useState('');
     const [stockMovLoading, setStockMovLoading] = useState(false);
+
+    const locationMap = new Map(locationsList.map((loc) => [loc.location_id, loc]));
+    const activeLocationsList = locationsList.filter((loc) => loc.is_active !== false);
+    const selectedLocationRecord = selectedLocation ? locationMap.get(selectedLocation) : undefined;
+    const locationFilterOptions = selectedLocationRecord && selectedLocationRecord.is_active === false
+        ? [...activeLocationsList, selectedLocationRecord]
+        : activeLocationsList;
+    const selectedFormLocation = form.location_id ? locationMap.get(form.location_id) : undefined;
+    const formLocationOptions = selectedFormLocation && selectedFormLocation.is_active === false
+        ? [...activeLocationsList, selectedFormLocation]
+        : activeLocationsList;
+    const getLocationLabel = (locationId?: string | null) => {
+        if (!locationId) return '';
+        const parts: string[] = [];
+        let current = locationMap.get(locationId);
+        let guard = 0;
+        while (current && guard < 8) {
+            if (current.name) parts.push(current.name);
+            current = current.parent_id ? locationMap.get(current.parent_id) : undefined;
+            guard += 1;
+        }
+        if (parts.length === 0) return 'Emplacement supprimé';
+        return parts.reverse().join(' / ');
+    };
 
     const handleStockMovement = async () => {
         const qty = parseFloat(stockMovQty);
@@ -348,6 +377,14 @@ export default function Inventory() {
         setIsTransferOpen(true);
     };
 
+    const handleOpenLocationTransfer = (product: any) => {
+        setLocationTransferProduct(product);
+        const availableLocations = activeLocationsList.filter((loc) => loc.location_id !== product.location_id);
+        setLocationTransferDest(availableLocations[0]?.location_id || '');
+        setLocationTransferNote('');
+        setIsLocationTransferOpen(true);
+    };
+
     const handleTransfer = async () => {
         if (!transferProduct || !transferDest || transferQty <= 0) return;
         setTransferring(true);
@@ -365,6 +402,23 @@ export default function Inventory() {
             alert(err?.message || 'Erreur lors du transfert');
         } finally {
             setTransferring(false);
+        }
+    };
+
+    const handleLocationTransfer = async () => {
+        if (!locationTransferProduct) return;
+        setLocationTransferring(true);
+        try {
+            await productsApi.transferLocation(locationTransferProduct.product_id, {
+                to_location_id: locationTransferDest || null,
+                note: locationTransferNote || undefined,
+            });
+            setIsLocationTransferOpen(false);
+            await fetchProducts();
+        } catch (err: any) {
+            alert(err?.message || "Erreur lors du transfert d'emplacement");
+        } finally {
+            setLocationTransferring(false);
         }
     };
 
@@ -464,7 +518,7 @@ export default function Inventory() {
         setAiLoading(prev => ({ ...prev, category: true }));
         try {
             const res = await aiApi.suggestCategory(form.name, i18n.language);
-            const matchedCat = categoriesList.find(c => c.name.toLowerCase() === res.category.toLowerCase());
+            const matchedCat = categoriesList.find(c => (c.name || '').toLowerCase() === (res.category || '').toLowerCase());
             if (matchedCat) {
                 setForm(prev => ({ ...prev, category_id: matchedCat.category_id }));
             }
@@ -536,7 +590,7 @@ export default function Inventory() {
     };
 
     const filteredProducts = (Array.isArray(products) ? products : []).filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
         p.sku?.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -639,7 +693,7 @@ export default function Inventory() {
                                 onClick={() => void fetchProducts()}
                                 className="rounded-full border border-amber-400/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-100 hover:bg-amber-500/10"
                             >
-                                {t('common.retry', { defaultValue: 'RÃ©essayer' })}
+                                {t('common.retry', { defaultValue: 'R?essayer' })}
                             </button>
                         </div>
                     )}
@@ -817,7 +871,7 @@ export default function Inventory() {
             </div>
 
             {/* Location filter chips */}
-            {locationsList.length > 0 && (
+            {locationFilterOptions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                     <button
                         onClick={() => { setSelectedLocation(''); fetchProducts(''); }}
@@ -825,13 +879,13 @@ export default function Inventory() {
                     >
                         <MapPin size={12} /> Tous
                     </button>
-                    {locationsList.map(loc => (
+                    {locationFilterOptions.map(loc => (
                         <button
                             key={loc.location_id}
                             onClick={() => { setSelectedLocation(loc.location_id); fetchProducts(loc.location_id); }}
                             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
                         >
-                            <MapPin size={12} /> {loc.name}
+                            <MapPin size={12} /> {getLocationLabel(loc.location_id)}
                         </button>
                     ))}
                 </div>
@@ -862,7 +916,7 @@ export default function Inventory() {
                                                 <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt={p.name} />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-primary font-bold">
-                                                    {p.name.charAt(0)}
+                                                    {(p.name || '?').charAt(0)}
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
@@ -877,7 +931,7 @@ export default function Inventory() {
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
                                                 {p.location_id && (
                                                     <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
-                                                        <MapPin size={9} /> {locationsList.find(l => l.location_id === p.location_id)?.name}
+                                                        <MapPin size={9} /> {getLocationLabel(p.location_id)}
                                                     </span>
                                                 )}
                                             </div>
@@ -933,6 +987,15 @@ export default function Inventory() {
                                                 >
                                                     <History size={18} />
                                                 </button>
+                                                {activeLocationsList.length > 0 && (
+                                                    <button
+                                                        onClick={() => handleOpenLocationTransfer(p)}
+                                                        className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                                                        title="Transférer d'emplacement"
+                                                    >
+                                                        <MapPin size={18} />
+                                                    </button>
+                                                )}
                                                 {storeList.length > 1 && (
                                                     <button
                                                         onClick={() => handleOpenTransfer(p)}
@@ -1139,7 +1202,7 @@ export default function Inventory() {
                                 </select>
                             </div>
 
-                            {locationsList.length > 0 && (
+                            {formLocationOptions.length > 0 && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 flex items-center gap-1"><MapPin size={14} className="text-primary" /> Emplacement</label>
                                     <select
@@ -1148,8 +1211,10 @@ export default function Inventory() {
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                     >
                                         <option value="">Aucun emplacement</option>
-                                        {locationsList.map(loc => (
-                                            <option key={loc.location_id} value={loc.location_id}>{loc.name}</option>
+                                        {formLocationOptions.map(loc => (
+                                            <option key={loc.location_id} value={loc.location_id}>
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archivé)' : ''}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -1185,7 +1250,7 @@ export default function Inventory() {
                                         }}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                     >
-                                        {['piÃ¨ce', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'BoÃ®te', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
+                                        {['pi?ce', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'Bo?te', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
                                             <option key={unit} value={unit}>{unit}</option>
                                         ))}
                                     </select>
@@ -1380,6 +1445,74 @@ export default function Inventory() {
 
             {isBatchScanOpen && (
                 <BatchScanModal onClose={() => setIsBatchScanOpen(false)} />
+            )}
+
+            {/* Location Transfer Modal */}
+            {isLocationTransferOpen && locationTransferProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <div className="flex items-center gap-3 mb-5">
+                            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                                <MapPin size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-white">Transfert d'emplacement</h3>
+                                <p className="text-xs text-slate-400">{locationTransferProduct.name}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-300">
+                                Emplacement actuel : <span className="font-bold text-white">{getLocationLabel(locationTransferProduct.location_id) || 'Aucun'}</span>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Nouvel emplacement</label>
+                                <select
+                                    value={locationTransferDest}
+                                    onChange={(e) => setLocationTransferDest(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50"
+                                >
+                                    <option value="">Aucun emplacement</option>
+                                    {activeLocationsList
+                                        .filter((loc) => loc.location_id !== locationTransferProduct.location_id)
+                                        .map((loc) => (
+                                            <option key={loc.location_id} value={loc.location_id}>
+                                                {getLocationLabel(loc.location_id)}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Note (optionnelle)</label>
+                                <input
+                                    type="text"
+                                    value={locationTransferNote}
+                                    onChange={(e) => setLocationTransferNote(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsLocationTransferOpen(false)}
+                                className="px-4 py-2 rounded-lg text-slate-400 hover:text-white"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleLocationTransfer}
+                                disabled={locationTransferring}
+                                className="btn-primary px-6 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {locationTransferring && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                                {locationTransferring ? 'Transfert...' : 'Confirmer'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Stock Transfer Modal */}

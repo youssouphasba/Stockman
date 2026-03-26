@@ -228,6 +228,33 @@ export default function OrderCreationModal({
 
   const itemCount = selectedItems.length;
 
+  const confirmDiscardChanges = (onConfirm: () => void) => {
+    RNAlert.alert(
+      t('common.unsaved_changes_title'),
+      t('common.unsaved_changes_message'),
+      [
+        { text: t('common.stay'), style: 'cancel' },
+        { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+      ]
+    );
+  };
+
+  const hasChanges = () => {
+    if (selectedSupplier) return true;
+    if (supplierSearch.trim()) return true;
+    if (productSearch.trim()) return true;
+    if (notes.trim()) return true;
+    return Object.keys(quantities).length > 0;
+  };
+
+  const requestClose = () => {
+    if (!hasChanges()) {
+      onClose();
+      return;
+    }
+    confirmDiscardChanges(onClose);
+  };
+
   // ── Submit ──
   async function handleSubmit() {
     if (!selectedSupplier || selectedItems.length === 0) return;
@@ -288,7 +315,7 @@ export default function OrderCreationModal({
   function goBack() {
     if (step === 3) setStep(2);
     else if (step === 2 && !preSelectedSupplier) setStep(1);
-    else onClose();
+    else requestClose();
   }
 
   // ── Filtered suppliers ──
@@ -329,7 +356,7 @@ export default function OrderCreationModal({
 
   // ═══════════════ RENDER ═══════════════
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={requestClose}>
       <View style={s.overlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

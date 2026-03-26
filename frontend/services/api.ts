@@ -423,6 +423,16 @@ export const auth = {
     request<{ message: string; client_side?: boolean }>('/auth/resend-otp', {
       method: 'POST',
     }),
+  setVerificationChannel: (channel: 'email' | 'phone') =>
+    request<{ message: string; user: User }>('/auth/verification-channel', {
+      method: 'POST',
+      body: { channel },
+    }),
+  socialLogin: (firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'mobile') =>
+    request<AuthResponse>('/auth/verify-social', {
+      method: 'POST',
+      body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface },
+    }),
 };
 
 export type ActivityLog = {

@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
-import { ApiError } from '../../services/api';
+import { auth as authApi, ApiError } from '../../services/api';
 import {
     clearPhoneVerificationState,
     confirmPhoneCode,
@@ -39,6 +39,7 @@ export default function VerifyPhoneScreen() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [cooldown, setCooldown] = useState(0);
+    const [switching, setSwitching] = useState(false);
     const styles = createStyles(colors, glassStyle);
 
     const handleExit = async () => {
@@ -103,6 +104,22 @@ export default function VerifyPhoneScreen() {
             setResending(false);
         }
     }, [cooldown, resending, t, user?.phone]);
+
+    const handleUseEmail = useCallback(async () => {
+        if (switching) return;
+        setSwitching(true);
+        setError('');
+        setSuccess('');
+        try {
+            const result = await authApi.setVerificationChannel('email');
+            setSuccess(result.message || t('auth.verifyEmail.switchSuccess'));
+            router.replace('/(auth)/verify-email');
+        } catch (e) {
+            setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyEmail.switchError'));
+        } finally {
+            setSwitching(false);
+        }
+    }, [router, switching, t]);
 
     return (
         <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
@@ -180,6 +197,18 @@ export default function VerifyPhoneScreen() {
                                         ? `${t('auth.verifyPhone.resendCode')} (${cooldown}s)`
                                         : t('auth.verifyPhone.sendCode')}
                                 </Text>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.switchBtn, switching && styles.buttonDisabled]}
+                            onPress={handleUseEmail}
+                            disabled={switching}
+                        >
+                            {switching ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <Text style={styles.switchText}>{t('auth.verifyPhone.useEmail')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -302,6 +331,15 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     },
     resendText: {
         color: colors.primary,
+        fontSize: FontSize.sm,
+        fontWeight: '600',
+    },
+    switchBtn: {
+        marginTop: Spacing.md,
+        alignItems: 'center',
+    },
+    switchText: {
+        color: colors.textSecondary,
         fontSize: FontSize.sm,
         fontWeight: '600',
     },

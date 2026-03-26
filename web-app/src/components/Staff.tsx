@@ -1,7 +1,7 @@
 'use client';
 // Force redeploy with latest fixes
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Users,
@@ -87,6 +87,34 @@ export default function Staff() {
         storePermissions: {},
     });
     const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
+    const formBaselineRef = useRef('');
+
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
+        if (window.confirm(`${title}\n\n${message}`)) {
+            onConfirm();
+        }
+    };
+
+    const getFormSnapshot = () => JSON.stringify({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        permissions: form.permissions,
+        accountRoles: form.accountRoles,
+        storeIds: form.storeIds,
+        storePermissions: form.storePermissions,
+        editingId: editingUser?.user_id || '',
+    });
+
+    const requestCloseModal = () => {
+        if (!formBaselineRef.current || formBaselineRef.current === getFormSnapshot()) {
+            setIsModalOpen(false);
+            return;
+        }
+        confirmDiscardChanges(() => setIsModalOpen(false));
+    };
 
     useEffect(() => {
         loadUsers();
@@ -112,7 +140,7 @@ export default function Staff() {
 
     const handleOpenAdd = () => {
         setEditingUser(null);
-        setForm({
+        const baseline = {
             name: '',
             email: '',
             password: '',
@@ -127,14 +155,16 @@ export default function Staff() {
             accountRoles: [],
             storeIds: [],
             storePermissions: {},
-        });
+        };
+        setForm(baseline);
         setExpandedStoreId(null);
+        formBaselineRef.current = JSON.stringify({ ...baseline, editingId: '' });
         setIsModalOpen(true);
     };
 
     const handleOpenEdit = (user: any) => {
         setEditingUser(user);
-        setForm({
+        const baseline = {
             name: user.name,
             email: user.email,
             password: '',
@@ -150,8 +180,10 @@ export default function Staff() {
             accountRoles: user.account_roles || [],
             storeIds: user.store_ids || [],
             storePermissions: user.store_permissions || {},
-        });
+        };
+        setForm(baseline);
         setExpandedStoreId((user.store_ids || [])[0] || null);
+        formBaselineRef.current = JSON.stringify({ ...baseline, editingId: user.user_id || '' });
         setIsModalOpen(true);
     };
 
@@ -300,8 +332,8 @@ export default function Staff() {
     }
 
     const filteredUsers = (Array.isArray(users) ? users : []).filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
+        (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (u.email || '').toLowerCase().includes(search.toLowerCase())
     );
 
     const staffSteps: GuideStep[] = [
@@ -371,7 +403,7 @@ export default function Staff() {
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl border-2 border-primary/10">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {(user.name || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
                                     <h3 className="text-white font-bold">{user.name}</h3>
@@ -432,7 +464,7 @@ export default function Staff() {
             {/* Create/Edit Modal */}
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={requestCloseModal}
                 title={editingUser ? t('users.edit_access_title') : t('users.new_employee_title')}
             >
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -594,7 +626,7 @@ export default function Staff() {
                     <div className="flex gap-4 pt-6 mt-6 border-t border-white/10">
                         <button
                             type="button"
-                            onClick={() => setIsModalOpen(false)}
+                            onClick={requestCloseModal}
                             className="flex-1 px-4 py-2 text-slate-400 hover:text-white transition-colors font-bold"
                         >
                             {t('common.cancel')}

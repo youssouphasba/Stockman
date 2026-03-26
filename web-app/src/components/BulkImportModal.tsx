@@ -13,7 +13,7 @@ interface BulkImportModalProps {
 }
 
 const REQUIRED_FIELDS = ['name'];
-const OPTIONAL_FIELDS = ['sku', 'quantity', 'purchase_price', 'selling_price', 'unit', 'min_stock', 'category_name'];
+const OPTIONAL_FIELDS = ['sku', 'quantity', 'purchase_price', 'selling_price', 'unit', 'min_stock', 'category_name', 'location'];
 
 export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImportModalProps) {
     const { t } = useTranslation();
@@ -24,6 +24,13 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [importSummary, setImportSummary] = useState<any>(null);
+
+    const getFieldLabel = (field: string) => {
+        if (field === 'location') {
+            return t('settings_workspace.stores.locations.title');
+        }
+        return t(`common.${field}`);
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -46,10 +53,13 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].forEach(field => {
                 // Only try heuristics if AI didn't find anything for this field
                 if (!newMapping[field]) {
-                    const match = columns.find((col: string) =>
-                        col.toLowerCase() === field.toLowerCase() ||
-                        col.toLowerCase().includes(field.toLowerCase())
-                    );
+                    const candidates = field === 'location'
+                        ? ['location', 'emplacement']
+                        : [field];
+                    const match = columns.find((col: string) => {
+                        const normalized = col.toLowerCase();
+                        return candidates.some((candidate) => normalized === candidate || normalized.includes(candidate));
+                    });
                     if (match) newMapping[field] = match;
                 }
             });
@@ -134,7 +144,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                     <div className="flex-1">
                                         <span className="text-xs font-black uppercase text-rose-400 block mb-1">Obligatoire</span>
                                         <span className="text-white font-bold flex items-center gap-2">
-                                            {t(`common.${field}`)}
+                                            {getFieldLabel(field)}
                                             {parseResult.ai_mapping?.[field] && (
                                                 <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
                                                     IA ✨
@@ -161,7 +171,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                     <div className="flex-1">
                                         <span className="text-xs font-black uppercase text-slate-500 block mb-1">Optionnel</span>
                                         <span className="text-white font-bold flex items-center gap-2">
-                                            {t(`common.${field}`)}
+                                            {getFieldLabel(field)}
                                             {parseResult.ai_mapping?.[field] && (
                                                 <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
                                                     IA ✨

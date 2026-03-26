@@ -23,7 +23,7 @@ import { ApiError } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 import { BorderRadius, Colors, FontSize, Spacing } from '../../constants/theme';
 
-type SignupStep = 'role' | 'form';
+type SignupStep = 'role' | 'details' | 'business';
 type SignupRole = 'shopkeeper' | 'supplier';
 
 const SECTORS = [
@@ -101,6 +101,7 @@ export default function RegisterScreen() {
   }, [sectorSearch]);
 
   const selectedSector = SECTORS.find((sector) => sector.key === businessType);
+  const phonePlaceholder = `${t('auth.register.phonePlaceholder')} (${selectedCountry.name})`;
 
   async function handleRegister() {
     const phoneRequired = selectedRole === 'shopkeeper';
@@ -226,9 +227,14 @@ export default function RegisterScreen() {
             </View>
           ) : (
             <View style={styles.card}>
-              <TouchableOpacity style={styles.backRow} onPress={() => setStep('role')}>
+              <TouchableOpacity
+                style={styles.backRow}
+                onPress={() => setStep(step === 'business' ? 'details' : 'role')}
+              >
                 <Ionicons name="arrow-back" size={18} color={Colors.primaryLight} />
-                <Text style={styles.backText}>{t('auth.register.changeProfile')}</Text>
+                <Text style={styles.backText}>
+                  {step === 'business' ? t('common.back') || 'Retour' : t('auth.register.changeProfile')}
+                </Text>
               </TouchableOpacity>
 
               {error ? (
@@ -238,185 +244,216 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              <Field label={t('auth.register.name')}>
-                <InputWrapper icon="person-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.register.namePlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={name}
-                    onChangeText={setName}
-                    autoComplete="name"
-                  />
-                </InputWrapper>
-              </Field>
+              {step === 'details' && (
+                <>
+                  <Field label={t('auth.register.name')}>
+                    <InputWrapper icon="person-outline">
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('auth.register.namePlaceholder')}
+                        placeholderTextColor={Colors.textMuted}
+                        value={name}
+                        onChangeText={setName}
+                        autoComplete="name"
+                      />
+                    </InputWrapper>
+                  </Field>
 
-              <Field label={t('auth.register.countryCurrency')}>
-                <TouchableOpacity style={styles.selector} onPress={() => setShowCountryModal(true)}>
-                  <Text style={styles.selectorFlag}>{selectedCountry.flag}</Text>
-                  <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{selectedCountry.currency}</Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
-                </TouchableOpacity>
-              </Field>
+                  <Field label={t('auth.register.countryCurrency')}>
+                    <TouchableOpacity style={styles.selector} onPress={() => setShowCountryModal(true)}>
+                      <Text style={styles.selectorFlag}>{selectedCountry.flag}</Text>
+                      <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{selectedCountry.currency}</Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </Field>
 
-              <Field label={t('auth.register.phone')}>
-                <InputWrapper>
-                  <View style={styles.dialCodeBox}>
-                    <Text style={styles.dialCodeText}>{selectedCountry.dialCode}</Text>
-                  </View>
-                  <TextInput
-                    style={styles.inputWithPrefix}
-                    placeholder={t('auth.register.phonePlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={phone}
-                    onChangeText={(value) => {
-                      if (value.startsWith('+') && value.startsWith(selectedCountry.dialCode)) {
-                        setPhone(value.replace(selectedCountry.dialCode, '').trim());
+                  <Field label={t('auth.register.phone')}>
+                    <InputWrapper>
+                      <View style={styles.dialCodeBox}>
+                        <Text style={styles.dialCodeText}>{selectedCountry.dialCode}</Text>
+                      </View>
+                      <TextInput
+                        style={styles.inputWithPrefix}
+                        placeholder={phonePlaceholder}
+                        placeholderTextColor={Colors.textMuted}
+                        value={phone}
+                        onChangeText={(value) => {
+                          if (value.startsWith('+') && value.startsWith(selectedCountry.dialCode)) {
+                            setPhone(value.replace(selectedCountry.dialCode, '').trim());
+                            return;
+                          }
+                          setPhone(value);
+                        }}
+                        keyboardType="phone-pad"
+                        autoComplete="tel"
+                      />
+                    </InputWrapper>
+                  </Field>
+
+                  <Field label={t('auth.register.email')}>
+                    <InputWrapper icon="mail-outline">
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('auth.register.emailPlaceholder')}
+                        placeholderTextColor={Colors.textMuted}
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                      />
+                    </InputWrapper>
+                  </Field>
+
+                  <Field label={t('auth.register.password')}>
+                    <InputWrapper icon="lock-closed-outline">
+                      <TextInput
+                        style={[styles.input, styles.inputPassword]}
+                        placeholder={t('auth.register.passwordPlaceholder')}
+                        placeholderTextColor={Colors.textMuted}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                        autoComplete="new-password"
+                      />
+                      <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeButton}>
+                        <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.textMuted} />
+                      </TouchableOpacity>
+                    </InputWrapper>
+                  </Field>
+
+                  <Field label={t('auth.register.confirmPassword')}>
+                    <InputWrapper icon="shield-checkmark-outline">
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('auth.register.confirmPasswordPlaceholder')}
+                        placeholderTextColor={Colors.textMuted}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showPassword}
+                        autoComplete="new-password"
+                      />
+                    </InputWrapper>
+                  </Field>
+
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonSecondary]}
+                    onPress={() => {
+                      const phoneRequired = selectedRole === 'shopkeeper';
+                      if (!name.trim() || !email.trim() || !password.trim() || (phoneRequired && !phone.trim())) {
+                        setError(t('auth.register.errorFillRequired'));
                         return;
                       }
-                      setPhone(value);
+                      if (password.length < 8) {
+                        setError(t('auth.register.errorPasswordLength'));
+                        return;
+                      }
+                      if (password !== confirmPassword) {
+                        setError(t('auth.register.errorPasswordsMismatch'));
+                        return;
+                      }
+                      setError('');
+                      setStep('business');
                     }}
-                    keyboardType="phone-pad"
-                    autoComplete="tel"
-                  />
-                </InputWrapper>
-              </Field>
-
-              <Field label={t('auth.register.email')}>
-                <InputWrapper icon="mail-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.register.emailPlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                  />
-                </InputWrapper>
-              </Field>
-
-              <Field label={t('auth.register.password')}>
-                <InputWrapper icon="lock-closed-outline">
-                  <TextInput
-                    style={[styles.input, styles.inputPassword]}
-                    placeholder={t('auth.register.passwordPlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoComplete="new-password"
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeButton}>
-                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.textMuted} />
+                  >
+                    <Text style={styles.buttonText}>{t('auth.register.continueToPlan') || 'Continuer'}</Text>
                   </TouchableOpacity>
-                </InputWrapper>
-              </Field>
-
-              <Field label={t('auth.register.confirmPassword')}>
-                <InputWrapper icon="shield-checkmark-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.register.confirmPasswordPlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showPassword}
-                    autoComplete="new-password"
-                  />
-                </InputWrapper>
-              </Field>
-
-              <Field label={t('auth.register.businessType') || "Secteur d'activite"}>
-                <TouchableOpacity style={styles.selector} onPress={() => setShowSectorModal(true)}>
-                  <View style={styles.selectorLeft}>
-                    <Ionicons
-                      name={(selectedSector?.icon || 'briefcase-outline') as keyof typeof Ionicons.glyphMap}
-                      size={18}
-                      color={Colors.primaryLight}
-                    />
-                    <Text style={styles.selectorValue}>
-                      {selectedSector?.label || (t('auth.register.selectBusinessType') || 'Choisissez un secteur')}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
-                </TouchableOpacity>
-              </Field>
-
-              <Field label={t('auth.register.howDidYouHear') || 'Comment avez-vous connu Stockman ?'} optional>
-                <InputWrapper icon="megaphone-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.register.howDidYouHearPlaceholder') || 'Ex: Facebook, ami, client, Google'}
-                    placeholderTextColor={Colors.textMuted}
-                    value={howDidYouHear}
-                    onChangeText={setHowDidYouHear}
-                  />
-                </InputWrapper>
-              </Field>
-
-              <View style={styles.checkRow}>
-                <TouchableOpacity onPress={() => setAcceptedTerms((prev) => !prev)}>
-                  <Ionicons
-                    name={acceptedTerms ? 'checkbox-outline' : 'square-outline'}
-                    size={22}
-                    color={acceptedTerms ? Colors.primaryLight : Colors.textMuted}
-                  />
-                </TouchableOpacity>
-                <Text style={styles.checkText}>
-                  {t('auth.register.acceptTerms')}{' '}
-                  <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/terms')}>
-                    {t('common.terms')}
-                  </Text>
-                </Text>
-              </View>
-
-              <View style={styles.checkRow}>
-                <TouchableOpacity onPress={() => setAcceptedPrivacy((prev) => !prev)}>
-                  <Ionicons
-                    name={acceptedPrivacy ? 'checkbox-outline' : 'square-outline'}
-                    size={22}
-                    color={acceptedPrivacy ? Colors.primaryLight : Colors.textMuted}
-                  />
-                </TouchableOpacity>
-                <Text style={styles.checkText}>
-                  {t('auth.register.acceptPrivacy')}{' '}
-                  <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/privacy')}>
-                    {t('common.privacy')}
-                  </Text>
-                </Text>
-              </View>
-
-              <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.buttonText}>{t('auth.register.createAccount')}</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {selectedRole === 'shopkeeper' && (
-                <View style={styles.infoBox}>
-                  <Ionicons name="gift-outline" size={16} color={Colors.primaryLight} />
-                  <Text style={styles.infoText}>{t('auth.register.trialNote')}</Text>
-                </View>
+                </>
               )}
 
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
-                <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity>
-                    <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
+              {step === 'business' && (
+                <>
+                  <Field label={t('auth.register.businessType') || "Secteur d'activite"}>
+                    <TouchableOpacity style={styles.selector} onPress={() => setShowSectorModal(true)}>
+                      <View style={styles.selectorLeft}>
+                        <Ionicons
+                          name={(selectedSector?.icon || 'briefcase-outline') as keyof typeof Ionicons.glyphMap}
+                          size={18}
+                          color={Colors.primaryLight}
+                        />
+                        <Text style={styles.selectorValue}>
+                          {selectedSector?.label || (t('auth.register.selectBusinessType') || 'Choisissez un secteur')}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </Field>
+
+                  <Field label={t('auth.register.howDidYouHear') || 'Comment avez-vous connu Stockman ?'} optional>
+                    <InputWrapper icon="megaphone-outline">
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('auth.register.howDidYouHearPlaceholder') || 'Ex: Facebook, ami, client, Google'}
+                        placeholderTextColor={Colors.textMuted}
+                        value={howDidYouHear}
+                        onChangeText={setHowDidYouHear}
+                      />
+                    </InputWrapper>
+                  </Field>
+
+                  <View style={styles.checkRow}>
+                    <TouchableOpacity onPress={() => setAcceptedTerms((prev) => !prev)}>
+                      <Ionicons
+                        name={acceptedTerms ? 'checkbox-outline' : 'square-outline'}
+                        size={22}
+                        color={acceptedTerms ? Colors.primaryLight : Colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.checkText}>
+                      {t('auth.register.acceptTerms')}{' '}
+                      <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/terms')}>
+                        {t('common.terms')}
+                      </Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.checkRow}>
+                    <TouchableOpacity onPress={() => setAcceptedPrivacy((prev) => !prev)}>
+                      <Ionicons
+                        name={acceptedPrivacy ? 'checkbox-outline' : 'square-outline'}
+                        size={22}
+                        color={acceptedPrivacy ? Colors.primaryLight : Colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.checkText}>
+                      {t('auth.register.acceptPrivacy')}{' '}
+                      <Text style={styles.legalLink} onPress={() => openLegalDoc('https://stockman.pro/privacy')}>
+                        {t('common.privacy')}
+                      </Text>
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Text style={styles.buttonText}>{t('auth.register.createAccount')}</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                      </>
+                    )}
                   </TouchableOpacity>
-                </Link>
-              </View>
+
+                  {selectedRole === 'shopkeeper' && (
+                    <View style={styles.infoBox}>
+                      <Ionicons name="gift-outline" size={16} color={Colors.primaryLight} />
+                      <Text style={styles.infoText}>{t('auth.register.trialNote')}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.footer}>
+                    <Text style={styles.footerText}>{t('auth.register.alreadyHaveAccount')} </Text>
+                    <Link href="/(auth)/login" asChild>
+                      <TouchableOpacity>
+                        <Text style={styles.footerLink}>{t('auth.login.signIn')}</Text>
+                      </TouchableOpacity>
+                    </Link>
+                  </View>
+                </>
+              )}
             </View>
           )}
         </ScrollView>
@@ -662,6 +699,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  buttonSecondary: {
+    backgroundColor: Colors.inputBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
   },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: FontSize.md },

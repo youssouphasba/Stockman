@@ -70,3 +70,21 @@ def verify_firebase_phone_token(id_token: str) -> Dict[str, Any]:
         "provider": provider,
         "decoded_token": decoded,
     }
+
+
+def verify_firebase_id_token(id_token: str) -> Dict[str, Any]:
+    app = init_firebase()
+    if not app:
+        raise RuntimeError("Firebase Admin is not configured")
+
+    decoded = firebase_auth.verify_id_token(id_token, app=app, check_revoked=False)
+    provider = ((decoded.get("firebase") or {}).get("sign_in_provider"))
+    return {
+        "firebase_uid": decoded.get("uid"),
+        "provider": provider,
+        "email": decoded.get("email"),
+        "email_verified": bool(decoded.get("email_verified")),
+        "name": decoded.get("name") or decoded.get("display_name"),
+        "picture": decoded.get("picture"),
+        "decoded_token": decoded,
+    }

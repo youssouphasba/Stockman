@@ -156,6 +156,46 @@ export default function OrdersScreen() {
   const [completingReturn, setCompletingReturn] = useState(false);
   const [sharingPdf, setSharingPdf] = useState(false);
 
+  const confirmDiscardChanges = (onConfirm: () => void) => {
+    Alert.alert(
+      t('common.unsaved_changes_title'),
+      t('common.unsaved_changes_message'),
+      [
+        { text: t('common.stay'), style: 'cancel' },
+        { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+      ]
+    );
+  };
+
+  const hasPartialChanges = () => {
+    if (partialNotes.trim()) return true;
+    return Object.values(partialQuantities).some((value) => String(value || '').trim());
+  };
+
+  const hasReturnChanges = () => {
+    if (returnNotes.trim()) return true;
+    if (returnProductSearch.trim()) return true;
+    if (returnOrderId.trim()) return true;
+    if (returnSupplierId.trim()) return true;
+    return returnItems.length > 0;
+  };
+
+  const requestClosePartialModal = () => {
+    if (!hasPartialChanges()) {
+      setShowPartialModal(false);
+      return;
+    }
+    confirmDiscardChanges(() => setShowPartialModal(false));
+  };
+
+  const requestCloseReturnModal = () => {
+    if (!hasReturnChanges()) {
+      setShowReturnModal(false);
+      return;
+    }
+    confirmDiscardChanges(() => setShowReturnModal(false));
+  };
+
   const loadData = useCallback(async () => {
     try {
       const start = selectedPeriod === 'custom' ? appliedStart : undefined;
@@ -1409,7 +1449,7 @@ export default function OrdersScreen() {
         </Modal>}
 
         {/* Partial Delivery Modal */}
-        {showPartialModal && <Modal visible={showPartialModal} animationType="slide" transparent>
+        {showPartialModal && <Modal visible={showPartialModal} animationType="slide" transparent onRequestClose={requestClosePartialModal}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '85%' }]}>
               <View style={styles.modalHeader}>
@@ -1419,7 +1459,7 @@ export default function OrdersScreen() {
                     {t('orders.enter_received_quantities')}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowPartialModal(false)} disabled={partialSaving}>
+                <TouchableOpacity onPress={requestClosePartialModal} disabled={partialSaving}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
@@ -1642,12 +1682,12 @@ export default function OrdersScreen() {
         </Modal>}
 
         {/* Create Return Modal */}
-        {showReturnModal && <Modal visible={showReturnModal} animationType="slide" transparent>
+        {showReturnModal && <Modal visible={showReturnModal} animationType="slide" transparent onRequestClose={requestCloseReturnModal}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '90%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.new_return')}</Text>
-                <TouchableOpacity onPress={() => setShowReturnModal(false)} disabled={returnSaving}>
+                <TouchableOpacity onPress={requestCloseReturnModal} disabled={returnSaving}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>

@@ -102,7 +102,7 @@ logger = logging.getLogger(__name__)
 from services.import_service import ImportService
 from services.notification_service import NotificationService
 from services.catalog_service import CatalogService
-from services.firebase_service import init_firebase, verify_firebase_phone_token
+from services.firebase_service import init_firebase, verify_firebase_phone_token, verify_firebase_id_token
 from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, RESTAURANT_SECTORS, is_production_sector
 from services import production_service
 try:
@@ -1085,6 +1085,7 @@ class UserCreate(BaseModel):
     country_code: Optional[str] = None
     signup_surface: Optional[str] = None  # "mobile" | "web"
     plan: Optional[str] = None  # "starter", "pro", "enterprise" — choisi sur la landing page
+    verification_channel: Optional[str] = None  # "email" | "phone"
 
     account_roles: List[str] = Field(default_factory=list)
     store_ids: List[str] = Field(default_factory=list)
@@ -1102,6 +1103,8 @@ class User(UserBase):
     user_id: str
     created_at: datetime
     auth_type: str = "email"  # "email" or "google"
+    auth_providers: Dict[str, str] = {}
+    firebase_uid: Optional[str] = None
     role: str = "shopkeeper"  # "shopkeeper", "staff", "supplier"
     permissions: Dict[str, str] = {}
     parent_user_id: Optional[str] = None
@@ -1276,12 +1279,23 @@ class Location(BaseModel):
     user_id: str
     store_id: Optional[str] = None
     name: str
-    type: str = "shelf"  # "shelf", "warehouse", "dock"
+    type: str = "shelf"  # ex: allée, rayon, niveau, étagère, zone, entrepôt...
+    parent_id: Optional[str] = None
+    is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class LocationCreate(BaseModel):
     name: str
-    type: str = "shelf"
+    type: Optional[str] = None
+    parent_id: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class LocationUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    parent_id: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class Product(BaseModel):
     product_id: str = Field(default_factory=lambda: f"prod_{uuid.uuid4().hex[:12]}")
@@ -1495,6 +1509,8 @@ class StockMovement(BaseModel):
     type: str  # "in" or "out"
     quantity: float
     reason: str = ""
+    from_location_id: Optional[str] = None
+    to_location_id: Optional[str] = None
     batch_id: Optional[str] = None
     previous_quantity: float
     new_quantity: float
@@ -1510,6 +1526,10 @@ class StockMovementCreate(BaseModel):
 class StockAdjustmentRequest(BaseModel):
     actual_quantity: float
     reason: Optional[str] = "Inventaire physique"
+
+class LocationTransferRequest(BaseModel):
+    to_location_id: Optional[str] = None
+    note: Optional[str] = None
 
 class Alert(BaseModel):
     alert_id: str = Field(default_factory=lambda: f"alert_{uuid.uuid4().hex[:12]}")
@@ -8475,6 +8495,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         initial_plan = user_data.plan if user_data.plan in ("starter", "pro", "enterprise") else "starter"
         signup_surface = resolve_signup_surface(user_data.signup_surface, initial_plan)
         required_verification = resolve_required_verification(role, initial_plan, signup_surface)
+        requested_channel = (user_data.verification_channel or "").strip().lower()
+        if requested_channel in {"email", "phone"}:
+            required_verification = requested_channel
         if required_verification == "phone" and not (user_data.phone or "").strip():
             raise HTTPException(status_code=400, detail="Le numero de telephone est requis pour verifier ce compte.")
         otp = generate_otp_code() if required_verification == "email" else None
@@ -8621,6 +8644,223 @@ class VerifyPhoneRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     otp: str
+
+
+class VerificationChannelRequest(BaseModel):
+    channel: str
+
+
+@api_router.post("/auth/verification-channel")
+@limiter.limit("5/minute")
+async def set_verification_channel(request: Request, data: VerificationChannelRequest, current_user: User = Depends(require_auth)):
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
+
+    channel = (data.channel or "").strip().lower()
+    if channel not in {"email", "phone"}:
+        raise HTTPException(status_code=400, detail="Canal de vérification invalide.")
+
+    if channel == "phone" and not (user_doc.get("phone") or "").strip():
+        raise HTTPException(status_code=400, detail="Aucun numéro de téléphone associé au compte.")
+
+    update_payload: Dict[str, Any] = {
+        "required_verification": channel,
+        "verification_channel": channel,
+        "verification_completed_at": None,
+    }
+
+    message = ""
+    if channel == "email":
+        otp = generate_otp_code()
+        otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+        update_payload.update({
+            "email_otp": None,
+            "email_otp_digest": hash_otp_code(otp),
+            "email_otp_expiry": otp_expiry,
+            "email_otp_attempts": 0,
+        })
+        sent = False
+        try:
+            sent = await send_email_otp_via_resend(user_doc.get("email"), user_doc.get("name"), otp)
+        except Exception as email_err:
+            logger.error(f"Failed to send OTP via email: {email_err}")
+        await log_verification_event(
+            "otp_sent" if sent else "otp_send_failed",
+            user_doc,
+            provider="resend",
+            channel="email",
+            success=bool(sent),
+            detail="set_verification_channel",
+        )
+        message = "Un code de vérification a été envoyé par email." if sent else "Le code a été généré mais l'envoi email a échoué."
+    else:
+        update_payload.update({
+            "phone_otp": None,
+            "phone_otp_digest": None,
+            "phone_otp_expiry": None,
+            "phone_otp_attempts": 0,
+        })
+        await log_verification_event(
+            "verification_channel_changed",
+            user_doc,
+            provider="firebase",
+            channel="phone",
+            success=True,
+            detail="set_verification_channel",
+        )
+        message = "La vérification par SMS est activée."
+
+    await db.users.update_one({"user_id": current_user.user_id}, {"$set": update_payload})
+    updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    return {"message": message, "user": await build_user_from_doc(updated_user or user_doc)}
+
+
+class SocialLoginRequest(BaseModel):
+    firebase_id_token: str
+    signup_surface: Optional[str] = None  # "mobile" | "web"
+
+
+@api_router.post("/auth/verify-social", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def verify_social_login(request: Request, data: SocialLoginRequest, response: Response):
+    if not data.firebase_id_token:
+        raise HTTPException(status_code=400, detail="Token de connexion manquant.")
+
+    try:
+        decoded = verify_firebase_id_token(data.firebase_id_token)
+    except Exception as firebase_err:
+        logger.warning(f"Social login verify failed: {firebase_err}")
+        raise HTTPException(status_code=400, detail="Connexion sociale invalide ou expirée.")
+
+    provider = decoded.get("provider")
+    provider_map = {"google.com": "google", "apple.com": "apple"}
+    provider_key = provider_map.get(provider or "")
+    if not provider_key:
+        raise HTTPException(status_code=400, detail="Fournisseur de connexion non pris en charge.")
+
+    email = (decoded.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email indisponible pour ce compte.")
+
+    firebase_uid = decoded.get("firebase_uid")
+    name = decoded.get("name") or email.split("@")[0]
+    picture = decoded.get("picture")
+    email_verified = bool(decoded.get("email_verified"))
+
+    user_doc = await db.users.find_one({f"auth_providers.{provider_key}": firebase_uid}, {"_id": 0})
+    if not user_doc:
+        user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+
+    if user_doc:
+        existing_provider_uid = (user_doc.get("auth_providers") or {}).get(provider_key)
+        if existing_provider_uid and existing_provider_uid != firebase_uid:
+            raise HTTPException(status_code=400, detail="Ce compte est déjà lié à un autre identifiant.")
+
+        update_payload: Dict[str, Any] = {
+            f"auth_providers.{provider_key}": firebase_uid,
+            "picture": user_doc.get("picture") or picture,
+        }
+        if email_verified:
+            update_payload["is_email_verified"] = True
+            if user_doc.get("required_verification") == "email" and not user_doc.get("verification_completed_at"):
+                update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+        if not user_doc.get("signup_surface") and data.signup_surface:
+            update_payload["signup_surface"] = resolve_signup_surface(data.signup_surface, user_doc.get("plan"))
+        await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": update_payload})
+        user_doc.update(update_payload)
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        store_id = f"store_{uuid.uuid4().hex[:12]}"
+        store = Store(
+            store_id=store_id,
+            user_id=user_id,
+            name=f"Magasin de {name}"
+        )
+        await db.stores.insert_one(store.model_dump())
+
+        signup_surface = resolve_signup_surface(data.signup_surface, "starter")
+        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=30)
+
+        user_doc = {
+            "user_id": user_id,
+            "email": email,
+            "name": name,
+            "phone": "",
+            "password_hash": get_password_hash(secrets.token_urlsafe(32)),
+            "picture": picture,
+            "auth_type": provider_key,
+            "auth_providers": {provider_key: firebase_uid},
+            "role": "shopkeeper",
+            "account_id": f"acct_{user_id}",
+            "account_roles": ["billing_admin", "org_admin"],
+            "active_store_id": store_id,
+            "store_ids": [store_id],
+            "plan": "starter",
+            "subscription_status": "active",
+            "trial_ends_at": trial_ends_at,
+            "currency": DEFAULT_CURRENCY,
+            "business_type": None,
+            "how_did_you_hear": None,
+            "is_phone_verified": False,
+            "is_email_verified": True,
+            "required_verification": "email",
+            "verification_channel": "email",
+            "signup_surface": signup_surface,
+            "verification_completed_at": datetime.now(timezone.utc),
+            "phone_otp": None,
+            "phone_otp_digest": None,
+            "phone_otp_expiry": None,
+            "phone_otp_attempts": 0,
+            "email_otp": None,
+            "email_otp_digest": None,
+            "email_otp_expiry": None,
+            "email_otp_attempts": 0,
+            "auth_version": 1,
+            "country_code": DEFAULT_COUNTRY_CODE,
+            "created_at": datetime.now(timezone.utc),
+        }
+
+        await db.users.insert_one(user_doc)
+
+        log_user = await build_user_from_doc(user_doc)
+        await log_activity(
+            log_user,
+            "registration",
+            "auth",
+            f"Nouvel utilisateur: {name} (social)",
+            {"provider": provider_key}
+        )
+
+        settings = UserSettings(user_id=user_id, account_id=user_doc.get("account_id"))
+        await db.user_settings.insert_one(settings.model_dump())
+        account_doc = await ensure_business_account_for_user_doc(user_doc)
+        if account_doc:
+            user_doc["account_id"] = account_doc.get("account_id")
+
+        default_rules = [
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, recipient_keys=["stock"]),
+        ]
+        for rule in default_rules:
+            await db.alert_rules.insert_one(rule.model_dump())
+
+        await log_verification_event(
+            "signup_completed",
+            user_doc,
+            channel="email",
+            success=True,
+            detail="social_signup",
+        )
+
+    session_tokens = await create_authenticated_session(user_doc, request, response)
+    user = await build_user_from_doc(user_doc)
+    return TokenResponse(
+        access_token=session_tokens["access_token"],
+        refresh_token=session_tokens["refresh_token"],
+        user=user,
+    )
 
 @api_router.post("/auth/verify-phone")
 @limiter.limit("5/minute")
@@ -9634,6 +9874,52 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
 
     return product
 
+@api_router.post("/products/{product_id}/transfer-location", response_model=Product)
+async def transfer_product_location(
+    product_id: str,
+    data: LocationTransferRequest,
+    user: User = Depends(require_permission("stock", "write")),
+):
+    owner_id = get_owner_id(user)
+    product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+
+    to_location_id = data.to_location_id or None
+    if to_location_id:
+        loc_query = apply_store_scope({"location_id": to_location_id, "user_id": owner_id}, user, None)
+        location = await db.locations.find_one(loc_query, {"_id": 0})
+        if not location:
+            raise HTTPException(status_code=404, detail="Emplacement non trouvÃ©")
+
+    from_location_id = product.get("location_id")
+    if from_location_id == to_location_id:
+        return _product_response(product)
+
+    await db.products.update_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"$set": {"location_id": to_location_id, "updated_at": datetime.now(timezone.utc)}},
+    )
+
+    movement = StockMovement(
+        product_id=product_id,
+        product_name=product.get("name"),
+        user_id=owner_id,
+        store_id=product.get("store_id"),
+        type="transfer",
+        quantity=0,
+        reason=data.note or "Transfert d'emplacement",
+        from_location_id=from_location_id,
+        to_location_id=to_location_id,
+        previous_quantity=float(product.get("quantity", 0)),
+        new_quantity=float(product.get("quantity", 0)),
+    )
+    await db.stock_movements.insert_one(movement.model_dump())
+
+    updated = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+    return _product_response(updated)
+
 @api_router.get("/products/{product_id}/price-history", response_model=List[PriceHistory])
 async def get_product_price_history(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
@@ -9893,25 +10179,45 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_per
 @api_router.get("/locations")
 async def get_locations(user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
-    query = {"user_id": owner_id}
-    if user.active_store_id:
-        query["store_id"] = user.active_store_id
+    query = apply_store_scope({"user_id": owner_id}, user, None)
     locs = await db.locations.find(query, {"_id": 0}).sort("name", 1).to_list(200)
     return [Location(**l) for l in locs]
 
 @api_router.post("/locations", response_model=Location)
 async def create_location(data: LocationCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    loc = Location(**data.model_dump(), user_id=owner_id, store_id=user.active_store_id)
+    payload = {k: v for k, v in data.model_dump().items() if v is not None}
+    parent_id = payload.get("parent_id")
+    if parent_id:
+        parent_query = apply_store_scope({"location_id": parent_id, "user_id": owner_id}, user, None)
+        parent = await db.locations.find_one(parent_query, {"_id": 0})
+        if not parent:
+            raise HTTPException(400, "Emplacement parent introuvable")
+    loc = Location(
+        **payload,
+        user_id=owner_id,
+        store_id=user.active_store_id,
+        updated_at=datetime.now(timezone.utc),
+    )
     await db.locations.insert_one(loc.model_dump())
     return loc
 
 @api_router.put("/locations/{location_id}", response_model=Location)
-async def update_location(location_id: str, data: LocationCreate, user: User = Depends(require_permission("stock", "write"))):
+async def update_location(location_id: str, data: LocationUpdate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    update = {k: v for k, v in data.model_dump().items() if v is not None}
-    await db.locations.update_one({"location_id": location_id, "user_id": owner_id}, {"$set": update})
-    loc = await db.locations.find_one({"location_id": location_id, "user_id": owner_id}, {"_id": 0})
+    update = data.model_dump(exclude_unset=True)
+    if update.get("parent_id") == location_id:
+        raise HTTPException(400, "Un emplacement ne peut pas Ãªtre son propre parent")
+    if "parent_id" in update and update["parent_id"]:
+        parent_query = apply_store_scope({"location_id": update["parent_id"], "user_id": owner_id}, user, None)
+        parent = await db.locations.find_one(parent_query, {"_id": 0})
+        if not parent:
+            raise HTTPException(400, "Emplacement parent introuvable")
+    if update:
+        update["updated_at"] = datetime.now(timezone.utc)
+        scoped_query = apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None)
+        await db.locations.update_one(scoped_query, {"$set": update})
+    loc = await db.locations.find_one(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"_id": 0})
     if not loc:
         raise HTTPException(404, "Emplacement non trouvé")
     return Location(**loc)
@@ -9919,10 +10225,14 @@ async def update_location(location_id: str, data: LocationCreate, user: User = D
 @api_router.delete("/locations/{location_id}")
 async def delete_location(location_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    scoped_query = apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None)
+    loc = await db.locations.find_one(scoped_query, {"_id": 0})
+    if not loc:
+        raise HTTPException(404, "Emplacement non trouvÃ©")
     # Unlink products from this location before deleting
-    await db.products.update_many({"location_id": location_id, "user_id": owner_id}, {"$unset": {"location_id": ""}})
-    await db.batches.update_many({"location_id": location_id, "user_id": owner_id}, {"$unset": {"location_id": ""}})
-    await db.locations.delete_one({"location_id": location_id, "user_id": owner_id})
+    await db.products.update_many(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"$unset": {"location_id": ""}})
+    await db.batches.update_many(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"$unset": {"location_id": ""}})
+    await db.locations.delete_one(scoped_query)
     return {"message": "Emplacement supprimé"}
 
 # ─── TABLES (Restaurant) ────────────────────────────────────────────────────

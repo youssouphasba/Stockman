@@ -298,6 +298,10 @@ class CatalogService:
             "en": ["Name", "Barcode", "Category", "Purchase Price", "Selling Price", "Quantity", "Min Stock"],
         }
         cols = headers.get(lang, headers["fr"])
+        if lang == "en":
+            cols = cols + ["Location"]
+        else:
+            cols = cols + ["Emplacement"]
 
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";")
@@ -323,6 +327,7 @@ class CatalogService:
                     0,   # Prix vente — le commerçant remplit
                     0,   # Quantité — le commerçant remplit
                     0,   # Stock minimum
+                    "",
                 ])
 
         return output.getvalue()

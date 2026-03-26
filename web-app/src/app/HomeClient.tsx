@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle } from "lucide-react";
+import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
 import ExecutiveDashboard from "../components/ExecutiveDashboard";
 import Inventory from "../components/Inventory";
+import Locations from "../components/Locations";
 import POS from "../components/POS";
 import Accounting from "../components/Accounting";
 import CRM from "../components/CRM";
@@ -36,6 +37,7 @@ import SupportPanel from "../components/SupportPanel";
 import NotificationCenter from "../components/NotificationCenter";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
 import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
+import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
 import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
@@ -69,6 +71,7 @@ export default function Home() {
   const [modules, setModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<null | 'google'>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [demoBootLoading, setDemoBootLoading] = useState(false);
   const searchParams = useSearchParams();
@@ -297,6 +300,32 @@ export default function Home() {
     }
   };
 
+  const handleSocialToken = async (firebaseIdToken: string) => {
+    setError(null);
+    try {
+      const response = await auth.socialLogin(firebaseIdToken, 'web');
+      hydrateAuthenticatedUser(response.user);
+    } catch (err: any) {
+      setError(err instanceof ApiError ? err.message : t('home.login.social_error', { defaultValue: "Connexion sociale impossible." }));
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google') => {
+    if (socialLoading) return;
+    setError(null);
+    setSocialLoading(provider);
+    try {
+      const firebaseIdToken = await signInWithProvider(provider);
+      if (!firebaseIdToken) return;
+      await handleSocialToken(firebaseIdToken);
+    } catch (err: any) {
+      setError(err instanceof ApiError ? err.message : t('home.login.social_error', { defaultValue: "Connexion sociale impossible." }));
+      setSocialLoading(null);
+    }
+  };
+
   const handleLogout = async () => {
     await auth.logout().catch(() => undefined);
     removeToken();
@@ -331,6 +360,20 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    completeRedirectSignIn()
+      .then((token) => {
+        if (cancelled || !token) return;
+        setSocialLoading('google');
+        return handleSocialToken(token);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -760,6 +803,7 @@ export default function Home() {
                 {activeTab === 'multi_stores' && <MultiStoreDashboard user={user} />}
                 {activeTab === 'pos' && <POS />}
                 {activeTab === 'inventory' && <Inventory />}
+                {activeTab === 'locations' && <Locations />}
                 {activeTab === 'orders' && <Orders />}
                 {activeTab === 'accounting' && <Accounting />}
                 {activeTab === 'reports' && <ReportsLibrary user={user} features={features} />}
@@ -955,6 +999,27 @@ export default function Home() {
                   <><LogIn size={20} /> {t('home.login.btn_login')}</>
                 )}
               </button>
+
+              <div className="flex items-center gap-3 text-xs text-slate-400">
+                <div className="flex-1 h-px bg-white/10" />
+                <span>{t('home.login.or_continue', { defaultValue: 'Ou continuer avec' })}</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={!!socialLoading}
+                  className={`w-full py-3 rounded-xl border border-white/10 bg-white/5 text-white flex items-center justify-center gap-3 hover:border-primary/50 transition-colors ${socialLoading ? 'opacity-70 cursor-wait' : ''}`}
+                >
+                  {socialLoading === 'google' ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Chrome size={18} />
+                  )}
+                  {t('home.login.continue_google', { defaultValue: 'Google' })}
+                </button>
+              </div>
               <div className="text-center">
                 <span className="text-sm text-muted">{t('home.login.create_account')}{' '}
                   <button

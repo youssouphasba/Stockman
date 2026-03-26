@@ -68,6 +68,12 @@ class ImportService:
         # Preload categories to avoid N+1 queries (I7)
         cats = await self.db.categories.find({"user_id": user_id}, {"category_id": 1}).to_list(None)
         valid_category_ids = {c["category_id"] for c in cats}
+        loc_query = {"user_id": user_id}
+        if store_id:
+            loc_query["store_id"] = store_id
+        locs = await self.db.locations.find(loc_query, {"location_id": 1, "name": 1}).to_list(None)
+        location_ids = {l["location_id"] for l in locs}
+        location_names = {str(l.get("name", "")).strip().lower(): l["location_id"] for l in locs if l.get("name")}
 
         for index, row in enumerate(data):
             try:
@@ -115,6 +121,24 @@ class ImportService:
                     "updated_at": datetime.now(timezone.utc)
                 }
                 
+                raw_location = (
+                    row.get("location_id")
+                    or row.get("location")
+                    or row.get("emplacement")
+                    or row.get("location_name")
+                )
+                if raw_location:
+                    raw_location_value = str(raw_location).strip()
+                    resolved_location = (
+                        raw_location_value if raw_location_value in location_ids else None
+                    )
+                    if not resolved_location:
+                        resolved_location = location_names.get(raw_location_value.lower())
+                    if resolved_location:
+                        product["location_id"] = resolved_location
+                    else:
+                        errors.append({"row": index, "error": f"Emplacement inconnu: {raw_location_value}"})
+
                 prepared.append(product)
             except Exception as e:
                 errors.append({"row": index, "error": str(e)})
@@ -208,7 +232,7 @@ class ImportService:
 
         prompt = f"""
         Analyze these CSV columns and map them to standard fields.
-        Standard fields: name, sku, quantity, purchase_price, selling_price, category, description, unit.
+        Standard fields: name, sku, quantity, purchase_price, selling_price, category, description, unit, location.
         
         CSV Sample:
         {json.dumps(clean_data, indent=2)}

@@ -100,8 +100,8 @@ export default function Activity() {
                     {(Array.isArray(logs) ? logs : []).length === 0 ? (
                         <div className="text-slate-500 py-10">Aucun log récent.</div>
                     ) : (
-                        (Array.isArray(logs) ? logs : []).map((log, index) => (
-                            <div key={log.log_id} className="relative group">
+                        (Array.isArray(logs) ? logs : []).filter(Boolean).map((log, index) => (
+                            <div key={log.log_id || `${log.created_at || 'log'}-${index}`} className="relative group">
                                 {/* Timeline Dot */}
                                 <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-[#0F172A] border-2 border-primary group-hover:scale-125 transition-all"></div>
 
@@ -113,12 +113,12 @@ export default function Activity() {
                                         </div>
                                         <span className="text-xs text-slate-500 flex items-center gap-1 font-mono">
                                             <Clock size={12} />
-                                            {new Date(log.created_at).toLocaleString()}
+                                            {log.created_at ? new Date(log.created_at).toLocaleString() : '—'}
                                         </span>
                                     </div>
 
-                                    <h4 className="text-white font-bold text-lg mb-1">{log.description}</h4>
-                                    <p className="text-slate-400 text-sm">{log.details?.reason || log.action}</p>
+                                    <h4 className="text-white font-bold text-lg mb-1">{log.description || '—'}</h4>
+                                    <p className="text-slate-400 text-sm">{log.details?.reason || log.action || '—'}</p>
 
                                     <div className="mt-4 flex items-center gap-3 pt-4 border-t border-white/5">
                                         <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">

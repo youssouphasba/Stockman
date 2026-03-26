@@ -363,6 +363,28 @@ export default function AccountingScreen() {
         setShowExpenseModal(true);
     };
 
+    const hasExpenseChanges = () => {
+        if (expenseAmount.trim()) return true;
+        if (expenseDescription.trim()) return true;
+        if (expenseCategoryDraft.trim()) return true;
+        return expenseCategory !== 'other';
+    };
+
+    const requestCloseExpenseModal = () => {
+        if (!hasExpenseChanges()) {
+            setShowExpenseModal(false);
+            return;
+        }
+        Alert.alert(
+            t('common.unsaved_changes_title'),
+            t('common.unsaved_changes_message'),
+            [
+                { text: t('common.stay'), style: 'cancel' },
+                { text: t('common.leave_without_saving'), style: 'destructive', onPress: () => setShowExpenseModal(false) },
+            ]
+        );
+    };
+
     const addExpenseCategory = async () => {
         const nextCategory = normalizeExpenseCategory(expenseCategoryDraft);
         if (!nextCategory) {
@@ -1485,12 +1507,12 @@ export default function AccountingScreen() {
                 </Modal >
 
                 {/* Expense Modal */}
-                <Modal visible={showExpenseModal} animationType="slide" transparent>
+                <Modal visible={showExpenseModal} animationType="slide" transparent onRequestClose={requestCloseExpenseModal}>
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{t('accounting.new_expense')}</Text>
-                                <TouchableOpacity onPress={() => setShowExpenseModal(false)}>
+                                <TouchableOpacity onPress={requestCloseExpenseModal}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -1562,7 +1584,7 @@ export default function AccountingScreen() {
                                 />
 
                                 <View style={styles.modalFooter}>
-                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowExpenseModal(false)}>
+                                    <TouchableOpacity style={styles.cancelBtn} onPress={requestCloseExpenseModal}>
                                         <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity style={styles.saveBtn} onPress={saveExpense} disabled={savingExpense}>

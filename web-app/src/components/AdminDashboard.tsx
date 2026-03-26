@@ -80,7 +80,7 @@ function formatAccessPhaseLabel(phase?: string | null) {
         case 'read_only':
             return 'Lecture seule';
         default:
-            return phase || 'â€”';
+            return phase || '—';
     }
 }
 
@@ -105,7 +105,7 @@ function formatSubscriptionEventType(eventType?: string | null) {
         case 'subscription_cancelled':
             return 'Abonnement annule';
         default:
-            return eventType || 'â€”';
+            return eventType || '—';
     }
 }
 
@@ -1514,7 +1514,7 @@ export default function AdminDashboard() {
                         </div>
                         <table className="w-full text-left">
                             <tbody className="divide-y divide-white/5">
-                                {securityEvents.length > 0 ? securityEvents.map((event: any, idx: number) => (
+                                {securityEvents.filter(Boolean).length > 0 ? securityEvents.filter(Boolean).map((event: any, idx: number) => (
                                     <tr key={idx} className="hover:bg-white/5">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -1571,7 +1571,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredVerificationEvents.length > 0 ? filteredVerificationEvents.map((event: any) => (
+                                    {filteredVerificationEvents.filter(Boolean).length > 0 ? filteredVerificationEvents.filter(Boolean).map((event: any) => (
                                         <tr key={event.event_id || `${event.type}-${event.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">{event.type || '—'}</td>
                                             <td className="px-6 py-4 text-sm text-slate-300">{event.channel || '—'}</td>
@@ -1617,7 +1617,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {activeSessions.length > 0 ? activeSessions.map((session: any) => (
+                                    {activeSessions.filter(Boolean).length > 0 ? activeSessions.filter(Boolean).map((session: any) => (
                                         <tr key={session.session_id || `${session.user_id}-${session.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
@@ -1653,7 +1653,7 @@ export default function AdminDashboard() {
                         </button>
                     </div>
                     <div className="divide-y divide-white/5">
-                        {tickets.length > 0 ? tickets.map((ticket: any) => (
+                        {tickets.filter(Boolean).length > 0 ? tickets.filter(Boolean).map((ticket: any) => (
                             <div key={ticket.ticket_id}>
                                 <div className="p-5 hover:bg-white/5 transition-all flex justify-between items-center group">
                                     <div className="flex flex-col gap-1">
@@ -1720,7 +1720,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            {leadContacts.length > 0 ? leadContacts.map((c: any) => (
+                            {leadContacts.filter(Boolean).length > 0 ? leadContacts.filter(Boolean).map((c: any) => (
                                 <div key={c._id || c.email + c.created_at} className="p-5 hover:bg-white/5 transition-all">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="space-y-1.5 flex-1">
@@ -1759,7 +1759,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            {leadSubscribers.length > 0 ? leadSubscribers.map((s: any) => (
+                            {leadSubscribers.filter(Boolean).length > 0 ? leadSubscribers.filter(Boolean).map((s: any) => (
                                 <div key={s._id || s.email} className="p-4 hover:bg-white/5 transition-all flex items-center justify-between">
                                     <span className="text-sm font-semibold text-white">{s.email}</span>
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -1846,7 +1846,7 @@ export default function AdminDashboard() {
                             <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <h4 className="text-base font-black text-white uppercase tracking-tighter">Historique des messages</h4>
-                                    <p className="mt-1 text-xs text-slate-500">{messageHistoryTotal} message(s) archivÃ©(s) pour suivi admin.</p>
+                                    <p className="mt-1 text-xs text-slate-500">{messageHistoryTotal} message(s) archiv?(s) pour suivi admin.</p>
                                 </div>
                                 <select
                                     value={messageTypeFilter}
@@ -1860,7 +1860,7 @@ export default function AdminDashboard() {
                                 </select>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
-                                {messageHistory.length > 0 ? messageHistory.map((message: any) => (
+                                {messageHistory.filter(Boolean).length > 0 ? messageHistory.filter(Boolean).map((message: any) => (
                                     <div key={message.message_id || `${message.sent_at}-${message.title}`} className="p-5 hover:bg-white/5 transition-all">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="space-y-2">

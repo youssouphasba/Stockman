@@ -137,6 +137,62 @@ export default function Suppliers() {
     const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
     const [automating, setAutomating] = useState(false);
 
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
+        if (window.confirm(`${title}\n\n${message}`)) {
+            onConfirm();
+        }
+    };
+
+    const hasSupplierChanges = () => Object.values(newSupplier).some((value) => String(value || '').trim());
+
+    const hasOrderChanges = () => {
+        if (orderForm.supplier_id || orderForm.supplier_user_id) return true;
+        if (orderForm.notes.trim()) return true;
+        if (orderForm.expected_delivery) return true;
+        return orderForm.items.length > 0;
+    };
+
+    const hasLogChanges = () => {
+        if (logForm.subject.trim()) return true;
+        return logForm.content.trim().length > 0;
+    };
+
+    const hasLinkChanges = () => Boolean(linkPrice.trim() || selectedProductId);
+
+    const requestCloseSupplierModal = () => {
+        if (!hasSupplierChanges()) {
+            setShowSupplierModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowSupplierModal(false));
+    };
+
+    const requestCloseOrderModal = () => {
+        if (!hasOrderChanges()) {
+            setShowOrderModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowOrderModal(false));
+    };
+
+    const requestCloseLogModal = () => {
+        if (!hasLogChanges()) {
+            setShowLogModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowLogModal(false));
+    };
+
+    const requestCloseLinkModal = () => {
+        if (!hasLinkChanges()) {
+            setShowLinkModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowLinkModal(false));
+    };
+
     useEffect(() => {
         loadData();
     }, [activeTab, procurementDays]);
@@ -1473,7 +1529,7 @@ export default function Suppliers() {
                     <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white">Ajouter un Fournisseur</h2>
-                            <button onClick={() => setShowSupplierModal(false)} className="p-2 text-slate-400 hover:text-white">
+                            <button onClick={requestCloseSupplierModal} className="p-2 text-slate-400 hover:text-white">
                                 <X size={24} />
                             </button>
                         </div>
@@ -1545,7 +1601,7 @@ export default function Suppliers() {
                     <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white">Créer un Bon de Commande</h2>
-                            <button onClick={() => setShowOrderModal(false)} className="p-2 text-slate-400 hover:text-white">
+                            <button onClick={requestCloseOrderModal} className="p-2 text-slate-400 hover:text-white">
                                 <X size={24} />
                             </button>
                         </div>
@@ -1694,7 +1750,7 @@ export default function Suppliers() {
                                     Total: <span className="text-white font-bold">{orderTotal.toLocaleString()} F</span>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={() => setShowOrderModal(false)} className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:text-white transition-all">Annuler</button>
+                                    <button type="button" onClick={requestCloseOrderModal} className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:text-white transition-all">Annuler</button>
                                     <button
                                         type="submit"
                                         disabled={submitting || orderForm.items.length === 0}
@@ -2539,7 +2595,7 @@ export default function Suppliers() {
             </Modal>
             <Modal
                 isOpen={showLogModal}
-                onClose={() => setShowLogModal(false)}
+                onClose={requestCloseLogModal}
                 title="Ajouter une note fournisseur"
             >
                 <form onSubmit={handleCreateSupplierLog} className="space-y-4">
@@ -2577,7 +2633,7 @@ export default function Suppliers() {
                         />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setShowLogModal(false)} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
+                        <button type="button" onClick={requestCloseLogModal} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
                             Annuler
                         </button>
                         <button type="submit" disabled={submitting} className="flex-1 btn-primary py-3 font-bold">
@@ -2588,7 +2644,7 @@ export default function Suppliers() {
             </Modal>
             <Modal
                 isOpen={showLinkModal}
-                onClose={() => !submitting && setShowLinkModal(false)}
+                onClose={() => !submitting && requestCloseLinkModal()}
                 title="Lier un produit au fournisseur"
             >
                 <div className="space-y-4">
@@ -2620,7 +2676,7 @@ export default function Suppliers() {
                         />
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setShowLinkModal(false)} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
+                        <button type="button" onClick={requestCloseLinkModal} className="flex-1 px-4 py-3 rounded-xl text-slate-400 font-bold hover:text-white transition-all">
                             Annuler
                         </button>
                         <button type="button" onClick={handleLinkProduct} disabled={submitting || !selectedProductId} className="flex-1 btn-primary py-3 font-bold disabled:opacity-50">

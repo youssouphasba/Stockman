@@ -1471,6 +1471,8 @@ export const auth = {
         country_code?: string;
         signup_surface?: 'mobile' | 'web';
     }) => request<AuthResponse>('/auth/register', { method: 'POST', body: data }),
+    socialLogin: (firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'web') =>
+        request<AuthResponse>('/auth/verify-social', { method: 'POST', body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface } }),
     verifyEmail: (otp: string) =>
         request<{ message: string; user: User }>('/auth/verify-email', { method: 'POST', body: { otp } }),
     resendEmailOtp: () =>
@@ -1504,6 +1506,8 @@ export const products = {
     create: (data: any) => request<any>('/products', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/products/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
+    transferLocation: (id: string, data: { to_location_id?: string | null; note?: string | null }) =>
+        request<any>(`/products/${id}/transfer-location`, { method: 'POST', body: data }),
     importParse: (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -1555,8 +1559,8 @@ export const projects = {
 
 export const locations = {
     list: () => request<any[]>('/locations'),
-    create: (data: { name: string; type: string }) => request<any>('/locations', { method: 'POST', body: data }),
-    update: (id: string, data: { name: string; type: string }) => request<any>(`/locations/${id}`, { method: 'PUT', body: data }),
+    create: (data: { name: string; type?: string | null; parent_id?: string | null; is_active?: boolean }) => request<any>('/locations', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string | null; type?: string | null; parent_id?: string | null; is_active?: boolean | null }) => request<any>(`/locations/${id}`, { method: 'PUT', body: data }),
     delete: (id: string) => request<any>(`/locations/${id}`, { method: 'DELETE' }),
 };
 

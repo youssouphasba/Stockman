@@ -143,6 +143,7 @@ export default function DashboardScreen() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statsData, setStatsData] = useState<StatisticsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [showAllCritical, setShowAllCritical] = useState(false);
 
   // Notifications
@@ -438,11 +439,22 @@ export default function DashboardScreen() {
   async function openStatsModal() {
     setShowStatsModal(true);
     setStatsLoading(true);
+    setStatsError(null);
+    if (stats && !statsData) {
+      setStatsData(stats);
+    }
+    if (!isConnectedRef.current) {
+      setStatsLoading(false);
+      if (!stats && !statsData) {
+        setStatsError(t('common.offline'));
+      }
+      return;
+    }
     try {
       const result = await statisticsApi.get();
       setStatsData(result);
     } catch {
-      // silently fail
+      setStatsError(t('common.generic_error'));
     } finally {
       setStatsLoading(false);
     }
@@ -495,6 +507,9 @@ export default function DashboardScreen() {
   // Module checks
   const showAlerts = userSettings?.modules?.alerts ?? true;
   const showStats = userSettings?.modules?.statistics ?? true;
+  const dashboardGuide = (isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard) || GUIDES.dashboard;
+  const dashboardGuideSteps = dashboardGuide?.steps ?? [];
+  const dashboardGuideTitle = dashboardGuide?.title ?? '';
 
   const { colors, glassStyle, isDark } = useTheme();
   const styles = getStyles(colors, glassStyle);
@@ -767,7 +782,10 @@ export default function DashboardScreen() {
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboard.recent_alerts')}</Text>
-            {data.recent_alerts.slice(0, 3).map((alert) => (
+            {data.recent_alerts
+              .filter((alert) => Boolean(alert && (alert.title || alert.message)))
+              .slice(0, 3)
+              .map((alert) => (
               <View key={alert.alert_id} style={styles.alertItem}>
                 <Ionicons
                   name={
@@ -787,8 +805,8 @@ export default function DashboardScreen() {
                   }
                 />
                 <View style={styles.alertInfo}>
-                  <Text style={styles.alertTitle}>{t(alert.title)}</Text>
-                  <Text style={styles.alertMessage}>{alert.message}</Text>
+                  <Text style={styles.alertTitle}>{alert.title ? t(alert.title) : ''}</Text>
+                  <Text style={styles.alertMessage}>{alert.message || ''}</Text>
                 </View>
               </View>
             ))}
@@ -1056,7 +1074,7 @@ export default function DashboardScreen() {
       </ScrollView>
 
       {/* History Modal */}
-      <Modal visible={showHistoryModal} animationType="slide" transparent>
+      <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -1138,7 +1156,7 @@ export default function DashboardScreen() {
       </Modal>
 
       {/* Statistics Modal */}
-      <Modal visible={showStatsModal} animationType="slide" transparent>
+      <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => setShowStatsModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.header}>
@@ -1317,16 +1335,20 @@ export default function DashboardScreen() {
                   </View>
                 </View>
               </ScrollView>
-            ) : null}
+            ) : (
+              <Text style={styles.emptyText}>{statsError || t('common.generic_error')}</Text>
+            )}
           </View>
         </View>
       </Modal>
-      <ScreenGuide
-        visible={showGuide}
-        onClose={() => { setShowGuide(false); markSeen(); }}
-        title={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard).title}
-        steps={(isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard).steps}
-      />
+      {dashboardGuideSteps.length > 0 && (
+        <ScreenGuide
+          visible={showGuide}
+          onClose={() => { setShowGuide(false); markSeen(); }}
+          title={dashboardGuideTitle}
+          steps={dashboardGuideSteps}
+        />
+      )}
 
       {/* Notifications Modal */}
       {showNotifModal && (
@@ -1340,13 +1362,13 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView style={{ padding: Spacing.md }}>
-                {notifications.map((n: any, i: number) => (
+                {notifications.filter((n) => Boolean(n && (n.title || n.content))).map((n: any, i: number) => (
                   <View key={n.message_id || i} style={{ paddingVertical: 12, borderBottomWidth: i < notifications.length - 1 ? 1 : 0, borderBottomColor: colors.divider }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{n.title}</Text>
+                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{n.title || ''}</Text>
                       <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(n.sent_at).toLocaleDateString('fr-FR')}</Text>
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>{n.content}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>{n.content || ''}</Text>
                   </View>
                 ))}
                 <View style={{ height: 40 }} />

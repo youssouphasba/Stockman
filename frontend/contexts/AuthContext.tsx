@@ -26,6 +26,7 @@ type AuthState = {
   hasPermission: (module: string, level?: 'read' | 'write') => boolean;
   hasOperationalAccess: boolean;
   login: (email: string, password: string) => Promise<User>;
+  loginWithSocial: (firebaseIdToken: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
@@ -166,6 +167,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   }
 
+  async function loginWithSocial(firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'mobile') {
+    const response = await authApi.socialLogin(firebaseIdToken, signupSurface);
+    await setToken(response.access_token);
+    if (response.refresh_token) await setRefreshToken(response.refresh_token);
+    await hydrateAuthenticatedUser(response.user);
+    return response.user;
+  }
+
   async function register(
     email: string,
     password: string,
@@ -294,6 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         hasOperationalAccess,
         login,
+        loginWithSocial,
         register,
         verifyPhone,
         verifyEmail,

@@ -32,6 +32,7 @@ import {
     ChefHat,
     Bell,
     HelpCircle,
+    MapPin,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
@@ -161,6 +162,7 @@ export default function Sidebar({
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
                 { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'locations', icon: MapPin, label: t('settings_workspace.stores.locations.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'expiry_alerts', icon: AlertCircle, label: t('sidebar.expiry'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
@@ -192,6 +194,7 @@ export default function Sidebar({
             id: 'stock_group', icon: Package, label: t('sidebar.stock_inventory'), roles: ['shopkeeper', 'staff', 'admin'],
             children: [
                 { id: 'inventory', icon: Package, label: t('common.stock'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+                { id: 'locations', icon: MapPin, label: t('settings_workspace.stores.locations.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'alerts', icon: AlertCircle, label: t('alerts.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'stock_history', icon: HistoryIcon, label: t('sidebar.stock_history'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
                 { id: 'inventory_counting', icon: RefreshCcw, label: t('dashboard.rotating_inventory'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
@@ -227,6 +230,7 @@ export default function Sidebar({
         suppliers: 'suppliers',
         inventory: 'stock_management',
         inventory_counting: 'stock_management',
+        locations: 'stock_management',
         alerts: 'alerts',
         stock_history: 'history',
         expiry_alerts: 'alerts',

@@ -55,7 +55,7 @@ export default function ExpiryAlerts() {
     };
 
     const filteredAlerts = (Array.isArray(alerts) ? alerts : []).filter(a =>
-        a.name.toLowerCase().includes(search.toLowerCase())
+        (a.name || '').toLowerCase().includes(search.toLowerCase())
     );
 
     const expirySteps: GuideStep[] = [

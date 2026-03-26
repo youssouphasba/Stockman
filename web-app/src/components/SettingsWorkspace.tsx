@@ -10,7 +10,6 @@ import {
     Globe,
     LogOut,
     Mail,
-    MapPin,
     Monitor,
     Plus,
     Printer,
@@ -21,7 +20,7 @@ import {
     Trash2,
     User,
 } from 'lucide-react';
-import { auth as authApi, locations as locationsApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
+import { auth as authApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
 import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
@@ -174,7 +173,6 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     const [settings, setSettings] = useState<any>(null);
     const [storeList, setStoreList] = useState<any[]>([]);
     const [editingStore, setEditingStore] = useState<any>(null);
-    const [locations, setLocations] = useState<any[]>([]);
     const [sector, setSector] = useState('');
 
     const [profileName, setProfileName] = useState('');
@@ -200,8 +198,6 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     const [terminals, setTerminals] = useState<string[]>([]);
     const [newTerminal, setNewTerminal] = useState('');
     const [modulesDraft, setModulesDraft] = useState<Record<string, boolean>>({});
-    const [newLocName, setNewLocName] = useState('');
-    const [newLocType, setNewLocType] = useState('shelf');
     const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
     const [deletePassword, setDeletePassword] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -248,9 +244,8 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     async function loadSettings() {
         setLoading(true);
         try {
-            const [res, locs, storesRes, features] = await Promise.all([
+            const [res, storesRes, features] = await Promise.all([
                 settingsApi.get(),
-                locationsApi.list(),
                 storesApi.list(),
                 userFeaturesApi.get().catch(() => null),
             ]);
@@ -278,7 +273,6 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             setTaxMode(res?.tax_mode || 'ttc');
             setTerminals(res?.terminals || []);
             setModulesDraft(res?.modules || {});
-            setLocations(locs || []);
             setStoreList(storesRes || []);
             setSector(features?.sector || '');
         } catch (error: any) {
@@ -312,16 +306,6 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
 
     function syncFromSettings(next: any) {
         setSettings(next);
-    }
-
-    function getLocationTypeLabel(type: string) {
-        if (type === 'warehouse') {
-            return t('settings_workspace.stores.locations.types.warehouse');
-        }
-        if (type === 'dock') {
-            return t('settings_workspace.stores.locations.types.dock');
-        }
-        return t('settings_workspace.stores.locations.types.shelf');
     }
 
     if (loading && !settings) {
@@ -619,48 +603,6 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
 
                 {activeTab === 'stores' ? (
                     <>
-                        <SectionCard
-                            icon={<MapPin size={24} className="text-primary" />}
-                            title={t('settings_workspace.stores.locations.title')}
-                            scope={t('settings_workspace.scopes.stock')}
-                            description={t('settings_workspace.stores.locations.description')}
-                            actionHint={t('settings_workspace.stores.locations.action_hint')}
-                        >
-                            <div className="space-y-3">
-                                {locations.map((location) => (
-                                    <div key={location.location_id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-medium text-white">{location.name}</span>
-                                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                                {getLocationTypeLabel(location.type)}
-                                            </span>
-                                        </div>
-                                        <button type="button" onClick={() => void runSave('delete-location', async () => {
-                                            await locationsApi.delete(location.location_id);
-                                            setLocations((current) => current.filter((item) => item.location_id !== location.location_id));
-                                        }, t('settings_workspace.feedback.location_deleted'))} className="text-slate-500 transition-colors hover:text-rose-400">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr,220px,auto]">
-                                <input type="text" value={newLocName} onChange={(event) => setNewLocName(event.target.value)} className={inputClass} placeholder={t('settings_workspace.stores.locations.placeholder')} />
-                                <select value={newLocType} onChange={(event) => setNewLocType(event.target.value)} className={selectClass}>
-                                    <option value="shelf">{t('settings_workspace.stores.locations.types.shelf')}</option>
-                                    <option value="warehouse">{t('settings_workspace.stores.locations.types.warehouse')}</option>
-                                    <option value="dock">{t('settings_workspace.stores.locations.types.dock')}</option>
-                                </select>
-                                <button type="button" onClick={() => void runSave('location', async () => {
-                                    const location = await locationsApi.create({ name: newLocName.trim(), type: newLocType });
-                                    setLocations((current) => [...current, location]);
-                                    setNewLocName('');
-                                }, t('settings_workspace.feedback.location_added'))} className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-3 text-white transition-colors hover:bg-primary/90">
-                                    <Plus size={18} />
-                                </button>
-                            </div>
-                        </SectionCard>
-
                         {canManageOrgSettings && storeList.length ? (
                             <SectionCard
                                 icon={<Store size={24} className="text-primary" />}

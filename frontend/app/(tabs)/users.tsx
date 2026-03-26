@@ -357,7 +357,7 @@ export default function UsersScreen() {
                     users.map(u => (
                         <TouchableOpacity key={u.user_id} style={styles.userCard} onPress={() => canManageStaff && openEdit(u)} activeOpacity={canManageStaff ? 0.8 : 1}>
                             <View style={styles.userAvatar}>
-                                <Text style={styles.avatarText}>{u.name.charAt(0).toUpperCase()}</Text>
+                                <Text style={styles.avatarText}>{(u.name || '?').charAt(0).toUpperCase()}</Text>
                             </View>
                             <View style={styles.userInfo}>
                                 <Text style={styles.userName}>{u.name}</Text>

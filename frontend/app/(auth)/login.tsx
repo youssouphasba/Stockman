@@ -20,6 +20,8 @@ import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '../../contexts/ThemeContext';
+import auth from '@react-native-firebase/auth';
+import * as Google from 'expo-auth-session/providers/google';
 
 import { useTranslation } from 'react-i18next';
 
@@ -28,7 +30,7 @@ const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { colors, glassStyle } = useTheme();
-  const { login, isBiometricsEnabled, restoreSession } = useAuth();
+  const { login, loginWithSocial, isBiometricsEnabled, restoreSession } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +38,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
@@ -44,6 +47,23 @@ export default function LoginScreen() {
     loadSavedCredentials();
     checkBiometrics();
   }, []);
+
+  const [googleRequest, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  });
+
+  React.useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = (googleResponse as any)?.params?.id_token;
+    if (!idToken) {
+      setError(t('auth.login.socialMissingToken'));
+      setSocialLoading(null);
+      return;
+    }
+    void handleGoogleToken(idToken);
+  }, [googleResponse]);
 
   async function checkBiometrics() {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -124,6 +144,44 @@ export default function LoginScreen() {
       }
     }
   }
+
+  async function handleGoogleLogin() {
+    if (!googleRequest) return;
+    if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID && !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID && !process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+      setError(t('auth.login.googleConfigMissing'));
+      return;
+    }
+    setError('');
+    setSocialLoading('google');
+    try {
+      await promptGoogle();
+    } catch (e) {
+      setError(t('auth.login.socialError'));
+      setSocialLoading(null);
+    }
+  }
+
+  async function handleGoogleToken(idToken: string) {
+    try {
+      const credential = auth.GoogleAuthProvider.credential(idToken);
+      const firebaseUser = await auth().signInWithCredential(credential);
+      const firebaseIdToken = await firebaseUser.user.getIdToken();
+      const loggedInUser = await loginWithSocial(firebaseIdToken, 'mobile');
+      await auth().signOut();
+      if (loggedInUser.required_verification === 'email' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-email');
+      } else if (loggedInUser.required_verification === 'phone' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-phone');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('auth.login.socialError'));
+    } finally {
+      setSocialLoading(null);
+    }
+  }
+
 
   const [demoType, setDemoType] = useState<string | null>(null);
 
@@ -252,6 +310,29 @@ export default function LoginScreen() {
               )}
             </View>
 
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.login.orContinue')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.socialButton, socialLoading === 'google' && styles.buttonDisabled]}
+              onPress={handleGoogleLogin}
+              disabled={loading || demoLoading || socialLoading !== null}
+            >
+              {socialLoading === 'google' ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={18} color={colors.primary} />
+                  <Text style={styles.socialButtonText}>{t('auth.login.continueGoogle')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            
+
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('auth.login.noAccount')} </Text>
               <Link href="/(auth)/register" asChild>
@@ -259,12 +340,6 @@ export default function LoginScreen() {
                   <Text style={styles.footerLink}>{t('auth.login.signUp')}</Text>
                 </TouchableOpacity>
               </Link>
-            </View>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.login.or')}</Text>
-              <View style={styles.dividerLine} />
             </View>
 
             <Text style={styles.demoTitle}>{t('auth.login.tryDemo')}</Text>
@@ -463,6 +538,23 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.textMuted,
     fontSize: FontSize.sm,
     marginHorizontal: Spacing.sm,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm + 2,
+    backgroundColor: colors.inputBg,
+    marginBottom: Spacing.sm,
+  },
+  socialButtonText: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
   },
   demoTitle: {
     color: colors.textSecondary,

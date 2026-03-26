@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -113,12 +113,14 @@ export default function CRMScreen() {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', notes: '', birthday: '', category: '' as string });
     const [customerFormLoading, setCustomerFormLoading] = useState(false);
+    const customerFormBaselineRef = useRef({ name: '', phone: '', email: '', notes: '', birthday: '', category: '' as string });
 
     // Promotion modal
     const [showPromoModal, setShowPromoModal] = useState(false);
     const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
     const [promoForm, setPromoForm] = useState({ title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' });
     const [promoFormLoading, setPromoFormLoading] = useState(false);
+    const promoFormBaselineRef = useRef({ title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' });
 
     // Customer detail modal (with tabs)
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -140,6 +142,11 @@ export default function CRMScreen() {
     const [campaignSearch, setCampaignSearch] = useState('');
     const [campaignSending, setCampaignSending] = useState(false);
     const [showTargetSelector, setShowTargetSelector] = useState(false);
+    const campaignBaselineRef = useRef({
+        message: '',
+        target: 'tous' as 'tous' | 'bronze' | 'argent' | 'or' | 'platine' | 'choisir_client',
+        selectedIds: [] as string[],
+    });
 
     // Payment modal
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -147,6 +154,7 @@ export default function CRMScreen() {
     const [paymentNotes, setPaymentNotes] = useState('');
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentType, setPaymentType] = useState<'payment' | 'debt'>('payment'); // NEW
+    const paymentBaselineRef = useRef({ amount: '', notes: '', type: 'payment' as 'payment' | 'debt' });
 
     const loadData = useCallback(async () => {
         try {
@@ -275,23 +283,107 @@ export default function CRMScreen() {
         Linking.openURL(`sms:${phone}?body=${encodeURIComponent(msg)}`).catch(() => Alert.alert(t('common.error'), t('crm.error_sms_open')));
     };
 
+    const confirmDiscardChanges = (onConfirm: () => void) => {
+        Alert.alert(
+            t('common.unsaved_changes_title'),
+            t('common.unsaved_changes_message'),
+            [
+                { text: t('common.stay'), style: 'cancel' },
+                { text: t('common.leave_without_saving'), style: 'destructive', onPress: onConfirm },
+            ]
+        );
+    };
+
+    const hasCustomerChanges = () => {
+        const baseline = customerFormBaselineRef.current;
+        return (
+            baseline.name !== customerForm.name ||
+            baseline.phone !== customerForm.phone ||
+            baseline.email !== customerForm.email ||
+            baseline.notes !== customerForm.notes ||
+            baseline.birthday !== customerForm.birthday ||
+            baseline.category !== customerForm.category
+        );
+    };
+
+    const hasPromoChanges = () => {
+        const baseline = promoFormBaselineRef.current;
+        return (
+            baseline.title !== promoForm.title ||
+            baseline.description !== promoForm.description ||
+            baseline.discount_percentage !== promoForm.discount_percentage ||
+            baseline.points_required !== promoForm.points_required ||
+            baseline.target_tier !== promoForm.target_tier
+        );
+    };
+
+    const hasCampaignChanges = () => {
+        const baseline = campaignBaselineRef.current;
+        if (baseline.message !== campaignMessage) return true;
+        if (baseline.target !== campaignTarget) return true;
+        if (baseline.selectedIds.length !== selectedCustomerIds.length) return true;
+        const baselineIds = new Set(baseline.selectedIds);
+        return selectedCustomerIds.some((id) => !baselineIds.has(id));
+    };
+
+    const hasPaymentChanges = () => {
+        const baseline = paymentBaselineRef.current;
+        return baseline.amount !== paymentAmount || baseline.notes !== paymentNotes || baseline.type !== paymentType;
+    };
+
+    const requestCloseCustomerModal = () => {
+        if (!hasCustomerChanges()) {
+            setShowCustomerModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowCustomerModal(false));
+    };
+
+    const requestClosePromoModal = () => {
+        if (!hasPromoChanges()) {
+            setShowPromoModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowPromoModal(false));
+    };
+
+    const requestCloseCampaignModal = () => {
+        if (!hasCampaignChanges()) {
+            setShowCampaignModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowCampaignModal(false));
+    };
+
+    const requestClosePaymentModal = () => {
+        if (!hasPaymentChanges()) {
+            setShowPaymentModal(false);
+            return;
+        }
+        confirmDiscardChanges(() => setShowPaymentModal(false));
+    };
+
     // --- Customer CRUD ---
     function openNewCustomer() {
         setEditingCustomer(null);
-        setCustomerForm({ name: '', phone: '', email: '', notes: '', birthday: '', category: '' });
+        const baseline = { name: '', phone: '', email: '', notes: '', birthday: '', category: '' };
+        customerFormBaselineRef.current = baseline;
+        setCustomerForm(baseline);
         setShowCustomerModal(true);
     }
 
     function openEditCustomer(customer: Customer) {
         setEditingCustomer(customer);
-        setCustomerForm({
+        const baseline = {
             name: customer.name,
             phone: customer.phone || '',
             email: customer.email || '',
             notes: customer.notes || '',
             birthday: customer.birthday || '',
             category: customer.category || '',
-        });
+        };
+        customerFormBaselineRef.current = baseline;
+        setCustomerForm(baseline);
         setShowCustomerModal(true);
     }
 
@@ -310,6 +402,7 @@ export default function CRMScreen() {
             } else {
                 await customersApi.create(data);
             }
+            customerFormBaselineRef.current = { ...customerForm };
             setShowCustomerModal(false);
             loadData();
         } catch {
@@ -345,19 +438,23 @@ export default function CRMScreen() {
     // --- Promotion CRUD ---
     function openNewPromo() {
         setEditingPromo(null);
-        setPromoForm({ title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' });
+        const baseline = { title: '', description: '', discount_percentage: '', points_required: '', target_tier: 'tous' };
+        promoFormBaselineRef.current = baseline;
+        setPromoForm(baseline);
         setShowPromoModal(true);
     }
 
     function openEditPromo(promo: Promotion) {
         setEditingPromo(promo);
-        setPromoForm({
+        const baseline = {
             title: promo.title,
             description: promo.description,
             discount_percentage: promo.discount_percentage ? String(promo.discount_percentage) : '',
             points_required: promo.points_required ? String(promo.points_required) : '',
             target_tier: promo.target_tier || 'tous',
-        });
+        };
+        promoFormBaselineRef.current = baseline;
+        setPromoForm(baseline);
         setShowPromoModal(true);
     }
 
@@ -381,6 +478,7 @@ export default function CRMScreen() {
             } else {
                 await promotionsApi.create(data);
             }
+            promoFormBaselineRef.current = { ...promoForm };
             setShowPromoModal(false);
             loadData();
         } catch {
@@ -463,6 +561,15 @@ export default function CRMScreen() {
     }, [detailTab, detailCustomer]);
 
     // --- Campaign ---
+    function openCampaignModal() {
+        campaignBaselineRef.current = {
+            message: campaignMessage,
+            target: campaignTarget,
+            selectedIds: [...selectedCustomerIds],
+        };
+        setShowCampaignModal(true);
+    }
+
     async function sendCampaign() {
         const targets = customerList.filter(c => {
             if (campaignTarget === 'choisir_client') {
@@ -508,9 +615,11 @@ export default function CRMScreen() {
 
     // --- Payment ---
     function openPaymentModal() {
-        setPaymentAmount('');
-        setPaymentNotes('');
-        setPaymentType('payment');
+        const baseline = { amount: '', notes: '', type: 'payment' as 'payment' | 'debt' };
+        paymentBaselineRef.current = baseline;
+        setPaymentAmount(baseline.amount);
+        setPaymentNotes(baseline.notes);
+        setPaymentType(baseline.type);
         setShowPaymentModal(true);
     }
 
@@ -532,6 +641,7 @@ export default function CRMScreen() {
                 await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? t('crm.manual_payment') : t('crm.manual_debt')));
 
                 Alert.alert(t('common.success'), t('crm.success_operation_recorded'));
+                paymentBaselineRef.current = { amount: paymentAmount, notes: paymentNotes, type: paymentType };
                 setShowPaymentModal(false);
                 // Refresh detail customer
                 const updated = await customersApi.get(detailCustomer.customer_id);
@@ -773,7 +883,7 @@ export default function CRMScreen() {
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>{t('crm.marketing')}</Text>
                         </View>
-                        <TouchableOpacity style={styles.campaignBtn} onPress={() => setShowCampaignModal(true)}>
+                        <TouchableOpacity style={styles.campaignBtn} onPress={openCampaignModal}>
                             <Ionicons name="megaphone-outline" size={22} color="#FFF" />
                             <Text style={styles.campaignBtnText}>{t('crm.whatsapp_campaign')}</Text>
                         </TouchableOpacity>
@@ -846,7 +956,7 @@ export default function CRMScreen() {
                             return (
                                 <TouchableOpacity key={customer.customer_id} style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
                                     <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
-                                        <Text style={styles.customerAvatarText}>{customer.name.charAt(0).toUpperCase()}</Text>
+                                        <Text style={styles.customerAvatarText}>{(customer.name || '?').charAt(0).toUpperCase()}</Text>
                                     </View>
                                     <View style={styles.customerInfo}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -896,12 +1006,12 @@ export default function CRMScreen() {
                 </ScrollView>
 
                 {/* Customer Create/Edit Modal */}
-                <Modal visible={showCustomerModal} animationType="slide" transparent>
+                <Modal visible={showCustomerModal} animationType="slide" transparent onRequestClose={requestCloseCustomerModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editingCustomer ? t('crm.edit_customer') : t('crm.new_customer')}</Text>
-                                <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
+                                <TouchableOpacity onPress={requestCloseCustomerModal}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -997,7 +1107,7 @@ export default function CRMScreen() {
                                     {/* Hero summary */}
                                     <View style={{ alignItems: 'center', width: '100%', paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: Spacing.sm }}>
                                         <View style={[styles.detailAvatarLarge, { borderColor: getTierConfig(detailCustomer.tier).color, borderWidth: 3, marginBottom: 6 }]}>
-                                            <Text style={styles.detailAvatarText}>{detailCustomer.name.charAt(0).toUpperCase()}</Text>
+                                            <Text style={styles.detailAvatarText}>{(detailCustomer.name || '?').charAt(0).toUpperCase()}</Text>
                                         </View>
                                         <View style={[styles.tierBadgeLarge, { backgroundColor: getTierConfig(detailCustomer.tier).color + '25', borderColor: getTierConfig(detailCustomer.tier).color, marginBottom: 8 }]}>
                                             <Ionicons name={getTierConfig(detailCustomer.tier).icon as any} size={14} color={getTierConfig(detailCustomer.tier).color} />
@@ -1109,7 +1219,11 @@ export default function CRMScreen() {
                                                     {detailCustomer.category && (
                                                         <View style={styles.detailRow}>
                                                             <Ionicons name="pricetag-outline" size={18} color={colors.textSecondary} />
-                                                            <Text style={styles.detailRowText}>{detailCustomer.category.charAt(0).toUpperCase() + detailCustomer.category.slice(1)}</Text>
+                                                            <Text style={styles.detailRowText}>
+                                                                {detailCustomer.category
+                                                                    ? detailCustomer.category.charAt(0).toUpperCase() + detailCustomer.category.slice(1)
+                                                                    : ''}
+                                                            </Text>
                                                         </View>
                                                     )}
                                                     {detailCustomer.notes && (
@@ -1429,12 +1543,12 @@ export default function CRMScreen() {
                 </Modal>
 
                 {/* Promotion Create/Edit Modal */}
-                <Modal visible={showPromoModal} animationType="slide" transparent>
+                <Modal visible={showPromoModal} animationType="slide" transparent onRequestClose={requestClosePromoModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editingPromo ? t('crm.edit_promotion') : t('crm.new_promotion')}</Text>
-                                <TouchableOpacity onPress={() => setShowPromoModal(false)}>
+                                <TouchableOpacity onPress={requestClosePromoModal}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -1514,12 +1628,12 @@ export default function CRMScreen() {
                 </Modal>
 
                 {/* Campaign Modal */}
-                <Modal visible={showCampaignModal} animationType="slide" transparent>
+                <Modal visible={showCampaignModal} animationType="slide" transparent onRequestClose={requestCloseCampaignModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{t('crm.whatsapp_campaign_title')}</Text>
-                                <TouchableOpacity onPress={() => setShowCampaignModal(false)}>
+                                <TouchableOpacity onPress={requestCloseCampaignModal}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -1640,14 +1754,14 @@ export default function CRMScreen() {
                 </Modal>
 
                 {/* Payment Modal */}
-                <Modal visible={showPaymentModal} animationType="slide" transparent>
+                <Modal visible={showPaymentModal} animationType="slide" transparent onRequestClose={requestClosePaymentModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>
                                     {paymentType === 'payment' ? t('crm.record_payment') : t('crm.add_debt')}
                                 </Text>
-                                <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                                <TouchableOpacity onPress={requestClosePaymentModal}>
                                     <Ionicons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
