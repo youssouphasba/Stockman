@@ -10,11 +10,21 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only if it hasn't been initialized already (Next.js SSR safety)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const isBrowser = typeof window !== 'undefined';
+const hasFirebaseConfig = Boolean(
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId
+);
+
+// Firebase Auth / Messaging are browser-only in this app.
+const app = isBrowser && hasFirebaseConfig
+    ? (!getApps().length ? initializeApp(firebaseConfig) : getApp())
+    : null;
 
 let messaging: Messaging | null = null;
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+if (isBrowser && app && 'serviceWorker' in navigator) {
     try {
         messaging = getMessaging(app);
     } catch (e) {
@@ -22,4 +32,4 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     }
 }
 
-export { app, messaging, getToken, onMessage };
+export { app, messaging, getToken, onMessage, hasFirebaseConfig };

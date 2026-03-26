@@ -125,6 +125,7 @@ export default function Inventory() {
     const [locationTransferring, setLocationTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
+    const hasEnterpriseLocations = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || (currentUser?.effective_plan || currentUser?.plan) === 'enterprise';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
@@ -209,7 +210,7 @@ export default function Inventory() {
             const [prodsRes, catsRes, locsRes] = await Promise.allSettled([
                 productsApi.list(undefined, 0, 500, resolvedLocation),
                 categoriesApi.list(),
-                locationsApi.list()
+                hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([])
             ]);
 
             if (prodsRes.status !== 'fulfilled') {
@@ -275,6 +276,11 @@ export default function Inventory() {
                 else console.warn('User features unavailable for inventory', featuresRes.reason);
             }).catch(() => {});
     }, []);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        void fetchProducts();
+    }, [currentUser?.effective_plan, currentUser?.plan, currentUser?.role]);
 
     const handleReplenishAdvice = async () => {
         setReplenishLoading(true);
@@ -929,7 +935,7 @@ export default function Inventory() {
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
-                                                {p.location_id && (
+                                                {hasEnterpriseLocations && p.location_id && (
                                                     <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
                                                         <MapPin size={9} /> {getLocationLabel(p.location_id)}
                                                     </span>

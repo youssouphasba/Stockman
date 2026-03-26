@@ -41,6 +41,44 @@ type StaffPermissions = Record<keyof UserPermissions, PermissionLevel>;
 
 type AccountRole = 'billing_admin' | 'org_admin';
 
+type StaffFormState = {
+    name: string;
+    email: string;
+    password: string;
+    permissions: StaffPermissions;
+    accountRoles: AccountRole[];
+    storeIds: string[];
+    storePermissions: StorePermissions;
+};
+
+const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+    stock: 'none',
+    accounting: 'none',
+    crm: 'none',
+    pos: 'read',
+    suppliers: 'none',
+    staff: 'none',
+};
+
+function createEmptyStaffForm(): StaffFormState {
+    return {
+        name: '',
+        email: '',
+        password: '',
+        permissions: { ...DEFAULT_STAFF_PERMISSIONS },
+        accountRoles: [],
+        storeIds: [],
+        storePermissions: {},
+    };
+}
+
+function normalizeStaffPermissions(permissions?: Partial<UserPermissions> | null): StaffPermissions {
+    return {
+        ...DEFAULT_STAFF_PERMISSIONS,
+        ...(permissions || {}),
+    };
+}
+
 const ROLE_TEMPLATE_KEYS: Record<string, { labelKey: string; permissions: StaffPermissions }> = {
     cashier: { labelKey: 'staff.role_cashier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
     stock_manager: { labelKey: 'staff.role_stock', permissions: { pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
@@ -62,30 +100,7 @@ export default function Staff() {
     const [editingUser, setEditingUser] = useState<any>(null);
     const [saving, setSaving] = useState(false);
 
-    const [form, setForm] = useState<{
-        name: string;
-        email: string;
-        password: string;
-        permissions: StaffPermissions;
-        accountRoles: AccountRole[];
-        storeIds: string[];
-        storePermissions: StorePermissions;
-    }>({
-        name: '',
-        email: '',
-        password: '',
-        permissions: {
-            stock: 'none',
-            accounting: 'none',
-            crm: 'none',
-            pos: 'read',
-            suppliers: 'none',
-            staff: 'none',
-        },
-        accountRoles: [],
-        storeIds: [],
-        storePermissions: {},
-    });
+    const [form, setForm] = useState<StaffFormState>(createEmptyStaffForm);
     const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
     const formBaselineRef = useRef('');
 
@@ -140,22 +155,7 @@ export default function Staff() {
 
     const handleOpenAdd = () => {
         setEditingUser(null);
-        const baseline = {
-            name: '',
-            email: '',
-            password: '',
-            permissions: {
-                stock: 'none',
-                accounting: 'none',
-                crm: 'none',
-                pos: 'read',
-                suppliers: 'none',
-                staff: 'none',
-            },
-            accountRoles: [],
-            storeIds: [],
-            storePermissions: {},
-        };
+        const baseline: StaffFormState = createEmptyStaffForm();
         setForm(baseline);
         setExpandedStoreId(null);
         formBaselineRef.current = JSON.stringify({ ...baseline, editingId: '' });
@@ -164,19 +164,11 @@ export default function Staff() {
 
     const handleOpenEdit = (user: any) => {
         setEditingUser(user);
-        const baseline = {
+        const baseline: StaffFormState = {
             name: user.name,
             email: user.email,
             password: '',
-            permissions: {
-                stock: 'none',
-                accounting: 'none',
-                crm: 'none',
-                pos: 'read',
-                suppliers: 'none',
-                staff: 'none',
-                ...(user.permissions || {})
-            },
+            permissions: normalizeStaffPermissions(user.permissions),
             accountRoles: user.account_roles || [],
             storeIds: user.store_ids || [],
             storePermissions: user.store_permissions || {},

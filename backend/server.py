@@ -2722,6 +2722,17 @@ def ensure_subscription_advanced_allowed(
         raise HTTPException(status_code=403, detail=detail)
 
 
+def ensure_enterprise_locations_allowed(
+    user: User,
+    detail: str = "La gestion des emplacements est reservee au plan Enterprise.",
+) -> None:
+    if user.role in {"superadmin", "admin"}:
+        return
+    effective_plan = normalize_plan(user.effective_plan or user.subscription_plan or user.plan)
+    if effective_plan != "enterprise":
+        raise HTTPException(status_code=403, detail=detail)
+
+
 async def require_write_access(user: User = Depends(require_auth)) -> User:
     ensure_subscription_write_allowed(user)
     return user
@@ -3922,7 +3933,9 @@ async def confirm_import(
         
         if not import_data or not mapping:
             raise HTTPException(status_code=400, detail="Données d'importation ou mappage manquants")
-        
+        if mapping.get("location"):
+            ensure_enterprise_locations_allowed(current_user)
+
         user_id = get_owner_id(current_user)
         store_id = current_user.active_store_id
         return await import_service.process_import(import_data, mapping, user_id, store_id)
@@ -9675,6 +9688,15 @@ def _product_response(product_doc: dict) -> Product:
     return Product(**normalize_product_measurement_fields(product_doc))
 
 
+def _product_response_for_user(user: User, product_doc: dict) -> Product:
+    normalized = normalize_product_measurement_fields(product_doc)
+    try:
+        ensure_enterprise_locations_allowed(user)
+    except HTTPException:
+        normalized["location_id"] = None
+    return Product(**normalized)
+
+
 @api_router.get("/products")
 async def get_products(
     user: User = Depends(require_permission("stock", "read")),
@@ -9695,6 +9717,7 @@ async def get_products(
         query["category_id"] = category_id
 
     if location_id:
+        ensure_enterprise_locations_allowed(user)
         query["location_id"] = location_id
 
     if is_menu_item is not None:
@@ -9706,7 +9729,7 @@ async def get_products(
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
 
-    return {"items": [_product_response(prod) for prod in products], "total": total}
+    return {"items": [_product_response_for_user(user, prod) for prod in products], "total": total}
 
 class ProductStats(BaseModel):
     lifetime_sales: float
@@ -9763,11 +9786,13 @@ async def get_product(product_id: str, user: User = Depends(require_permission("
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    return _product_response(product)
+    return _product_response_for_user(user, product)
 
 @api_router.post("/products", response_model=Product)
 async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    if prod_data.location_id:
+        ensure_enterprise_locations_allowed(user)
     
     # Compress product image (I16)
     if prod_data.image:
@@ -9808,7 +9833,7 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
         country_code=user.country_code or "SN",
     ))
 
-    return _product_response(product.model_dump())
+    return _product_response_for_user(user, product.model_dump())
 
 @api_router.put("/products/{product_id}", response_model=Product)
 async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_permission("stock", "write"))):
@@ -9819,6 +9844,8 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         prod_data.image = compress_image_base64(prod_data.image)
         
     update_dict = {k: v for k, v in prod_data.model_dump().items() if v is not None}
+    if "location_id" in update_dict:
+        ensure_enterprise_locations_allowed(user)
     if update_dict.get("linked_recipe_id"):
         update_dict["is_menu_item"] = True
     if update_dict.get("production_mode") in ("on_demand", "hybrid"):
@@ -9865,7 +9892,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     result.pop("_id", None)
-    product = _product_response(result)
+    product = _product_response_for_user(user, result)
 
     await log_activity(user, "product_updated", "stock", f"Produit '{product.name}' modifié", {"product_id": product_id})
 
@@ -9880,6 +9907,7 @@ async def transfer_product_location(
     data: LocationTransferRequest,
     user: User = Depends(require_permission("stock", "write")),
 ):
+    ensure_enterprise_locations_allowed(user)
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
@@ -9895,7 +9923,7 @@ async def transfer_product_location(
 
     from_location_id = product.get("location_id")
     if from_location_id == to_location_id:
-        return _product_response(product)
+        return _product_response_for_user(user, product)
 
     await db.products.update_one(
         {"product_id": product_id, "user_id": owner_id},
@@ -9918,7 +9946,7 @@ async def transfer_product_location(
     await db.stock_movements.insert_one(movement.model_dump())
 
     updated = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
-    return _product_response(updated)
+    return _product_response_for_user(user, updated)
 
 @api_router.get("/products/{product_id}/price-history", response_model=List[PriceHistory])
 async def get_product_price_history(product_id: str, user: User = Depends(require_permission("stock", "read"))):
@@ -10178,6 +10206,7 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_per
 
 @api_router.get("/locations")
 async def get_locations(user: User = Depends(require_permission("stock", "read"))):
+    ensure_enterprise_locations_allowed(user)
     owner_id = get_owner_id(user)
     query = apply_store_scope({"user_id": owner_id}, user, None)
     locs = await db.locations.find(query, {"_id": 0}).sort("name", 1).to_list(200)
@@ -10185,6 +10214,7 @@ async def get_locations(user: User = Depends(require_permission("stock", "read")
 
 @api_router.post("/locations", response_model=Location)
 async def create_location(data: LocationCreate, user: User = Depends(require_permission("stock", "write"))):
+    ensure_enterprise_locations_allowed(user)
     owner_id = get_owner_id(user)
     payload = {k: v for k, v in data.model_dump().items() if v is not None}
     parent_id = payload.get("parent_id")
@@ -10204,6 +10234,7 @@ async def create_location(data: LocationCreate, user: User = Depends(require_per
 
 @api_router.put("/locations/{location_id}", response_model=Location)
 async def update_location(location_id: str, data: LocationUpdate, user: User = Depends(require_permission("stock", "write"))):
+    ensure_enterprise_locations_allowed(user)
     owner_id = get_owner_id(user)
     update = data.model_dump(exclude_unset=True)
     if update.get("parent_id") == location_id:
@@ -10224,6 +10255,7 @@ async def update_location(location_id: str, data: LocationUpdate, user: User = D
 
 @api_router.delete("/locations/{location_id}")
 async def delete_location(location_id: str, user: User = Depends(require_permission("stock", "write"))):
+    ensure_enterprise_locations_allowed(user)
     owner_id = get_owner_id(user)
     scoped_query = apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None)
     loc = await db.locations.find_one(scoped_query, {"_id": 0})
