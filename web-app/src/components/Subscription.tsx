@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { settings as settingsApi, subscription as subApi, type SubscriptionData } from '../services/api';
 import { COUNTRIES } from '@/data/countries';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type PlanId = 'starter' | 'pro' | 'enterprise';
 
@@ -196,8 +197,52 @@ export default function Subscription() {
         };
     });
 
+    const subscriptionSteps: GuideStep[] = [
+        {
+            title: "Rôle de cet écran",
+            content: "Cet écran vous permet de suivre votre formule, votre statut d'accès, votre devise de facturation et le bon canal de paiement. C'est l'endroit à consulter avant un renouvellement, un changement de formule ou un contrôle de facturation.",
+        },
+        {
+            title: 'Comprendre votre statut actuel',
+            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive à échéance ou si une continuité d'activité est en cours. Commencez toujours ici pour savoir si vous devez agir immédiatement ou non.",
+            details: [
+                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour éviter toute confusion avant un paiement.", type: 'card' },
+                { label: 'Dates importantes', description: "Montre les échéances de fin de période, de grâce ou de passage en lecture seule quand elles existent.", type: 'info' },
+            ],
+        },
+        {
+            title: 'Vérifier pays et devise',
+            content: "La carte « Pays et devise de facturation » vous rappelle le cadre tarifaire appliqué à votre compte. Utilisez-la pour confirmer que les prix affichés et les canaux de paiement correspondent bien à votre contexte.",
+        },
+        {
+            title: 'Comparer les formules',
+            content: "Chaque carte de formule présente le prix effectif et les principaux avantages. Relisez les fonctionnalités avant de changer de formule afin de choisir celle qui correspond réellement à votre activité.",
+            details: [
+                { label: 'Carte de formule', description: "Affiche le nom, le prix mensuel et les éléments clés inclus dans la formule.", type: 'card' },
+                { label: 'Plan actuel', description: "Si la carte est déjà active, aucun paiement supplémentaire n'est proposé.", type: 'info' },
+            ],
+        },
+        {
+            title: 'Choisir le bon mode de paiement',
+            content: "Les boutons de paiement affichés sur chaque formule dépendent de votre devise et de votre compte. Utilisez le bouton carte bancaire pour un règlement par carte, et le bouton Mobile Money quand ce canal est disponible pour votre devise.",
+            details: [
+                { label: 'Payer par carte bancaire', description: "Ouvre le parcours de paiement sécurisé pour les comptes éligibles à la carte.", type: 'button' },
+                { label: 'Payer via Mobile Money', description: "Apparaît uniquement quand ce mode de règlement est disponible pour votre devise.", type: 'button' },
+            ],
+        },
+        {
+            title: 'Mettre à jour le contact de facturation',
+            content: "Le bloc « Contact de facturation » sert à définir la personne et l'adresse email qui doivent recevoir les rappels, confirmations ou échanges liés à la facturation. Relisez ces informations avant chaque renouvellement important.",
+        },
+        {
+            title: 'Relire les rappels et l’historique',
+            content: "En bas de page, les cartes de rappel expliquent quels prestataires gèrent les différents paiements, et l'historique de facturation regroupe ensuite les éléments de suivi disponibles. Revenez ici si vous avez un doute après un paiement ou un changement de formule.",
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+            <ScreenGuide guideKey="subscription_tour" steps={subscriptionSteps} />
             {error && (
                 <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 text-rose-500">

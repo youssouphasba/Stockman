@@ -1929,6 +1929,23 @@ export default function ProductsScreen() {
           )}
         </View>
 
+        {!isRestaurant && hasEnterpriseLocations && (
+          <TouchableOpacity
+            style={styles.locationModuleCard}
+            onPress={() => router.push('/(tabs)/locations' as never)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.locationModuleIcon}>
+              <Ionicons name="location-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.locationModuleContent}>
+              <Text style={styles.locationModuleTitle}>{t('products.location_module_title')}</Text>
+              <Text style={styles.locationModuleDescription}>{t('products.location_module_description')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Valuation Card */}
         {!isRestaurant && (
           <View style={styles.valuationCard}>
@@ -2279,7 +2296,7 @@ export default function ProductsScreen() {
               <Text style={styles.modalTitle}>
                 {isRestaurant
                   ? editingProduct ? t('restaurant.edit_dish', 'Modifier le plat') : t('restaurant.add_dish', 'Ajouter un plat')
-                  : editingProduct ? t('products.edit_product') : t('products.add_product')}
+                  : editingProduct ? t('products.edit_product', 'Modifier le produit') : t('products.add_product')}
               </Text>
               <TouchableOpacity onPress={requestCloseAddModal}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -2293,6 +2310,7 @@ export default function ProductsScreen() {
               <ScrollView
                 style={styles.modalScroll}
                 contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+                keyboardShouldPersistTaps="handled"
               >
                 <TouchableOpacity onPress={pickImage} style={styles.imagePickerBtn} disabled={imageUploading}>
                   {imageUploading ? (
@@ -2553,22 +2571,11 @@ export default function ProductsScreen() {
 
                 {!isRestaurant && hasEnterpriseLocations && (
                   <View style={{ marginBottom: Spacing.sm }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.formLabel}>{t('products.location_label', 'Emplacement')}</Text>
-                        <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
-                          {t('products.location_help', 'Affectez ce produit à une allée, une zone, un niveau ou une étagère.')}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => router.push('/(tabs)/locations' as never)}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: colors.primary + '35', backgroundColor: colors.primary + '12' }}
-                      >
-                        <Ionicons name="settings-outline" size={14} color={colors.primary} />
-                        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>
-                          {t('products.manage_locations', 'Gérer')}
-                        </Text>
-                      </TouchableOpacity>
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={styles.formLabel}>{t('products.location_label')}</Text>
+                      <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
+                        {t('products.location_help')}
+                      </Text>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <TouchableOpacity
@@ -2576,7 +2583,7 @@ export default function ProductsScreen() {
                         onPress={() => setFormLocationId('')}
                       >
                         <Text style={[styles.filterChipText, !formLocationId && styles.filterChipTextActive]}>
-                          {t('products.no_location', 'Sans emplacement')}
+                          {t('products.no_location')}
                         </Text>
                       </TouchableOpacity>
                       {activeLocationChoices.map((location) => (
@@ -3365,6 +3372,38 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     marginLeft: Spacing.sm,
     marginRight: Spacing.sm,
   },
+  locationModuleCard: {
+    ...glassStyle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  locationModuleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '14',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  locationModuleContent: {
+    flex: 1,
+  },
+  locationModuleTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  locationModuleDescription: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    lineHeight: 19,
+  },
   categoryScroll: { marginBottom: Spacing.md },
   categoryChip: {
     flexDirection: 'row',
@@ -3481,9 +3520,11 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     backgroundColor: colors.bgMid,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    maxHeight: '90%',
-    minHeight: '50%',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    maxHeight: '96%',
+    minHeight: '82%',
   },
   modalHeader: {
     flexDirection: 'row',

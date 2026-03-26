@@ -74,6 +74,13 @@ export default function ScreenGuide({ visible, onClose, title, steps }: Props) {
   }
 
   const isLast = currentStep === steps.length - 1;
+  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+
+  function handlePrevious() {
+    if (currentStep > 0) {
+      goToStep(currentStep - 1);
+    }
+  }
 
   const renderStep = useCallback(
     ({ item }: { item: GuideStep }) => (
@@ -123,6 +130,20 @@ export default function ScreenGuide({ visible, onClose, title, steps }: Props) {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.progressWrap}>
+            <View style={[styles.progressTrack, { backgroundColor: colors.textMuted + '22' }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { backgroundColor: colors.primary, width: `${progress}%` },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressHint, { color: colors.textSecondary }]}>
+              Balayez ou utilisez les boutons pour suivre le guide pas à pas.
+            </Text>
+          </View>
+
           {/* Paginated Steps */}
           <FlatList
             ref={flatListRef}
@@ -162,11 +183,27 @@ export default function ScreenGuide({ visible, onClose, title, steps }: Props) {
 
           {/* Navigation */}
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={onClose} style={styles.skipBtn}>
-              <Text style={[styles.skipText, { color: colors.textSecondary }]}>
-                Passer
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.navLeft}>
+              <TouchableOpacity onPress={onClose} style={styles.skipBtn}>
+                <Text style={[styles.skipText, { color: colors.textSecondary }]}>
+                  Passer
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePrevious}
+                disabled={currentStep === 0}
+                style={[
+                  styles.previousBtn,
+                  { borderColor: colors.textMuted + '30' },
+                  currentStep === 0 && styles.previousBtnDisabled,
+                ]}
+              >
+                <Ionicons name="arrow-back" size={15} color={colors.textSecondary} />
+                <Text style={[styles.previousText, { color: colors.textSecondary }]}>
+                  Précédent
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               onPress={handleNext}
@@ -207,6 +244,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  progressWrap: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  progressHint: {
+    fontSize: FontSize.xs,
+    marginTop: Spacing.xs,
+    lineHeight: 18,
   },
   headerIcon: {
     width: 40,
@@ -269,14 +324,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  navLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   skipBtn: {
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   skipText: {
     fontSize: FontSize.sm,
     fontWeight: '500',
+  },
+  previousBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  previousBtnDisabled: {
+    opacity: 0.45,
+  },
+  previousText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
   },
   nextBtn: {
     flexDirection: 'row',

@@ -112,7 +112,9 @@ export default function Home() {
     dashboard: 'dashboard_tour',
     pos: 'pos_tour',
     inventory: 'inventory_tour',
+    locations: 'locations_tour',
     alerts: 'alerts_tour',
+    activity: 'activity_tour',
     stock_history: 'stock_history_tour',
     inventory_counting: 'counting_tour',
     expiry_alerts: 'expiry_tour',
@@ -123,6 +125,9 @@ export default function Home() {
     reports: 'reports_tour',
     staff: 'staff_tour',
     suppliers: 'suppliers_tour',
+    multi_stores: 'multi_stores_tour',
+    settings: 'settings_tour',
+    subscription: 'subscription_tour',
   };
   const activeGuideKey = TAB_GUIDE_KEYS[activeTab];
   const formatDemoExpiration = (value?: string | null) => {

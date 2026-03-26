@@ -2265,6 +2265,11 @@
     "text_import": "Text import",
     "import_catalog": "Sector catalog import",
     "export_pdf": "Export inventory PDF",
+    "location_label": "Location",
+    "location_help": "Assign this product to an aisle, zone, level, shelf, or any other storage reference.",
+    "no_location": "No location",
+    "location_module_title": "Manage locations",
+    "location_module_description": "Organize aisles, zones, levels and shelves, then assign each product to the right storage reference.",
     "supplier": "Supplier",
     "no_supplier": "None"
   },

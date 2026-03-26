@@ -51,53 +51,103 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "search-outline",
-                title: "Trouver & Filtrer",
-                description: "Utilisez la barre de recherche (nom, SKU, code-barres) et les puces catégories pour retrouver rapidement un article. Sur les comptes multi-boutiques, les produits affichés dépendent toujours de la boutique active."
+                title: "Commencer par la bonne boutique",
+                description: "Avant de créer, modifier ou compter un produit, vérifiez toujours la boutique active affichée en haut de l'application. Tous les produits, quantités et mouvements visibles dans cet écran dépendent de cette boutique."
             },
             {
                 icon: "pricetag-outline",
-                title: "État du Stock",
-                description: "Badges sur chaque produit : Rouge (Rupture = 0), Orange (Bas ≤ seuil), Bleu (Surstock > 3× seuil) et Vert (Normal)."
+                title: "Trouver rapidement un article",
+                description: "Utilisez la recherche par nom, SKU ou code-barres puis complétez avec les catégories. Cette méthode est la plus rapide pour retrouver un article précis avant une modification, une vente ou un contrôle."
             },
             {
                 icon: "add-circle-outline",
-                title: "Mouvements Rapides",
-                description: "Boutons 'Entrée' et 'Sortie' sur chaque produit pour ajuster le stock (livraison, perte, correction). Annulez un mouvement via l'historique."
+                title: "Lire l'état du stock",
+                description: "Chaque carte ou ligne vous aide à repérer l'urgence : rupture si la quantité est à zéro, stock bas sous le seuil, surstock si la quantité devient trop élevée, stock normal si tout est équilibré."
             },
             {
                 icon: "create-outline",
-                title: "Créer ou Modifier un Produit",
-                description: "La fiche produit permet de renseigner le nom, le SKU, la quantité, l'unité, les prix, le stock minimum, le fournisseur, la date de péremption et les catégories. En modification, les changements sont enregistrés sur le produit déjà existant."
+                title: "Créer ou modifier une fiche produit",
+                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, le fournisseur, la catégorie et les informations utiles au suivi. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
             },
             {
-                icon: "qr-code-outline",
-                title: "Étiquetage",
-                description: "Le bouton 'Étiquette' génère une fiche PDF avec QR Code prête à imprimer pour vos rayons."
+                icon: "swap-vertical-outline",
+                title: "Ajuster le stock sans quitter l'écran",
+                description: "Les actions rapides servent à enregistrer une entrée, une sortie, une correction ou un autre mouvement simple. Utilisez-les pour les livraisons, les pertes, la casse ou une correction d'inventaire."
             },
             {
                 icon: "cloud-upload-outline",
-                title: "Import en Masse",
-                description: "Importez vos produits via CSV/Excel (import fichier) ou par copier-coller de texte libre (import texte avec parsing IA)."
+                title: "Importer plusieurs produits d'un coup",
+                description: "L'import fichier sert à intégrer un CSV ou un tableur structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Vérifiez ensuite les données importées avant de poursuivre."
             },
             {
                 icon: "scan-outline",
-                title: "Scan par Lot",
-                description: "Scannez plusieurs codes-barres à la suite pour des entrées/sorties rapides ou un inventaire complet."
+                title: "Utiliser le scan par lot",
+                description: "Le scan en série est utile quand vous recevez de nombreux articles ou quand vous comptez le stock. Scannez plusieurs codes-barres à la suite pour gagner du temps sans rouvrir chaque fiche."
+            },
+            {
+                icon: "time-outline",
+                title: "Relire l'historique d'un produit",
+                description: "Servez-vous de l'historique pour comprendre pourquoi une quantité a changé, qui a fait l'action et à quel moment. C'est le bon réflexe quand un stock semble incohérent."
             },
             {
                 icon: "location-outline",
-                title: "Emplacements de Stockage",
-                description: "Si cette gestion est disponible sur votre compte, vous pouvez ranger vos produits dans une structure claire comme « Allée 1 / Niveau 2 / Étagère 7 ». Depuis la fiche produit, affectez un emplacement précis pour mieux organiser le stock, préparer l'inventaire et retrouver plus vite vos articles."
+                title: "Organiser le rangement physique",
+                description: "Si cet écran est disponible sur votre compte, vous pouvez rattacher chaque produit à un emplacement précis. Cela aide à ranger, retrouver, compter et transférer plus facilement vos articles."
+            },
+            {
+                icon: "qr-code-outline",
+                title: "Étiquettes et identification",
+                description: "Le bouton d'étiquette génère une fiche imprimable avec QR code ou code d'identification. Utilisez-la pour vos rayons, vos bacs ou vos contrôles internes."
             },
             {
                 icon: "settings-outline",
-                title: "Catégories",
-                description: "Gérez vos catégories via l'icône d'engrenage : créez, supprimez et organisez pour structurer votre inventaire."
+                title: "Catégories et structure du catalogue",
+                description: "Gérez vos catégories pour garder un catalogue clair et faciliter la recherche, l'analyse et les imports. Une bonne structure de catégories rend aussi les exports plus utiles."
             },
             {
                 icon: "download-outline",
-                title: "Export CSV",
-                description: "Exportez votre liste de produits en CSV via l'icône de téléchargement dans le header pour analyse ou sauvegarde."
+                title: "Exporter pour vérifier ou partager",
+                description: "Utilisez l'export CSV ou tableur pour contrôler votre catalogue, préparer un partage ou garder une copie de travail. Revenez toujours dans l'application pour vérifier que les dernières modifications ont bien été prises en compte."
+            }
+        ]
+    },
+    locations: {
+        title: "Emplacements de Stockage",
+        steps: [
+            {
+                icon: "map-outline",
+                title: "À quoi sert cet écran",
+                description: "Cet écran sert à reproduire l'organisation réelle de votre réserve, de votre magasin ou de votre entrepôt. Il vous aide à savoir où se trouve chaque produit et à gagner du temps pendant le rangement, l'inventaire ou la préparation."
+            },
+            {
+                icon: "albums-outline",
+                title: "Partir d'une structure simple",
+                description: "Commencez par choisir le type d'organisation qui vous ressemble le plus : allées, zones, rayons, niveaux, étagères ou toute autre structure de votre choix. Vous n'avez pas besoin d'utiliser les mêmes mots qu'un autre commerce."
+            },
+            {
+                icon: "layers-outline",
+                title: "Configurer les niveaux",
+                description: "Chaque niveau représente une couche de votre rangement. Par exemple : zone, puis rayon, puis étagère. Ajoutez uniquement les niveaux réellement utiles pour éviter une structure trop lourde à gérer."
+            },
+            {
+                icon: "list-outline",
+                title: "Créer plusieurs emplacements d'un coup",
+                description: "Au lieu de créer les emplacements un par un, utilisez la génération guidée pour définir une série complète. Vous pouvez choisir une numérotation ou des noms libres selon votre façon de travailler."
+            },
+            {
+                icon: "eye-outline",
+                title: "Relire avant de générer",
+                description: "Vérifiez toujours l'aperçu et le nombre d'emplacements prévus avant validation. Cette étape évite de créer une structure trop grande, mal nommée ou inutilement compliquée."
+            },
+            {
+                icon: "cube-outline",
+                title: "Affecter un produit au bon emplacement",
+                description: "Une fois la structure créée, utilisez la fiche produit pour associer chaque article au bon emplacement. Cela permet ensuite de filtrer vos produits, de mieux compter le stock et de retrouver plus vite un article."
+            },
+            {
+                icon: "swap-horizontal-outline",
+                title: "Faire évoluer l'organisation",
+                description: "Si votre rangement change, vous pouvez corriger, archiver, réactiver ou transférer l'affectation d'un produit vers un autre emplacement. Faites-le au fil de l'évolution du magasin pour garder une structure fiable."
             }
         ]
     },
@@ -331,28 +381,33 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "time-outline",
-                title: "Journal en Temps Réel",
-                description: "L'écran affiche les principales actions enregistrées sur votre compte et sur la boutique active : ventes, mouvements de stock, créations, suppressions et modifications importantes."
+                title: "Comprendre le rôle du journal",
+                description: "Cet écran rassemble les actions importantes enregistrées sur votre compte et sur la boutique active. Utilisez-le pour vérifier une opération récente, comprendre un incident ou reconstituer ce qui s'est passé à un moment précis."
             },
             {
                 icon: "filter-outline",
-                title: "Lire le Journal",
-                description: "Chaque ligne indique qui a agi, à quelle heure et sur quel module. Utilisez cet écran pour reconstituer une chronologie, comprendre une anomalie ou vérifier une opération récente."
+                title: "Lire une ligne dans le bon ordre",
+                description: "Commencez par le module, puis l'heure, puis le texte principal de la ligne. Cette lecture rapide vous permet de comprendre d'abord la zone concernée, puis l'action et enfin le contexte détaillé."
             },
             {
                 icon: "people-outline",
-                title: "Suivi par Utilisateur",
-                description: "Identifiez quel employé, manager ou administrateur a effectué une action. C'est utile pour le contrôle interne, l'organisation d'équipe et les vérifications après incident."
+                title: "Identifier qui a agi",
+                description: "Le nom affiché sur la ligne permet de savoir quel utilisateur a réalisé l'action. Servez-vous-en pour vos vérifications d'équipe, vos contrôles internes et le suivi après une anomalie."
             },
             {
                 icon: "business-outline",
-                title: "Contexte Boutique",
-                description: "Sur les comptes multi-boutiques, l'historique doit être lu en tenant compte de la boutique active. Pour une analyse complète, vérifiez toujours le contexte avant d'interpréter une action."
+                title: "Tenir compte du contexte boutique",
+                description: "Sur un compte qui gère plusieurs boutiques, relisez toujours l'historique avec la bonne boutique active. Une même action n'a pas la même signification si vous n'êtes pas dans le bon contexte."
+            },
+            {
+                icon: "download-outline",
+                title: "Exporter quand un contrôle le demande",
+                description: "Utilisez l'export si vous devez partager un suivi, archiver une période ou vérifier plusieurs événements à tête reposée dans un autre support."
             },
             {
                 icon: "refresh-outline",
-                title: "Actualisation",
-                description: "Tirez vers le bas pour rafraîchir le journal. Les nouvelles actions apparaissent en temps réel."
+                title: "Actualiser avant de conclure",
+                description: "Tirez vers le bas avant de valider une hypothèse. Cela vous permet de vérifier que vous regardez bien le journal le plus récent et pas une version déjà dépassée."
             }
         ]
     },
@@ -361,38 +416,38 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "person-add-outline",
-                title: "Ajouter un Employé",
-                description: "Créez un compte avec email et mot de passe. Choisissez le rôle, les boutiques autorisées et le niveau d'accès adapté à la mission de la personne."
+                title: "Créer un compte avec la bonne mission",
+                description: "Avant d'ajouter une personne, définissez ce qu'elle doit réellement faire : vendre, gérer le stock, suivre la comptabilité, piloter une ou plusieurs boutiques. Cela vous aide à attribuer le bon niveau d'accès dès le départ."
             },
             {
                 icon: "shield-checkmark-outline",
-                title: "Permissions Granulaires",
-                description: "Par module (Stock, Caisse, Comptabilité, CRM, Fournisseurs, Personnel) : aucun accès, lecture seule, ou lecture + écriture."
+                title: "Régler les permissions module par module",
+                description: "Pour chaque espace de travail, choisissez si la personne ne voit rien, peut seulement consulter ou peut aussi modifier. Procédez module par module pour éviter un accès trop large."
             },
             {
                 icon: "briefcase-outline",
-                title: "Rôles Manager vs Staff",
-                description: "Un Manager avec droit d'écriture sur Personnel peut créer d'autres comptes. Un Staff n'a accès qu'aux modules autorisés."
-            },
-            {
-                icon: "share-social-outline",
-                title: "Partage par WhatsApp",
-                description: "Envoyez les identifiants de connexion par WhatsApp en un clic. L'employé se connecte avec son email et mot de passe."
+                title: "Différencier responsable et employé",
+                description: "Un profil de responsable peut superviser davantage d'éléments selon les droits que vous lui accordez. Un employé simple doit rester limité aux actions utiles à son poste pour garder un contrôle clair."
             },
             {
                 icon: "business-outline",
-                title: "Boutiques Autorisées",
-                description: "Chaque employé n'accède qu'aux boutiques que vous lui assignez. Les données restent cloisonnées par boutique et le changement de boutique ne donne pas accès aux autres données non autorisées."
+                title: "Limiter l'accès aux bonnes boutiques",
+                description: "Choisissez les boutiques autorisées pour chaque membre de l'équipe. Un utilisateur ne doit voir que les boutiques sur lesquelles il doit réellement travailler."
+            },
+            {
+                icon: "share-social-outline",
+                title: "Transmettre les accès proprement",
+                description: "Une fois le compte créé, partagez les identifiants par le canal prévu afin que la personne puisse se connecter sans erreur. Vérifiez ensuite avec elle que l'accès ouvre bien les bons écrans."
             },
             {
                 icon: "briefcase-outline",
-                title: "Rôles Avancés",
-                description: "Selon les accès disponibles sur votre compte, certains profils peuvent piloter plusieurs boutiques tandis que d'autres restent limités à une ou plusieurs boutiques précises. Attribuez ces rôles avec prudence."
+                title: "Accorder les responsabilités sensibles avec prudence",
+                description: "Les rôles les plus élevés doivent rester réservés aux personnes de confiance, car ils peuvent influencer l'organisation, l'abonnement ou la structure des boutiques selon les droits disponibles."
             },
             {
-                icon: "list-circle-outline",
-                title: "Limites de votre Formule",
-                description: "Le nombre d'employés autorisés dépend de votre formule. Si vous atteignez la limite, l'écran Abonnement vous indique la formule la plus adaptée pour continuer à agrandir votre équipe."
+                icon: "trash-outline",
+                title: "Corriger ou retirer un accès",
+                description: "Si une personne change de poste, quitte l'équipe ou reçoit trop d'accès, revenez dans sa fiche pour corriger les autorisations ou supprimer le compte. Faites cette vérification régulièrement."
             }
         ]
     },
@@ -401,63 +456,48 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "person-outline",
-                title: "Profil & Compte",
-                description: "Consultez votre nom, email, rôle et formule active. Changez votre mot de passe ou votre photo de profil."
+                title: "Commencer par le bon bloc",
+                description: "L'écran Paramètres regroupe plusieurs sections. Ouvrez toujours la section qui correspond exactement à votre besoin avant de modifier quoi que ce soit : profil, boutiques, documents, notifications, sécurité ou données."
             },
             {
                 icon: "language-outline",
-                title: "Langue",
-                description: "15 langues disponibles : Français, English, Wolof, Peul, Arabe, Espagnol, Portugais, Allemand, Italien, et plus."
-            },
-            {
-                icon: "color-palette-outline",
-                title: "Thème & Apparence",
-                description: "Activez le mode sombre pour un confort visuel optimal. Le thème s'applique à toute l'application."
-            },
-            {
-                icon: "toggle-outline",
-                title: "Modules Actifs",
-                description: "Activez/désactivez CRM, Comptabilité, Fournisseurs, Alertes, Activité. Les onglets correspondants apparaissent ou disparaissent."
+                title: "Profil, langue et apparence",
+                description: "Servez-vous de cette zone pour relire vos informations de compte, changer la langue et ajuster l'apparence de l'application. Faites ces réglages en premier pour travailler dans un environnement confortable."
             },
             {
                 icon: "storefront-outline",
-                title: "Boutiques",
-                description: "Créez et gérez vos boutiques. Modifiez le nom, l'adresse et les documents liés. Selon votre compte, vous pouvez avoir une ou plusieurs boutiques à administrer."
+                title: "Boutiques et organisation",
+                description: "Cette partie sert à gérer vos boutiques, leurs informations et certains réglages d'organisation. Revenez-y quand vous ajoutez une nouvelle boutique ou quand vous devez corriger une information structurelle."
             },
             {
-                icon: "business-outline",
-                title: "Centre de Pilotage",
-                description: "Si cet espace est disponible sur votre compte, il regroupe le pilotage des boutiques, de l'équipe et de l'organisation avancée du stock depuis un écran dédié."
+                icon: "toggle-outline",
+                title: "Modules et affichage",
+                description: "Activez uniquement les modules dont vous avez besoin pour garder une interface claire. Si un onglet disparaît ou apparaît, vérifiez ici si son activation a changé."
             },
             {
                 icon: "document-text-outline",
-                title: "Documents de Vente",
-                description: "Personnalisez vos tickets de caisse (nom, pied de page) et vos factures (raison sociale, préfixe, mentions légales)."
+                title: "Documents de vente et fiscalité",
+                description: "Utilisez cette section pour personnaliser les tickets, les factures, les informations légales et les réglages de TVA. Relisez bien les mentions avant d'émettre des documents vers vos clients."
             },
             {
                 icon: "notifications-outline",
-                title: "Notifications Push",
-                description: "Activez/désactivez les alertes : stock bas, rupture, nouvelle vente, nouveau client. Définissez vos contacts d'alerte."
-            },
-            {
-                icon: "receipt-outline",
-                title: "Fiscalité & TVA",
-                description: "Activez la TVA, définissez le taux par défaut et la mention légale affichée sur vos factures."
+                title: "Notifications et alertes",
+                description: "Définissez ici les rappels et alertes que vous voulez recevoir. Activez seulement celles qui comptent vraiment pour éviter le bruit et garder l'attention sur l'essentiel."
             },
             {
                 icon: "lock-closed-outline",
-                title: "Sécurité",
-                description: "Activez le code PIN pour verrouiller l'app au lancement. Ajoutez la biométrie (empreinte, Face ID) pour un accès rapide."
+                title: "Sécurité de l'accès",
+                description: "Le code PIN, la biométrie et les options de protection servent à sécuriser l'application sur votre appareil. Activez-les surtout si plusieurs personnes peuvent manipuler le téléphone ou la tablette."
             },
             {
                 icon: "help-circle-outline",
-                title: "Aide & Support",
-                description: "Le centre d'aide regroupe les guides de chaque module. Servez-vous-en pour comprendre un écran, une action, un bouton ou un flux complet avant de contacter le support."
+                title: "Aide, support et guides",
+                description: "Si vous hésitez sur un écran, un bouton ou une action, commencez par le centre d'aide. Il est là pour expliquer comment utiliser l'application avant de passer par le support."
             },
             {
                 icon: "download-outline",
-                title: "Données & RGPD",
-                description: "Exportez toutes vos données en JSON. La suppression de compte est définitive et irréversible."
+                title: "Données et opérations sensibles",
+                description: "Les exports et suppressions doivent être réalisés avec prudence. Vérifiez toujours ce que vous exportez, conservez vos fichiers si nécessaire et ne supprimez un compte qu'après une vraie validation."
             }
         ]
     },
@@ -466,28 +506,33 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "diamond-outline",
-                title: "Votre Formule Actuelle",
-                description: "Consultez la formule active sur votre compte, son statut (actif, essai, expiré) et les limites qui s'appliquent à votre utilisation."
+                title: "Lire d'abord votre statut",
+                description: "Commencez par vérifier si votre accès est actif, en essai, limité ou expiré. Ce bloc vous dit immédiatement si vous devez agir maintenant ou si votre compte fonctionne normalement."
             },
             {
                 icon: "card-outline",
-                title: "Comparer les Formules",
-                description: "Comparez les formules selon vos besoins : nombre de boutiques, nombre d'employés, accès web et outils avancés. Utilisez cet écran pour choisir ce qui correspond réellement à votre activité."
+                title: "Comparer les formules avec votre usage réel",
+                description: "Ne choisissez pas seulement en regardant le prix. Comparez surtout les limites, le nombre de boutiques, l'équipe autorisée et les outils disponibles afin de prendre une formule adaptée à votre activité."
             },
             {
                 icon: "phone-portrait-outline",
-                title: "Paiement",
-                description: "Selon votre appareil et votre compte, le règlement peut se faire par achat intégré mobile ou par lien de paiement sécurisé. L'écran affiche uniquement les options réellement disponibles pour vous."
+                title: "Choisir le bon mode de paiement",
+                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre situation. Utilisez le canal proposé dans l'application plutôt que de chercher un autre écran pour éviter les erreurs de paiement."
             },
             {
                 icon: "refresh-outline",
-                title: "Récupérer mon Abonnement",
-                description: "Après une réinstallation ou un changement de téléphone, retrouvez votre abonnement existant sans repayer."
+                title: "Récupérer un abonnement existant",
+                description: "Après une réinstallation, un changement d'appareil ou une reconnexion, utilisez l'option de récupération si vous avez déjà payé. Cela évite de lancer un nouveau règlement inutile."
             },
             {
                 icon: "mail-outline",
-                title: "Rappels et Renouvellement",
-                description: "Avant la fin de période, des rappels peuvent être envoyés pour éviter une interruption. Si votre accès est limité, revenez dans cet écran pour vérifier votre statut et reprendre le plan adapté."
+                title: "Suivre les rappels et le renouvellement",
+                description: "Avant l'échéance, des rappels peuvent être envoyés pour éviter une coupure. Revenez dans cet écran si vous avez un doute après un paiement ou si vous devez confirmer la date du prochain renouvellement."
+            },
+            {
+                icon: "person-circle-outline",
+                title: "Relire les informations de facturation",
+                description: "Vérifiez régulièrement le contact de facturation, la devise appliquée et les informations affichées dans cet écran. Elles doivent correspondre à votre situation avant toute action sur l'abonnement."
             }
         ]
     },
@@ -633,10 +678,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     helpCenter: {
         title: "Centre d'Aide",
         steps: [
-            { icon: "book-outline", title: "Guides par Module", description: "Chaque module a son guide. Sélectionnez-en un pour revoir les explications pas-à-pas de l'écran." },
-            { icon: "sparkles-outline", title: "Assistant IA", description: "Posez une question à l'assistant IA (icône étincelle) pour une aide contextuelle instantanée." },
-            { icon: "chatbubble-outline", title: "Tickets Support", description: "Créez un ticket avec sujet et description. Suivez les réponses de l'équipe dans l'onglet 'Mes tickets'." },
-            { icon: "warning-outline", title: "Signaler un Problème", description: "Le formulaire de litige (Facturation, Technique, Paiement, Autre) envoie votre demande à l'administration." }
+            { icon: "search-outline", title: "Chercher avant de demander", description: "Commencez par la recherche ou par le guide du module concerné. C'est souvent le moyen le plus rapide de comprendre un bouton, un écran ou une action sans quitter votre travail." },
+            { icon: "book-outline", title: "Lancer le guide du bon module", description: "Chaque module a son propre parcours. Ouvrez le guide lié à l'écran où vous êtes pour obtenir une explication plus concrète et plus utile qu'une réponse générale." },
+            { icon: "sparkles-outline", title: "Poser une question à l'assistant", description: "Utilisez l'assistant quand votre question porte sur un usage précis, une anomalie ou une marche à suivre. Formulez la situation clairement pour obtenir une réponse plus utile." },
+            { icon: "chatbubble-outline", title: "Contacter le support si nécessaire", description: "Créez un ticket quand vous avez déjà essayé de comprendre le problème mais qu'une aide humaine reste nécessaire. Décrivez le contexte, le module concerné et ce que vous attendiez." },
+            { icon: "warning-outline", title: "Signaler un problème important", description: "Utilisez le signalement quand il s'agit d'un sujet sensible comme la facturation, un blocage technique ou une incohérence sérieuse. Plus votre description est précise, plus la résolution sera rapide." }
         ]
     }
 };

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Archive, Check, MapPin, Pencil, Plus, RotateCcw, Trash2, Wand2, X } from 'lucide-react';
 import { locations as locationsApi } from '../services/api';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type LocationRecord = {
     location_id: string;
@@ -336,8 +337,59 @@ export default function Locations() {
         setReactivateExisting(true);
     };
 
+    const locationSteps: GuideStep[] = [
+        {
+            title: "À quoi sert cet écran",
+            content: "Cet écran sert à organiser physiquement votre stock. Utilisez-le pour créer une structure claire, puis affecter les produits aux bons emplacements afin de gagner du temps au rangement, à l'inventaire et à la préparation.",
+        },
+        {
+            title: 'Démarrer avec un modèle',
+            content: "Les cartes de modèle vous évitent de tout construire à la main. Choisissez celle qui ressemble le plus à votre organisation, puis ajustez les niveaux si nécessaire.",
+            details: [
+                { label: 'Allées / niveaux / étagères', description: "Convient à un entrepôt, une réserve ou un magasin très structuré.", type: 'card' },
+                { label: 'Zones / rayons', description: "Pratique si vous raisonnez par espaces ou familles de produits.", type: 'card' },
+                { label: 'Blocs / casiers', description: "Adapté à un stockage plus compact ou plus simple.", type: 'card' },
+            ],
+        },
+        {
+            title: 'Configurer les niveaux',
+            content: "Chaque niveau représente une couche de votre organisation. Donnez-lui un type, puis choisissez si vous créez des éléments par numérotation ou par noms libres.",
+            details: [
+                { label: 'Numérotation', description: "Saisissez un départ et une quantité pour générer rapidement une série d'emplacements.", type: 'filter' },
+                { label: 'Noms libres', description: "Utilisez ce mode si vos emplacements doivent porter des noms précis au lieu d'une suite numérique.", type: 'filter' },
+                { label: 'Préfixe et suffixe', description: "Affinent le libellé généré si vous avez une convention interne particulière.", type: 'info' },
+            ],
+        },
+        {
+            title: 'Contrôler avant génération',
+            content: "Relisez toujours l'aperçu du chemin et le nombre d'emplacements prévus avant de lancer la création. Cela vous évite de produire une arborescence trop large ou mal nommée.",
+            details: [
+                { label: 'Exemple de chemin', description: "Montre à quoi ressemblera un chemin complet avec votre configuration actuelle.", type: 'info' },
+                { label: 'Emplacements prévus', description: "Indique le volume total qui sera créé pour vous aider à valider la configuration.", type: 'info' },
+            ],
+        },
+        {
+            title: 'Générer ou créer à l’unité',
+            content: "Utilisez la génération guidée quand vous devez construire une structure complète. Utilisez la création manuelle pour ajouter un emplacement isolé, corriger un oubli ou compléter une structure existante.",
+            details: [
+                { label: 'Générer la structure', description: "Crée toute l'arborescence définie dans les niveaux.", type: 'button' },
+                { label: 'Créer l’emplacement', description: "Ajoute un seul emplacement avec un nom, un type et un parent éventuel.", type: 'button' },
+            ],
+        },
+        {
+            title: 'Entretenir la liste des emplacements',
+            content: "La liste finale vous sert à vérifier le résultat, retrouver le chemin complet d'un emplacement et le faire évoluer dans le temps.",
+            details: [
+                { label: 'Modifier', description: "Corrige le nom, le type ou le parent d'un emplacement existant.", type: 'button' },
+                { label: 'Archiver / réactiver', description: "Masque un emplacement inutilisé sans le perdre définitivement, puis le remet en service si besoin.", type: 'button' },
+                { label: 'Supprimer', description: "À réserver aux emplacements créés par erreur ou qui ne doivent plus exister.", type: 'button' },
+            ],
+        },
+    ];
+
     return (
         <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
+            <ScreenGuide steps={locationSteps} guideKey="locations_tour" />
             <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight text-white">{t('settings_workspace.stores.locations.title')}</h1>

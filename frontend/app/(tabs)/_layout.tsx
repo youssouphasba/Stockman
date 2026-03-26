@@ -135,6 +135,7 @@ export default function TabLayout() {
       case 'index': return isRestaurant ? GUIDES.restaurantDashboard : GUIDES.dashboard;
       case 'pos': return isRestaurant ? GUIDES.restaurantPos : (GUIDES.pos ?? GUIDES.sales);
       case 'products': return isRestaurant ? GUIDES.restaurantProducts : GUIDES.products;
+      case 'locations': return GUIDES.locations;
       case 'accounting': return GUIDES.accounting;
       case 'suppliers': return GUIDES.suppliers;
       case 'crm': return GUIDES.crm;
@@ -143,6 +144,7 @@ export default function TabLayout() {
       case 'activity': return GUIDES.activity;
       case 'users': return GUIDES.users;
       case 'settings': return GUIDES.settings;
+      case 'subscription': return GUIDES.subscription;
       case 'restaurant': return GUIDES.restaurantHub;
       case 'tables': return GUIDES.restaurantTables;
       case 'reservations': return GUIDES.restaurantReservations;

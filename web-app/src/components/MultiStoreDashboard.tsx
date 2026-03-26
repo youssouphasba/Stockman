@@ -20,6 +20,7 @@ import { analytics as analyticsApi, AnalyticsKpiDetail, AnalyticsStoreComparison
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 interface MultiStoreDashboardProps {
     user?: User | null;
@@ -144,8 +145,48 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
         );
     }
 
+    const multiStoreSteps: GuideStep[] = [
+        {
+            title: 'Rôle de la vue multi-boutiques',
+            content: "Cet écran sert à piloter plusieurs boutiques dans une seule vue. Utilisez-le pour comparer les performances, repérer les écarts et décider rapidement où agir en priorité.",
+        },
+        {
+            title: 'Tenir compte des filtres globaux',
+            content: "Les chiffres affichés ici dépendent des filtres d'analyse actifs : période, boutique, catégorie ou fournisseur. Vérifiez toujours le contexte avant d'interpréter un écart ou de partager un chiffre consolidé.",
+        },
+        {
+            title: 'Lire les KPI consolidés',
+            content: "Les cartes du haut donnent une lecture globale du réseau : nombre de boutiques, chiffre d'affaires consolidé, ventes, stock valorisé, rotation, stocks bas, ruptures et stock dormant.",
+            details: [
+                { label: 'Cliquer sur une carte', description: "Ouvre le détail analytique correspondant pour aller au-delà du simple indicateur global.", type: 'button' },
+                { label: 'Hint sous la carte', description: "Précise la période ou le type de donnée affichée afin d'éviter une mauvaise lecture.", type: 'info' },
+            ],
+        },
+        {
+            title: 'Comparer les boutiques ligne par ligne',
+            content: "Le tableau principal affiche chaque boutique avec ses métriques essentielles. Utilisez-le pour identifier rapidement la meilleure performance, les points faibles et les écarts entre magasins.",
+            details: [
+                { label: 'CA, ventes, panier, stock', description: "Ces indicateurs aident à comparer l'activité commerciale et la pression sur le stock.", type: 'card' },
+                { label: 'Stock bas et ruptures', description: "Permettent de repérer les boutiques qui nécessitent une action opérationnelle prioritaire.", type: 'card' },
+            ],
+        },
+        {
+            title: 'Basculer la boutique active',
+            content: "Le bouton « Basculer » sert à faire d'une boutique la boutique active du compte. Utilisez-le quand vous voulez ensuite travailler directement dans ses écrans opérationnels avec le bon contexte.",
+        },
+        {
+            title: 'Ajouter une nouvelle boutique',
+            content: "Le bouton « Nouvelle boutique » ouvre une fenêtre simple pour créer un nouveau point de vente. Renseignez le nom, ajoutez l'adresse si vous l'avez, puis validez pour l'intégrer à votre organisation.",
+        },
+        {
+            title: 'Ouvrir les détails analytiques',
+            content: "Quand vous cliquez sur un KPI, une fenêtre détaillée s'ouvre. Servez-vous-en pour obtenir les lignes explicatives et approfondir une variation avant de prendre une décision.",
+        },
+    ];
+
     return (
         <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar space-y-6 max-w-6xl mx-auto">
+            <ScreenGuide guideKey="multi_stores_tour" steps={multiStoreSteps} />
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-white flex items-center gap-2">

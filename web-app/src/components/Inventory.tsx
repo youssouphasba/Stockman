@@ -650,7 +650,7 @@ export default function Inventory() {
             content: t('guide.inventory.search_content', "Trouvez rapidement un produit parmi des centaines grâce à la recherche et aux filtres."),
             details: [
                 { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche en temps réel par nom de produit ou SKU."), type: 'filter' },
-                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Filtrez les produits par boutique ou emplacement de stockage."), type: 'filter' },
+                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Quand cette gestion est disponible sur votre compte, filtrez les produits par emplacement pour voir uniquement une zone précise du stock."), type: 'filter' },
                 { label: t('guide.inventory.filter_toggle', "Icône filtre avancé"), description: t('guide.inventory.filter_toggle_desc', "Ouvre des filtres supplémentaires : catégorie, statut de stock (faible, rupture, surstock), fournisseur."), type: 'filter' },
             ],
         },
@@ -670,9 +670,19 @@ export default function Inventory() {
             details: [
                 { label: t('guide.inventory.action_edit', "Modifier (crayon)"), description: t('guide.inventory.action_edit_desc', "Ouvre le formulaire d'édition du produit : tous les champs sont modifiables."), type: 'button' },
                 { label: t('guide.inventory.action_movement', "Mouvement de stock (+ / −)"), description: t('guide.inventory.action_movement_desc', "Enregistrez une entrée (réception fournisseur, retour) ou une sortie (perte, casse, correction) avec une raison et une quantité."), type: 'button' },
-                { label: t('guide.inventory.action_transfer', "Transfert"), description: t('guide.inventory.action_transfer_desc', "Transférez une quantité de ce produit vers une autre boutique (multi-boutiques uniquement)."), type: 'button' },
+                { label: t('guide.inventory.action_transfer', "Transfert entre boutiques"), description: t('guide.inventory.action_transfer_desc', "Transférez une quantité de ce produit vers une autre boutique quand votre compte gère plusieurs points de vente."), type: 'button' },
+                { label: t('guide.inventory.action_location_transfer', "Transfert d'emplacement"), description: t('guide.inventory.action_location_transfer_desc', "Changez le rangement d'un produit sans toucher à sa quantité quand il passe d'une zone à une autre."), type: 'button' },
                 { label: t('guide.inventory.action_history', "Historique (horloge)"), description: t('guide.inventory.action_history_desc', "Affiche tous les mouvements de stock de ce produit : date, type, quantité, auteur."), type: 'button' },
                 { label: t('guide.inventory.action_delete', "Supprimer (🗑️)"), description: t('guide.inventory.action_delete_desc', "Supprime définitivement le produit. Cette action est irréversible. Les ventes passées restent conservées."), type: 'button' },
+            ],
+        },
+        {
+            title: t('guide.inventory.locations_title', "Organisation par emplacement"),
+            content: t('guide.inventory.locations_content', "Quand la gestion des emplacements est activée sur votre compte, vous pouvez structurer le rangement physique et rattacher chaque produit à un emplacement précis. Cette logique vous aide à retrouver plus vite un article et à mieux préparer les inventaires."),
+            details: [
+                { label: t('guide.inventory.location_field', "Champ emplacement"), description: t('guide.inventory.location_field_desc', "Disponible dans la fiche produit pour associer un article à la bonne zone de stockage."), type: 'info' },
+                { label: t('guide.inventory.location_filter', "Filtre emplacement"), description: t('guide.inventory.location_filter_desc', "Affiche uniquement les produits rangés dans une zone donnée pour accélérer les contrôles."), type: 'filter' },
+                { label: t('guide.inventory.location_import', "Import avec emplacement"), description: t('guide.inventory.location_import_desc', "Le fichier d'import peut aussi préciser l'emplacement pour éviter une saisie manuelle produit par produit."), type: 'info' },
             ],
         },
         {

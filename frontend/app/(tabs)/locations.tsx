@@ -395,12 +395,12 @@ export default function LocationsScreen() {
     return (
       <EnterpriseGate
         locked
-        featureName="Emplacements avancés"
-        description="Cette fonctionnalité fait partie de la version Enterprise mobile."
+        featureName="Organisation détaillée des emplacements"
+        description="Cette fonctionnalité permet de structurer votre stock avec des repères précis et une arborescence complète."
         benefits={[
-          'Créer des structures multi-niveaux adaptées à votre entrepôt',
-          'Générer des séries complètes sans saisie une par une',
-          'Affecter les produits à des emplacements précis',
+          'Créer des structures à plusieurs niveaux adaptées à votre espace',
+          'Générer des séries complètes sans tout saisir une par une',
+          'Affecter les produits à des repères de stockage précis',
         ]}
         icon="location-outline"
       >
@@ -439,21 +439,28 @@ export default function LocationsScreen() {
                 <Text style={styles.chipButtonText}>{showArchived ? 'Masquer archivés' : 'Voir archivés'}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.eyebrow}>Enterprise</Text>
             <Text style={styles.title}>Emplacements</Text>
             <Text style={styles.subtitle}>
-              Configurez votre structure comme vous l’utilisez réellement : allées, zones, rayons, niveaux,
-              étagères ou toute autre logique choisie par votre entreprise.
+              Organisez votre stock comme dans la réalité : allées, zones, rayons, niveaux, étagères ou toute autre
+              structure adaptée à votre espace.
             </Text>
+            <View style={styles.introBox}>
+              <Text style={styles.introTitle}>Exemple concret</Text>
+              <Text style={styles.introText}>
+                Allée 1 / Niveau 2 / Étagère 7, ou toute autre configuration de votre choix.
+              </Text>
+            </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Structure guidée</Text>
+            <Text style={styles.cardTitle}>Créer votre structure</Text>
             <Text style={styles.sectionHelp}>
-              Vous pouvez partir d’un modèle, puis ajuster chaque niveau. Rien n’est imposé.
+              Commencez par une base simple, puis ajustez chaque niveau. Vous pouvez numéroter, nommer librement,
+              ou mélanger les deux selon votre organisation.
             </Text>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChoices}>
+            <Text style={styles.stepLabel}>1. Choisissez une structure de départ</Text>
+            <View style={styles.templateList}>
               {STRUCTURE_TEMPLATES.map((template) => (
                 <TouchableOpacity
                   key={template.id}
@@ -464,11 +471,11 @@ export default function LocationsScreen() {
                   <Text style={styles.templateDescription}>{template.description}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             {parentChoices.length > 0 ? (
               <>
-                <Text style={styles.subsectionTitle}>Créer sous</Text>
+                <Text style={styles.stepLabel}>2. Choisissez où créer la structure</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChoices}>
                   <TouchableOpacity
                     style={[styles.choiceChip, !rootParentId && styles.choiceChipActive]}
@@ -494,12 +501,13 @@ export default function LocationsScreen() {
               </>
             ) : null}
 
+            <Text style={styles.stepLabel}>3. Vérifiez ce qui va être créé</Text>
             <View style={styles.summaryCard}>
-              <View style={styles.summaryMetric}>
+              <View style={styles.summaryPill}>
                 <Text style={styles.summaryValue}>{totalGeneratedCount || 0}</Text>
                 <Text style={styles.summaryLabel}>Emplacements prévus</Text>
               </View>
-              <View style={[styles.summaryMetric, { flex: 1.3 }]}>
+              <View style={styles.summaryMetric}>
                 <Text style={styles.summaryLabel}>Exemple de chemin</Text>
                 <Text style={styles.summaryPath} numberOfLines={2}>
                   {examplePath || 'Ajoutez des niveaux pour voir un aperçu.'}
@@ -514,6 +522,10 @@ export default function LocationsScreen() {
               </View>
             ) : null}
 
+            <Text style={styles.stepLabel}>4. Ajustez chaque niveau</Text>
+            <Text style={styles.sectionHelp}>
+              Chaque niveau représente une couche de votre organisation. Exemple : Allée, puis Niveau, puis Étagère.
+            </Text>
             {levels.map((level, index) => {
               const preview = getLevelPreview(level);
               return (
@@ -521,7 +533,7 @@ export default function LocationsScreen() {
                   <View style={styles.innerHeader}>
                     <View>
                       <Text style={styles.innerTitle}>Niveau {index + 1}</Text>
-                      <Text style={styles.innerHelp}>Choisissez librement le type et la manière de le générer.</Text>
+                      <Text style={styles.innerHelp}>Choisissez librement le nom du niveau et la manière de le générer.</Text>
                     </View>
                     {levels.length > 1 ? (
                       <TouchableOpacity onPress={() => removeLevel(level.id)} style={styles.iconButton}>
@@ -533,7 +545,7 @@ export default function LocationsScreen() {
                   <TextInput
                     value={level.type}
                     onChangeText={(value) => updateLevel(level.id, { type: value })}
-                    placeholder="Type du niveau (ex. Allée, Zone, Niveau)"
+                    placeholder="Nom du niveau (ex. Allée, Zone, Niveau)"
                     placeholderTextColor={colors.textMuted}
                     style={styles.input}
                   />
@@ -573,7 +585,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.start}
                           onChangeText={(value) => updateLevel(level.id, { start: value.replace(/[^0-9]/g, '') })}
-                          placeholder="Premier numéro"
+                          placeholder="Commencer à"
                           placeholderTextColor={colors.textMuted}
                           keyboardType="number-pad"
                           style={[styles.input, styles.flexInput]}
@@ -581,7 +593,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.count}
                           onChangeText={(value) => updateLevel(level.id, { count: value.replace(/[^0-9]/g, '') })}
-                          placeholder="Quantité"
+                          placeholder="Nombre d’éléments"
                           placeholderTextColor={colors.textMuted}
                           keyboardType="number-pad"
                           style={[styles.input, styles.flexInput]}
@@ -591,7 +603,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.prefix}
                           onChangeText={(value) => updateLevel(level.id, { prefix: value })}
-                          placeholder="Texte avant le numéro (facultatif)"
+                          placeholder="Nom affiché avant le numéro (facultatif)"
                           placeholderTextColor={colors.textMuted}
                           style={[styles.input, styles.flexInput]}
                         />
@@ -604,7 +616,7 @@ export default function LocationsScreen() {
                         />
                       </View>
                       <Text style={styles.inlineHelp}>
-                        Si vous laissez le texte avant vide, l’application utilisera automatiquement le type du niveau.
+                        Si vous laissez le texte avant vide, l’application utilisera automatiquement le nom du niveau.
                       </Text>
                     </>
                   ) : (
@@ -612,13 +624,13 @@ export default function LocationsScreen() {
                       <TextInput
                         value={level.names}
                         onChangeText={(value) => updateLevel(level.id, { names: value })}
-                        placeholder="Un nom par ligne ou séparés par des virgules"
+                        placeholder="Un nom par ligne ou séparé par des virgules"
                         placeholderTextColor={colors.textMuted}
                         multiline
                         style={[styles.input, styles.multilineInput]}
                       />
                       <Text style={styles.inlineHelp}>
-                        Exemple : Nord, Sud, Réserve A ou un nom par ligne.
+                        Exemple : Nord, Sud, Réserve A, ou un nom par ligne.
                       </Text>
                     </>
                   )}
@@ -646,9 +658,9 @@ export default function LocationsScreen() {
 
             <View style={styles.switchRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.switchLabel}>Réactiver l’existant</Text>
+                <Text style={styles.switchLabel}>Réutiliser les emplacements déjà existants</Text>
                 <Text style={styles.switchHelp}>
-                  Utile si vous complétez une structure déjà commencée sans dupliquer les mêmes emplacements.
+                  Utile si vous complétez une structure déjà commencée sans recréer les mêmes emplacements.
                 </Text>
               </View>
               <Switch
@@ -669,9 +681,9 @@ export default function LocationsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ajout ponctuel</Text>
+            <Text style={styles.cardTitle}>Ajouter un seul emplacement</Text>
             <Text style={styles.sectionHelp}>
-              Pour un emplacement isolé ou une correction rapide, vous pouvez aussi créer un élément à l’unité.
+              Pour une correction rapide ou un besoin isolé, vous pouvez créer un emplacement à l’unité.
             </Text>
             <TextInput
               value={manualName}
@@ -717,7 +729,7 @@ export default function LocationsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Liste des emplacements</Text>
+            <Text style={styles.cardTitle}>Emplacements existants</Text>
             {loading ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
             ) : visibleLocations.length === 0 ? (
@@ -819,18 +831,23 @@ const getStyles = (colors: any) => StyleSheet.create({
   circleButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
   chipButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: BorderRadius.full, backgroundColor: 'rgba(255,255,255,0.16)' },
   chipButtonText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  eyebrow: { color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: 1.2, fontSize: FontSize.xs, fontWeight: '800', marginBottom: 6 },
   title: { color: '#fff', fontSize: FontSize.xxl, fontWeight: '900' },
   subtitle: { marginTop: Spacing.sm, color: 'rgba(255,255,255,0.86)', fontSize: FontSize.md, lineHeight: 22 },
+  introBox: { marginTop: Spacing.md, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  introTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '800', marginBottom: 4 },
+  introText: { color: 'rgba(255,255,255,0.86)', fontSize: FontSize.sm, lineHeight: 20 },
   card: { marginHorizontal: Spacing.lg, marginTop: Spacing.lg, padding: Spacing.lg, borderRadius: BorderRadius.xl, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
   cardTitle: { color: colors.text, fontSize: FontSize.lg, fontWeight: '800', marginBottom: Spacing.xs },
   sectionHelp: { color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20, marginBottom: Spacing.md },
+  stepLabel: { color: colors.text, fontSize: FontSize.sm, fontWeight: '800', marginBottom: Spacing.sm },
   subsectionTitle: { color: colors.text, fontSize: FontSize.sm, fontWeight: '700', marginBottom: Spacing.sm },
   horizontalChoices: { marginBottom: Spacing.sm },
-  templateCard: { width: 220, marginRight: Spacing.sm, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: colors.bgDark, borderWidth: 1, borderColor: colors.glassBorder },
+  templateList: { gap: Spacing.sm, marginBottom: Spacing.md },
+  templateCard: { width: '100%', padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: colors.bgDark, borderWidth: 1, borderColor: colors.glassBorder },
   templateTitle: { color: colors.text, fontSize: FontSize.sm, fontWeight: '800', marginBottom: 6 },
   templateDescription: { color: colors.textSecondary, fontSize: FontSize.xs, lineHeight: 18 },
-  summaryCard: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: colors.bgDark, borderWidth: 1, borderColor: colors.glassBorder },
+  summaryCard: { gap: Spacing.md, marginBottom: Spacing.md, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: colors.bgDark, borderWidth: 1, borderColor: colors.glassBorder },
+  summaryPill: { alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: colors.primary + '14', borderWidth: 1, borderColor: colors.primary + '30' },
   summaryMetric: { flex: 1 },
   summaryValue: { color: colors.primary, fontSize: FontSize.xxl, fontWeight: '900' },
   summaryLabel: { color: colors.textSecondary, fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
@@ -860,10 +877,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   previewBox: { marginTop: Spacing.xs, padding: Spacing.sm, borderRadius: BorderRadius.md, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
   previewTitle: { color: colors.textSecondary, fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
   previewText: { color: colors.text, fontSize: FontSize.sm, lineHeight: 20, fontWeight: '600' },
-  generatorActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md, marginBottom: Spacing.sm },
-  linkButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  generatorActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.sm },
+  linkButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
   linkButtonText: { color: colors.primary, fontSize: FontSize.sm, fontWeight: '700' },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginVertical: Spacing.sm },
+  switchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, marginVertical: Spacing.sm },
   switchLabel: { color: colors.text, fontSize: FontSize.sm, fontWeight: '700' },
   switchHelp: { color: colors.textSecondary, fontSize: FontSize.xs, lineHeight: 18, marginTop: 4 },
   primaryButton: { marginTop: Spacing.sm, backgroundColor: colors.primary, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },

@@ -18,12 +18,52 @@ import {
 } from 'lucide-react';
 import { activityLogs as logsApi } from '../services/api';
 import { exportActivity } from '../utils/ExportService';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function Activity() {
     const { t } = useTranslation();
     const [logs, setLogs] = useState<any[]>([]);
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [loading, setLoading] = useState(true);
+    const activitySteps: GuideStep[] = [
+        {
+            title: "Rôle de l'historique d'activité",
+            content: "Cet écran rassemble les actions importantes enregistrées sur votre compte. Servez-vous-en pour vérifier une opération récente, comprendre un incident ou reconstituer ce qui s'est passé sur une période donnée.",
+        },
+        {
+            title: 'Exporter le journal',
+            content: "Le bouton « Exporter » en haut à droite permet de sortir les lignes du journal dans un format exploitable. Utilisez l'export quand vous devez partager un contrôle, archiver une période ou vérifier des opérations hors de l'application.",
+            details: [
+                { label: 'Excel (.xlsx)', description: "Pratique pour filtrer, trier et analyser plusieurs événements dans un tableur.", type: 'button' },
+                { label: 'PDF', description: "Utile pour une lecture rapide, un partage ou une impression.", type: 'button' },
+            ],
+        },
+        {
+            title: 'Lire une ligne correctement',
+            content: "Commencez par le badge du module, puis l'heure, puis le titre de la ligne. Vous identifiez ainsi la zone concernée, le moment exact et l'action principale avant d'entrer dans le détail.",
+            details: [
+                { label: 'Badge du module', description: "Indique la famille d'action : produit, vente, authentification ou autre module système.", type: 'info' },
+                { label: 'Horodatage', description: "Affiche la date et l'heure exactes de l'opération pour reconstruire une chronologie fiable.", type: 'info' },
+                { label: 'Description', description: "Résume l'événement enregistré. C'est la meilleure entrée pour comprendre rapidement la ligne.", type: 'card' },
+            ],
+        },
+        {
+            title: "Comprendre le détail d'une action",
+            content: "Sous le titre, la seconde ligne donne le motif, l'action brute ou un complément de contexte. Lisez-la pour savoir s'il s'agit d'une suppression, d'un ajustement, d'une vente ou d'une autre opération métier.",
+        },
+        {
+            title: "Identifier qui a agi",
+            content: "Le bloc « Par ... » en bas de la ligne vous indique quel utilisateur a déclenché l'action. Si aucun nom n'apparaît, l'événement peut provenir du système ou d'un traitement automatique.",
+        },
+        {
+            title: 'Bonne méthode de vérification',
+            content: "Pour un vrai audit, relisez toujours ce journal avec le bon contexte : la période concernée, la boutique active et le module visé. Si vous vérifiez un écart de stock, comparez ensuite avec Produits, Comptabilité ou Commandes.",
+            details: [
+                { label: 'Contrôle quotidien', description: "Relisez les dernières lignes pour repérer une erreur de saisie ou une action inattendue.", type: 'tip' },
+                { label: 'Contrôle après incident', description: "Partez de l'heure du problème, puis remontez les événements pour reconstruire la séquence complète.", type: 'tip' },
+            ],
+        },
+    ];
 
     useEffect(() => {
         loadLogs();
@@ -60,6 +100,7 @@ export default function Activity() {
 
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+            <ScreenGuide steps={activitySteps} guideKey="activity_tour" />
             <header className="flex justify-between items-start mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Historique d'Activité</h1>

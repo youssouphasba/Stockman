@@ -186,7 +186,7 @@ export default function RegisterScreen() {
                 style={[styles.roleCard, selectedRole === 'shopkeeper' && styles.roleCardActive]}
                 onPress={() => {
                   setSelectedRole('shopkeeper');
-                  setStep('form');
+                  setStep('details');
                 }}
               >
                 <View style={[styles.roleIcon, { backgroundColor: `${Colors.primary}20` }]}>
@@ -203,7 +203,7 @@ export default function RegisterScreen() {
                 style={[styles.roleCard, selectedRole === 'supplier' && styles.roleCardActive]}
                 onPress={() => {
                   setSelectedRole('supplier');
-                  setStep('form');
+                  setStep('details');
                 }}
               >
                 <View style={[styles.roleIcon, { backgroundColor: `${Colors.secondary}20` }]}>

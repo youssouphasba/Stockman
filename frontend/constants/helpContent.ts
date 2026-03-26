@@ -67,6 +67,21 @@ export const HELP_MODULES: HelpModule[] = [
     ],
   },
   {
+    key: 'locations',
+    title: "Emplacements de stockage",
+    icon: 'map-outline',
+    color: '#0ea5e9',
+    guideKey: 'locations',
+    role: 'shopkeeper',
+    audience: 'default',
+    features: [
+      { icon: 'albums-outline', title: "Construire votre structure", description: "Créez une organisation claire avec vos propres mots : zone, allée, rayon, niveau, étagère ou tout autre repère utile à votre activité." },
+      { icon: 'layers-outline', title: "Génération guidée", description: "Créez plusieurs emplacements d'un coup au lieu de les saisir un par un, puis relisez l'aperçu avant validation." },
+      { icon: 'cube-outline', title: "Affectation des produits", description: "Associez ensuite chaque produit au bon emplacement pour accélérer le rangement, l'inventaire et la recherche d'un article." },
+      { icon: 'swap-horizontal-outline', title: "Évolution de la structure", description: "Corrigez, archivez, réactivez ou modifiez les emplacements quand l'organisation du stock change." },
+    ],
+  },
+  {
     key: 'pos',
     title: 'help.modules.pos.title',
     icon: 'calculator-outline',
@@ -193,6 +208,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'list-outline', title: 'help.modules.activity.f1.t', description: "help.modules.activity.f1.d" },
       { icon: 'funnel-outline', title: 'help.modules.activity.f2.t', description: "help.modules.activity.f2.d" },
       { icon: 'people-outline', title: 'help.modules.activity.f3.t', description: "help.modules.activity.f3.d" },
+      { icon: 'download-outline', title: "Exporter le journal", description: "Exportez l'historique lorsque vous devez partager une vérification, archiver une période ou relire les événements dans un tableur ou un PDF." },
+      { icon: 'business-outline', title: "Conserver le bon contexte", description: "Sur un compte multi-boutiques, relisez toujours l'historique avec la bonne boutique active pour interpréter correctement une action." },
     ],
   },
   {
@@ -230,6 +247,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'receipt-outline', title: 'help.modules.settings.f7.t', description: "help.modules.settings.f7.d" },
       { icon: 'lock-closed-outline', title: 'help.modules.settings.f8.t', description: "help.modules.settings.f8.d" },
       { icon: 'download-outline', title: 'help.modules.settings.f9.t', description: "help.modules.settings.f9.d" },
+      { icon: 'help-circle-outline', title: "Centre d'aide", description: "Retrouvez ici les guides embarqués et les accès utiles quand vous avez besoin d'être accompagné dans l'application." },
     ],
   },
   {
@@ -245,6 +263,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'swap-horizontal-outline', title: 'help.modules.subscription.f2.t', description: "help.modules.subscription.f2.d" },
       { icon: 'phone-portrait-outline', title: 'help.modules.subscription.f3.t', description: "help.modules.subscription.f3.d" },
       { icon: 'refresh-outline', title: 'help.modules.subscription.f4.t', description: "help.modules.subscription.f4.d" },
+      { icon: 'mail-outline', title: "Rappels avant échéance", description: "Consultez cet écran pour comprendre les rappels envoyés avant la fin de période et éviter une interruption d'accès." },
+      { icon: 'person-circle-outline', title: "Contact de facturation", description: "Vérifiez la personne et l'adresse email qui doivent recevoir les informations de facturation et de renouvellement." },
     ],
   },
   // ============ SUPPLIER ============

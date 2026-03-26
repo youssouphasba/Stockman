@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ChevronDown, ChevronRight, BookOpen, MousePointerClick, SlidersHorizontal, LayoutGrid, Info, Lightbulb } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, ChevronLeft, BookOpen, MousePointerClick, SlidersHorizontal, LayoutGrid, Info, Lightbulb } from 'lucide-react';
 
 export interface GuideDetail {
     label: string;
@@ -45,25 +45,38 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
     const [isVisible, setIsVisible] = useState(false);
     const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+    const resetGuide = useCallback(() => {
+        setSearchQuery('');
+        setCurrentStepIndex(0);
+        setExpandedSections(new Set(steps.length ? [0] : []));
+    }, [steps.length]);
 
     useEffect(() => {
         const shown = localStorage.getItem(`guide_completed_${guideKey}`);
         if (!shown && autoStart) {
-            const timer = setTimeout(() => setIsVisible(true), 1500);
+            const timer = setTimeout(() => {
+                resetGuide();
+                setIsVisible(true);
+            }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [guideKey, autoStart]);
+    }, [guideKey, autoStart, resetGuide]);
 
     useEffect(() => {
         const onOpenGuide = (event: Event) => {
-            const customEvent = event as CustomEvent<{ guideKey?: string }>;
+            const customEvent = event as CustomEvent<{ guideKey?: string; reset?: boolean }>;
             const requestedKey = customEvent.detail?.guideKey;
             if (requestedKey && requestedKey !== guideKey) return;
+            if (customEvent.detail?.reset !== false) {
+                resetGuide();
+            }
             setIsVisible(true);
         };
         window.addEventListener('stockman:open-guide', onOpenGuide as EventListener);
         return () => window.removeEventListener('stockman:open-guide', onOpenGuide as EventListener);
-    }, [guideKey]);
+    }, [guideKey, resetGuide]);
 
     const toggleSection = (idx: number) => {
         setExpandedSections(prev => {
@@ -79,16 +92,61 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
         setIsVisible(false);
     };
 
-    if (!isVisible) return null;
-
     const query = searchQuery.toLowerCase();
-    const filteredSteps = query
+    const filteredSteps = useMemo(() => query
         ? steps.filter(s =>
             s.title.toLowerCase().includes(query) ||
             s.content.toLowerCase().includes(query) ||
             s.details?.some(d => d.label.toLowerCase().includes(query) || d.description.toLowerCase().includes(query))
         )
-        : steps;
+        : steps, [query, steps]);
+
+    useEffect(() => {
+        if (!filteredSteps.length) return;
+        const currentVisible = filteredSteps.some((step) => steps.indexOf(step) === currentStepIndex);
+        if (!currentVisible) {
+            const firstVisibleIndex = steps.indexOf(filteredSteps[0]);
+            setCurrentStepIndex(firstVisibleIndex);
+            setExpandedSections(new Set([firstVisibleIndex]));
+        }
+    }, [currentStepIndex, filteredSteps, steps]);
+
+    const navigationSteps = filteredSteps.length ? filteredSteps : steps;
+    const currentNavigationIndex = Math.max(
+        0,
+        navigationSteps.findIndex((step) => steps.indexOf(step) === currentStepIndex),
+    );
+    const currentStep = navigationSteps[currentNavigationIndex] || null;
+    const currentRealIndex = currentStep ? steps.indexOf(currentStep) : 0;
+    const progress = steps.length ? ((currentRealIndex + 1) / steps.length) * 100 : 0;
+
+    const focusStep = useCallback((idx: number) => {
+        setCurrentStepIndex(idx);
+        setExpandedSections(new Set([idx]));
+        requestAnimationFrame(() => {
+            document.getElementById(`guide-step-${guideKey}-${idx}`)?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
+        });
+    }, [guideKey]);
+
+    const handlePrevious = () => {
+        if (currentNavigationIndex <= 0) return;
+        const previousRealIndex = steps.indexOf(navigationSteps[currentNavigationIndex - 1]);
+        focusStep(previousRealIndex);
+    };
+
+    const handleNext = () => {
+        if (currentNavigationIndex >= navigationSteps.length - 1) {
+            handleClose();
+            return;
+        }
+        const nextRealIndex = steps.indexOf(navigationSteps[currentNavigationIndex + 1]);
+        focusStep(nextRealIndex);
+    };
+
+    if (!isVisible) return null;
 
     return (
         <>
@@ -129,6 +187,49 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
                         placeholder={t('guide.search_placeholder', { defaultValue: 'Rechercher dans le guide...' })}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-primary/50 transition-colors"
                     />
+                    {steps.length > 0 && (
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">
+                                        {t('guide.step_progress', { defaultValue: 'Parcours guidé' })}
+                                    </p>
+                                    <h3 className="mt-1 text-sm font-bold text-white">
+                                        {currentStep?.title || t('guide.help_center', { defaultValue: "Centre d'aide" })}
+                                    </h3>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        {t('guide.step_counter', { defaultValue: 'Étape {{current}} sur {{total}}', current: currentRealIndex + 1, total: steps.length })}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handlePrevious}
+                                        disabled={currentNavigationIndex <= 0}
+                                        className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        <span className="flex items-center gap-1">
+                                            <ChevronLeft size={14} />
+                                            {t('guide.previous', { defaultValue: 'Précédent' })}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={handleNext}
+                                        className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-primary/90"
+                                    >
+                                        <span className="flex items-center gap-1">
+                                            {currentNavigationIndex >= navigationSteps.length - 1
+                                                ? t('guide.finish', { defaultValue: 'Terminer' })
+                                                : t('guide.next', { defaultValue: 'Suivant' })}
+                                            <ChevronRight size={14} />
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Sections */}
@@ -139,9 +240,17 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
                         const hasDetails = step.details && step.details.length > 0;
 
                         return (
-                            <div key={realIdx} className="rounded-2xl border border-white/10 overflow-hidden transition-all">
+                            <div
+                                id={`guide-step-${guideKey}-${realIdx}`}
+                                key={realIdx}
+                                className={`rounded-2xl border overflow-hidden transition-all ${currentStepIndex === realIdx ? 'border-primary/40 bg-primary/[0.03]' : 'border-white/10'}`}
+                            >
                                 <button
-                                    onClick={() => toggleSection(realIdx)}
+                                    onClick={() => {
+                                        setCurrentStepIndex(realIdx);
+                                        if (currentStepIndex === realIdx) toggleSection(realIdx);
+                                        else setExpandedSections(new Set([realIdx]));
+                                    }}
                                     className="w-full text-left px-4 py-3.5 flex items-start gap-3 hover:bg-white/5 transition-colors"
                                 >
                                     <div className="mt-0.5 w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0 text-xs font-black text-primary">
