@@ -52,8 +52,6 @@ export default function CampaignModal({ isOpen, onClose }: CampaignModalProps) {
     const handleSend = () => {
         if (!message) return;
         setSending(true);
-        // On web, we open current WhatsApp interface or show a simulator
-        // In real app, this might use a backend broadcast service
         const first = targetCustomers.find(c => c.phone);
         if (first) {
             const phone = first.phone.replace(/[^\d]/g, '');

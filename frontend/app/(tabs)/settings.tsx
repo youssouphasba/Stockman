@@ -227,6 +227,12 @@ export default function SettingsScreen() {
   const showManagerZone = (settingsData?.mobile_preferences?.show_manager_zone ?? true) && (isOrgAdmin || isBillingAdmin);
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
   const canViewTeam = isOrgAdmin || hasPermission('staff', 'read');
+  const canManageOrganizationSettings = isOrgAdmin;
+  const canManageStoreSettings = isOrgAdmin;
+  const canManageAlertSettings = isOrgAdmin;
+  const canManageBillingSettings = showManagerZone && isBillingAdmin;
+  const canViewOrganizationGroup = canViewTeam || (showManagerZone && isOrgAdmin && hasEnterprisePlan) || canManageOrganizationSettings;
+  const canViewStoreGroup = canManageStoreSettings;
 
   const loadSettings = useCallback(async () => {
     try {
@@ -704,6 +710,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         </SettingsAccordionSection>
 
+        {canViewOrganizationGroup && (
         <SettingsAccordionSection
           title="Organisation et pilotage"
           description="Équipe, modules, accès avancés et réglages de gestion."
@@ -768,7 +775,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Modules */}
-        {isOrgAdmin && (
+        {canManageOrganizationSettings && (
         <SettingsAccordionSection
           title="Modules visibles"
           description="Activez ou désactivez les modules affichés dans l'application."
@@ -795,7 +802,9 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
         </SettingsAccordionSection>
+        )}
 
+        {canViewStoreGroup && (
         <SettingsAccordionSection
           title="Boutique active"
           description="Nom, documents et paramètres liés au point de vente sélectionné."
@@ -939,7 +948,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
 
-        {isOrgAdmin && !currentStore && (
+        {canManageStoreSettings && !currentStore && (
         <SettingsAccordionSection
           title="Boutique · Paramètres"
           description="Aucune boutique sélectionnée pour les réglages du point de vente."
@@ -955,6 +964,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
         </SettingsAccordionSection>
+        )}
 
         <SettingsAccordionSection
           title="Alertes, rappels et facturation"
@@ -966,7 +976,7 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
-        {isOrgAdmin && (
+        {canManageAlertSettings && (
         <SettingsAccordionSection
           title="Alertes du compte"
           description="Destinataires utilisés pour les alertes du compte."
@@ -1011,7 +1021,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
 
-        {isOrgAdmin && currentStore && (
+        {canManageAlertSettings && currentStore && (
         <SettingsAccordionSection
           title="Alertes de la boutique"
           description="Destinataires propres à la boutique active."
@@ -1151,7 +1161,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Reminder Rules */}
-        {isOrgAdmin && (
+        {canManageAlertSettings && (
         <SettingsAccordionSection
           title="Rappels intelligents"
           description="Règles automatiques pour les relances, contrôles et actions de pilotage."
@@ -1252,7 +1262,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         {/* Subscription */}
-        {showManagerZone && isBillingAdmin && (
+        {canManageBillingSettings && (
         <SettingsAccordionSection
           title="Abonnement et facturation"
           description="Plan actif, espace d'abonnement et contact de facturation."

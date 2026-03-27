@@ -16,13 +16,17 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supplierProfile, SupplierProfileData, SupplierProfileCreate } from '../../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 import DeleteAccountModal from '../../components/DeleteAccountModal';
 
 export default function SupplierSettingsScreen() {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const infoStyles = React.useMemo(() => createInfoStyles(colors), [colors]);
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<SupplierProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,16 +132,25 @@ export default function SupplierSettingsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.secondary} />
+          <ActivityIndicator size="large" color={colors.secondary} />
         </View>
       </LinearGradient>
     );
   }
 
+  function InfoRow({ label, value }: { label: string; value: string }) {
+    return (
+      <View style={infoStyles.row}>
+        <Text style={infoStyles.label}>{label}</Text>
+        <Text style={infoStyles.value}>{value}</Text>
+      </View>
+    );
+  }
+
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>{t('supplier_settings.page_title')}</Text>
 
@@ -165,7 +178,7 @@ export default function SupplierSettingsScreen() {
             <Text style={styles.sectionTitle}>{t('supplier_settings.commercial_profile')}</Text>
             {!isEditing && profile && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="create-outline" size={20} color={Colors.secondary} />
+                <Ionicons name="create-outline" size={20} color={colors.secondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -173,34 +186,34 @@ export default function SupplierSettingsScreen() {
           {isEditing ? (
             <>
               <Text style={styles.label}>{t('supplier_settings.company_name_label')}</Text>
-              <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder={t('supplier_settings.company_name_ph')} placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder={t('supplier_settings.company_name_ph')} placeholderTextColor={colors.textMuted} />
 
               <Text style={styles.label}>{t('supplier_settings.description_label')}</Text>
-              <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder={t('supplier_settings.description_ph')} placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
+              <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder={t('supplier_settings.description_ph')} placeholderTextColor={colors.textMuted} multiline numberOfLines={3} />
 
               <Text style={styles.label}>{t('supplier_settings.phone_label')}</Text>
-              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+221 xx xxx xx xx" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+221 xx xxx xx xx" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
 
               <Text style={styles.label}>{t('supplier_settings.address_label')}</Text>
-              <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder={t('supplier_settings.address_ph')} placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder={t('supplier_settings.address_ph')} placeholderTextColor={colors.textMuted} />
 
               <Text style={styles.label}>{t('supplier_settings.city_label')}</Text>
-              <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder={t('supplier_settings.city_ph')} placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder={t('supplier_settings.city_ph')} placeholderTextColor={colors.textMuted} />
 
               <Text style={styles.label}>{t('supplier_settings.categories_label')}</Text>
-              <TextInput style={styles.input} value={categoriesText} onChangeText={setCategoriesText} placeholder={t('supplier_settings.categories_ph')} placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={categoriesText} onChangeText={setCategoriesText} placeholder={t('supplier_settings.categories_ph')} placeholderTextColor={colors.textMuted} />
 
               <Text style={styles.label}>{t('supplier_settings.zones_label')}</Text>
-              <TextInput style={styles.input} value={zonesText} onChangeText={setZonesText} placeholder={t('supplier_settings.zones_ph')} placeholderTextColor={Colors.textMuted} />
+              <TextInput style={styles.input} value={zonesText} onChangeText={setZonesText} placeholder={t('supplier_settings.zones_ph')} placeholderTextColor={colors.textMuted} />
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
                   <Text style={styles.label}>{t('supplier_settings.min_order_label')} ({t('common.currency_default')})</Text>
-                  <TextInput style={styles.input} value={minOrder} onChangeText={setMinOrder} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+                  <TextInput style={styles.input} value={minOrder} onChangeText={setMinOrder} placeholder="0" placeholderTextColor={colors.textMuted} keyboardType="numeric" />
                 </View>
                 <View style={styles.formHalf}>
                   <Text style={styles.label}>{t('supplier_settings.avg_delivery_label')}</Text>
-                  <TextInput style={styles.input} value={avgDays} onChangeText={setAvgDays} placeholder="3" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+                  <TextInput style={styles.input} value={avgDays} onChangeText={setAvgDays} placeholder="3" placeholderTextColor={colors.textMuted} keyboardType="numeric" />
                 </View>
               </View>
 
@@ -259,29 +272,29 @@ export default function SupplierSettingsScreen() {
                 <Text style={infoStyles.label}>{t('common.language_choice') || 'Langue'}</Text>
                 <Text style={infoStyles.value}>{i18n.language.toUpperCase()}</Text>
               </View>
-              <Ionicons name="language-outline" size={20} color={Colors.secondary} />
+              <Ionicons name="language-outline" size={20} color={colors.secondary} />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* GDPR - Danger Zone */}
-        <View style={[styles.card, { borderColor: Colors.danger + '30', borderWidth: 1 }]}>
-          <Text style={[styles.sectionTitle, { color: Colors.danger }]}>{t('settings.danger_zone')}</Text>
+        <View style={[styles.card, { borderColor: colors.danger + '30', borderWidth: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('settings.danger_zone')}</Text>
           <Text style={[infoStyles.label, { marginBottom: Spacing.md }]}>
             {t('settings.delete_account_desc')}
           </Text>
 
           <TouchableOpacity style={[infoStyles.row, { borderBottomWidth: 0 }]} onPress={() => setShowDeleteModal(true)}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={[infoStyles.label, { color: Colors.danger, fontSize: FontSize.md, marginBottom: 0 }]}>{t('settings.delete_account')}</Text>
-              <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+              <Text style={[infoStyles.label, { color: colors.danger, fontSize: FontSize.md, marginBottom: 0 }]}>{t('settings.delete_account')}</Text>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text style={styles.logoutText}>{t('auth.logout_btn')}</Text>
         </TouchableOpacity>
 
@@ -301,33 +314,24 @@ export default function SupplierSettingsScreen() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={infoStyles.row}>
-      <Text style={infoStyles.label}>{label}</Text>
-      <Text style={infoStyles.value}>{value}</Text>
-    </View>
-  );
-}
-
-const infoStyles = StyleSheet.create({
+const createInfoStyles = (colors: any) => StyleSheet.create({
   row: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   label: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginBottom: 2,
   },
   value: {
     fontSize: FontSize.md,
-    color: Colors.text,
+    color: colors.text,
   },
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -335,11 +339,14 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: FontSize.xl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.lg,
   },
   card: {
-    ...GlassStyle,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.md,
   },
@@ -352,7 +359,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   userSection: {
     flexDirection: 'row',
@@ -363,28 +370,28 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.secondary + '30',
+    backgroundColor: colors.secondary + '30',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: FontSize.xl,
     fontWeight: '700',
-    color: Colors.secondaryLight,
+    color: colors.secondaryLight,
   },
   userInfo: { flex: 1 },
   userName: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   userEmail: {
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   roleBadge: {
-    backgroundColor: Colors.secondary + '20',
+    backgroundColor: colors.secondary + '20',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
@@ -394,21 +401,21 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: FontSize.xs,
     fontWeight: '600',
-    color: Colors.secondary,
+    color: colors.secondary,
   },
   label: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.xs,
     marginTop: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.inputBg,
+    backgroundColor: colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
-    color: Colors.text,
+    borderColor: colors.divider,
+    color: colors.text,
     fontSize: FontSize.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -432,17 +439,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
     fontSize: FontSize.md,
   },
   saveBtn: {
     flex: 1,
-    backgroundColor: Colors.secondary,
+    backgroundColor: colors.secondary,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
@@ -458,13 +465,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    ...GlassStyle,
-    borderColor: Colors.danger + '30',
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.danger + '30',
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
   },
   logoutText: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.danger,
+    color: colors.danger,
   },
 });

@@ -103,6 +103,9 @@ export default function ScreenGuide({ visible, onClose, title, steps }: Props) {
     [itemWidth, colors]
   );
 
+  if (!visible) return null;
+
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>

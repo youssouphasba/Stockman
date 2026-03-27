@@ -432,7 +432,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                                     t={t}
                                     currency={currency}
                                     onProduce={() => { setSelectedRecipe(recipe); setShowProduceModal(true); }}
-                                    onEdit={() => { /* TODO: Edit modal */ }}
+                                    onEdit={() => {}}
                                     onDelete={() => handleDeleteRecipe(recipe)}
                                 />
                             ))
@@ -554,7 +554,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
             </ScrollView>
 
             {/* ═══ Create Recipe Modal ═══ */}
-            <Modal visible={showRecipeModal} animationType="slide" transparent onRequestClose={() => setShowRecipeModal(false)}>
+            {showRecipeModal && <Modal visible={showRecipeModal} animationType="slide" transparent onRequestClose={() => setShowRecipeModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark }]}>
                         <View style={s.modalHeader}>
@@ -633,10 +633,10 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
 
             {/* ═══ Produce Modal ═══ */}
-            <Modal visible={showProduceModal} animationType="slide" transparent onRequestClose={() => setShowProduceModal(false)}>
+            {showProduceModal && <Modal visible={showProduceModal} animationType="slide" transparent onRequestClose={() => setShowProduceModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
                         <View style={s.modalHeader}>
@@ -678,10 +678,10 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
 
             {/* ═══ Complete Modal ═══ */}
-            <Modal visible={showCompleteModal} animationType="slide" transparent onRequestClose={() => setShowCompleteModal(false)}>
+            {showCompleteModal && <Modal visible={showCompleteModal} animationType="slide" transparent onRequestClose={() => setShowCompleteModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
                         <View style={s.modalHeader}>
@@ -717,7 +717,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
         </View>
     );
 }

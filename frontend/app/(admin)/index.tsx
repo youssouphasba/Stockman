@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Alert, Animated, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Alert, Animated, Dimensions, ActivityIndicator, Platform, Linking } from 'react-native';
 import { admin, system, SystemHealth, GlobalStats, DetailedStats, User, Product, Customer, SupportTicket, ActivityLog, StoreAdmin } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,20 +16,20 @@ type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stoc
 import { useTranslation } from 'react-i18next';
 
 const COUNTRY_NAMES: Record<string, string> = {
-    'SN': 'Sénégal',
-    'CI': 'Côte d\'Ivoire',
+    'SN': 'S�n�gal',
+    'CI': 'C�te d\'Ivoire',
     'ML': 'Mali',
     'BF': 'Burkina Faso',
     'TG': 'Togo',
-    'BJ': 'Bénin',
+    'BJ': 'B�nin',
     'NE': 'Niger',
-    'GN': 'Guinée',
+    'GN': 'Guin�e',
     'CM': 'Cameroun',
     'FR': 'France',
     'US': 'USA',
     'MA': 'Maroc',
     'TN': 'Tunisie',
-    'DZ': 'Algérie',
+    'DZ': 'Alg�rie',
     'GA': 'Gabon',
     'CG': 'Congo',
     'CD': 'RDC',
@@ -37,7 +37,7 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 export default function AdminDashboard() {
     const { t } = useTranslation();
-    const { colors } = useTheme();
+    const { colors, isDark } = useTheme();
     const { user, logout } = useAuth();
 
     const SEGMENTS: { id: Segment; label: string; icon: string }[] = [
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
         { id: 'users', label: t('admin.segments.users'), icon: 'people' },
         { id: 'stores', label: t('admin.segments.stores'), icon: 'business' },
         { id: 'subscriptions', label: 'Abonnements', icon: 'card' },
-        { id: 'demos', label: 'Démos', icon: 'sparkles' },
+        { id: 'demos', label: 'D�mos', icon: 'sparkles' },
         { id: 'stock', label: t('admin.segments.stock'), icon: 'cube' },
         { id: 'finance', label: t('admin.segments.finance'), icon: 'cash' },
         { id: 'crm', label: t('admin.segments.crm'), icon: 'person-add' },
@@ -232,7 +232,27 @@ export default function AdminDashboard() {
     const onRefresh = () => { setRefreshing(true); loadData(); };
 
     const fmtMoney = (n: any, currency?: string) => formatCurrency(n, currency);
-    const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString() : '—';
+    const openExternal = async (url: string) => {
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (!canOpen) {
+                Alert.alert('Action indisponible', 'Cette action ne peut pas �tre ouverte sur cet appareil.');
+                return;
+            }
+            await Linking.openURL(url);
+        } catch {
+            Alert.alert(t('admin.actions.error'));
+        }
+    };
+    const handleCall = (phone?: string | null) => {
+        if (!phone) return Alert.alert('Num�ro indisponible', 'Aucun num�ro de t�l�phone n�est disponible pour ce contact.');
+        openExternal(`tel:${phone}`);
+    };
+    const handleEmail = (email?: string | null) => {
+        if (!email) return Alert.alert('Adresse indisponible', 'Aucune adresse e-mail n�est disponible pour ce contact.');
+        openExternal(`mailto:${email}`);
+    };
+    const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString() : '�';
     const formatPlanLabel = (plan?: string | null) => {
         if (plan === 'enterprise') return 'Enterprise';
         if (plan === 'pro') return 'Pro';
@@ -245,26 +265,26 @@ export default function AdminDashboard() {
     };
     const formatAccessPhase = (phase?: string | null) => {
         if (phase === 'active') return 'Actif';
-        if (phase === 'grace') return 'Grâce';
+        if (phase === 'grace') return 'Gr�ce';
         if (phase === 'restricted') return 'Restreint';
         if (phase === 'read_only') return 'Lecture seule';
-        return phase || '—';
+        return phase || '�';
     };
     const formatDemoTypeLabel = (demoType?: string | null) => {
         if (demoType === 'retail') return 'Commerce';
         if (demoType === 'restaurant') return 'Restaurant';
         if (demoType === 'enterprise') return 'Enterprise';
-        return demoType || '—';
+        return demoType || '�';
     };
     const formatDemoStatusLabel = (status?: string | null) => {
         if (status === 'active') return 'Active';
-        if (status === 'expired') return 'Expirée';
-        if (status === 'cleaned') return 'Nettoyée';
-        return status || '—';
+        if (status === 'expired') return 'Expir�e';
+        if (status === 'cleaned') return 'Nettoy�e';
+        return status || '�';
     };
     const formatRemainingDuration = (seconds?: number | null) => {
-        if (seconds === null || seconds === undefined) return '—';
-        if (seconds <= 0) return 'Expirée';
+        if (seconds === null || seconds === undefined) return '�';
+        if (seconds <= 0) return 'Expir�e';
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         if (hours <= 0) return `${minutes} min`;
@@ -295,7 +315,7 @@ export default function AdminDashboard() {
     const handleDeleteUser = async (u: any) => {
         Alert.alert(
             'Supprimer ce compte ?',
-            `Cette action est irréversible. Toutes les données de "${u.name}" (${u.email}) seront supprimées : produits, ventes, clients, boutiques, staff...`,
+            `Cette action est irr�versible. Toutes les donn�es de "${u.name}" (${u.email}) seront supprim�es : produits, ventes, clients, boutiques, staff...`,
             [
                 { text: t('admin.actions.cancel'), style: 'cancel' },
                 {
@@ -303,7 +323,7 @@ export default function AdminDashboard() {
                         try {
                             await admin.deleteUser(u.email);
                             loadData();
-                            Alert.alert('Compte supprimé', `"${u.name}" et toutes ses données ont été supprimés.`);
+                            Alert.alert('Compte supprim�', `"${u.name}" et toutes ses donn�es ont �t� supprim�s.`);
                         } catch {
                             Alert.alert(t('admin.actions.error'));
                         }
@@ -341,7 +361,7 @@ export default function AdminDashboard() {
         try {
             await admin.grantSubscriptionGrace(accountId, days);
             await loadData();
-            Alert.alert('Succès', `Grâce de ${days} jours accordée.`);
+            Alert.alert('Succ�s', `Gr�ce de ${days} jours accord�e.`);
         } catch {
             Alert.alert(t('admin.actions.error'));
         } finally {
@@ -354,7 +374,7 @@ export default function AdminDashboard() {
             if (enabled) await admin.enableSubscriptionReadOnly(accountId);
             else await admin.disableSubscriptionReadOnly(accountId);
             await loadData();
-            Alert.alert('Succès', enabled ? 'Lecture seule activée.' : 'Lecture seule retirée.');
+            Alert.alert('Succ�s', enabled ? 'Lecture seule activ�e.' : 'Lecture seule retir�e.');
         } catch {
             Alert.alert(t('admin.actions.error'));
         } finally {
@@ -425,8 +445,12 @@ export default function AdminDashboard() {
             {/* Retention */}
             <SectionHeader title={t('admin.retention.title')} colors={colors} />
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color="#EF4444" colors={colors} />
-                <StatCard label={t('admin.retention.inactive30')} value={stats?.inactive_users || 0} icon="moon" color="#6B7280" colors={colors} />
+                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
+                    <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color="#EF4444" colors={colors} />
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
+                    <StatCard label={t('admin.retention.inactive30')} value={stats?.inactive_users || 0} icon="moon" color="#6B7280" colors={colors} />
+                </TouchableOpacity>
             </View>
 
             {/* Revenue Breakdown */}
@@ -435,17 +459,29 @@ export default function AdminDashboard() {
                     <SectionHeader title={t('admin.revenue.title')} colors={colors} />
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                         <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
-                        <StatCard label={t('admin.revenue.week')} value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
-                        <StatCard label={t('admin.revenue.month')} value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} />
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={{ flex: 1, minWidth: 140 }}>
+                            <StatCard label={t('admin.revenue.week')} value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={{ flex: 1, minWidth: 140 }}>
+                            <StatCard label={t('admin.revenue.month')} value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} />
+                        </TouchableOpacity>
                     </View>
 
                     <SectionHeader title={t('admin.alerts.title')} colors={colors} />
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                        <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} />
-                        <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} />
-                        <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} />
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('support')} style={{ flex: 1, minWidth: 140 }}>
+                            <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} />
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('stock')} style={{ flex: 1, minWidth: 140 }}>
+                            <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} />
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
+                            <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} />
+                        </TouchableOpacity>
                         {detailed.signups_today !== undefined && (
-                            <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} />
+                            <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
+                                <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} />
+                            </TouchableOpacity>
                         )}
                     </View>
 
@@ -575,35 +611,38 @@ export default function AdminDashboard() {
                 (!search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.email || '').toLowerCase().includes(search.toLowerCase()))
             ).map((u: any) => (
                 <Card key={u.user_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                             <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: roleColors[u.role] || '#6B7280', alignItems: 'center', justifyContent: 'center' }}>
                                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{(u.name || '?')[0].toUpperCase()}</Text>
                             </View>
-                            <View>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                     <Text style={{ color: colors.text, fontWeight: '600' }}>{u.name}</Text>
                                     <Text style={{ color: colors.textMuted, fontSize: 10 }}>({u.user_id})</Text>
                                 </View>
                                 <Text style={{ color: colors.textMuted, fontSize: 11 }}>{u.email}</Text>
                                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                                    {u.phone ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>📞 {u.phone}</Text> : null}
-                                    {u.business_type ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>🏢 {u.business_type}</Text> : null}
+                                    {u.phone ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>?? {u.phone}</Text> : null}
+                                    {u.business_type ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>?? {u.business_type}</Text> : null}
                                 </View>
                             </View>
                         </View>
-                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                        <View style={{ alignItems: 'flex-end', gap: 4, marginLeft: 8 }}>
                             <Badge label={u.role || 'user'} color={roleColors[u.role] || '#6B7280'} />
-                            <View style={{ flexDirection: 'row', gap: 4 }}>
+                            <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 <Badge label={u.country_code || '??'} color={colors.secondary} />
                                 <TouchableOpacity onPress={() => handleToggleUser(u)}>
                                     <Badge label={u.is_active === false ? t('admin.users.banned') : t('admin.users.active')} color={u.is_active === false ? '#EF4444' : '#10B981'} />
                                 </TouchableOpacity>
                             </View>
-                            <TouchableOpacity onPress={() => handleDeleteUser(u)} style={{ marginTop: 4 }}>
-                                <Badge label="Supprimer" color="#DC2626" />
-                            </TouchableOpacity>
                         </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        {u.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
+                        {u.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
+                        <ActionButton label={u.is_active === false ? 'R�activer' : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
+                        <ActionButton label="Supprimer" icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
                     </View>
                 </Card>
             ))}
@@ -666,8 +705,8 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: 'Tous' },
                     { id: 'active', label: 'Actifs' },
-                    { id: 'expired', label: 'Expirés' },
-                    { id: 'cancelled', label: 'Annulés' },
+                    { id: 'expired', label: 'Expir�s' },
+                    { id: 'cancelled', label: 'Annul�s' },
                 ]}
                 active={subscriptionStatusFilter}
                 onSelect={setSubscriptionStatusFilter as any}
@@ -685,7 +724,7 @@ export default function AdminDashboard() {
                 onSelect={setSubscriptionProviderFilter as any}
                 colors={colors}
             />
-            <SearchBar value={subscriptionSearch} onChangeText={setSubscriptionSearch} placeholder="Compte, propriétaire, e-mail, devise..." colors={colors} />
+            <SearchBar value={subscriptionSearch} onChangeText={setSubscriptionSearch} placeholder="Compte, propri�taire, e-mail, devise..." colors={colors} />
 
             {subscriptionOverview && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -711,7 +750,7 @@ export default function AdminDashboard() {
                 </View>
             )}
 
-            <SectionHeader title="Comptes abonnés" count={subscriptionAccounts.length} colors={colors} />
+            <SectionHeader title="Comptes abonn�s" count={subscriptionAccounts.length} colors={colors} />
             {subscriptionAccounts.map((account: any) => {
                 const actionGraceId = `${account.account_id}:grace:7`;
                 const actionReadOnlyId = `${account.account_id}:readonly:${account.manual_read_only_enabled ? 'off' : 'on'}`;
@@ -721,20 +760,20 @@ export default function AdminDashboard() {
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{account.display_name || account.owner_name || account.account_id}</Text>
-                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{account.owner_email || account.billing_contact_email || '—'}</Text>
+                                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{account.owner_email || account.billing_contact_email || '�'}</Text>
                                 </View>
                                 <Badge label={formatPlanLabel(account.plan)} color={account.plan === 'enterprise' ? '#8B5CF6' : account.plan === 'pro' ? '#3B82F6' : '#10B981'} />
                             </View>
 
                             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                                {formatProviderLabel(account.subscription_provider)} • {formatAccessPhase(account.subscription_access_phase)} • {account.country_code || '—'} • {account.currency || '—'}
+                                {formatProviderLabel(account.subscription_provider)} � {formatAccessPhase(account.subscription_access_phase)} � {account.country_code || '�'} � {account.currency || '�'}
                             </Text>
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                Boutiques : {account.stores_count || 0} • Utilisateurs : {account.users_count || 0}
+                                Boutiques : {account.stores_count || 0} � Utilisateurs : {account.users_count || 0}
                             </Text>
                             {(account.last_payment_amount || account.last_payment_at) && (
                                 <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                    Dernier paiement : {account.last_payment_amount ? fmtMoney(account.last_payment_amount, account.last_payment_currency || account.currency) : '—'} • {formatDateTime(account.last_payment_at)}
+                                    Dernier paiement : {account.last_payment_amount ? fmtMoney(account.last_payment_amount, account.last_payment_currency || account.currency) : '�'} � {formatDateTime(account.last_payment_at)}
                                 </Text>
                             )}
 
@@ -745,7 +784,7 @@ export default function AdminDashboard() {
                                     style={{ backgroundColor: '#3B82F622', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, opacity: subscriptionActionId === actionGraceId ? 0.6 : 1 }}
                                 >
                                     <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '700' }}>
-                                        {subscriptionActionId === actionGraceId ? 'Traitement…' : 'Accorder 7 jours'}
+                                        {subscriptionActionId === actionGraceId ? 'Traitement�' : 'Accorder 7 jours'}
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -755,7 +794,7 @@ export default function AdminDashboard() {
                                 >
                                     <Text style={{ color: account.manual_read_only_enabled ? '#10B981' : '#F59E0B', fontSize: 12, fontWeight: '700' }}>
                                         {subscriptionActionId === actionReadOnlyId
-                                            ? 'Traitement…'
+                                            ? 'Traitement�'
                                             : account.manual_read_only_enabled
                                                 ? 'Retirer lecture seule'
                                                 : 'Passer en lecture seule'}
@@ -768,14 +807,14 @@ export default function AdminDashboard() {
             })}
             {subscriptionAccounts.length === 0 && <EmptyState icon="card-outline" message="Aucun compte ne correspond aux filtres." colors={colors} />}
 
-            <SectionHeader title="Événements récents" count={subscriptionEvents.length} colors={colors} />
+            <SectionHeader title="�v�nements r�cents" count={subscriptionEvents.length} colors={colors} />
             {subscriptionEvents.slice(0, 12).map((event: any, index: number) => (
                 <Card key={event.event_id || `${event.account_id}-${index}`} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{event.event_type || 'Événement'}</Text>
+                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{event.event_type || '�v�nement'}</Text>
                         <Badge label={formatProviderLabel(event.provider)} color="#8B5CF6" />
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{event.account_id || '—'} • {event.status || '—'}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{event.account_id || '�'} � {event.status || '�'}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{formatDateTime(event.created_at)}</Text>
                 </Card>
             ))}
@@ -788,8 +827,8 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: 'Tous statuts' },
                     { id: 'active', label: 'Actives' },
-                    { id: 'expired', label: 'Expirées' },
-                    { id: 'cleaned', label: 'Nettoyées' },
+                    { id: 'expired', label: 'Expir�es' },
+                    { id: 'cleaned', label: 'Nettoy�es' },
                 ]}
                 active={demoStatusFilter}
                 onSelect={setDemoStatusFilter as any}
@@ -821,20 +860,20 @@ export default function AdminDashboard() {
             {demoOverview && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                     <StatCard label="Actives" value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
-                    <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
-                    <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
-                    <StatCard label="Contacts captés" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
+                    <StatCard label="Expir�es" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
+                    <StatCard label="Nettoy�es" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
+                    <StatCard label="Contacts capt�s" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
                 </View>
             )}
 
-            <SectionHeader title="Sessions démo" count={demoSessionsTotal || demoSessions.length} colors={colors} />
+            <SectionHeader title="Sessions d�mo" count={demoSessionsTotal || demoSessions.length} colors={colors} />
             {demoSessions.map((session: any) => (
                 <Card key={session.demo_session_id} colors={colors}>
                     <View style={{ gap: 8 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                             <View style={{ flex: 1 }}>
                                 <Text style={{ color: colors.text, fontWeight: '700' }}>{session.demo_session_id}</Text>
-                                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{session.account_id || session.owner_user_id || '—'}</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{session.account_id || session.owner_user_id || '�'}</Text>
                             </View>
                             <Badge
                                 label={formatDemoStatusLabel(session.status)}
@@ -842,21 +881,21 @@ export default function AdminDashboard() {
                             />
                         </View>
                         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                            {formatDemoTypeLabel(session.demo_type)} • {(session.surface || '—').toUpperCase()} • {session.country_code || '—'} • {session.currency || '—'}
+                            {formatDemoTypeLabel(session.demo_type)} � {(session.surface || '�').toUpperCase()} � {session.country_code || '�'} � {session.currency || '�'}
                         </Text>
                         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                            Contact : {session.contact_email || 'Non capté'}
+                            Contact : {session.contact_email || 'Non capt�'}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                            Début : {formatDateTime(session.started_at || session.created_at)}
+                            D�but : {formatDateTime(session.started_at || session.created_at)}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                            Expiration : {formatDateTime(session.expires_at)} • Restant : {formatRemainingDuration(session.remaining_seconds)}
+                            Expiration : {formatDateTime(session.expires_at)} � Restant : {formatRemainingDuration(session.remaining_seconds)}
                         </Text>
                     </View>
                 </Card>
             ))}
-            {demoSessions.length === 0 && <EmptyState icon="sparkles-outline" message="Aucune session démo ne correspond aux filtres." colors={colors} />}
+            {demoSessions.length === 0 && <EmptyState icon="sparkles-outline" message="Aucune session d�mo ne correspond aux filtres." colors={colors} />}
         </View>
     );
 
@@ -870,7 +909,7 @@ export default function AdminDashboard() {
                         <View style={{ flex: 1 }}>
                             <Text style={{ color: colors.text, fontWeight: '700' }}>{p.name}</Text>
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                {t('admin.stock.units', { count: (p as any).quantity || (p as any).current_stock || 0 })} • {t('admin.stock.seller')}: {(p as any).seller_name || (p as any).owner_name}
+                                {t('admin.stock.units', { count: (p as any).quantity || (p as any).current_stock || 0 })} � {t('admin.stock.seller')}: {(p as any).seller_name || (p as any).owner_name}
                             </Text>
                             <Text style={{ color: colors.textMuted, fontSize: 10 }}>ID: {p.product_id}</Text>
                         </View>
@@ -925,17 +964,26 @@ export default function AdminDashboard() {
             <SectionHeader title={t('admin.segments.crm')} count={customers.length} colors={colors} />
             {customers.map((c: any) => (
                 <Card key={c.customer_id || c.name} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                             <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#06B6D4', alignItems: 'center', justifyContent: 'center' }}>
                                 <Text style={{ color: '#fff', fontWeight: '700' }}>{(c.name || '?')[0].toUpperCase()}</Text>
                             </View>
-                            <View>
+                            <View style={{ flex: 1 }}>
                                 <Text style={{ color: colors.text, fontWeight: '600' }}>{c.name}</Text>
-                                <Text style={{ color: colors.textMuted, fontSize: 11 }}>{c.phone || c.email || 'N/A'}</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: 11 }} numberOfLines={1}>{c.phone || c.email || 'N/A'}</Text>
+                                <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+                                    {c.store_name ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>Boutique : {c.store_name}</Text> : null}
+                                    {c.last_purchase_at ? <Text style={{ color: colors.textMuted, fontSize: 11 }}>Dernier achat : {new Date(c.last_purchase_at).toLocaleDateString()}</Text> : null}
+                                </View>
                             </View>
                         </View>
-                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
+                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 8 }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        {c.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(c.phone)} /> : null}
+                        {c.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(c.email)} /> : null}
+                        {c.phone ? <ActionButton label="WhatsApp" icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}`)} /> : null}
                     </View>
                 </Card>
             ))}
@@ -964,7 +1012,7 @@ export default function AdminDashboard() {
                         <Badge label={t_info.status} color={statusColors[t_info.status] || '#6B7280'} />
                     </View>
                     <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                        {t_info.user_name} • {new Date(t_info.created_at).toLocaleDateString()}
+                        {t_info.user_name} � {new Date(t_info.created_at).toLocaleDateString()}
                     </Text>
                     {t_info.messages?.length > 0 && (
                         <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }} numberOfLines={2}>
@@ -1027,7 +1075,7 @@ export default function AdminDashboard() {
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                     <StatCard label={t('admin.disputes.statsOpen') || 'Ouverts'} value={disputeStats.open} icon="alert-circle" color="#F59E0B" colors={colors} />
                     <StatCard label={t('admin.disputes.statsInvestigating') || 'En cours'} value={disputeStats.investigating} icon="search" color="#3B82F6" colors={colors} />
-                    <StatCard label={t('admin.disputes.statsResolved') || 'Résolus'} value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
+                    <StatCard label={t('admin.disputes.statsResolved') || 'R�solus'} value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.disputes')} count={disputes.length} colors={colors} />
@@ -1038,13 +1086,13 @@ export default function AdminDashboard() {
                         <Badge label={d.status} color={statusColors[d.status] || '#6B7280'} />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {d.reporter_name} ({d.reporter_id}) • {t('admin.disputes.type')}: {d.type}
+                        {d.reporter_name} ({d.reporter_id}) � {t('admin.disputes.type')}: {d.type}
                     </Text>
                     <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>{d.description}</Text>
 
                     {d.resolution && (
                         <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.bgLight, borderRadius: 8, borderWidth: 1, borderColor: '#10B98133' }}>
-                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || 'RÉSOLUTION :'}</Text>
+                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || 'R�SOLUTION :'}</Text>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{d.resolution}</Text>
                         </View>
                     )}
@@ -1125,10 +1173,10 @@ export default function AdminDashboard() {
 
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     <TouchableOpacity onPress={handleSendMessage} style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>📨 {t('admin.actions.send')}</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>?? {t('admin.actions.send')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleBroadcast} style={{ flex: 1, backgroundColor: '#8B5CF6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>📢 {t('admin.actions.broadcast')}</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>?? {t('admin.actions.broadcast')}</Text>
                     </TouchableOpacity>
                 </View>
             </Card>
@@ -1141,7 +1189,7 @@ export default function AdminDashboard() {
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>
-                        → {m.target} • {m.sent_by} • {new Date(m.sent_at).toLocaleDateString()}
+                        ? {m.target} � {m.sent_by} � {new Date(m.sent_at).toLocaleDateString()}
                     </Text>
                 </Card>
             ))}
@@ -1160,7 +1208,7 @@ export default function AdminDashboard() {
                         <Badge label={c.type || 'contact'} color="#3B82F6" />
                     </View>
                     <Text style={{ color: colors.primary, fontSize: 13, marginBottom: 4 }}>{c.email}</Text>
-                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>🏢 {c.company}</Text> : null}
+                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>?? {c.company}</Text> : null}
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{c.message}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(c.created_at).toLocaleDateString()}</Text>
                 </Card>
@@ -1186,7 +1234,7 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: t('admin.security.filterAll') },
                     { id: 'login_success', label: t('admin.security.filterLoginSuccess') || 'Connexions' },
-                    { id: 'login_failed', label: t('admin.security.filterLoginFailed') || 'Échecs' },
+                    { id: 'login_failed', label: t('admin.security.filterLoginFailed') || '�checs' },
                     { id: 'password_changed', label: t('admin.security.filterPwdChanged') || 'MDP changed' }
                 ]}
                 active={secFilter}
@@ -1198,7 +1246,7 @@ export default function AdminDashboard() {
                     <StatCard label={t('admin.security.statsFailures')} value={secStats.failed_logins_24h || 0} icon="lock-closed" color="#EF4444" colors={colors} />
                     <StatCard label={t('admin.security.statsSuspicious')} value={secStats.successful_logins_24h || 0} icon="eye" color="#F59E0B" colors={colors} />
                     <StatCard label={t('admin.security.statsAlerts')} value={secStats.blocked_users || 0} icon="notifications" color="#EF4444" colors={colors} />
-                    <StatCard label="Vérifications" value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
+                    <StatCard label="V�rifications" value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
                     <StatCard label="Sessions actives" value={activeSessions.length} icon="pulse" color="#8B5CF6" colors={colors} />
                 </View>
             )}
@@ -1220,7 +1268,7 @@ export default function AdminDashboard() {
             })}
             {secEvents.length === 0 && <EmptyState icon="shield-outline" message={t('admin.security.empty')} colors={colors} />}
 
-            <SectionHeader title="Journal des vérifications" count={verificationEvents.length} colors={colors} />
+            <SectionHeader title="Journal des v�rifications" count={verificationEvents.length} colors={colors} />
             <FilterBar
                 filters={[
                     { id: 'all', label: 'Tous les providers' },
@@ -1235,32 +1283,32 @@ export default function AdminDashboard() {
                 <Card key={event.verification_id || `${event.created_at}-${index}`} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>
-                            {(event.channel || 'canal').toUpperCase()} • {(event.type || 'verification').replace(/_/g, ' ')}
+                            {(event.channel || 'canal').toUpperCase()} � {(event.type || 'verification').replace(/_/g, ' ')}
                         </Text>
                         <Badge label={formatProviderLabel(event.provider)} color={event.provider === 'firebase' ? '#3B82F6' : '#10B981'} />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {event.email || event.phone || event.user_id || 'Utilisateur non précisé'}
+                        {event.email || event.phone || event.user_id || 'Utilisateur non pr�cis�'}
                     </Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{formatDateTime(event.created_at)}</Text>
                 </Card>
             ))}
-            {verificationEvents.length === 0 && <EmptyState icon="mail-outline" message="Aucune vérification remontée." colors={colors} />}
+            {verificationEvents.length === 0 && <EmptyState icon="mail-outline" message="Aucune v�rification remont�e." colors={colors} />}
 
             <SectionHeader title="Sessions actives" count={activeSessions.length} colors={colors} />
             {activeSessions.map((session: any, index: number) => (
                 <Card key={session.session_id || `${session.user_id}-${index}`} colors={colors}>
                     <Text style={{ color: colors.text, fontWeight: '700' }}>{session.user_name || 'Inconnu'}</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{session.user_email || session.user_id || '—'}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{session.user_email || session.user_id || '�'}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
-                        Créée : {formatDateTime(session.created_at)}
+                        Cr��e : {formatDateTime(session.created_at)}
                     </Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
                         Expire : {formatDateTime(session.expires_at)}
                     </Text>
                 </Card>
             ))}
-            {activeSessions.length === 0 && <EmptyState icon="pulse-outline" message="Aucune session active remontée." colors={colors} />}
+            {activeSessions.length === 0 && <EmptyState icon="pulse-outline" message="Aucune session active remont�e." colors={colors} />}
         </View>
     );
 
@@ -1301,7 +1349,7 @@ export default function AdminDashboard() {
                     {[
                         { label: t('admin.health.version_label') || 'Version', value: health?.version || '1.0.0', icon: 'information-circle' },
                         { label: t('admin.health.status_label') || 'Statut', value: health?.status || 'Active', icon: 'server' },
-                        { label: t('admin.health.db_label') || 'Base de données', value: health?.database || 'Connected', icon: 'hardware-chip' },
+                        { label: t('admin.health.db_label') || 'Base de donn�es', value: health?.database || 'Connected', icon: 'hardware-chip' },
                     ].map((item, i) => (
                         <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: i < 2 ? 1 : 0, borderColor: colors.divider }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1478,24 +1526,24 @@ export default function AdminDashboard() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.bgDark }}>
-            <LinearGradient colors={['#1E1B4B', '#312E81', '#1E1B4B']} style={st.header}>
+            <LinearGradient colors={(isDark ? ['#1E1B4B', '#312E81', '#1E1B4B'] : [colors.bgLight, colors.bgMid, colors.bgDark]) as [string, string, string]} style={st.header}>
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View>
-                            <Text style={st.headerTitle}>{t('admin.dashboard_title') || 'Stockman Console'}</Text>
-                            <Text style={st.headerSub}>{user?.email}</Text>
+                            <Text style={[st.headerTitle, { color: colors.text }]}>{t('admin.dashboard_title') || 'Stockman Console'}</Text>
+                            <Text style={[st.headerSub, { color: isDark ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>{user?.email}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <TouchableOpacity onPress={onRefresh} style={st.headerBtn}>
-                                <Ionicons name="refresh" size={18} color="#fff" />
+                            <TouchableOpacity onPress={onRefresh} style={[st.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)' }]}>
+                                <Ionicons name="refresh" size={18} color={colors.text} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={st.headerBtn}>
+                            <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={[st.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)' }]}>
                                 <Ionicons name="log-out" size={18} color="#EF4444" />
                             </TouchableOpacity>
                         </View>
                     </View>
                     {stats && (
-                        <View style={st.quickStats}>
+                        <View style={[st.quickStats, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.82)' }]}>
                             {[
                                 { l: t('admin.segments.users'), v: formatNumber(stats.users), c: '#3B82F6' },
                                 { l: t('admin.segments.stores'), v: formatNumber(stats.stores), c: '#8B5CF6' },
@@ -1504,7 +1552,7 @@ export default function AdminDashboard() {
                             ].map((s, i) => (
                                 <View key={i} style={st.quickItem}>
                                     <Text style={[st.quickVal, { color: s.c }]}>{s.v}</Text>
-                                    <Text style={st.quickLabel}>{s.l}</Text>
+                                    <Text style={[st.quickLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>{s.l}</Text>
                                 </View>
                             ))}
                         </View>
@@ -1533,13 +1581,13 @@ export default function AdminDashboard() {
 
 const st = StyleSheet.create({
     header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 },
-    headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },
-    headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 },
-    headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-    quickStats: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 10 },
+    headerTitle: { fontSize: 24, fontWeight: '800' },
+    headerSub: { fontSize: 12, marginTop: 2 },
+    headerBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    quickStats: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16, borderRadius: 12, padding: 10 },
     quickItem: { alignItems: 'center' },
     quickVal: { fontSize: 18, fontWeight: '800' },
-    quickLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
+    quickLabel: { fontSize: 10, marginTop: 2 },
     segScroll: { borderBottomWidth: 1, maxHeight: 50 },
     segContainer: { paddingHorizontal: 8, gap: 2 },
     segBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 12 },

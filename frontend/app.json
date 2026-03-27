@@ -21,14 +21,31 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Stockman utilise la caméra pour scanner les codes-barres des produits, prendre des photos d’articles et joindre des images aux produits, ventes ou documents.",
-        "NSPhotoLibraryUsageDescription": "Stockman accède à votre photothèque pour vous permettre d’ajouter une image existante à une fiche produit, un reçu ou un document.",
-        "NSPhotoLibraryAddUsageDescription": "Stockman peut enregistrer dans votre photothèque une image ou un document généré, par exemple un reçu ou une photo de produit."
+        "NSCameraUsageDescription": "Stockman uses the camera to scan product barcodes at checkout and in inventory, take photos of items to attach to product listings, and capture images of receipts or documents for record-keeping.",
+        "NSMicrophoneUsageDescription": "Stockman uses the microphone when you record a voice message in AI support, for example to describe a stock, sales, or account issue without typing.",
+        "NSPhotoLibraryUsageDescription": "Stockman accesses your photo library so you can select an existing image to attach to a product listing, a receipt, or a business document.",
+        "NSPhotoLibraryAddUsageDescription": "Stockman saves generated images to your photo library, such as receipts, product photos, or exported reports."
+      },
+      "locales": {
+        "fr": "./locales/ios/fr.json",
+        "ar": "./locales/ios/ar.json",
+        "es": "./locales/ios/es.json",
+        "de": "./locales/ios/de.json",
+        "pt": "./locales/ios/pt.json",
+        "it": "./locales/ios/it.json",
+        "tr": "./locales/ios/tr.json",
+        "ru": "./locales/ios/ru.json",
+        "zh": "./locales/ios/zh.json",
+        "hi": "./locales/ios/hi.json",
+        "pl": "./locales/ios/pl.json",
+        "ro": "./locales/ios/ro.json",
+        "wo": "./locales/ios/wo.json",
+        "ff": "./locales/ios/ff.json"
       }
     },
     "icon": "./assets/icon.png",

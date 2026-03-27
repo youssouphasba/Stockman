@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supplierDashboard, SupplierDashboardData } from '../../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
 import KpiInfoButton from '../../components/KpiInfoButton';
@@ -31,6 +31,7 @@ interface RatingRecord {
 
 export default function SupplierDashboard() {
   const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { t } = useTranslation();
   const [data, setData] = useState<SupplierDashboardData | null>(null);
   const [ratings, setRatings] = useState<RatingRecord[]>([]);
@@ -72,7 +73,7 @@ export default function SupplierDashboard() {
           key={i}
           name={i <= Math.round(rating) ? 'star' : 'star-outline'}
           size={18}
-          color={Colors.warning}
+          color={colors.warning}
         />
       );
     }
@@ -81,31 +82,31 @@ export default function SupplierDashboard() {
 
   if (loading) {
     return (
-      <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.secondary} />
+          <ActivityIndicator size="large" color={colors.secondary} />
         </View>
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.secondary} />}
       >
         <Text style={styles.pageTitle}>{t('supplier.dashboard_title')}</Text>
 
         {/* KPIs */}
         <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.secondary }]}>
             <KpiInfoButton info={t('supplier.info_products')} />
             <Text style={styles.kpiValue}>{data?.catalog_products ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('tabs.products')}</Text>
           </View>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.warning }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.warning }]}>
             <KpiInfoButton info={t('supplier.info_orders')} />
             <Text style={styles.kpiValue}>{data?.total_orders ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('tabs.orders')}</Text>
@@ -113,12 +114,12 @@ export default function SupplierDashboard() {
         </View>
 
         <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.success }]}>
             <KpiInfoButton info={t('supplier.info_revenue')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.total_revenue ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('dashboard.total_revenue_kpi')} ({t('common.currency_default')})</Text>
           </View>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.primary }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.primary }]}>
             <KpiInfoButton info={t('supplier.info_rating')} />
             <View style={styles.ratingRow}>
               <Text style={styles.kpiValue}>{data?.rating_average?.toFixed(1) ?? '-'}</Text>
@@ -130,12 +131,12 @@ export default function SupplierDashboard() {
 
         {/* New KPI row: pending, revenue this month, avg order, active clients */}
         <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.danger }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.danger }]}>
             <KpiInfoButton info={t('supplier.info_pending')} />
             <Text style={styles.kpiValue}>{data?.pending_action ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.pending_orders')}</Text>
           </View>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.info }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.info }]}>
             <KpiInfoButton info={t('supplier.info_revenue_month')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.revenue_this_month ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.revenue_this_month')} ({t('common.currency_default')})</Text>
@@ -143,12 +144,12 @@ export default function SupplierDashboard() {
         </View>
 
         <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.secondary }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.secondary }]}>
             <KpiInfoButton info={t('supplier.info_avg_basket')} />
             <Text style={styles.kpiValue}>{formatNumber(data?.avg_order_value ?? 0)}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.average_basket')} ({t('common.currency_default')})</Text>
           </View>
-          <View style={[styles.kpiCard, { borderLeftColor: Colors.success }]}>
+          <View style={[styles.kpiCard, { borderLeftColor: colors.success }]}>
             <KpiInfoButton info={t('supplier.info_active_clients')} />
             <Text style={styles.kpiValue}>{data?.active_clients ?? 0}</Text>
             <Text style={styles.kpiLabel}>{t('supplier.active_clients')}</Text>
@@ -187,8 +188,8 @@ export default function SupplierDashboard() {
                 </View>
                 <View style={styles.orderRight}>
                   <Text style={styles.orderAmount}>{formatNumber(order.total_amount)} {t('common.currency_short')}</Text>
-                  <View style={[styles.orderStatus, { backgroundColor: getStatusColor(order.status) + '20' }]}>
-                    <Text style={[styles.orderStatusText, { color: getStatusColor(order.status) }]}>
+                  <View style={[styles.orderStatus, { backgroundColor: getStatusColor(order.status, colors) + '20' }]}>
+                    <Text style={[styles.orderStatusText, { color: getStatusColor(order.status, colors) }]}>
                       {t(`supplier.status_${order.status}`, { defaultValue: order.status })}
                     </Text>
                   </View>
@@ -206,7 +207,7 @@ export default function SupplierDashboard() {
             <Text style={styles.sectionTitle}>{t('supplier.client_reviews')}</Text>
             {(data?.rating_count ?? 0) > 0 && (
               <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={14} color={Colors.warning} />
+                <Ionicons name="star" size={14} color={colors.warning} />
                 <Text style={styles.ratingBadgeText}>{data?.rating_average?.toFixed(1)}/5</Text>
               </View>
             )}
@@ -240,18 +241,18 @@ export default function SupplierDashboard() {
   );
 }
 
-function getStatusColor(status: string): string {
+function getStatusColor(status: string, colors: any): string {
   switch (status) {
-    case 'pending': return Colors.warning;
-    case 'confirmed': return Colors.info;
-    case 'shipped': return Colors.secondary;
-    case 'delivered': return Colors.success;
-    case 'cancelled': return Colors.danger;
-    default: return Colors.textMuted;
+    case 'pending': return colors.warning;
+    case 'confirmed': return colors.info;
+    case 'shipped': return colors.secondary;
+    case 'delivered': return colors.success;
+    case 'cancelled': return colors.danger;
+    default: return colors.textMuted;
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: FontSize.xl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.lg,
   },
   kpiRow: {
@@ -269,18 +270,21 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     flex: 1,
-    ...GlassStyle,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderLeftWidth: 3,
   },
   kpiValue: {
     fontSize: FontSize.xl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   kpiLabel: {
     fontSize: FontSize.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   ratingRow: {
@@ -289,14 +293,17 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   card: {
-    ...GlassStyle,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginTop: Spacing.md,
   },
   sectionTitle: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.md,
   },
   starsRow: {
@@ -307,7 +314,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: FontSize.md,
     fontWeight: '600',
-    color: Colors.text,
+    color: colors.text,
     marginLeft: Spacing.sm,
   },
   statusRow: {
@@ -316,14 +323,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   statusLabel: {
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   statusBadge: {
-    backgroundColor: Colors.secondary + '20',
+    backgroundColor: colors.secondary + '20',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
@@ -331,7 +338,7 @@ const styles = StyleSheet.create({
   statusCount: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.secondary,
+    color: colors.secondary,
   },
   orderRow: {
     flexDirection: 'row',
@@ -339,17 +346,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   orderInfo: { flex: 1 },
   orderId: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.text,
+    color: colors.text,
   },
   orderDate: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   orderRight: {
@@ -358,7 +365,7 @@ const styles = StyleSheet.create({
   orderAmount: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   orderStatus: {
     paddingHorizontal: Spacing.sm,
@@ -379,7 +386,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.warning + '20',
+    backgroundColor: colors.warning + '20',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
@@ -388,11 +395,11 @@ const styles = StyleSheet.create({
   ratingBadgeText: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.warning,
+    color: colors.warning,
   },
   reviewItem: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
     paddingVertical: Spacing.md,
   },
   reviewHeader: {
@@ -404,24 +411,24 @@ const styles = StyleSheet.create({
   raterName: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.text,
+    color: colors.text,
   },
   reviewStars: {
     flexDirection: 'row',
   },
   reviewComment: {
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontStyle: 'italic',
     marginBottom: Spacing.xs,
   },
   reviewDate: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   emptyText: {
     fontSize: FontSize.sm,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: Spacing.md,
   },
@@ -430,13 +437,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   topProductRank: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.secondary + '20',
+    backgroundColor: colors.secondary + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
@@ -444,17 +451,17 @@ const styles = StyleSheet.create({
   topProductRankText: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-    color: Colors.secondary,
+    color: colors.secondary,
   },
   topProductName: {
     flex: 1,
     fontSize: FontSize.sm,
-    color: Colors.text,
+    color: colors.text,
   },
   topProductQty: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginLeft: Spacing.sm,
   },
 });

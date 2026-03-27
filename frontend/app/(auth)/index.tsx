@@ -15,13 +15,13 @@ const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
 export default function AuthEntryScreen() {
   const { t } = useTranslation();
-  const { colors, glassStyle } = useTheme();
+  const { colors, glassStyle, isDark } = useTheme();
   const { restoreSession } = useAuth();
   const router = useRouter();
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoType, setDemoType] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+  const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark), [colors, glassStyle, isDark]);
 
   async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
     if (type === 'enterprise') {
@@ -134,7 +134,7 @@ export default function AuthEntryScreen() {
   );
 }
 
-const createStyles = (colors: any, glassStyle: any) =>
+const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
   StyleSheet.create({
     gradient: { flex: 1 },
     container: {
@@ -183,7 +183,14 @@ const createStyles = (colors: any, glassStyle: any) =>
       gap: 8,
     },
     ctaPrimary: {
-      backgroundColor: colors.primary,
+      backgroundColor: isDark ? colors.primary : colors.text,
+      borderWidth: 1,
+      borderColor: isDark ? colors.primary : colors.text,
+      shadowColor: isDark ? colors.primary : '#0F172A',
+      shadowOpacity: isDark ? 0.28 : 0.16,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
     },
     ctaSecondary: {
       backgroundColor: colors.inputBg,

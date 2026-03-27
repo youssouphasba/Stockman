@@ -59,7 +59,7 @@ function RootLayoutNav() {
         router.replace('/(auth)/verify-email');
       }
     }
-  }, [isAuthenticated, isLoading, isAppLocked, segments, user?.can_access_app]);
+  }, [isAuthenticated, isLoading, segments, user?.can_access_app]);
 
   // Auto-sync and prefetch when online and authenticated
   useEffect(() => {

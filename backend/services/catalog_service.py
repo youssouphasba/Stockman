@@ -337,8 +337,9 @@ class CatalogService:
     # ──────────────────────────────────────────────────────────────────────────
     async def admin_stats(self) -> Dict[str, Any]:
         """Stats globales pour le back-office admin."""
-        total = await self.db.global_catalog.count_documents({})
-        verified = await self.db.global_catalog.count_documents({"verified": True})
+        docs = await self.db.global_catalog.find({}, {"_id": 0}).to_list(5000)
+        total = len(docs)
+        verified = len([doc for doc in docs if doc.get("verified") is True])
 
         # Par secteur
         sector_pipeline = [
@@ -355,12 +356,50 @@ class CatalogService:
         ]
         by_country = await self.db.global_catalog.aggregate(country_pipeline).to_list(50)
 
+        by_status: Dict[str, int] = defaultdict(int)
+        assistant = {
+            "missing_image": 0,
+            "missing_category": 0,
+            "missing_price": 0,
+            "missing_unit": 0,
+            "missing_marketplace_link": 0,
+            "duplicates_probable": 0,
+            "incomplete": 0,
+        }
+        seen_pairs = set()
+        probable_duplicates = 0
+        for doc in docs:
+            status = doc.get("publication_status") or "draft"
+            by_status[status] += 1
+            completeness = self._compute_completeness_flags(doc)
+            if completeness["missing_image"]:
+                assistant["missing_image"] += 1
+            if completeness["missing_category"]:
+                assistant["missing_category"] += 1
+            if completeness["missing_price"]:
+                assistant["missing_price"] += 1
+            if completeness["missing_unit"]:
+                assistant["missing_unit"] += 1
+            if completeness["missing_marketplace_link"]:
+                assistant["missing_marketplace_link"] += 1
+            if completeness["incomplete"]:
+                assistant["incomplete"] += 1
+            pair = (doc.get("sector") or "autre", doc.get("canonical_name") or "")
+            if pair[1]:
+                if pair in seen_pairs:
+                    probable_duplicates += 1
+                else:
+                    seen_pairs.add(pair)
+        assistant["duplicates_probable"] = probable_duplicates
+
         return {
             "total_products": total,
             "verified_products": verified,
             "unverified_products": total - verified,
             "by_sector": {r["_id"]: r["count"] for r in by_sector},
             "by_country": {r["_id"]: r["count"] for r in by_country},
+            "by_status": dict(by_status),
+            "assistant": assistant,
         }
 
     async def admin_list(
@@ -371,6 +410,9 @@ class CatalogService:
         skip: int = 0,
         limit: int = 50,
         country: Optional[str] = None,
+        publication_status: Optional[str] = None,
+        assistant_bucket: Optional[str] = None,
+        tag: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Liste paginée pour l'admin."""
         query: Dict[str, Any] = {}
@@ -380,18 +422,35 @@ class CatalogService:
             query["country_codes"] = country.strip().upper()
         if verified is not None:
             query["verified"] = verified
+        if publication_status:
+            query["publication_status"] = publication_status
+        if tag:
+            query["tags"] = tag.strip().lower()
         if search and search.strip():
             import re
             safe = re.escape(search.strip())
             query["$or"] = [
                 {"display_name": {"$regex": safe, "$options": "i"}},
                 {"barcodes": search.strip()},
+                {"aliases": {"$regex": safe, "$options": "i"}},
+                {"tags": {"$regex": safe, "$options": "i"}},
             ]
 
-        total = await self.db.global_catalog.count_documents(query)
         products = await self.db.global_catalog.find(
             query, {"_id": 0}
-        ).sort("added_by_count", -1).skip(skip).limit(limit).to_list(limit)
+        ).sort("added_by_count", -1).to_list(5000)
+
+        if assistant_bucket:
+            products = [
+                product for product in products
+                if self._matches_assistant_bucket(product, assistant_bucket)
+            ]
+
+        total = len(products)
+        products = products[skip: skip + limit]
+        for product in products:
+            product["completeness"] = self._compute_completeness_flags(product)
+            product["supplier_suggestions_count"] = len(product.get("supplier_suggestions") or [])
 
         return {"products": products, "total": total}
 
@@ -460,6 +519,15 @@ class CatalogService:
         verified = bool(payload.get("verified", True))
         added_by_count = max(1, int(payload.get("added_by_count") or 1))
         category = (payload.get("category") or "").strip()
+        unit = self._normalize_unit(payload.get("unit"))
+        tags = self._normalize_tags(payload.get("tags"))
+        supplier_suggestions = self._normalize_string_list(payload.get("supplier_suggestions"))
+        marketplace_matches = self._normalize_catalog_match_list(payload.get("marketplace_matches"))
+        publication_status = self._normalize_publication_status(payload.get("publication_status"))
+        notes = (payload.get("notes") or "").strip()
+        reference_price = self._normalize_optional_float(payload.get("reference_price"))
+        sale_price = self._normalize_optional_float(payload.get("sale_price"))
+        supplier_hint = (payload.get("supplier_hint") or "").strip()
 
         if display_name.lower() not in [alias.lower() for alias in aliases]:
             aliases.insert(0, display_name)
@@ -485,9 +553,19 @@ class CatalogService:
             "image_url": image_url,
             "added_by_count": added_by_count,
             "verified": verified,
+            "unit": unit,
+            "tags": tags,
+            "supplier_suggestions": supplier_suggestions,
+            "marketplace_matches": marketplace_matches,
+            "publication_status": publication_status,
+            "notes": notes,
+            "reference_price": reference_price,
+            "sale_price": sale_price,
+            "supplier_hint": supplier_hint,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         }
+        doc["completeness"] = self._compute_completeness_flags(doc)
         await self.db.global_catalog.insert_one(doc)
         return doc
 
@@ -509,6 +587,15 @@ class CatalogService:
         verified = bool(payload.get("verified", existing.get("verified", False)))
         added_by_count = max(1, int(payload.get("added_by_count") or existing.get("added_by_count") or 1))
         category = (payload.get("category") if payload.get("category") is not None else existing.get("category") or "").strip()
+        unit = self._normalize_unit(payload.get("unit", existing.get("unit")))
+        tags = self._normalize_tags(payload.get("tags", existing.get("tags")))
+        supplier_suggestions = self._normalize_string_list(payload.get("supplier_suggestions", existing.get("supplier_suggestions", [])))
+        marketplace_matches = self._normalize_catalog_match_list(payload.get("marketplace_matches", existing.get("marketplace_matches", [])))
+        publication_status = self._normalize_publication_status(payload.get("publication_status", existing.get("publication_status")))
+        notes = (payload.get("notes") if payload.get("notes") is not None else existing.get("notes") or "").strip()
+        reference_price = self._normalize_optional_float(payload.get("reference_price", existing.get("reference_price")))
+        sale_price = self._normalize_optional_float(payload.get("sale_price", existing.get("sale_price")))
+        supplier_hint = (payload.get("supplier_hint") if payload.get("supplier_hint") is not None else existing.get("supplier_hint") or "").strip()
 
         if display_name.lower() not in [alias.lower() for alias in aliases]:
             aliases.insert(0, display_name)
@@ -537,11 +624,95 @@ class CatalogService:
             "image_url": image_url,
             "added_by_count": added_by_count,
             "verified": verified,
+            "unit": unit,
+            "tags": tags,
+            "supplier_suggestions": supplier_suggestions,
+            "marketplace_matches": marketplace_matches,
+            "publication_status": publication_status,
+            "notes": notes,
+            "reference_price": reference_price,
+            "sale_price": sale_price,
+            "supplier_hint": supplier_hint,
             "updated_at": datetime.now(timezone.utc),
         }
         await self.db.global_catalog.update_one({"catalog_id": catalog_id}, {"$set": updates})
         existing.update(updates)
+        existing["completeness"] = self._compute_completeness_flags(existing)
         return existing
+
+    async def admin_duplicate(self, catalog_id: str) -> Optional[Dict[str, Any]]:
+        existing = await self.db.global_catalog.find_one({"catalog_id": catalog_id}, {"_id": 0})
+        if not existing:
+            return None
+        clone_payload = dict(existing)
+        clone_payload.pop("catalog_id", None)
+        clone_payload.pop("created_at", None)
+        clone_payload.pop("updated_at", None)
+        clone_payload["display_name"] = f'{existing.get("display_name", "Produit")} copie'
+        clone_payload["verified"] = False
+        clone_payload["publication_status"] = "draft"
+        return await self.admin_create(clone_payload)
+
+    async def admin_bulk_upsert(self, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        created = 0
+        updated = 0
+        errors: List[Dict[str, Any]] = []
+        for index, row in enumerate(rows):
+            try:
+                catalog_id = (row.get("catalog_id") or "").strip()
+                if catalog_id:
+                    result = await self.admin_update(catalog_id, row)
+                    if result:
+                        updated += 1
+                    else:
+                        created += 1
+                        await self.admin_create(row)
+                else:
+                    await self.admin_create(row)
+                    created += 1
+            except Exception as exc:
+                errors.append({"index": index, "name": row.get("display_name") or row.get("name"), "error": str(exc)})
+        return {"created": created, "updated": updated, "errors": errors}
+
+    async def admin_bulk_update(self, catalog_ids: List[str], updates: Dict[str, Any]) -> Dict[str, Any]:
+        if not catalog_ids:
+            return {"updated": 0}
+        docs = await self.db.global_catalog.find({"catalog_id": {"$in": catalog_ids}}, {"_id": 0}).to_list(len(catalog_ids))
+        updated_count = 0
+        errors: List[Dict[str, Any]] = []
+        for doc in docs:
+            try:
+                await self.admin_update(doc["catalog_id"], updates)
+                updated_count += 1
+            except Exception as exc:
+                errors.append({"catalog_id": doc["catalog_id"], "error": str(exc)})
+        return {"updated": updated_count, "errors": errors}
+
+    async def admin_assistant(self, catalog_id: Optional[str] = None, sample_limit: int = 200) -> Dict[str, Any]:
+        products = await self.db.global_catalog.find({}, {"_id": 0}).sort("added_by_count", -1).limit(sample_limit).to_list(sample_limit)
+        marketplace_products = await self.db.catalog_products.find({}, {"_id": 0, "catalog_id": 1, "name": 1, "category": 1, "unit": 1, "supplier_user_id": 1, "price": 1}).limit(1000).to_list(1000)
+        marketplace_profiles = await self.db.supplier_profiles.find({}, {"_id": 0, "user_id": 1, "company_name": 1}).limit(1000).to_list(1000)
+        profile_map = {item["user_id"]: item.get("company_name") or "Fournisseur marketplace" for item in marketplace_profiles}
+
+        templates = [
+            {"id": "epicerie", "label": "Épicerie", "sector": "epicerie", "category": "Produits alimentaires", "unit": "pièce", "tags": ["épicerie", "rayon"]},
+            {"id": "boissons", "label": "Boissons", "sector": "boissons", "category": "Boissons", "unit": "L", "tags": ["boisson", "liquide"]},
+            {"id": "hygiene", "label": "Hygiène", "sector": "cosmetiques", "category": "Hygiène", "unit": "pièce", "tags": ["hygiène", "soin"]},
+            {"id": "marketplace", "label": "Fournisseur marketplace", "sector": "grossiste", "category": "Marketplace", "unit": "pièce", "tags": ["marketplace", "catalogue"]},
+            {"id": "restaurant", "label": "Restaurant", "sector": "restaurant", "category": "Ingrédients", "unit": "kg", "tags": ["restaurant", "cuisine"]},
+        ]
+
+        payload: Dict[str, Any] = {
+            "templates": templates,
+            "assistant_stats": await self.admin_stats(),
+        }
+        if catalog_id:
+            target = await self.db.global_catalog.find_one({"catalog_id": catalog_id}, {"_id": 0})
+            if not target:
+                return payload
+            payload["item"] = target
+            payload["suggestions"] = self._build_assistant_suggestions(target, products, marketplace_products, profile_map)
+        return payload
 
     # ──────────────────────────────────────────────────────────────────────────
     # UTILITAIRES
@@ -576,6 +747,42 @@ class CatalogService:
         return cleaned
 
     @staticmethod
+    def _normalize_tags(values: Optional[List[str]]) -> List[str]:
+        cleaned: List[str] = []
+        seen = set()
+        for value in values or []:
+            item = str(value or "").strip().lower()
+            if not item or item in seen:
+                continue
+            seen.add(item)
+            cleaned.append(item)
+        return cleaned
+
+    @staticmethod
+    def _normalize_unit(value: Optional[str]) -> str:
+        item = str(value or "").strip()
+        return item or "pièce"
+
+    @staticmethod
+    def _normalize_publication_status(value: Optional[str]) -> str:
+        allowed = {"draft", "ready", "published", "needs_review", "archived"}
+        item = str(value or "").strip().lower()
+        return item if item in allowed else "draft"
+
+    @staticmethod
+    def _normalize_optional_float(value: Any) -> Optional[float]:
+        if value in (None, "", False):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _normalize_catalog_match_list(values: Optional[List[str]]) -> List[str]:
+        return CatalogService._normalize_string_list(values)
+
+    @staticmethod
     def _simple_normalize(name: str) -> str:
         """Normalisation simple (lowercase, trim, supprime accents basiques)."""
         import unicodedata
@@ -588,3 +795,131 @@ class CatalogService:
         # Supprime les espaces multiples
         text = " ".join(text.split())
         return text
+
+    def _compute_completeness_flags(self, doc: Dict[str, Any]) -> Dict[str, Any]:
+        missing_image = not bool((doc.get("image_url") or "").strip())
+        missing_category = not bool((doc.get("category") or "").strip())
+        missing_price = doc.get("reference_price") in (None, "") and doc.get("sale_price") in (None, "")
+        missing_unit = not bool((doc.get("unit") or "").strip())
+        missing_marketplace_link = len(doc.get("marketplace_matches") or []) == 0
+        incomplete = any([missing_image, missing_category, missing_price, missing_unit])
+        score = 100
+        for flag in [missing_image, missing_category, missing_price, missing_unit, missing_marketplace_link]:
+            if flag:
+                score -= 20
+        return {
+            "missing_image": missing_image,
+            "missing_category": missing_category,
+            "missing_price": missing_price,
+            "missing_unit": missing_unit,
+            "missing_marketplace_link": missing_marketplace_link,
+            "incomplete": incomplete,
+            "score": max(0, score),
+        }
+
+    def _matches_assistant_bucket(self, doc: Dict[str, Any], bucket: str) -> bool:
+        completeness = self._compute_completeness_flags(doc)
+        if bucket == "incomplete":
+            return completeness["incomplete"]
+        if bucket == "missing_image":
+            return completeness["missing_image"]
+        if bucket == "missing_category":
+            return completeness["missing_category"]
+        if bucket == "missing_price":
+            return completeness["missing_price"]
+        if bucket == "missing_unit":
+            return completeness["missing_unit"]
+        if bucket == "missing_marketplace_link":
+            return completeness["missing_marketplace_link"]
+        if bucket == "published":
+            return (doc.get("publication_status") or "draft") == "published"
+        if bucket == "needs_review":
+            return (doc.get("publication_status") or "draft") == "needs_review"
+        return True
+
+    def _build_assistant_suggestions(
+        self,
+        target: Dict[str, Any],
+        products: List[Dict[str, Any]],
+        marketplace_products: List[Dict[str, Any]],
+        profile_map: Dict[str, str],
+    ) -> Dict[str, Any]:
+        normalized_name = self._simple_normalize(target.get("display_name") or "")
+        name_tokens = [token for token in normalized_name.split(" ") if len(token) >= 3]
+        category_votes: Dict[str, int] = defaultdict(int)
+        unit_votes: Dict[str, int] = defaultdict(int)
+        duplicate_candidates: List[Dict[str, Any]] = []
+        marketplace_matches: List[Dict[str, Any]] = []
+        supplier_suggestions: List[Dict[str, Any]] = []
+
+        for product in products:
+            if product.get("catalog_id") == target.get("catalog_id"):
+                continue
+            other_name = self._simple_normalize(product.get("display_name") or "")
+            overlap = sum(1 for token in name_tokens if token in other_name)
+            if overlap > 0:
+                if product.get("category"):
+                    category_votes[product["category"]] += overlap
+                if product.get("unit"):
+                    unit_votes[product["unit"]] += overlap
+                if other_name == normalized_name or overlap >= max(1, len(name_tokens) - 1):
+                    duplicate_candidates.append({
+                        "catalog_id": product.get("catalog_id"),
+                        "display_name": product.get("display_name"),
+                        "category": product.get("category"),
+                        "sector": product.get("sector"),
+                        "score": overlap,
+                    })
+
+        for product in marketplace_products:
+            other_name = self._simple_normalize(product.get("name") or "")
+            overlap = sum(1 for token in name_tokens if token in other_name)
+            if overlap <= 0:
+                continue
+            match = {
+                "catalog_id": product.get("catalog_id"),
+                "name": product.get("name"),
+                "category": product.get("category"),
+                "unit": product.get("unit"),
+                "price": product.get("price"),
+                "supplier_user_id": product.get("supplier_user_id"),
+                "supplier_name": profile_map.get(product.get("supplier_user_id"), "Fournisseur marketplace"),
+                "score": overlap,
+            }
+            marketplace_matches.append(match)
+            supplier_suggestions.append({
+                "supplier_user_id": product.get("supplier_user_id"),
+                "supplier_name": profile_map.get(product.get("supplier_user_id"), "Fournisseur marketplace"),
+                "product_name": product.get("name"),
+                "score": overlap,
+            })
+            if product.get("category"):
+                category_votes[product["category"]] += overlap
+            if product.get("unit"):
+                unit_votes[product["unit"]] += overlap
+
+        category_suggestions = [
+            {"value": key, "score": value}
+            for key, value in sorted(category_votes.items(), key=lambda item: item[1], reverse=True)[:5]
+        ]
+        unit_suggestions = [
+            {"value": key, "score": value}
+            for key, value in sorted(unit_votes.items(), key=lambda item: item[1], reverse=True)[:5]
+        ]
+
+        unique_supplier_suggestions: List[Dict[str, Any]] = []
+        seen_suppliers = set()
+        for suggestion in sorted(supplier_suggestions, key=lambda item: item["score"], reverse=True):
+            supplier_key = suggestion.get("supplier_user_id")
+            if not supplier_key or supplier_key in seen_suppliers:
+                continue
+            seen_suppliers.add(supplier_key)
+            unique_supplier_suggestions.append(suggestion)
+
+        return {
+            "category_suggestions": category_suggestions,
+            "unit_suggestions": unit_suggestions,
+            "duplicate_candidates": sorted(duplicate_candidates, key=lambda item: item["score"], reverse=True)[:5],
+            "marketplace_matches": sorted(marketplace_matches, key=lambda item: item["score"], reverse=True)[:8],
+            "supplier_suggestions": unique_supplier_suggestions[:8],
+        }

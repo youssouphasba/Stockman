@@ -448,7 +448,7 @@ export default function AlertsScreen() {
       </ScrollView>
 
       {/* Rules Configuration Modal */}
-      <Modal visible={showRulesModal} animationType="slide" transparent>
+      {showRulesModal && <Modal visible={showRulesModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -629,7 +629,7 @@ export default function AlertsScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </Modal>}
       <ScreenGuide
         visible={showGuide}
         onClose={() => { setShowGuide(false); markSeen(); }}

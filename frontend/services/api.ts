@@ -284,16 +284,21 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
       if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
         const newToken = await refreshWithMutex();
         if (newToken) {
-          const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
-          const retryRes = await fetch(`${API_URL}/api${endpoint}`, {
-            ...config,
-            headers: retryHeaders,
-            signal: controller.signal,
-          } as any);
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort(), 30000);
+          try {
+            const retryHeaders = { ...config.headers, Authorization: `Bearer ${newToken}` };
+            const retryRes = await fetch(`${API_URL}/api${endpoint}`, {
+              ...config,
+              headers: retryHeaders,
+              signal: retryController.signal,
+            } as any);
 
-          if (retryRes.ok) {
-            clearTimeout(timeoutId);
-            return retryRes.json();
+            if (retryRes.ok) {
+              return retryRes.json();
+            }
+          } finally {
+            clearTimeout(retryTimeout);
           }
         }
 
@@ -974,6 +979,10 @@ export const suppliers = {
   getLogs: (id: string) => request<SupplierCommunicationLog[]>(`/suppliers/${id}/logs`),
   createLog: (id: string, data: SupplierLogCreate) =>
     request<SupplierCommunicationLog>(`/suppliers/${id}/logs`, { method: 'POST', body: data }),
+  getInvitationLink: (id: string) =>
+    request<{ link: string }>(`/suppliers/${id}/invitation-link`),
+  resendInvitation: (id: string) =>
+    request<{ message: string }>(`/suppliers/${id}/resend-invitation`, { method: 'POST' }),
 };
 
 // Supplier-Product links
@@ -1068,6 +1077,7 @@ export const supplierCatalog = {
   list: () => request<CatalogProductData[]>('/supplier/catalog'),
   create: (data: CatalogProductCreate) => request<CatalogProductData>('/supplier/catalog', { method: 'POST', body: data }),
   update: (id: string, data: CatalogProductCreate) => request<CatalogProductData>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
+  duplicate: (id: string) => request<CatalogProductData>(`/supplier/catalog/${id}/duplicate`, { method: 'POST' }),
   delete: (id: string) => request<{ message: string }>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
 };
 
@@ -1364,7 +1374,7 @@ export const admin = {
   broadcast: (message: string, title?: string) =>
     request<{ sent_to: number; message: string; title: string }>('/admin/broadcast', { method: 'POST', body: { message, title } }),
 
-  // Data Explorer (Phase 27)
+  // Data Explorer
   getCollections: () => request<CollectionInfo[]>('/admin/collections'),
   getCollectionData: (name: string, skip: number, limit: number, search?: string) => {
     return request<CollectionData>(`/admin/collections/${name}?skip=${skip}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`);
@@ -1467,14 +1477,14 @@ export type AiAnomaly = {
   description: string;
 };
 
-// User Disputes (Phase 29)
+// User Disputes
 export const disputes = {
   create: (data: { subject: string; description: string; type?: string }) =>
     request<{ message: string; dispute_id: string }>('/disputes', { method: 'POST', body: data }),
   mine: () => request<any[]>('/disputes/mine'),
 };
 
-// User Notifications (Phase 29)
+// User Notifications
 export const userNotifications = {
   list: (skip = 0, limit = 20) =>
     request<{ items: any[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
@@ -2792,6 +2802,7 @@ export type CatalogProductData = {
   weight: number | null;
   weight_unit: string;
   delivery_time: string;
+  publication_status?: 'draft' | 'ready' | 'published' | 'archived';
   created_at: string;
   updated_at: string;
 };
@@ -2813,6 +2824,7 @@ export type CatalogProductCreate = {
   weight?: number | null;
   weight_unit?: string;
   delivery_time?: string;
+  publication_status?: 'draft' | 'ready' | 'published' | 'archived';
 };
 
 export type SupplierDashboardData = {

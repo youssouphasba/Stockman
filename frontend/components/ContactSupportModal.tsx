@@ -93,7 +93,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
     // Ticket detail view
     if (selectedTicket) {
         return (
-            <Modal visible={visible} animationType="slide" transparent>
+            {visible && <Modal visible={visible} animationType="slide" transparent>
                 <View style={styles.overlay}>
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -164,9 +164,11 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                         )}
                     </KeyboardAvoidingView>
                 </View>
-            </Modal>
+            </Modal>}
         );
     }
+
+    if (!visible) return null;
 
     return (
         <Modal visible={visible} animationType="slide" transparent>

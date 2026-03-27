@@ -1,618 +1,286 @@
-import React, { useCallback, useState, useEffect } from 'react';
+﻿import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-  Platform,
-  Switch,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supplierCatalog, CatalogProductData, CatalogProductCreate } from '../../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import CategorySubcategoryPicker from '../../components/CategorySubcategoryPicker';
 
+type PublicationStatus = 'draft' | 'ready' | 'published' | 'archived';
+type FilterKey = 'all' | 'incomplete' | PublicationStatus;
+
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
+  { key: 'all', label: 'Tous' },
+  { key: 'incomplete', label: 'À compléter' },
+  { key: 'draft', label: 'Brouillons' },
+  { key: 'ready', label: 'Prêts' },
+  { key: 'published', label: 'Publiés' },
+  { key: 'archived', label: 'Archivés' },
+];
+
+const STATUS_LABELS: Record<PublicationStatus, string> = {
+  draft: 'Brouillon',
+  ready: 'Prêt à publier',
+  published: 'Publié',
+  archived: 'Archivé',
+};
+
+const PRESETS = [
+  { key: 'epicerie', label: 'Épicerie', category: 'Épicerie', unit: 'pièce' },
+  { key: 'boissons', label: 'Boissons', category: 'Boissons', unit: 'bouteille' },
+  { key: 'hygiene', label: 'Hygiène', category: 'Hygiène', unit: 'pièce' },
+  { key: 'restaurant', label: 'Restaurant', category: 'Cuisine', unit: 'portion' },
+];
+
+function getStatus(product: CatalogProductData): PublicationStatus {
+  const raw = (product.publication_status || '').trim().toLowerCase();
+  if (raw === 'draft' || raw === 'ready' || raw === 'published' || raw === 'archived') return raw;
+  return product.available ? 'published' : 'draft';
+}
+
+function statusToAvailable(status: PublicationStatus) {
+  return status === 'published';
+}
+
+function issues(product: CatalogProductData) {
+  const list: string[] = [];
+  if (!product.category?.trim()) list.push('Sans catégorie');
+  if (!product.price || product.price <= 0) list.push('Sans prix');
+  if ((product.stock_available ?? 0) <= 0) list.push('Sans stock');
+  if (!product.description?.trim()) list.push('Description à compléter');
+  return list;
+}
+
 export default function SupplierCatalogScreen() {
-  const { colors } = useTheme(); // Added useTheme hook
-  const { t } = useTranslation(); // Added useTranslation hook
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [products, setProducts] = useState<CatalogProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<CatalogProductData | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [showQuick, setShowQuick] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<CatalogProductData | null>(null);
 
-  // Form
-  const [formName, setFormName] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formSubcategory, setFormSubcategory] = useState('');
-  const [formPrice, setFormPrice] = useState('');
-  const [formUnit, setFormUnit] = useState('unité');
-  const [formMinQty, setFormMinQty] = useState('1');
-  const [formStock, setFormStock] = useState('0');
-  const [formAvailable, setFormAvailable] = useState(true);
-  const [formSku, setFormSku] = useState('');
-  const [formBarcode, setFormBarcode] = useState('');
-  const [formBrand, setFormBrand] = useState('');
-  const [formOrigin, setFormOrigin] = useState('');
-  const [formWeight, setFormWeight] = useState('');
-  const [formWeightUnit, setFormWeightUnit] = useState('kg');
-  const [formDeliveryTime, setFormDeliveryTime] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [price, setPrice] = useState('');
+  const [unit, setUnit] = useState('pièce');
+  const [minQty, setMinQty] = useState('1');
+  const [stock, setStock] = useState('0');
+  const [sku, setSku] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [brand, setBrand] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState('');
+  const [publicationStatus, setPublicationStatus] = useState<PublicationStatus>('draft');
 
-  const loadProducts = useCallback(async () => {
-    try {
-      const result = await supplierCatalog.list();
-      setProducts(result);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const resetForm = useCallback(() => {
+    setEditing(null); setName(''); setDescription(''); setCategory(''); setSubcategory(''); setPrice(''); setUnit('pièce');
+    setMinQty('1'); setStock('0'); setSku(''); setBarcode(''); setBrand(''); setOrigin(''); setDeliveryTime(''); setPublicationStatus('draft');
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadProducts();
-    }, [loadProducts])
-  );
+  const fillForm = useCallback((product: CatalogProductData) => {
+    setEditing(product); setName(product.name || ''); setDescription(product.description || ''); setCategory(product.category || '');
+    setSubcategory(product.subcategory || ''); setPrice(product.price ? String(product.price) : ''); setUnit(product.unit || 'pièce');
+    setMinQty(String(product.min_order_quantity || 1)); setStock(String(product.stock_available || 0)); setSku(product.sku || '');
+    setBarcode(product.barcode || ''); setBrand(product.brand || ''); setOrigin(product.origin || ''); setDeliveryTime(product.delivery_time || '');
+    setPublicationStatus(getStatus(product));
+  }, []);
 
-  function onRefresh() {
-    setRefreshing(true);
-    loadProducts();
+  const loadProducts = useCallback(async () => {
+    try { setProducts(await supplierCatalog.list()); }
+    catch { Alert.alert('Erreur', "Impossible de charger le catalogue fournisseur."); }
+    finally { setLoading(false); setRefreshing(false); }
+  }, []);
+
+  useFocusEffect(useCallback(() => { loadProducts(); }, [loadProducts]));
+
+  const counts = useMemo(() => products.reduce((acc, product) => {
+    const status = getStatus(product);
+    acc.all += 1; acc[status] += 1; if (issues(product).length > 0) acc.incomplete += 1; return acc;
+  }, { all: 0, incomplete: 0, draft: 0, ready: 0, published: 0, archived: 0 } as Record<FilterKey, number>), [products]);
+
+  const filtered = useMemo(() => products.filter((product) => {
+    const q = search.trim().toLowerCase();
+    const inSearch = !q || [product.name, product.category, product.subcategory, product.brand, product.sku, product.barcode].filter(Boolean).some(v => String(v).toLowerCase().includes(q));
+    const status = getStatus(product);
+    const inFilter = filter === 'all' || (filter === 'incomplete' ? issues(product).length > 0 : status === filter);
+    return inSearch && inFilter;
+  }), [filter, products, search]);
+
+  function applyPreset(key: string) {
+    const preset = PRESETS.find((item) => item.key === key);
+    if (!preset) return;
+    setCategory((current) => current || preset.category);
+    setUnit(preset.unit);
   }
 
-  function openAdd() {
-    setEditing(null);
-    setFormName('');
-    setFormDescription('');
-    setFormCategory('');
-    setFormSubcategory('');
-    setFormPrice('');
-    setFormUnit(t('catalog.unit_placeholder'));
-    setFormMinQty('1');
-    setFormStock('0');
-    setFormAvailable(true);
-    setFormSku('');
-    setFormBarcode('');
-    setFormBrand('');
-    setFormOrigin('');
-    setFormWeight('');
-    setFormWeightUnit('kg');
-    setFormDeliveryTime('');
-    setShowModal(true);
+  function buildPayload(statusOverride?: PublicationStatus): CatalogProductCreate {
+    const status = statusOverride || publicationStatus;
+    return {
+      name: name.trim(), description: description.trim(), category: category.trim(), subcategory: subcategory.trim(),
+      price: parseFloat(price) || 0, unit: unit.trim() || 'pièce', min_order_quantity: parseInt(minQty, 10) || 1,
+      stock_available: parseInt(stock, 10) || 0, sku: sku.trim(), barcode: barcode.trim(), brand: brand.trim(), origin: origin.trim(),
+      delivery_time: deliveryTime.trim(), publication_status: status, available: statusToAvailable(status),
+    };
   }
 
-  function openEdit(product: CatalogProductData) {
-    setEditing(product);
-    setFormName(product.name);
-    setFormDescription(product.description || '');
-    setFormCategory(product.category || '');
-    setFormSubcategory(product.subcategory || '');
-    setFormPrice(product.price.toString());
-    setFormUnit(product.unit || t('catalog.unit_placeholder'));
-    setFormMinQty(product.min_order_quantity.toString());
-    setFormStock(product.stock_available.toString());
-    setFormAvailable(product.available);
-    setFormSku(product.sku || '');
-    setFormBarcode(product.barcode || '');
-    setFormBrand(product.brand || '');
-    setFormOrigin(product.origin || '');
-    setFormWeight(product.weight ? product.weight.toString() : '');
-    setFormWeightUnit(product.weight_unit || 'kg');
-    setFormDeliveryTime(product.delivery_time || '');
-    setShowModal(true);
-  }
-
-  async function handleSave() {
-    if (!formName.trim()) return;
+  async function saveProduct(payload: CatalogProductCreate) {
+    if (!payload.name?.trim()) { Alert.alert('Information manquante', 'Le nom du produit est obligatoire.'); return; }
     setSaving(true);
-    const data: CatalogProductCreate = {
-      name: formName.trim(),
-      description: formDescription.trim() || undefined,
-      category: formCategory.trim() || undefined,
-      subcategory: formSubcategory.trim() || undefined,
-      price: parseFloat(formPrice) || 0,
-      unit: formUnit.trim() || t('catalog.unit_placeholder'),
-      min_order_quantity: parseInt(formMinQty) || 1,
-      stock_available: parseInt(formStock) || 0,
-      available: formAvailable,
-      sku: formSku.trim() || undefined,
-      barcode: formBarcode.trim() || undefined,
-      brand: formBrand.trim() || undefined,
-      origin: formOrigin.trim() || undefined,
-      weight: formWeight ? parseFloat(formWeight) : undefined,
-      weight_unit: formWeightUnit.trim() || 'kg',
-      delivery_time: formDeliveryTime.trim() || undefined,
-    };
     try {
-      if (editing) {
-        await supplierCatalog.update(editing.catalog_id, data);
-      } else {
-        await supplierCatalog.create(data);
-      }
-      setShowModal(false);
-      loadProducts();
-    } catch {
-      Alert.alert(t('common.error'), t('catalog.save_error'));
-    } finally {
-      setSaving(false);
-    }
+      if (editing) await supplierCatalog.update(editing.catalog_id, payload); else await supplierCatalog.create(payload);
+      setShowQuick(false); setShowForm(false); resetForm(); await loadProducts();
+    } catch { Alert.alert('Erreur', "Impossible d'enregistrer ce produit."); }
+    finally { setSaving(false); }
   }
 
-  async function handleDelete(product: CatalogProductData) {
-    const confirmText = t('catalog.confirm_delete', { name: product.name });
-
-    const executeDelete = async () => {
-      try {
-        await supplierCatalog.delete(product.catalog_id);
-        loadProducts();
-      } catch {
-        // ignore
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmText)) {
-        await executeDelete();
-      }
-    } else {
-      Alert.alert(
-        t('common.delete'),
-        confirmText,
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('common.delete'),
-            style: 'destructive',
-            onPress: executeDelete,
-          },
-        ]
-      );
-    }
+  async function duplicateProduct(product: CatalogProductData) {
+    try { await supplierCatalog.duplicate(product.catalog_id); await loadProducts(); Alert.alert('Produit dupliqué', 'Une copie brouillon a été créée.'); }
+    catch { Alert.alert('Erreur', 'La duplication a échoué.'); }
   }
 
-  async function toggleAvailability(product: CatalogProductData) {
+  async function updateStatus(product: CatalogProductData, nextStatus: PublicationStatus) {
     try {
-      await supplierCatalog.update(product.catalog_id, {
-        name: product.name,
-        available: !product.available,
-      });
-      loadProducts();
-    } catch {
-      // ignore
-    }
+      await supplierCatalog.update(product.catalog_id, { ...product, publication_status: nextStatus, available: statusToAvailable(nextStatus) });
+      await loadProducts();
+    } catch { Alert.alert('Erreur', 'Le changement de statut a échoué.'); }
   }
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  async function deleteProduct(product: CatalogProductData) {
+    Alert.alert('Supprimer le produit', `Voulez-vous vraiment supprimer "${product.name}" ?`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
+        try { await supplierCatalog.delete(product.catalog_id); await loadProducts(); }
+        catch { Alert.alert('Erreur', 'La suppression a échoué.'); }
+      }},
+    ]);
+  }
 
   if (loading) {
-    return (
-      <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.secondary} />
-        </View>
-      </LinearGradient>
-    );
+    return <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.center}><ActivityIndicator size="large" color={colors.secondary} /></LinearGradient>;
   }
 
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
-      >
-        <View style={styles.headerRow}>
-          <Text style={styles.pageTitle}>{t('catalog.title')}</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-            <Ionicons name="add" size={22} color="#fff" />
-          </TouchableOpacity>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.screen}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProducts(); }} tintColor={colors.secondary} />}>
+        <Text style={styles.title}>Mon catalogue</Text>
+        <Text style={styles.subtitle}>Créez vite, gardez des brouillons et publiez uniquement les fiches prêtes.</Text>
+
+        <View style={styles.row}>
+          <TouchableOpacity style={[styles.cta, styles.ctaGhost]} onPress={() => { resetForm(); setShowQuick(true); }}><Text style={[styles.ctaText, { color: colors.secondary }]}>Création rapide</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.cta} onPress={() => { resetForm(); setShowForm(true); }}><Text style={styles.ctaText}>Nouveau produit</Text></TouchableOpacity>
         </View>
 
-        {/* Search */}
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('catalog.search_placeholder')}
-            placeholderTextColor={Colors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-          />
+        <View style={styles.row}>
+          <View style={styles.kpi}><Text style={styles.kpiValue}>{counts.draft}</Text><Text style={styles.kpiLabel}>Brouillons</Text></View>
+          <View style={styles.kpi}><Text style={styles.kpiValue}>{counts.incomplete}</Text><Text style={styles.kpiLabel}>À compléter</Text></View>
+          <View style={styles.kpi}><Text style={styles.kpiValue}>{counts.published}</Text><Text style={styles.kpiLabel}>Publiés</Text></View>
         </View>
 
-        {/* Product count */}
-        <Text style={styles.countText}>{t('catalog.product_count', { count: filtered.length })}</Text>
+        <View style={styles.search}><Ionicons name="search-outline" size={18} color={colors.textMuted} /><TextInput style={styles.searchInput} value={search} onChangeText={setSearch} placeholder="Rechercher un produit" placeholderTextColor={colors.textMuted} /></View>
 
-        {/* Product list */}
-        {filtered.map((product) => (
-          <TouchableOpacity key={product.catalog_id} style={styles.productCard} onPress={() => openEdit(product)}>
-            <View style={styles.productTop}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
-                  {product.category ? (
-                    <Text style={styles.productCategory}>{product.category}</Text>
-                  ) : null}
-                  {product.brand ? (
-                    <Text style={styles.productCategory}>{product.brand}</Text>
-                  ) : null}
-                  {product.sku ? (
-                    <Text style={styles.productCategory}>{product.sku}</Text>
-                  ) : null}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+          {FILTERS.map((item) => {
+            const active = filter === item.key;
+            return <TouchableOpacity key={item.key} style={[styles.chip, active && styles.chipActive]} onPress={() => setFilter(item.key)}><Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label} ({counts[item.key]})</Text></TouchableOpacity>;
+          })}
+        </ScrollView>
+
+        {filtered.map((product) => {
+          const status = getStatus(product);
+          const productIssues = issues(product);
+          return (
+            <View key={product.catalog_id} style={styles.card}>
+              <View style={[styles.badge, { backgroundColor: `${colors.secondary}15` }]}><Text style={styles.badgeText}>{STATUS_LABELS[status]}</Text></View>
+              <View style={styles.cardTop}>
+                <Text style={styles.cardTitle}>{product.name}</Text>
+                <View style={styles.cardTopActions}>
+                  <TouchableOpacity onPress={() => duplicateProduct(product)} style={styles.iconButton}>
+                    <Ionicons name="copy-outline" size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { fillForm(product); setShowForm(true); }} style={styles.editButton}>
+                    <Text style={styles.editButtonText}>Modifier</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <Switch
-                value={product.available}
-                onValueChange={() => toggleAvailability(product)}
-                trackColor={{ false: Colors.divider, true: Colors.success + '60' }}
-                thumbColor={product.available ? Colors.success : Colors.textMuted}
-              />
+              <Text style={styles.cardMeta}>{[product.category, product.brand, product.sku].filter(Boolean).join(' • ') || 'Aucune information secondaire'}</Text>
+              {productIssues.length > 0 ? <Text style={styles.warning}>{productIssues.join(' • ')}</Text> : <Text style={styles.ok}>Fiche prête pour la publication.</Text>}
+              <View style={styles.row}><Text style={styles.info}>Prix: {(product.price || 0).toLocaleString()} {t('common.currency_short')}/{product.unit || 'pièce'}</Text><Text style={styles.info}>Stock: {product.stock_available || 0}</Text></View>
+              <View style={styles.actionWrap}>
+                {status === 'published'
+                  ? <TouchableOpacity style={styles.smallBtn} onPress={() => updateStatus(product, 'archived')}><Text style={styles.smallBtnText}>Archiver</Text></TouchableOpacity>
+                  : <TouchableOpacity style={styles.smallBtn} onPress={() => updateStatus(product, 'published')}><Text style={styles.smallBtnText}>Publier</Text></TouchableOpacity>}
+                {status !== 'ready' && status !== 'published' ? <TouchableOpacity style={styles.smallBtn} onPress={() => updateStatus(product, 'ready')}><Text style={styles.smallBtnText}>Marquer prêt</Text></TouchableOpacity> : null}
+                <TouchableOpacity style={styles.smallDanger} onPress={() => deleteProduct(product)}><Text style={styles.smallDangerText}>Supprimer</Text></TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.productBottom}>
-              <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>{t('common.price')}</Text>
-                <Text style={styles.detailValue}>{product.price.toLocaleString()} {t('common.currency_short')}/{product.unit}</Text>
-              </View>
-              <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>{t('common.stock')}</Text>
-                <Text style={styles.detailValue}>{product.stock_available}</Text>
-              </View>
-              <View style={styles.productDetail}>
-                <Text style={styles.detailLabel}>{t('catalog.min_order_short')}</Text>
-                <Text style={styles.detailValue}>{product.min_order_quantity}</Text>
-              </View>
-              <TouchableOpacity onPress={() => handleDelete(product)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="trash-outline" size={18} color={Colors.danger} />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+          );
+        })}
 
-        {filtered.length === 0 && (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="pricetags-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>
-              {search ? t('catalog.no_result') : t('catalog.empty_catalog')}
-            </Text>
-            {!search && (
-              <TouchableOpacity style={styles.emptyBtn} onPress={openAdd}>
-                <Text style={styles.emptyBtnText}>{t('catalog.add_product')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <View style={{ height: Spacing.xxl }} />
+        {filtered.length === 0 ? <View style={styles.empty}><Text style={styles.emptyTitle}>Aucun produit</Text><Text style={styles.emptyText}>Commencez par une création rapide, puis complétez vos brouillons plus tard.</Text></View> : null}
       </ScrollView>
 
-      {/* Add/Edit Modal */}
-      <Modal visible={showModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editing ? t('catalog.edit_product') : t('catalog.new_product')}
-              </Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
+      {showQuick && <Modal visible={showQuick} animationType="slide" transparent onRequestClose={() => setShowQuick(false)}>
+        <View style={styles.modalBg}><View style={styles.modal}><Text style={styles.modalTitle}>Création rapide</Text><TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nom du produit" placeholderTextColor={colors.textMuted} /><TextInput style={styles.input} value={category} onChangeText={setCategory} placeholder="Catégorie" placeholderTextColor={colors.textMuted} /><View style={styles.row}><TextInput style={[styles.input, styles.half]} value={price} onChangeText={setPrice} placeholder="Prix" placeholderTextColor={colors.textMuted} keyboardType="numeric" /><TextInput style={[styles.input, styles.half]} value={unit} onChangeText={setUnit} placeholder="Unité" placeholderTextColor={colors.textMuted} /></View><TextInput style={styles.input} value={stock} onChangeText={setStock} placeholder="Stock disponible" placeholderTextColor={colors.textMuted} keyboardType="numeric" />
+          <View style={styles.filters}>{PRESETS.map((item) => <TouchableOpacity key={item.key} style={styles.chip} onPress={() => applyPreset(item.key)}><Text style={styles.chipText}>{item.label}</Text></TouchableOpacity>)}</View>
+          <View style={styles.row}><TouchableOpacity style={[styles.cta, styles.ctaGhost]} disabled={saving} onPress={() => saveProduct(buildPayload('draft'))}>{saving ? <ActivityIndicator color={colors.secondary} /> : <Text style={[styles.ctaText, { color: colors.secondary }]}>Brouillon</Text>}</TouchableOpacity><TouchableOpacity style={styles.cta} disabled={saving} onPress={() => saveProduct(buildPayload('published'))}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Publier</Text>}</TouchableOpacity></View>
+        </View></View>
+      </Modal>}
 
-            <ScrollView style={styles.modalScroll}>
-              {/* Section: Identification */}
-              <Text style={styles.sectionLabel}>{t('catalog.section_identification')}</Text>
-
-              <Text style={styles.label}>{t('common.name')} *</Text>
-              <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder={t('catalog.product_name_placeholder')} placeholderTextColor={Colors.textMuted} />
-
-              <Text style={styles.label}>{t('common.description')}</Text>
-              <TextInput style={[styles.input, styles.multiline]} value={formDescription} onChangeText={setFormDescription} placeholder={t('catalog.description_placeholder')} placeholderTextColor={Colors.textMuted} multiline numberOfLines={3} />
-
-              <CategorySubcategoryPicker
-                selectedCategory={formCategory}
-                selectedSubcategory={formSubcategory}
-                onSelect={(cat, sub) => {
-                  setFormCategory(cat);
-                  setFormSubcategory(sub);
-                }}
-              />
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.sku')}</Text>
-                  <TextInput style={styles.input} value={formSku} onChangeText={setFormSku} placeholder={t('catalog.sku_placeholder')} placeholderTextColor={Colors.textMuted} />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.barcode')}</Text>
-                  <TextInput style={styles.input} value={formBarcode} onChangeText={setFormBarcode} placeholder={t('catalog.barcode_placeholder')} placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-                </View>
-              </View>
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.brand')}</Text>
-                  <TextInput style={styles.input} value={formBrand} onChangeText={setFormBrand} placeholder={t('catalog.brand_placeholder')} placeholderTextColor={Colors.textMuted} />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.origin')}</Text>
-                  <TextInput style={styles.input} value={formOrigin} onChangeText={setFormOrigin} placeholder={t('catalog.origin_placeholder')} placeholderTextColor={Colors.textMuted} />
-                </View>
-              </View>
-
-              {/* Section: Pricing & Stock */}
-              <Text style={[styles.sectionLabel, { marginTop: Spacing.lg }]}>{t('catalog.section_pricing')}</Text>
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('common.price')} ({t('common.currency_default')})</Text>
-                  <TextInput style={styles.input} value={formPrice} onChangeText={setFormPrice} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('common.unit')}</Text>
-                  <TextInput style={styles.input} value={formUnit} onChangeText={setFormUnit} placeholder={t('catalog.unit_placeholder')} placeholderTextColor={Colors.textMuted} />
-                </View>
-              </View>
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.min_order_qty')}</Text>
-                  <TextInput style={styles.input} value={formMinQty} onChangeText={setFormMinQty} placeholder="1" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.stock_available')}</Text>
-                  <TextInput style={styles.input} value={formStock} onChangeText={setFormStock} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-                </View>
-              </View>
-
-              {/* Section: Logistics */}
-              <Text style={[styles.sectionLabel, { marginTop: Spacing.lg }]}>{t('catalog.section_logistics')}</Text>
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.weight')}</Text>
-                  <TextInput style={styles.input} value={formWeight} onChangeText={setFormWeight} placeholder={t('catalog.weight_placeholder')} placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.label}>{t('catalog.weight_unit')}</Text>
-                  <TextInput style={styles.input} value={formWeightUnit} onChangeText={setFormWeightUnit} placeholder="kg" placeholderTextColor={Colors.textMuted} />
-                </View>
-              </View>
-
-              <Text style={styles.label}>{t('catalog.delivery_time')}</Text>
-              <TextInput style={styles.input} value={formDeliveryTime} onChangeText={setFormDeliveryTime} placeholder={t('catalog.delivery_time_placeholder')} placeholderTextColor={Colors.textMuted} />
-
-              <View style={styles.switchRow}>
-                <Text style={styles.label}>{t('catalog.available_for_sale')}</Text>
-                <Switch
-                  value={formAvailable}
-                  onValueChange={setFormAvailable}
-                  trackColor={{ false: Colors.divider, true: Colors.success + '60' }}
-                  thumbColor={formAvailable ? Colors.success : Colors.textMuted}
-                />
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.saveBtnText}>
-                  {editing ? t('common.save') : t('catalog.add_to_catalog')}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </LinearGradient >
+      {showForm && <Modal visible={showForm} animationType="slide" transparent onRequestClose={() => setShowForm(false)}>
+        <View style={styles.modalBg}><View style={styles.modalLarge}><ScrollView contentContainerStyle={styles.modalContent}><Text style={styles.modalTitle}>{editing ? 'Modifier le produit' : 'Nouveau produit'}</Text>
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nom du produit" placeholderTextColor={colors.textMuted} />
+          <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder="Description" placeholderTextColor={colors.textMuted} multiline numberOfLines={3} />
+          <CategorySubcategoryPicker selectedCategory={category} selectedSubcategory={subcategory} onSelect={(cat, sub) => { setCategory(cat); setSubcategory(sub); }} />
+          <View style={styles.row}><TextInput style={[styles.input, styles.half]} value={sku} onChangeText={setSku} placeholder="SKU" placeholderTextColor={colors.textMuted} /><TextInput style={[styles.input, styles.half]} value={barcode} onChangeText={setBarcode} placeholder="Code-barres" placeholderTextColor={colors.textMuted} keyboardType="numeric" /></View>
+          <View style={styles.row}><TextInput style={[styles.input, styles.half]} value={brand} onChangeText={setBrand} placeholder="Marque" placeholderTextColor={colors.textMuted} /><TextInput style={[styles.input, styles.half]} value={origin} onChangeText={setOrigin} placeholder="Origine" placeholderTextColor={colors.textMuted} /></View>
+          <View style={styles.row}><TextInput style={[styles.input, styles.half]} value={price} onChangeText={setPrice} placeholder="Prix" placeholderTextColor={colors.textMuted} keyboardType="numeric" /><TextInput style={[styles.input, styles.half]} value={unit} onChangeText={setUnit} placeholder="Unité" placeholderTextColor={colors.textMuted} /></View>
+          <View style={styles.row}><TextInput style={[styles.input, styles.half]} value={minQty} onChangeText={setMinQty} placeholder="Quantité minimale" placeholderTextColor={colors.textMuted} keyboardType="numeric" /><TextInput style={[styles.input, styles.half]} value={stock} onChangeText={setStock} placeholder="Stock disponible" placeholderTextColor={colors.textMuted} keyboardType="numeric" /></View>
+          <TextInput style={styles.input} value={deliveryTime} onChangeText={setDeliveryTime} placeholder="Délai de livraison" placeholderTextColor={colors.textMuted} />
+          <Text style={styles.section}>Statut de publication</Text>
+          <View style={styles.filters}>{(['draft', 'ready', 'published', 'archived'] as PublicationStatus[]).map((item) => { const active = publicationStatus === item; return <TouchableOpacity key={item} style={[styles.chip, active && styles.chipActive]} onPress={() => setPublicationStatus(item)}><Text style={[styles.chipText, active && styles.chipTextActive]}>{STATUS_LABELS[item]}</Text></TouchableOpacity>; })}</View>
+          <TouchableOpacity style={styles.cta} disabled={saving} onPress={() => saveProduct(buildPayload())}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{editing ? 'Enregistrer les changements' : 'Créer le produit'}</Text>}</TouchableOpacity>
+        </ScrollView></View></View>
+      </Modal>}
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: { flex: 1 },
-  content: { padding: Spacing.md, paddingTop: Spacing.xxl },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  pageTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...GlassStyle,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: FontSize.md,
-  },
-  countText: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginBottom: Spacing.md,
-  },
-  productCard: {
-    ...GlassStyle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  productTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  productInfo: { flex: 1 },
-  productName: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  productCategory: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  productBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  productDetail: { flex: 1 },
-  detailLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-  },
-  detailValue: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: 2,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyText: {
-    fontSize: FontSize.md,
-    color: Colors.textMuted,
-  },
-  emptyBtn: {
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-  },
-  emptyBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: FontSize.sm,
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.bgDark,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '90%',
-    paddingBottom: Spacing.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  modalTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  modalScroll: {
-    padding: Spacing.md,
-  },
-  sectionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-    color: Colors.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  label: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-    marginTop: Spacing.sm,
-  },
-  input: {
-    backgroundColor: Colors.inputBg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    color: Colors.text,
-    fontSize: FontSize.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  multiline: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  formHalf: { flex: 1 },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-  },
-  saveBtn: {
-    backgroundColor: Colors.secondary,
-    marginHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
+const createStyles = (colors: any) => StyleSheet.create({
+  screen: { flex: 1 }, center: { flex: 1, justifyContent: 'center', alignItems: 'center' }, content: { padding: Spacing.md, paddingTop: Spacing.xxl, paddingBottom: Spacing.xxl },
+  title: { color: colors.text, fontSize: FontSize.xl, fontWeight: '800' }, subtitle: { color: colors.textSecondary, marginTop: 6, marginBottom: Spacing.md, lineHeight: 20 },
+  row: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm }, actionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  cta: { flex: 1, minHeight: 46, borderRadius: BorderRadius.lg, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.md },
+  ctaGhost: { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.secondary }, ctaText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
+  kpi: { flex: 1, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center' },
+  kpiValue: { color: colors.text, fontWeight: '800', fontSize: FontSize.xl }, kpiLabel: { color: colors.textMuted, marginTop: 4, fontSize: FontSize.xs, textAlign: 'center' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.sm },
+  searchInput: { flex: 1, color: colors.text }, filters: { gap: 8, paddingVertical: 6, flexDirection: 'row', flexWrap: 'wrap', marginBottom: Spacing.sm },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.inputBg }, chipActive: { backgroundColor: colors.secondary, borderColor: colors.secondary }, chipText: { color: colors.textSecondary, fontSize: FontSize.xs, fontWeight: '700' }, chipTextActive: { color: '#fff' },
+  card: { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginBottom: 8 }, badgeText: { color: colors.secondary, fontSize: FontSize.xs, fontWeight: '700' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }, cardTitle: { flex: 1, color: colors.text, fontSize: FontSize.md, fontWeight: '700' }, cardMeta: { color: colors.textMuted, marginTop: 6, fontSize: FontSize.xs },
+  cardTopActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconButton: { padding: 6 },
+  editButton: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.secondary, backgroundColor: `${colors.secondary}15` },
+  editButtonText: { color: colors.secondary, fontSize: FontSize.xs, fontWeight: '700' },
+  warning: { color: colors.warning || '#F59E0B', marginTop: 8, fontSize: FontSize.xs, lineHeight: 18 }, ok: { color: colors.success, marginTop: 8, fontSize: FontSize.xs, fontWeight: '600' }, info: { flex: 1, color: colors.textSecondary, fontSize: FontSize.xs },
+  smallBtn: { borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.inputBg, paddingHorizontal: 12, paddingVertical: 8, borderRadius: BorderRadius.md }, smallBtnText: { color: colors.textSecondary, fontSize: FontSize.xs, fontWeight: '700' },
+  smallDanger: { borderWidth: 1, borderColor: `${colors.danger}55`, backgroundColor: `${colors.danger}12`, paddingHorizontal: 12, paddingVertical: 8, borderRadius: BorderRadius.md }, smallDangerText: { color: colors.danger, fontSize: FontSize.xs, fontWeight: '700' },
+  empty: { alignItems: 'center', paddingVertical: Spacing.xxl }, emptyTitle: { color: colors.text, fontSize: FontSize.md, fontWeight: '700' }, emptyText: { color: colors.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(2,6,23,0.78)', justifyContent: 'flex-end' }, modal: { backgroundColor: colors.bgDark, padding: Spacing.md, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl },
+  modalLarge: { backgroundColor: colors.bgDark, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, maxHeight: '92%' }, modalContent: { padding: Spacing.md, paddingBottom: Spacing.xl }, modalTitle: { color: colors.text, fontSize: FontSize.lg, fontWeight: '800', marginBottom: Spacing.sm },
+  input: { flex: 1, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, color: colors.text, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.sm },
+  half: { flex: 1 }, multiline: { minHeight: 84, textAlignVertical: 'top' }, section: { color: colors.textSecondary, fontWeight: '700', marginBottom: 8, marginTop: 4 },
 });

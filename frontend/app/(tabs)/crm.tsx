@@ -1006,7 +1006,7 @@ export default function CRMScreen() {
                 </ScrollView>
 
                 {/* Customer Create/Edit Modal */}
-                <Modal visible={showCustomerModal} animationType="slide" transparent onRequestClose={requestCloseCustomerModal}>
+                {showCustomerModal && <Modal visible={showCustomerModal} animationType="slide" transparent onRequestClose={requestCloseCustomerModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
@@ -1089,10 +1089,10 @@ export default function CRMScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
 
                 {/* Customer Detail Modal (with tabs) */}
-                <Modal visible={showDetailModal} animationType="slide" transparent>
+                {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: insets.bottom + Spacing.md }]}>
                             {detailCustomer && (
@@ -1540,10 +1540,10 @@ export default function CRMScreen() {
                             )}
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
 
                 {/* Promotion Create/Edit Modal */}
-                <Modal visible={showPromoModal} animationType="slide" transparent onRequestClose={requestClosePromoModal}>
+                {showPromoModal && <Modal visible={showPromoModal} animationType="slide" transparent onRequestClose={requestClosePromoModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
@@ -1625,10 +1625,10 @@ export default function CRMScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
 
                 {/* Campaign Modal */}
-                <Modal visible={showCampaignModal} animationType="slide" transparent onRequestClose={requestCloseCampaignModal}>
+                {showCampaignModal && <Modal visible={showCampaignModal} animationType="slide" transparent onRequestClose={requestCloseCampaignModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
@@ -1751,10 +1751,10 @@ export default function CRMScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
 
                 {/* Payment Modal */}
-                <Modal visible={showPaymentModal} animationType="slide" transparent onRequestClose={requestClosePaymentModal}>
+                {showPaymentModal && <Modal visible={showPaymentModal} animationType="slide" transparent onRequestClose={requestClosePaymentModal}>
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
                             <View style={styles.modalHeader}>
@@ -1847,7 +1847,7 @@ export default function CRMScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
             </LinearGradient>
         </PremiumGate>
     );

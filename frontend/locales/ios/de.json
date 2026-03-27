@@ -1,0 +1,5 @@
+{
+  "NSCameraUsageDescription": "Stockman verwendet die Kamera, um Produkt-Barcodes an der Kasse und im Lager zu scannen, Fotos von Artikeln für Produkteinträge aufzunehmen und Bilder von Quittungen oder Dokumenten zur Archivierung zu erfassen.",
+  "NSPhotoLibraryUsageDescription": "Stockman greift auf Ihre Fotomediathek zu, damit Sie ein vorhandenes Bild auswählen und einem Produkteintrag, einer Quittung oder einem Dokument anhängen können.",
+  "NSPhotoLibraryAddUsageDescription": "Stockman speichert generierte Bilder in Ihrer Fotomediathek, z. B. Quittungen, Produktfotos oder exportierte Berichte."
+}

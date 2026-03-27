@@ -13,7 +13,7 @@ interface BulkImportModalProps {
 }
 
 const REQUIRED_FIELDS = ['name'];
-const OPTIONAL_FIELDS = ['sku', 'quantity', 'purchase_price', 'selling_price', 'unit', 'min_stock', 'category_name', 'location'];
+const OPTIONAL_FIELDS = ['sku', 'quantity', 'purchase_price', 'selling_price', 'unit', 'min_stock', 'category_name', 'description', 'location'];
 
 export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImportModalProps) {
     const { t } = useTranslation();
@@ -28,6 +28,9 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const getFieldLabel = (field: string) => {
         if (field === 'location') {
             return t('settings_workspace.stores.locations.title');
+        }
+        if (field === 'category_name') {
+            return t('bulk_import.field_category');
         }
         return t(`common.${field}`);
     };
@@ -55,7 +58,9 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                 if (!newMapping[field]) {
                     const candidates = field === 'location'
                         ? ['location', 'emplacement']
-                        : [field];
+                        : field === 'category_name'
+                            ? ['category_name', 'category', 'categorie', 'catégorie']
+                            : [field];
                     const match = columns.find((col: string) => {
                         const normalized = col.toLowerCase();
                         return candidates.some((candidate) => normalized === candidate || normalized.includes(candidate));

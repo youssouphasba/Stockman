@@ -1,168 +1,346 @@
-# Conditions Générales d'Utilisation (CGU) - Stockman
+# Conditions Générales d'Utilisation de Stockman
 
-**Version "Ultimate" 3.0 - Dernière mise à jour : 13 Février 2026**
+Dernière mise à jour : 27 mars 2026
 
-Bienvenue sur **Stockman**.
-Les présentes Conditions Générales d'Utilisation (ci-après "CGU") constituent un contrat cadre légal engageant l'Utilisateur et l'Éditeur de la solution Stockman. 
+## 1. Objet et champ d'application
 
----
+Les présentes Conditions Générales d'Utilisation, ci-après les « CGU », régissent l'accès et l'utilisation de la solution logicielle Stockman, accessible notamment via application mobile, application web et interfaces d'administration.
 
-## TITRE I : DISPOSITIONS GÉNÉRALES
+Stockman est une solution logicielle professionnelle destinée à la gestion d'activités commerciales, de stocks, de ventes, de commandes, de fournisseurs, de clients, de réservations, de dépenses, de documents commerciaux, d'abonnements et, selon les cas, de fonctionnalités avancées de pilotage.
 
-### Article 1 : Définitions
-*   **Plateforme** : Désigne l'infrastructure logicielle complète Stockman.
-*   **Utilisateur** : Entité ou individu utilisant les services à des fins professionnelles.
-*   **Éditeur** : [VOTRE NOM / SOCIÉTÉ], propriétaire et gestionnaire de Stockman.
-*   **Boutique / Magasin** : Instance logique créée par un Utilisateur pour gérer ses activités.
+Toute utilisation de Stockman implique l'acceptation pleine, entière et sans réserve des présentes CGU.
 
-### Article 2 : Objet des Services
-Stockman est une solution ERP (Enterprise Resource Planning) spécialisée dans la gestion de stock, le point de vente et la relation client. Elle est fournie en tant que service (SaaS).
+## 2. Définitions
 
-### Article 3 : Acceptation des Conditions
-L'accès à la Plateforme est conditionné à l'acceptation pleine et entière des présentes CGU. L'Utilisateur reconnaît que toute utilisation du Service vaut acceptation.
+Au sens des présentes CGU :
 
-### Article 4 : Capacité et Utilisation Professionnelle
-Stockman est un outil strictement professionnel. L'Utilisateur garantit qu'il utilise le service pour son activité commerciale et dispose des pouvoirs pour engager son entreprise.
+- **Éditeur** : la personne morale ou l'entreprise exploitant commercialement Stockman.
+- **Plateforme** : l'ensemble des services, applications, interfaces, API, modules, contenus, bases de données et fonctionnalités proposés sous la marque Stockman.
+- **Utilisateur** : toute personne physique utilisant la Plateforme, à titre professionnel, pour le compte d'une entreprise, d'un commerce, d'un établissement, d'une structure indépendante ou d'une organisation.
+- **Compte** : l'espace numérique associé à un Utilisateur ou à une organisation.
+- **Compte principal** : le compte disposant de la responsabilité contractuelle, organisationnelle ou financière sur l'utilisation de Stockman.
+- **Boutique** : une entité d'exploitation, un point de vente, un établissement, un magasin, un dépôt, une unité opérationnelle ou toute autre structure logique gérée dans Stockman.
+- **Employé** : tout Utilisateur secondaire créé ou autorisé par un Compte principal ou un administrateur d'organisation.
+- **Marketplace** : l'espace de mise en relation, de consultation, d'importation ou d'exploitation de catalogues, fournisseurs, produits ou services tiers.
+- **Abonnement** : la formule commerciale souscrite pour accéder à tout ou partie des fonctionnalités de Stockman.
+- **Données Utilisateur** : l'ensemble des données, contenus, documents, paramètres, fichiers, messages, journaux, historiques, catalogues, références, photos, enregistrements et informations saisis, importés, générés ou synchronisés par l'Utilisateur via la Plateforme.
 
-### Article 5 : Modification et Évolutivité des CGU
-L'Éditeur se réserve le droit souverain de modifier, d'ajouter ou de supprimer des articles des présentes CGU à tout moment, afin de s'adapter aux évolutions législatives, techniques ou commerciales de Stockman. Toute modification sera opposable à l'Utilisateur dès sa publication sur la Plateforme ou sa notification par email. L'utilisation continue du Service après modification vaut acceptation tacite des nouvelles CGU.
+## 3. Nature du service
 
----
+Stockman est fourni sous la forme d'un service logiciel en ligne. L'Éditeur met à disposition un environnement technique permettant à l'Utilisateur de gérer son activité, sans se substituer à lui dans la conduite de ses opérations commerciales, logistiques, comptables, fiscales, sociales, réglementaires ou contractuelles.
 
-## TITRE II : ACCÈS ET GESTION DES COMPTES
+La Plateforme constitue un outil d'assistance, d'organisation, de suivi, d'automatisation et de centralisation. Elle ne remplace ni les contrôles internes de l'Utilisateur, ni ses obligations légales, fiscales, comptables, sociales, réglementaires, sanitaires ou contractuelles.
 
-### Article 6 : Inscription et Exactitude des Données
-L'Utilisateur s'engage à fournir des données véridiques lors de l'inscription (Email, Identité, SIRET/ID Fiscal). L'utilisation d'identités usurpées entraîne un bannissement immédiat.
+## 4. Utilisation exclusivement professionnelle
 
-### Article 7 : Sécurité des Identifiants
-L'Utilisateur est responsable de la garde de son mot de passe. Stockman utilise des protocoles de hachage de pointe, mais ne peut être tenu responsable en cas de négligence de l'Utilisateur (partage de mot de passe).
+Stockman est destiné à un usage professionnel. L'Utilisateur déclare agir dans le cadre de son activité professionnelle ou avec l'autorisation de l'entité qu'il représente.
 
-### Article 8 : Gestion du Profil Utilisateur
-L'Utilisateur peut modifier ses informations et sa photo de profil. Ces données doivent rester professionnelles et ne pas enfreindre les droits de tiers.
+L'Utilisateur garantit disposer de la capacité, des pouvoirs et des autorisations nécessaires pour :
+- créer un compte ;
+- souscrire un abonnement ;
+- créer des accès secondaires ;
+- utiliser les données traitées via Stockman ;
+- engager, le cas échéant, l'organisation pour laquelle il agit.
 
-### Article 9 : Comptes Staff et Employés
-Le Propriétaire peut créer des accès pour ses employés. Il assume l'entière responsabilité légale et financière des actions entreprises par ses collaborateurs sur la Plateforme.
+## 5. Création de compte et exactitude des informations
 
-### Article 10 : Hiérarchie des Permissions
-L'Utilisateur accepte le système de rôles (Admin, Vendeur, Manager). Les restrictions d'accès imposées par ces rôles sont opposables à l'Utilisateur et visent la sécurité des données.
+L'Utilisateur s'engage à fournir des informations exactes, complètes, à jour et non trompeuses lors de l'inscription et pendant toute la durée d'utilisation de la Plateforme.
 
----
+L'Utilisateur s'interdit notamment :
+- d'usurper l'identité d'un tiers ;
+- de créer un compte au nom d'une entité sans autorisation ;
+- d'utiliser des coordonnées inexactes ou fictives ;
+- de contourner les mécanismes de vérification d'identité ou de sécurité.
 
-## TITRE III : GESTION DES OPÉRATIONS COMMERCIALES
+L'Éditeur peut suspendre ou restreindre l'accès à tout compte présentant des informations manifestement incohérentes, frauduleuses ou incomplètes.
 
-### Article 11 : Catalogue Produits
-L'Utilisateur est responsable de la création de ses fiches produits. Toute erreur de prix, de description ou de catégorie incombe exclusivement à l'Utilisateur.
+## 6. Authentification et sécurité du compte
 
-### Article 12 : Inventaire et Stock en Temps Réel
-Stockman fournit un état théorique du stock. L'Utilisateur doit effectuer des inventaires physiques réguliers. L'Éditeur n'est pas responsable des écarts de stock (vol, casse non saisie).
+L'accès à la Plateforme peut impliquer, selon les parcours et les environnements :
+- une authentification par e-mail et mot de passe ;
+- une vérification par code à usage unique envoyé par e-mail ou par téléphone ;
+- une authentification via des fournisseurs tiers tels que Google ou Apple ;
+- des mécanismes locaux de sécurité sur mobile tels que code PIN ou biométrie.
 
-### Article 13 : Gestion des Lots (Batches) et Péremption
-L'application permet le suivi par lot. L'Utilisateur est seul responsable du retrait des produits périmés. Stockman n'est pas un système de sécurité alimentaire ou sanitaire.
+L'Utilisateur est seul responsable :
+- de la confidentialité de ses identifiants ;
+- de l'usage fait de ses appareils ;
+- des actions réalisées depuis son compte, ses sessions ou les comptes secondaires qu'il a créés ou autorisés ;
+- du maintien d'un niveau de sécurité adapté au sein de son organisation.
 
-### Article 14 : Mouvements de Stock et Audit
-Tout mouvement (entrée/sortie/ajustement) est enregistré. L'Utilisateur accepte que ces données soient conservées pour permettre des audits internes.
+Les mécanismes tels que le code PIN ou la biométrie relèvent également des capacités du terminal, du système d'exploitation et de la configuration locale de l'Utilisateur. L'Éditeur ne garantit pas leur disponibilité continue sur tous les appareils, ni leur immunité contre une compromission imputable au terminal ou à l'environnement logiciel de l'Utilisateur.
 
-### Article 15 : Point de Vente (POS) et Caisse
-Le module POS permet de clore des ventes. L'Utilisateur garantit que toutes les ventes saisies correspondent à des transactions réelles et légales.
+## 7. Comptes secondaires, rôles et permissions
 
-### Article 16 : Tickets de Caisse et Facturation
-Stockman génère des justificatifs de vente. Ces documents ne constituent des factures légales que si l'Utilisateur a configuré ses mentions obligatoires conformément à sa juridiction.
+Le Compte principal ou l'administrateur habilité peut créer, modifier, désactiver ou supprimer des comptes secondaires, et leur attribuer des rôles, permissions ou accès par module et par boutique.
 
-### Article 17 : Remises, Promotions et Fidélité
-L'Utilisateur définit ses règles de remise. En cas d'erreur de configuration entraînant une vente à perte, l'Éditeur ne saurait être tenu pour responsable.
+Le Compte principal demeure responsable :
+- de l'attribution des droits ;
+- du périmètre d'accès accordé ;
+- des actions réalisées par les employés, managers, responsables de boutique, responsables facturation ou tout autre profil autorisé.
 
-### Article 18 : Retours et Annulations de Vente
-Le système permet d'annuler une vente. L'Utilisateur doit s'assurer de la légalité des retours clients selon le droit de la consommation local.
+L'Éditeur n'est pas responsable d'une mauvaise configuration des permissions, d'un partage interne non autorisé d'identifiants, d'un défaut de révocation d'accès ou d'une erreur humaine au sein de l'organisation de l'Utilisateur.
 
----
+## 8. Plans, limitations et évolution des fonctionnalités
 
-## TITRE IV : RELATION CLIENT ET CRM
+Certaines fonctionnalités de Stockman dépendent du plan souscrit, du canal d'accès, de la plateforme utilisée, du pays, du mode de paiement, du type de compte, du type de business, du rôle attribué à l'Utilisateur ou des restrictions imposées par des tiers.
 
-### Article 19 : Base de Données Clients (CRM)
-L'Utilisateur constitue sa base client sous sa propre responsabilité de "Responsable de Traitement" au sens du RGPD.
+L'Utilisateur reconnaît que :
+- certaines fonctions peuvent être disponibles uniquement sur le web ;
+- certaines fonctions peuvent être limitées, restreintes ou redirigées selon la plateforme mobile utilisée ;
+- certaines options peuvent être réservées à certains plans ;
+- certaines opérations peuvent dépendre d'intégrations ou de prestataires tiers.
 
-### Article 20 : Fidélité et Portefeuilles Points
-La gestion des points de fidélité engage le Commerçant envers ses clients. Stockman n'est que le support technique de ce programme.
+L'Éditeur peut faire évoluer les plans, leurs périmètres, leurs limites raisonnables d'usage, leur présentation et leurs conditions d'accès, sous réserve des engagements contractuels déjà conclus ou des règles applicables.
 
-### Article 21 : Gestion des Dettes (Crédits Clients)
-Stockman permet de noter les impayés. L'Éditeur ne fournit aucune prestation de recouvrement et ne garantit pas la solvabilité des clients de l'Utilisateur.
+## 9. Démo, essai, période de grâce et accès restreint
 
----
+La Plateforme peut proposer :
+- des modes de démonstration ;
+- des périodes d'essai ;
+- des périodes de grâce ;
+- des accès restreints ou en lecture seule en cas d'expiration, d'impayé, de transition d'abonnement ou de situation particulière.
 
-## TITRE V : ANALYSE ET REPORTING
+Les données, écrans, restrictions et limitations applicables à ces états peuvent différer des comptes pleinement actifs.
 
-### Article 22 : Tableaux de Bord et Statistiques
-Les données visuelles sont des aides à la gestion. L'Utilisateur ne doit pas s'appuyer exclusivement sur elles pour ses déclarations fiscales sans vérification humaine.
+L'Éditeur se réserve la possibilité de limiter certaines actions tant qu'un compte n'est pas régularisé, vérifié, activé ou conforme aux règles de la Plateforme.
 
-### Article 23 : Gestion des Dépenses (Expenses)
-L'Utilisateur saisit ses frais de fonctionnement. L'Éditeur n'est pas responsable de l'omission de charges dans le calcul de la rentabilité.
+## 10. Produits, catalogue et responsabilité des contenus métier
 
-### Article 24 : Rapports d'Activité et Export Comptable
-Les fichiers exportés sont des outils de travail. Ils doivent être validés par un professionnel de la comptabilité.
+L'Utilisateur est seul responsable des fiches produits, variantes, catégories, prix, marges, unités, stocks théoriques, emplacements, références, codes-barres, photos, descriptions, documents et métadonnées qu'il crée, importe, duplique, modifie, publie ou diffuse via la Plateforme.
 
----
+L'Éditeur ne garantit ni l'exactitude, ni la conformité commerciale, fiscale, sanitaire, réglementaire ou contractuelle des informations saisies ou importées par l'Utilisateur.
 
-## TITRE VI : FOURNISSEURS ET MARKETPLACE
+Toute vérification finale des produits, prix, unités, taxes, fournisseurs, conditions commerciales, données de stock et documents associés incombe exclusivement à l'Utilisateur.
 
-### Article 25 : Relations Fournisseurs
-Stockman facilite la gestion des contacts fournisseurs et des commandes. L'Éditeur n'intervient pas dans les contrats d'approvisionnement tiers.
+## 11. Imports, créations en lot et automatisations de catalogue
 
-### Article 26 : Marketplace et Catalogues Partagés
-Les prix affichés sur le Marketplace sont indicatifs et dépendent des Fournisseurs tiers. L'Éditeur ne garantit pas la disponibilité des stocks chez les Fournisseurs.
+Stockman peut permettre l'import CSV, l'import groupé, la création rapide, la duplication, la génération de variantes, l'association à des catégories, des unités, des boutiques, des fournisseurs ou des emplacements.
 
-### Article 27 : Importation de Données Marketplace
-L'importation massive de produits depuis un catalogue tiers vers une boutique locale doit être vérifiée par l'Utilisateur pour éviter les erreurs de prix de vente.
+Ces fonctionnalités visent à accélérer la gestion opérationnelle. Elles ne dispensent pas l'Utilisateur de :
+- contrôler les données importées ;
+- vérifier les correspondances de colonnes ;
+- relire les catégories, unités, prix et références ;
+- vérifier les doublons ;
+- confirmer toute publication ou diffusion.
 
----
+L'Éditeur ne saurait être tenu responsable d'une erreur de mapping, d'un fichier erroné, d'une donnée mal structurée, d'un import partiel ou d'une validation insuffisante par l'Utilisateur.
 
-## TITRE VII : INTELLIGENCE ARTIFICIELLE ET SUPPORT
+## 12. Stocks, inventaires et emplacements
 
-### Article 28 : Assistant IA et Chatbot
-L'IA (Stockman AI) aide à la saisie et au support. L'Utilisateur reconnaît que l'IA peut produire des "hallucinations" ou erreurs. Aucune action automatique n'est entreprise sans validation.
+Stockman met à disposition des outils de gestion de stock, d'inventaire, d'ajustement, de correction, de transfert et de suivi par emplacement.
 
-### Article 29 : Prédictions de Vente (Analytique IA)
-Les prédictions de réapprovisionnement sont des probabilités. L'Utilisateur reste responsable de ses commandes fermes auprès des fournisseurs.
+Les niveaux de stock affichés dans la Plateforme constituent un état théorique fondé sur les données enregistrées. Ils ne remplacent pas :
+- les contrôles physiques ;
+- les inventaires terrain ;
+- les procédures internes de réception, rangement, comptage et sortie ;
+- les obligations de traçabilité propres à certains secteurs.
 
-### Article 30 : Génération de Contenu Automatisé
-L'Éditeur ne garantit pas l'absence de droits de tiers sur les textes générés par l'IA pour les descriptions produits.
+L'Utilisateur reste seul responsable des écarts physiques, pertes, vols, casses, erreurs de réception, oublis de saisie, erreurs de comptage, périmés non déclarés, mauvais transferts ou erreurs d'affectation.
 
-### Article 31 : Système de Tickets de Support
-L'Utilisateur peut ouvrir des tickets. L'Éditeur s'engage à répondre dans les meilleurs délais sans garantie de temps de résolution immédiat.
+## 13. Ventes, caisse, reçus, retours et annulations
 
----
+Stockman permet notamment la gestion des ventes, annulations, retours, reçus, avoirs, historiques, remises et autres opérations liées au point de vente.
 
-## TITRE VIII : SÉCURITÉ ET DONNÉES
+L'Utilisateur demeure seul responsable :
+- de la licéité des produits vendus ;
+- de l'exactitude des prix, remises et taxes appliqués ;
+- de la conformité de ses tickets, reçus, factures et avoirs aux obligations légales de sa juridiction ;
+- du respect des droits de ses propres clients en matière de retours, remboursements, délais ou garanties.
 
-### Article 32 : Journal d'Activité Technique (Logs)
-Chaque interaction est logguée (IP, Action, Date). Ces logs servent à la protection contre la fraude et à la résolution d'incidents techniques.
+L'Éditeur fournit un outil technique et ne se substitue ni à l'Utilisateur, ni à son conseil juridique, comptable ou fiscal.
 
-### Article 33 : Module de gestion des Litiges (Disputes)
-En cas de désaccord entre Utilisateurs, le module dédié permet de tracer les échanges. L'Éditeur n'a pas de rôle d'arbitre légal.
+## 14. Clients, CRM, dettes et communication
 
-### Article 34 : Conservation et Archivage des Données
-Les données sont sauvegardées quotidiennement. En cas de perte exceptionnelle, l'Éditeur restaurera la version la plus stable disponible.
+L'Utilisateur peut enregistrer des données clients, historiques, dettes, paiements, campagnes, relances, messages ou éléments CRM.
 
-### Article 35 : RGPD - Droits des Utilisateurs
-L'Éditeur garantit l'exercice des droits d'accès, de rectification et de portabilité (via export JSON intégré).
+L'Utilisateur agit, pour ses propres données clients, sous sa seule responsabilité et, le cas échéant, en qualité de responsable de traitement au sens des réglementations applicables en matière de protection des données.
 
-### Article 36 : Résiliation et Archivage Post-Suppression
-Lorsqu'un compte est supprimé, les données nominatives sont effacées, à l'exception des données de facturation et des preuves de fraude conservées sous archive sécurisée.
+L'Utilisateur garantit disposer des droits, bases légales, autorisations ou consentements nécessaires pour contacter ses clients, leur envoyer des messages, gérer un programme de fidélité, enregistrer des dettes ou traiter toute information personnelle ou commerciale les concernant.
 
----
+## 15. Fournisseurs, marketplace et relations commerciales
 
-## TITRE IX : RESPONSABILITÉ ET RÉSILIATION
+Stockman peut permettre :
+- de gérer des fournisseurs ;
+- de consulter ou publier des catalogues ;
+- de créer des relations produit/fournisseur ;
+- d'importer des éléments de catalogue ;
+- d'émettre ou de recevoir des commandes ;
+- d'utiliser des suggestions de réapprovisionnement.
 
-### Article 37 : Limitation de Responsabilité logicielle
-L'Éditeur n'est responsable que de la mise à disposition de l'outil. Il ne répond pas des bugs tiers (navigateur, OS mobile) ou des pertes financières liées à un usage incorrect.
+L'Éditeur n'est ni partie aux contrats conclus entre Utilisateurs, ni mandataire, ni commissionnaire, ni courtier, ni garant de la disponibilité, du prix, de la qualité, du transport, du délai, du règlement ou de l'exécution des obligations d'un fournisseur ou d'un acheteur.
 
-### Article 38 : Comportements Prohibés
-Le spam, le scan de vulnérabilité, l'usage de bots ou la vente de produits interdits (stupéfiants, etc.) entraînent un bannissement sans préavis.
+Les relations commerciales, les paiements, la conformité des produits, les litiges d'approvisionnement, les erreurs de disponibilité et les conséquences d'une mauvaise sélection de fournisseur relèvent exclusivement des parties concernées.
 
-### Article 39 : Suspension et Bannissement
-L'Éditeur peut suspendre un service pour protéger l'intégrité de la Plateforme ou en cas de défaut de paiement persistant.
+## 16. Dépenses, comptabilité, rapports et exports
 
-### Article 40 : Loi Applicable et Litiges
-Tout litige sera soumis au droit du siège social de l'Éditeur et porté devant les tribunaux compétents de ladite juridiction.
+Stockman peut fournir des fonctions de dépenses, tableaux de bord, exports comptables, exports produits, exports ventes, rapports, historiques et indicateurs d'aide à la décision.
 
----
-**Stockman - 2026. L'outil total pour les pros.**
+Ces informations constituent des outils d'assistance et de pilotage. Elles ne valent ni conseil comptable, ni validation fiscale, ni certification, ni preuve suffisante à elles seules pour toute déclaration, audit externe, déclaration fiscale, sociale ou comptable sans contrôle humain approprié.
+
+L'Utilisateur doit faire valider ses éléments financiers, comptables, fiscaux et juridiques par les professionnels compétents lorsque cela est requis.
+
+## 17. Réservations, restauration et opérations de service
+
+Lorsque la Plateforme inclut des modules de réservation, de tables, de service, de commandes ou d'opérations de restauration, l'Utilisateur reste seul responsable de l'organisation réelle de son activité, de ses délais de service, de ses obligations d'information, de ses engagements clients et du respect des règles applicables à son secteur.
+
+## 18. Intelligence artificielle, suggestions et automatisations
+
+Stockman peut proposer des fonctionnalités d'intelligence artificielle, d'assistance, de transcription vocale, de suggestion, de détection, de recommandation, d'aide à la saisie, d'aide à la publication, de génération de texte, de suggestion de catégorie, d'aide au support ou de rappels intelligents.
+
+L'Utilisateur reconnaît expressément que :
+- ces fonctionnalités ont une vocation d'assistance ;
+- elles peuvent produire des résultats incomplets, imprécis, inadaptés ou erronés ;
+- elles ne constituent ni un avis juridique, ni un avis fiscal, ni une garantie commerciale, ni un audit humain ;
+- toute validation finale, toute décision opérationnelle, toute publication, toute commande, tout prix, toute communication ou toute action métier fondée sur ces suggestions relève de la seule responsabilité de l'Utilisateur.
+
+L'Éditeur ne garantit pas l'absence d'erreur, d'omission, de biais, d'interprétation incorrecte ou d'indisponibilité sur les fonctions assistées par IA.
+
+## 19. Notifications, rappels et communications automatisées
+
+Stockman peut envoyer ou permettre d'envoyer des notifications in-app, e-mails, push, rappels de paiement, alertes, rappels intelligents, messages de support, messages opérationnels ou autres communications liées au service.
+
+L'Utilisateur reconnaît que :
+- la délivrabilité dépend en partie de prestataires tiers, de réglages techniques, de filtres anti-spam, d'appareils, de réseaux ou de magasins d'applications ;
+- une absence de réception d'une notification, d'un e-mail ou d'un push ne saurait engager la responsabilité de l'Éditeur si cette absence est due à un facteur externe ou à la configuration de l'Utilisateur ;
+- il lui appartient de vérifier régulièrement l'état de ses abonnements, de ses comptes, de ses alertes et de ses opérations.
+
+## 20. Paiements, abonnements et prestataires tiers
+
+Selon le contexte, les paiements, abonnements, liens de paiement ou achats intégrés peuvent être opérés par des prestataires tiers, notamment des prestataires de paiement, des stores mobiles ou des intermédiaires spécialisés.
+
+L'Utilisateur reconnaît que :
+- les parcours de paiement peuvent différer selon la plateforme, la devise, le pays, le plan, le terminal et les règles imposées par des tiers ;
+- certains paiements peuvent être redirigés vers une page externe, un lien de paiement ou un fournisseur tiers ;
+- l'Éditeur ne contrôle pas intégralement les interfaces, délais, vérifications, politiques anti-fraude, indisponibilités ou conditions techniques des prestataires tiers.
+
+Les conditions applicables aux prestataires de paiement, stores et services tiers s'ajoutent aux présentes CGU lorsqu'ils interviennent dans une opération.
+
+## 21. Services tiers et dépendances externes
+
+La Plateforme peut s'appuyer sur des services tiers d'authentification, de vérification, de messagerie, de paiement, de notification, d'hébergement, de traduction, d'intelligence artificielle, de statistiques, de stockage, de sécurité ou de distribution.
+
+L'Éditeur n'est pas responsable :
+- d'une panne générale d'un prestataire tiers ;
+- d'un refus de transaction, de vérification ou d'authentification par un prestataire tiers ;
+- d'un changement de politique, d'API, de quota, de tarification ou de compatibilité imposé par un tiers ;
+- d'une indisponibilité propre à un système d'exploitation, un navigateur, un store ou un service externe.
+
+## 22. Disponibilité du service
+
+L'Éditeur s'efforce d'assurer un accès raisonnable à la Plateforme. Toutefois, l'accès peut être interrompu, limité, ralenti, suspendu ou altéré, notamment pour des raisons :
+- de maintenance ;
+- de sécurité ;
+- d'incident technique ;
+- de surcharge ;
+- de dépendance à un tiers ;
+- d'opération d'amélioration ou de migration ;
+- de conformité ou de protection de la Plateforme.
+
+L'Éditeur n'est tenu à aucune obligation de disponibilité absolue, continue et sans interruption.
+
+## 23. Sauvegardes, restauration et continuité
+
+L'Éditeur met en place des mesures raisonnables de sauvegarde, de continuité et de résilience. Toutefois, aucune garantie de restauration intégrale, instantanée ou sans perte de données ne peut être accordée en toutes circonstances.
+
+En cas d'incident, la restauration éventuelle se fera selon les capacités techniques disponibles, les procédures internes et les contraintes applicables au moment de l'incident.
+
+L'Utilisateur est invité à conserver, de son côté, les exports, pièces, justificatifs et sauvegardes qu'il juge nécessaires à son activité.
+
+## 24. Journalisation, traçabilité et sécurité
+
+L'Éditeur peut enregistrer des journaux techniques, historiques d'activité, traces de sécurité, événements de vérification, événements d'abonnement, historiques métiers et autres données nécessaires à :
+- la sécurité ;
+- la prévention de la fraude ;
+- l'exploitation technique ;
+- le support ;
+- l'audit ;
+- la preuve ;
+- l'amélioration de la Plateforme.
+
+Ces journaux peuvent être utilisés pour détecter les comportements anormaux, protéger la Plateforme, investiguer un incident ou répondre à une obligation légale.
+
+## 25. Propriété intellectuelle
+
+L'Éditeur reste titulaire de l'ensemble des droits de propriété intellectuelle relatifs à la Plateforme, à ses interfaces, son code, ses textes, son identité visuelle, sa structure, ses bases techniques, ses contenus propres et ses éléments distinctifs, sous réserve des droits appartenant à des tiers.
+
+Les présentes CGU n'emportent aucune cession de droits de propriété intellectuelle au profit de l'Utilisateur.
+
+L'Utilisateur s'interdit notamment :
+- de copier, reproduire, décompiler, désassembler, extraire, republier, détourner ou exploiter la Plateforme au-delà de son usage autorisé ;
+- de développer un service concurrent à partir de la Plateforme, de ses éléments ou de son fonctionnement ;
+- d'exploiter de manière illicite les contenus, interfaces, exports, catalogues ou éléments issus de Stockman.
+
+## 26. Données de l'Utilisateur
+
+Sous réserve des droits nécessaires à l'exploitation du service, l'Utilisateur reste titulaire ou responsable des droits sur les données qu'il renseigne ou exploite via la Plateforme.
+
+L'Utilisateur concède à l'Éditeur les droits strictement nécessaires à l'hébergement, au traitement, à la sauvegarde, à la sécurisation, à la transmission, à l'analyse technique et à l'exécution des fonctionnalités demandées.
+
+L'Utilisateur garantit disposer de tous les droits nécessaires sur les données, contenus, images, marques, catalogues, documents, fichiers et informations importés, saisis, publiés ou transmis via Stockman.
+
+## 27. Usages interdits
+
+Il est strictement interdit d'utiliser Stockman pour :
+- une activité illicite, frauduleuse, trompeuse ou abusive ;
+- contourner les limitations de sécurité ;
+- sonder, tester ou attaquer la Plateforme sans autorisation ;
+- utiliser des robots, scripts, automates ou procédés détournés de manière abusive ;
+- diffuser des contenus contraires à la loi, aux droits de tiers, à l'ordre public ou aux bonnes mœurs ;
+- gérer ou promouvoir des produits, services ou activités interdits par la loi applicable ;
+- tenter d'obtenir un avantage indu, un accès non autorisé ou un traitement prioritaire non prévu.
+
+## 28. Suspension, restriction et suppression
+
+L'Éditeur peut, à tout moment et sans que sa responsabilité puisse être engagée, suspendre, restreindre, placer en lecture seule, désactiver ou supprimer tout ou partie d'un compte ou d'un accès, notamment :
+- en cas de non-respect des présentes CGU ;
+- en cas de comportement suspect, frauduleux ou dangereux ;
+- en cas de défaut de paiement ;
+- en cas d'atteinte à la sécurité ;
+- en cas de demande légale ou réglementaire ;
+- en cas d'usage excessif ou non conforme.
+
+L'Éditeur peut prendre toute mesure conservatoire nécessaire à la protection de la Plateforme, de ses Utilisateurs, de ses prestataires, de sa réputation ou de ses droits.
+
+## 29. Limitation de responsabilité
+
+Dans toute la mesure permise par la loi applicable, la responsabilité de l'Éditeur est strictement limitée aux dommages directs, certains, personnels et prouvés, résultant exclusivement d'une faute imputable à l'Éditeur dans l'exécution du service.
+
+Sont notamment exclus, sauf disposition impérative contraire :
+- les dommages indirects ;
+- la perte de chiffre d'affaires ;
+- la perte de marge ;
+- la perte d'exploitation ;
+- la perte d'image ;
+- la perte d'opportunité ;
+- la perte de clientèle ;
+- la perte de données imputable à l'Utilisateur, à un tiers ou à un événement externe ;
+- les conséquences d'une mauvaise saisie, d'un mauvais paramétrage, d'un mauvais import ou d'une décision métier prise par l'Utilisateur ;
+- les conséquences d'un dysfonctionnement d'un appareil, d'un système d'exploitation, d'un navigateur, d'un réseau, d'un store ou d'un service tiers.
+
+En tout état de cause, la responsabilité globale de l'Éditeur, tous faits générateurs confondus, ne pourra excéder le montant effectivement payé par l'Utilisateur au titre du service au cours des douze derniers mois précédant le fait générateur, sauf disposition légale impérative contraire.
+
+## 30. Force majeure
+
+L'Éditeur ne pourra être tenu responsable en cas d'inexécution ou de retard résultant d'un événement échappant raisonnablement à son contrôle, notamment catastrophe, incendie, cyberattaque généralisée, défaillance majeure d'un prestataire essentiel, grève, coupure réseau, défaillance d'infrastructure, décision administrative, conflit, épidémie ou tout autre cas de force majeure au sens du droit applicable.
+
+## 31. Modification du service et des CGU
+
+L'Éditeur se réserve le droit de faire évoluer la Plateforme, ses fonctionnalités, ses modules, ses interfaces, ses intégrations, ses parcours, ses méthodes d'authentification, ses conditions techniques, ses tarifs, ses plans et les présentes CGU, afin notamment de tenir compte :
+- des évolutions réglementaires ;
+- des évolutions techniques ;
+- des contraintes de sécurité ;
+- des changements imposés par des tiers ;
+- de l'évolution commerciale de Stockman.
+
+La version mise à jour des CGU devient opposable à compter de sa publication, de sa communication ou de sa mise à disposition dans la Plateforme, sous réserve des droits légaux applicables à l'Utilisateur.
+
+## 32. Nullité partielle
+
+Si une stipulation des présentes CGU était déclarée nulle, inapplicable ou inopposable, les autres stipulations conserveraient leur plein effet.
+
+## 33. Loi applicable et juridiction compétente
+
+Les présentes CGU sont régies par le droit applicable au siège de l'Éditeur, sous réserve des dispositions impératives éventuellement applicables.
+
+Tout litige relatif à l'interprétation, l'exécution ou la validité des présentes CGU relèvera des juridictions compétentes du ressort du siège de l'Éditeur, sauf règle impérative contraire.

@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -771,13 +773,36 @@ export default function SuppliersScreen() {
     if (!detailSupplier || !inviteEmail.trim()) return;
     setInviteSaving(true);
     try {
-      await invitationsApi.send(detailSupplier.supplier_id, inviteEmail.trim());
+      await suppliersApi.resendInvitation(detailSupplier.supplier_id);
       setShowInviteModal(false);
       Alert.alert(t('suppliers.invite_sent'), t('suppliers.invite_sent_desc', { email: inviteEmail.trim() }));
     } catch {
       Alert.alert(t('common.error'), t('suppliers.invite_error'));
     } finally {
       setInviteSaving(false);
+    }
+  }
+
+  async function copyInvitationLink() {
+    if (!detailSupplier) return;
+    try {
+      const res = await suppliersApi.getInvitationLink(detailSupplier.supplier_id);
+      await Clipboard.setStringAsync(res.link);
+      Alert.alert(t('common.success'), t('suppliers.link_copied'));
+    } catch {
+      Alert.alert(t('common.error'), t('suppliers.invite_error'));
+    }
+  }
+
+  async function shareInvitationLink() {
+    if (!detailSupplier) return;
+    try {
+      const res = await suppliersApi.getInvitationLink(detailSupplier.supplier_id);
+      await Share.share({
+        message: t('suppliers.share_invite_text', { name: detailSupplier.name, link: res.link }),
+      });
+    } catch {
+      // user cancelled share or error
     }
   }
 
@@ -1301,7 +1326,7 @@ export default function SuppliersScreen() {
         </ScrollView>
 
         {/* Add/Edit Supplier Modal */}
-        <Modal visible={showFormModal} animationType="slide" transparent>
+        {showFormModal && <Modal visible={showFormModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1338,10 +1363,10 @@ export default function SuppliersScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Detail Modal */}
-        <Modal visible={showDetailModal} animationType="slide" transparent>
+        {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1940,9 +1965,9 @@ export default function SuppliersScreen() {
               )}
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
-        <Modal visible={showSuggestionLinkModal} animationType="fade" transparent>
+        {showSuggestionLinkModal && <Modal visible={showSuggestionLinkModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '75%' }]}>
               <View style={styles.modalHeader}>
@@ -2012,10 +2037,10 @@ export default function SuppliersScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Link Product Modal */}
-        <Modal visible={showLinkModal} animationType="fade" transparent>
+        {showLinkModal && <Modal visible={showLinkModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '70%' }]}>
               <View style={styles.modalHeader}>
@@ -2077,9 +2102,9 @@ export default function SuppliersScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </Modal>}
         {/* Marketplace Filter Modal */}
-        <Modal visible={showMpFilters} animationType="slide" transparent>
+        {showMpFilters && <Modal visible={showMpFilters} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '80%' }]}>
               <View style={styles.modalHeader}>
@@ -2279,12 +2304,12 @@ export default function SuppliersScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Invite Modal */}
-        <Modal visible={showInviteModal} animationType="fade" transparent>
+        {showInviteModal && <Modal visible={showInviteModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '50%' }]}>
+            <View style={[styles.modalContent, { maxHeight: '60%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('suppliers.invite_to_register')}</Text>
                 <TouchableOpacity onPress={() => setShowInviteModal(false)}>
@@ -2292,36 +2317,60 @@ export default function SuppliersScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.inviteDesc}>
-                {t('suppliers.invite_desc')}
-              </Text>
+              <ScrollView>
+                <Text style={styles.inviteDesc}>
+                  {t('suppliers.invite_desc')}
+                </Text>
 
-              <FormField
-                label={t('suppliers.supplier_email')}
-                value={inviteEmail}
-                onChangeText={setInviteEmail}
-                placeholder="email@fournisseur.com"
-                colors={colors}
-                styles={styles}
-              />
+                {/* Copy / Share link — always available */}
+                <TouchableOpacity
+                  style={[styles.inviteActionBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
+                  onPress={copyInvitationLink}
+                >
+                  <Ionicons name="copy-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.inviteActionText, { color: colors.primary }]}>{t('suppliers.copy_invite_link')}</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.submitBtn, (!inviteEmail.trim() || inviteSaving) && styles.submitBtnDisabled]}
-                onPress={submitInvite}
-                disabled={!inviteEmail.trim() || inviteSaving}
-              >
-                {inviteSaving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>{t('suppliers.send_invite')}</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.inviteActionBtn, { backgroundColor: '#25D36615', borderColor: '#25D366' }]}
+                  onPress={shareInvitationLink}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                  <Text style={[styles.inviteActionText, { color: '#25D366' }]}>{t('suppliers.share_whatsapp')}</Text>
+                </TouchableOpacity>
+
+                {/* Email invite — only if email available */}
+                {inviteEmail.trim() ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={[styles.inviteDesc, { marginBottom: 8 }]}>{t('suppliers.or_send_email')}</Text>
+                    <FormField
+                      label={t('suppliers.supplier_email')}
+                      value={inviteEmail}
+                      onChangeText={setInviteEmail}
+                      placeholder="email@fournisseur.com"
+                      colors={colors}
+                      styles={styles}
+                    />
+                    <TouchableOpacity
+                      style={[styles.submitBtn, (!inviteEmail.trim() || inviteSaving) && styles.submitBtnDisabled]}
+                      onPress={submitInvite}
+                      disabled={!inviteEmail.trim() || inviteSaving}
+                    >
+                      {inviteSaving ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.submitBtnText}>{t('suppliers.send_invite')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </ScrollView>
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Marketplace Detail Modal */}
-        <Modal visible={showMpDetail} animationType="slide" transparent>
+        {showMpDetail && <Modal visible={showMpDetail} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -2524,7 +2573,7 @@ export default function SuppliersScreen() {
               ) : null}
             </View>
           </View>
-        </Modal>
+        </Modal>}
 
         {/* Order Creation Modal (3-step flow) */}
         <OrderCreationModal
@@ -2775,6 +2824,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   inviteBtnText: {
     color: colors.secondary,
     fontWeight: '600',
+    fontSize: FontSize.sm,
+  },
+  inviteActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  inviteActionText: {
+    fontWeight: '700',
     fontSize: FontSize.sm,
   },
   inviteDesc: {

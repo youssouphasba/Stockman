@@ -1,76 +1,117 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Edit3, GitMerge, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Bot, CheckCircle2, Copy, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '../../data/businessSectors';
 
 type ToastType = 'success' | 'error';
+type PublicationStatus = 'draft' | 'ready' | 'published' | 'needs_review' | 'archived';
+type AssistantBucket =
+    | 'all'
+    | 'incomplete'
+    | 'missing_image'
+    | 'missing_category'
+    | 'missing_price'
+    | 'missing_unit'
+    | 'missing_marketplace_link'
+    | 'published'
+    | 'needs_review';
 
-type AdminCatalogPanelProps = {
+type Props = {
     refreshToken: number;
     showToast: (message: string, type?: ToastType) => void;
 };
 
-type AdminCatalogEntry = {
+type CatalogEntry = {
     catalog_id: string;
     display_name: string;
     category?: string | null;
     sector?: string | null;
     country_codes?: string[] | null;
     barcodes?: string[] | null;
-    aliases?: string[] | null;
+    tags?: string[] | null;
     image_url?: string | null;
-    added_by_count?: number | null;
+    unit?: string | null;
+    publication_status?: PublicationStatus | null;
+    reference_price?: number | null;
+    sale_price?: number | null;
+    supplier_hint?: string | null;
     verified?: boolean | null;
-    created_at?: string | null;
+    added_by_count?: number | null;
+    completeness?: Record<string, any> | null;
     updated_at?: string | null;
+    created_at?: string | null;
 };
 
-type CatalogFilters = {
-    search: string;
-    sector: string;
-    country: string;
-    verified: 'all' | 'verified' | 'pending';
-};
-
-type CatalogFormState = {
+type FormState = {
     display_name: string;
     category: string;
     sector: string;
-    barcodes: string;
-    aliases: string;
     country_codes: string;
+    barcodes: string;
     image_url: string;
-    added_by_count: string;
+    unit: string;
+    tags: string;
+    publication_status: PublicationStatus;
+    reference_price: string;
+    sale_price: string;
+    supplier_hint: string;
     verified: boolean;
 };
 
-const DEFAULT_FILTERS: CatalogFilters = { search: '', sector: '', country: '', verified: 'all' };
-const DEFAULT_FORM: CatalogFormState = {
+type BatchRow = {
+    display_name: string;
+    category?: string;
+    sector?: string;
+    barcodes?: string[];
+    aliases?: string[];
+    country_codes?: string[];
+    image_url?: string;
+    unit?: string;
+    tags?: string[];
+    supplier_suggestions?: string[];
+    marketplace_matches?: string[];
+    publication_status?: PublicationStatus;
+    notes?: string;
+    reference_price?: number;
+    sale_price?: number;
+    supplier_hint?: string;
+    verified?: boolean;
+    added_by_count?: number;
+};
+
+const DEFAULT_FORM: FormState = {
     display_name: '',
     category: '',
     sector: 'epicerie',
-    barcodes: '',
-    aliases: '',
     country_codes: 'SN',
+    barcodes: '',
     image_url: '',
-    added_by_count: '1',
+    unit: 'pièce',
+    tags: '',
+    publication_status: 'draft',
+    reference_price: '',
+    sale_price: '',
+    supplier_hint: '',
     verified: true,
 };
 
-function formatDate(value?: string | null) {
-    if (!value) return '—';
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return '—';
-    return parsed.toLocaleString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
+const PUBLICATION_OPTIONS: { value: PublicationStatus; label: string }[] = [
+    { value: 'draft', label: 'Brouillon' },
+    { value: 'ready', label: 'Prêt à publier' },
+    { value: 'published', label: 'Publié' },
+    { value: 'needs_review', label: 'À corriger' },
+    { value: 'archived', label: 'Archivé' },
+];
+
+const TEMPLATES = [
+    { id: 'epicerie', label: 'Épicerie', sector: 'epicerie', category: 'Produits alimentaires', unit: 'pièce', tags: 'épicerie, rayon' },
+    { id: 'boissons', label: 'Boissons', sector: 'boissons', category: 'Boissons', unit: 'L', tags: 'boisson, liquide' },
+    { id: 'hygiene', label: 'Hygiène', sector: 'cosmetiques', category: 'Hygiène', unit: 'pièce', tags: 'hygiène, soin' },
+    { id: 'marketplace', label: 'Fournisseur marketplace', sector: 'grossiste', category: 'Marketplace', unit: 'pièce', tags: 'marketplace, catalogue' },
+    { id: 'restaurant', label: 'Restaurant', sector: 'restaurant', category: 'Ingrédients', unit: 'kg', tags: 'restaurant, cuisine' },
+];
 
 function listToInput(value?: string[] | null) {
     return (value || []).join(', ');
@@ -83,73 +124,169 @@ function inputToList(value: string) {
         .filter(Boolean);
 }
 
-function normalizeCatalogText(value: string) {
+function formatDate(value?: string | null) {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleString('fr-FR');
+}
+
+function statusClass(status?: string | null) {
+    switch (status) {
+        case 'published':
+            return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300';
+        case 'ready':
+            return 'border-sky-500/30 bg-sky-500/10 text-sky-300';
+        case 'needs_review':
+            return 'border-amber-500/30 bg-amber-500/10 text-amber-300';
+        case 'archived':
+            return 'border-slate-500/30 bg-slate-500/10 text-slate-300';
+        default:
+            return 'border-white/10 bg-white/5 text-slate-300';
+    }
+}
+
+function parseCellList(value: string) {
     return value
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .trim();
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean);
 }
 
-function makeFormState(entry?: AdminCatalogEntry | null): CatalogFormState {
-    if (!entry) return DEFAULT_FORM;
-    return {
-        display_name: entry.display_name || '',
-        category: entry.category || '',
-        sector: entry.sector || 'epicerie',
-        barcodes: listToInput(entry.barcodes),
-        aliases: listToInput(entry.aliases),
-        country_codes: listToInput(entry.country_codes),
-        image_url: entry.image_url || '',
-        added_by_count: String(entry.added_by_count || 1),
-        verified: entry.verified !== false,
-    };
+function parseOptionalNumber(value: string) {
+    const cleaned = value.trim().replace(',', '.');
+    if (!cleaned) return undefined;
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCatalogPanelProps) {
+function parseBoolean(value: string) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return undefined;
+    return ['true', '1', 'oui', 'yes'].includes(normalized);
+}
+
+function splitCsvLine(line: string, separator: string) {
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        if (char === '"') {
+            if (inQuotes && line[index + 1] === '"') {
+                current += '"';
+                index += 1;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === separator && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    values.push(current.trim());
+    return values;
+}
+
+function parseCsvImportRows(content: string): BatchRow[] {
+    const normalized = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
+
+    const separator = lines[0].includes(';') ? ';' : ',';
+    const headers = splitCsvLine(lines[0], separator).map((item) => item.trim().toLowerCase());
+
+    return lines.slice(1).map((line) => {
+        const cells = splitCsvLine(line, separator);
+        const row: Record<string, string> = {};
+        headers.forEach((header, index) => {
+            row[header] = (cells[index] || '').trim();
+        });
+
+        return {
+            display_name: row.display_name || '',
+            category: row.category || undefined,
+            sector: row.sector || undefined,
+            barcodes: parseCellList(row.barcodes || ''),
+            aliases: parseCellList(row.aliases || ''),
+            country_codes: parseCellList(row.country_codes || '').map((item) => item.toUpperCase()),
+            image_url: row.image_url || undefined,
+            unit: row.unit || undefined,
+            tags: parseCellList(row.tags || '').map((item) => item.toLowerCase()),
+            supplier_suggestions: parseCellList(row.supplier_suggestions || ''),
+            marketplace_matches: parseCellList(row.marketplace_matches || ''),
+            publication_status: (row.publication_status as PublicationStatus) || 'draft',
+            notes: row.notes || undefined,
+            reference_price: parseOptionalNumber(row.reference_price || ''),
+            sale_price: parseOptionalNumber(row.sale_price || ''),
+            supplier_hint: row.supplier_hint || undefined,
+            verified: parseBoolean(row.verified || ''),
+            added_by_count: parseOptionalNumber(row.added_by_count || ''),
+        };
+    }).filter((row) => row.display_name);
+}
+
+export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
+    const [items, setItems] = useState<CatalogEntry[]>([]);
     const [stats, setStats] = useState<any>(null);
-    const [items, setItems] = useState<AdminCatalogEntry[]>([]);
-    const [total, setTotal] = useState(0);
+    const [assistant, setAssistant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [verifyingId, setVerifyingId] = useState<string | null>(null);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [draftFilters, setDraftFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
-    const [filters, setFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [mergeKeepId, setMergeKeepId] = useState('');
     const [editorOpen, setEditorOpen] = useState(false);
-    const [editingEntry, setEditingEntry] = useState<AdminCatalogEntry | null>(null);
-    const [form, setForm] = useState<CatalogFormState>(DEFAULT_FORM);
+    const [editingEntry, setEditingEntry] = useState<CatalogEntry | null>(null);
+    const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+    const [batchOpen, setBatchOpen] = useState(false);
+    const [variantOpen, setVariantOpen] = useState(false);
+    const [batchText, setBatchText] = useState('');
+    const [batchRows, setBatchRows] = useState<BatchRow[]>([]);
+    const [batchFileName, setBatchFileName] = useState('');
+    const [variantBaseName, setVariantBaseName] = useState('');
+    const [variantValues, setVariantValues] = useState('');
+    const [filters, setFilters] = useState({
+        search: '',
+        sector: '',
+        publication_status: '',
+        assistant_bucket: 'all' as AssistantBucket,
+    });
+    const [bulkEdit, setBulkEdit] = useState({
+        category: '',
+        tags: '',
+        publication_status: '' as PublicationStatus | '',
+        supplier_hint: '',
+    });
 
-    const loadData = async (nextFilters: CatalogFilters) => {
-        const params: { search?: string; sector?: string; country?: string; verified?: boolean; limit: number } = { limit: 200 };
-        if (nextFilters.search.trim()) params.search = nextFilters.search.trim();
-        if (nextFilters.sector) params.sector = nextFilters.sector;
-        if (nextFilters.country) params.country = nextFilters.country;
-        if (nextFilters.verified === 'verified') params.verified = true;
-        if (nextFilters.verified === 'pending') params.verified = false;
+    const load = async (assistantCatalogId?: string | null) => {
+        const params: any = { limit: 200 };
+        if (filters.search.trim()) params.search = filters.search.trim();
+        if (filters.sector) params.sector = filters.sector;
+        if (filters.publication_status) params.publication_status = filters.publication_status;
+        if (filters.assistant_bucket !== 'all') params.assistant_bucket = filters.assistant_bucket;
 
-        const [statsResponse, listResponse] = await Promise.all([
+        const [statsResponse, listResponse, assistantResponse] = await Promise.all([
             adminApi.getCatalogStats(),
             adminApi.listCatalogProducts(params),
+            adminApi.getCatalogAssistant(assistantCatalogId || undefined),
         ]);
 
         setStats(statsResponse);
-        setItems(Array.isArray(listResponse?.products) ? listResponse.products : []);
-        setTotal(Number(listResponse?.total || 0));
+        setItems(listResponse?.products || []);
+        setAssistant(assistantResponse);
     };
 
     useEffect(() => {
         let cancelled = false;
+
         const run = async () => {
             try {
                 setLoading(true);
-                await loadData(filters);
+                await load(editingEntry?.catalog_id);
             } catch {
-                if (!cancelled) showToast("Impossible de charger le catalogue global.", 'error');
+                if (!cancelled) showToast('Impossible de charger le catalogue global.', 'error');
             } finally {
                 if (!cancelled) {
                     setLoading(false);
@@ -157,243 +294,304 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
                 }
             }
         };
+
         void run();
         return () => {
             cancelled = true;
         };
-    }, [filters, refreshToken]);
+    }, [refreshToken, filters, editingEntry?.catalog_id]);
 
-    useEffect(() => {
-        const ids = Array.from(selectedIds);
-        if (!ids.length) {
-            setMergeKeepId('');
+    const selectedEntries = useMemo(() => items.filter((item) => selectedIds.has(item.catalog_id)), [items, selectedIds]);
+    const mergeKeepId = selectedEntries[0]?.catalog_id || '';
+    const dominantSector = Object.entries(stats?.by_sector || {}).sort((a: any, b: any) => Number(b[1]) - Number(a[1]))[0]?.[0];
+    const assistantStats = stats?.assistant || {};
+    const assistantSuggestions = assistant?.suggestions || {};
+
+    const openCreate = async () => {
+        setEditingEntry(null);
+        setForm(DEFAULT_FORM);
+        try {
+            setAssistant(await adminApi.getCatalogAssistant());
+        } catch {
+            setAssistant(null);
+        }
+        setEditorOpen(true);
+    };
+
+    const openEdit = async (entry: CatalogEntry) => {
+        setEditingEntry(entry);
+        setForm({
+            display_name: entry.display_name || '',
+            category: entry.category || '',
+            sector: entry.sector || 'epicerie',
+            country_codes: listToInput(entry.country_codes),
+            barcodes: listToInput(entry.barcodes),
+            image_url: entry.image_url || '',
+            unit: entry.unit || 'pièce',
+            tags: listToInput(entry.tags),
+            publication_status: (entry.publication_status as PublicationStatus) || 'draft',
+            reference_price: entry.reference_price != null ? String(entry.reference_price) : '',
+            sale_price: entry.sale_price != null ? String(entry.sale_price) : '',
+            supplier_hint: entry.supplier_hint || '',
+            verified: entry.verified !== false,
+        });
+        try {
+            setAssistant(await adminApi.getCatalogAssistant(entry.catalog_id));
+        } catch {
+            setAssistant(null);
+        }
+        setEditorOpen(true);
+    };
+
+    const formPayload = () => ({
+        display_name: form.display_name.trim(),
+        category: form.category.trim() || undefined,
+        sector: form.sector,
+        country_codes: inputToList(form.country_codes).map((item) => item.toUpperCase()),
+        barcodes: inputToList(form.barcodes),
+        image_url: form.image_url.trim() || undefined,
+        unit: form.unit.trim() || undefined,
+        tags: inputToList(form.tags).map((item) => item.toLowerCase()),
+        publication_status: form.publication_status,
+        reference_price: form.reference_price ? Number(form.reference_price) : undefined,
+        sale_price: form.sale_price ? Number(form.sale_price) : undefined,
+        supplier_hint: form.supplier_hint.trim() || undefined,
+        verified: form.verified,
+    });
+
+    const save = async () => {
+        try {
+            if (editingEntry) await adminApi.updateCatalogProduct(editingEntry.catalog_id, formPayload());
+            else await adminApi.createCatalogProduct(formPayload());
+            setEditorOpen(false);
+            setEditingEntry(null);
+            await load();
+            showToast(editingEntry ? 'Produit catalogue mis à jour.' : 'Produit catalogue ajouté.');
+        } catch (error: any) {
+            showToast(error?.message || "Impossible d'enregistrer ce produit catalogue.", 'error');
+        }
+    };
+
+    const createBatch = async () => {
+        const manualRows = batchText
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+                const [display_name = '', category = '', sector = form.sector, unit = form.unit, reference_price = '', sale_price = '', tags = ''] = line.split(';');
+                return {
+                    display_name: display_name.trim(),
+                    category: category.trim() || undefined,
+                    sector: sector.trim() || form.sector,
+                    unit: unit.trim() || form.unit,
+                    reference_price: reference_price.trim() ? Number(reference_price) : undefined,
+                    sale_price: sale_price.trim() ? Number(sale_price) : undefined,
+                    tags: inputToList(tags).map((item) => item.toLowerCase()),
+                    country_codes: inputToList(form.country_codes).map((item) => item.toUpperCase()),
+                    publication_status: 'draft' as PublicationStatus,
+                    verified: false,
+                };
+            })
+            .filter((row) => row.display_name);
+
+        const rows = batchRows.length ? batchRows : manualRows;
+
+        if (!rows.length) {
+            showToast('Ajoute au moins une ligne valide.', 'error');
             return;
         }
-        if (!mergeKeepId || !selectedIds.has(mergeKeepId)) setMergeKeepId(ids[0]);
-    }, [mergeKeepId, selectedIds]);
 
-    const selectedEntries = useMemo(
-        () => items.filter((item) => selectedIds.has(item.catalog_id)),
-        [items, selectedIds],
-    );
-
-    const dominantSector = Object.entries(stats?.by_sector || {}).sort(
-        (a: any, b: any) => Number(b[1]) - Number(a[1]),
-    )[0]?.[0];
-
-    const handleRefresh = async () => {
         try {
-            setRefreshing(true);
-            await loadData(filters);
-        } catch {
-            showToast("Impossible d'actualiser le catalogue.", 'error');
-        } finally {
-            setRefreshing(false);
-        }
-    };
-
-    const openCreate = () => {
-        setEditingEntry(null);
-        setForm(DEFAULT_FORM);
-        setEditorOpen(true);
-    };
-
-    const openEdit = (entry: AdminCatalogEntry) => {
-        setEditingEntry(entry);
-        setForm(makeFormState(entry));
-        setEditorOpen(true);
-    };
-
-    const closeEditor = () => {
-        if (saving) return;
-        setEditorOpen(false);
-        setEditingEntry(null);
-        setForm(DEFAULT_FORM);
-    };
-
-    const submitFilters = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setFilters(draftFilters);
-    };
-
-    const resetFilters = () => {
-        setDraftFilters(DEFAULT_FILTERS);
-        setFilters(DEFAULT_FILTERS);
-    };
-
-    const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setSaving(true);
-        try {
-            const displayName = form.display_name.trim();
-            const category = form.category.trim();
-            const imageUrl = form.image_url.trim() || undefined;
-            const barcodes = Array.from(new Set(inputToList(form.barcodes)));
-            const aliases = Array.from(new Set(inputToList(form.aliases)));
-            const countryCodes = Array.from(new Set(inputToList(form.country_codes).map((item) => item.toUpperCase())));
-
-            if (!displayName) {
-                showToast('Le nom du produit est obligatoire.', 'error');
-                return;
-            }
-
-            const normalizedName = normalizeCatalogText(displayName);
-            const duplicate = items.find((entry) => {
-                if (editingEntry && entry.catalog_id === editingEntry.catalog_id) return false;
-                const sameSector = (entry.sector || 'autre') === (form.sector || 'autre');
-                if (!sameSector) return false;
-                const entryName = normalizeCatalogText(entry.display_name || '');
-                if (entryName && entryName === normalizedName) return true;
-                const entryBarcodes = (entry.barcodes || []).map((item) => String(item).trim()).filter(Boolean);
-                return barcodes.some((barcode) => entryBarcodes.includes(barcode));
-            });
-
-            if (duplicate) {
-                showToast(
-                    `Un produit catalogue similaire existe déjà (${duplicate.display_name}).`,
-                    'error',
-                );
-                return;
-            }
-
-            const payload = {
-                display_name: displayName,
-                category: category || undefined,
-                sector: form.sector,
-                barcodes,
-                aliases,
-                country_codes: countryCodes,
-                image_url: imageUrl,
-                verified: form.verified,
-                added_by_count: Math.max(1, Number(form.added_by_count || '1')),
-            };
-
-            if (editingEntry) {
-                await adminApi.updateCatalogProduct(editingEntry.catalog_id, payload);
-                showToast('Produit catalogue mis à jour.');
-            } else {
-                await adminApi.createCatalogProduct(payload);
-                showToast('Produit catalogue ajouté.');
-            }
-
-            closeEditor();
-            await loadData(filters);
+            await adminApi.bulkUpsertCatalogProducts(rows);
+            setBatchOpen(false);
+            setBatchText('');
+            setBatchRows([]);
+            setBatchFileName('');
+            await load();
+            showToast('Création en lot terminée.');
         } catch (error: any) {
-            const rawMessage = typeof error?.message === 'string' ? error.message : '';
-            const message = rawMessage || "Impossible d'enregistrer ce produit catalogue.";
-            showToast(message, 'error');
-        } finally {
-            setSaving(false);
+            showToast(error?.message || 'Impossible de créer les produits en lot.', 'error');
         }
     };
 
-    const handleVerify = async (entry: AdminCatalogEntry) => {
-        setVerifyingId(entry.catalog_id);
+    const importBatchFile = async (file: File) => {
+        try {
+            const content = await file.text();
+            const rows = parseCsvImportRows(content);
+            if (!rows.length) {
+                showToast('Le fichier ne contient aucune ligne exploitable.', 'error');
+                return;
+            }
+            setBatchRows(rows);
+            setBatchFileName(file.name);
+            setBatchText('');
+            showToast(`${rows.length} ligne(s) prêtes pour l'import.`);
+        } catch {
+            showToast("Impossible de lire ce fichier d'import.", 'error');
+        }
+    };
+
+    const createVariants = async () => {
+        const values = inputToList(variantValues);
+        if (!variantBaseName.trim() || !values.length) {
+            showToast('Ajoute un nom de base et des variantes.', 'error');
+            return;
+        }
+
+        try {
+            await adminApi.bulkUpsertCatalogProducts(
+                values.map((value) => ({
+                    display_name: `${variantBaseName.trim()} ${value}`.trim(),
+                    category: form.category.trim() || undefined,
+                    sector: form.sector,
+                    unit: form.unit,
+                    tags: inputToList(form.tags).map((item) => item.toLowerCase()),
+                    reference_price: form.reference_price ? Number(form.reference_price) : undefined,
+                    sale_price: form.sale_price ? Number(form.sale_price) : undefined,
+                    country_codes: inputToList(form.country_codes).map((item) => item.toUpperCase()),
+                    publication_status: 'draft' as PublicationStatus,
+                    verified: false,
+                })),
+            );
+            setVariantOpen(false);
+            setVariantBaseName('');
+            setVariantValues('');
+            await load();
+            showToast('Série de variantes créée.');
+        } catch (error: any) {
+            showToast(error?.message || 'Impossible de créer la série.', 'error');
+        }
+    };
+
+    const applyBulkEdit = async () => {
+        if (!selectedEntries.length) {
+            showToast('Sélectionne au moins un produit.', 'error');
+            return;
+        }
+
+        const updates: any = {};
+        if (bulkEdit.category.trim()) updates.category = bulkEdit.category.trim();
+        if (bulkEdit.tags.trim()) updates.tags = inputToList(bulkEdit.tags).map((item) => item.toLowerCase());
+        if (bulkEdit.publication_status) updates.publication_status = bulkEdit.publication_status;
+        if (bulkEdit.supplier_hint.trim()) updates.supplier_hint = bulkEdit.supplier_hint.trim();
+
+        if (!Object.keys(updates).length) {
+            showToast('Choisis au moins une modification.', 'error');
+            return;
+        }
+
+        try {
+            await adminApi.bulkUpdateCatalogProducts(Array.from(selectedIds), updates);
+            setSelectedIds(new Set());
+            setBulkEdit({ category: '', tags: '', publication_status: '', supplier_hint: '' });
+            await load();
+            showToast('Édition massive appliquée.');
+        } catch (error: any) {
+            showToast(error?.message || "Impossible d'appliquer l'édition massive.", 'error');
+        }
+    };
+
+    const duplicate = async (entry: CatalogEntry) => {
+        try {
+            await adminApi.duplicateCatalogProduct(entry.catalog_id);
+            await load();
+            showToast('Produit catalogue dupliqué.');
+        } catch (error: any) {
+            showToast(error?.message || 'Impossible de dupliquer ce produit.', 'error');
+        }
+    };
+
+    const verify = async (entry: CatalogEntry) => {
         try {
             await adminApi.verifyCatalogProduct(entry.catalog_id);
-            setItems((current) => current.map((item) => (item.catalog_id === entry.catalog_id ? { ...item, verified: true } : item)));
+            await load();
             showToast('Produit catalogue vérifié.');
         } catch {
             showToast("Impossible de vérifier ce produit catalogue.", 'error');
-        } finally {
-            setVerifyingId(null);
         }
     };
 
-    const handleDelete = async (entry: AdminCatalogEntry) => {
-        const confirmed = window.confirm(`Supprimer "${entry.display_name}" du catalogue global ?`);
-        if (!confirmed) return;
-        setDeletingId(entry.catalog_id);
+    const merge = async () => {
+        if (selectedEntries.length < 2) return;
         try {
-            await adminApi.deleteCatalogProduct(entry.catalog_id);
-            setItems((current) => current.filter((item) => item.catalog_id !== entry.catalog_id));
-            setSelectedIds((current) => {
-                const next = new Set(current);
-                next.delete(entry.catalog_id);
-                return next;
-            });
-            setTotal((current) => Math.max(0, current - 1));
-            showToast('Produit catalogue supprimé.');
-        } catch {
-            showToast("Impossible de supprimer ce produit catalogue.", 'error');
-        } finally {
-            setDeletingId(null);
-        }
-    };
-
-    const handleMerge = async () => {
-        const mergeIds = Array.from(selectedIds).filter((catalogId) => catalogId !== mergeKeepId);
-        if (!mergeKeepId || mergeIds.length === 0) {
-            showToast('Sélectionne au moins deux produits et choisis celui à conserver.', 'error');
-            return;
-        }
-        try {
-            await adminApi.mergeCatalogProducts(mergeKeepId, mergeIds);
+            await adminApi.mergeCatalogProducts(
+                mergeKeepId,
+                selectedEntries.slice(1).map((item) => item.catalog_id),
+            );
             setSelectedIds(new Set());
-            setMergeKeepId('');
-            await loadData(filters);
+            await load();
             showToast('Produits catalogue fusionnés.');
         } catch {
             showToast("Impossible de fusionner ces produits catalogue.", 'error');
         }
     };
 
-    const toggleSelection = (catalogId: string) => {
-        setSelectedIds((current) => {
-            const next = new Set(current);
-            if (next.has(catalogId)) next.delete(catalogId);
-            else next.add(catalogId);
-            return next;
-        });
+    const remove = async (entry: CatalogEntry) => {
+        if (!window.confirm(`Supprimer "${entry.display_name}" du catalogue global ?`)) return;
+        try {
+            await adminApi.deleteCatalogProduct(entry.catalog_id);
+            await load();
+            showToast('Produit catalogue supprimé.');
+        } catch {
+            showToast("Impossible de supprimer ce produit catalogue.", 'error');
+        }
     };
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4 xl:grid-cols-6">
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Catalogue total</div>
-                    <div className="text-3xl font-black text-white">{stats?.total_products ?? total}</div>
-                    <div className="text-sm text-slate-400 mt-2">Produits disponibles pour les imports.</div>
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Catalogue</div>
+                    <div className="text-3xl font-black text-white">{stats?.total_products ?? items.length}</div>
                 </div>
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Vérifiés</div>
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Vérifiés</div>
                     <div className="text-3xl font-black text-emerald-400">{stats?.verified_products ?? 0}</div>
-                    <div className="text-sm text-slate-400 mt-2">Entrées validées par l’équipe Stockman.</div>
                 </div>
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">À relire</div>
-                    <div className="text-3xl font-black text-amber-400">{stats?.unverified_products ?? 0}</div>
-                    <div className="text-sm text-slate-400 mt-2">Entrées encore en attente de validation.</div>
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Incomplets</div>
+                    <div className="text-3xl font-black text-amber-300">{assistantStats.incomplete ?? 0}</div>
                 </div>
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Secteur dominant</div>
-                    <div className="text-2xl font-black text-white">{dominantSector ? getBusinessSectorLabel(dominantSector) : '—'}</div>
-                    <div className="text-sm text-slate-400 mt-2">Base prioritaire pour les imports prêts à l’emploi.</div>
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Sans image</div>
+                    <div className="text-3xl font-black text-rose-300">{assistantStats.missing_image ?? 0}</div>
+                </div>
+                <div className="glass-card p-5">
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Sans prix</div>
+                    <div className="text-3xl font-black text-sky-300">{assistantStats.missing_price ?? 0}</div>
+                </div>
+                <div className="glass-card p-5">
+                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Secteur dominant</div>
+                    <div className="text-xl font-black text-white">{dominantSector ? getBusinessSectorLabel(dominantSector) : '—'}</div>
                 </div>
             </div>
 
-            <div className="glass-card p-6">
-                <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-5">
+            <div className="glass-card space-y-4 p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-black text-white">Catalogue global par secteur</h2>
-                        <p className="text-sm text-slate-400">
-                            Enrichir, corriger et valider les produits que les nouveaux business pourront importer.
-                        </p>
+                        <p className="text-sm text-slate-400">Création en lot, duplication, workflow de publication, édition massive et assistant catalogue.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={openCreate}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-opacity"
-                        >
-                            <Plus size={16} />
+                        <button type="button" onClick={() => void openCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white">
+                            <PackagePlus size={16} />
                             Nouveau produit
+                        </button>
+                        <button type="button" onClick={() => setBatchOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
+                            <Layers3 size={16} />
+                            Création en lot
+                        </button>
+                        <button type="button" onClick={() => setVariantOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
+                            <Sparkles size={16} />
+                            Série de variantes
                         </button>
                         <button
                             type="button"
-                            onClick={() => void handleRefresh()}
-                            disabled={refreshing || loading}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 font-semibold hover:bg-white/10 disabled:opacity-50"
+                            onClick={() => {
+                                setRefreshing(true);
+                                void load().finally(() => setRefreshing(false));
+                            }}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white"
                         >
                             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                             Actualiser
@@ -401,114 +599,86 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
                     </div>
                 </div>
 
-                <form onSubmit={submitFilters} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
-                    <input
-                        value={draftFilters.search}
-                        onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))}
-                        placeholder="Rechercher un nom, un code-barres..."
-                        className="px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white placeholder:text-slate-500 outline-none focus:border-primary"
-                    />
-                    <select
-                        value={draftFilters.sector}
-                        onChange={(event) => setDraftFilters((current) => ({ ...current, sector: event.target.value }))}
-                        className="px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                    >
-                        <option value="">Tous les secteurs</option>
-                        {BUSINESS_SECTORS.map((sector) => (
-                            <option key={sector.key} value={sector.key}>
-                                {sector.label}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={draftFilters.country}
-                        onChange={(event) => setDraftFilters((current) => ({ ...current, country: event.target.value }))}
-                        className="px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                    >
-                        <option value="">Tous les pays</option>
-                        {Object.entries(stats?.by_country || {}).sort((a, b) => Number(b[1]) - Number(a[1])).map(([code, count]) => (
-                            <option key={code} value={code}>
-                                {code} ({String(count)})
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={draftFilters.verified}
-                        onChange={(event) => setDraftFilters((current) => ({ ...current, verified: event.target.value as CatalogFilters['verified'] }))}
-                        className="px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                    >
-                        <option value="all">Tous les statuts</option>
-                        <option value="verified">Vérifiés</option>
-                        <option value="pending">À relire</option>
-                    </select>
-                    <div className="flex gap-3">
-                        <button
-                            type="submit"
-                            className="w-full px-4 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-opacity"
-                        >
-                            Appliquer
-                        </button>
-                        <button
-                            type="button"
-                            onClick={resetFilters}
-                            className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-semibold hover:bg-white/10"
-                        >
-                            Réinitialiser
-                        </button>
-                    </div>
-                </form>
-
-                {selectedEntries.length >= 2 && (
-                    <div className="mb-5 p-4 rounded-2xl border border-primary/20 bg-primary/5">
-                        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                            <div>
-                                <div className="text-sm font-bold text-white">Fusion de doublons</div>
-                                <div className="text-sm text-slate-400">
-                                    {selectedEntries.length} produits sélectionnés. Choisis l’entrée à conserver.
-                                </div>
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <select
-                                    value={mergeKeepId}
-                                    onChange={(event) => setMergeKeepId(event.target.value)}
-                                    className="px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                >
-                                    {selectedEntries.map((entry) => (
-                                        <option key={entry.catalog_id} value={entry.catalog_id}>
-                                            {entry.display_name}
-                                        </option>
-                                    ))}
-                                </select>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                        <div className="flex items-center gap-2 font-bold text-white">
+                            <Bot size={16} className="text-primary" />
+                            Assistant catalogue
+                        </div>
+                        <p className="mt-2 text-sm text-slate-300">
+                            Préremplis rapidement ta fiche produit avec un modèle, puis affine avec les suggestions de catégorie, d’unité, de rapprochement marketplace et de doublons.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {TEMPLATES.map((template) => (
                                 <button
+                                    key={template.id}
                                     type="button"
-                                    onClick={() => void handleMerge()}
-                                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10"
+                                    onClick={() =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            sector: template.sector,
+                                            category: template.category,
+                                            unit: template.unit,
+                                            tags: template.tags,
+                                        }))
+                                    }
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-white/10"
                                 >
-                                    <GitMerge size={16} />
-                                    Fusionner
+                                    Modèle {template.label}
                                 </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
-                )}
 
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                        <div className="text-sm font-black text-white">Vue d’orchestration</div>
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans image</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_image ?? 0}</div></div>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans catégorie</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_category ?? 0}</div></div>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans unité</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_unit ?? 0}</div></div>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Doublons probables</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.duplicates_probable ?? 0}</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Nom, tag, code-barres..." className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
+                    <select value={filters.sector} onChange={(event) => setFilters((current) => ({ ...current, sector: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="">Tous les secteurs</option>{BUSINESS_SECTORS.map((sector) => <option key={sector.key} value={sector.key}>{sector.label}</option>)}</select>
+                    <select value={filters.publication_status} onChange={(event) => setFilters((current) => ({ ...current, publication_status: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="">Tous les workflows</option>{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                    <select value={filters.assistant_bucket} onChange={(event) => setFilters((current) => ({ ...current, assistant_bucket: event.target.value as AssistantBucket }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="all">Vue globale</option><option value="incomplete">Produits incomplets</option><option value="missing_image">Sans image</option><option value="missing_category">Sans catégorie</option><option value="missing_price">Sans prix</option><option value="missing_unit">Sans unité</option><option value="missing_marketplace_link">Sans lien marketplace</option><option value="published">Publiés</option><option value="needs_review">À corriger</option></select>
+                </div>
+            </div>
+
+            {selectedEntries.length > 0 && (
+                <div className="glass-card space-y-4 p-6">
+                    <div className="font-black text-white">{selectedEntries.length} produits sélectionnés</div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                        <input value={bulkEdit.category} onChange={(event) => setBulkEdit((current) => ({ ...current, category: event.target.value }))} placeholder="Catégorie" className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <input value={bulkEdit.tags} onChange={(event) => setBulkEdit((current) => ({ ...current, tags: event.target.value }))} placeholder="Tags" className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <select value={bulkEdit.publication_status} onChange={(event) => setBulkEdit((current) => ({ ...current, publication_status: event.target.value as PublicationStatus | '' }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="">Workflow</option>{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                        <input value={bulkEdit.supplier_hint} onChange={(event) => setBulkEdit((current) => ({ ...current, supplier_hint: event.target.value }))} placeholder="Suggestion fournisseur" className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        <button type="button" onClick={() => void applyBulkEdit()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Appliquer en lot</button>
+                        {selectedEntries.length >= 2 && <button type="button" onClick={() => void merge()} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white"><GitMerge size={16} />Fusionner</button>}
+                    </div>
+                </div>
+            )}
+
+            <div className="glass-card p-6">
                 {loading ? (
                     <div className="py-16 text-center text-slate-400">Chargement du catalogue…</div>
-                ) : items.length === 0 ? (
-                    <div className="py-16 text-center text-slate-400">
-                        Aucun produit catalogue ne correspond aux filtres sélectionnés.
-                    </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1100px]">
+                        <table className="w-full min-w-[1280px]">
                             <thead>
-                                <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-500 border-b border-white/10">
+                                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
                                     <th className="py-3 pr-4">Sélection</th>
                                     <th className="py-3 pr-4">Produit</th>
-                                    <th className="py-3 pr-4">Secteur</th>
-                                    <th className="py-3 pr-4">Pays / codes-barres</th>
-                                    <th className="py-3 pr-4">Popularité</th>
-                                    <th className="py-3 pr-4">Statut</th>
+                                    <th className="py-3 pr-4">Workflow</th>
+                                    <th className="py-3 pr-4">Complétude</th>
+                                    <th className="py-3 pr-4">Prix / unité</th>
+                                    <th className="py-3 pr-4">Tags / fournisseur</th>
                                     <th className="py-3">Actions</th>
                                 </tr>
                             </thead>
@@ -519,69 +689,53 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
                                             <input
                                                 type="checkbox"
                                                 checked={selectedIds.has(entry.catalog_id)}
-                                                onChange={() => toggleSelection(entry.catalog_id)}
+                                                onChange={() => setSelectedIds((current) => {
+                                                    const next = new Set(current);
+                                                    if (next.has(entry.catalog_id)) next.delete(entry.catalog_id);
+                                                    else next.add(entry.catalog_id);
+                                                    return next;
+                                                })}
                                                 className="mt-1 h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary"
                                             />
                                         </td>
                                         <td className="py-4 pr-4">
                                             <div className="font-bold text-white">{entry.display_name}</div>
-                                            <div className="text-sm text-slate-400">{entry.category || 'Sans catégorie'}</div>
-                                            <div className="text-xs text-slate-500 mt-1">
-                                                Mis à jour : {formatDate(entry.updated_at || entry.created_at)}
+                                            <div className="text-sm text-slate-400">{entry.category || 'Sans catégorie'} • {getBusinessSectorLabel(entry.sector)}</div>
+                                            <div className="mt-1 text-xs text-slate-500">{(entry.country_codes || []).join(', ') || 'Sans pays'} • {formatDate(entry.updated_at || entry.created_at)}</div>
+                                        </td>
+                                        <td className="py-4 pr-4">
+                                            <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${statusClass(entry.publication_status)}`}>{PUBLICATION_OPTIONS.find((option) => option.value === (entry.publication_status || 'draft'))?.label || 'Brouillon'}</span>
+                                            <div className="mt-2">
+                                                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${entry.verified ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
+                                                    <CheckCircle2 size={12} />
+                                                    {entry.verified ? 'Vérifié' : 'À relire'}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="py-4 pr-4">
-                                            <div className="text-white font-medium">{getBusinessSectorLabel(entry.sector)}</div>
-                                            <div className="text-xs text-slate-500 mt-1">{entry.sector || 'autre'}</div>
-                                        </td>
-                                        <td className="py-4 pr-4">
-                                            <div className="text-white">{(entry.country_codes || []).join(', ') || '—'}</div>
-                                            <div className="text-sm text-slate-400 mt-1">
-                                                {(entry.barcodes || []).slice(0, 3).join(', ') || 'Aucun code-barres'}
+                                            <div className="font-black text-white">{entry.completeness?.score ?? 0}/100</div>
+                                            <div className="mt-2 text-xs text-slate-500">
+                                                {entry.completeness?.missing_image ? 'Image manquante · ' : ''}
+                                                {entry.completeness?.missing_category ? 'Catégorie manquante · ' : ''}
+                                                {entry.completeness?.missing_price ? 'Prix manquant · ' : ''}
+                                                {entry.completeness?.missing_marketplace_link ? 'Sans lien marketplace' : 'Complet ou presque'}
                                             </div>
                                         </td>
                                         <td className="py-4 pr-4">
-                                            <div className="text-white font-black">
-                                                {Number(entry.added_by_count || 0).toLocaleString('fr-FR')}
-                                            </div>
-                                            <div className="text-xs text-slate-500 mt-1">Imports ou contributions</div>
+                                            <div className="text-white">Réf. : {entry.reference_price ?? '—'}</div>
+                                            <div className="mt-1 text-sm text-slate-400">Vente : {entry.sale_price ?? '—'}</div>
+                                            <div className="mt-1 text-xs text-slate-500">Unité : {entry.unit || '—'}</div>
                                         </td>
                                         <td className="py-4 pr-4">
-                                            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${entry.verified ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'}`}>
-                                                <CheckCircle2 size={12} />
-                                                {entry.verified ? 'Vérifié' : 'À relire'}
-                                            </span>
+                                            <div className="text-white">{(entry.tags || []).join(', ') || 'Aucun tag'}</div>
+                                            <div className="mt-1 text-sm text-slate-400">{entry.supplier_hint || 'Aucune suggestion fournisseur'}</div>
                                         </td>
                                         <td className="py-4">
                                             <div className="flex flex-wrap gap-2">
-                                                {!entry.verified && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => void handleVerify(entry)}
-                                                        disabled={verifyingId === entry.catalog_id}
-                                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/15 disabled:opacity-50"
-                                                    >
-                                                        <CheckCircle2 size={14} />
-                                                        {verifyingId === entry.catalog_id ? 'Validation…' : 'Vérifier'}
-                                                    </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(entry)}
-                                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-semibold hover:bg-white/10"
-                                                >
-                                                    <Edit3 size={14} />
-                                                    Modifier
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void handleDelete(entry)}
-                                                    disabled={deletingId === entry.catalog_id}
-                                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm font-semibold hover:bg-rose-500/15 disabled:opacity-50"
-                                                >
-                                                    <Trash2 size={14} />
-                                                    {deletingId === entry.catalog_id ? 'Suppression…' : 'Supprimer'}
-                                                </button>
+                                                {!entry.verified && <button type="button" onClick={() => void verify(entry)} className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-300">Vérifier</button>}
+                                                <button type="button" onClick={() => void openEdit(entry)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white"><Edit3 size={14} />Modifier</button>
+                                                <button type="button" onClick={() => void duplicate(entry)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white"><Copy size={14} />Dupliquer</button>
+                                                <button type="button" onClick={() => void remove(entry)} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-300"><Trash2 size={14} />Supprimer</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -593,130 +747,152 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
             </div>
 
             {editorOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#111827] shadow-2xl">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+                    <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h3 className="text-xl font-black text-white">
-                                    {editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}
-                                </h3>
-                                <p className="text-sm text-slate-400">
-                                    Préparer des produits fiables à importer selon le type de business.
-                                </p>
+                                <h3 className="text-2xl font-black text-white">{editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}</h3>
+                                <p className="mt-1 text-sm text-slate-400">L’IA propose des pistes, mais c’est toi qui valides les catégories, unités et rapprochements.</p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={closeEditor}
-                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
-                            >
-                                <X size={16} />
-                            </button>
+                            <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
 
-                        <form onSubmit={handleSave} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Nom du produit</label>
-                                <input
-                                    value={form.display_name}
-                                    onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))}
-                                    required
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
+                        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <input value={form.display_name} onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))} placeholder="Nom du produit" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                    <input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Catégorie" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                    <select value={form.sector} onChange={(event) => setForm((current) => ({ ...current, sector: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{BUSINESS_SECTORS.map((sector) => <option key={sector.key} value={sector.key}>{sector.label}</option>)}</select>
+                                    <input value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))} placeholder="Unité" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                    <select value={form.publication_status} onChange={(event) => setForm((current) => ({ ...current, publication_status: event.target.value as PublicationStatus }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                                    <input value={form.country_codes} onChange={(event) => setForm((current) => ({ ...current, country_codes: event.target.value }))} placeholder="Pays (SN, CI, FR...)" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                    <input value={form.reference_price} onChange={(event) => setForm((current) => ({ ...current, reference_price: event.target.value }))} placeholder="Prix de référence" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                    <input value={form.sale_price} onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))} placeholder="Prix de vente" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                </div>
+
+                                <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="Tags" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                <input value={form.image_url} onChange={(event) => setForm((current) => ({ ...current, image_url: event.target.value }))} placeholder="URL image" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                <input value={form.barcodes} onChange={(event) => setForm((current) => ({ ...current, barcodes: event.target.value }))} placeholder="Codes-barres" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                <input value={form.supplier_hint} onChange={(event) => setForm((current) => ({ ...current, supplier_hint: event.target.value }))} placeholder="Suggestion fournisseur" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                                <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"><input type="checkbox" checked={form.verified} onChange={(event) => setForm((current) => ({ ...current, verified: event.target.checked }))} className="h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary" />Marquer ce produit comme vérifié</label>
                             </div>
+
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                                    <div className="flex items-center gap-2 font-bold text-white"><Sparkles size={16} className="text-primary" />Suggestions IA</div>
+                                    <div className="mt-4 space-y-4 text-sm text-slate-200">
+                                        <div>
+                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Catégories suggérées</div>
+                                            <div className="flex flex-wrap gap-2">{(assistantSuggestions.category_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, category: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
+                                        </div>
+                                        <div>
+                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Unités suggérées</div>
+                                            <div className="flex flex-wrap gap-2">{(assistantSuggestions.unit_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, unit: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
+                                        </div>
+                                        <div>
+                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Rapprochements marketplace</div>
+                                            <div className="space-y-2">{(assistantSuggestions.marketplace_matches || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">{item.category || 'Sans catégorie'} • Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
+                                        </div>
+                                        <div>
+                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Doublons probables</div>
+                                            <div className="space-y-2">{(assistantSuggestions.duplicate_candidates || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
+                                        </div>
+                                        <div>
+                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Suggestions fournisseur</div>
+                                            <div className="space-y-2">{(assistantSuggestions.supplier_suggestions || []).slice(0, 4).map((item: any) => <button key={item.id || item.name} type="button" onClick={() => setForm((current) => ({ ...current, supplier_hint: item.name || item.display_name || '' }))} className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left"><div className="font-semibold text-white">{item.name || item.display_name}</div><div className="text-xs text-slate-400">{item.city || 'Ville non renseignée'} • Score {Math.round((item.match_score || 0) * 100)}%</div></button>)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                                    <div className="text-sm font-black text-white">Complétude actuelle</div>
+                                    <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-300">
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Catégorie : {form.category.trim() ? 'OK' : 'À renseigner'}</div>
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Unité : {form.unit.trim() ? 'OK' : 'À renseigner'}</div>
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Prix : {form.reference_price || form.sale_price ? 'OK' : 'À renseigner'}</div>
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Image : {form.image_url.trim() ? 'OK' : 'À renseigner'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap justify-end gap-3">
+                            <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
+                            <button type="button" onClick={() => void save()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Enregistrer</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {batchOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+                    <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Catégorie</label>
-                                <input
-                                    value={form.category}
-                                    onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
+                                <h3 className="text-2xl font-black text-white">Création en lot</h3>
+                                <p className="mt-1 text-sm text-slate-400">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête.</p>
                             </div>
+                            <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
+                        </div>
+
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <div className="text-sm font-bold text-white">Import CSV admin</div>
+                            <p className="mt-1 text-xs text-slate-400">Colonnes attendues : `display_name`, `category`, `sector`, `country_codes`, `unit`, `tags`, `publication_status`, `reference_price`, `sale_price`, `supplier_hint`, `verified`, avec les autres colonnes optionnelles du template admin.</p>
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    if (file) void importBatchFile(file);
+                                    event.currentTarget.value = '';
+                                }}
+                                className="mt-4 block w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-semibold file:text-white"
+                            />
+                            {batchRows.length > 0 && (
+                                <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+                                    <div className="font-semibold text-white">{batchFileName}</div>
+                                    <div className="mt-1">{batchRows.length} ligne(s) prêtes à importer.</div>
+                                    <div className="mt-2 text-xs text-emerald-100">
+                                        Aperçu : {batchRows.slice(0, 3).map((row) => row.display_name).join(' • ')}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <div className="text-sm font-bold text-white">Saisie rapide</div>
+                            <p className="mt-1 text-xs text-slate-400">Format rapide : nom;catégorie;secteur;unité;prix référence;prix vente;tags</p>
+                            <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button type="button" onClick={() => { setBatchRows([]); setBatchFileName(''); setBatchText(''); setBatchOpen(false); }} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
+                            <button type="button" onClick={() => void createBatch()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Créer les produits</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {variantOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+                    <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Secteur cible</label>
-                                <select
-                                    value={form.sector}
-                                    onChange={(event) => setForm((current) => ({ ...current, sector: event.target.value }))}
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                >
-                                    {BUSINESS_SECTORS.map((sector) => (
-                                        <option key={sector.key} value={sector.key}>
-                                            {sector.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                <h3 className="text-2xl font-black text-white">Créer une série de variantes</h3>
+                                <p className="mt-1 text-sm text-slate-400">Exemple : nom de base “Jus”, variantes “mangue, ananas, bissap”.</p>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Codes-barres</label>
-                                <textarea
-                                    value={form.barcodes}
-                                    onChange={(event) => setForm((current) => ({ ...current, barcodes: event.target.value }))}
-                                    rows={3}
-                                    placeholder="Sépare avec des virgules ou des retours à la ligne"
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Alias</label>
-                                <textarea
-                                    value={form.aliases}
-                                    onChange={(event) => setForm((current) => ({ ...current, aliases: event.target.value }))}
-                                    rows={3}
-                                    placeholder="Variantes de nom utiles pour la recherche"
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Pays ciblés</label>
-                                <input
-                                    value={form.country_codes}
-                                    onChange={(event) => setForm((current) => ({ ...current, country_codes: event.target.value }))}
-                                    placeholder="SN, CI, ML..."
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">URL image</label>
-                                <input
-                                    value={form.image_url}
-                                    onChange={(event) => setForm((current) => ({ ...current, image_url: event.target.value }))}
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Popularité initiale</label>
-                                <input
-                                    value={form.added_by_count}
-                                    onChange={(event) => setForm((current) => ({ ...current, added_by_count: event.target.value }))}
-                                    inputMode="numeric"
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white outline-none focus:border-primary"
-                                />
-                            </div>
-                            <label className="md:col-span-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white">
-                                <input
-                                    type="checkbox"
-                                    checked={form.verified}
-                                    onChange={(event) => setForm((current) => ({ ...current, verified: event.target.checked }))}
-                                    className="h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary"
-                                />
-                                Marquer ce produit comme vérifié dès l’enregistrement
-                            </label>
-                            <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={closeEditor}
-                                    className="px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-semibold hover:bg-white/10"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="px-5 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 disabled:opacity-50"
-                                >
-                                    {saving ? 'Enregistrement…' : editingEntry ? 'Enregistrer les modifications' : 'Créer le produit'}
-                                </button>
-                            </div>
-                        </form>
+                            <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
+                        </div>
+
+                        <div className="mt-6 space-y-4">
+                            <input value={variantBaseName} onChange={(event) => setVariantBaseName(event.target.value)} placeholder="Nom de base" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <textarea value={variantValues} onChange={(event) => setVariantValues(event.target.value)} rows={5} placeholder="mangue, ananas, orange, 1 L, 50 cl..." className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
+                            <button type="button" onClick={() => void createVariants()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Créer la série</button>
+                        </div>
                     </div>
                 </div>
             )}

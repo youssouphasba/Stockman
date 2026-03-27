@@ -9,6 +9,10 @@ from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
+
+def _normalize_text(value: Any) -> str:
+    return str(value or "").strip()
+
 class ImportService:
     def __init__(self, db):
         self.db = db
@@ -66,8 +70,13 @@ class ImportService:
         prepared = []
         errors = []
         # Preload categories to avoid N+1 queries (I7)
-        cats = await self.db.categories.find({"user_id": user_id}, {"category_id": 1}).to_list(None)
+        cats = await self.db.categories.find({"user_id": user_id}, {"category_id": 1, "name": 1}).to_list(None)
         valid_category_ids = {c["category_id"] for c in cats}
+        category_name_map = {
+            _normalize_text(c.get("name")).lower(): c["category_id"]
+            for c in cats
+            if _normalize_text(c.get("name"))
+        }
         loc_query = {"user_id": user_id}
         if store_id:
             loc_query["store_id"] = store_id
@@ -83,10 +92,33 @@ class ImportService:
                     errors.append({"row": index, "error": "Nom du produit manquant"})
                     continue
 
-                # Validation category_id (I7 optimized)
+                # Validation category_id / category_name (I7 optimized)
                 current_category_id = row.get("category_id")
                 if current_category_id and current_category_id not in valid_category_ids:
-                    current_category_id = None # Skip invalid category
+                    current_category_id = None
+
+                category_name = (
+                    row.get("category_name")
+                    or row.get("category")
+                    or row.get("categorie")
+                    or row.get("catégorie")
+                )
+                normalized_category_name = _normalize_text(category_name)
+                if not current_category_id and normalized_category_name:
+                    current_category_id = category_name_map.get(normalized_category_name.lower())
+                    if not current_category_id:
+                        category_doc = {
+                            "category_id": f"cat_{uuid.uuid4().hex[:12]}",
+                            "name": normalized_category_name,
+                            "user_id": user_id,
+                            "store_id": store_id,
+                            "created_at": datetime.now(timezone.utc),
+                            "updated_at": datetime.now(timezone.utc),
+                        }
+                        await self.db.categories.insert_one(category_doc)
+                        current_category_id = category_doc["category_id"]
+                        valid_category_ids.add(current_category_id)
+                        category_name_map[normalized_category_name.lower()] = current_category_id
 
                 # Clean numeric values with bounds check (M14)
                 purchase_price = clean_float(row.get("purchase_price") or row.get("prix_achat") or 0.0)
@@ -154,35 +186,39 @@ class ImportService:
         """Insert products into the database and record initial stock movements with transaction (M8)"""
         if not products:
             return 0
-        
-        async with await self.db.client.start_session() as session:
-            async with session.start_transaction():
-                result = await self.db.products.insert_many(products, session=session)
-                
-                # Prepare stock movements for products with quantity > 0
-                movements = []
-                now = datetime.now(timezone.utc)
-                for p in products:
-                    qty = p.get("quantity", 0)
-                    if qty > 0:
-                        movements.append({
-                            "movement_id": f"mov_{uuid.uuid4().hex[:12]}",
-                            "product_id": p["product_id"],
-                            "product_name": p["name"],
-                            "user_id": p["user_id"],
-                            "store_id": p.get("store_id"),
-                            "type": "in",
-                            "quantity": qty,
-                            "reason": "Importation initiale (Bulk)",
-                            "previous_quantity": 0,
-                            "new_quantity": qty,
-                            "created_at": now
-                        })
-                
-                if movements:
-                    await self.db.stock_movements.insert_many(movements, session=session)
-                
-                return len(result.inserted_ids)
+
+        movements = []
+        now = datetime.now(timezone.utc)
+        for p in products:
+            qty = p.get("quantity", 0)
+            if qty > 0:
+                movements.append({
+                    "movement_id": f"mov_{uuid.uuid4().hex[:12]}",
+                    "product_id": p["product_id"],
+                    "product_name": p["name"],
+                    "user_id": p["user_id"],
+                    "store_id": p.get("store_id"),
+                    "type": "in",
+                    "quantity": qty,
+                    "reason": "Importation initiale (Bulk)",
+                    "previous_quantity": 0,
+                    "new_quantity": qty,
+                    "created_at": now
+                })
+
+        try:
+            async with await self.db.client.start_session() as session:
+                async with session.start_transaction():
+                    result = await self.db.products.insert_many(products, session=session)
+                    if movements:
+                        await self.db.stock_movements.insert_many(movements, session=session)
+                    return len(result.inserted_ids)
+        except Exception as exc:
+            logger.warning(f"Bulk import transaction unavailable, falling back to non-transactional insert: {exc}")
+            result = await self.db.products.insert_many(products)
+            if movements:
+                await self.db.stock_movements.insert_many(movements)
+            return len(result.inserted_ids)
 
     async def process_import(
         self,

@@ -61,7 +61,7 @@ export default function SyncWarningBanner() {
                 <Ionicons name="chevron-forward" size={14} color="#fff" />
             </TouchableOpacity>
 
-            <Modal visible={showDetail} animationType="slide" transparent onRequestClose={() => setShowDetail(false)}>
+            {showDetail && <Modal visible={showDetail} animationType="slide" transparent onRequestClose={() => setShowDetail(false)}>
                 <Pressable style={styles.overlay} onPress={() => setShowDetail(false)}>
                     <Pressable style={[styles.sheet, { backgroundColor: colors.bgDark }]} onPress={() => { }}>
                         <View style={styles.sheetHeader}>
@@ -110,7 +110,7 @@ export default function SyncWarningBanner() {
                         </View>
                     </Pressable>
                 </Pressable>
-            </Modal>
+            </Modal>}
         </>
     );
 }

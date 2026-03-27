@@ -48,18 +48,18 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 function formatAdminMoney(amount: any, currency?: string) {
-    if (amount === null || amount === undefined || amount === '') return '—';
+    if (amount === null || amount === undefined || amount === '') return '�';
     const numeric = Number(amount);
     if (!Number.isFinite(numeric)) return `${amount} ${currency || ''}`.trim();
-    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} �`;
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
 
 function formatAdminDate(value?: string | Date | null) {
-    if (!value) return '—';
+    if (!value) return '�';
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return '�';
     return date.toLocaleString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
@@ -74,38 +74,38 @@ function formatAccessPhaseLabel(phase?: string | null) {
         case 'active':
             return 'Actif';
         case 'grace':
-            return 'Grace';
+            return 'Gr?ce';
         case 'restricted':
             return 'Restreint';
         case 'read_only':
             return 'Lecture seule';
         default:
-            return phase || '—';
+            return phase || '�';
     }
 }
 
 function formatSubscriptionEventType(eventType?: string | null) {
     switch (eventType) {
         case 'manual_grace_granted':
-            return 'Grace manuelle accordee';
+            return 'Gr?ce manuelle accord?e';
         case 'manual_read_only_enabled':
-            return 'Lecture seule activee';
+            return 'Lecture seule activ?e';
         case 'manual_read_only_disabled':
-            return 'Lecture seule retiree';
+            return 'Lecture seule retir?e';
         case 'checkout_created':
-            return 'Checkout cree';
+            return 'Checkout cr??';
         case 'payment_succeeded':
-            return 'Paiement reussi';
+            return 'Paiement r?ussi';
         case 'payment_failed':
-            return 'Paiement echoue';
+            return 'Paiement ?chou?';
         case 'subscription_renewed':
-            return 'Abonnement renouvele';
+            return 'Abonnement renouvel?';
         case 'subscription_expired':
-            return 'Abonnement expire';
+            return 'Abonnement expir?';
         case 'subscription_cancelled':
-            return 'Abonnement annule';
+            return 'Abonnement annul?';
         default:
-            return eventType || '—';
+            return eventType || '�';
     }
 }
 
@@ -118,7 +118,7 @@ function formatDemoTypeLabel(demoType?: string | null) {
         case 'enterprise':
             return 'Enterprise';
         default:
-            return demoType || '—';
+            return demoType || '�';
     }
 }
 
@@ -127,17 +127,17 @@ function formatDemoSessionStatus(status?: string | null) {
         case 'active':
             return 'Active';
         case 'expired':
-            return 'Expiree';
+            return 'Expir?e';
         case 'cleaned':
-            return 'Nettoyee';
+            return 'Nettoy?e';
         default:
-            return status || '—';
+            return status || '�';
     }
 }
 
 function formatRemainingDuration(seconds?: number | null) {
-    if (seconds === null || seconds === undefined) return '—';
-    if (seconds <= 0) return 'Expiree';
+    if (seconds === null || seconds === undefined) return '�';
+    if (seconds <= 0) return 'Expir?e';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours <= 0) return `${minutes} min`;
@@ -145,7 +145,7 @@ function formatRemainingDuration(seconds?: number | null) {
 }
 
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads' | 'legal'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -176,6 +176,12 @@ export default function AdminDashboard() {
     const [leadContacts, setLeadContacts] = useState<any[]>([]);
     const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(false);
+    const [legalLoading, setLegalLoading] = useState(false);
+    const [legalSaving, setLegalSaving] = useState<'cgu' | 'privacy' | null>(null);
+    const [cguContent, setCguContent] = useState('');
+    const [privacyContent, setPrivacyContent] = useState('');
+    const [cguUpdatedAt, setCguUpdatedAt] = useState<string | null>(null);
+    const [privacyUpdatedAt, setPrivacyUpdatedAt] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -192,6 +198,8 @@ export default function AdminDashboard() {
     const [demoSurfaceFilter, setDemoSurfaceFilter] = useState<'all' | 'mobile' | 'web'>('all');
     const [verificationProviderFilter, setVerificationProviderFilter] = useState<'all' | 'firebase' | 'resend'>('all');
     const [verificationChannelFilter, setVerificationChannelFilter] = useState<'all' | 'phone' | 'email'>('all');
+    const [securitySearch, setSecuritySearch] = useState('');
+    const [securityView, setSecurityView] = useState<'all' | 'failed_logins' | 'successful_logins' | 'password_changes' | 'verifications' | 'sessions'>('all');
     const [messageTypeFilter, setMessageTypeFilter] = useState<'all' | 'broadcast' | 'announcement' | 'individual'>('all');
     const [grantingGraceAction, setGrantingGraceAction] = useState<string | null>(null);
     const [togglingReadOnlyAccountId, setTogglingReadOnlyAccountId] = useState<string | null>(null);
@@ -390,8 +398,27 @@ export default function AdminDashboard() {
         }
     };
 
+    const loadLegalDocuments = async () => {
+        setLegalLoading(true);
+        try {
+            const [cguRes, privacyRes] = await Promise.all([
+                adminApi.getCGU('fr'),
+                adminApi.getPrivacy('fr'),
+            ]);
+            setCguContent(cguRes?.content || '');
+            setPrivacyContent(privacyRes?.content || '');
+            setCguUpdatedAt(cguRes?.updated_at || null);
+            setPrivacyUpdatedAt(privacyRes?.updated_at || null);
+        } catch (err) {
+            console.error('Legal documents load error', err);
+            showToast("Impossible de charger les documents juridiques.", 'error');
+        } finally {
+            setLegalLoading(false);
+        }
+    };
+
     useEffect(() => {
-        if (activeSection === 'subscriptions') loadSubscriptions();
+        if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
         if (activeSection === 'demos') loadDemos();
         if (activeSection === 'users') loadUsers();
         if (activeSection === 'stores') loadStores();
@@ -399,6 +426,7 @@ export default function AdminDashboard() {
         if (activeSection === 'security') loadSecurity();
         if (activeSection === 'support') loadTickets();
         if (activeSection === 'broadcast') loadBroadcastHistory();
+        if (activeSection === 'legal') loadLegalDocuments();
         if (activeSection === 'leads') {
             setLeadsLoading(true);
             adminApi.getLeads().then(r => {
@@ -417,7 +445,7 @@ export default function AdminDashboard() {
         try {
             await adminApi.toggleUser(userId);
             setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, is_active: !currentStatus } : u));
-            showToast(currentStatus ? 'Utilisateur banni.' : 'Utilisateur réactivé.');
+            showToast(currentStatus ? 'Utilisateur banni.' : 'Utilisateur r�activ�.');
         } catch {
             showToast('Erreur lors de la modification.', 'error');
         } finally {
@@ -431,7 +459,7 @@ export default function AdminDashboard() {
         try {
             await adminApi.deleteUser(confirmDeleteUser.email);
             setUsers(prev => prev.filter(u => u.user_id !== confirmDeleteUser.user_id));
-            showToast(`Compte "${confirmDeleteUser.name}" supprimé avec toutes ses données.`);
+            showToast(`Compte "${confirmDeleteUser.name}" supprim� avec toutes ses donn�es.`);
         } catch {
             showToast('Erreur lors de la suppression.', 'error');
         } finally {
@@ -448,7 +476,7 @@ export default function AdminDashboard() {
             setReplyTicketId(null);
             setReplyContent('');
             loadTickets();
-            showToast('Réponse envoyée.');
+            showToast('R�ponse envoy�e.');
         } catch {
             showToast('Erreur lors de l\'envoi.', 'error');
         } finally {
@@ -526,6 +554,160 @@ export default function AdminDashboard() {
         });
     }, [verificationChannelFilter, verificationEvents, verificationProviderFilter]);
 
+    const normalizedSecuritySearch = securitySearch.trim().toLowerCase();
+
+    const filteredSecurityEvents = useMemo(() => {
+        return securityEvents.filter((event) => {
+            const eventType = String(event.type || '').toLowerCase();
+            const matchesType =
+                securityView === 'all'
+                || (securityView === 'failed_logins' && eventType.includes('failed'))
+                || (securityView === 'successful_logins' && eventType.includes('success'))
+                || (securityView === 'password_changes' && eventType.includes('password'));
+
+            const haystack = [
+                event.type,
+                event.user_email,
+                event.user_name,
+                event.user_id,
+                event.ip_address,
+                event.details,
+                event.reason,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            const matchesSearch = !normalizedSecuritySearch || haystack.includes(normalizedSecuritySearch);
+            return matchesType && matchesSearch;
+        });
+    }, [normalizedSecuritySearch, securityEvents, securityView]);
+
+    const filteredSecurityVerifications = useMemo(() => {
+        return filteredVerificationEvents.filter((event) => {
+            if (securityView !== 'all' && securityView !== 'verifications') return false;
+            const haystack = [
+                event.type,
+                event.channel,
+                event.provider,
+                event.user_name,
+                event.user_email,
+                event.user_id,
+                event.target,
+                event.identifier,
+                event.email,
+                event.phone_number,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return !normalizedSecuritySearch || haystack.includes(normalizedSecuritySearch);
+        });
+    }, [filteredVerificationEvents, normalizedSecuritySearch, securityView]);
+
+    const filteredSecuritySessions = useMemo(() => {
+        return activeSessions.filter((session) => {
+            if (securityView !== 'all' && securityView !== 'sessions') return false;
+            const haystack = [
+                session.user_name,
+                session.user_email,
+                session.user_id,
+                session.session_id,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return !normalizedSecuritySearch || haystack.includes(normalizedSecuritySearch);
+        });
+    }, [activeSessions, normalizedSecuritySearch, securityView]);
+
+    const securityInsights = useMemo(() => {
+        const failed = securityEvents.filter((event) => String(event.type || '').toLowerCase().includes('failed'));
+        const recentFailuresByUser = new Map<string, number>();
+        failed.forEach((event) => {
+            const key = event.user_email || event.user_id || event.ip_address || 'unknown';
+            recentFailuresByUser.set(key, (recentFailuresByUser.get(key) || 0) + 1);
+        });
+        const riskyActors = Array.from(recentFailuresByUser.entries())
+            .filter(([, count]) => count >= 3)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6);
+
+        return {
+            suspiciousAttempts: failed.length,
+            riskyActors,
+            activeAlerts:
+                (securityStats?.blocked_users || 0)
+                + riskyActors.length
+                + (securityStats?.failed_logins_24h || 0 > 10 ? 1 : 0),
+        };
+    }, [securityEvents, securityStats]);
+
+    const financeSummary = useMemo(() => {
+        const overview = subscriptionOverview || {};
+        const accounts = filteredSubscriptionAccounts || [];
+        const events = filteredSubscriptionEvents || [];
+
+        const mrrRows = Array.isArray(overview?.mrr_estimate) ? overview.mrr_estimate : [];
+        const primaryMrr = mrrRows[0] || null;
+        const primaryArr = primaryMrr?.amount ? Number(primaryMrr.amount) * 12 : null;
+        const paymentVolumeRows = Array.isArray(overview?.payment_volume_30d) ? overview.payment_volume_30d : [];
+        const paymentVolumePrimary = paymentVolumeRows[0] || null;
+
+        const activePaidAccounts = Number(overview?.active_paid_accounts || 0);
+        const paymentsCount30d = Number(overview?.payments_count_30d || 0);
+        const averagePaymentValue = paymentVolumePrimary && paymentsCount30d > 0
+            ? Number(paymentVolumePrimary.amount || 0) / paymentsCount30d
+            : null;
+
+        const plans = Object.entries(overview?.by_plan || {}) as [string, number][];
+        const providers = Object.entries(overview?.by_provider || {}) as [string, number][];
+
+        const accountsAtRisk = accounts.filter((account: any) =>
+            ['grace', 'restricted', 'read_only'].includes(String(account.subscription_access_phase || '')) ||
+            ['expired', 'cancelled'].includes(String(account.subscription_status || '')) ||
+            Boolean(account.manual_read_only_enabled) ||
+            Boolean(account.manual_access_grace_until)
+        );
+
+        const reminderCandidates = accounts.filter((account: any) =>
+            (account.last_payment_links?.stripe_url || account.last_payment_links?.flutterwave_url) &&
+            (
+                ['grace', 'restricted', 'read_only'].includes(String(account.subscription_access_phase || '')) ||
+                ['expired', 'cancelled'].includes(String(account.subscription_status || '')) ||
+                String(account.subscription_provider || '') === 'none'
+            )
+        );
+
+        const recentPaymentEvents = events.filter((event: any) =>
+            ['payment_succeeded', 'subscription_renewed', 'checkout_created', 'payment_failed'].includes(String(event.event_type || ''))
+        );
+
+        const byCountry = Object.entries(accounts.reduce((acc: Record<string, number>, account: any) => {
+            const country = String(account.country_code || '�');
+            acc[country] = (acc[country] || 0) + 1;
+            return acc;
+        }, {}))
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6);
+
+        return {
+            primaryMrr,
+            primaryArr,
+            paymentVolumePrimary,
+            averagePaymentValue,
+            activePaidAccounts,
+            paymentsCount30d,
+            plans,
+            providers,
+            paymentVolumeRows,
+            accountsAtRisk,
+            reminderCandidates,
+            recentPaymentEvents,
+            byCountry,
+        };
+    }, [filteredSubscriptionAccounts, filteredSubscriptionEvents, subscriptionOverview]);
+
     if (loading) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -536,6 +718,7 @@ export default function AdminDashboard() {
 
     const tabs = [
         { id: 'overview', icon: TrendingUp, label: 'Vue d\'ensemble' },
+        { id: 'finance', icon: Wallet, label: 'Finance' },
         { id: 'subscriptions', icon: CreditCard, label: 'Abonnements' },
         { id: 'demos', icon: Clock, label: 'Demos' },
         { id: 'users', icon: Users, label: 'Utilisateurs' },
@@ -543,9 +726,10 @@ export default function AdminDashboard() {
         { id: 'products', icon: Package, label: 'Produits' },
         { id: 'catalog', icon: BarChart2, label: 'Catalogue' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
-        { id: 'security', icon: Shield, label: 'Sécurité' },
+        { id: 'security', icon: Shield, label: 'S�curit�' },
         { id: 'support', icon: MessageSquare, label: 'Support' },
         { id: 'broadcast', icon: Bell, label: 'Broadcast' },
+        { id: 'legal', icon: Newspaper, label: 'L?gal' },
         { id: 'leads', icon: Mail, label: 'Leads' },
     ];
 
@@ -564,10 +748,10 @@ export default function AdminDashboard() {
                             <h3 className="text-lg font-black text-white">Supprimer ce compte ?</h3>
                         </div>
                         <p className="text-slate-400 text-sm mb-2">
-                            Cette action est <span className="text-red-400 font-bold">irréversible</span>. Toutes les données seront supprimées :
+                            Cette action est <span className="text-red-400 font-bold">irr�versible</span>. Toutes les donn�es seront supprim�es :
                         </p>
                         <ul className="text-xs text-slate-500 mb-4 list-disc list-inside">
-                            <li>Produits, ventes, clients, dépenses</li>
+                            <li>Produits, ventes, clients, d�penses</li>
                             <li>Boutiques, alertes, fournisseurs</li>
                             <li>Sous-utilisateurs (staff)</li>
                         </ul>
@@ -587,7 +771,7 @@ export default function AdminDashboard() {
                                 disabled={!!deletingUser}
                                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/30 transition-all disabled:opacity-40"
                             >
-                                {deletingUser ? 'Suppression...' : 'Supprimer définitivement'}
+                                {deletingUser ? 'Suppression...' : 'Supprimer d�finitivement'}
                             </button>
                         </div>
                     </div>
@@ -597,15 +781,15 @@ export default function AdminDashboard() {
             <header className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-black text-white mb-1 uppercase tracking-tighter">Backoffice Admin</h1>
-                    <p className="text-slate-400 text-sm">Supervision globale du système Stockman.</p>
+                    <p className="text-slate-400 text-sm">Supervision globale du syst�me Stockman.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                         <Activity size={16} />
-                        {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Opérationnel' : 'Erreur'}
+                        {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Op�rationnel' : 'Erreur'}
                     </div>
                     <button onClick={() => {
-                        if (activeSection === 'subscriptions') loadSubscriptions();
+                        if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
                         else if (activeSection === 'demos') loadDemos();
                         else if (activeSection === 'users') loadUsers();
                         else if (activeSection === 'stores') loadStores();
@@ -614,6 +798,7 @@ export default function AdminDashboard() {
                         else if (activeSection === 'security') loadSecurity();
                         else if (activeSection === 'support') loadTickets();
                         else if (activeSection === 'broadcast') loadBroadcastHistory();
+                        else if (activeSection === 'legal') loadLegalDocuments();
                         else if (activeSection === 'leads') {
                             setLeadsLoading(true);
                             adminApi.getLeads().then(r => { setLeadContacts(r.contacts || []); setLeadSubscribers(r.subscribers || []); }).catch(() => {}).finally(() => setLeadsLoading(false));
@@ -639,7 +824,7 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
-            {/* ── OVERVIEW ── */}
+            {/* -- OVERVIEW -- */}
             {activeSection === 'overview' && (
                 <div className="space-y-8">
                     {/* KPI Row 1 */}
@@ -650,7 +835,7 @@ export default function AdminDashboard() {
                         <StatCard label="Pays Couverts" value={Object.keys(stats?.users_by_country || {}).length} icon={Globe} color="bg-blue-400" sub={`${stats?.recent_signups || 0} inscrits (7j)`} />
                     </div>
 
-                    {/* KPI Row 2 — Plans & Trials */}
+                    {/* KPI Row 2 � Plans & Trials */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Enterprise" value={stats?.users_by_plan?.enterprise || 0} icon={Crown} color="bg-purple-500" />
                         <StatCard label="Pro" value={stats?.users_by_plan?.pro || 0} icon={Zap} color="bg-blue-500" />
@@ -660,15 +845,15 @@ export default function AdminDashboard() {
                             value={stats?.trials_expiring_soon || 0}
                             icon={Clock}
                             color={stats?.trials_expiring_soon > 0 ? 'bg-rose-500' : 'bg-slate-500'}
-                            sub="Relance recommandée"
+                            sub="Relance recommand�e"
                         />
                     </div>
 
-                    {/* Géographie + Top Boutiques */}
+                    {/* G�ographie + Top Boutiques */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="glass-card p-6">
                             <h3 className="text-base font-black text-white mb-5 flex items-center gap-2 uppercase tracking-tighter">
-                                <Globe size={18} className="text-primary" /> Distribution Géographique
+                                <Globe size={18} className="text-primary" /> Distribution G�ographique
                             </h3>
                             <div className="space-y-3">
                                 {Object.entries(stats?.users_by_country || {})
@@ -703,7 +888,7 @@ export default function AdminDashboard() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-slate-600 text-sm text-center py-8">Aucune donnée de vente</p>
+                                <p className="text-slate-600 text-sm text-center py-8">Aucune donn�e de vente</p>
                             )}
                         </div>
                     </div>
@@ -772,7 +957,7 @@ export default function AdminDashboard() {
                                     <div className="space-y-2 text-sm">
                                         <div className="flex items-center justify-between text-slate-300"><span>Envoyes</span><strong className="text-white">{otpStats?.providers?.twilio?.sent || 0}</strong></div>
                                         <div className="flex items-center justify-between text-slate-300"><span>Echecs envoi</span><strong className="text-white">{otpStats?.providers?.twilio?.send_failed || 0}</strong></div>
-                                        <div className="flex items-center justify-between text-slate-300"><span>Expires</span><strong className="text-white">{otpStats?.providers?.twilio?.expired || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Expir?s</span><strong className="text-white">{otpStats?.providers?.twilio?.expired || 0}</strong></div>
                                         <div className="flex items-center justify-between text-slate-300"><span>Taux</span><strong className="text-emerald-400">{otpStats?.providers?.twilio?.verification_rate || 0}%</strong></div>
                                     </div>
                                 </div>
@@ -781,7 +966,7 @@ export default function AdminDashboard() {
                                     <div className="space-y-2 text-sm">
                                         <div className="flex items-center justify-between text-slate-300"><span>Envoyes</span><strong className="text-white">{otpStats?.providers?.resend?.sent || 0}</strong></div>
                                         <div className="flex items-center justify-between text-slate-300"><span>Echecs envoi</span><strong className="text-white">{otpStats?.providers?.resend?.send_failed || 0}</strong></div>
-                                        <div className="flex items-center justify-between text-slate-300"><span>Expires</span><strong className="text-white">{otpStats?.providers?.resend?.expired || 0}</strong></div>
+                                        <div className="flex items-center justify-between text-slate-300"><span>Expir?s</span><strong className="text-white">{otpStats?.providers?.resend?.expired || 0}</strong></div>
                                         <div className="flex items-center justify-between text-slate-300"><span>Taux</span><strong className="text-emerald-400">{otpStats?.providers?.resend?.verification_rate || 0}%</strong></div>
                                     </div>
                                 </div>
@@ -817,7 +1002,212 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── USERS ── */}
+            {/* -- USERS -- */}
+            {activeSection === 'finance' && (
+                <div className="space-y-8">
+                    <div className="glass-card p-6 bg-gradient-to-br from-emerald-500/10 via-transparent to-sky-500/10 border border-emerald-500/10">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-300">Pilotage financier</p>
+                                <h2 className="mt-2 text-2xl font-black text-white tracking-tight">Vue finance admin</h2>
+                                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
+                                    Cette vue regroupe le revenu plateforme, la sant� des abonnements, le recouvrement et les comptes � surveiller.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">CA plateforme 30j</p>
+                                    <p className="mt-1 text-lg font-black text-white">{formatAdminMoney(financeSummary.paymentVolumePrimary?.amount, financeSummary.paymentVolumePrimary?.currency)}</p>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Paiements 30j</p>
+                                    <p className="mt-1 text-lg font-black text-white">{subscriptionOverview?.payments_count_30d || 0}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
+                        <StatCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : '�'} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr?.currency || 'Aucune devise'} />
+                        <StatCard label="ARR estim�" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : '�'} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
+                        <StatCard label="Comptes payants" value={subscriptionOverview?.active_paid_accounts || 0} icon={Wallet} color="bg-primary" sub="Actifs" />
+                        <StatCard label="Trials actifs" value={subscriptionOverview?.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview?.trials_expiring_3d || 0} expirent sous 3 jours`} />
+                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : '�'} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
+                        <StatCard label="Alertes recouvrement" value={subscriptionAlerts?.summary?.total || 0} icon={Bell} color={(subscriptionAlerts?.summary?.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts?.summary?.critical || 0} critiques`} />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">R�partition abonnements</h3>
+                            <div className="space-y-5">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Par plan</p>
+                                    <div className="space-y-2">
+                                        {financeSummary.plans.length ? financeSummary.plans.map(([plan, count]) => (
+                                            <div key={plan} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{plan}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        )) : <p className="text-sm text-slate-500">Aucune donn�e.</p>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Par provider</p>
+                                    <div className="space-y-2">
+                                        {financeSummary.providers.length ? financeSummary.providers.map(([provider, count]) => (
+                                            <div key={provider} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300 capitalize">{provider || 'none'}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        )) : <p className="text-sm text-slate-500">Aucune donn�e.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Volume et couverture</h3>
+                            <div className="space-y-5">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Volume paiements 30 jours</p>
+                                    <div className="space-y-2">
+                                        {financeSummary.paymentVolumeRows.length ? financeSummary.paymentVolumeRows.map((row: any) => (
+                                            <div key={row.currency} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300">{row.currency}</span>
+                                                <strong className="text-white">{formatAdminMoney(row.amount, row.currency)}</strong>
+                                            </div>
+                                        )) : <p className="text-sm text-slate-500">Aucun paiement confirm� sur la fen�tre.</p>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Top pays comptes payants / suivis</p>
+                                    <div className="space-y-2">
+                                        {financeSummary.byCountry.length ? financeSummary.byCountry.map(([country, count]) => (
+                                            <div key={country} className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-300">{country}</span>
+                                                <strong className="text-white">{Number(count)}</strong>
+                                            </div>
+                                        )) : <p className="text-sm text-slate-500">Aucune donn�e pays.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Sant� du recouvrement</h3>
+                            <div className="space-y-3">
+                                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-300">Comptes � risque</p>
+                                    <p className="mt-2 text-3xl font-black text-white">{financeSummary.accountsAtRisk.length}</p>
+                                    <p className="mt-1 text-xs text-slate-300">Gr�ce, lecture seule, expir�s ou annul�s.</p>
+                                </div>
+                                <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-sky-300">Relances possibles</p>
+                                    <p className="mt-2 text-3xl font-black text-white">{financeSummary.reminderCandidates.length}</p>
+                                    <p className="mt-1 text-xs text-slate-300">Comptes avec lien de paiement d�j� g�n�r�.</p>
+                                </div>
+                                <button
+                                    onClick={() => setActiveSection('subscriptions')}
+                                    className="w-full rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all"
+                                >
+                                    Ouvrir la vue abonnements d�taill�e
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div className="glass-card overflow-hidden">
+                            <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Comptes � surveiller</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Priorit� au recouvrement et aux risques d�acc�s.</p>
+                                </div>
+                                <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-rose-300">
+                                    {financeSummary.accountsAtRisk.length} � traiter
+                                </span>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
+                                {financeSummary.accountsAtRisk.length ? financeSummary.accountsAtRisk.slice(0, 12).map((account: any) => (
+                                    <div key={account.account_id} className="p-5 hover:bg-white/5 transition-all">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-white">{account.display_name || account.owner_name || account.account_id}</p>
+                                                <p className="text-xs text-slate-500">{account.owner_email || account.billing_contact_email || '�'}</p>
+                                                <p className="text-xs text-slate-400">
+                                                    {account.country_code || '�'} � {account.currency || '�'} � {formatAccessPhaseLabel(account.subscription_access_phase || 'active')}
+                                                </p>
+                                            </div>
+                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${account.manual_read_only_enabled ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
+                                                {account.manual_read_only_enabled ? 'Lecture seule' : account.subscription_status || 'Risque'}
+                                            </span>
+                                        </div>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            <button
+                                                onClick={() => void handleSendReminder(account.account_id, 1)}
+                                                disabled={sendingReminderAccountId === account.account_id}
+                                                className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-200 hover:bg-sky-500/20 disabled:opacity-40"
+                                            >
+                                                {sendingReminderAccountId === account.account_id ? '...' : 'Envoyer rappel'}
+                                            </button>
+                                            <button
+                                                onClick={() => void handleRegeneratePaymentLinks(account.account_id)}
+                                                disabled={refreshingPaymentLinksAccountId === account.account_id}
+                                                className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
+                                            >
+                                                {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'R�g�n�rer lien'}
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveSection('subscriptions')}
+                                                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white hover:bg-white/10"
+                                            >
+                                                Voir le compte
+                                            </button>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun compte � risque pour les filtres en cours.</div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card overflow-hidden">
+                            <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Flux de paiement r�cents</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Paiements, renouvellements, �checs et checkouts.</p>
+                                </div>
+                                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-300">
+                                    {financeSummary.recentPaymentEvents.length} �v�nements
+                                </span>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
+                                {financeSummary.recentPaymentEvents.length ? financeSummary.recentPaymentEvents.slice(0, 14).map((event: any) => (
+                                    <div key={event.event_id} className="p-5 hover:bg-white/5 transition-all">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-bold text-white">{formatSubscriptionEventType(event.event_type)}</p>
+                                                <p className="mt-1 text-xs text-slate-500">{event.account_id || '�'} � {event.provider || '�'} � {event.status || '�'}</p>
+                                            </div>
+                                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${event.status === 'failed' ? 'bg-rose-500/10 text-rose-300' : event.event_type === 'checkout_created' ? 'bg-sky-500/10 text-sky-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
+                                                {formatAdminMoney(event.amount, event.currency)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                                            <span>{event.plan || '�'}</span>
+                                            <span>{formatAdminDate(event.created_at)}</span>
+                                        </div>
+                                        {event.message ? <p className="mt-2 text-xs text-slate-500">{event.message}</p> : null}
+                                    </div>
+                                )) : (
+                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun flux de paiement r�cent.</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {activeSection === 'subscriptions' && (
                 <div className="space-y-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -830,13 +1220,13 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard
                             label="MRR estime"
-                            value={subscriptionOverview?.mrr_estimate?.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0]?.amount, subscriptionOverview.mrr_estimate[0]?.currency) : '—'}
+                            value={subscriptionOverview?.mrr_estimate?.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0]?.amount, subscriptionOverview.mrr_estimate[0]?.currency) : '�'}
                             icon={TrendingUp}
                             color="bg-primary"
                             sub={subscriptionOverview?.mrr_estimate?.length > 1 ? `+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
                         />
-                        <StatCard label="Annules" value={subscriptionOverview?.cancelled_accounts || 0} icon={X} color="bg-slate-500" />
-                        <StatCard label="Expires" value={subscriptionOverview?.expired_accounts || 0} icon={Clock} color="bg-rose-500" />
+                        <StatCard label="Annul?s" value={subscriptionOverview?.cancelled_accounts || 0} icon={X} color="bg-slate-500" />
+                        <StatCard label="Expir?s" value={subscriptionOverview?.expired_accounts || 0} icon={Clock} color="bg-rose-500" />
                         <StatCard label="Alertes" value={subscriptionAlerts?.summary?.total || 0} icon={Bell} color={(subscriptionAlerts?.summary?.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts?.summary?.critical || 0} critiques`} />
                     </div>
 
@@ -908,7 +1298,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="glass-card p-6 xl:col-span-1">
-                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Evenements recents</h3>
+                            <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">?v?nements r?cents</h3>
                             <div className="space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
                                 {filteredSubscriptionEvents.length > 0 ? (
                                     filteredSubscriptionEvents.map((event: any) => (
@@ -916,17 +1306,17 @@ export default function AdminDashboard() {
                                             <div className="flex items-start justify-between gap-3 mb-2">
                                                 <div>
                                                     <p className="text-sm font-black text-white">{formatSubscriptionEventType(event.event_type)}</p>
-                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} · {event.source}</p>
+                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} � {event.source}</p>
                                                 </div>
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${event.status === 'failed' ? 'bg-rose-500/20 text-rose-300' : event.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-slate-300'}`}>
-                                                    {event.status || '—'}
+                                                    {event.status || '�'}
                                                 </span>
                                             </div>
                                             <div className="space-y-1 text-xs text-slate-300">
-                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '—'}</p>
-                                                <p><span className="text-slate-500">Plan :</span> {event.plan || '—'}</p>
+                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '�'}</p>
+                                                <p><span className="text-slate-500">Plan :</span> {event.plan || '�'}</p>
                                                 <p><span className="text-slate-500">Montant :</span> {formatAdminMoney(event.amount, event.currency)}</p>
-                                                <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '—'}</p>
+                                                <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '�'}</p>
                                                 <p><span className="text-slate-500">Date :</span> {formatAdminDate(event.created_at)}</p>
                                             </div>
                                             {event.message && <p className="text-xs text-slate-400 mt-3">{event.message}</p>}
@@ -965,8 +1355,8 @@ export default function AdminDashboard() {
                                 >
                                     <option value="all">Tous statuts</option>
                                     <option value="active">Actifs</option>
-                                    <option value="expired">Expires</option>
-                                    <option value="cancelled">Annules</option>
+                                    <option value="expired">Expir?s</option>
+                                    <option value="cancelled">Annul?s</option>
                                 </select>
                                 <select
                                     value={subscriptionProviderFilter}
@@ -1002,7 +1392,7 @@ export default function AdminDashboard() {
                                                 <div>
                                                     <p className="text-white font-bold">{account.display_name}</p>
                                                     <p className="text-[11px] text-slate-500">{account.account_id}</p>
-                                                    <p className="text-[11px] text-slate-500">{account.owner_email || account.billing_contact_email || '—'}</p>
+                                                    <p className="text-[11px] text-slate-500">{account.owner_email || account.billing_contact_email || '�'}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -1022,8 +1412,8 @@ export default function AdminDashboard() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300">
-                                                <p>{account.country_code || '—'} / {account.currency || '—'}</p>
-                                                <p className="text-[11px] text-slate-500">{account.stores_count || 0} boutiques · {account.users_count || 0} utilisateurs</p>
+                                                <p>{account.country_code || '�'} / {account.currency || '�'}</p>
+                                                <p className="text-[11px] text-slate-500">{account.stores_count || 0} boutiques � {account.users_count || 0} utilisateurs</p>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300">
                                                 <p>{formatAccessPhaseLabel(account.subscription_access_phase || 'active')}</p>
@@ -1053,7 +1443,7 @@ export default function AdminDashboard() {
                                                             Stripe
                                                         </a>
                                                     ) : (
-                                                        <span className="text-slate-600">Stripe: —</span>
+                                                        <span className="text-slate-600">Stripe: �</span>
                                                     )}
                                                     {account.last_payment_links?.flutterwave_url ? (
                                                         <a
@@ -1065,7 +1455,7 @@ export default function AdminDashboard() {
                                                             Mobile Money
                                                         </a>
                                                     ) : (
-                                                        <span className="text-slate-600">Mobile Money: —</span>
+                                                        <span className="text-slate-600">Mobile Money: �</span>
                                                     )}
                                                     {account.last_payment_links_generated_at ? (
                                                         <span className="text-[10px] text-slate-500">
@@ -1081,7 +1471,7 @@ export default function AdminDashboard() {
                                                         disabled={refreshingPaymentLinksAccountId === account.account_id || sendingReminderAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
                                                         className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
                                                     >
-                                                        {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Regenerer'}
+                                                        {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'R?g?n?rer'}
                                                     </button>
                                                     <button
                                                         onClick={() => void handleSendReminder(account.account_id, 1)}
@@ -1144,7 +1534,7 @@ export default function AdminDashboard() {
                                 type="text"
                                 value={userSearch}
                                 onChange={e => setUserSearch(e.target.value)}
-                                placeholder="Nom, email, pays, plan…"
+                                placeholder="Nom, email, pays, plan�"
                                 className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                             {userSearch && (
@@ -1184,7 +1574,7 @@ export default function AdminDashboard() {
                                                 {user.plan || 'starter'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '—'}</td>
+                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '�'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${user.is_active !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
                                                 {user.is_active !== false ? 'Actif' : 'Banni'}
@@ -1195,7 +1585,7 @@ export default function AdminDashboard() {
                                                 onClick={() => handleToggleUser(user.user_id, user.is_active !== false)}
                                                 disabled={togglingUser === user.user_id}
                                                 className={`p-2 rounded-lg transition-all ${user.is_active !== false ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'} disabled:opacity-40`}
-                                                title={user.is_active !== false ? 'Bannir' : 'Réactiver'}
+                                                title={user.is_active !== false ? 'Bannir' : 'R�activer'}
                                             >
                                                 {togglingUser === user.user_id
                                                     ? <RefreshCw size={15} className="animate-spin" />
@@ -1217,7 +1607,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 ))}
                                 {filteredUsers.length === 0 && (
-                                    <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouvé</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouv�</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -1225,7 +1615,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── STORES ── */}
+            {/* -- STORES -- */}
             {activeSection === 'stores' && (
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 bg-white/5 flex justify-between items-center">
@@ -1241,7 +1631,7 @@ export default function AdminDashboard() {
                             <thead>
                                 <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
                                     <th className="px-6 py-4">Boutique</th>
-                                    <th className="px-6 py-4">Propriétaire</th>
+                                    <th className="px-6 py-4">Propri�taire</th>
                                     <th className="px-6 py-4">Pays</th>
                                     <th className="px-6 py-4">Produits</th>
                                     <th className="px-6 py-4">CA Total</th>
@@ -1254,10 +1644,10 @@ export default function AdminDashboard() {
                                             <p className="text-white font-bold">{store.name}</p>
                                             <p className="text-[10px] text-slate-500 font-mono">{store.store_id?.slice(-8)}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400">{store.owner_name || '—'}</td>
-                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '—'}</td>
-                                        <td className="px-6 py-4 text-white font-bold">{store.product_count ?? '—'}</td>
-                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null ? `${store.total_revenue.toLocaleString()} F` : '—'}</td>
+                                        <td className="px-6 py-4 text-slate-400">{store.owner_name || '�'}</td>
+                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '�'}</td>
+                                        <td className="px-6 py-4 text-white font-bold">{store.product_count ?? '�'}</td>
+                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null ? `${store.total_revenue.toLocaleString()} F` : '�'}</td>
                                     </tr>
                                 ))}
                                 {stores.length === 0 && (
@@ -1269,7 +1659,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── DISPUTES ── */}
+            {/* -- DISPUTES -- */}
             {activeSection === 'products' && (
                 <AdminProductsPanel refreshToken={sectionRefreshTick} showToast={showToast} />
             )}
@@ -1281,7 +1671,12 @@ export default function AdminDashboard() {
             {activeSection === 'disputes' && (
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-                        <h3 className="text-base font-black text-white uppercase tracking-tighter">Litiges ({filteredDisputes.length})</h3>
+                        <div>
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter">Litiges ({filteredDisputes.length})</h3>
+                            <p className="mt-1 text-xs text-slate-400">
+                                Réclamations et contestations liées à un paiement, un produit, un service ou une livraison.
+                            </p>
+                        </div>
                         <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 gap-1">
                             {(['all', 'open', 'resolved'] as const).map(f => (
                                 <button
@@ -1289,10 +1684,18 @@ export default function AdminDashboard() {
                                     onClick={() => setDisputeFilter(f)}
                                     className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${disputeFilter === f ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : 'Résolus'}
+                                    {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : 'R�solus'}
                                 </button>
                             ))}
                         </div>
+                    </div>
+                    <div className="px-5 py-3 border-b border-white/5 bg-white/[0.03] flex flex-wrap gap-2 text-[11px]">
+                        <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 font-bold text-rose-300">
+                            À traiter : litiges ouverts ou en cours d'analyse
+                        </span>
+                        <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 font-bold text-sky-300">
+                            Exemples : paiement contesté, produit non conforme, livraison incomplète
+                        </span>
                     </div>
                     <div className="overflow-x-auto">
                         {filteredDisputes.length > 0 ? (
@@ -1300,6 +1703,7 @@ export default function AdminDashboard() {
                                 <thead>
                                     <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
                                         <th className="px-6 py-4">Sujet</th>
+                                        <th className="px-6 py-4">Type</th>
                                         <th className="px-6 py-4">Utilisateur</th>
                                         <th className="px-6 py-4">Date</th>
                                         <th className="px-6 py-4">Statut</th>
@@ -1309,7 +1713,17 @@ export default function AdminDashboard() {
                                 <tbody className="divide-y divide-white/5 text-sm">
                                     {filteredDisputes.map((dispute: any) => (
                                         <tr key={dispute.id} className="hover:bg-white/5 transition-all">
-                                            <td className="px-6 py-4 text-white font-bold">{dispute.subject}</td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-white font-bold">{dispute.subject}</p>
+                                                <p className="mt-1 text-[11px] text-slate-500">
+                                                    {dispute.description || 'Réclamation en attente de traitement.'}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-300">
+                                                    {dispute.type || 'Autre'}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-400">{dispute.user_name}</td>
                                             <td className="px-6 py-4 text-slate-500 text-xs">{new Date(dispute.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4">
@@ -1318,7 +1732,7 @@ export default function AdminDashboard() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button className="text-primary hover:underline font-black text-xs uppercase tracking-widest">Gérer</button>
+                                                <button className="text-primary hover:underline font-black text-xs uppercase tracking-widest">G�rer</button>
                                             </td>
                                         </tr>
                                     ))}
@@ -1334,7 +1748,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── DEMOS ── */}
+            {/* -- DEMOS -- */}
             {activeSection === 'demos' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -1451,17 +1865,17 @@ export default function AdminDashboard() {
                                         <tr key={session.demo_session_id} className="hover:bg-white/[0.03]">
                                             <td className="px-6 py-4">
                                                 <div className="text-white font-semibold text-sm">{session.demo_session_id}</div>
-                                                <div className="text-slate-500 text-xs">{session.account_id || '—'}</div>
+                                                <div className="text-slate-500 text-xs">{session.account_id || '�'}</div>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300 text-sm">{formatDemoTypeLabel(session.demo_type)}</td>
                                             <td className="px-6 py-4">
                                                 <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-slate-300 text-xs capitalize">
-                                                    {session.surface || '—'}
+                                                    {session.surface || '�'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-white text-sm">{session.contact_email || '—'}</div>
-                                                <div className="text-slate-500 text-xs">{session.country_code || '—'} · {session.currency || '—'}</div>
+                                                <div className="text-white text-sm">{session.contact_email || '�'}</div>
+                                                <div className="text-slate-500 text-xs">{session.country_code || '�'} � {session.currency || '�'}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full border text-xs font-bold ${
@@ -1497,45 +1911,167 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── SECURITY ── */}
+            {/* -- SECURITY -- */}
             {activeSection === 'security' && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Échecs Connexion (24h)" value={securityStats?.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" />
-                        <StatCard label="Connexions Réussies" value={securityStats?.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" />
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <StatCard label="Echecs connexion (24h)" value={securityStats?.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" />
+                        <StatCard label="Connexions reussies" value={securityStats?.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" />
                         <StatCard label="Changements MDP (7j)" value={securityStats?.password_changes_7d || 0} icon={Lock} color="bg-amber-500" />
-                        <StatCard label="Utilisateurs Bloqués" value={securityStats?.blocked_users || 0} icon={Trash2} color="bg-primary" />
-                        <StatCard label="Vérifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" />
+                        <StatCard label="Utilisateurs bloques" value={securityStats?.blocked_users || 0} icon={Trash2} color="bg-primary" />
+                        <StatCard label="Verifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" />
                         <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" />
                     </div>
-                    <div className="glass-card overflow-hidden">
-                        <div className="p-5 border-b border-white/5 bg-white/5">
-                            <h3 className="text-base font-black text-white uppercase tracking-tighter">Événements Récents</h3>
-                        </div>
-                        <table className="w-full text-left">
-                            <tbody className="divide-y divide-white/5">
-                                {securityEvents.filter(Boolean).length > 0 ? securityEvents.filter(Boolean).map((event: any, idx: number) => (
-                                    <tr key={idx} className="hover:bg-white/5">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-2 h-2 rounded-full shrink-0 ${event.type?.includes('failed') ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                                                <span className="text-white font-bold text-xs uppercase tracking-widest">{event.type}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-400 text-xs font-mono">{event.ip_address || '—'}</td>
-                                        <td className="px-6 py-4 text-slate-500 text-xs">{formatAdminDate(event.created_at)}</td>
-                                    </tr>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.15fr,0.85fr] gap-6">
+                        <div className="glass-card p-5">
+                            <div className="flex items-start justify-between gap-4 mb-4">
+                                <div>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Centre d'alertes</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Vue de triage pour repérer rapidement les comptes à surveiller et les signaux faibles.</p>
+                                </div>
+                                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-amber-300">
+                                    {securityInsights.activeAlerts} alerte(s)
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-300">Tentatives suspectes</p>
+                                    <p className="mt-2 text-3xl font-black text-white">{securityInsights.suspiciousAttempts}</p>
+                                    <p className="mt-2 text-xs text-slate-300">Connexions echouees visibles dans les evenements charges.</p>
+                                </div>
+                                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-300">Acteurs a surveiller</p>
+                                    <p className="mt-2 text-3xl font-black text-white">{securityInsights.riskyActors.length}</p>
+                                    <p className="mt-2 text-xs text-slate-300">Utilisateurs ou identifiants avec plusieurs echecs rapproches.</p>
+                                </div>
+                                <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-300">Sessions ouvertes</p>
+                                    <p className="mt-2 text-3xl font-black text-white">{activeSessions.length}</p>
+                                    <p className="mt-2 text-xs text-slate-300">Sessions encore valides a surveiller ou a filtrer rapidement.</p>
+                                </div>
+                            </div>
+                            <div className="mt-5 space-y-3">
+                                {securityInsights.riskyActors.length > 0 ? securityInsights.riskyActors.map(([actor, count]) => (
+                                    <div key={actor} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm font-bold text-white">{actor}</p>
+                                            <p className="mt-1 text-xs text-slate-500">{count} echec(s) detecte(s) dans les evenements charges.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSecurityView('failed_logins');
+                                                setSecuritySearch(actor === 'unknown' ? '' : actor);
+                                            }}
+                                            className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-rose-300 transition-all hover:bg-rose-500/15"
+                                        >
+                                            Enqueter
+                                        </button>
+                                    </div>
                                 )) : (
-                                    <tr><td className="p-10 text-center text-slate-600 text-sm">Aucun événement suspect.</td></tr>
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-slate-500">
+                                        Aucun regroupement prioritaire sur les evenements actuellement charges.
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-5">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Vues prêtes à l'emploi</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Basculez rapidement vers le bon sous-ensemble de securite.</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { id: 'all', label: 'Vue complete' },
+                                    { id: 'failed_logins', label: 'Echecs connexion' },
+                                    { id: 'successful_logins', label: 'Connexions reussies' },
+                                    { id: 'password_changes', label: 'Mots de passe' },
+                                    { id: 'verifications', label: 'OTP et verifications' },
+                                    { id: 'sessions', label: 'Sessions actives' },
+                                ].map((view) => (
+                                    <button
+                                        key={view.id}
+                                        onClick={() => setSecurityView(view.id as typeof securityView)}
+                                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition-all ${securityView === view.id ? 'border-primary/40 bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
+                                    >
+                                        {view.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Recherche securite</label>
+                                <div className="relative mt-2">
+                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input
+                                        value={securitySearch}
+                                        onChange={(e) => setSecuritySearch(e.target.value)}
+                                        placeholder="Email, user_id, IP, session, detail..."
+                                        className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Evenements recents</h3>
+                                <p className="mt-1 text-xs text-slate-500">Journal des evenements securite avec recherche et focus par type d'incident.</p>
+                            </div>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                                {filteredSecurityEvents.length} evenement(s)
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+                                    <tr>
+                                        <th className="px-6 py-4">Evenement</th>
+                                        <th className="px-6 py-4">Utilisateur</th>
+                                        <th className="px-6 py-4">IP / detail</th>
+                                        <th className="px-6 py-4">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {filteredSecurityEvents.filter(Boolean).length > 0 ? filteredSecurityEvents.filter(Boolean).map((event: any, idx: number) => (
+                                        <tr key={idx} className="hover:bg-white/5">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${String(event.type || '').includes('failed') ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                                    <span className="text-white font-bold text-xs uppercase tracking-widest">{event.type || 'inconnu'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-semibold text-white">{event.user_name || event.user_email || 'Utilisateur inconnu'}</p>
+                                                    <p className="text-xs text-slate-500">{event.user_id || event.user_email || 'Identifiant indisponible'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-mono text-slate-400">{event.ip_address || 'IP non remontee'}</p>
+                                                    <p className="text-xs text-slate-500">{event.details || event.reason || 'Aucun detail complementaire'}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-500 text-xs">{formatAdminDate(event.created_at)}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan={4} className="p-10 text-center text-slate-600 text-sm">Aucun evenement securite ne correspond aux filtres actuels.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div className="glass-card overflow-hidden">
                         <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div>
-                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Journal des vérifications</h3>
-                                <p className="mt-1 text-xs text-slate-500">Historique des vérifications e-mail et téléphone, avec le provider utilisé.</p>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Journal des verifications</h3>
+                                <p className="mt-1 text-xs text-slate-500">Historique des verifications e-mail et telephone, avec le provider utilise.</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <select
@@ -1544,7 +2080,7 @@ export default function AdminDashboard() {
                                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white outline-none transition-all focus:border-primary/40"
                                 >
                                     <option value="all">Tous les canaux</option>
-                                    <option value="phone">Téléphone</option>
+                                    <option value="phone">Telephone</option>
                                     <option value="email">E-mail</option>
                                 </select>
                                 <select
@@ -1571,24 +2107,24 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredVerificationEvents.filter(Boolean).length > 0 ? filteredVerificationEvents.filter(Boolean).map((event: any) => (
+                                    {filteredSecurityVerifications.filter(Boolean).length > 0 ? filteredSecurityVerifications.filter(Boolean).map((event: any) => (
                                         <tr key={event.event_id || `${event.type}-${event.created_at}`} className="hover:bg-white/5">
-                                            <td className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">{event.type || '—'}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-300">{event.channel || '—'}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-300">{event.provider || '—'}</td>
+                                            <td className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">{event.type || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-300">{event.channel || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-300">{event.provider || '-'}</td>
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
                                                     <p className="text-sm font-semibold text-white">{event.user_name || event.user_email || 'Inconnu'}</p>
-                                                    <p className="text-xs text-slate-500">{event.user_id || '—'}</p>
+                                                    <p className="text-xs text-slate-500">{event.user_id || '-'}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-400">{event.target || event.identifier || event.email || event.phone_number || '—'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-400">{event.target || event.identifier || event.email || event.phone_number || '-'}</td>
                                             <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(event.created_at)}</td>
                                         </tr>
                                     )) : (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-12 text-center text-slate-600 text-sm">
-                                                Aucun événement de vérification pour ces filtres.
+                                                Aucun evenement de verification pour ces filtres.
                                             </td>
                                         </tr>
                                     )}
@@ -1596,14 +2132,15 @@ export default function AdminDashboard() {
                             </table>
                         </div>
                     </div>
+
                     <div className="glass-card overflow-hidden">
                         <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
                             <div>
                                 <h3 className="text-base font-black text-white uppercase tracking-tighter">Sessions actives</h3>
-                                <p className="mt-1 text-xs text-slate-500">Vue d’ensemble des sessions encore valides pour les utilisateurs.</p>
+                                <p className="mt-1 text-xs text-slate-500">Vue d'ensemble des sessions encore valides pour les utilisateurs.</p>
                             </div>
                             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
-                                {activeSessions.length} session(s)
+                                {filteredSecuritySessions.length} session(s)
                             </span>
                         </div>
                         <div className="overflow-x-auto">
@@ -1612,27 +2149,49 @@ export default function AdminDashboard() {
                                     <tr>
                                         <th className="px-6 py-4">Utilisateur</th>
                                         <th className="px-6 py-4">Session</th>
-                                        <th className="px-6 py-4">Créée</th>
+                                        <th className="px-6 py-4">Creee</th>
                                         <th className="px-6 py-4">Expire</th>
+                                        <th className="px-6 py-4">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {activeSessions.filter(Boolean).length > 0 ? activeSessions.filter(Boolean).map((session: any) => (
+                                    {filteredSecuritySessions.filter(Boolean).length > 0 ? filteredSecuritySessions.filter(Boolean).map((session: any) => (
                                         <tr key={session.session_id || `${session.user_id}-${session.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
                                                     <p className="text-sm font-semibold text-white">{session.user_name || 'Inconnu'}</p>
-                                                    <p className="text-xs text-slate-500">{session.user_email || session.user_id || '—'}</p>
+                                                    <p className="text-xs text-slate-500">{session.user_email || session.user_id || '-'}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-xs font-mono text-slate-400">{session.session_id || '—'}</td>
+                                            <td className="px-6 py-4 text-xs font-mono text-slate-400">{session.session_id || '-'}</td>
                                             <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(session.created_at)}</td>
                                             <td className="px-6 py-4 text-xs text-slate-500">{formatAdminDate(session.expires_at)}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setSecuritySearch(session.user_email || session.user_id || '')}
+                                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-300 transition-all hover:bg-white/10"
+                                                    >
+                                                        Filtrer
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            const matchedUser = users.find((user: any) => user.user_id === session.user_id || user.email === session.user_email);
+                                                            if (!matchedUser) return;
+                                                            handleToggleUser(matchedUser.user_id, matchedUser.is_active !== false);
+                                                        }}
+                                                        disabled={!users.find((user: any) => user.user_id === session.user_id || user.email === session.user_email)}
+                                                        className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-rose-300 transition-all hover:bg-rose-500/15 disabled:opacity-40"
+                                                    >
+                                                        Suspendre
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-600 text-sm">
-                                                Aucune session active remontée.
+                                            <td colSpan={5} className="px-6 py-12 text-center text-slate-600 text-sm">
+                                                Aucune session active ne correspond aux filtres.
                                             </td>
                                         </tr>
                                     )}
@@ -1643,14 +2202,26 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* ── SUPPORT ── */}
             {activeSection === 'support' && (
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <h3 className="text-base font-black text-white uppercase tracking-tighter">Support Client ({tickets.length})</h3>
+                        <div>
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter">Support Client ({tickets.length})</h3>
+                            <p className="mt-1 text-xs text-slate-400">
+                                Demandes d'aide liées à l'application : bugs, accès, configuration et questions d'usage.
+                            </p>
+                        </div>
                         <button onClick={loadTickets} className="p-2 text-slate-400 hover:text-white transition-all">
                             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                         </button>
+                    </div>
+                    <div className="px-5 py-3 border-b border-white/5 bg-white/[0.03] flex flex-wrap gap-2 text-[11px]">
+                        <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 font-bold text-amber-300">
+                            À traiter : tickets ouverts d'assistance produit
+                        </span>
+                        <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 font-bold text-blue-300">
+                            Exemples : connexion, paramétrage, bug, incompréhension d'une fonctionnalité
+                        </span>
                     </div>
                     <div className="divide-y divide-white/5">
                         {tickets.filter(Boolean).length > 0 ? tickets.filter(Boolean).map((ticket: any) => (
@@ -1660,14 +2231,17 @@ export default function AdminDashboard() {
                                         <div className="flex items-center gap-2">
                                             <span className={`w-2 h-2 rounded-full shrink-0 ${ticket.status === 'open' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                             <h4 className="text-white font-bold">{ticket.subject}</h4>
+                                            <span className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-300">
+                                                {ticket.type || 'Assistance'}
+                                            </span>
                                         </div>
-                                        <p className="text-xs text-slate-500">De <span className="text-slate-400 font-semibold">{ticket.user_name}</span> • {new Date(ticket.created_at).toLocaleDateString()}</p>
+                                        <p className="text-xs text-slate-500">De <span className="text-slate-400 font-semibold">{ticket.user_name}</span> � {new Date(ticket.created_at).toLocaleDateString()}</p>
                                     </div>
                                     <button
                                         onClick={() => { setReplyTicketId(replyTicketId === ticket.ticket_id ? null : ticket.ticket_id); setReplyContent(''); }}
                                         className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${replyTicketId === ticket.ticket_id ? 'bg-primary text-white border-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-primary hover:text-white hover:border-primary'}`}
                                     >
-                                        Répondre
+                                        R�pondre
                                     </button>
                                 </div>
                                 {replyTicketId === ticket.ticket_id && (
@@ -1677,7 +2251,7 @@ export default function AdminDashboard() {
                                             value={replyContent}
                                             onChange={e => setReplyContent(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && handleReplyTicket()}
-                                            placeholder="Votre réponse…"
+                                            placeholder="Votre r�ponse�"
                                             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
                                             autoFocus
                                         />
@@ -1686,19 +2260,19 @@ export default function AdminDashboard() {
                                             disabled={replying || !replyContent.trim()}
                                             className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-primary/80 transition-all"
                                         >
-                                            {replying ? '…' : 'Envoyer'}
+                                            {replying ? '�' : 'Envoyer'}
                                         </button>
                                     </div>
                                 )}
                             </div>
                         )) : (
-                            <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">Tous les tickets sont résolus ✓</div>
+                            <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">Tous les tickets sont r�solus ?</div>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* ── BROADCAST ── */}
+            {/* -- BROADCAST -- */}
             {activeSection === 'leads' && (
                 <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1733,7 +2307,7 @@ export default function AdminDashboard() {
                                                 )}
                                             </div>
                                             <p className="text-xs text-primary">{c.email}</p>
-                                            {c.company && <p className="text-xs text-slate-500">🏢 {c.company}</p>}
+                                            {c.company && <p className="text-xs text-slate-500">?? {c.company}</p>}
                                             <p className="text-sm text-slate-300 leading-relaxed mt-2">{c.message}</p>
                                         </div>
                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
@@ -1754,8 +2328,8 @@ export default function AdminDashboard() {
                         <div className="p-5 border-b border-white/5 bg-white/5">
                             <div className="flex items-center gap-3">
                                 <Newspaper size={20} className="text-emerald-400" />
-                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Abonnés newsletter</h4>
-                                <span className="text-xs text-slate-500 ml-auto">{leadSubscribers.length} abonné(s)</span>
+                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Abonn�s newsletter</h4>
+                                <span className="text-xs text-slate-500 ml-auto">{leadSubscribers.length} abonn�(s)</span>
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
@@ -1768,7 +2342,7 @@ export default function AdminDashboard() {
                                 </div>
                             )) : !leadsLoading ? (
                                 <div className="p-12 text-center text-slate-600 text-sm">
-                                    Aucun abonné newsletter pour le moment.
+                                    Aucun abonn� newsletter pour le moment.
                                 </div>
                             ) : null}
                         </div>
@@ -1791,7 +2365,7 @@ export default function AdminDashboard() {
                                     value={broadcastForm.title}
                                     onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
-                                    placeholder="Ex: Nouvelle mise à jour disponible !"
+                                    placeholder="Ex: Nouvelle mise � jour disponible !"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -1801,7 +2375,7 @@ export default function AdminDashboard() {
                                     onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
                                     rows={5}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all resize-none"
-                                    placeholder="Contenu du message…"
+                                    placeholder="Contenu du message�"
                                 />
                             </div>
                             <button
@@ -1810,7 +2384,7 @@ export default function AdminDashboard() {
                                     setSaving(true);
                                     try {
                                         await adminApi.broadcast(broadcastForm.message, broadcastForm.title);
-                                        showToast('Message diffusé à tous les utilisateurs.');
+                                        showToast('Message diffus� � tous les utilisateurs.');
                                         setBroadcastForm({ title: '', message: '' });
                                         await loadBroadcastHistory();
                                     } catch {
@@ -1822,24 +2396,24 @@ export default function AdminDashboard() {
                                 disabled={saving || !broadcastForm.message.trim()}
                                 className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
                             >
-                                {saving ? 'Envoi en cours…' : 'Diffuser à tous les utilisateurs'}
+                                {saving ? 'Envoi en cours�' : 'Diffuser � tous les utilisateurs'}
                             </button>
                         </div>
                     </div>
 
                     <div className="space-y-6">
                         <div className="glass-card p-6 border-amber-500/20 bg-amber-500/5">
-                            <h4 className="text-amber-400 font-black uppercase tracking-widest text-xs mb-3">⚠ Attention</h4>
+                            <h4 className="text-amber-400 font-black uppercase tracking-widest text-xs mb-3">? Attention</h4>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Les messages seront envoyés instantanément à <strong className="text-white">tous les utilisateurs</strong> (Shopkeepers et Suppliers) via push notification. Vérifiez le contenu avant d'envoyer.
+                                Les messages seront envoy�s instantan�ment � <strong className="text-white">tous les utilisateurs</strong> (Shopkeepers et Suppliers) via push notification. V�rifiez le contenu avant d'envoyer.
                             </p>
                         </div>
                         <div className="glass-card p-6">
-                            <h4 className="text-slate-400 font-black uppercase tracking-widest text-xs mb-4">Aperçu mobile</h4>
+                            <h4 className="text-slate-400 font-black uppercase tracking-widest text-xs mb-4">Aper�u mobile</h4>
                             <div className="bg-[#020617] rounded-2xl p-6 border border-white/10 flex flex-col items-center justify-center text-center gap-3 min-h-[180px]">
                                 <Bell size={24} className="text-primary" />
                                 <p className="text-white font-black text-sm">{broadcastForm.title || 'Titre du message'}</p>
-                                <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu apparaîtra ici.'}</p>
+                                <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu appara�tra ici.'}</p>
                             </div>
                         </div>
                         <div className="glass-card overflow-hidden">
@@ -1883,7 +2457,7 @@ export default function AdminDashboard() {
                                             <div className="min-w-[180px] space-y-1 text-right">
                                                 <p className="text-xs text-slate-500">Cible</p>
                                                 <p className="text-sm font-semibold text-white">{message.target || 'all'}</p>
-                                                <p className="text-xs text-slate-500">Envoyé par {message.sent_by || 'admin'}</p>
+                                                <p className="text-xs text-slate-500">Envoy� par {message.sent_by || 'admin'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1895,6 +2469,114 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {activeSection === 'legal' && (
+                <div className="grid grid-cols-1 gap-8">
+                    <div className="glass-card p-6 border border-primary/10 bg-primary/5">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Documents juridiques</h3>
+                                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
+                                    Modifiez ici les CGU et la politique de confidentialité affichées dans l'application. Les changements sont enregistrés en base et deviennent la source affichée aux utilisateurs.
+                                </p>
+                            </div>
+                            <button
+                                onClick={loadLegalDocuments}
+                                className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
+                                title="Rafraîchir"
+                            >
+                                <RefreshCw size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {legalLoading ? (
+                        <div className="glass-card p-12 flex items-center justify-center">
+                            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-8">
+                            <div className="glass-card p-8">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                        <h4 className="text-xl font-black text-white">Conditions générales d'utilisation</h4>
+                                        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                                            Version française de référence affichée dans l'application pour les CGU.
+                                        </p>
+                                        <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                                            Dernière mise à jour : {formatAdminDate(cguUpdatedAt)}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            setLegalSaving('cgu');
+                                            try {
+                                                await adminApi.updateCGU(cguContent);
+                                                await loadLegalDocuments();
+                                                showToast('CGU mises à jour.');
+                                            } catch {
+                                                showToast("Impossible d'enregistrer les CGU.", 'error');
+                                            } finally {
+                                                setLegalSaving(null);
+                                            }
+                                        }}
+                                        disabled={legalSaving === 'cgu' || !cguContent.trim()}
+                                        className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        {legalSaving === 'cgu' ? 'Enregistrement...' : 'Enregistrer les CGU'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={cguContent}
+                                    onChange={(e) => setCguContent(e.target.value)}
+                                    rows={28}
+                                    className="mt-6 min-h-[560px] w-full rounded-2xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white outline-none transition-all focus:border-primary/40"
+                                    placeholder="Saisissez ici les CGU au format Markdown."
+                                />
+                            </div>
+
+                            <div className="glass-card p-8">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                        <h4 className="text-xl font-black text-white">Politique de confidentialité</h4>
+                                        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                                            Version française de référence affichée dans l'application pour la confidentialité et la protection des données.
+                                        </p>
+                                        <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                                            Dernière mise à jour : {formatAdminDate(privacyUpdatedAt)}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            setLegalSaving('privacy');
+                                            try {
+                                                await adminApi.updatePrivacy(privacyContent);
+                                                await loadLegalDocuments();
+                                                showToast('Politique de confidentialité mise à jour.');
+                                            } catch {
+                                                showToast("Impossible d'enregistrer la politique de confidentialité.", 'error');
+                                            } finally {
+                                                setLegalSaving(null);
+                                            }
+                                        }}
+                                        disabled={legalSaving === 'privacy' || !privacyContent.trim()}
+                                        className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        {legalSaving === 'privacy' ? 'Enregistrement...' : 'Enregistrer la politique'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={privacyContent}
+                                    onChange={(e) => setPrivacyContent(e.target.value)}
+                                    rows={28}
+                                    className="mt-6 min-h-[560px] w-full rounded-2xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white outline-none transition-all focus:border-primary/40"
+                                    placeholder="Saisissez ici la politique de confidentialité au format Markdown."
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

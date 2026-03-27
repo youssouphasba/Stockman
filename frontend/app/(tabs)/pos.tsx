@@ -1370,7 +1370,7 @@ export default function POSScreen() {
                 />
             )}
 
-            <Modal visible={showWeightedModal} animationType="slide" transparent onRequestClose={closeWeightedModal}>
+            {showWeightedModal && <Modal visible={showWeightedModal} animationType="slide" transparent onRequestClose={closeWeightedModal}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -1457,7 +1457,7 @@ export default function POSScreen() {
                         )}
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
 
             <DigitalReceiptModal
                 visible={showReceiptModal}
@@ -1485,7 +1485,7 @@ export default function POSScreen() {
                 }}
             />
 
-            <Modal visible={showCustomerModal} animationType="slide" transparent>
+            {showCustomerModal && <Modal visible={showCustomerModal} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -1518,9 +1518,9 @@ export default function POSScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
 
-            <Modal visible={showTableModal} animationType="slide" transparent>
+            {showTableModal && <Modal visible={showTableModal} animationType="slide" transparent>
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
                     <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' }}>
                         <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>{t('pos.select_table')}</Text>
@@ -1542,7 +1542,7 @@ export default function POSScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
         </LinearGradient>
     );
 }

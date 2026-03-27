@@ -1380,7 +1380,7 @@ export default function AccountingScreen() {
                 </LinearGradient>
 
                 {/* Invoice Modal */}
-                <Modal visible={showInvoiceModal} animationType="slide" transparent >
+                {showInvoiceModal && <Modal visible={showInvoiceModal} animationType="slide" transparent >
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
@@ -1504,10 +1504,10 @@ export default function AccountingScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal >
+                </Modal>}
 
                 {/* Expense Modal */}
-                <Modal visible={showExpenseModal} animationType="slide" transparent onRequestClose={requestCloseExpenseModal}>
+                {showExpenseModal && <Modal visible={showExpenseModal} animationType="slide" transparent onRequestClose={requestCloseExpenseModal}>
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
@@ -1598,7 +1598,7 @@ export default function AccountingScreen() {
                             </ScrollView>
                         </View>
                     </View>
-                </Modal>
+                </Modal>}
 
             </View >
         </PremiumGate>

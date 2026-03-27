@@ -1,5 +1,5 @@
-﻿/**
- * ExportService.ts â€” Stockman Professional Export Engine
+/**
+ * ExportService.ts — Stockman Professional Export Engine
  * Handles Excel (XLSX) and PDF exports with consistent branding.
  * All functions are client-side safe (browser only).
  */
@@ -8,9 +8,9 @@ import ExcelJS from 'exceljs/dist/exceljs.min.js';
 import jsPDF from 'jspdf/dist/jspdf.es.min.js';
 import autoTable from 'jspdf-autotable';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // TYPES
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface ExcelColumn {
     key: string;
@@ -54,9 +54,9 @@ export interface PDFConfig {
     sections: PDFSection[];
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // EXCEL EXPORT
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 type ExcelCellValue = string | number | Date | null;
 
@@ -196,9 +196,9 @@ export function exportToExcel(config: ExcelConfig): void {
     });
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // PDF EXPORT
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 const C_PRIMARY: [number, number, number] = [59, 130, 246];
 const C_DARK: [number, number, number] = [15, 23, 42];
@@ -227,7 +227,7 @@ function drawPageHeader(doc: any, config: PDFConfig): void {
     // Separator dot
     doc.setTextColor(...C_GRAY);
     doc.setFontSize(18);
-    doc.text('Â·', 65, 17);
+    doc.text('·', 65, 17);
 
     // Report title next to logo
     doc.setFontSize(12);
@@ -254,9 +254,9 @@ function drawPageHeader(doc: any, config: PDFConfig): void {
 
     const metaParts: string[] = [];
     if (config.storeName) metaParts.push(`Magasin : ${config.storeName}`);
-    if (config.period) metaParts.push(`PÃ©riode : ${config.period}`);
+    if (config.period) metaParts.push(`Période : ${config.period}`);
     const now = new Date();
-    metaParts.push(`GÃ©nÃ©rÃ© le ${now.toLocaleDateString('fr-FR')} Ã  ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+    metaParts.push(`Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
 
     doc.text(metaParts.join('    |    '), 13, 40);
 }
@@ -274,7 +274,7 @@ function drawPageFooters(doc: any): void {
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...C_GRAY);
-        doc.text('STOCKMAN â€” Document confidentiel â€” Usage interne uniquement', 13, 291);
+        doc.text('STOCKMAN — Document confidentiel — Usage interne uniquement', 13, 291);
         doc.text(`Page ${i} / ${pageCount}`, pageW - 13, 291, { align: 'right' });
     }
 }
@@ -294,7 +294,7 @@ export function exportToPDF(config: PDFConfig): void {
             y = 15;
         }
 
-        // â”€â”€ Section title â”€â”€
+        // ── Section title ──
         if (section.title) {
             doc.setFillColor(...C_PRIMARY);
             doc.rect(12, y, 3, 7, 'F');
@@ -305,7 +305,7 @@ export function exportToPDF(config: PDFConfig): void {
             y += 13;
         }
 
-        // â”€â”€ KPI Cards â”€â”€
+        // ── KPI Cards ──
         if (section.kpiCards && section.kpiCards.length > 0) {
             const cards = section.kpiCards;
             const gap = 4;
@@ -337,14 +337,14 @@ export function exportToPDF(config: PDFConfig): void {
             y += 30;
         }
 
-        // â”€â”€ Data Table â”€â”€
+        // ── Data Table ──
         if (section.data.length > 0 && section.columns.length > 0) {
             const headers = section.columns.map(c => c.label);
             const rows = section.data.map(item =>
                 section.columns.map(col => {
                     const val = item[col.key];
                     if (col.format) return String(col.format(val, item));
-                    if (val === null || val === undefined) return 'â€“';
+                    if (val === null || val === undefined) return '–';
                     if (col.type === 'date' && val) {
                         try { return new Date(val).toLocaleDateString('fr-FR'); } catch { return String(val); }
                     }
@@ -393,9 +393,9 @@ export function exportToPDF(config: PDFConfig): void {
     doc.save(`${config.filename}_${date}.pdf`);
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // PRE-BUILT MODULE EXPORT FUNCTIONS
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 /** Export the full product inventory */
 export function exportInventory(
@@ -405,12 +405,12 @@ export function exportInventory(
 ): void {
     const prepared = products.map(p => ({
         ...p,
-        category: p.category_name || p.category || 'â€“',
-        location: p.location_name || p.location || 'â€“',
+        category: p.category_name || p.category || '–',
+        location: p.location_name || p.location || '–',
         margin_pct:
             p.selling_price && p.purchase_price && p.selling_price > 0
                 ? `${(((p.selling_price - p.purchase_price) / p.selling_price) * 100).toFixed(1)}%`
-                : 'â€“',
+                : '–',
         stock_status:
             (p.quantity || 0) <= 0
                 ? 'Rupture'
@@ -423,9 +423,9 @@ export function exportInventory(
     const allCols: ExcelColumn[] = [
         { key: 'sku', label: 'SKU / Code', width: 16 },
         { key: 'name', label: 'Nom du Produit', width: 34 },
-        { key: 'category', label: 'CatÃ©gorie', width: 20 },
+        { key: 'category', label: 'Catégorie', width: 20 },
         { key: 'quantity', label: 'Stock Actuel', width: 14, type: 'number' },
-        { key: 'unit', label: 'UnitÃ©', width: 10 },
+        { key: 'unit', label: 'Unité', width: 10 },
         { key: 'min_stock', label: 'Stock Min', width: 12, type: 'number' },
         { key: 'max_stock', label: 'Stock Max', width: 12, type: 'number' },
         { key: 'purchase_price', label: `Prix Achat (${currency})`, width: 20, type: 'number' },
@@ -477,7 +477,7 @@ export function exportInventory(
             filename: 'Stockman_Inventaire',
             sections: [
                 {
-                    title: 'RÃ©sumÃ© Inventaire',
+                    title: 'Résumé Inventaire',
                     columns: [],
                     data: [],
                     kpiCards: [
@@ -488,7 +488,7 @@ export function exportInventory(
                     ],
                 },
                 {
-                    title: 'Liste ComplÃ¨te',
+                    title: 'Liste Complète',
                     columns: allCols.slice(0, 10),
                     data: prepared,
                 },
@@ -514,12 +514,12 @@ export function exportCRM(
 
     const columns: ExcelColumn[] = [
         { key: 'name', label: 'Nom Complet', width: 28 },
-        { key: 'phone', label: 'TÃ©lÃ©phone', width: 18 },
+        { key: 'phone', label: 'Téléphone', width: 18 },
         { key: 'email', label: 'Email', width: 30 },
-        { key: 'category', label: 'CatÃ©gorie', width: 16 },
-        { key: 'tier_label', label: 'Niveau FidÃ©litÃ©', width: 16 },
+        { key: 'category', label: 'Catégorie', width: 16 },
+        { key: 'tier_label', label: 'Niveau Fidélité', width: 16 },
         { key: 'loyalty_points', label: 'Points', width: 12, type: 'number' },
-        { key: 'total_spent', label: `Total DÃ©pensÃ© (${currency})`, width: 22, type: 'number' },
+        { key: 'total_spent', label: `Total Dépensé (${currency})`, width: 22, type: 'number' },
         { key: 'total_debt', label: `Dette (${currency})`, width: 18, type: 'number' },
         { key: 'birthday', label: 'Anniversaire', width: 16, type: 'date' },
         { key: 'notes', label: 'Notes', width: 35 },
@@ -531,7 +531,7 @@ export function exportCRM(
 
     if (format === 'excel') {
         exportToExcel({
-            title: 'CRM â€” Liste Clients',
+            title: 'CRM — Liste Clients',
             filename: 'Stockman_CRM',
             sheets: [
                 {
@@ -541,7 +541,7 @@ export function exportCRM(
                     summaryRows: [
                         ['TOTAL CLIENTS', prepared.length],
                         [`DETTE TOTALE (${currency})`, totalDebt],
-                        [`REVENUS GÃ‰NÃ‰RÃ‰S (${currency})`, totalRevenue],
+                        [`REVENUS GÉNÉRÉS (${currency})`, totalRevenue],
                         ['CLIENTS VIP (Or + Platine)', vipList.length],
                     ],
                 },
@@ -562,7 +562,7 @@ export function exportCRM(
             filename: 'Stockman_CRM',
             sections: [
                 {
-                    title: 'Indicateurs ClÃ©s',
+                    title: 'Indicateurs Clés',
                     columns: [],
                     data: [],
                     kpiCards: [
@@ -605,16 +605,16 @@ export function exportAccounting(
 
     const perfCols: ExcelColumn[] = [
         { key: 'name', label: 'Produit', width: 32 },
-        { key: 'qty_sold', label: 'QtÃ© Vendue', width: 14, type: 'number' },
+        { key: 'qty_sold', label: 'Qté Vendue', width: 14, type: 'number' },
         { key: 'revenue', label: `Ventes (${currency})`, width: 20, type: 'number' },
-        { key: 'cogs', label: `CoÃ»t (${currency})`, width: 20, type: 'number' },
+        { key: 'cogs', label: `Coût (${currency})`, width: 20, type: 'number' },
         { key: 'margin', label: `Marge (${currency})`, width: 20, type: 'number' },
         { key: 'margin_pct', label: 'Marge %', width: 12 },
     ];
 
     const expCols: ExcelColumn[] = [
         { key: 'created_at', label: 'Date', width: 16, type: 'date' },
-        { key: 'category', label: 'CatÃ©gorie', width: 22 },
+        { key: 'category', label: 'Catégorie', width: 22 },
         { key: 'description', label: 'Description', width: 38 },
         { key: 'amount', label: `Montant (${currency})`, width: 20, type: 'number' },
     ];
@@ -633,11 +633,11 @@ export function exportAccounting(
 
     const summaryData = [
         { label: 'Chiffre d\'affaires (CA)', value: totalRevenue },
-        { label: 'CoÃ»t des marchandises vendues (COGS)', value: cogs },
+        { label: 'Coût des marchandises vendues (COGS)', value: cogs },
         { label: 'Marge brute', value: grossProfit },
         { label: 'Marge brute %', value: totalRevenue > 0 ? `${((grossProfit / totalRevenue) * 100).toFixed(1)}%` : '0%' },
-        { label: 'DÃ©penses opÃ©rationnelles', value: totalExpenses },
-        { label: 'BÃ©nÃ©fice net', value: netProfit },
+        { label: 'Dépenses opérationnelles', value: totalExpenses },
+        { label: 'Bénéfice net', value: netProfit },
         { label: 'Marge nette %', value: netMarginPct },
     ];
 
@@ -648,7 +648,7 @@ export function exportAccounting(
             filename: 'Stockman_Comptabilite',
             sheets: [
                 {
-                    name: 'RÃ©sumÃ© Financier',
+                    name: 'Résumé Financier',
                     columns: summCols,
                     data: summaryData,
                 },
@@ -662,11 +662,11 @@ export function exportAccounting(
                     ],
                 },
                 {
-                    name: 'DÃ©penses',
+                    name: 'Dépenses',
                     columns: expCols,
                     data: expenses,
                     summaryRows: [
-                        [`TOTAL DÃ‰PENSES (${currency})`, totalExpenses],
+                        [`TOTAL DÉPENSES (${currency})`, totalExpenses],
                     ],
                 },
             ],
@@ -678,18 +678,18 @@ export function exportAccounting(
             filename: 'Stockman_Comptabilite',
             sections: [
                 {
-                    title: 'RÃ©sumÃ© Financier',
+                    title: 'Résumé Financier',
                     columns: [],
                     data: [],
                     kpiCards: [
                         { label: 'Chiffre d\'Affaires', value: `${totalRevenue.toLocaleString('fr-FR')} ${currency}` },
                         { label: 'Marge Brute', value: `${grossProfit.toLocaleString('fr-FR')} ${currency}` },
-                        { label: 'DÃ©penses', value: `${totalExpenses.toLocaleString('fr-FR')} ${currency}` },
-                        { label: 'BÃ©nÃ©fice Net', value: `${netProfit.toLocaleString('fr-FR')} ${currency}` },
+                        { label: 'Dépenses', value: `${totalExpenses.toLocaleString('fr-FR')} ${currency}` },
+                        { label: 'Bénéfice Net', value: `${netProfit.toLocaleString('fr-FR')} ${currency}` },
                     ],
                 },
                 {
-                    title: 'Indicateurs Financiers DÃ©taillÃ©s',
+                    title: 'Indicateurs Financiers Détaillés',
                     columns: summCols,
                     data: summaryData,
                 },
@@ -699,7 +699,7 @@ export function exportAccounting(
                     data: productPerf.slice(0, 30),
                 },
                 {
-                    title: 'DÃ©penses OpÃ©rationnelles',
+                    title: 'Dépenses Opérationnelles',
                     columns: expCols,
                     data: expenses,
                 },
@@ -716,25 +716,25 @@ export function exportOrders(
 ): void {
     const STATUS_FR: Record<string, string> = {
         pending: 'En attente',
-        ordered: 'CommandÃ©',
-        received: 'ReÃ§u',
+        ordered: 'Commandé',
+        received: 'Reçu',
         partial: 'Partiel',
-        cancelled: 'AnnulÃ©',
+        cancelled: 'Annulé',
     };
 
     const prepared = orders.map(o => ({
         ...o,
-        supplier_name: o.supplier_name || o.supplier?.name || 'â€“',
+        supplier_name: o.supplier_name || o.supplier?.name || '–',
         items_count: (o.items || []).length,
         total_amount:
             o.total_amount ||
             (o.items || []).reduce((s: number, i: any) => s + (i.total_price || 0), 0) ||
             0,
-        status_label: STATUS_FR[o.status] || o.status || 'â€“',
+        status_label: STATUS_FR[o.status] || o.status || '–',
     }));
 
     const columns: ExcelColumn[] = [
-        { key: 'order_number', label: 'NÂ° Commande', width: 18 },
+        { key: 'order_number', label: 'N° Commande', width: 18 },
         { key: 'supplier_name', label: 'Fournisseur', width: 26 },
         { key: 'created_at', label: 'Date', width: 16, type: 'date' },
         { key: 'status_label', label: 'Statut', width: 16 },
@@ -760,8 +760,8 @@ export function exportOrders(
                         ['TOTAL COMMANDES', prepared.length],
                         [`MONTANT TOTAL (${currency})`, totalAmount],
                         ['EN ATTENTE / EN COURS', pending],
-                        ['REÃ‡UES', received],
-                        ['ANNULÃ‰ES', prepared.filter(o => o.status === 'cancelled').length],
+                        ['REÇUES', received],
+                        ['ANNULÉES', prepared.filter(o => o.status === 'cancelled').length],
                     ],
                 },
             ],
@@ -779,7 +779,7 @@ export function exportOrders(
                         { label: 'Total Commandes', value: String(prepared.length) },
                         { label: `Montant Total`, value: `${totalAmount.toLocaleString('fr-FR')} ${currency}` },
                         { label: 'En Attente', value: String(pending) },
-                        { label: 'ReÃ§ues', value: String(received) },
+                        { label: 'Reçues', value: String(received) },
                     ],
                 },
                 {
@@ -802,19 +802,19 @@ export function exportActivity(
         { key: 'module', label: 'Module', width: 16 },
         { key: 'action', label: 'Action', width: 28 },
         { key: 'user_name', label: 'Utilisateur', width: 24 },
-        { key: 'description', label: 'DÃ©tails', width: 48 },
+        { key: 'description', label: 'Détails', width: 48 },
     ];
 
     const prepared = logs.map(l => ({
         ...l,
         created_at: l.created_at || l.timestamp || '',
-        user_name: l.user_name || l.user?.name || l.user_email || 'â€“',
-        description: l.description || l.details || l.message || 'â€“',
+        user_name: l.user_name || l.user?.name || l.user_email || '–',
+        description: l.description || l.details || l.message || '–',
     }));
 
     if (format === 'excel') {
         exportToExcel({
-            title: 'Journal d\'ActivitÃ©',
+            title: 'Journal d\'Activité',
             filename: 'Stockman_Activite',
             sheets: [
                 {
@@ -822,15 +822,15 @@ export function exportActivity(
                     columns,
                     data: prepared,
                     summaryRows: [
-                        ['TOTAL ENTRÃ‰ES', prepared.length],
-                        ['PÃ‰RIODE', `${prepared.length > 0 ? new Date(prepared[prepared.length - 1].created_at).toLocaleDateString('fr-FR') : 'â€“'} â†’ ${prepared.length > 0 ? new Date(prepared[0].created_at).toLocaleDateString('fr-FR') : 'â€“'}`],
+                        ['TOTAL ENTRÉES', prepared.length],
+                        ['PÉRIODE', `${prepared.length > 0 ? new Date(prepared[prepared.length - 1].created_at).toLocaleDateString('fr-FR') : '–'} → ${prepared.length > 0 ? new Date(prepared[0].created_at).toLocaleDateString('fr-FR') : '–'}`],
                     ],
                 },
             ],
         });
     } else {
         exportToPDF({
-            title: 'Journal d\'ActivitÃ© SystÃ¨me',
+            title: 'Journal d\'Activité Système',
             filename: 'Stockman_Activite',
             sections: [
                 {
@@ -858,7 +858,7 @@ export function exportDashboard(
         { label: 'Produits en Rupture', valeur: data?.out_of_stock_count || 0 },
         { label: 'Stock Faible (< min)', valeur: data?.low_stock_count || 0 },
         { label: 'Nouveaux Clients (mois)', valeur: data?.new_customers_month || 0 },
-        { label: 'Marge Brute EstimÃ©e', valeur: data?.gross_profit || 0 },
+        { label: 'Marge Brute Estimée', valeur: data?.gross_profit || 0 },
     ];
 
     const kpiCols: ExcelColumn[] = [
@@ -868,7 +868,7 @@ export function exportDashboard(
 
     const rawSales = data?.sales_chart || data?.daily_revenue || data?.revenue_chart || [];
     const salesData = rawSales.map((d: any) => ({
-        date: d.date || d.day || d._id || 'â€“',
+        date: d.date || d.day || d._id || '–',
         revenue: d.revenue || d.total || d.amount || 0,
         orders: d.orders || d.count || d.sales_count || 0,
     }));
@@ -903,7 +903,7 @@ export function exportDashboard(
     } else {
         const sections: PDFSection[] = [
             {
-                title: 'Indicateurs ClÃ©s de Performance',
+                title: 'Indicateurs Clés de Performance',
                 columns: [],
                 data: [],
                 kpiCards: [
@@ -913,10 +913,10 @@ export function exportDashboard(
                     { label: 'Ruptures', value: String(data?.out_of_stock_count || 0) },
                 ],
             },
-            { title: 'DÃ©tail des MÃ©triques', columns: kpiCols, data: kpiRows },
+            { title: 'Détail des Métriques', columns: kpiCols, data: kpiRows },
         ];
         if (salesData.length > 0) {
-            sections.push({ title: 'Ã‰volution des Ventes', columns: salesCols, data: salesData });
+            sections.push({ title: 'Évolution des Ventes', columns: salesCols, data: salesData });
         }
         exportToPDF({
             title: 'Tableau de Bord',

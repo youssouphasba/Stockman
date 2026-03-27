@@ -22,16 +22,10 @@ export function usePushNotifications() {
             setPermission(perm);
 
             if (perm === 'granted' && messaging) {
-                // IMPORTANT: Replace 'vapidKey' with your actual VAPID public key if needed from Firebase console
-                // Or let Firebase handle it by default
-                const currentToken = await getToken(messaging, {
-                    // vapidKey: 'YOUR_PUBLIC_VAPID_KEY_HERE'
-                });
-                
+                const currentToken = await getToken(messaging);
+
                 if (currentToken) {
                     setToken(currentToken);
-                    console.log('Firebase Push Token:', currentToken);
-                    // TODO: Send this token to your backend to save it in user's push_tokens array
                     return currentToken;
                 } else {
                     console.warn('Aucun token de registre disponible. Demandez une autorisation pour générer un token.');

@@ -66,6 +66,9 @@ export default function ChangeCalculatorModal({
         </TouchableOpacity>
     );
 
+    if (!visible) return null;
+
+
     return (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>

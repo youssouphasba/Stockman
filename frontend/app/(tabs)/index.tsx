@@ -1180,7 +1180,7 @@ export default function DashboardScreen() {
       </Modal>
 
       {/* History Modal */}
-      <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
+      {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -1259,10 +1259,10 @@ export default function DashboardScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </Modal>}
 
       {/* Statistics Modal */}
-      <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => setShowStatsModal(false)}>
+      {showStatsModal && <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => setShowStatsModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.header}>
@@ -1446,7 +1446,7 @@ export default function DashboardScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </Modal>}
       {dashboardGuideSteps.length > 0 && (
         <ScreenGuide
           visible={showGuide}
@@ -1458,7 +1458,7 @@ export default function DashboardScreen() {
 
       {/* Notifications Modal */}
       {showNotifModal && (
-        <Modal visible={showNotifModal} animationType="fade" transparent>
+        {showNotifModal && <Modal visible={showNotifModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { height: '60%', marginTop: 'auto' }]}>
               <View style={styles.modalHeader}>
@@ -1481,7 +1481,7 @@ export default function DashboardScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>
+        </Modal>}
       )}
 
       <DashboardSettingsModal

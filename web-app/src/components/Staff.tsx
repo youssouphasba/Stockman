@@ -1,5 +1,4 @@
 'use client';
-// Force redeploy with latest fixes
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +22,7 @@ import {
     ChevronDown,
     ChevronUp
 } from 'lucide-react';
-import { subUsers as subUsersApi, stores as storesApi } from '../services/api';
+import { auth, subUsers as subUsersApi, stores as storesApi } from '../services/api';
 import type { PermissionLevel, UserPermissions, StorePermissions } from '../services/api';
 import Modal from './Modal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -94,6 +93,7 @@ export default function Staff() {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<any>(null);
 
     // Modal & Form State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -139,10 +139,12 @@ export default function Staff() {
         setLoading(true);
         try {
             setError(null);
-            const [data, storesData] = await Promise.all([
+            const [me, data, storesData] = await Promise.all([
+                auth.me().catch(() => null),
                 subUsersApi.list(),
                 storesApi.list().catch(() => []),
             ]);
+            setCurrentUser(me);
             setUsers(Array.isArray(data) ? data : []);
             setStores(Array.isArray(storesData) ? storesData : []);
         } catch (err: any) {
@@ -249,7 +251,12 @@ export default function Staff() {
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
+    const canAssignAccountRoles = Boolean(
+        currentUser?.role === 'superadmin' || (currentUser?.account_roles || []).includes('org_admin')
+    );
+
     const toggleAccountRole = (role: AccountRole) => {
+        if (!canAssignAccountRoles) return;
         if (role === 'org_admin' && !form.accountRoles.includes('org_admin')) {
             const confirmed = window.confirm('Admin operations donne un acces complet aux operations, aux magasins et a la gestion d equipe. Continuer ?');
             if (!confirmed) return;
@@ -590,7 +597,7 @@ export default function Staff() {
                             })}
                         </div>
 
-                        <div className="space-y-2 pt-2">
+                        {canAssignAccountRoles && <div className="space-y-2 pt-2">
                             <div className="text-xs text-slate-500">`Admin facturation` gere l abonnement. `Admin operations` gere les magasins, les modules et l equipe.</div>
                             <div className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
                                 <span className="text-slate-200 font-medium">Admin facturation</span>
@@ -612,7 +619,7 @@ export default function Staff() {
                                     {form.accountRoles.includes('org_admin') ? 'Actif' : 'Inactif'}
                                 </button>
                             </div>
-                        </div>
+                        </div>}
                     </div>
 
                     <div className="flex gap-4 pt-6 mt-6 border-t border-white/10">
@@ -636,3 +643,4 @@ export default function Staff() {
         </div>
     );
 }
+

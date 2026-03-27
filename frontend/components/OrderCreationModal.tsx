@@ -367,6 +367,8 @@ export default function OrderCreationModal({
   );
 
   // ═══════════════ RENDER ═══════════════
+  if (!visible) return null;
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={requestClose}>
       <View style={s.overlay}>

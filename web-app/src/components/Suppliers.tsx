@@ -31,7 +31,8 @@ import {
     MessageSquare,
     Zap,
     TrendingUp,
-    Download
+    Download,
+    Copy
 } from 'lucide-react';
 import { generateOrderPDF } from '../utils/OrderPDFGenerator';
 import Modal from './Modal';
@@ -643,6 +644,34 @@ export default function Suppliers() {
         }
     };
 
+    const openLinkProductForSupplier = async (supplier: any) => {
+        const normalizedSupplier = {
+            ...supplier,
+            kind: 'manual',
+            name: supplier?.name || supplier?.company_name,
+            supplier_user_id: supplier?.supplier_user_id || supplier?.user_id,
+        };
+        setSelectedSupplier(normalizedSupplier);
+        setShowLinkModal(true);
+        setSelectedProductId(null);
+        setLinkPrice('');
+        try {
+            const [productsRes, linkedRes] = await Promise.all([
+                productsApi.list(undefined, 0, 500),
+                suppliersApi.getProducts(normalizedSupplier.supplier_id),
+            ]);
+            const products = productsRes.items || productsRes || [];
+            const linked = Array.isArray(linkedRes) ? linkedRes : [];
+            const linkedIds = linked.map((link: any) => link.product_id);
+            setLinkedProducts(linked);
+            setAllProducts(products.filter((product: any) => !linkedIds.includes(product.product_id)));
+        } catch (err) {
+            console.error("Direct link product load error", err);
+            setAllProducts([]);
+            setLinkedProducts([]);
+        }
+    };
+
     const handleLinkProduct = async () => {
         if (!selectedSupplier?.supplier_id || !selectedProductId) return;
         setSubmitting(true);
@@ -1033,7 +1062,13 @@ export default function Suppliers() {
                                                 onClick={() => openSupplierDetails(s, 'manual')}
                                                 className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 text-sm font-bold hover:bg-white/10 transition-colors"
                                             >
-                                                Détails
+                                                D�tails
+                                            </button>
+                                            <button
+                                                onClick={() => void openLinkProductForSupplier(s)}
+                                                className="flex-1 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 text-sm font-bold hover:bg-emerald-500/20 transition-colors"
+                                            >
+                                                Lier un produit
                                             </button>
                                             <button
                                                 onClick={() => openManualOrderDraft(s)}
@@ -2270,6 +2305,38 @@ export default function Suppliers() {
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseigné'}</span></div>
                                 </div>
+                                {/* Invitation section */}
+                                <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3">
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('invite_to_stockman')}</p>
+                                    <p className="text-sm text-slate-400">{t('invite_stockman_desc')}</p>
+                                    <div className="flex flex-wrap gap-3">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await suppliersApi.getInvitationLink(selectedSupplier.supplier_id);
+                                                    await navigator.clipboard.writeText(res.link);
+                                                    alert(t('link_copied'));
+                                                } catch { alert(t('copy_error')); }
+                                            }}
+                                            className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                                        >
+                                            <Copy size={14} /> {t('copy_invite_link')}
+                                        </button>
+                                        {selectedSupplier.email && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await suppliersApi.resendInvitation(selectedSupplier.supplier_id);
+                                                        alert(t('invitation_sent_email'));
+                                                    } catch { alert(t('send_error')); }
+                                                }}
+                                                className="px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
+                                            >
+                                                <Mail size={14} /> {t('send_by_email')}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                     <div className="p-5 bg-primary/5 border border-primary/20 rounded-3xl">
                                         <p className="text-[10px] font-black text-primary/60 uppercase">Score fournisseur</p>
@@ -2892,6 +2959,11 @@ export default function Suppliers() {
                 title="Lier un produit au fournisseur"
             >
                 <div className="space-y-4">
+                    <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
+                        {selectedSupplier?.name
+                            ? `Choisissez un produit de votre stock à associer durablement au fournisseur ${selectedSupplier.name}.`
+                            : "Choisissez un produit de votre stock à associer durablement à ce fournisseur."}
+                    </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-400 mb-1">Produit interne</label>
                         <select

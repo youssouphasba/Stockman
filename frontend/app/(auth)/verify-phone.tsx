@@ -51,6 +51,32 @@ export default function VerifyPhoneScreen() {
         router.replace('/(auth)/login');
     };
 
+    const [initialSent, setInitialSent] = useState(false);
+
+    // Auto-send SMS on screen mount
+    useEffect(() => {
+        if (initialSent || !user?.phone) return;
+        const phone = user.phone;
+        setInitialSent(true);
+        (async () => {
+            setResending(true);
+            try {
+                await sendPhoneVerification(phone);
+                setSuccess(t('auth.verifyPhone.sentTo', { phone }));
+                setCooldown(RESEND_COOLDOWN);
+            } catch (e) {
+                const message = e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.resendError');
+                if (typeof message === 'string' && message.toLowerCase().includes('quota')) {
+                    setError(t('auth.verifyPhone.limitReached') || message);
+                } else {
+                    setError(message as string);
+                }
+            } finally {
+                setResending(false);
+            }
+        })();
+    }, [user?.phone]);
+
     // Cooldown timer
     useEffect(() => {
         if (cooldown <= 0) return;
@@ -195,7 +221,7 @@ export default function VerifyPhoneScreen() {
                                 <Text style={styles.resendText}>
                                     {cooldown > 0
                                         ? `${t('auth.verifyPhone.resendCode')} (${cooldown}s)`
-                                        : t('auth.verifyPhone.sendCode')}
+                                        : t('auth.verifyPhone.resendCode')}
                                 </Text>
                             )}
                         </TouchableOpacity>

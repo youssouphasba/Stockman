@@ -26,16 +26,18 @@ interface BulkImportModalProps {
 
 const REQUIRED_FIELDS = [
     { key: 'name', labelKey: 'bulk_import.field_name' },
-    { key: 'sku', labelKey: 'bulk_import.field_sku' },
-    { key: 'selling_price', labelKey: 'bulk_import.field_selling_price' },
 ];
 
 const OPTIONAL_FIELDS = [
-    { key: 'category', labelKey: 'bulk_import.field_category' },
+    { key: 'sku', labelKey: 'bulk_import.field_sku' },
+    { key: 'selling_price', labelKey: 'bulk_import.field_selling_price' },
+    { key: 'category_name', labelKey: 'bulk_import.field_category' },
     { key: 'quantity', labelKey: 'bulk_import.field_quantity' },
     { key: 'purchase_price', labelKey: 'bulk_import.field_purchase_price' },
     { key: 'min_stock', labelKey: 'bulk_import.field_min_stock' },
     { key: 'description', labelKey: 'bulk_import.field_description' },
+    { key: 'unit', labelKey: 'bulk_import.field_unit' },
+    { key: 'location', labelKey: 'settings_workspace.stores.locations.title' },
 ];
 
 export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImportModalProps) {
@@ -102,15 +104,20 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
             setHeaders(csvHeaders);
             setRawData(response.data || []);
 
-            // Auto-mapping: match CSV columns to product fields
-            const initialMapping: Record<string, string> = {};
+            const initialMapping: Record<string, string> = { ...(response.ai_mapping || {}) };
             REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).forEach(field => {
+                if (initialMapping[field.key]) return;
                 const label = t(field.labelKey).toLowerCase();
-                const suggested = csvHeaders.find((h: string) =>
-                    h.toLowerCase().includes(field.key.toLowerCase()) ||
-                    label.includes(h.toLowerCase()) ||
-                    h.toLowerCase().includes(label)
-                );
+                const candidates =
+                    field.key === 'category_name'
+                        ? ['category_name', 'category', 'categorie', 'catégorie']
+                        : field.key === 'location'
+                            ? ['location', 'emplacement']
+                            : [field.key];
+                const suggested = csvHeaders.find((h: string) => {
+                    const normalized = h.toLowerCase();
+                    return candidates.some((candidate) => normalized === candidate || normalized.includes(candidate) || label.includes(normalized));
+                });
                 if (suggested) initialMapping[field.key] = suggested;
             });
 
@@ -133,8 +140,6 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
         }
 
         setStep(2);
-        // In a real app, we might fetch a preview from backend here
-        // For now, we'll just show the mapping and proceed to final confirm
     }
 
     async function handleFinalImport() {
@@ -323,6 +328,9 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
                 return null;
         }
     }
+
+    if (!visible) return null;
+
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>

@@ -83,7 +83,7 @@ export default function StoreSelector() {
                 <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
             </TouchableOpacity>
 
-            <Modal visible={showModal} transparent animationType="fade">
+            {showModal && <Modal visible={showModal} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -156,7 +156,7 @@ export default function StoreSelector() {
                         )}
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
         </>
     );
 }

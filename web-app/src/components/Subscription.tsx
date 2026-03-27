@@ -199,44 +199,44 @@ export default function Subscription() {
 
     const subscriptionSteps: GuideStep[] = [
         {
-            title: "Rôle de cet écran",
-            content: "Cet écran vous permet de suivre votre formule, votre statut d'accès, votre devise de facturation et le bon canal de paiement. C'est l'endroit à consulter avant un renouvellement, un changement de formule ou un contrôle de facturation.",
+            title: "R�le de cet �cran",
+            content: "Cet �cran vous permet de suivre votre formule, votre statut d'acc�s, votre devise de facturation et le bon canal de paiement. C'est l'endroit � consulter avant un renouvellement, un changement de formule ou un contr�le de facturation.",
         },
         {
             title: 'Comprendre votre statut actuel',
-            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive à échéance ou si une continuité d'activité est en cours. Commencez toujours ici pour savoir si vous devez agir immédiatement ou non.",
+            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive � �ch�ance ou si une continuit� d'activit� est en cours. Commencez toujours ici pour savoir si vous devez agir imm�diatement ou non.",
             details: [
-                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour éviter toute confusion avant un paiement.", type: 'card' },
-                { label: 'Dates importantes', description: "Montre les échéances de fin de période, de grâce ou de passage en lecture seule quand elles existent.", type: 'info' },
+                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour �viter toute confusion avant un paiement.", type: 'card' },
+                { label: 'Dates importantes', description: "Montre les �ch�ances de fin de p�riode, de gr�ce ou de passage en lecture seule quand elles existent.", type: 'info' },
             ],
         },
         {
-            title: 'Vérifier pays et devise',
-            content: "La carte « Pays et devise de facturation » vous rappelle le cadre tarifaire appliqué à votre compte. Utilisez-la pour confirmer que les prix affichés et les canaux de paiement correspondent bien à votre contexte.",
+            title: 'V�rifier pays et devise',
+            content: "La carte � Pays et devise de facturation � vous rappelle le cadre tarifaire appliqu� � votre compte. Utilisez-la pour confirmer que les prix affich�s et les canaux de paiement correspondent bien � votre contexte.",
         },
         {
             title: 'Comparer les formules',
-            content: "Chaque carte de formule présente le prix effectif et les principaux avantages. Relisez les fonctionnalités avant de changer de formule afin de choisir celle qui correspond réellement à votre activité.",
+            content: "Chaque carte de formule pr�sente le prix effectif et les principaux avantages. Relisez les fonctionnalit�s avant de changer de formule afin de choisir celle qui correspond r�ellement � votre activit�.",
             details: [
-                { label: 'Carte de formule', description: "Affiche le nom, le prix mensuel et les éléments clés inclus dans la formule.", type: 'card' },
-                { label: 'Plan actuel', description: "Si la carte est déjà active, aucun paiement supplémentaire n'est proposé.", type: 'info' },
+                { label: 'Carte de formule', description: "Affiche le nom, le prix mensuel et les �l�ments cl�s inclus dans la formule.", type: 'card' },
+                { label: 'Plan actuel', description: "Si la carte est d�j� active, aucun paiement suppl�mentaire n'est propos�.", type: 'info' },
             ],
         },
         {
             title: 'Choisir le bon mode de paiement',
-            content: "Les boutons de paiement affichés sur chaque formule dépendent de votre devise et de votre compte. Utilisez le bouton carte bancaire pour un règlement par carte, et le bouton Mobile Money quand ce canal est disponible pour votre devise.",
+            content: "Les boutons de paiement affich�s sur chaque formule d�pendent de votre devise et de votre compte. Utilisez le bouton carte bancaire pour un r�glement par carte, et le bouton Mobile Money quand ce canal est disponible pour votre devise.",
             details: [
-                { label: 'Payer par carte bancaire', description: "Ouvre le parcours de paiement sécurisé pour les comptes éligibles à la carte.", type: 'button' },
-                { label: 'Payer via Mobile Money', description: "Apparaît uniquement quand ce mode de règlement est disponible pour votre devise.", type: 'button' },
+                { label: 'Payer par carte bancaire', description: "Ouvre le parcours de paiement s�curis� pour les comptes �ligibles � la carte.", type: 'button' },
+                { label: 'Payer via Mobile Money', description: "Appara�t uniquement quand ce mode de r�glement est disponible pour votre devise.", type: 'button' },
             ],
         },
         {
-            title: 'Mettre à jour le contact de facturation',
-            content: "Le bloc « Contact de facturation » sert à définir la personne et l'adresse email qui doivent recevoir les rappels, confirmations ou échanges liés à la facturation. Relisez ces informations avant chaque renouvellement important.",
+            title: 'Mettre � jour le contact de facturation',
+            content: "Le bloc � Contact de facturation � sert � d�finir la personne et l'adresse email qui doivent recevoir les rappels, confirmations ou �changes li�s � la facturation. Relisez ces informations avant chaque renouvellement important.",
         },
         {
-            title: 'Relire les rappels et l’historique',
-            content: "En bas de page, les cartes de rappel expliquent quels prestataires gèrent les différents paiements, et l'historique de facturation regroupe ensuite les éléments de suivi disponibles. Revenez ici si vous avez un doute après un paiement ou un changement de formule.",
+            title: 'Relire les rappels et l�historique',
+            content: "En bas de page, les cartes de rappel expliquent quels prestataires g�rent les diff�rents paiements, et l'historique de facturation regroupe ensuite les �l�ments de suivi disponibles. Revenez ici si vous avez un doute apr�s un paiement ou un changement de formule.",
         },
     ];
 
@@ -276,7 +276,7 @@ export default function Subscription() {
                                 : 'Votre essai ou votre abonnement arrive a terme. Choisissez un plan ci-dessous pour continuer.'}
                         </p>
                         <p className="text-slate-500 text-xs mt-1">
-                            Devise : {currency} · Region : {subDetails?.pricing_region || 'fallback'}
+                            Devise : {currency} � Region : {subDetails?.pricing_region || 'fallback'}
                         </p>
                     </div>
                 </div>
@@ -292,8 +292,8 @@ export default function Subscription() {
                             <h3 className="text-lg font-black text-white mb-2">Session demo active</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
                                 Type: <strong className="text-white">{formatDemoTypeLabel(subDetails.demo_type)}</strong>
-                                {' · '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>
-                                {' · '}Expiration: <strong className="text-white">{subDetails.demo_expires_at ? new Date(subDetails.demo_expires_at).toLocaleString('fr-FR') : '—'}</strong>
+                                {' � '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>
+                                {' � '}Expiration: <strong className="text-white">{subDetails.demo_expires_at ? new Date(subDetails.demo_expires_at).toLocaleString('fr-FR') : '�'}</strong>
                             </p>
                         </div>
                     </div>
@@ -307,11 +307,11 @@ export default function Subscription() {
                             <AlertCircle size={22} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black text-white mb-2">Continuité d&apos;activité activée</h3>
+                            <h3 className="text-lg font-black text-white mb-2">Continuit� d&apos;activit� activ�e</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
                                 Votre compte est actuellement en phase <strong className="text-white capitalize">{accessPhase}</strong>.
-                                Vous pouvez toujours régulariser l&apos;abonnement sans perdre vos données.
-                                {subDetails?.grace_until ? ` Fin de grâce : ${new Date(subDetails.grace_until).toLocaleDateString('fr-FR')}.` : ''}
+                                Vous pouvez toujours r�gulariser l&apos;abonnement sans perdre vos donn�es.
+                                {subDetails?.grace_until ? ` Fin de gr�ce : ${new Date(subDetails.grace_until).toLocaleDateString('fr-FR')}.` : ''}
                                 {subDetails?.read_only_after ? ` Passage en lecture seule : ${new Date(subDetails.read_only_after).toLocaleDateString('fr-FR')}.` : ''}
                             </p>
                         </div>

@@ -81,6 +81,9 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
         }
     }
 
+    if (!visible) return null;
+
+
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
             <View style={styles.modalOverlay}>

@@ -102,7 +102,14 @@ export default function LoginScreen() {
   });
 
   React.useEffect(() => {
-    if (googleResponse?.type !== 'success') return;
+    if (!googleResponse) return;
+    if (googleResponse.type !== 'success') {
+      setSocialLoading(null);
+      if (googleResponse.type === 'error') {
+        setError(t('auth.login.socialError'));
+      }
+      return;
+    }
     const idToken = (googleResponse as any)?.params?.id_token;
     if (!idToken) {
       setError(t('auth.login.socialMissingToken'));
@@ -113,9 +120,13 @@ export default function LoginScreen() {
   }, [googleResponse]);
 
   async function checkBiometrics() {
-    const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-    setIsBiometricAvailable(hasHardware && isEnrolled && isBiometricsEnabled);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setIsBiometricAvailable(hasHardware && isEnrolled && isBiometricsEnabled);
+    } catch {
+      setIsBiometricAvailable(false);
+    }
   }
 
   async function checkAppleAvailability() {
@@ -174,34 +185,28 @@ export default function LoginScreen() {
   }
 
   async function handleBiometricLogin() {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: t('auth.login.biometricLogin'),
-    });
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: t('auth.login.biometricLogin'),
+      });
 
-    if (result.success) {
-      // Use existing saved token to verify session (token is already in SecureStore from last login)
-      setLoading(true);
-      try {
-        const { auth: authApi } = require('../../services/api');
-        const userData = await authApi.me();
-        if (userData) {
-          // Token is still valid — session restored by AuthContext
-          const { useAuth: _ } = require('../../contexts/AuthContext');
-          // Force a re-check which will pick up the existing token
-          const token = await SecureStore.getItemAsync('auth_token');
-          if (token) {
-            // Token exists and is valid (me() didn't throw), reload
-            const { router } = require('expo-router');
+      if (result.success) {
+        setLoading(true);
+        try {
+          const restoredUser = await restoreSession();
+          if (restoredUser) {
             router.replace('/(tabs)');
           } else {
             setError(t('auth.login.biometricNoCreds'));
           }
+        } catch {
+          setError(t('auth.login.biometricNoCreds'));
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        setError(t('auth.login.biometricNoCreds'));
-      } finally {
-        setLoading(false);
       }
+    } catch {
+      setError(t('auth.login.biometricNoCreds'));
     }
   }
 
@@ -272,9 +277,7 @@ export default function LoginScreen() {
         return;
       }
 
-      const firebaseAuthModule: any = require('@react-native-firebase/auth');
-      const provider = new firebaseAuthModule.OAuthProvider('apple.com');
-      const credential = provider.credential(
+      const credential = auth.AppleAuthProvider.credential(
         appleCredential.identityToken,
         rawNonce,
       );
@@ -295,7 +298,8 @@ export default function LoginScreen() {
         setSocialLoading(null);
         return;
       }
-      setError(e instanceof ApiError ? e.message : t('auth.login.socialError'));
+      console.error('Apple login error:', e?.code, e?.message, e);
+      setError(e instanceof ApiError ? e.message : `${t('auth.login.socialError')} (${e?.code || e?.message || 'unknown'})`);
     } finally {
       setSocialLoading(null);
     }

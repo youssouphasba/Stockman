@@ -9,7 +9,7 @@ import {
     SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { system } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 export default function PrivacyScreen() {
     const { t, i18n } = useTranslation();
     const router = useRouter();
+    const params = useLocalSearchParams<{ returnTo?: string }>();
     const { colors } = useTheme();
     const [content, setContent] = useState<string>('');
     const [loading, setLoading] = useState(true);
@@ -40,10 +41,19 @@ export default function PrivacyScreen() {
         }
     };
 
+    const handleClose = () => {
+        const returnTo = typeof params.returnTo === 'string' ? params.returnTo : '';
+        if (returnTo) {
+            router.replace(returnTo as any);
+            return;
+        }
+        router.back();
+    };
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]}>
             <View style={[styles.header, { borderBottomColor: colors.divider }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={handleClose} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: colors.text }]}>{t('legal.privacy_title')}</Text>

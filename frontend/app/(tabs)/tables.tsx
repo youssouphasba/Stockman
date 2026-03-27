@@ -124,7 +124,7 @@ export default function TablesScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
+      {showCreate && <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('restaurant.tables.new_table', 'Nouvelle table')}</Text>
@@ -140,7 +140,7 @@ export default function TablesScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal>}
     </LinearGradient>
   );
 }

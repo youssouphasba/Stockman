@@ -17,7 +17,7 @@ export default function KpiInfoButton({ info, color = 'rgba(255,255,255,0.5)', s
         <Ionicons name="information-circle-outline" size={size} color={color} />
       </TouchableOpacity>
 
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+      {visible && <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
           <View style={styles.tooltip}>
             <Ionicons name="information-circle" size={22} color="#3B82F6" style={{ marginBottom: 6 }} />
@@ -27,7 +27,7 @@ export default function KpiInfoButton({ info, color = 'rgba(255,255,255,0.5)', s
             </TouchableOpacity>
           </View>
         </Pressable>
-      </Modal>
+      </Modal>}
     </>
   );
 }

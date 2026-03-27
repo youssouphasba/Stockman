@@ -8,6 +8,7 @@ import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
 import { getAccessContext, hasModulePermission } from '../utils/access';
+import { useTranslation } from 'react-i18next';
 
 type AuthState = {
   user: User | null;
@@ -45,6 +46,7 @@ type AuthState = {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAppLocked, setIsAppLocked] = useState(false);
@@ -60,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setHasProduction(f.has_production);
       setIsRestaurant(isRestaurantBusiness(f));
     } catch (e) {
-      console.warn('[DEBUG] Failed to load user features:', e);
+      console.warn('Failed to load user features:', e);
     }
     if (Platform.OS !== 'web') {
       initPurchases(userData.user_id).catch(console.warn);
@@ -160,7 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function login(email: string, password: string) {
     const response = await authApi.login(email, password);
-    console.log('[DEBUG] Login successful, user data:', JSON.stringify(response.user, null, 2));
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     await hydrateAuthenticatedUser(response.user);
@@ -211,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setHasProduction(false);
     setIsRestaurant(false);
+    setIsAppLocked(false);
     await removeToken();
 
     try {
@@ -261,8 +263,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasHardware || !isEnrolled) return false;
 
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Authentification requise',
-      fallbackLabel: 'Utiliser le code PIN',
+      promptMessage: t('auth.login.biometricPrompt'),
+      fallbackLabel: t('auth.login.biometricFallback'),
     });
 
     if (result.success) {

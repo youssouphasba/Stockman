@@ -120,15 +120,12 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
         try {
             const data = await ai.getHistory();
             if (data.messages && data.messages.length > 0) {
-                // Map backend messages to frontend format
                 const mappedMessages: Message[] = data.messages.map((msg: any, index: number) => ({
                     id: `hist_${index}`,
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.content,
                     timestamp: new Date(msg.timestamp),
                 }));
-                // Ensure we have at least the welcome message if empty? No, history replaces it.
-                // But typically we want the welcome message if history is empty.
                 if (mappedMessages.length > 0) {
                     setMessages(mappedMessages);
                 }
@@ -188,7 +185,6 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
         setIsLoading(true);
 
         try {
-            // Prepare history for API (last 10 messages for context)
             const history = messages.slice(-10).map((m) => ({
                 role: m.role === 'assistant' ? 'model' : 'user',
                 content: m.content,
@@ -246,7 +242,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        {visible && <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>
@@ -330,7 +326,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                     </KeyboardAvoidingView>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 }
 

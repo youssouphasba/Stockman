@@ -573,13 +573,13 @@ async def create_indexes_and_init():
                 await db.stock_movements.create_index([("user_id", 1), ("store_id", 1)])
                 await db.catalog_product_mappings.create_index([("user_id", 1), ("catalog_id", 1)], unique=True)
 
-                # Performance indexes (Phase 41)
+                # Performance indexes
                 await db.orders.create_index([("user_id", 1), ("supplier_id", 1), ("created_at", -1)])
                 await db.order_items.create_index("order_id")
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
                 
-                # Performance indexes (Phase 42 - Optimization)
+                # Additional performance indexes
                 await db.stores.create_index("created_at")
                 await db.categories.create_index("user_id")
                 await db.products.create_index("category_id")
@@ -1045,6 +1045,22 @@ async def subscribe_newsletter(request: Request, sub: NewsletterSubscription):
         await db.newsletter_subscribers.insert_one(sub.dict())
         logger.info(f"New newsletter subscriber registered")
     return {"message": "Inscription rÃ©ussie"}
+
+@public_router.get("/supplier-invite/{token}")
+async def get_supplier_invite_info(token: str):
+    """Public endpoint — returns invitation context for the landing page"""
+    supplier = await db.suppliers.find_one({"invitation_token": token}, {"_id": 0})
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Invitation non trouvee ou expiree")
+    # Get the merchant info
+    merchant = await db.users.find_one({"user_id": supplier["user_id"]}, {"_id": 0, "name": 1, "email": 1})
+    store = await db.stores.find_one({"user_id": supplier["user_id"]}, {"_id": 0, "name": 1})
+    return {
+        "supplier_name": supplier.get("contact_name") or supplier.get("name"),
+        "merchant_name": (merchant or {}).get("name", "Un commerçant"),
+        "store_name": (store or {}).get("name"),
+        "already_linked": bool(supplier.get("linked_user_id")),
+    }
 
 app.include_router(public_router)
 
@@ -2716,6 +2732,10 @@ def is_billing_admin_user(user: User) -> bool:
     return user.role == "superadmin" or "billing_admin" in (user.account_roles or [])
 
 
+def can_view_account_history_user(user: User) -> bool:
+    return user.role == "superadmin" or is_org_admin_user(user)
+
+
 def has_operational_access_user(user: User) -> bool:
     if is_org_admin_user(user):
         return True
@@ -3029,6 +3049,12 @@ async def require_operational_access(user: User = Depends(require_auth)) -> User
 async def require_org_admin(user: User = Depends(require_auth)) -> User:
     if not is_org_admin_user(user):
         raise HTTPException(status_code=403, detail="AccÃ¨s administrateur opÃ©rations requis")
+    return user
+
+
+async def require_account_history_view(user: User = Depends(require_auth)) -> User:
+    if not can_view_account_history_user(user):
+        raise HTTPException(status_code=403, detail="Accès à l'historique système réservé aux administrateurs d'organisation")
     return user
 
 
@@ -4067,7 +4093,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
+    if not is_org_admin_user(user) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
     # Anti-escalade : un manager dÃ©lÃ©guÃ© ne peut pas crÃ©er d'autres managers
     if is_delegated_manager and (sub_user_data.permissions or {}).get("staff") == "write":
@@ -4136,7 +4162,7 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
     ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
+    if not is_org_admin_user(user) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
 
     owner_id = user.parent_user_id or user.user_id
@@ -4179,7 +4205,7 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     ensure_subscription_advanced_allowed(user, detail="La gestion d'equipe est indisponible tant que le compte n'est pas regularise.")
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
-    if "org_admin" not in (user.account_roles or []) and not is_delegated_manager:
+    if not is_org_admin_user(user) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
     
     owner_id = user.parent_user_id or user.user_id
@@ -4202,11 +4228,7 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     return {"message": "Utilisateur supprimÃ©"}
 
 @api_router.get("/activity-logs")
-async def list_activity_logs(user: User = Depends(require_auth), skip: int = 0, limit: int = 50):
-    # Only owner can see activity logs
-    if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="PrivilÃ¨ges insuffisants")
-
+async def list_activity_logs(user: User = Depends(require_account_history_view), skip: int = 0, limit: int = 50):
     owner_id = get_owner_id(user)
     total = await db.activity_logs.count_documents({"owner_id": owner_id})
     logs = await db.activity_logs.find({"owner_id": owner_id}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
@@ -4453,6 +4475,9 @@ async def admin_list_all_products(
     business_sector: Optional[str] = None,
     is_active: Optional[bool] = None,
     search: Optional[str] = None,
+    publication_status: Optional[str] = None,
+    assistant_bucket: Optional[str] = None,
+    tag: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     user: User = Depends(require_superadmin),
@@ -5808,7 +5833,7 @@ async def send_marketplace_order(order: SupplierOrderRequest, user: User = Depen
     return result
 
 # ==========================================
-# ðŸ“Š DATA EXPLORER (Phase 27)
+# DATA EXPLORER
 # ==========================================
 
 @admin_router.get("/collections")
@@ -7730,7 +7755,17 @@ async def admin_catalog_list(
     user: User = Depends(require_superadmin),
 ):
     """Liste paginÃ©e des produits du catalogue global (admin)."""
-    return await catalog_service.admin_list(sector, verified, search, skip, limit, country=country)
+    return await catalog_service.admin_list(
+        sector,
+        verified,
+        search,
+        skip,
+        limit,
+        country=country,
+        publication_status=publication_status,
+        assistant_bucket=assistant_bucket,
+        tag=tag,
+    )
 
 
 @admin_router.put("/catalog/{catalog_id}/verify")
@@ -7760,8 +7795,30 @@ class AdminCatalogProductUpsert(BaseModel):
     aliases: Optional[List[str]] = None
     country_codes: Optional[List[str]] = None
     image_url: Optional[str] = None
+    unit: Optional[str] = None
+    tags: Optional[List[str]] = None
+    supplier_suggestions: Optional[List[str]] = None
+    marketplace_matches: Optional[List[str]] = None
+    publication_status: Optional[str] = None
+    notes: Optional[str] = None
+    reference_price: Optional[float] = None
+    sale_price: Optional[float] = None
+    supplier_hint: Optional[str] = None
     verified: Optional[bool] = None
     added_by_count: Optional[int] = Field(default=None, ge=1)
+
+
+class AdminCatalogBulkUpsertRequest(BaseModel):
+    rows: List[AdminCatalogProductUpsert]
+
+
+class AdminCatalogBulkUpdateRequest(BaseModel):
+    catalog_ids: List[str]
+    updates: AdminCatalogProductUpsert
+
+
+class AdminCatalogDuplicateRequest(BaseModel):
+    catalog_id: str
 
 
 @admin_router.post("/catalog/products")
@@ -7780,6 +7837,69 @@ async def admin_catalog_create(
         details={"catalog_id": doc.get("catalog_id"), "display_name": doc.get("display_name")},
     )
     return doc
+
+
+@admin_router.post("/catalog/products/bulk")
+async def admin_catalog_bulk_upsert(
+    data: AdminCatalogBulkUpsertRequest,
+    user: User = Depends(require_superadmin),
+):
+    result = await catalog_service.admin_bulk_upsert([
+        row.model_dump(exclude_none=True) for row in data.rows
+    ])
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="bulk_upsert_catalog_products",
+        details={"rows": len(data.rows), "created": result.get("created", 0), "updated": result.get("updated", 0)},
+    )
+    return result
+
+
+@admin_router.post("/catalog/duplicate")
+async def admin_catalog_duplicate(
+    data: AdminCatalogDuplicateRequest,
+    user: User = Depends(require_superadmin),
+):
+    try:
+        doc = await catalog_service.admin_duplicate(data.catalog_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not doc:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="duplicate_catalog_product",
+        details={"source_catalog_id": data.catalog_id, "new_catalog_id": doc.get("catalog_id")},
+    )
+    return doc
+
+
+@admin_router.put("/catalog/bulk")
+async def admin_catalog_bulk_update(
+    data: AdminCatalogBulkUpdateRequest,
+    user: User = Depends(require_superadmin),
+):
+    result = await catalog_service.admin_bulk_update(
+        data.catalog_ids,
+        data.updates.model_dump(exclude_none=True),
+    )
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="bulk_update_catalog_products",
+        details={"catalog_ids": data.catalog_ids, "updated": result.get("updated", 0)},
+    )
+    return result
+
+
+@admin_router.get("/catalog/assistant")
+async def admin_catalog_assistant(
+    catalog_id: Optional[str] = None,
+    user: User = Depends(require_superadmin),
+):
+    return await catalog_service.admin_assistant(catalog_id=catalog_id)
 
 
 @admin_router.put("/catalog/{catalog_id}")
@@ -8196,6 +8316,8 @@ class Supplier(BaseModel):
     products_supplied: str = ""  # produits habituels (texte libre)
     delivery_delay: str = ""  # ex: "2-3 jours"
     payment_conditions: str = ""  # ex: "Ã€ la livraison"
+    invitation_token: Optional[str] = Field(default_factory=lambda: uuid.uuid4().hex)
+    invitation_sent: bool = False
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -8324,6 +8446,7 @@ class CatalogProduct(BaseModel):
     weight: Optional[float] = None
     weight_unit: str = "kg"
     delivery_time: str = ""
+    publication_status: str = "draft"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -8344,6 +8467,27 @@ class CatalogProductCreate(BaseModel):
     weight: Optional[float] = None
     weight_unit: str = "kg"
     delivery_time: str = ""
+    publication_status: str = "draft"
+
+
+def normalize_catalog_publication_status(value: Optional[str]) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in {"draft", "ready", "published", "archived"}:
+        return normalized
+    return "draft"
+
+
+def published_catalog_query(extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    query: Dict[str, Any] = {
+        "available": True,
+        "$or": [
+            {"publication_status": {"$exists": False}},
+            {"publication_status": "published"},
+        ],
+    }
+    if extra:
+        query.update(extra)
+    return query
 
 class CatalogProductMapping(BaseModel):
     mapping_id: str = Field(default_factory=lambda: f"map_{uuid.uuid4().hex[:12]}")
@@ -14170,9 +14314,25 @@ async def load_effective_settings_for_user(user: User) -> UserSettings:
     )
     return UserSettings(**merged)
 
+
+def filter_settings_for_viewer(settings: UserSettings, user: User) -> UserSettings:
+    payload = settings.model_dump()
+    defaults = UserSettings(user_id=user.user_id, account_id=user.account_id).model_dump()
+
+    if user.role != "superadmin" and not is_org_admin_user(user):
+        for key in ACCOUNT_SHARED_SETTING_FIELDS | ORG_ADMIN_SETTING_FIELDS | STORE_SCOPED_SETTING_FIELDS:
+            payload[key] = defaults.get(key)
+
+    if user.role != "superadmin" and not is_billing_admin_user(user):
+        for key in BILLING_ADMIN_SETTING_FIELDS:
+            payload[key] = defaults.get(key)
+
+    return UserSettings(**payload)
+
 @api_router.get("/settings", response_model=UserSettings)
 async def get_settings(user: User = Depends(require_auth)):
-    return await load_effective_settings_for_user(user)
+    settings = await load_effective_settings_for_user(user)
+    return filter_settings_for_viewer(settings, user)
 
 @api_router.put("/settings")
 async def update_settings(settings_update: dict, user: User = Depends(require_auth)):
@@ -15704,8 +15864,123 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_permission
 async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = Supplier(**sup_data.model_dump(), user_id=owner_id, store_id=user.active_store_id)
-    await db.suppliers.insert_one(supplier.model_dump())
-    return supplier
+    supplier_doc = supplier.model_dump()
+    await db.suppliers.insert_one(supplier_doc)
+
+    # Auto-send invitation email if supplier has an email
+    if supplier.email:
+        try:
+            store = await db.stores.find_one({"store_id": user.active_store_id}, {"_id": 0})
+            store_name = (store or {}).get("name", user.name)
+            invite_link = f"https://stockman.pro/invite/supplier?token={supplier.invitation_token}"
+            subject = f"{user.name} vous invite sur Stockman"
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #0F172A, #1E293B); padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+                    <h1 style="color: #3B82F6; margin: 0; font-size: 28px;">Stockman</h1>
+                </div>
+                <h2 style="color: #1E293B;">Bonjour{(' ' + supplier.contact_name) if supplier.contact_name else (' ' + supplier.name)},</h2>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                    <strong>{user.name}</strong> ({store_name}) vous a ajouté comme fournisseur sur <strong>Stockman</strong>,
+                    une application de gestion commerciale utilisée par des commerçants pour gérer leur stock, leurs ventes et leurs commandes fournisseurs.
+                </p>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                    En rejoignant Stockman en tant que fournisseur, vous pourrez :
+                </p>
+                <ul style="color: #475569; font-size: 15px; line-height: 1.8;">
+                    <li>Recevoir des bons de commande directement dans l'application</li>
+                    <li>Gérer et confirmer vos commandes en temps réel</li>
+                    <li>Communiquer avec vos clients via la messagerie intégrée</li>
+                    <li>Proposer votre catalogue sur la marketplace Stockman</li>
+                </ul>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{invite_link}" style="background-color: #3B82F6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+                        Rejoindre Stockman
+                    </a>
+                </div>
+                <p style="color: #94A3B8; font-size: 13px; text-align: center;">
+                    Stockman est gratuit à télécharger. Vous pouvez aussi télécharger l'application directement sur
+                    <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Google Play</a>.
+                </p>
+            </div>
+            """
+            text_body = (
+                f"Bonjour {supplier.contact_name or supplier.name},\n\n"
+                f"{user.name} ({store_name}) vous a ajouté comme fournisseur sur Stockman.\n\n"
+                f"Rejoignez Stockman pour recevoir des commandes, gérer votre catalogue "
+                f"et communiquer avec vos clients.\n\n"
+                f"Lien d'inscription : {invite_link}\n\n"
+                f"Ou téléchargez l'application : https://play.google.com/store/apps/details?id=com.youssouphasba.stockman"
+            )
+            await notification_service.send_email_notification([supplier.email], subject, html_body, text_body=text_body)
+            await db.suppliers.update_one(
+                {"supplier_id": supplier.supplier_id},
+                {"$set": {"invitation_sent": True}},
+            )
+            supplier_doc["invitation_sent"] = True
+        except Exception as e:
+            logger.warning(f"Failed to send supplier invitation email: {e}")
+
+    return Supplier(**{k: v for k, v in supplier_doc.items() if k != "_id"})
+
+@api_router.get("/suppliers/{supplier_id}/invitation-link")
+async def get_supplier_invitation_link(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
+    owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouve")
+    token = supplier.get("invitation_token")
+    if not token:
+        token = uuid.uuid4().hex
+        await db.suppliers.update_one({"supplier_id": supplier_id}, {"$set": {"invitation_token": token}})
+    return {"link": f"https://stockman.pro/invite/supplier?token={token}"}
+
+@api_router.post("/suppliers/{supplier_id}/resend-invitation")
+async def resend_supplier_invitation(supplier_id: str, user: User = Depends(require_permission("suppliers", "write"))):
+    owner_id = get_owner_id(user)
+    supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouve")
+    if not supplier.get("email"):
+        raise HTTPException(status_code=400, detail="Ce fournisseur n'a pas d'adresse email")
+    token = supplier.get("invitation_token") or uuid.uuid4().hex
+    store = await db.stores.find_one({"store_id": user.active_store_id}, {"_id": 0})
+    store_name = (store or {}).get("name", user.name)
+    invite_link = f"https://stockman.pro/invite/supplier?token={token}"
+    subject = f"{user.name} vous invite sur Stockman"
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #0F172A, #1E293B); padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #3B82F6; margin: 0; font-size: 28px;">Stockman</h1>
+        </div>
+        <h2 style="color: #1E293B;">Bonjour {supplier.get('contact_name') or supplier.get('name')},</h2>
+        <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+            <strong>{user.name}</strong> ({store_name}) vous a ajouté comme fournisseur sur <strong>Stockman</strong>,
+            une application de gestion commerciale utilisée par des commerçants pour gérer leur stock, leurs ventes et leurs commandes fournisseurs.
+        </p>
+        <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+            En rejoignant Stockman en tant que fournisseur, vous pourrez :
+        </p>
+        <ul style="color: #475569; font-size: 15px; line-height: 1.8;">
+            <li>Recevoir des bons de commande directement dans l'application</li>
+            <li>Gérer et confirmer vos commandes en temps réel</li>
+            <li>Communiquer avec vos clients via la messagerie intégrée</li>
+            <li>Proposer votre catalogue sur la marketplace Stockman</li>
+        </ul>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{invite_link}" style="background-color: #3B82F6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+                Rejoindre Stockman
+            </a>
+        </div>
+        <p style="color: #94A3B8; font-size: 13px; text-align: center;">
+            Stockman est gratuit à télécharger. Vous pouvez aussi télécharger l'application directement sur
+            <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Google Play</a>.
+        </p>
+    </div>
+    """
+    await notification_service.send_email_notification([supplier["email"]], subject, html_body)
+    await db.suppliers.update_one({"supplier_id": supplier_id}, {"$set": {"invitation_sent": True, "invitation_token": token}})
+    return {"message": "Invitation renvoyee"}
 
 @api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
 async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
@@ -16670,6 +16945,64 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
         )
         await db.order_items.insert_one(order_item.model_dump())
     
+    # Send order email to manual supplier (not connected to marketplace)
+    if not is_connected:
+        supplier_doc = await db.suppliers.find_one({"supplier_id": resolved_supplier_id, "user_id": owner_id}, {"_id": 0})
+        supplier_email = (supplier_doc or {}).get("email")
+        if supplier_email:
+            try:
+                store = await db.stores.find_one({"store_id": user.active_store_id}, {"_id": 0})
+                store_name = (store or {}).get("name", user.name)
+                # Build items table rows
+                items_list = await db.order_items.find({"order_id": order.order_id}, {"_id": 0}).to_list(100)
+                items_html = ""
+                for it in items_list:
+                    items_html += f"<tr><td style='padding:8px;border-bottom:1px solid #E2E8F0;'>{it['product_name']}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:center;'>{it['quantity']}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:right;'>{it['unit_price']:,.0f}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:right;'>{it['total_price']:,.0f}</td></tr>"
+                supplier_name = (supplier_doc or {}).get("contact_name") or (supplier_doc or {}).get("name", "")
+                delivery_str = order.expected_delivery.strftime("%d/%m/%Y") if order.expected_delivery else "Non précisée"
+                subject = f"Bon de commande de {store_name} — {order.order_id}"
+                html_body = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #0F172A, #1E293B); padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+                        <h1 style="color: #3B82F6; margin: 0; font-size: 28px;">Stockman</h1>
+                        <p style="color: #94A3B8; margin: 8px 0 0; font-size: 14px;">Bon de commande</p>
+                    </div>
+                    <h2 style="color: #1E293B;">Bonjour {supplier_name},</h2>
+                    <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                        <strong>{user.name}</strong> ({store_name}) vous a passé une commande via Stockman.
+                    </p>
+                    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                        <thead>
+                            <tr style="background:#F1F5F9;">
+                                <th style="padding:10px;text-align:left;font-size:14px;">Produit</th>
+                                <th style="padding:10px;text-align:center;font-size:14px;">Qté</th>
+                                <th style="padding:10px;text-align:right;font-size:14px;">Prix unit.</th>
+                                <th style="padding:10px;text-align:right;font-size:14px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>{items_html}</tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="padding:10px;font-weight:bold;text-align:right;">Total</td>
+                                <td style="padding:10px;font-weight:bold;text-align:right;">{total_amount:,.0f}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <p style="color: #475569; font-size: 14px;"><strong>Livraison attendue :</strong> {delivery_str}</p>
+                    {"<p style='color: #475569; font-size: 14px;'><strong>Notes :</strong> " + order.notes + "</p>" if order.notes else ""}
+                    <p style="color: #475569; font-size: 14px;"><strong>Contact :</strong> {user.name} — {user.email}</p>
+                    <div style="margin-top: 24px; padding: 16px; background: #F8FAFC; border-radius: 8px; text-align: center;">
+                        <p style="color: #64748B; font-size: 13px; margin: 0;">
+                            Ce bon de commande a été envoyé via <strong>Stockman</strong>.<br>
+                            <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Téléchargez l'application</a> pour gérer vos commandes en temps réel.
+                        </p>
+                    </div>
+                </div>
+                """
+                await notification_service.send_email_notification([supplier_email], subject, html_body)
+            except Exception as e:
+                logger.warning(f"Failed to send order email to supplier: {e}")
+
     return {"message": "Commande crÃ©Ã©e", "order_id": order.order_id}
 
 @api_router.put("/orders/{order_id}/status")
@@ -17490,18 +17823,24 @@ async def update_supplier_profile(data: SupplierProfileCreate, user: User = Depe
 
 @api_router.get("/supplier/catalog", response_model=List[CatalogProduct])
 async def get_supplier_catalog(user: User = Depends(require_supplier)):
-    items = await db.catalog_products.find({"supplier_user_id": user.user_id}, {"_id": 0}).to_list(500)
+    items = await db.catalog_products.find(
+        {"supplier_user_id": user.user_id},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(500)
     return [CatalogProduct(**item) for item in items]
 
 @api_router.post("/supplier/catalog", response_model=CatalogProduct)
 async def create_catalog_product(data: CatalogProductCreate, user: User = Depends(require_supplier)):
-    item = CatalogProduct(**data.model_dump(), supplier_user_id=user.user_id)
+    payload = data.model_dump()
+    payload["publication_status"] = normalize_catalog_publication_status(payload.get("publication_status"))
+    item = CatalogProduct(**payload, supplier_user_id=user.user_id)
     await db.catalog_products.insert_one(item.model_dump())
     return item
 
 @api_router.put("/supplier/catalog/{catalog_id}", response_model=CatalogProduct)
 async def update_catalog_product(catalog_id: str, data: CatalogProductCreate, user: User = Depends(require_supplier)):
     update_dict = data.model_dump()
+    update_dict["publication_status"] = normalize_catalog_publication_status(update_dict.get("publication_status"))
     update_dict["updated_at"] = datetime.now(timezone.utc)
     result = await db.catalog_products.find_one_and_update(
         {"catalog_id": catalog_id, "supplier_user_id": user.user_id},
@@ -17512,6 +17851,26 @@ async def update_catalog_product(catalog_id: str, data: CatalogProductCreate, us
         raise HTTPException(status_code=404, detail="Produit catalogue non trouvÃ©")
     result.pop("_id", None)
     return CatalogProduct(**result)
+
+
+@api_router.post("/supplier/catalog/{catalog_id}/duplicate", response_model=CatalogProduct)
+async def duplicate_catalog_product(catalog_id: str, user: User = Depends(require_supplier)):
+    source = await db.catalog_products.find_one(
+        {"catalog_id": catalog_id, "supplier_user_id": user.user_id},
+        {"_id": 0},
+    )
+    if not source:
+        raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
+
+    source.pop("catalog_id", None)
+    source.pop("created_at", None)
+    source.pop("updated_at", None)
+    source["name"] = f"{source.get('name', 'Produit')} (copie)"
+    source["publication_status"] = "draft"
+    source["available"] = False
+    duplicated = CatalogProduct(**source, supplier_user_id=user.user_id)
+    await db.catalog_products.insert_one(duplicated.model_dump())
+    return duplicated
 
 @api_router.delete("/supplier/catalog/{catalog_id}")
 async def delete_catalog_product(catalog_id: str, user: User = Depends(require_supplier)):
@@ -17879,12 +18238,16 @@ async def search_marketplace_suppliers(
         catalog_supplier_ids = await db.catalog_products.distinct(
             "supplier_user_id",
             {
-                "available": True,
-                "$or": [
-                    {"name": q_regex},
-                    {"description": q_regex},
-                    {"category": q_regex},
-                    {"subcategory": q_regex},
+                **published_catalog_query(),
+                "$and": [
+                    {
+                        "$or": [
+                            {"name": q_regex},
+                            {"description": q_regex},
+                            {"category": q_regex},
+                            {"subcategory": q_regex},
+                        ]
+                    }
                 ],
             },
         )
@@ -17903,10 +18266,14 @@ async def search_marketplace_suppliers(
         category_supplier_ids = await db.catalog_products.distinct(
             "supplier_user_id",
             {
-                "available": True,
-                "$or": [
-                    {"category": cat_regex},
-                    {"subcategory": cat_regex},
+                **published_catalog_query(),
+                "$and": [
+                    {
+                        "$or": [
+                            {"category": cat_regex},
+                            {"subcategory": cat_regex},
+                        ]
+                    }
                 ],
             },
         )
@@ -17929,7 +18296,9 @@ async def search_marketplace_suppliers(
 
     # Enrich with catalog count
     for profile in profiles:
-        catalog_count = await db.catalog_products.count_documents({"supplier_user_id": profile["user_id"], "available": True})
+        catalog_count = await db.catalog_products.count_documents(
+            published_catalog_query({"supplier_user_id": profile["user_id"]})
+        )
         profile["catalog_count"] = catalog_count
 
     return profiles
@@ -17940,7 +18309,10 @@ async def get_marketplace_supplier(supplier_user_id: str, user: User = Depends(r
     if not profile:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
 
-    catalog = await db.catalog_products.find({"supplier_user_id": supplier_user_id, "available": True}, {"_id": 0}).to_list(200)
+    catalog = await db.catalog_products.find(
+        published_catalog_query({"supplier_user_id": supplier_user_id}),
+        {"_id": 0},
+    ).to_list(200)
     ratings = await db.supplier_ratings.find({"supplier_user_id": supplier_user_id}, {"_id": 0}).sort("created_at", -1).to_list(20)
 
     # Get raters names
@@ -17965,7 +18337,7 @@ async def search_marketplace_products(
     price_max: Optional[float] = None,
     min_supplier_rating: Optional[float] = None
 ):
-    query: dict = {"available": True}
+    query: dict = published_catalog_query()
     if q:
         fuzzy_q = get_fuzzy_regex(q)
         query["name"] = {"$regex": fuzzy_q, "$options": "i"}

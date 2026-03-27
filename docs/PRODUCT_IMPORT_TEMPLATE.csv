@@ -1,0 +1,5 @@
+name;sku;quantity;purchase_price;selling_price;unit;min_stock;category_name;description;location
+Riz parfumé 25 kg;RIZ25P;12;16500;18250;kg;3;Riz;Riz parfumé premium 25 kg;
+Huile végétale 5 L;HUILE5L;24;7200;7900;L;6;Huiles;Huile de cuisson 5 litres;
+Eau minérale 1.5 L;EAU15L;48;350;450;L;12;Boissons;Bouteille d'eau minérale 1.5 L;
+Savon liquide 500 ml;SAV500;15;1200;1500;ml;4;Hygiène;Savon liquide pour les mains;

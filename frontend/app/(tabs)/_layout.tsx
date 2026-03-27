@@ -432,7 +432,7 @@ export default function TabLayout() {
           }
         }}
       />
-      <Modal
+      {showDemoLeadPrompt && <Modal
         visible={showDemoLeadPrompt}
         transparent
         animationType="fade"
@@ -546,7 +546,7 @@ export default function TabLayout() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal>}
     </>
   );
 }

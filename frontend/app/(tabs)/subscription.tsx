@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
 import { COUNTRIES } from '../../constants/countries';
 
@@ -43,7 +44,7 @@ const PLANS: PlanConfig[] = [
         stores: '1',
         users: '1',
         web: false,
-        priceEUR: '6,99 €',
+        priceEUR: '6,99 �',
         priceXOF: '2 500',
     },
     {
@@ -54,7 +55,7 @@ const PLANS: PlanConfig[] = [
         stores: '2',
         users: '5',
         web: false,
-        priceEUR: '9,99 €',
+        priceEUR: '9,99 �',
         priceXOF: '4 900',
     },
     {
@@ -62,22 +63,22 @@ const PLANS: PlanConfig[] = [
         labelKey: 'subscription.plan_enterprise',
         gradient: ['#7C3AED', '#5B21B6'],
         icon: 'business-outline',
-        stores: '∞',
-        users: '∞',
+        stores: '8',
+        users: '8',
         web: true,
-        priceEUR: '14,99 €',
+        priceEUR: '14,99 �',
         priceXOF: '9 900',
     },
 ];
 
-function formatDemoTypeLabel(demoType?: string | null) {
+function formatDemoTypeLabel(demoType: string | null | undefined, t: (key: string) => string) {
     switch (demoType) {
         case 'retail':
-            return 'Commerce';
+            return t('auth.login.demoRetail');
         case 'restaurant':
-            return 'Restaurant';
+            return t('auth.login.demoRestaurant');
         case 'enterprise':
-            return 'Enterprise';
+            return t('auth.login.demoEnterprise');
         default:
             return 'Demo';
     }
@@ -88,10 +89,13 @@ export default function SubscriptionScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user } = useAuth();
+    const { colors, isDark } = useTheme();
+    const styles = React.useMemo(() => createStyles(colors, isDark), [colors, isDark]);
     const [loading, setLoading] = useState(true);
     const [payLoading, setPayLoading] = useState(false);
     const [data, setData] = useState<SubscriptionData | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
+    const legalReturnRoute = '/(tabs)/subscription';
 
     const userCurrency = data?.currency || user?.currency || 'XOF';
     const useMobileMoney = data?.use_mobile_money ?? ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
@@ -235,12 +239,12 @@ export default function SubscriptionScreen() {
             <View style={styles.content}>
                 {accessPhase !== 'active' && (
                     <View style={[styles.card, styles.attentionCard]}>
-                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
+                        <Text style={styles.sectionTitle}>Continuit� d&apos;activit�</Text>
                         <Text style={styles.cardSubtitle}>
-                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement dès que possible.
+                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer � utiliser l&apos;application sans perdre vos donn�es, puis r�gulariser le paiement d�s que possible.
                         </Text>
                         {data?.grace_until ? (
-                            <Text style={styles.helperText}>Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}</Text>
+                            <Text style={styles.helperText}>Fin de gr�ce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}</Text>
                         ) : null}
                         {data?.read_only_after ? (
                             <Text style={styles.helperText}>Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}</Text>
@@ -255,11 +259,11 @@ export default function SubscriptionScreen() {
                             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Session demo active</Text>
                         </View>
                         <Text style={styles.cardSubtitle}>
-                            Type: {formatDemoTypeLabel(data.demo_type)} · Surface: {data.demo_surface || 'mobile'}
+                            Type: {formatDemoTypeLabel(data.demo_type, t)} � Surface: {data.demo_surface || 'mobile'}
                         </Text>
                         {Platform.OS !== 'ios' && (
                             <Text style={styles.helperText}>
-                            Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '—'}
+                            Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '�'}
                             </Text>
                         )}
                     </View>
@@ -316,9 +320,9 @@ export default function SubscriptionScreen() {
                                         {price}{t('subscription.per_month')}
                                     </Text>
                                     <View style={styles.planCardDetails}>
-                                        <Text style={styles.planCardDetail}>🏪 {plan.stores} {t('subscription.features.stores')}</Text>
-                                        <Text style={styles.planCardDetail}>👥 {plan.users} {t('subscription.features.users')}</Text>
-                                        {plan.web && <Text style={styles.planCardDetail}>🌐 {t('subscription.features.web_access') || 'Accès Web'}</Text>}
+                                        <Text style={styles.planCardDetail}>?? {plan.stores} {t('subscription.features.stores')}</Text>
+                                        <Text style={styles.planCardDetail}>?? {plan.users} {t('subscription.features.users')}</Text>
+                                        {plan.web && <Text style={styles.planCardDetail}>?? {t('subscription.features.web_access') || 'Acc�s Web'}</Text>}
                                     </View>
                                     {isSelected && (
                                         <View style={styles.selectedCheck}>
@@ -369,13 +373,27 @@ export default function SubscriptionScreen() {
                         )}
                         <Text style={styles.legalHint}>{t('subscription.legal_links_hint')}</Text>
                         <View style={styles.legalLinksRow}>
-                            <TouchableOpacity onPress={() => router.push('/terms')}>
-                                <Text style={styles.legalLink}>{t('common.terms')}</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.legalSeparator}>•</Text>
-                            <TouchableOpacity onPress={() => router.push('/privacy')}>
-                                <Text style={styles.legalLink}>{t('common.privacy')}</Text>
-                            </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/terms',
+                                    params: { returnTo: legalReturnRoute },
+                                })
+                            }
+                        >
+                            <Text style={styles.legalLink}>{t('common.terms')}</Text>
+                        </TouchableOpacity>
+                            <Text style={styles.legalSeparator}>�</Text>
+                        <TouchableOpacity
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/privacy',
+                                    params: { returnTo: legalReturnRoute },
+                                })
+                            }
+                        >
+                            <Text style={styles.legalLink}>{t('common.privacy')}</Text>
+                        </TouchableOpacity>
                         </View>
                         {!isIOS ? (
                             <Text style={styles.helperText}>
@@ -395,14 +413,14 @@ export default function SubscriptionScreen() {
                             </Text>
                         </View>
                         <Text style={styles.enterpriseDesc}>
-                            {t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise (Web + Mobile avancé), contactez-nous.'}
+                            {t('subscription.enterprise_contact_desc') || 'Pour acc�der au plan Enterprise (Web + Mobile avanc�), contactez-nous.'}
                         </Text>
                         <TouchableOpacity
                             style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
                             onPress={handleEnterpriseContact}
                         >
                             <Ionicons name="open-outline" size={22} color="white" />
-                            <Text style={styles.payButtonText}>{'Accéder au plan Enterprise'}</Text>
+                            <Text style={styles.payButtonText}>{'Acc�der au plan Enterprise'}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -437,9 +455,9 @@ export default function SubscriptionScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F9FAFB' },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.bgDark },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     loadingBack: { position: 'absolute', top: 60, left: 20, flexDirection: 'row', alignItems: 'center' },
     header: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center' },
     backButton: { position: 'absolute', left: 20, top: 55, zIndex: 1 },
@@ -453,20 +471,20 @@ const styles = StyleSheet.create({
     planCards: { flexDirection: 'row', gap: 10, marginBottom: 16 },
     planCard: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.card,
         borderRadius: 16,
         padding: 12,
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#E5E7EB',
+        borderColor: colors.glassBorder,
         shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
     },
-    planCardSelected: { borderColor: '#10B981', backgroundColor: '#F0FDF4' },
+    planCardSelected: { borderColor: colors.success, backgroundColor: isDark ? colors.success + '20' : '#F0FDF4' },
     planCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-    planCardName: { fontSize: 13, fontWeight: 'bold', color: '#111827', marginBottom: 2, textAlign: 'center' },
-    planCardPrice: { fontSize: 11, color: '#6B7280', marginBottom: 8, textAlign: 'center' },
+    planCardName: { fontSize: 13, fontWeight: 'bold', color: colors.text, marginBottom: 2, textAlign: 'center' },
+    planCardPrice: { fontSize: 11, color: colors.textMuted, marginBottom: 8, textAlign: 'center' },
     planCardDetails: { width: '100%', gap: 3 },
-    planCardDetail: { fontSize: 10, color: '#374151' },
+    planCardDetail: { fontSize: 10, color: colors.textSecondary },
     popularBadge: {
         position: 'absolute', top: -10, right: -10,
         backgroundColor: '#F59E0B', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
@@ -476,7 +494,7 @@ const styles = StyleSheet.create({
 
     // Card
     card: {
-        backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16,
+        backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 16,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
     },
     attentionCard: {
@@ -495,27 +513,27 @@ const styles = StyleSheet.create({
         gap: 10,
         marginBottom: 10,
     },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
-    cardSubtitle: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 12 },
-    helperText: { fontSize: 12, color: '#92400E', marginTop: 6 },
-    legalHint: { fontSize: 12, color: '#6B7280', marginTop: 4, textAlign: 'center' },
+    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+    cardSubtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 12 },
+    helperText: { fontSize: 12, color: isDark ? '#FCD34D' : '#92400E', marginTop: 6 },
+    legalHint: { fontSize: 12, color: colors.textMuted, marginTop: 4, textAlign: 'center' },
     legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 10 },
-    legalLink: { color: '#2563EB', fontSize: 13, fontWeight: '600' },
-    legalSeparator: { color: '#94A3B8', fontSize: 13 },
+    legalLink: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+    legalSeparator: { color: colors.textMuted, fontSize: 13 },
     pickerWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.inputBg,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#1E293B',
+        borderColor: colors.divider,
         paddingHorizontal: 12,
         paddingVertical: 12,
         marginBottom: 12,
         gap: 10,
     },
-    pickerLabel: { color: 'white', fontSize: 18 },
-    pickerValue: { color: 'white', fontSize: 14, flex: 1 },
+    pickerLabel: { color: colors.text, fontSize: 18 },
+    pickerValue: { color: colors.text, fontSize: 14, flex: 1 },
     countryList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     countryChip: {
         borderWidth: 1,
@@ -531,7 +549,7 @@ const styles = StyleSheet.create({
     },
     countryChipText: { color: '#CBD5E1', fontSize: 12, fontWeight: '600' },
     inlineLoading: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    inlineLoadingText: { color: '#6B7280', fontSize: 13 },
+    inlineLoadingText: { color: colors.textMuted, fontSize: 13 },
 
     // Payment
     payButton: {
@@ -540,17 +558,17 @@ const styles = StyleSheet.create({
     },
     mobileMoneyButton: { backgroundColor: '#10B981' },
     payButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-    mmSubtext: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 2 },
+    mmSubtext: { fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 2 },
     divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
-    dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-    dividerText: { marginHorizontal: 12, color: '#9CA3AF', fontSize: 13 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: colors.divider },
+    dividerText: { marginHorizontal: 12, color: colors.textMuted, fontSize: 13 },
     restoreButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 16 },
-    restoreText: { color: '#3B82F6', fontSize: 14, fontWeight: '500' },
+    restoreText: { color: colors.primary, fontSize: 14, fontWeight: '500' },
 
     // Enterprise
-    enterpriseDesc: { fontSize: 14, color: '#4B5563', lineHeight: 20, marginBottom: 16 },
+    enterpriseDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 16 },
 
     // Active
-    activeText: { fontSize: 15, color: '#059669', fontWeight: '500', lineHeight: 22 },
-    renewalText: { fontSize: 13, color: '#6B7280', marginTop: 8 },
+    activeText: { fontSize: 15, color: colors.success, fontWeight: '500', lineHeight: 22 },
+    renewalText: { fontSize: 13, color: colors.textSecondary, marginTop: 8 },
 });

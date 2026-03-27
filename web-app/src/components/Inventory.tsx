@@ -173,7 +173,7 @@ export default function Inventory() {
             current = current.parent_id ? locationMap.get(current.parent_id) : undefined;
             guard += 1;
         }
-        if (parts.length === 0) return 'Emplacement supprimé';
+        if (parts.length === 0) return 'Emplacement supprim�';
         return parts.reverse().join(' / ');
     };
 
@@ -186,7 +186,7 @@ export default function Inventory() {
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
-                reason: stockMovReason || (stockMovType === 'in' ? 'Entrée stock' : 'Sortie stock'),
+                reason: stockMovReason || (stockMovType === 'in' ? 'Entr�e stock' : 'Sortie stock'),
             });
             setProducts(prev => prev.map(p =>
                 p.product_id === stockModalProduct.product_id
@@ -270,7 +270,7 @@ export default function Inventory() {
                 console.warn('Inventory supplier links unavailable', linksRes.reason);
             }
             if (partialError) {
-                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines données annexes du stock sont temporairement indisponibles.' }));
+                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines donn�es annexes du stock sont temporairement indisponibles.' }));
             }
         } catch (err) {
             console.error('Error fetching inventory data', err);
@@ -360,18 +360,18 @@ export default function Inventory() {
     const handleImportCatalog = async () => {
         const sector = currentFeatures?.sector;
         if (!sector) {
-            alert("Aucun type d'activité n'est défini pour ce compte.");
+            alert("Aucun type d'activit� n'est d�fini pour ce compte.");
             return;
         }
         setShowCreateMenu(false);
         setCatalogImportLoading(true);
         try {
             const result = await catalogApi.importAll(sector, currentUser?.country_code);
-            alert(`${result.imported || 0} produits ont été importés pour ${currentFeatures?.sector_label || sector}.`);
+            alert(`${result.imported || 0} produits ont �t� import�s pour ${currentFeatures?.sector_label || sector}.`);
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err?.message || "Erreur lors de l'import du catalogue métier");
+            alert(err?.message || "Erreur lors de l'import du catalogue m�tier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -405,6 +405,10 @@ export default function Inventory() {
             variants: product.variants || []
         });
         setIsProductModalOpen(true);
+    };
+
+    const handleManageProductSuppliers = (product: any) => {
+        handleOpenEditModal(product);
     };
 
     const handleOpenHistory = (product: any) => {
@@ -499,7 +503,7 @@ export default function Inventory() {
         if (!product?.product_id || deletingProductId) return;
 
         const confirmed = window.confirm(
-            `Supprimer définitivement le produit "${product.name}" ?`,
+            `Supprimer d�finitivement le produit "${product.name}" ?`,
         );
 
         if (!confirmed) {
@@ -593,7 +597,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err?.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`,
+                                err?.message || `Impossible de mettre � jour le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     } else {
@@ -614,7 +618,7 @@ export default function Inventory() {
 
                 if (supplierSyncErrors.length > 0) {
                     alert(
-                        `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`,
+                        `Le produit a bien �t� enregistr�, mais certaines liaisons fournisseurs ont �chou�.\n\n${supplierSyncErrors[0]}`,
                     );
                 }
             }
@@ -757,7 +761,7 @@ export default function Inventory() {
             return {
                 tone: 'rose',
                 status: 'Aucun fournisseur',
-                subtitle: 'Ajoutez un fournisseur pour préparer le réapprovisionnement.',
+                subtitle: 'Ajoutez un fournisseur pour pr�parer le r�approvisionnement.',
             };
         }
 
@@ -765,15 +769,15 @@ export default function Inventory() {
             return {
                 tone: 'sky',
                 status: 'Principal manquant',
-                subtitle: `${links.length} fournisseur(s) lié(s), aucun principal défini.`,
+                subtitle: `${links.length} fournisseur(s) li�(s), aucun principal d�fini.`,
             };
         }
 
         return {
             tone: 'emerald',
-            status: links.length > 1 ? 'Approvisionnement sécurisé' : 'Approvisionnement prêt',
+            status: links.length > 1 ? 'Approvisionnement s�curis�' : 'Approvisionnement pr�t',
             subtitle: links.length > 1
-                ? `Principal : ${primaryName} · ${links.length - 1} alternative(s)`
+                ? `Principal : ${primaryName} � ${links.length - 1} alternative(s)`
                 : `Principal : ${primaryName}`,
         };
     };
@@ -822,7 +826,7 @@ export default function Inventory() {
                         onClick={() => void fetchProducts()}
                         className="btn-primary px-6 py-3"
                     >
-                        {t('common.retry', { defaultValue: 'Réessayer' })}
+                        {t('common.retry', { defaultValue: 'R�essayer' })}
                     </button>
                 </div>
             </div>
@@ -831,66 +835,66 @@ export default function Inventory() {
 
     const inventorySteps: GuideStep[] = [
         {
-            title: t('guide.inventory.role_title', "Rôle de l'inventaire"),
-            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous créez, modifiez, suivez et exportez votre catalogue. Chaque modification de stock est tracée dans l'historique. Les données sont filtrées par la boutique active."),
+            title: t('guide.inventory.role_title', "R�le de l'inventaire"),
+            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous cr�ez, modifiez, suivez et exportez votre catalogue. Chaque modification de stock est trac�e dans l'historique. Les donn�es sont filtr�es par la boutique active."),
         },
         {
-            title: t('guide.inventory.header_title', "Barre d'en-tête"),
-            content: t('guide.inventory.header_content', "Les boutons en haut permettent de créer ou importer des produits et d'exporter l'inventaire."),
+            title: t('guide.inventory.header_title', "Barre d'en-t�te"),
+            content: t('guide.inventory.header_content', "Les boutons en haut permettent de cr�er ou importer des produits et d'exporter l'inventaire."),
             details: [
-                { label: t('guide.inventory.btn_add', "Bouton + Produit"), description: t('guide.inventory.btn_add_desc', "Ouvre le formulaire de création d'un nouveau produit : nom, catégorie, prix d'achat, prix de vente, stock initial, seuils min/max, SKU, unité."), type: 'button' },
-                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Importez un fichier CSV pour créer plusieurs produits d'un coup. Le format attendu est affiché dans la modale."), type: 'button' },
-                { label: t('guide.inventory.btn_import_text', "Import texte (IA)"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste de produits en texte libre (ex : depuis un bon de livraison). L'IA détecte automatiquement les noms, quantités et prix."), type: 'button' },
-                { label: t('guide.inventory.btn_scan', "Scanner en lot"), description: t('guide.inventory.btn_scan_desc', "Scannez plusieurs codes-barres à la suite pour effectuer une entrée de stock rapide."), type: 'button' },
-                { label: t('guide.inventory.btn_export_xls', "Exporter XLS"), description: t('guide.inventory.btn_export_xls_desc', "Télécharge l'inventaire complet au format Excel avec toutes les colonnes (nom, SKU, stock, prix…)."), type: 'button' },
-                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "Génère un PDF de l'inventaire, utile pour l'impression ou le partage avec un fournisseur."), type: 'button' },
+                { label: t('guide.inventory.btn_add', "Bouton + Produit"), description: t('guide.inventory.btn_add_desc', "Ouvre le formulaire de cr�ation d'un nouveau produit : nom, cat�gorie, prix d'achat, prix de vente, stock initial, seuils min/max, SKU, unit�."), type: 'button' },
+                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Importez un fichier CSV pour cr�er plusieurs produits d'un coup. Le format attendu est affich� dans la modale."), type: 'button' },
+                { label: t('guide.inventory.btn_import_text', "Import texte (IA)"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste de produits en texte libre (ex : depuis un bon de livraison). L'IA d�tecte automatiquement les noms, quantit�s et prix."), type: 'button' },
+                { label: t('guide.inventory.btn_scan', "Scanner en lot"), description: t('guide.inventory.btn_scan_desc', "Scannez plusieurs codes-barres � la suite pour effectuer une entr�e de stock rapide."), type: 'button' },
+                { label: t('guide.inventory.btn_export_xls', "Exporter XLS"), description: t('guide.inventory.btn_export_xls_desc', "T�l�charge l'inventaire complet au format Excel avec toutes les colonnes (nom, SKU, stock, prix�)."), type: 'button' },
+                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "G�n�re un PDF de l'inventaire, utile pour l'impression ou le partage avec un fournisseur."), type: 'button' },
             ],
         },
         {
             title: t('guide.inventory.search_title', "Recherche et filtres"),
-            content: t('guide.inventory.search_content', "Trouvez rapidement un produit parmi des centaines grâce à la recherche et aux filtres."),
+            content: t('guide.inventory.search_content', "Trouvez rapidement un produit parmi des centaines gr�ce � la recherche et aux filtres."),
             details: [
-                { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche en temps réel par nom de produit ou SKU."), type: 'filter' },
-                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Quand cette gestion est disponible sur votre compte, filtrez les produits par emplacement pour voir uniquement une zone précise du stock."), type: 'filter' },
-                { label: t('guide.inventory.filter_toggle', "Icône filtre avancé"), description: t('guide.inventory.filter_toggle_desc', "Ouvre des filtres supplémentaires : catégorie, statut de stock (faible, rupture, surstock), fournisseur."), type: 'filter' },
+                { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche en temps r�el par nom de produit ou SKU."), type: 'filter' },
+                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Quand cette gestion est disponible sur votre compte, filtrez les produits par emplacement pour voir uniquement une zone pr�cise du stock."), type: 'filter' },
+                { label: t('guide.inventory.filter_toggle', "Ic�ne filtre avanc�"), description: t('guide.inventory.filter_toggle_desc', "Ouvre des filtres suppl�mentaires : cat�gorie, statut de stock (faible, rupture, surstock), fournisseur."), type: 'filter' },
             ],
         },
         {
             title: t('guide.inventory.product_list_title', "Liste des produits"),
-            content: t('guide.inventory.product_list_content', "Chaque ligne du tableau représente un produit. Les colonnes affichent les informations clés du stock."),
+            content: t('guide.inventory.product_list_content', "Chaque ligne du tableau repr�sente un produit. Les colonnes affichent les informations cl�s du stock."),
             details: [
-                { label: t('guide.inventory.col_name', "Nom / Initiale"), description: t('guide.inventory.col_name_desc', "Nom du produit avec l'initiale en avatar coloré. Cliquez sur le nom pour ouvrir la fiche complète."), type: 'card' },
-                { label: t('guide.inventory.col_sku', "SKU"), description: t('guide.inventory.col_sku_desc', "Référence interne du produit. Utilisée pour les exports et les imports."), type: 'info' },
-                { label: t('guide.inventory.col_qty', "Quantité"), description: t('guide.inventory.col_qty_desc', "Stock disponible actuel. Affiché en rouge si en rupture, en orange si sous le seuil minimum."), type: 'card' },
-                { label: t('guide.inventory.col_price', "Prix d'achat / vente"), description: t('guide.inventory.col_price_desc', "Prix d'achat (coût) et prix de vente. La marge est calculée automatiquement."), type: 'info' },
+                { label: t('guide.inventory.col_name', "Nom / Initiale"), description: t('guide.inventory.col_name_desc', "Nom du produit avec l'initiale en avatar color�. Cliquez sur le nom pour ouvrir la fiche compl�te."), type: 'card' },
+                { label: t('guide.inventory.col_sku', "SKU"), description: t('guide.inventory.col_sku_desc', "R�f�rence interne du produit. Utilis�e pour les exports et les imports."), type: 'info' },
+                { label: t('guide.inventory.col_qty', "Quantit�"), description: t('guide.inventory.col_qty_desc', "Stock disponible actuel. Affich� en rouge si en rupture, en orange si sous le seuil minimum."), type: 'card' },
+                { label: t('guide.inventory.col_price', "Prix d'achat / vente"), description: t('guide.inventory.col_price_desc', "Prix d'achat (co�t) et prix de vente. La marge est calcul�e automatiquement."), type: 'info' },
             ],
         },
         {
             title: t('guide.inventory.actions_title', "Actions sur un produit"),
-            content: t('guide.inventory.actions_content', "Chaque produit dispose d'un menu d'actions accessible via l'icône ⋯ à droite de la ligne."),
+            content: t('guide.inventory.actions_content', "Chaque produit dispose d'un menu d'actions accessible via l'ic�ne ? � droite de la ligne."),
             details: [
-                { label: t('guide.inventory.action_edit', "Modifier (crayon)"), description: t('guide.inventory.action_edit_desc', "Ouvre le formulaire d'édition du produit : tous les champs sont modifiables."), type: 'button' },
-                { label: t('guide.inventory.action_movement', "Mouvement de stock (+ / −)"), description: t('guide.inventory.action_movement_desc', "Enregistrez une entrée (réception fournisseur, retour) ou une sortie (perte, casse, correction) avec une raison et une quantité."), type: 'button' },
-                { label: t('guide.inventory.action_transfer', "Transfert entre boutiques"), description: t('guide.inventory.action_transfer_desc', "Transférez une quantité de ce produit vers une autre boutique quand votre compte gère plusieurs points de vente."), type: 'button' },
-                { label: t('guide.inventory.action_location_transfer', "Transfert d'emplacement"), description: t('guide.inventory.action_location_transfer_desc', "Changez le rangement d'un produit sans toucher à sa quantité quand il passe d'une zone à une autre."), type: 'button' },
-                { label: t('guide.inventory.action_history', "Historique (horloge)"), description: t('guide.inventory.action_history_desc', "Affiche tous les mouvements de stock de ce produit : date, type, quantité, auteur."), type: 'button' },
-                { label: t('guide.inventory.action_delete', "Supprimer (🗑️)"), description: t('guide.inventory.action_delete_desc', "Supprime définitivement le produit. Cette action est irréversible. Les ventes passées restent conservées."), type: 'button' },
+                { label: t('guide.inventory.action_edit', "Modifier (crayon)"), description: t('guide.inventory.action_edit_desc', "Ouvre le formulaire d'�dition du produit : tous les champs sont modifiables."), type: 'button' },
+                { label: t('guide.inventory.action_movement', "Mouvement de stock (+ / -)"), description: t('guide.inventory.action_movement_desc', "Enregistrez une entr�e (r�ception fournisseur, retour) ou une sortie (perte, casse, correction) avec une raison et une quantit�."), type: 'button' },
+                { label: t('guide.inventory.action_transfer', "Transfert entre boutiques"), description: t('guide.inventory.action_transfer_desc', "Transf�rez une quantit� de ce produit vers une autre boutique quand votre compte g�re plusieurs points de vente."), type: 'button' },
+                { label: t('guide.inventory.action_location_transfer', "Transfert d'emplacement"), description: t('guide.inventory.action_location_transfer_desc', "Changez le rangement d'un produit sans toucher � sa quantit� quand il passe d'une zone � une autre."), type: 'button' },
+                { label: t('guide.inventory.action_history', "Historique (horloge)"), description: t('guide.inventory.action_history_desc', "Affiche tous les mouvements de stock de ce produit : date, type, quantit�, auteur."), type: 'button' },
+                { label: t('guide.inventory.action_delete', "Supprimer (???)"), description: t('guide.inventory.action_delete_desc', "Supprime d�finitivement le produit. Cette action est irr�versible. Les ventes pass�es restent conserv�es."), type: 'button' },
             ],
         },
         {
             title: t('guide.inventory.locations_title', "Organisation par emplacement"),
-            content: t('guide.inventory.locations_content', "Quand la gestion des emplacements est activée sur votre compte, vous pouvez structurer le rangement physique et rattacher chaque produit à un emplacement précis. Cette logique vous aide à retrouver plus vite un article et à mieux préparer les inventaires."),
+            content: t('guide.inventory.locations_content', "Quand la gestion des emplacements est activ�e sur votre compte, vous pouvez structurer le rangement physique et rattacher chaque produit � un emplacement pr�cis. Cette logique vous aide � retrouver plus vite un article et � mieux pr�parer les inventaires."),
             details: [
-                { label: t('guide.inventory.location_field', "Champ emplacement"), description: t('guide.inventory.location_field_desc', "Disponible dans la fiche produit pour associer un article à la bonne zone de stockage."), type: 'info' },
-                { label: t('guide.inventory.location_filter', "Filtre emplacement"), description: t('guide.inventory.location_filter_desc', "Affiche uniquement les produits rangés dans une zone donnée pour accélérer les contrôles."), type: 'filter' },
-                { label: t('guide.inventory.location_import', "Import avec emplacement"), description: t('guide.inventory.location_import_desc', "Le fichier d'import peut aussi préciser l'emplacement pour éviter une saisie manuelle produit par produit."), type: 'info' },
+                { label: t('guide.inventory.location_field', "Champ emplacement"), description: t('guide.inventory.location_field_desc', "Disponible dans la fiche produit pour associer un article � la bonne zone de stockage."), type: 'info' },
+                { label: t('guide.inventory.location_filter', "Filtre emplacement"), description: t('guide.inventory.location_filter_desc', "Affiche uniquement les produits rang�s dans une zone donn�e pour acc�l�rer les contr�les."), type: 'filter' },
+                { label: t('guide.inventory.location_import', "Import avec emplacement"), description: t('guide.inventory.location_import_desc', "Le fichier d'import peut aussi pr�ciser l'emplacement pour �viter une saisie manuelle produit par produit."), type: 'info' },
             ],
         },
         {
-            title: t('guide.inventory.ai_title', "Réapprovisionnement IA"),
-            content: t('guide.inventory.ai_content', "Le bouton 'IA Réappro' analyse votre historique de ventes et votre stock actuel pour suggérer les produits à commander en priorité, avec les quantités recommandées."),
+            title: t('guide.inventory.ai_title', "R�approvisionnement IA"),
+            content: t('guide.inventory.ai_content', "Le bouton 'IA R�appro' analyse votre historique de ventes et votre stock actuel pour sugg�rer les produits � commander en priorit�, avec les quantit�s recommand�es."),
             details: [
-                { label: t('guide.inventory.ai_tip', "Astuce"), description: t('guide.inventory.ai_tip_desc', "La suggestion IA est plus pertinente après 2 à 4 semaines de données de ventes. Plus vous avez d'historique, plus la recommandation est précise."), type: 'tip' },
+                { label: t('guide.inventory.ai_tip', "Astuce"), description: t('guide.inventory.ai_tip_desc', "La suggestion IA est plus pertinente apr�s 2 � 4 semaines de donn�es de ventes. Plus vous avez d'historique, plus la recommandation est pr�cise."), type: 'tip' },
             ],
         },
     ];
@@ -915,13 +919,13 @@ export default function Inventory() {
                         </div>
                     )}
                     <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                        Création disponible : manuel, texte IA, import CSV et catalogue métier
+                        Cr�ation disponible : manuel, texte IA, import CSV et catalogue m�tier
                     </p>
                     {pendingInventorySummary.pendingTotal > 0 && (
                         <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
                             <AlertCircle size={14} />
                             <span>
-                                {pendingInventorySummary.pendingProducts} produit(s), {pendingInventorySummary.pendingUpdates} mise(s) à jour et {pendingInventorySummary.pendingStockMovements} mouvement(s) de stock attendent encore la synchronisation.
+                                {pendingInventorySummary.pendingProducts} produit(s), {pendingInventorySummary.pendingUpdates} mise(s) � jour et {pendingInventorySummary.pendingStockMovements} mouvement(s) de stock attendent encore la synchronisation.
                             </span>
                         </div>
                     )}
@@ -962,7 +966,7 @@ export default function Inventory() {
                             className="btn-primary py-2 px-6 flex items-center gap-2"
                         >
                             <Plus size={20} />
-                            Créer / importer
+                            Cr�er / importer
                             <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
@@ -973,7 +977,7 @@ export default function Inventory() {
                                 >
                                     <Plus size={16} className="text-primary" />
                                     <div>
-                                        <p className="font-bold">Créer manuellement</p>
+                                        <p className="font-bold">Cr�er manuellement</p>
                                         <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
                                     </div>
                                 </button>
@@ -987,7 +991,7 @@ export default function Inventory() {
                                     <Sparkles size={16} className="text-violet-400" />
                                     <div>
                                         <p className="font-bold">Importer depuis un texte</p>
-                                        <p className="text-xs text-slate-400">Colle une liste libre, l’IA structure et crée les produits.</p>
+                                        <p className="text-xs text-slate-400">Colle une liste libre, l�IA structure et cr�e les produits.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1012,10 +1016,10 @@ export default function Inventory() {
                                     <div>
                                         <p className="font-bold">
                                             {catalogImportLoading
-                                                ? 'Import du catalogue…'
-                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du métier'}`}
+                                                ? 'Import du catalogue�'
+                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du m�tier'}`}
                                         </p>
-                                        <p className="text-xs text-slate-400">Précharge un catalogue adapté à ton type d’activité.</p>
+                                        <p className="text-xs text-slate-400">Pr�charge un catalogue adapt� � ton type d�activit�.</p>
                                     </div>
                                 </button>
                             </div>
@@ -1034,7 +1038,7 @@ export default function Inventory() {
                         className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         <Sparkles size={16} />
-                        {replenishLoading ? 'Analyse...' : 'IA Réappro'}
+                        {replenishLoading ? 'Analyse...' : 'IA R�appro'}
                     </button>
                 </div>
             </header>
@@ -1049,7 +1053,7 @@ export default function Inventory() {
                             <Sparkles size={20} className="text-violet-400 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="text-violet-300 font-bold text-sm mb-1">
-                                    IA — Conseils de réapprovisionnement
+                                    IA � Conseils de r�approvisionnement
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
                                 {replenishLoading ? (
@@ -1114,7 +1118,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
                     className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-left transition-colors hover:bg-rose-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">À traiter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">� traiter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.noSupplier}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans fournisseur</p>
                 </button>
@@ -1132,7 +1136,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
                     className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition-colors hover:bg-sky-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">À compléter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">� compl�ter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.missingPrimary}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans principal</p>
                 </button>
@@ -1171,7 +1175,7 @@ export default function Inventory() {
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
-                            <th className="py-4 px-6 font-semibold">Catégorie</th>
+                            <th className="py-4 px-6 font-semibold">Cat�gorie</th>
                             <th className="py-4 px-6 font-semibold">Fournisseurs</th>
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold">Prix</th>
@@ -1227,16 +1231,32 @@ export default function Inventory() {
                                         {productLinks.length === 0 ? (
                                             <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2">
                                                 <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
-                                                <p className="mt-1 text-[11px] text-slate-300">Produit non préparé pour le réapprovisionnement.</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleManageProductSuppliers(p)}
+                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 transition-colors hover:bg-rose-500/20"
+                                                >
+                                                    <Plus size={12} />
+                                                    Associer un fournisseur
+                                                </button>
+                                                <p className="mt-1 text-[11px] text-slate-300">Produit non pr?par? pour le r?approvisionnement.</p>
                                             </div>
                                         ) : (
                                             <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                                                 <span className="text-xs font-bold text-white">
-                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) · principal défini` : `${productLinks.length} fournisseur(s) · principal manquant`}
+                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) ? principal d?fini` : `${productLinks.length} fournisseur(s) ? principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
                                                     <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
                                                 )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleManageProductSuppliers(p)}
+                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition-colors hover:bg-white/10"
+                                                >
+                                                    <Edit size={12} />
+                                                    G?rer les fournisseurs
+                                                </button>
                                             </div>
                                         )}
                                     </td>
@@ -1265,7 +1285,7 @@ export default function Inventory() {
                                             <button
                                                 onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
                                                 className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
-                                                title="Entrée stock"
+                                                title="Entr�e stock"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -1289,7 +1309,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenLocationTransfer(p)}
                                                         className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                                                        title="Transférer d'emplacement"
+                                                        title="Transf�rer d'emplacement"
                                                     >
                                                         <MapPin size={18} />
                                                     </button>
@@ -1298,7 +1318,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenTransfer(p)}
                                                         className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
-                                                        title="Transférer vers une autre boutique"
+                                                        title="Transf�rer vers une autre boutique"
                                                     >
                                                         <ArrowLeftRight size={18} />
                                                     </button>
@@ -1332,7 +1352,7 @@ export default function Inventory() {
             <Modal
                 isOpen={stockModalOpen}
                 onClose={() => setStockModalOpen(false)}
-                title={stockMovType === 'in' ? '📦 Entrée de stock' : '📤 Sortie de stock'}
+                title={stockMovType === 'in' ? '?? Entr�e de stock' : '?? Sortie de stock'}
                 maxWidth="sm"
             >
                 {stockModalProduct && (
@@ -1350,7 +1370,7 @@ export default function Inventory() {
 
                         {/* Quantity */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Quantité *</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Quantit� *</label>
                             <input
                                 type="number"
                                 min="0.001"
@@ -1368,7 +1388,7 @@ export default function Inventory() {
                                         {stockMovType === 'in'
                                             ? stockModalProduct.quantity + parseFloat(stockMovQty)
                                             : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
-                                    </span> {stockModalProduct.unit || 'unité(s)'}
+                                    </span> {stockModalProduct.unit || 'unit�(s)'}
                                 </p>
                             )}
                         </div>
@@ -1380,7 +1400,7 @@ export default function Inventory() {
                                 type="text"
                                 value={stockMovReason}
                                 onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' ? 'Ex: Réapprovisionnement' : 'Ex: Casse, vol, correction'}
+                                placeholder={stockMovType === 'in' ? 'Ex: R�approvisionnement' : 'Ex: Casse, vol, correction'}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
@@ -1393,7 +1413,7 @@ export default function Inventory() {
                         >
                             {stockMovLoading
                                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entrée</> : <><Minus size={18} /> Valider la sortie</>
+                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entr�e</> : <><Minus size={18} /> Valider la sortie</>
                             }
                         </button>
                     </div>
@@ -1496,7 +1516,7 @@ export default function Inventory() {
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                 >
                                     <option value="standard">Produit fini / Plat</option>
-                                    <option value="raw_material">Ingrédient / Matière première</option>
+                                    <option value="raw_material">Ingr�dient / Mati�re premi�re</option>
                                 </select>
                             </div>
 
@@ -1511,7 +1531,7 @@ export default function Inventory() {
                                         <option value="">Aucun emplacement</option>
                                         {formLocationOptions.map(loc => (
                                             <option key={loc.location_id} value={loc.location_id}>
-                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archivé)' : ''}
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archiv�)' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -1522,7 +1542,7 @@ export default function Inventory() {
                                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300">Approvisionnement</label>
-                                        <p className="mt-1 text-xs text-slate-400">Définissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
+                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs � ce produit. D�finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
                                         <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
                                             formSupplierIds.length === 0
                                                 ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
@@ -1533,9 +1553,12 @@ export default function Inventory() {
                                             {formSupplierIds.length === 0
                                                 ? 'Aucun fournisseur'
                                                 : !formPrimarySupplierId
-                                                    ? 'Principal à définir'
+                                                    ? 'Principal � d�finir'
                                                     : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
                                         </div>
+                                    </div>
+                                    <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
+                                        Cochez les fournisseurs � associer � ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de r�approvisionnement et aux commandes.
                                     </div>
                                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
@@ -1587,7 +1610,7 @@ export default function Inventory() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">Unité de prix / stock</label>
+                                    <label className="block text-sm font-medium text-slate-300">Unit� de prix / stock</label>
                                     <select
                                         value={form.unit}
                                         onChange={(e) => {
@@ -1741,7 +1764,7 @@ export default function Inventory() {
                                 className="text-xs text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
                                 <Sparkles size={14} className={aiLoading.description ? 'animate-pulse' : ''} />
-                                Générer par IA
+                                G�n�rer par IA
                             </button>
                         </div>
                         <textarea
@@ -1903,7 +1926,7 @@ export default function Inventory() {
                             </div>
                             <div>
                                 <label className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 block">
-                                    Quantité (stock dispo : {transferProduct.quantity})
+                                    Quantit� (stock dispo : {transferProduct.quantity})
                                 </label>
                                 <input
                                     type="number"
@@ -1976,11 +1999,11 @@ export default function Inventory() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white truncate">{tr.product_name}</p>
                                                 <p className="text-xs text-slate-400 mt-1">
-                                                    {tr.from_store_name} → {tr.to_store_name}
+                                                    {tr.from_store_name} ? {tr.to_store_name}
                                                 </p>
                                                 <p className="text-[10px] text-slate-600 mt-1">
-                                                    {new Date(tr.created_at).toLocaleString()} • {tr.transferred_by}
-                                                    {tr.note ? ` • ${tr.note}` : ''}
+                                                    {new Date(tr.created_at).toLocaleString()} � {tr.transferred_by}
+                                                    {tr.note ? ` � ${tr.note}` : ''}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">

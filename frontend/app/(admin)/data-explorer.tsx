@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DataExplorer() {
     const { t } = useTranslation();
-    const { colors } = useTheme();
+    const { colors, isDark } = useTheme();
 
     const [collections, setCollections] = useState<CollectionInfo[]>([]);
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
@@ -75,18 +75,29 @@ export default function DataExplorer() {
         push_tokens: 'notifications', sales: 'cash', suppliers: 'car',
     };
 
+    const headerGradient = isDark ? ['#1E1B4B', '#312E81', '#1E1B4B'] : [colors.bgLight, colors.bgMid, colors.bgDark];
+    const headerSurface = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)';
+    const headerSubtle = isDark ? 'rgba(255,255,255,0.5)' : colors.textMuted;
+    const cardBg = isDark ? 'rgba(255,255,255,0.06)' : colors.card;
+    const cardBorder = isDark ? 'rgba(255,255,255,0.1)' : colors.glassBorder;
+    const tableHeaderBg = isDark ? '#1E1B4B' : colors.secondary;
+    const rowBgA = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.82)';
+    const rowBgB = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(241,245,249,0.96)';
+    const modalSurface = isDark ? '#1E1B4B' : colors.card;
+    const modalInner = isDark ? '#0F0D23' : colors.inputBg;
+
     return (
-        <View style={{ flex: 1, backgroundColor: '#0F0D23' }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             {/* Header */}
-            <LinearGradient colors={['#1E1B4B', '#312E81', '#1E1B4B']} style={{ paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 }}>
+            <LinearGradient colors={headerGradient as [string, string, string]} style={{ paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                        <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                            <Ionicons name="arrow-back" size={18} color="#fff" />
+                        <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: headerSurface, alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name="arrow-back" size={18} color={colors.text} />
                         </TouchableOpacity>
                         <View>
-                            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800' }}>📊 {t('admin.data_explorer.title')}</Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
+                            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>📊 {t('admin.data_explorer.title')}</Text>
+                            <Text style={{ color: headerSubtle, fontSize: 12, marginTop: 2 }}>
                                 {collections.length} collections • {selectedCollection || t('admin.data_explorer.select_hint')}
                             </Text>
                         </View>
@@ -102,7 +113,7 @@ export default function DataExplorer() {
                             {t('admin.data_explorer.select_collection')}
                         </Text>
                         {loading ? (
-                            <ActivityIndicator size="large" color="#8B5CF6" style={{ marginTop: 40 }} />
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
                         ) : (
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                                 {collections.map((col) => (
@@ -110,17 +121,17 @@ export default function DataExplorer() {
                                         key={col.name}
                                         onPress={() => setSelectedCollection(col.name)}
                                         style={{
-                                            backgroundColor: 'rgba(255,255,255,0.06)',
-                                            borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+                                            backgroundColor: cardBg,
+                                            borderWidth: 1, borderColor: cardBorder,
                                             borderRadius: 12, padding: 14,
                                             width: isMobile ? '48%' : 180,
                                             gap: 6,
                                         }}
                                     >
-                                        <Ionicons name={(collectionIcons[col.name] || 'folder') as any} size={22} color="#8B5CF6" />
-                                        <Text style={{ color: '#E0E7FF', fontWeight: '600', fontSize: 14 }} numberOfLines={1}>{col.name}</Text>
-                                        <Text style={{ color: '#6366F1', fontWeight: '800', fontSize: 18 }}>{col.count}</Text>
-                                        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{t('admin.data_explorer.documents')}</Text>
+                                        <Ionicons name={(collectionIcons[col.name] || 'folder') as any} size={22} color={colors.primary} />
+                                        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }} numberOfLines={1}>{col.name}</Text>
+                                        <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 18 }}>{col.count}</Text>
+                                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>{t('admin.data_explorer.documents')}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -133,13 +144,13 @@ export default function DataExplorer() {
                     <>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
                             <TouchableOpacity onPress={() => { setSelectedCollection(null); setCollectionData([]); setSearchQuery(''); }}
-                                style={{ backgroundColor: '#8B5CF622', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Ionicons name="arrow-back" size={14} color="#A5B4FC" />
-                                <Text style={{ color: '#A5B4FC', fontSize: 12, fontWeight: '600' }}>{t('common.back')}</Text>
+                                style={{ backgroundColor: colors.primary + '18', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="arrow-back" size={14} color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('common.back')}</Text>
                             </TouchableOpacity>
-                            <Ionicons name={(collectionIcons[selectedCollection] || 'folder') as any} size={20} color="#8B5CF6" />
-                            <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: '700' }}>{selectedCollection}</Text>
-                            <Text style={{ color: '#6366F1', fontSize: 13 }}>({total} docs)</Text>
+                            <Ionicons name={(collectionIcons[selectedCollection] || 'folder') as any} size={20} color={colors.primary} />
+                            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{selectedCollection}</Text>
+                            <Text style={{ color: colors.primary, fontSize: 13 }}>({total} docs)</Text>
                         </View>
 
                         {/* Search Bar */}
@@ -162,11 +173,11 @@ export default function DataExplorer() {
                         </View>
 
                         {loading ? (
-                            <ActivityIndicator size="large" color="#8B5CF6" style={{ marginTop: 40 }} />
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
                         ) : collectionData.length === 0 ? (
                             <View style={{ alignItems: 'center', marginTop: 40 }}>
-                                <Ionicons name="folder-open-outline" size={48} color="rgba(255,255,255,0.2)" />
-                                <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 10, fontSize: 14 }}>Collection vide</Text>
+                                <Ionicons name="folder-open-outline" size={48} color={colors.textMuted} />
+                                <Text style={{ color: colors.textMuted, marginTop: 10, fontSize: 14 }}>Collection vide</Text>
                             </View>
                         ) : (
                             <>
@@ -174,28 +185,28 @@ export default function DataExplorer() {
                                 <ScrollView horizontal showsHorizontalScrollIndicator={true}>
                                     <View>
                                         {/* Table Header */}
-                                        <View style={{ flexDirection: 'row', backgroundColor: '#1E1B4B', borderRadius: 8, marginBottom: 2 }}>
+                                        <View style={{ flexDirection: 'row', backgroundColor: tableHeaderBg, borderRadius: 8, marginBottom: 2 }}>
                                             {keys.map(k => (
                                                 <View key={k} style={{ width: 150, padding: 10 }}>
-                                                    <Text style={{ color: '#A5B4FC', fontWeight: '700', fontSize: 12, textTransform: 'uppercase' }}>{k}</Text>
+                                                    <Text style={{ color: isDark ? '#A5B4FC' : '#E2E8F0', fontWeight: '700', fontSize: 12, textTransform: 'uppercase' }}>{k}</Text>
                                                 </View>
                                             ))}
                                             <View style={{ width: 60, padding: 10, alignItems: 'center' }}>
-                                                <Text style={{ color: '#A5B4FC', fontWeight: '700', fontSize: 12 }}>👁️</Text>
+                                                <Text style={{ color: isDark ? '#A5B4FC' : '#E2E8F0', fontWeight: '700', fontSize: 12 }}>👁️</Text>
                                             </View>
                                         </View>
 
                                         {/* Table Rows */}
                                         {collectionData.map((item, idx) => (
                                             <TouchableOpacity key={idx} onPress={() => setSelectedDocument(item)}
-                                                style={{ flexDirection: 'row', backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
+                                                style={{ flexDirection: 'row', backgroundColor: idx % 2 === 0 ? rowBgA : rowBgB, borderRadius: 4 }}>
                                                 {keys.map(k => (
                                                     <View key={k} style={{ width: 150, padding: 10 }}>
-                                                        <Text style={{ color: '#E0E7FF', fontSize: 12 }} numberOfLines={1}>{renderValue(item[k])}</Text>
+                                                        <Text style={{ color: colors.text, fontSize: 12 }} numberOfLines={1}>{renderValue(item[k])}</Text>
                                                     </View>
                                                 ))}
                                                 <View style={{ width: 60, padding: 10, alignItems: 'center' }}>
-                                                    <Ionicons name="eye-outline" size={16} color="#8B5CF6" />
+                                                    <Ionicons name="eye-outline" size={16} color={colors.primary} />
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
@@ -205,13 +216,13 @@ export default function DataExplorer() {
                                 {/* Pagination */}
                                 <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, gap: 16 }}>
                                     <TouchableOpacity disabled={page === 0} onPress={() => loadCollectionData(selectedCollection, (page - 1) * LIMIT)}
-                                        style={{ backgroundColor: page === 0 ? 'rgba(255,255,255,0.05)' : '#6366F133', padding: 8, borderRadius: 8 }}>
-                                        <Ionicons name="chevron-back" size={20} color={page === 0 ? 'rgba(255,255,255,0.2)' : '#A5B4FC'} />
+                                        style={{ backgroundColor: page === 0 ? colors.inputBg : colors.primary + '20', padding: 8, borderRadius: 8 }}>
+                                        <Ionicons name="chevron-back" size={20} color={page === 0 ? colors.textMuted : colors.primary} />
                                     </TouchableOpacity>
-                                    <Text style={{ color: '#E0E7FF', fontSize: 13, fontWeight: '600' }}>Page {page + 1} / {totalPages}</Text>
+                                    <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600' }}>Page {page + 1} / {totalPages}</Text>
                                     <TouchableOpacity disabled={(page + 1) * LIMIT >= total} onPress={() => loadCollectionData(selectedCollection, (page + 1) * LIMIT)}
-                                        style={{ backgroundColor: (page + 1) * LIMIT >= total ? 'rgba(255,255,255,0.05)' : '#6366F133', padding: 8, borderRadius: 8 }}>
-                                        <Ionicons name="chevron-forward" size={20} color={(page + 1) * LIMIT >= total ? 'rgba(255,255,255,0.2)' : '#A5B4FC'} />
+                                        style={{ backgroundColor: (page + 1) * LIMIT >= total ? colors.inputBg : colors.primary + '20', padding: 8, borderRadius: 8 }}>
+                                        <Ionicons name="chevron-forward" size={20} color={(page + 1) * LIMIT >= total ? colors.textMuted : colors.primary} />
                                     </TouchableOpacity>
                                 </View>
                             </>
@@ -221,23 +232,23 @@ export default function DataExplorer() {
             </ScrollView>
 
             {/* JSON Viewer Modal */}
-            <Modal visible={!!selectedDocument} transparent animationType="fade">
+            {!!selectedDocument && <Modal visible={!!selectedDocument} transparent animationType="fade">
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-                    <View style={{ width: '90%', maxWidth: 600, maxHeight: '85%', backgroundColor: '#1E1B4B', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#312E81' }}>
+                    <View style={{ width: '90%', maxWidth: 600, maxHeight: '85%', backgroundColor: modalSurface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: colors.glassBorder }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#E0E7FF' }}>📄 Document JSON</Text>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>📄 Document JSON</Text>
                             <TouchableOpacity onPress={() => setSelectedDocument(null)} style={{ backgroundColor: '#EF444422', padding: 6, borderRadius: 8 }}>
                                 <Ionicons name="close" size={18} color="#EF4444" />
                             </TouchableOpacity>
                         </View>
-                        <ScrollView style={{ backgroundColor: '#0F0D23', borderRadius: 10, padding: 14 }}>
-                            <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#A5B4FC', fontSize: 12, lineHeight: 18 }}>
+                        <ScrollView style={{ backgroundColor: modalInner, borderRadius: 10, padding: 14 }}>
+                            <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: colors.text, fontSize: 12, lineHeight: 18 }}>
                                 {JSON.stringify(selectedDocument, null, 2)}
                             </Text>
                         </ScrollView>
                     </View>
                 </View>
-            </Modal>
+            </Modal>}
         </View>
     );
 }

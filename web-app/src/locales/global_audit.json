@@ -1,7 +1,7 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
-    "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
+    "not_enough_data": "Pas assez de donn�es de vente pour l�analyse ABC."
   },
   "accounting": {
     "amount": "Amount",
@@ -64,11 +64,11 @@
     "payment_methods": "Sales by Payment Method",
     "payment_mobile_money": "Mobile Money",
     "payment_transfer": "Transfer",
-    "pdf_expenses_detail": "Détail des Charges",
-    "pdf_generation_error": "Error lors de la génération du rapport",
+    "pdf_expenses_detail": "D�tail des Charges",
+    "pdf_generation_error": "Error lors de la g�n�ration du rapport",
     "pdf_gross_margin": "Marge brute",
-    "pdf_no_address": "Address non renseignée",
-    "pdf_no_expenses": "Aucune dépense sur cette période",
+    "pdf_no_address": "Address non renseign�e",
+    "pdf_no_expenses": "Aucune d�pense sur cette p�riode",
     "pdf_top_products": "Top 10 Produits par Performance",
     "pdf_total_expenses": "Total charges",
     "pdf_total_revenue": "CA total",
@@ -113,8 +113,8 @@
       "cancel": "Cancel",
       "success": "Success",
       "error": "Error",
-      "sendSuccess": "✅ Sent",
-      "statusUpdated": "✅ Status updated"
+      "sendSuccess": "? Sent",
+      "statusUpdated": "? Status updated"
     },
     "alerts": {
       "title": "Alerts",
@@ -128,7 +128,7 @@
       "send": "Send",
       "broadcast": "Broadcast",
       "history": "History",
-      "broadcastSuccess": "📢 Broadcast: Sent to {{count}} devices"
+      "broadcastSuccess": "?? Broadcast: Sent to {{count}} devices"
     },
     "dashboard": "Admin Dashboard",
     "disputes": {
@@ -203,13 +203,13 @@
       "appVersion": "App version",
       "serverStatus": "Server status",
       "actions": "Actions",
-      "dataExplorer": "📊 Data Explorer (MongoDB)"
+      "dataExplorer": "?? Data Explorer (MongoDB)"
     },
     "stock": {
       "title": "Products",
       "units": "{{count}} units",
       "seller": "Seller",
-      "deleteConfirmTitle": "⚠️ Permanent Deletion",
+      "deleteConfirmTitle": "?? Permanent Deletion",
       "deleteConfirmDesc": "Are you sure you want to delete the product \"{{name}}\"? This action is irreversible."
     },
     "stores": {
@@ -247,9 +247,9 @@
     }
   },
   "ai": {
-    "daily_summary_prompt": "Tu es Stockman AI. Voici les activités de la journée : {activity}. Fais un résumé très court (3-4 phrases) et motivant pour le shopkeeper.",
+    "daily_summary_prompt": "Tu es Stockman AI. Voici les activit�s de la journ�e : {activity}. Fais un r�sum� tr�s court (3-4 phrases) et motivant pour le shopkeeper.",
     "persona_name": "Assistant Stockman",
-    "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de réapprovisionnement basés sur les ventes récentes.",
+    "replenishment_advice_prompt": "Tu es un expert en logistique. Voici les produits critiques : {products}. Donne des conseils de r�approvisionnement bas�s sur les ventes r�centes.",
     "summary_goal": "Your goal is to help the user navigate the app AND analyze their metrics.",
     "summary_instruction_admin": "IF USER IS ADMIN, START YOUR FIRST RESPONSE WITH A BRIEF SYSTEM HEALTH SUMMARY IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the Stockman ADMIN assistant. You have access to global metrics.",
@@ -285,8 +285,8 @@
     "analysis_error": "Could not analyze aLast Namealies",
     "analyze_desc": "Analyze sales, stock, and margins",
     "analyzing": "Analyzing...",
-    "anomaly_analysis_summary": "AI Analysis — {{count}} aLast Namealy detected",
-    "anomaly_analysis_summary_plural": "AI Analysis — {{count}} aLast Namealies detected",
+    "anomaly_analysis_summary": "AI Analysis � {{count}} aLast Namealy detected",
+    "anomaly_analysis_summary_plural": "AI Analysis � {{count}} aLast Namealies detected",
     "channels": "Channels:",
     "config": {
       "low_stock": {
@@ -416,16 +416,16 @@
     "choose_action": "Please choose an action...",
     "items_identified": "Items identified",
     "orders_generated": "{{count}} purchase orders generated.",
-    "partial_result": "Résultat partiel",
+    "partial_result": "R�sultat partiel",
     "processing_title": "Batch processing",
     "quick_inventory": "Quick inventory",
     "quick_inventory_desc": "Mark items as present in stock",
     "rfid_associate": "Association RFID",
-    "rfid_associate_desc": "Associer ces codes à des tags RFID",
+    "rfid_associate_desc": "Associer ces codes � des tags RFID",
     "rfid_bulk_info": "L'association RFID par lot permet d'associer rapidement vos tags.",
-    "select_action": "Sélectionner une action",
+    "select_action": "S�lectionner une action",
     "title": "Scan Rapide (Lot)",
-    "unknown_codes": "{{count}} codes sont inconnus…"
+    "unknown_codes": "{{count}} codes sont inconnus�"
   },
   "bulk_import": {
     "back": "Back",
@@ -662,7 +662,7 @@
     "report_title": "CUSTOMER & CRM REPORT",
     "report_total_revenue": "Total Rev.",
     "reward_threshold": "Reward Threshold",
-    "reward_threshold_label": "Seuil de récompense (pts)",
+    "reward_threshold_label": "Seuil de r�compense (pts)",
     "search_customers_placeholder": "Search customer...",
     "search_placeholder": "Search customer...",
     "see_other_operations": "See {{count}} other operations",
@@ -703,7 +703,7 @@
     "ai_daily_summary": "AI Daily Summary",
     "ai_forecast_title": "AI Sales Forecast",
     "ai_tap_to_generate": "Tap to generate",
-    "all_good": "Everything is up to date — no issues detected",
+    "all_good": "Everything is up to date � no issues detected",
     "anomalies_detected": "{{count}} anomalies detected",
     "category_distribution": "Category Distribution",
     "class_a": "Class A",
@@ -764,7 +764,7 @@
     "products_count_one": "{{count}} product",
     "products_count_other": "{{count}} products",
     "profitability_analysis": "Profitability Analysis",
-    "recent_alerts": "Alertes récentes",
+    "recent_alerts": "Alertes r�centes",
     "recent_sales": "Recent Sales",
     "reminder_alerts": "{{count}} alert(s)",
     "reminder_products": "{{count}} product(s)",
@@ -772,7 +772,7 @@
     "reminder_products_overstock": "{{count}} product(s) in excess",
     "reminder_sales": "{{count}} sale(s)",
     "reorder_stock_meta": "Stock: {{current}} (Seuil: {{threshold}})",
-    "reorder_suggested": "Suggéré: +{{qty}}",
+    "reorder_suggested": "Sugg�r�: +{{qty}}",
     "rotating_inventory": "Rotating Inventory",
     "see_detail_product": "See detail by product",
     "see_feature": "See this feature",
@@ -781,7 +781,7 @@
     "see_more": "See more",
     "see_more_count": "See {{count}} other critical products",
     "settings_done": "Terminer",
-    "settings_subtitle": "Activez ou désactivez les éléments que vous souhaitez voir sur votre écran d'accueil.",
+    "settings_subtitle": "Activez ou d�sactivez les �l�ments que vous souhaitez voir sur votre �cran d'accueil.",
     "settings_title": "Personnaliser le Dashboard",
     "smart_reminders": "Smart Reminders",
     "smart_replenishment": "Smart Replenishment",
@@ -810,17 +810,17 @@
     "view_receipt": "View receipt",
     "visible_sections": "Visible sections",
     "widget_abc_analysis": "Analyse ABC",
-    "widget_category_chart": "Répartition par catégorie",
-    "widget_expiry_alerts": "Alertes péremption",
-    "widget_forecast": "Prévisions de ventes",
-    "widget_inventory_tasks": "Tâches inventaire",
+    "widget_category_chart": "R�partition par cat�gorie",
+    "widget_expiry_alerts": "Alertes p�remption",
+    "widget_forecast": "Pr�visions de ventes",
+    "widget_inventory_tasks": "T�ches inventaire",
     "widget_kpi": "KPIs (CA, Ventes, etc.)",
-    "widget_profitability": "Rentabilité par catégorie",
-    "widget_recent_alerts": "Alertes récentes",
-    "widget_recent_sales": "Dernières ventes",
-    "widget_reorder": "Réapprovisionnement",
+    "widget_profitability": "Rentabilit� par cat�gorie",
+    "widget_recent_alerts": "Alertes r�centes",
+    "widget_recent_sales": "Derni�res ventes",
+    "widget_reorder": "R�approvisionnement",
     "widget_smart_reminders": "Rappels intelligents",
-    "widget_stock_chart": "Évolution valeur stock",
+    "widget_stock_chart": "�volution valeur stock",
     "widget_stock_status": "Statut des stocks"
   },
   "delivery": {
@@ -839,16 +839,16 @@
     "stock_label": "Stock:"
   },
   "errors": {
-    "ai_generation_error": "Impossible de générer le contenu IA",
-    "expense_deleted": "Charge supprimée",
-    "expense_not_found": "Charge non trouvée",
-    "forbidden": "Accès refusé",
-    "gemini_api_missing": "Clé API Gemini non configurée",
-    "product_not_found": "Produit non trouvé",
+    "ai_generation_error": "Impossible de g�n�rer le contenu IA",
+    "expense_deleted": "Charge supprim�e",
+    "expense_not_found": "Charge non trouv�e",
+    "forbidden": "Acc�s refus�",
+    "gemini_api_missing": "Cl� API Gemini non configur�e",
+    "product_not_found": "Produit non trouv�",
     "server_error": "Error interne du serveur",
-    "task_not_found": "Tâche non trouvée",
-    "unauthorized": "Accès non autorisé",
-    "user_not_found": "Utilisateur non trouvé"
+    "task_not_found": "T�che non trouv�e",
+    "unauthorized": "Acc�s non autoris�",
+    "user_not_found": "Utilisateur non trouv�"
   },
   "help": {
     "faq": {
@@ -988,7 +988,7 @@
         },
         "f6": {
           "t": "Auto Loyalty",
-          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze → Platinum)."
+          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze ? Platinum)."
         }
       },
       "orders": {
@@ -999,7 +999,7 @@
         },
         "f2": {
           "t": "Status Tracking",
-          "d": "Follow each order: Pending → Confirmed → Shipped → Delivered. The visual progress bar shows the advancement."
+          "d": "Follow each order: Pending ? Confirmed ? Shipped ? Delivered. The visual progress bar shows the advancement."
         },
         "f3": {
           "t": "AI Intake",
@@ -1274,7 +1274,7 @@
     "search_product": "Search product...",
     "search_supplier": "Search supplier...",
     "send_invitation": "Send invitation",
-    "star": "⭐",
+    "star": "?",
     "suppliers": "Marketplace Suppliers",
     "title": "Marketplace",
     "verified_only": "Verified only"
@@ -1308,7 +1308,7 @@
       "successMessage": "Your message has been sent. Our team will reply soon."
     },
     "deleteAccount": {
-      "dangerZone": "Danger Zone ⚠️",
+      "dangerZone": "Danger Zone ??",
       "warningTitle": "Warning",
       "warningText": "You are about to permanently delete your account and all associated data.",
       "confirmationTitle": "Ultimate confirmation",
@@ -1548,8 +1548,8 @@
         "title": "Smart Ordering",
         "desc": "Automate your orders and manage returns professionally.",
         "benefits": [
-          "Génération auto de commandes",
-          "Gestion avancée des retours",
+          "G�n�ration auto de commandes",
+          "Gestion avanc�e des retours",
           "Suivi performance fournisseurs"
         ]
       },
@@ -1557,7 +1557,7 @@
         "title": "Marketplace Access",
         "desc": "Connect with thousands of verified suppliers and compare prices.",
         "benefits": [
-          "Accès au catalogue mondial",
+          "Acc�s au catalogue mondial",
           "Chat direct avec les fournisseurs",
           "Remises exclusives de gros"
         ]
@@ -1566,7 +1566,7 @@
         "title": "Financial Intelligence",
         "desc": "Deep dive into your business metrics and export official reports.",
         "benefits": [
-          "Analyse profits/pertes détaillée",
+          "Analyse profits/pertes d�taill�e",
           "Rapports PDF/Excel pros",
           "Support multi-devises"
         ]
@@ -1576,18 +1576,18 @@
         "desc": "Build customer loyalty with personalized tracking and a rewards program.",
         "benefits": [
           "Base clients avec historique d'achats complet",
-          "Programme de fidélité (Bronze, Argent, Or, Platine)",
-          "Campagnes marketing WhatsApp ciblées",
-          "Gestion des dettes et crédits clients"
+          "Programme de fid�lit� (Bronze, Argent, Or, Platine)",
+          "Campagnes marketing WhatsApp cibl�es",
+          "Gestion des dettes et cr�dits clients"
         ]
       },
       "reports": {
         "title": "Analysis & Reports",
         "desc": "Visualize your business performance with detailed charts.",
         "benefits": [
-          "Export PDF/CSV illimité",
+          "Export PDF/CSV illimit�",
           "Historique complet des ventes",
-          "Analyses de rentabilité avancées"
+          "Analyses de rentabilit� avanc�es"
         ]
       }
     },
@@ -1646,7 +1646,7 @@
     "field_name": "Name",
     "field_name_placeholder": "Product name...",
     "field_sku": "SKU / Code",
-    "forecast_7d_unit": "{{count}} prédits (7j)",
+    "forecast_7d_unit": "{{count}} pr�dits (7j)",
     "gallery": "Galerie",
     "history": "Hist.",
     "history_tab_price": "Price",
@@ -1700,10 +1700,10 @@
     "remove_photo": "Remove photo",
     "remove_stock": "-Stock",
     "report_section_stock": "Stock status",
-    "rfid_hardware_info": "La lecture RFID nécessite un matériel compatible.",
+    "rfid_hardware_info": "La lecture RFID n�cessite un mat�riel compatible.",
     "rfid_info_msg": "RFID reading requires connected compatible hardware. You can enter the ID manually.",
     "rfid_info_title": "RFID",
-    "rfid_reading_not_supported": "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.",
+    "rfid_reading_not_supported": "La lecture RFID n�cessite un mat�riel compatible connect�. Vous pouvez saisir l'ID manuellement.",
     "search": "Search for a product...",
     "search_placeholder": "Search a product...",
     "see_less": "See less",
@@ -1891,29 +1891,29 @@
     "compare_plans": "Plan Comparison",
     "features": {
       "products": "Products & items",
-      "products_desc": "Gérez votre catalogue complet : ajout, modification, code-barres, photos, catégories et suivi des prix d'achat/vente.",
+      "products_desc": "G�rez votre catalogue complet : ajout, modification, code-barres, photos, cat�gories et suivi des prix d'achat/vente.",
       "stores": "Store locations",
-      "stores_desc": "Gérez un ou plusieurs magasins avec stocks indépendants et suivi séparé des performances de chaque emplacement.",
+      "stores_desc": "G�rez un ou plusieurs magasins avec stocks ind�pendants et suivi s�par� des performances de chaque emplacement.",
       "users": "Users & team",
-      "users_desc": "Ajoutez des collaborateurs (vendeurs, gérants) avec des rôles et permissions personnalisés pour chaque membre de l'équipe.",
+      "users_desc": "Ajoutez des collaborateurs (vendeurs, g�rants) avec des r�les et permissions personnalis�s pour chaque membre de l'�quipe.",
       "pos": "Point of Sale (POS)",
-      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (espèces, Mobile Money, carte), receipts numériques et gestion des ventes à crédit.",
+      "pos_desc": "Point de vente tactile : scan code-barres, panier, multi-paiement (esp�ces, Mobile Money, carte), receipts num�riques et gestion des ventes � cr�dit.",
       "pdf_receipts": "PDF receipts & invoices",
-      "pdf_receipts_desc": "Générez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonnées.",
+      "pdf_receipts_desc": "G�n�rez des receipts et factures PDF professionnels partageables par WhatsApp ou email, avec votre logo et coordonn�es.",
       "reports": "Reports & statistics",
-      "reports_desc": "Tableaux de bord détaillés : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
+      "reports_desc": "Tableaux de bord d�taill�s : chiffre d'affaires, marges, produits les plus vendus, analyse ABC, tendances et export CSV/PDF.",
       "ai_assistant": "Stockman AI Assistant",
-      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de réapprovisionnement, analyse des ventes, prévisions de stock et conseils de gestion.",
+      "ai_assistant_desc": "Posez vos questions en langage naturel : suggestions de r�approvisionnement, analyse des ventes, pr�visions de stock et conseils de gestion.",
       "suppliers_orders": "Suppliers & orders",
-      "suppliers_orders_desc": "Carnet de fournisseurs complet, création de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des échanges.",
+      "suppliers_orders_desc": "Carnet de fournisseurs complet, cr�ation de commandes, suivi des Deliverys, gestion des retours et avoirs, historique des �changes.",
       "csv_import_export": "CSV Import/Export",
-      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos données (produits, ventes, clients) en un clic.",
+      "csv_import_export_desc": "Importez votre catalogue depuis un fichier CSV et exportez vos donn�es (produits, ventes, clients) en un clic.",
       "crm_loyalty": "CRM & loyalty program",
-      "crm_loyalty_desc": "Base clients avec historique d'achats, système de points de fidélité, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
+      "crm_loyalty_desc": "Base clients avec historique d'achats, syst�me de points de fid�lit�, niveaux Bronze/Argent/Or/Platine, promotions et campagnes marketing.",
       "sms_alerts": "SMS alerts & notifications",
-      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou péremption imminente. Notifications push en temps réel.",
+      "sms_alerts_desc": "Recevez des alertes automatiques en cas de rupture de stock, produit dormant ou p�remption imminente. Notifications push en temps r�el.",
       "support": "Customer support",
-      "support_desc": "Assistance pour résoudre vos problèmes et optimiser votre utilisation de Stockman.",
+      "support_desc": "Assistance pour r�soudre vos probl�mes et optimiser votre utilisation de Stockman.",
       "unlimited": "Unlimited",
       "with_watermark": "With Stockman branding",
       "custom_logo": "Custom logo",
@@ -1984,7 +1984,7 @@
     "dashboard_title": "Supplier Dashboard",
     "pending_orders": "Pending Orders",
     "rating": "Note",
-    "recent_orders": "Commandes récentes",
+    "recent_orders": "Commandes r�centes",
     "revenue_this_month": "Revenue This Month",
     "reviews": "Avis",
     "top_products": "Top Products"
@@ -2017,11 +2017,11 @@
     "info_description": "Description",
     "info_min_order": "Min Order Amount",
     "info_note": "Note",
-    "info_phone": "Téléphone",
+    "info_phone": "T�l�phone",
     "info_zones": "Zones de Delivery",
     "min_order_label": "Min Order Amount",
-    "page_title": "Paramètres",
-    "phone_label": "Téléphone",
+    "page_title": "Param�tres",
+    "phone_label": "T�l�phone",
     "reviews": "avis",
     "role_supplier": "Supplier",
     "zones_label": "Delivery Zones (comma separated)",
@@ -2046,7 +2046,7 @@
     "city_placeholder": "e.g., Dakar, Paris...",
     "critical_alert": "CRITICAL",
     "days_delivery": "{{days}}d delivery",
-    "days_remaining": "⌛ {{count}}d remaining",
+    "days_remaining": "? {{count}}d remaining",
     "delete_confirm": "Are you sure you want to delete \"{{name}}\"?",
     "delete_error": "Could not delete",
     "delete_title": "Delete Supplier",
@@ -2198,11 +2198,11 @@
     "dashboard_02_desc": "Class A represents 80% of your turnover. Focus your efforts on these priority products.",
     "dashboard_02_title": "ABC Analysis",
     "dashboard_03_desc": "The system analyzes your recent sales and automatically suggests products to order.",
-    "dashboard_03_title": "Réappro automatique",
+    "dashboard_03_title": "R�appro automatique",
     "dashboard_04_desc": "Batches with an expiry date less than 30 days away are automatically displayed on the dashboard.",
-    "dashboard_04_title": "Alertes péremption",
+    "dashboard_04_title": "Alertes p�remption",
     "dashboard_05_desc": "Press the Statistics button to access full charts and history of your activity.",
-    "dashboard_05_title": "Graphiques détaillés",
+    "dashboard_05_title": "Graphiques d�taill�s",
     "lots_peremption_desc": "Manage batches with their expiry dates, ideal for food and perishable products.",
     "lots_peremption_title": "Batches & Expiry",
     "pos_01_desc": "Scan items quickly: the basket fills up automatically as you go.",
@@ -2245,7 +2245,7 @@
     "title": "Team Management",
     "user_details_title": "User Details",
     "whatsapp_invite_later": "Later",
-    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
+    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n?? Email: {{email}}\n?? Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device."

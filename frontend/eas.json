@@ -9,8 +9,8 @@
             "distribution": "internal",
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
-                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_fZwXGZxukUyrjTzadbSlKOkzdKs",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_yHVxsHVcaZRylJTGblsKvDnFQQc",
                 "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "849468181940-tpn4oblgdvmk879250p77k5hflmip5aq.apps.googleusercontent.com",
                 "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "849468181940-1khf7gmsrkhc0cf12rhcqe5iut678jr3.apps.googleusercontent.com",
                 "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "849468181940-g1s18ifg1phcs1nc2ohqhk16fktogqi8.apps.googleusercontent.com"
@@ -21,8 +21,8 @@
             "distribution": "internal",
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
-                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_EDNVSdHuDoNChvGFNstSFQGQlFt",
+                "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_fZwXGZxukUyrjTzadbSlKOkzdKs",
+                "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_yHVxsHVcaZRylJTGblsKvDnFQQc",
                 "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "849468181940-tpn4oblgdvmk879250p77k5hflmip5aq.apps.googleusercontent.com",
                 "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "849468181940-1khf7gmsrkhc0cf12rhcqe5iut678jr3.apps.googleusercontent.com",
                 "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "849468181940-g1s18ifg1phcs1nc2ohqhk16fktogqi8.apps.googleusercontent.com"

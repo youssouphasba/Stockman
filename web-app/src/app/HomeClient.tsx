@@ -174,7 +174,6 @@ export default function Home() {
     window.history.replaceState({}, '', url.toString());
   }, []);
 
-  // Clean up legacy demo URL params (runs once on mount)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
@@ -238,7 +237,6 @@ export default function Home() {
     };
   }, [clearQueryParam, demoBootLoading, hydrateAuthenticatedUser, initialLoading, isLogged, searchParams]);
 
-  // Load authenticated user (runs once on mount)
   useEffect(() => {
     void loadUser();
   }, [loadUser]);
@@ -246,8 +244,9 @@ export default function Home() {
   useEffect(() => {
     if (searchParams.get('signup') === 'true') {
       setShowSignup(true);
+      clearQueryParam('signup');
     }
-  }, [searchParams]);
+  }, [searchParams, clearQueryParam]);
 
   useEffect(() => {
     let cancelled = false;

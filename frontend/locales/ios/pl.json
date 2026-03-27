@@ -1,0 +1,5 @@
+{
+  "NSCameraUsageDescription": "Stockman używa aparatu do skanowania kodów kreskowych produktów przy kasie i w inwentarzu, robienia zdjęć artykułów do dołączenia do kart produktów oraz przechwytywania obrazów paragonów lub dokumentów do archiwizacji.",
+  "NSPhotoLibraryUsageDescription": "Stockman uzyskuje dostęp do Twojej biblioteki zdjęć, aby umożliwić Ci wybranie istniejącego obrazu i dołączenie go do karty produktu, paragonu lub dokumentu biznesowego.",
+  "NSPhotoLibraryAddUsageDescription": "Stockman zapisuje wygenerowane obrazy w Twojej bibliotece zdjęć, takie jak paragony, zdjęcia produktów lub wyeksportowane raporty."
+}

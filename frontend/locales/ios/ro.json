@@ -1,0 +1,5 @@
+{
+  "NSCameraUsageDescription": "Stockman folosește camera pentru a scana codurile de bare ale produselor la casă și în inventar, pentru a face fotografii articolelor de atașat la fișele de produs și pentru a captura imagini ale chitanțelor sau documentelor pentru arhivare.",
+  "NSPhotoLibraryUsageDescription": "Stockman accesează biblioteca dvs. foto pentru a vă permite să selectați o imagine existentă și să o atașați la o fișă de produs, o chitanță sau un document de afaceri.",
+  "NSPhotoLibraryAddUsageDescription": "Stockman salvează imaginile generate în biblioteca dvs. foto, cum ar fi chitanțe, fotografii de produs sau rapoarte exportate."
+}

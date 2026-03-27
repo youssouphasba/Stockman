@@ -23,21 +23,21 @@ interface Language {
 }
 
 const LANGUAGES: Language[] = [
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'wo', name: 'Wolof', flag: '🇸🇳' },
-    { code: 'ff', name: 'Pular', flag: '🇸🇳' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'pt', name: 'Português', flag: '🇵🇹' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-    { code: 'ro', name: 'Română', flag: '🇷🇴' },
-    { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-    { code: 'ar', name: 'العربيّة', flag: '🇸🇦' },
-    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'fr', name: 'Fran�ais', flag: '????' },
+    { code: 'en', name: 'English', flag: '????' },
+    { code: 'wo', name: 'Wolof', flag: '????' },
+    { code: 'ff', name: 'Pular', flag: '????' },
+    { code: 'es', name: 'Espa�ol', flag: '????' },
+    { code: 'pt', name: 'Portugu�s', flag: '????' },
+    { code: 'it', name: 'Italiano', flag: '????' },
+    { code: 'de', name: 'Deutsch', flag: '????' },
+    { code: 'pl', name: 'Polski', flag: '????' },
+    { code: 'ro', name: 'Rom�na', flag: '????' },
+    { code: 'tr', name: 'T�rk�e', flag: '????' },
+    { code: 'ar', name: '????????', flag: '????' },
+    { code: 'ru', name: '???????', flag: '????' },
+    { code: 'zh', name: '??', flag: '????' },
+    { code: 'hi', name: '??????', flag: '????' },
 ];
 
 interface LanguagePickerModalProps {

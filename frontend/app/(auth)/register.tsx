@@ -557,6 +557,7 @@ function SelectionModal<T>({
   keyExtractor: (item: T) => string;
   renderItem: (item: T) => React.ReactElement;
 }) {
+  if (!visible) return null;
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>

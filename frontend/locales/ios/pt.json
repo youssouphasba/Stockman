@@ -1,0 +1,5 @@
+{
+  "NSCameraUsageDescription": "O Stockman usa a câmera para escanear códigos de barras de produtos no caixa e no inventário, tirar fotos de itens para anexar às fichas de produtos e capturar imagens de recibos ou documentos para arquivamento.",
+  "NSPhotoLibraryUsageDescription": "O Stockman acessa sua biblioteca de fotos para permitir que você selecione uma imagem existente e a anexe a uma ficha de produto, um recibo ou um documento profissional.",
+  "NSPhotoLibraryAddUsageDescription": "O Stockman salva imagens geradas na sua biblioteca de fotos, como recibos, fotos de produtos ou relatórios exportados."
+}

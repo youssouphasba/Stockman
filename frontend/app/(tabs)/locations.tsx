@@ -765,7 +765,7 @@ export default function LocationsScreen() {
         </ScrollView>
       </LinearGradient>
 
-      <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
+      {!!editing && <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.cardTitle}>Modifier l’emplacement</Text>
@@ -819,7 +819,7 @@ export default function LocationsScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal>}
     </View>
   );
 }

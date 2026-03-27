@@ -212,7 +212,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
         ...currencyOption,
         label: t(`settings_workspace.currencies.${currencyOption.code}`),
     }));
-    const tabs = TABS.map((tab) => ({
+    const tabs = TABS.filter((tab) => {
+        if (tab.id === 'organization' || tab.id === 'documents' || tab.id === 'stores') {
+            return canManageOrgSettings;
+        }
+        return true;
+    }).map((tab) => ({
         ...tab,
         label: t(`settings_workspace.tabs.${tab.id}.label`),
         description: t(`settings_workspace.tabs.${tab.id}.description`),
@@ -240,6 +245,12 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
     useEffect(() => {
         void loadSettings();
     }, []);
+
+    useEffect(() => {
+        if (!tabs.some((tab) => tab.id === activeTab)) {
+            setActiveTab('account');
+        }
+    }, [activeTab, tabs]);
 
     async function loadSettings() {
         setLoading(true);

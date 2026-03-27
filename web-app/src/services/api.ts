@@ -1963,6 +1963,10 @@ export const suppliers = {
     getLogs: (id: string) => request<SupplierCommunicationLog[]>(`/suppliers/${id}/logs`),
     createLog: (id: string, data: SupplierLogCreate) =>
         request<SupplierCommunicationLog>(`/suppliers/${id}/logs`, { method: 'POST', body: data }),
+    getInvitationLink: (id: string) =>
+        request<{ link: string }>(`/suppliers/${id}/invitation-link`),
+    resendInvitation: (id: string) =>
+        request<{ message: string }>(`/suppliers/${id}/resend-invitation`, { method: 'POST' }),
 };
 
 export const procurementAnalytics = {
@@ -2291,10 +2295,12 @@ export const admin = {
         return request<any>(`/admin/products${qs ? `?${qs}` : ''}`);
     },
     getCatalogStats: () => request<any>('/admin/catalog/stats'),
-    listCatalogProducts: (params?: { sector?: string; country?: string; verified?: boolean; search?: string; skip?: number; limit?: number }) => {
+    listCatalogProducts: (params?: { sector?: string; country?: string; verified?: boolean; search?: string; publication_status?: string; assistant_bucket?: string; tag?: string; skip?: number; limit?: number }) => {
         const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ products: any[]; total: number }>(`/admin/catalog/products${query ? `?${query}` : ''}`);
     },
+    getCatalogAssistant: (catalogId?: string) =>
+        request<any>(`/admin/catalog/assistant${catalogId ? `?catalog_id=${encodeURIComponent(catalogId)}` : ''}`),
     createCatalogProduct: (data: {
         display_name?: string;
         category?: string;
@@ -2303,9 +2309,20 @@ export const admin = {
         aliases?: string[];
         country_codes?: string[];
         image_url?: string;
+        unit?: string;
+        tags?: string[];
+        supplier_suggestions?: string[];
+        marketplace_matches?: string[];
+        publication_status?: string;
+        notes?: string;
+        reference_price?: number;
+        sale_price?: number;
+        supplier_hint?: string;
         verified?: boolean;
         added_by_count?: number;
     }) => request<any>('/admin/catalog/products', { method: 'POST', body: data }),
+    bulkUpsertCatalogProducts: (rows: any[]) =>
+        request<any>('/admin/catalog/products/bulk', { method: 'POST', body: { rows } }),
     updateCatalogProduct: (catalogId: string, data: {
         display_name?: string;
         category?: string;
@@ -2314,9 +2331,22 @@ export const admin = {
         aliases?: string[];
         country_codes?: string[];
         image_url?: string;
+        unit?: string;
+        tags?: string[];
+        supplier_suggestions?: string[];
+        marketplace_matches?: string[];
+        publication_status?: string;
+        notes?: string;
+        reference_price?: number;
+        sale_price?: number;
+        supplier_hint?: string;
         verified?: boolean;
         added_by_count?: number;
     }) => request<any>(`/admin/catalog/${catalogId}`, { method: 'PUT', body: data }),
+    bulkUpdateCatalogProducts: (catalogIds: string[], updates: any) =>
+        request<any>('/admin/catalog/bulk', { method: 'PUT', body: { catalog_ids: catalogIds, updates } }),
+    duplicateCatalogProduct: (catalogId: string) =>
+        request<any>('/admin/catalog/duplicate', { method: 'POST', body: { catalog_id: catalogId } }),
     verifyCatalogProduct: (catalogId: string) => request<any>(`/admin/catalog/${catalogId}/verify`, { method: 'PUT' }),
     mergeCatalogProducts: (keepId: string, mergeIds: string[]) =>
         request<any>('/admin/catalog/merge', { method: 'POST', body: { keep_id: keepId, merge_ids: mergeIds } }),
@@ -2355,6 +2385,10 @@ export const admin = {
         const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
         return request<{ items: any[]; total: number }>(`/admin/messages?${params}`);
     },
+    getCGU: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/cgu?lang=${encodeURIComponent(lang)}`),
+    getPrivacy: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/privacy?lang=${encodeURIComponent(lang)}`),
+    updateCGU: (content: string) => request<{ message: string }>('/admin/cgu', { method: 'POST', body: { content } }),
+    updatePrivacy: (content: string) => request<{ message: string }>('/admin/privacy', { method: 'POST', body: { content } }),
     getLeads: () => request<{ contacts: any[]; subscribers: any[] }>('/public/leads'),
 };
 

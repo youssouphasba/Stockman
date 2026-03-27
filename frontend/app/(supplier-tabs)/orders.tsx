@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supplierOrders, supplierInvoices, SupplierOrderData, SupplierInvoiceData } from '../../services/api';
-import { Colors, Spacing, BorderRadius, FontSize, GlassStyle } from '../../constants/theme';
+import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
@@ -30,6 +30,8 @@ type StatusAction = { label: string; status: string; color: string; icon: string
 
 export default function SupplierOrdersScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [ordersList, setOrdersList] = useState<SupplierOrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,10 +114,10 @@ export default function SupplierOrdersScreen() {
 
   function getInvoiceStatusColor(status: string): string {
     switch (status) {
-      case 'paid': return Colors.success;
-      case 'partial': return Colors.warning;
-      case 'unpaid': return Colors.danger;
-      default: return Colors.textMuted;
+      case 'paid': return colors.success;
+      case 'partial': return colors.warning;
+      case 'unpaid': return colors.danger;
+      default: return colors.textMuted;
     }
   }
 
@@ -130,11 +132,11 @@ export default function SupplierOrdersScreen() {
     switch (currentStatus) {
       case 'pending':
         return [
-          { label: t('supplier.accept'), status: 'confirmed', color: Colors.success, icon: 'checkmark-circle-outline' },
-          { label: t('supplier.refuse'), status: 'cancelled', color: Colors.danger, icon: 'close-circle-outline' },
+          { label: t('supplier.accept'), status: 'confirmed', color: colors.success, icon: 'checkmark-circle-outline' },
+          { label: t('supplier.refuse'), status: 'cancelled', color: colors.danger, icon: 'close-circle-outline' },
         ];
       case 'confirmed':
-        return [{ label: t('supplier.ship'), status: 'shipped', color: Colors.secondary, icon: 'airplane-outline' }];
+        return [{ label: t('supplier.ship'), status: 'shipped', color: colors.secondary, icon: 'airplane-outline' }];
       default:
         return [];
     }
@@ -238,31 +240,31 @@ export default function SupplierOrdersScreen() {
 
   function getStatusColor(status: string): string {
     switch (status) {
-      case 'pending': return Colors.warning;
-      case 'confirmed': return Colors.info;
-      case 'shipped': return Colors.secondary;
-      case 'delivered': return Colors.success;
-      case 'cancelled': return Colors.danger;
-      default: return Colors.textMuted;
+      case 'pending': return colors.warning;
+      case 'confirmed': return colors.info;
+      case 'shipped': return colors.secondary;
+      case 'delivered': return colors.success;
+      case 'cancelled': return colors.danger;
+      default: return colors.textMuted;
     }
   }
 
   if (loading) {
     return (
-      <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.secondary} />
+          <ActivityIndicator size="large" color={colors.secondary} />
         </View>
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={[Colors.bgDark, Colors.bgMid, Colors.bgLight]} style={styles.gradient}>
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.secondary} />}
       >
         {/* Orders / Invoices toggle */}
         <View style={styles.viewToggle}>
@@ -270,7 +272,7 @@ export default function SupplierOrdersScreen() {
             style={[styles.toggleBtn, viewMode === 'orders' && styles.toggleBtnActive]}
             onPress={() => setViewMode('orders')}
           >
-            <Ionicons name="receipt-outline" size={16} color={viewMode === 'orders' ? '#fff' : Colors.textMuted} />
+            <Ionicons name="receipt-outline" size={16} color={viewMode === 'orders' ? '#fff' : colors.textMuted} />
             <Text style={[styles.toggleText, viewMode === 'orders' && styles.toggleTextActive]}>
               {t('orders.received_orders')}
             </Text>
@@ -279,7 +281,7 @@ export default function SupplierOrdersScreen() {
             style={[styles.toggleBtn, viewMode === 'invoices' && styles.toggleBtnActive]}
             onPress={() => { setViewMode('invoices'); loadInvoices(); }}
           >
-            <Ionicons name="document-text-outline" size={16} color={viewMode === 'invoices' ? '#fff' : Colors.textMuted} />
+            <Ionicons name="document-text-outline" size={16} color={viewMode === 'invoices' ? '#fff' : colors.textMuted} />
             <Text style={[styles.toggleText, viewMode === 'invoices' && styles.toggleTextActive]}>
               {t('supplier.invoices')}
             </Text>
@@ -387,7 +389,7 @@ export default function SupplierOrdersScreen() {
 
         {ordersList.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={48} color={Colors.textMuted} />
+            <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
             <Text style={styles.emptyText}>{t('orders.no_orders')} {filter !== 'all' ? getFilterLabel(filter).toLowerCase() : ''}</Text>
           </View>
         )}
@@ -411,12 +413,12 @@ export default function SupplierOrdersScreen() {
           </View>
 
           {invoicesLoading ? (
-            <ActivityIndicator size="large" color={Colors.secondary} style={{ marginTop: Spacing.xl }} />
+            <ActivityIndicator size="large" color={colors.secondary} style={{ marginTop: Spacing.xl }} />
           ) : invoices.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
+              <Ionicons name="document-text-outline" size={48} color={colors.textMuted} />
               <Text style={styles.emptyText}>{t('supplier.no_invoices')}</Text>
-              <Text style={{ color: Colors.textMuted, fontSize: FontSize.sm, textAlign: 'center' }}>{t('supplier.no_invoices_hint')}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, textAlign: 'center' }}>{t('supplier.no_invoices_hint')}</Text>
             </View>
           ) : (
             invoices.map((inv) => {
@@ -456,22 +458,22 @@ export default function SupplierOrdersScreen() {
       </ScrollView>
 
       {/* Detail Modal */}
-      <Modal visible={showDetail} animationType="slide" transparent>
+      {showDetail && <Modal visible={showDetail} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
               <TouchableOpacity onPress={() => setShowDetail(false)}>
-                <Ionicons name="close" size={24} color={Colors.text} />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <View style={{ position: 'absolute', top: 12, right: 60 }}>
               <TouchableOpacity
-                style={{ padding: 8, backgroundColor: Colors.primary + '20', borderRadius: 20 }}
+                style={{ padding: 8, backgroundColor: colors.primary + '20', borderRadius: 20 }}
                 onPress={() => setShowChat(true)}
               >
-                <Ionicons name="chatbubbles-outline" size={20} color={Colors.primary} />
+                <Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
@@ -544,7 +546,7 @@ export default function SupplierOrdersScreen() {
                 {/* Generate Invoice button */}
                 {['confirmed', 'shipped', 'delivered'].includes(selectedOrder.status) && (
                   <TouchableOpacity
-                    style={[styles.modalActionBtn, { backgroundColor: Colors.info, marginTop: Spacing.sm, flex: 0 }]}
+                    style={[styles.modalActionBtn, { backgroundColor: colors.info, marginTop: Spacing.sm, flex: 0 }]}
                     onPress={handleGenerateFromDetail}
                   >
                     <Ionicons name="document-text-outline" size={18} color="#fff" />
@@ -555,7 +557,7 @@ export default function SupplierOrdersScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </Modal>}
 
       {selectedOrder && (
         <ChatModal
@@ -567,20 +569,20 @@ export default function SupplierOrdersScreen() {
       )}
 
       {/* Invoice Create Modal */}
-      <Modal visible={showInvoiceCreate} animationType="slide" transparent>
+      {showInvoiceCreate && <Modal visible={showInvoiceCreate} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('supplier.create_invoice')}</Text>
               <TouchableOpacity onPress={() => setShowInvoiceCreate(false)}>
-                <Ionicons name="close" size={24} color={Colors.text} />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScroll}>
               <Text style={styles.detailSectionTitle}>{t('supplier.select_order')}</Text>
               {invoiceableOrders.length === 0 ? (
-                <Text style={{ color: Colors.textMuted, padding: Spacing.md }}>{t('supplier.no_invoiceable_orders')}</Text>
+                <Text style={{ color: colors.textMuted, padding: Spacing.md }}>{t('supplier.no_invoiceable_orders')}</Text>
               ) : (
                 invoiceableOrders.map((order) => (
                   <TouchableOpacity
@@ -592,18 +594,18 @@ export default function SupplierOrdersScreen() {
                     onPress={() => setInvoiceOrderId(order.order_id)}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: Colors.text, fontWeight: '600', fontSize: FontSize.sm }}>
+                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: FontSize.sm }}>
                         {order.shopkeeper_name}
                       </Text>
-                      <Text style={{ color: Colors.textMuted, fontSize: FontSize.xs }}>
+                      <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
                         {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
                       </Text>
                     </View>
-                    <Text style={{ color: Colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
+                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
                       {formatNumber(order.total_amount)} {t('common.currency_short')}
                     </Text>
                     {invoiceOrderId === order.order_id && (
-                      <Ionicons name="checkmark-circle" size={20} color={Colors.success} style={{ marginLeft: 8 }} />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.success} style={{ marginLeft: 8 }} />
                     )}
                   </TouchableOpacity>
                 ))
@@ -615,7 +617,7 @@ export default function SupplierOrdersScreen() {
                 value={invoiceNumber}
                 onChangeText={setInvoiceNumber}
                 placeholder={t('supplier.invoice_number_placeholder')}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
 
               <Text style={[styles.detailSectionTitle, { marginTop: Spacing.md }]}>{t('supplier.invoice_notes')}</Text>
@@ -624,7 +626,7 @@ export default function SupplierOrdersScreen() {
                 value={invoiceNotes}
                 onChangeText={setInvoiceNotes}
                 placeholder={t('supplier.invoice_notes_placeholder')}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
             </ScrollView>
@@ -642,16 +644,16 @@ export default function SupplierOrdersScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal>}
 
       {/* Invoice Detail Modal */}
-      <Modal visible={showInvoiceDetail} animationType="slide" transparent>
+      {showInvoiceDetail && <Modal visible={showInvoiceDetail} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedInvoice?.invoice_number}</Text>
               <TouchableOpacity onPress={() => setShowInvoiceDetail(false)}>
-                <Ionicons name="close" size={24} color={Colors.text} />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -709,7 +711,7 @@ export default function SupplierOrdersScreen() {
                 <View style={[styles.modalActions, { marginTop: Spacing.lg }]}>
                   {selectedInvoice.status !== 'paid' && (
                     <TouchableOpacity
-                      style={[styles.modalActionBtn, { backgroundColor: Colors.success }]}
+                      style={[styles.modalActionBtn, { backgroundColor: colors.success }]}
                       onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'paid')}
                     >
                       <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
@@ -718,7 +720,7 @@ export default function SupplierOrdersScreen() {
                   )}
                   {selectedInvoice.status !== 'partial' && (
                     <TouchableOpacity
-                      style={[styles.modalActionBtn, { backgroundColor: Colors.warning }]}
+                      style={[styles.modalActionBtn, { backgroundColor: colors.warning }]}
                       onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'partial')}
                     >
                       <Ionicons name="hourglass-outline" size={18} color="#fff" />
@@ -727,7 +729,7 @@ export default function SupplierOrdersScreen() {
                   )}
                   {selectedInvoice.status !== 'unpaid' && (
                     <TouchableOpacity
-                      style={[styles.modalActionBtn, { backgroundColor: Colors.danger }]}
+                      style={[styles.modalActionBtn, { backgroundColor: colors.danger }]}
                       onPress={() => handleInvoiceStatusChange(selectedInvoice.invoice_id, 'unpaid')}
                     >
                       <Ionicons name="close-circle-outline" size={18} color="#fff" />
@@ -739,12 +741,12 @@ export default function SupplierOrdersScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </Modal>}
     </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -752,10 +754,10 @@ const styles = StyleSheet.create({
   viewToggle: {
     flexDirection: 'row',
     marginBottom: Spacing.md,
-    backgroundColor: Colors.glass,
+    backgroundColor: colors.glass,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
     padding: 3,
   },
   toggleBtn: {
@@ -768,12 +770,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: colors.secondary,
   },
   toggleText: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   toggleTextActive: {
     color: '#fff',
@@ -788,7 +790,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.secondary,
+    backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -798,25 +800,25 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     marginBottom: Spacing.sm,
   },
   orderSelectItemActive: {
-    borderColor: Colors.secondary,
-    backgroundColor: Colors.secondary + '10',
+    borderColor: colors.secondary,
+    backgroundColor: colors.secondary + '10',
   },
   invoiceInput: {
-    backgroundColor: Colors.inputBg || Colors.glass,
+    backgroundColor: colors.inputBg || colors.glass,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
-    color: Colors.text,
+    borderColor: colors.divider,
+    color: colors.text,
     fontSize: FontSize.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   invoiceSaveBtn: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: colors.secondary,
     marginHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
@@ -829,7 +831,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: FontSize.xl,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
     marginBottom: Spacing.md,
   },
   filtersScroll: { marginBottom: Spacing.md },
@@ -838,24 +840,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.glass,
+    backgroundColor: colors.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
   },
   filterChipActive: {
-    backgroundColor: Colors.secondary + '30',
-    borderColor: Colors.secondary,
+    backgroundColor: colors.secondary + '30',
+    borderColor: colors.secondary,
   },
   filterText: {
     fontSize: FontSize.sm,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   filterTextActive: {
-    color: Colors.secondary,
+    color: colors.secondary,
     fontWeight: '600',
   },
   orderCard: {
-    ...GlassStyle,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
@@ -868,11 +873,11 @@ const styles = StyleSheet.create({
   orderShopkeeper: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   orderDate: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   statusBadge: {
@@ -887,7 +892,7 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.xs,
     marginLeft: Spacing.xs,
     textTransform: 'uppercase',
@@ -903,19 +908,19 @@ const styles = StyleSheet.create({
   },
   orderItems: {
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   orderTotal: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: colors.divider,
     paddingTop: Spacing.sm,
   },
   actionBtn: {
@@ -937,7 +942,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSize.md,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   // Modal
   modalOverlay: {
@@ -946,7 +951,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.bgDark,
+    backgroundColor: colors.bgDark,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '85%',
@@ -958,12 +963,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   modalTitle: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   modalScroll: {
     padding: Spacing.md,
@@ -974,13 +979,13 @@ const styles = StyleSheet.create({
   detailSectionTitle: {
     fontSize: FontSize.xs,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textTransform: 'uppercase',
     marginBottom: Spacing.xs,
   },
   detailText: {
     fontSize: FontSize.md,
-    color: Colors.text,
+    color: colors.text,
   },
   itemRow: {
     flexDirection: 'row',
@@ -988,23 +993,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   itemInfo: { flex: 1 },
   itemName: {
     fontSize: FontSize.sm,
-    color: Colors.text,
+    color: colors.text,
     fontWeight: '600',
   },
   itemQty: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   itemTotal: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   totalRow: {
     flexDirection: 'row',
@@ -1012,18 +1017,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderTopWidth: 2,
-    borderTopColor: Colors.secondary + '40',
+    borderTopColor: colors.secondary + '40',
     marginTop: Spacing.sm,
   },
   totalLabel: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: Colors.text,
+    color: colors.text,
   },
   totalValue: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: Colors.secondary,
+    color: colors.secondary,
   },
   modalActions: {
     flexDirection: 'row',

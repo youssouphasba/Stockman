@@ -1,6 +1,6 @@
 # STOCKMAN — Business Plan 2026
 
-> Solution SaaS mobile-first de gestion commerciale destinée en priorité aux commerces de proximité, boutiques, épiceries, supérettes et points de vente indépendants.  
+> Solution SaaS mobile-first de gestion commerciale destinée en priorité aux commerces de proximité, boutiques, épiceries, supérettes et points de vente indépendants. 
 > La restauration constitue une verticale complémentaire déjà couverte par le produit, mais la cible principale reste le commerce.
 
 ---
@@ -457,7 +457,7 @@ Cible réaliste avec les moyens actuels :
 
 | Concurrent | Forces | Faiblesses | Prix |
 |------------|--------|------------|------|
-| **Loyverse** ⚠️ | POS complet (quand actif) | Site web en panne / potentiellement inactif (02/2026), pas de hors-ligne, anglais uniquement, pas de CRM | Gratuit (basique) |
+| **Loyverse** ⚠ | POS complet (quand actif) | Site web en panne / potentiellement inactif (02/2026), pas de hors-ligne, anglais uniquement, pas de CRM | Gratuit (basique) |
 | **Square POS** | Écosystème paiement intégré | Non disponible en Afrique, commissions sur transactions | Gratuit + commission |
 | **Lightspeed** | POS + inventaire robuste | Très cher, conçu pour les grands détaillants | 69-199 €/mois |
 | **Cashpad** (France) | POS tout-en-un restauration | Spécialisé restauration, pas de gestion de stock poussée | 49-99 €/mois |
@@ -486,7 +486,7 @@ Cible réaliste avec les moyens actuels :
 | **Sello** | 100K+ | E-commerce multi-canal | Orienté e-commerce, pas adapté commerce physique | 29-199€/mois |
 | **SaleStock** | 50K+ | Ciblé Afrique de l'Ouest | Fonctionnalités limitées, pas d'IA, UX moyenne | Gratuit (limité) |
 
-> ⚠️ **Constat Play Store** : Aucune des apps populaires ne combine gestion de stock + POS + CRM + marketplace fournisseurs + IA + Multilingue. La plupart sont en anglais et n'offrent que de l'inventaire basique.
+> ⚠ **Constat Play Store** : Aucune des apps populaires ne combine gestion de stock + POS + CRM + marketplace fournisseurs + IA + Multilingue. La plupart sont en anglais et n'offrent que de l'inventaire basique.
 
 ### 6.4 Concurrents indirects
 
@@ -502,41 +502,41 @@ Le principal concurrent de Stockman n'est pas un logiciel, mais **le cahier et l
 
 ### 6.5 Analyse comparative détaillée — Toutes fonctionnalités
 
-| Critère | Stockman | Sortly | inFlow | Odoo | Loyverse ⚠️ | Apps Play Store |
-|---------|----------|--------|--------|------|------------|----------------|
-| Suivi stock temps réel | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ Basique |
-| Alertes stock bas | ✅ Auto+IA | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Gestion lots & expiration | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Historique mouvements | ✅ | ✅ | ✅ | ✅ | ❌ | ⚠️ Limité |
-| Scan code-barres | ✅ | ✅ | ✅ | ❌ Mobile | ✅ | ✅ |
-| POS intégré | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| CRM intégré | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **🤖 Intelligence Artificielle** | ✅ Assistant+Prédictions | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **🛍️ Marketplace fournisseurs** | ✅ Intégré | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **💬 Messagerie commerçant/fournisseur** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **📦 Suivi de commandes** | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| **🌍 15 langues** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **📚 Guides intégrés** | ✅ + Audio | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Mode hors-ligne complet | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Support en français | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Critère | Stockman | Sortly | inFlow | Odoo | Loyverse (incertain) | Apps Play Store |
+|---------|----------|--------|--------|------|----------------------|----------------|
+| Suivi stock temps réel | Oui | Oui | Oui | Oui | Oui | Basique |
+| Alertes stock bas | Oui (Auto+IA) | Non | Oui | Oui | Non | Non |
+| Gestion lots & expiration | Oui | Non | Oui | Oui | Non | Non |
+| Historique mouvements | Oui | Oui | Oui | Oui | Non | Limité |
+| Scan code-barres | Oui | Oui | Oui | Non (mobile) | Oui | Oui |
+| POS intégré | Oui | Non | Non | Oui | Oui | Non |
+| CRM intégré | Oui | Non | Non | Oui | Non | Non |
+| **Intelligence Artificielle** | Oui (Assistant+Prédictions) | Non | Non | Non | Non | Non |
+| **Marketplace fournisseurs** | Oui (Intégré) | Non | Non | Non | Non | Non |
+| **Messagerie commerçant/fournisseur** | Oui | Non | Non | Non | Non | Non |
+| **Suivi de commandes** | Oui | Non | Oui | Oui | Non | Non |
+| **15 langues** | Oui | Non | Non | Non | Non | Non |
+| **Guides intégrés** | Oui (+ Audio) | Non | Non | Non | Non | Non |
+| Mode hors-ligne complet | Oui | Non | Non | Non | Non | Non |
+| Support en français | Oui | Non | Non | Oui | Non | Non |
 | Prix petits commerçants | **2 500 FCFA / 6,99€** | 29$/mois | 89$/mois | 24€+/mois | Gratuit? | Gratuit (pubs) |
 
 ### 6.6 Positionnement Stockman
 
 ```
-                    Prix élevé
-                        |
-       inFlow ●    Vend/Lightspeed ●
-                        |
-          Zoho ●   Sortly ●
-        ────────────────┼──────────────── Fonctionnalités
-          Basique       |         Complètes
-                        |
-              Dukka ●   |    ★ STOCKMAN ★
-                        |
-        Loyverse ●      |
-                        |
-                    Prix bas
+ Prix élevé
+ |
+ inFlow ● Vend/Lightspeed ●
+ |
+ Zoho ● Sortly ●
+ ────────────────┼──────────────── Fonctionnalités
+ Basique | Complètes
+ |
+ Dukka ● | ★ STOCKMAN ★
+ |
+ Loyverse ● |
+ |
+ Prix bas
 ```
 
 **Stockman** se positionne comme **une offre très complète à un prix accessible**, avec une combinaison rare de gestion de stock avancée, POS, CRM, approvisionnement, accompagnement et usage mobile-first.
@@ -551,18 +551,18 @@ Le principal concurrent de Stockman n'est pas un logiciel, mais **le cahier et l
 
 | # | Avantage exclusif | Concurrence |
 |---|-------------------|-------------|
-| 1 | **🤖 IA intégrée** — Assistant intelligent, prédictions de vente, suggestions de réappro | ❌ Aucun concurrent à ce prix |
-| 2 | **🛍️ Marketplace fournisseurs** — Commander sans quitter l'app | ❌ Aucun concurrent |
-| 3 | **💬 Messagerie commerçant/fournisseur** — Négocier directement | ❌ Aucun concurrent |
-| 4 | **📦 Suivi de commande** — Commandé → Expédié → Livré | ⚠️ inFlow/Odoo seulement |
-| 5 | **🌍 Wolof + Audio** — Traduction et guides audio en Wolof | ❌ Aucun concurrent |
-| 6 | **📚 Guides intégrés** — Tutoriels, vidéos, guides métier dans l'app | ❌ Aucun concurrent mobile |
-| 7 | **📱 Mode hors-ligne complet** — Stock, POS, tout fonctionne sans internet | ❌ Aucun concurrent |
-| 8 | **🛒 POS + Stock + CRM** — Tout-en-un dans une seule app | ⚠️ Odoo uniquement (24€+/mois) |
-| 9 | **💰 À partir de 2 500 FCFA/mois** — Un positionnement prix très agressif pour ce niveau de fonctionnalités | ❌ Concurrents : 29-89$/mois |
-| 10 | **🇸🇳🇫🇷 Double marché** — Adapté Sénégal ET France dans la même app | ❌ Aucun concurrent |
-| 11 | **💳 Paiements intégrés** — Stores d'applications et mobile money selon les marchés | ⚠️ Limité chez les concurrents |
-| 12 | **📈 Montée en gamme claire** — Starter, Pro et Enterprise avec progression lisible | ❌ Peu lisible chez la plupart des concurrents |
+| 1 | **IA intégrée** — Assistant intelligent, prédictions de vente, suggestions de réappro | Aucun concurrent à ce prix |
+| 2 | **Marketplace fournisseurs** — Commander sans quitter l'app | Aucun concurrent |
+| 3 | **Messagerie commerçant/fournisseur** — Négocier directement | Aucun concurrent |
+| 4 | **Suivi de commande** — Commandé → Expédié → Livré | ⚠ inFlow/Odoo seulement |
+| 5 | **Wolof + Audio** — Traduction et guides audio en Wolof | Aucun concurrent |
+| 6 | **Guides intégrés** — Tutoriels, vidéos, guides métier dans l'app | Aucun concurrent mobile |
+| 7 | **Mode hors-ligne complet** — Stock, POS, tout fonctionne sans internet | Aucun concurrent |
+| 8 | **POS + Stock + CRM** — Tout-en-un dans une seule app | ⚠ Odoo uniquement (24€+/mois) |
+| 9 | **À partir de 2 500 FCFA/mois** — Un positionnement prix très agressif pour ce niveau de fonctionnalités | Concurrents : 29-89$/mois |
+| 10 | **Double marché** — Adapté Sénégal ET France dans la même app | Aucun concurrent |
+| 11 | **Paiements intégrés** — Stores d'applications et mobile money selon les marchés | ⚠ Limité chez les concurrents |
+| 12 | **Montée en gamme claire** — Starter, Pro et Enterprise avec progression lisible | Peu lisible chez la plupart des concurrents |
 
 ### Notre avantage concurrentiel durable
 
@@ -593,7 +593,7 @@ Le principal concurrent de Stockman n'est pas un logiciel, mais **le cahier et l
 
 | Source | Description | Statut | Potentiel |
 |--------|-------------|--------|-----------|
-| **Marketplace Fournisseurs** | Commission sur les commandes passées via la marketplace | ✅ Intégré | 3-5% par commande |
+| **Marketplace Fournisseurs** | Commission sur les commandes passées via la marketplace | Intégré | 3-5% par commande |
 | **Montée en gamme Pro / Enterprise** | Augmentation de l'ARPU grâce aux besoins d'équipe, de multi-boutiques et de pilotage web | Déjà en place | +30% à +50% ARPU |
 | **Commissions paiement** | Intégration mobile money pour encaissements directs | An 2 | 1-2% par transaction |
 | **Données anonymisées** | Études de marché sectorielles (agrégées et anonymes) | An 3 | Vente B2B |
@@ -698,28 +698,28 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 ```
 ┌─────────────────────┐
-│  SENSIBILISATION     │  Réseaux sociaux, terrain, bouche-à-oreille
-│  10 000 personnes    │
+│ SENSIBILISATION │ Réseaux sociaux, terrain, bouche-à-oreille
+│ 10 000 personnes │
 └──────────┬──────────┘
-           ▼
+ ▼
 ┌─────────────────────┐
-│  INSCRIPTION         │  Téléchargement + création de compte
-│  3 000 (taux: 30%)  │
+│ INSCRIPTION │ Téléchargement + création de compte
+│ 3 000 (taux: 30%) │
 └──────────┬──────────┘
-           ▼
+ ▼
 ┌─────────────────────┐
-│  ESSAI GRATUIT       │  1 mois d'utilisation complète du produit
-│  3 000 utilisateurs  │
+│ ESSAI GRATUIT │ 1 mois d'utilisation complète du produit
+│ 3 000 utilisateurs │
 └──────────┬──────────┘
-           ▼
+ ▼
 ┌─────────────────────┐
-│  CONVERSION PAYANT   │  Passage à l'abonnement
-│  1 500 (taux: 50%)  │
+│ CONVERSION PAYANT │ Passage à l'abonnement
+│ 1 500 (taux: 50%) │
 └──────────┬──────────┘
-           ▼
+ ▼
 ┌─────────────────────┐
-│  FIDÉLISATION        │  Rétention + parrainage
-│  1 200+ actifs       │
+│ FIDÉLISATION │ Rétention + parrainage
+│ 1 200+ actifs │
 └─────────────────────┘
 ```
 
@@ -921,37 +921,37 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 ### 14.1 Persona Clients
 
 **Persona A : Alioune, le Boutiquier (Dakar)**
-*   **Profil** : 35 ans, gère une boutique de quartier à HLM Grand Yoff.
-*   **Problème** : Perd de l'argent car ne note pas tout, oublie les dettes clients, stocke au hasard.
-*   **Besoin** : Une appli simple, en Wolof, qui marche sans internet, pour savoir "combien j'ai gagné aujourd'hui". L'IA lui suggère quand réapprovisionner et l'alerte sur ses produits les plus rentables.
-*   **Canal** : Radio locale, bouche-à-oreille, agent terrain.
+* **Profil** : 35 ans, gère une boutique de quartier à HLM Grand Yoff.
+* **Problème** : Perd de l'argent car ne note pas tout, oublie les dettes clients, stocke au hasard.
+* **Besoin** : Une appli simple, en Wolof, qui marche sans internet, pour savoir "combien j'ai gagné aujourd'hui". L'IA lui suggère quand réapprovisionner et l'alerte sur ses produits les plus rentables.
+* **Canal** : Radio locale, bouche-à-oreille, agent terrain.
 
 **Persona B : Sophie, la Créatrice (Paris/Instagram)**
-*   **Profil** : 28 ans, vend des bijoux faits main sur Instagram et les marchés l'été.
-*   **Problème** : Gère son stock sur un cahier, perd du temps à faire des factures manuelles.
-*   **Besoin** : Un outil "pro" pour faire des factures propres, gérer son stock de perles, et avoir une traçabilité claire.
-*   **Canal** : Instagram, TikTok, groupes Facebook entrepreneurs.
+* **Profil** : 28 ans, vend des bijoux faits main sur Instagram et les marchés l'été.
+* **Problème** : Gère son stock sur un cahier, perd du temps à faire des factures manuelles.
+* **Besoin** : Un outil "pro" pour faire des factures propres, gérer son stock de perles, et avoir une traçabilité claire.
+* **Canal** : Instagram, TikTok, groupes Facebook entrepreneurs.
 
 ### 14.2 Mix Marketing (4P)
 
-*   **Produit** : Application mobile SaaS. Design accessible, mais fonctionnalités métier solides.
-*   **Prix** : Stratégie de pénétration accessible. **1 mois gratuit** pour tous, puis **2 500 FCFA** (Starter), **4 900 FCFA** (Pro) ou **9 900 FCFA** (Enterprise).
-*   **Place (Distribution)** :
-    *   Directe : Play Store / App Store.
-    *   Terrain : Réseau d'agents ambassadeurs (porte-à-porte).
-    *   B2B : Partenariats avec grossistes qui recommandent l'app à leurs clients et vice versa.
-*   **Promotion** :
-    *   Contenu viral TikTok : "Comment j'ai sauvé ma boutique avec mon téléphone".
-    *   Preuve sociale : Témoignages vidéo de commerçants locaux respectés.
-    *   Offre de lancement : "Parrainage mois gratuits".
+* **Produit** : Application mobile SaaS. Design accessible, mais fonctionnalités métier solides.
+* **Prix** : Stratégie de pénétration accessible. **1 mois gratuit** pour tous, puis **2 500 FCFA** (Starter), **4 900 FCFA** (Pro) ou **9 900 FCFA** (Enterprise).
+* **Place (Distribution)** :
+ * Directe : Play Store / App Store.
+ * Terrain : Réseau d'agents ambassadeurs (porte-à-porte).
+ * B2B : Partenariats avec grossistes qui recommandent l'app à leurs clients et vice versa.
+* **Promotion** :
+ * Contenu viral TikTok : "Comment j'ai sauvé ma boutique avec mon téléphone".
+ * Preuve sociale : Témoignages vidéo de commerçants locaux respectés.
+ * Offre de lancement : "Parrainage mois gratuits".
 
 ---
 
 ## 15. Analyse Financière Complémentaire
 
 ### 15.1 BFR et Trésorerie
-*   **BFR (Besoin en Fonds de Roulement)** : Négatif (ressource en fonds de roulement). Les clients paient l'abonnement en début de mois/année, le service est rendu ensuite. Excellent pour la trésorerie.
-*   **Flux de trésorerie** : Les encaissements sont immédiats (mobile money, carte, stores), les décaissements sont mensuels. Pas de décalage de trésorerie significatif.
+* **BFR (Besoin en Fonds de Roulement)** : Négatif (ressource en fonds de roulement). Les clients paient l'abonnement en début de mois/année, le service est rendu ensuite. Excellent pour la trésorerie.
+* **Flux de trésorerie** : Les encaissements sont immédiats (mobile money, carte, stores), les décaissements sont mensuels. Pas de décalage de trésorerie significatif.
 
 #### Synthèse de trésorerie simplifiée
 
@@ -965,17 +965,17 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 > Modèle simplifié hors fiscalité. L'entreprise individuelle est soumise à l'IR (micro-BIC ou réel simplifié). Les encaissements sont quasi-immédiats grâce au prépaiement par abonnement.
 
 ### 15.2 Indicateurs de Rentabilité SaaS
-*   **Marge Brute** : Estimée à **90%** (Modèle SaaS, coûts serveurs marginaux).
-*   **Point Mort (Break-even)** : Atteint dès **~183 utilisateurs payants** (couvre les frais fixes de ~830 €/mois).
-*   **Magic Number** : Objectif > 0,75 (pour 1 € investi en marketing, 0,75 € d'ARR généré la première année).
+* **Marge Brute** : Estimée à **90%** (Modèle SaaS, coûts serveurs marginaux).
+* **Point Mort (Break-even)** : Atteint dès **~183 utilisateurs payants** (couvre les frais fixes de ~830 €/mois).
+* **Magic Number** : Objectif > 0,75 (pour 1 € investi en marketing, 0,75 € d'ARR généré la première année).
 
 ### 15.3 Valorisation Potentielle (Sortie)
 À 3 ans, avec 10 500 utilisateurs et environ **575 K€ d'ARR** (revenu annuel récurrent) :
-*   Valorisation classique SaaS (x5 à x10 l'ARR) : **entre 2,9 M€ et 5,8 M€**.
-*   Cibles de rachat potentielles :
-    *   Opérateurs Télécoms (Orange, MTN) cherchant des services B2B.
-    *   Fintechs (Wave, OPay) voulant intégrer la gestion au paiement.
-    *   Acteurs ERP (Odoo, Sage) cherchant à pénétrer le marché informel.
+* Valorisation classique SaaS (x5 à x10 l'ARR) : **entre 2,9 M€ et 5,8 M€**.
+* Cibles de rachat potentielles :
+ * Opérateurs Télécoms (Orange, MTN) cherchant des services B2B.
+ * Fintechs (Wave, OPay) voulant intégrer la gestion au paiement.
+ * Acteurs ERP (Odoo, Sage) cherchant à pénétrer le marché informel.
 
 ---
 
@@ -985,18 +985,18 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 
 | Trimestre | Objectifs | Statut |
 |-----------|-----------|--------|
-| **Q1** | ✅ MVP complet (POS, Stock, CRM, Dashboard, Alertes, Comptabilité) | **Fait** |
-| **Q1** | ✅ Assistant IA (Gemini) avec prédictions et suggestions | **Fait** |
-| **Q1** | ✅ Système de paiement réel : stores d'applications et mobile money | **Fait** |
-| **Q1** | ✅ Plans Starter / Pro / Enterprise | **Fait** |
-| **Q1** | ✅ Localisation complète : 15 langues | **Fait** |
-| **Q1** | ✅ Déploiement backend de production | **Fait** |
-| **Q1** | ✅ Vérification compte et authentification sécurisée | **Fait** |
-| **Q1** | ✅ Mode hors-ligne complet avec sync automatique | **Fait** |
-| **Q1** | ✅ Guides interactifs intégrés par écran | **Fait** |
-| **Q1** | ✅ Centre d'aide et support IA in-app | **Fait** |
-| **Q1** | ✅ Messagerie commerçant/fournisseur temps réel | **Fait** |
-| **Q1** | ✅ Déploiement des parcours de démonstration (commerce, restaurant, Enterprise web) | **Fait** |
+| **Q1** | MVP complet (POS, Stock, CRM, Dashboard, Alertes, Comptabilité) | **Fait** |
+| **Q1** | Assistant IA (Gemini) avec prédictions et suggestions | **Fait** |
+| **Q1** | Système de paiement réel : stores d'applications et mobile money | **Fait** |
+| **Q1** | Plans Starter / Pro / Enterprise | **Fait** |
+| **Q1** | Localisation complète : 15 langues | **Fait** |
+| **Q1** | Déploiement backend de production | **Fait** |
+| **Q1** | Vérification compte et authentification sécurisée | **Fait** |
+| **Q1** | Mode hors-ligne complet avec sync automatique | **Fait** |
+| **Q1** | Guides interactifs intégrés par écran | **Fait** |
+| **Q1** | Centre d'aide et support IA in-app | **Fait** |
+| **Q1** | Messagerie commerçant/fournisseur temps réel | **Fait** |
+| **Q1** | Déploiement des parcours de démonstration (commerce, restaurant, Enterprise web) | **Fait** |
 | **Q2** | Lancement Sénégal, 500 premiers utilisateurs, itérations UX | En cours |
 | **Q3** | Lancement France, programme de parrainage, formations terrain | Planifié |
 | **Q4** | 1 500 utilisateurs payants, optimisation performance | Planifié |
@@ -1030,18 +1030,18 @@ Cette inclusion linguistique est un levier majeur de différenciation pour les c
 | Prix SN | 2 500 FCFA | 4 900 FCFA | 9 900 FCFA | Gratuit | N/A | N/A |
 | Prix EU | 6,99 € | 9,99 € | 14,99 € | Gratuit | Gratuit + commission | 99 € |
 | Essai gratuit | 1 mois | 1 mois | 1 mois | N/A | N/A | 14 jours |
-| Mode hors-ligne | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| POS | ✅ | ✅ | ✅ Mobile + Web | ✅ | ✅ | ✅ |
-| CRM | ❌ | ✅ | ✅ Avancé | ❌ | ❌ | ✅ |
-| IA intégrée | Limitée | ✅ Étendue | ✅ Illimitée | ❌ | ❌ | ❌ |
-| Comptabilité | ✅ | ✅ | ✅ Avancée | ❌ | ❌ | ❌ |
-| Marketplace fournisseurs | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Multi-magasin | ❌ | ✅ (2 boutiques) | ✅ Illimité | ✅ | ✅ | ✅ |
-| Back-office web | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Mode hors-ligne | Oui | Oui | Oui | Non | Non | Non |
+| POS | Oui | Oui | Mobile + Web | Oui | Oui | Oui |
+| CRM | Non | Oui | Avancé | Non | Non | Oui |
+| IA intégrée | Limitée | Étendue | Illimitée | Non | Non | Non |
+| Comptabilité | Oui | Oui | Avancée | Non | Non | Non |
+| Marketplace fournisseurs | Oui | Oui | Oui | Non | Non | Non |
+| Multi-magasin | Non | Oui (2 boutiques) | Illimité | Oui | Oui | Oui |
+| Back-office web | Non | Non | Oui | Non | Non | Oui |
 | Utilisateurs | 1 | Jusqu'à 5 | Illimité | Illimité | Illimité | Illimité |
-| Paiement mobile money | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| 15 langues | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Support français | ✅ | ✅ | ✅ Prioritaire | ❌ | ❌ | ❌ |
+| Paiement mobile money | Oui | Oui | Oui | Non | Non | Non |
+| 15 langues | Oui | Oui | Oui | Non | Non | Non |
+| Support français | Oui | Oui | Prioritaire | Non | Non | Non |
 
 ### B. Calcul du CAC (Coût d'Acquisition Client)
 
@@ -1053,7 +1053,7 @@ CAC = 3 900 / 1 120 = 3,48 €
 Coût agent terrain par vendeur : 1 000 FCFA ≈ 1,52 €
 
 LTV (avec churn 4%) = ARPU / churn = 4,55 / 0,04 = 113,75 €
-Ratio LTV/CAC = 113,75 / 3,48 = 32,7x ✅ (>3x = excellent)
+Ratio LTV/CAC = 113,75 / 3,48 = 32,7x (>3x = excellent)
 ```
 
 ### C. Taille de l'équipe projetée

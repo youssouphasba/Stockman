@@ -462,7 +462,7 @@ export default function ProjectView({ currency }: { currency: string }) {
 
     // ─── Modal: New Project ───
     const renderNewProjectModal = () => (
-        <Modal visible={showNewProject} transparent animationType="slide">
+        {showNewProject && <Modal visible={showNewProject} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -493,12 +493,12 @@ export default function ProjectView({ currency }: { currency: string }) {
                     </View>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 
     // ─── Modal: Allocate Material ───
     const renderAllocateModal = () => (
-        <Modal visible={showAllocate} transparent animationType="slide">
+        {showAllocate && <Modal visible={showAllocate} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -550,12 +550,12 @@ export default function ProjectView({ currency }: { currency: string }) {
                     </View>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 
     // ─── Modal: Labor ───
     const renderLaborModal = () => (
-        <Modal visible={showLabor} transparent animationType="slide">
+        {showLabor && <Modal visible={showLabor} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -599,12 +599,12 @@ export default function ProjectView({ currency }: { currency: string }) {
                     </View>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 
     // ─── Modal: Situation ───
     const renderSituationModal = () => (
-        <Modal visible={showSituation} transparent animationType="slide">
+        {showSituation && <Modal visible={showSituation} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -634,7 +634,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                     </View>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 
     if (loading) {

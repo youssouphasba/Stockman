@@ -13,10 +13,10 @@ type MeasurementAwareProduct = {
 const UNIT_ALIASES: Record<string, string> = {
     piece: 'piece',
     pieces: 'piece',
+    'pi�ce': 'piece',
+    'pi�ces': 'piece',
     'pièce': 'piece',
     'pièces': 'piece',
-    'piÃ¨ce': 'piece',
-    'piÃ¨ces': 'piece',
     unite: 'piece',
     unit: 'piece',
     units: 'piece',

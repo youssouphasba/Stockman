@@ -56,7 +56,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        {visible && <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.overlay}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -134,7 +134,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                     </View>
                 </KeyboardAvoidingView>
             </View>
-        </Modal>
+        </Modal>}
     );
 }
 

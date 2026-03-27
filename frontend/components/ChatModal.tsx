@@ -200,7 +200,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
   }, [user, colors]);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    {visible && <Modal visible={visible} animationType="slide" transparent>
       <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
         <View style={[styles.container, { backgroundColor: colors.bgMid }]}>
           {/* Header */}
@@ -334,7 +334,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
           )}
         </View>
       </View>
-    </Modal>
+    </Modal>}
   );
 }
 

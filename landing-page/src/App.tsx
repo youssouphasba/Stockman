@@ -13,6 +13,7 @@ import DeleteAccount from './DeleteAccount';
 import EnterprisePage from './EnterprisePage';
 import BusinessTypesPage from './BusinessTypesPage';
 import DemoSelectorPage from './DemoSelectorPage';
+import SupplierInvite from './SupplierInvite';
 
 import CookieBanner from './components/CookieBanner';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -377,6 +378,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/delete-account" element={<DeleteAccount />} />
+            <Route path="/invite/supplier" element={<SupplierInvite />} />
             <Route
               path="/dashboard"
               element={<FeaturePage featureKey="dashboard" icon="Dashboard" galleryKeys={["kpi", "stats", "charts", "analysis", "history"]} />}

@@ -44,6 +44,9 @@ export default function LineDiscountModal({
         onClose();
     };
 
+    if (!visible) return null;
+
+
     return (
         <Modal visible={visible} animationType="fade" transparent>
             <View style={styles.modalOverlay}>

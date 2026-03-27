@@ -159,7 +159,7 @@ export default function ReservationsScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
+      {showCreate && <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
         <View style={styles.modalBackdrop}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
             <View style={styles.modalCard}>
@@ -182,7 +182,7 @@ export default function ReservationsScreen() {
             </View>
           </ScrollView>
         </View>
-      </Modal>
+      </Modal>}
     </LinearGradient>
   );
 }

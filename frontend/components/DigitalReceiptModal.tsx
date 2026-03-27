@@ -55,7 +55,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
     };
 
     return (
-        <Modal visible={visible} animationType="fade" transparent>
+        {visible && <Modal visible={visible} animationType="fade" transparent>
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.bgMid, borderColor: colors.glassBorder }]}>
                     <View style={styles.modalHeader}>
@@ -106,7 +106,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                     </TouchableOpacity>
                 </View>
             </View>
-        </Modal>
+        </Modal>}
     );
 }
 

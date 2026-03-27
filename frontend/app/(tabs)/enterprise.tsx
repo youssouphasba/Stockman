@@ -401,7 +401,7 @@ export default function EnterpriseScreen() {
         </ScrollView>
       </LinearGradient>
 
-      <Modal visible={showCreateModal} transparent animationType="fade" onRequestClose={() => setShowCreateModal(false)}>
+      {showCreateModal && <Modal visible={showCreateModal} transparent animationType="fade" onRequestClose={() => setShowCreateModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -440,7 +440,7 @@ export default function EnterpriseScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal>}
     </View>
   );
 }

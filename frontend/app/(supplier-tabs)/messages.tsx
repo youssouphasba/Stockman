@@ -22,6 +22,7 @@ import i18n from '../../services/i18n';
 export default function SupplierMessagesScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
@@ -155,11 +156,11 @@ export default function SupplierMessagesScreen() {
           {item.content}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 2 }}>
-          <Text style={{ fontSize: 9, color: isMe ? 'rgba(255,255,255,0.6)' : colors.textMuted }}>
+          <Text style={{ fontSize: 9, color: isMe ? 'rgba(255,255,255,0.75)' : colors.textMuted }}>
             {formatTime(item.created_at)}
           </Text>
           {isMe && (
-            <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={12} color={item.read ? '#4FC3F7' : 'rgba(255,255,255,0.5)'} />
+            <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={12} color={item.read ? '#7DD3FC' : 'rgba(255,255,255,0.72)'} />
           )}
         </View>
       </View>
@@ -269,9 +270,9 @@ export default function SupplierMessagesScreen() {
           />
 
           {/* Input bar */}
-          <View style={[styles.inputBar, { backgroundColor: colors.bgDark, borderTopColor: colors.divider }]}>
+          <View style={styles.inputBar}>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.glass, color: colors.text, borderColor: colors.glassBorder }]}
+              style={styles.input}
               placeholder={t('supplier.write_message')}
               placeholderTextColor={colors.textMuted}
               value={newMessage}
@@ -299,7 +300,7 @@ export default function SupplierMessagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   screen: {
     flex: 1,
   },
@@ -342,6 +343,8 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     gap: Spacing.sm,
     borderTopWidth: 1,
+    backgroundColor: colors.bgDark,
+    borderTopColor: colors.divider,
   },
   input: {
     flex: 1,
@@ -351,6 +354,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     fontSize: FontSize.sm,
     maxHeight: 100,
+    backgroundColor: colors.glass,
+    color: colors.text,
+    borderColor: colors.glassBorder,
   },
   sendBtn: {
     width: 44, height: 44, borderRadius: 22,
