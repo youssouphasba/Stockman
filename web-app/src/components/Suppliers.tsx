@@ -432,6 +432,7 @@ export default function Suppliers() {
 
     const openManualOrderDraft = (supplier?: any, presetItems: any[] = []) => {
         setMarketplaceSupplierDetail(null);
+        setShowSupplierDetails(false);
         setOrderForm({
             supplier_id: supplier?.supplier_id || '',
             supplier_user_id: '',
@@ -444,6 +445,7 @@ export default function Suppliers() {
 
     const openMarketplaceOrderDraft = async (supplier: any, presetItem?: any) => {
         const supplierUserId = supplier?.supplier_user_id || supplier?.user_id;
+        setShowSupplierDetails(false);
         setOrderForm({
             supplier_id: '',
             supplier_user_id: supplierUserId || '',
@@ -2032,18 +2034,18 @@ export default function Suppliers() {
 
             {/* Modal: New Order */}
             {showOrderModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white">Créer un Bon de Commande</h2>
+                            <h2 className="text-xl font-bold text-white">{t('suppliers.order_modal.title', 'Créer un Bon de Commande')}</h2>
                             <button onClick={requestCloseOrderModal} className="p-2 text-slate-400 hover:text-white">
                                 <X size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleCreateOrder} className="p-6 space-y-6">
+                        <form onSubmit={handleCreateOrder} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">Fournisseur</label>
+                                    <label className="block text-sm font-bold text-slate-400 mb-1">{t('suppliers.order_modal.supplier', 'Fournisseur')}</label>
                                     {isMarketplaceOrder && marketplaceOrderSupplier ? (
                                         <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3">
                                             <div className="text-sm font-bold text-white">
@@ -2051,8 +2053,8 @@ export default function Suppliers() {
                                             </div>
                                             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
                                                 <span>{marketplaceOrderSupplier.city || 'Marketplace'}</span>
-                                                <span>Catalogue: {(marketplaceSupplierDetail?.catalog || []).length} produits</span>
-                                                <span>Note: {(marketplaceOrderSupplier.rating || 0).toFixed(1)}/5</span>
+                                                <span>{t('suppliers.order_modal.catalog_count', 'Catalogue')}: {(marketplaceSupplierDetail?.catalog || []).length} {t('suppliers.order_modal.products', 'produits')}</span>
+                                                <span>{t('suppliers.order_modal.rating', 'Note')}: {(marketplaceOrderSupplier.rating || 0).toFixed(1)}/5</span>
                                             </div>
                                         </div>
                                     ) : (
@@ -2062,13 +2064,13 @@ export default function Suppliers() {
                                             onChange={e => setOrderForm({ ...orderForm, supplier_id: e.target.value, supplier_user_id: '' })}
                                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
                                         >
-                                            <option value="" className="bg-slate-800">Sélectionner...</option>
+                                            <option value="" className="bg-slate-800">{t('suppliers.order_modal.select', 'Sélectionner...')}</option>
                                             {manualSuppliers.map(s => <option key={s.supplier_id} value={s.supplier_id} className="bg-slate-800">{s.name}</option>)}
                                         </select>
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">Livraison Prévue</label>
+                                    <label className="block text-sm font-bold text-slate-400 mb-1">{t('suppliers.order_modal.expected_delivery', 'Livraison Prévue')}</label>
                                     <input
                                         type="date"
                                         value={orderForm.expected_delivery}
@@ -2080,119 +2082,121 @@ export default function Suppliers() {
 
                             {/* Item Selector */}
                             <div className="bg-white/5 p-4 rounded-xl space-y-4 border border-white/5">
-                                <div className="grid grid-cols-12 gap-2">
-                                    <div className="col-span-6">
-                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Produit</label>
-                                        <select
-                                            className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none"
-                                            onChange={(e) => {
-                                                const prodId = e.target.value;
-                                                if (!prodId) return;
-                                                const product = isMarketplaceOrder
-                                                    ? orderProductOptions.find((p: any) => p.catalog_id === prodId)
-                                                    : orderProductOptions.find((p: any) => p.product_id === prodId);
-                                                if (product) {
-                                                    const existing = orderForm.items.find(i => i.product_id === prodId);
-                                                    const nextQuantity = isMarketplaceOrder
-                                                        ? Number(product.min_order_quantity) || 1
-                                                        : 1;
-                                                    const unitPrice = isMarketplaceOrder
-                                                        ? Number(product.price) || 0
-                                                        : Number(product.cost_price) || 0;
-                                                    if (existing) {
-                                                        setOrderForm({
-                                                            ...orderForm,
-                                                            items: orderForm.items.map(i => i.product_id === prodId ? { ...i, quantity: i.quantity + nextQuantity } : i)
-                                                        });
-                                                    } else {
-                                                        setOrderForm({
-                                                            ...orderForm,
-                                                            items: [...orderForm.items, {
-                                                                product_id: isMarketplaceOrder ? product.catalog_id : product.product_id,
-                                                                name: product.name,
-                                                                quantity: nextQuantity,
-                                                                unit_price: unitPrice
-                                                            }]
-                                                        });
-                                                    }
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t('suppliers.order_modal.add_product', 'Ajouter un produit')}</label>
+                                    <select
+                                        className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-primary/50"
+                                        onChange={(e) => {
+                                            const prodId = e.target.value;
+                                            if (!prodId) return;
+                                            const product = isMarketplaceOrder
+                                                ? orderProductOptions.find((p: any) => p.catalog_id === prodId)
+                                                : orderProductOptions.find((p: any) => p.product_id === prodId);
+                                            if (product) {
+                                                const existing = orderForm.items.find(i => i.product_id === prodId);
+                                                const nextQuantity = isMarketplaceOrder
+                                                    ? Number(product.min_order_quantity) || 1
+                                                    : 1;
+                                                const unitPrice = isMarketplaceOrder
+                                                    ? Number(product.price) || 0
+                                                    : Number(product.cost_price) || 0;
+                                                if (existing) {
+                                                    setOrderForm({
+                                                        ...orderForm,
+                                                        items: orderForm.items.map(i => i.product_id === prodId ? { ...i, quantity: i.quantity + nextQuantity } : i)
+                                                    });
+                                                } else {
+                                                    setOrderForm({
+                                                        ...orderForm,
+                                                        items: [...orderForm.items, {
+                                                            product_id: isMarketplaceOrder ? product.catalog_id : product.product_id,
+                                                            name: product.name,
+                                                            quantity: nextQuantity,
+                                                            unit_price: unitPrice
+                                                        }]
+                                                    });
                                                 }
-                                                e.target.value = "";
-                                            }}
-                                        >
-                                            <option value="">Ajouter un produit...</option>
-                                            {orderProductOptions.map((p: any) => (
-                                                <option
-                                                    key={isMarketplaceOrder ? p.catalog_id : p.product_id}
-                                                    value={isMarketplaceOrder ? p.catalog_id : p.product_id}
-                                                >
-                                                    {p.name}
-                                                    {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unité'}` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="col-span-6 flex items-end">
-                                        <p className="text-xs text-slate-500 italic">
-                                            {isMarketplaceOrder
-                                                ? "Le catalogue du fournisseur sélectionné est utilisé pour préparer la commande et comparer les prix."
-                                                : "Sélectionnez un produit interne pour l'ajouter à la liste."}
-                                        </p>
-                                    </div>
+                                            }
+                                            e.target.value = "";
+                                        }}
+                                    >
+                                        <option value="">{t('suppliers.order_modal.select_product', 'Ajouter un produit...')}</option>
+                                        {orderProductOptions.map((p: any) => (
+                                            <option
+                                                key={isMarketplaceOrder ? p.catalog_id : p.product_id}
+                                                value={isMarketplaceOrder ? p.catalog_id : p.product_id}
+                                            >
+                                                {p.name}
+                                                {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unité'}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
-                                <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar pr-2">
-                                    {orderForm.items.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/5">
-                                            <div className="flex-1 font-bold text-white text-sm">{item.name}</div>
-                                            <div className="w-20">
-                                                <input
-                                                    type="number"
-                                                    value={item.quantity}
-                                                    onChange={e => setOrderForm({
-                                                        ...orderForm,
-                                                        items: orderForm.items.map((it, i) => i === idx ? { ...it, quantity: parseInt(e.target.value) || 0 } : it)
-                                                    })}
-                                                    className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-center"
-                                                />
-                                            </div>
-                                            <div className="w-24">
-                                                <input
-                                                    type="number"
-                                                    value={item.unit_price}
-                                                    onChange={e => setOrderForm({
-                                                        ...orderForm,
-                                                        items: orderForm.items.map((it, i) => i === idx ? { ...it, unit_price: parseInt(e.target.value) || 0 } : it)
-                                                    })}
-                                                    className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-right"
-                                                />
-                                            </div>
-                                            <button
-                                                onClick={() => setOrderForm({
-                                                    ...orderForm,
-                                                    items: orderForm.items.filter((_, i) => i !== idx)
-                                                })}
-                                                className="text-rose-500 hover:text-rose-400 p-1"
-                                            >
-                                                <X size={18} />
-                                            </button>
+                                {orderForm.items.length > 0 && (
+                                    <>
+                                        <div className="grid grid-cols-12 gap-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                            <div className="col-span-5">{t('suppliers.order_modal.col_product', 'Produit')}</div>
+                                            <div className="col-span-2 text-center">{t('suppliers.order_modal.col_qty', 'Qté')}</div>
+                                            <div className="col-span-3 text-right">{t('suppliers.order_modal.col_price', 'Prix unit.')}</div>
+                                            <div className="col-span-2 text-right">{t('suppliers.order_modal.col_total', 'Total')}</div>
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                                            {orderForm.items.map((item, idx) => (
+                                                <div key={idx} className="grid grid-cols-12 gap-3 items-center bg-white/5 p-3 rounded-lg border border-white/5">
+                                                    <div className="col-span-5 font-bold text-white text-sm truncate">{item.name}</div>
+                                                    <div className="col-span-2">
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            value={item.quantity}
+                                                            onChange={e => setOrderForm({
+                                                                ...orderForm,
+                                                                items: orderForm.items.map((it, i) => i === idx ? { ...it, quantity: parseInt(e.target.value) || 0 } : it)
+                                                            })}
+                                                            className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-primary/50 outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-3 text-right text-sm text-slate-300 font-medium">
+                                                        {formatCurrency(item.unit_price)}
+                                                    </div>
+                                                    <div className="col-span-2 flex items-center justify-end gap-2">
+                                                        <span className="text-sm text-white font-bold">{formatCurrency(item.unit_price * item.quantity)}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOrderForm({
+                                                                ...orderForm,
+                                                                items: orderForm.items.filter((_, i) => i !== idx)
+                                                            })}
+                                                            className="text-rose-500 hover:text-rose-400 p-0.5"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {orderForm.items.length === 0 && (
+                                    <p className="text-center text-sm text-slate-500 py-4">{t('suppliers.order_modal.empty', 'Aucun produit ajouté')}</p>
+                                )}
                             </div>
 
                             <div className="flex justify-between items-center pt-4 border-t border-white/10">
                                 <div className="text-slate-400">
-                                    Total: <span className="text-white font-bold">{orderTotal.toLocaleString()} F</span>
+                                    Total: <span className="text-white font-bold text-lg">{formatCurrency(orderTotal)}</span>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={requestCloseOrderModal} className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:text-white transition-all">Annuler</button>
+                                    <button type="button" onClick={requestCloseOrderModal} className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:text-white transition-all">{t('common.cancel', 'Annuler')}</button>
                                     <button
                                         type="submit"
                                         disabled={submitting || orderForm.items.length === 0}
                                         className="btn-primary px-8 flex items-center gap-2"
                                     >
                                         {submitting ? <RefreshCcw size={18} className="animate-spin" /> : <ClipboardList size={18} />}
-                                        Créer le Bon
+                                        {t('suppliers.order_modal.create', 'Créer le Bon')}
                                     </button>
                                 </div>
                             </div>
