@@ -2260,13 +2260,13 @@ export default function AdminDashboard() {
                                             disabled={replying || !replyContent.trim()}
                                             className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-primary/80 transition-all"
                                         >
-                                            {replying ? '�' : 'Envoyer'}
+                                            {replying ? '...' : 'Envoyer'}
                                         </button>
                                     </div>
                                 )}
                             </div>
                         )) : (
-                            <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">Tous les tickets sont r�solus ?</div>
+                            <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">{'Tous les tickets sont r\u00e9solus ?'}</div>
                         )}
                     </div>
                 </div>

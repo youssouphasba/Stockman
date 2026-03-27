@@ -7750,6 +7750,9 @@ async def admin_catalog_list(
     country: Optional[str] = None,
     verified: Optional[bool] = None,
     search: Optional[str] = None,
+    publication_status: Optional[str] = None,
+    assistant_bucket: Optional[str] = None,
+    tag: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     user: User = Depends(require_superadmin),
@@ -18327,6 +18330,43 @@ async def get_marketplace_supplier(supplier_user_id: str, user: User = Depends(r
         "catalog": catalog,
         "ratings": ratings
     }
+
+@api_router.post("/marketplace/suppliers/{supplier_user_id}/connect", response_model=Supplier)
+async def connect_marketplace_supplier(
+    supplier_user_id: str,
+    user: User = Depends(require_permission("suppliers", "write")),
+):
+    owner_id = get_owner_id(user)
+    existing_supplier = await db.suppliers.find_one(
+        {"user_id": owner_id, "linked_user_id": supplier_user_id},
+        {"_id": 0},
+    )
+    if existing_supplier:
+        return Supplier(**existing_supplier)
+
+    profile = await db.supplier_profiles.find_one({"user_id": supplier_user_id}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Fournisseur marketplace non trouvé")
+
+    supplier = Supplier(
+        user_id=owner_id,
+        store_id=user.active_store_id,
+        name=profile.get("company_name") or "Fournisseur marketplace",
+        contact_name=profile.get("company_name") or None,
+        email=profile.get("email") or None,
+        phone=profile.get("phone") or None,
+        address=profile.get("address") or None,
+        notes=profile.get("description") or None,
+        products_supplied=", ".join(profile.get("categories") or []),
+        delivery_delay=f"{int(profile.get('average_delivery_days') or 0)} jour(s)" if profile.get("average_delivery_days") is not None else "",
+        payment_conditions="À confirmer avec le fournisseur",
+    )
+    supplier_doc = supplier.model_dump()
+    supplier_doc["linked_user_id"] = supplier_user_id
+    supplier_doc["source"] = "marketplace"
+    supplier_doc["is_connected"] = True
+    await db.suppliers.insert_one(supplier_doc)
+    return supplier
 
 @api_router.get("/marketplace/search-products")
 async def search_marketplace_products(

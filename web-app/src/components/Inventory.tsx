@@ -138,6 +138,11 @@ export default function Inventory() {
     const [supplierLinksByProduct, setSupplierLinksByProduct] = useState<Record<string, any[]>>({});
     const [formSupplierIds, setFormSupplierIds] = useState<string[]>([]);
     const [formPrimarySupplierId, setFormPrimarySupplierId] = useState('');
+    const [supplierPickerProduct, setSupplierPickerProduct] = useState<any>(null);
+    const [isSupplierPickerOpen, setIsSupplierPickerOpen] = useState(false);
+    const [pickerSupplierIds, setPickerSupplierIds] = useState<string[]>([]);
+    const [pickerPrimarySupplierId, setPickerPrimarySupplierId] = useState('');
+    const [supplierPickerSaving, setSupplierPickerSaving] = useState(false);
     const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
 
     // AI Replenishment advice
@@ -407,8 +412,102 @@ export default function Inventory() {
         setIsProductModalOpen(true);
     };
 
+    const handleOpenSupplierMarketplace = (product: any) => {
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('stockman_supplier_marketplace_context', JSON.stringify({
+                productName: product?.name || '',
+                category: product?.category_name || product?.category_id || '',
+                productId: product?.product_id || '',
+                countryCode: currentUser?.country_code || '',
+                city: currentUser?.city || '',
+            }));
+            window.dispatchEvent(new CustomEvent('stockman:navigate-tab', {
+                detail: { tab: 'suppliers' },
+            }));
+            return;
+        }
+    };
+
     const handleManageProductSuppliers = (product: any) => {
-        handleOpenEditModal(product);
+        const productLinks = supplierLinksByProduct[product.product_id] || [];
+        setSupplierPickerProduct(product);
+        setPickerSupplierIds(productLinks.map((link) => link.supplier_id).filter(Boolean));
+        setPickerPrimarySupplierId(productLinks.find((link) => link.is_preferred)?.supplier_id || '');
+        setIsSupplierPickerOpen(true);
+    };
+
+    const togglePickerSupplier = (supplierId: string) => {
+        setPickerSupplierIds((prev) => {
+            if (prev.includes(supplierId)) {
+                const next = prev.filter((id) => id !== supplierId);
+                if (pickerPrimarySupplierId === supplierId) {
+                    setPickerPrimarySupplierId(next[0] || '');
+                }
+                return next;
+            }
+            const next = [...prev, supplierId];
+            if (!pickerPrimarySupplierId) {
+                setPickerPrimarySupplierId(supplierId);
+            }
+            return next;
+        });
+    };
+
+    const handleSaveProductSuppliers = async () => {
+        if (!supplierPickerProduct) return;
+        setSupplierPickerSaving(true);
+        try {
+            const productId = supplierPickerProduct.product_id;
+            const existingLinks = supplierLinksByProduct[productId] || [];
+            const selectedIds = Array.from(new Set(pickerSupplierIds.filter(Boolean)));
+            const selectedSet = new Set(selectedIds);
+            const syncErrors: string[] = [];
+
+            for (const link of existingLinks) {
+                if (!selectedSet.has(link.supplier_id)) {
+                    try {
+                        await supplierProductsApi.unlink(link.link_id);
+                    } catch (err: any) {
+                        syncErrors.push(err?.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`);
+                    }
+                }
+            }
+
+            for (const supplierId of selectedIds) {
+                const existing = existingLinks.find((link) => link.supplier_id === supplierId);
+                if (existing) {
+                    try {
+                        await supplierProductsApi.update(existing.link_id, {
+                            is_preferred: pickerPrimarySupplierId === supplierId,
+                            supplier_price: Number(supplierPickerProduct.purchase_price) || existing.supplier_price || 0,
+                        });
+                    } catch (err: any) {
+                        syncErrors.push(err?.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`);
+                    }
+                } else {
+                    try {
+                        await supplierProductsApi.link({
+                            supplier_id: supplierId,
+                            product_id: productId,
+                            supplier_price: Number(supplierPickerProduct.purchase_price) || 0,
+                            is_preferred: pickerPrimarySupplierId === supplierId,
+                        });
+                    } catch (err: any) {
+                        syncErrors.push(err?.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`);
+                    }
+                }
+            }
+
+            if (syncErrors.length > 0) {
+                alert(syncErrors[0]);
+            }
+
+            setIsSupplierPickerOpen(false);
+            setSupplierPickerProduct(null);
+            await fetchProducts();
+        } finally {
+            setSupplierPickerSaving(false);
+        }
     };
 
     const handleOpenHistory = (product: any) => {
@@ -744,6 +843,21 @@ export default function Inventory() {
             const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
             return { supplier, score };
         })
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+        });
+
+    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+        .map((supplier: any) => {
+            const supplied = normalizeMatchText(supplier?.products_supplied || '');
+            const tokens = normalizeMatchText(`${supplierPickerProduct?.name || ''} ${supplierPickerProduct?.category_id || ''}`)
+                .split(' ')
+                .filter((token) => token.length >= 3);
+            const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+            return { supplier, score };
+        })
+        .filter(({ supplier, score }) => score > 0 || pickerSupplierIds.includes(supplier.supplier_id))
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
@@ -1233,18 +1347,18 @@ export default function Inventory() {
                                                 <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleManageProductSuppliers(p)}
+                                                    onClick={() => handleOpenSupplierMarketplace(p)}
                                                     className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 transition-colors hover:bg-rose-500/20"
                                                 >
                                                     <Plus size={12} />
                                                     Associer un fournisseur
                                                 </button>
-                                                <p className="mt-1 text-[11px] text-slate-300">Produit non pr?par? pour le r?approvisionnement.</p>
+                                                <p className="mt-1 text-[11px] text-slate-300">Produit non préparé pour le réapprovisionnement.</p>
                                             </div>
                                         ) : (
                                             <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                                                 <span className="text-xs font-bold text-white">
-                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) ? principal d?fini` : `${productLinks.length} fournisseur(s) ? principal manquant`}
+                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) • principal défini` : `${productLinks.length} fournisseur(s) • principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
                                                     <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
@@ -1255,7 +1369,7 @@ export default function Inventory() {
                                                     className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition-colors hover:bg-white/10"
                                                 >
                                                     <Edit size={12} />
-                                                    G?rer les fournisseurs
+                                                    Gérer les fournisseurs
                                                 </button>
                                             </div>
                                         )}
@@ -1421,6 +1535,87 @@ export default function Inventory() {
             </Modal>
 
             {/* Product Add/Edit Modal */}
+            <Modal
+                isOpen={isSupplierPickerOpen}
+                onClose={() => {
+                    if (supplierPickerSaving) return;
+                    setIsSupplierPickerOpen(false);
+                    setSupplierPickerProduct(null);
+                }}
+                title={supplierPickerProduct ? `Fournisseurs pour ${supplierPickerProduct.name}` : 'Associer un fournisseur'}
+                maxWidth="lg"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        Choisis ici les fournisseurs qui vendent ce produit, puis définis le fournisseur principal.
+                    </p>
+                    {rankedSuppliersForPicker.length > 0 ? (
+                        <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                            {rankedSuppliersForPicker.map(({ supplier, score }) => {
+                                const selected = pickerSupplierIds.includes(supplier.supplier_id);
+                                return (
+                                    <div key={supplier.supplier_id} className={`rounded-xl border px-4 py-3 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-white/5'}`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <label className="flex items-center gap-3 text-sm text-white">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selected}
+                                                    onChange={() => togglePickerSupplier(supplier.supplier_id)}
+                                                />
+                                                <span className="font-semibold">{supplier.name}</span>
+                                            </label>
+                                            {score > 0 && (
+                                                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300">
+                                                    Match produit
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="mt-2 text-xs text-slate-400">
+                                            {supplier.city || 'Ville non renseignée'}{supplier.products_supplied ? ` • ${supplier.products_supplied}` : ''}
+                                        </div>
+                                        {selected && (
+                                            <label className="mt-3 flex items-center gap-2 text-xs text-slate-300">
+                                                <input
+                                                    type="radio"
+                                                    name="picker_primary_supplier"
+                                                    checked={pickerPrimarySupplierId === supplier.supplier_id}
+                                                    onChange={() => setPickerPrimarySupplierId(supplier.supplier_id)}
+                                                />
+                                                Fournisseur principal
+                                            </label>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
+                            Aucun fournisseur pertinent n’a été trouvé pour ce produit.
+                        </div>
+                    )}
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsSupplierPickerOpen(false);
+                                setSupplierPickerProduct(null);
+                            }}
+                            className="rounded-lg px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void handleSaveProductSuppliers()}
+                            disabled={supplierPickerSaving}
+                            className="rounded-lg bg-primary px-5 py-2 font-medium text-white disabled:opacity-60"
+                        >
+                            {supplierPickerSaving ? 'Enregistrement...' : 'Enregistrer les liaisons'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             <Modal
                 isOpen={isProductModalOpen}
                 onClose={() => setIsProductModalOpen(false)}

@@ -386,6 +386,20 @@ export default function Home() {
     }
   }, [activeTab, isBillingOnly, isLogged]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleTabNavigation = (event: Event) => {
+      const customEvent = event as CustomEvent<{ tab?: string }>;
+      const nextTab = customEvent.detail?.tab;
+      if (!nextTab) return;
+      setActiveTab(nextTab);
+    };
+    window.addEventListener('stockman:navigate-tab', handleTabNavigation as EventListener);
+    return () => {
+      window.removeEventListener('stockman:navigate-tab', handleTabNavigation as EventListener);
+    };
+  }, [setActiveTab]);
+
   const openActiveTabGuide = useCallback(() => {
     if (!activeGuideKey || typeof window === 'undefined') return;
     window.dispatchEvent(new CustomEvent('stockman:open-guide', {

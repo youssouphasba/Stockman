@@ -30,6 +30,7 @@ type CatalogEntry = {
     sector?: string | null;
     country_codes?: string[] | null;
     barcodes?: string[] | null;
+    aliases?: string[] | null;
     tags?: string[] | null;
     image_url?: string | null;
     unit?: string | null;
@@ -250,6 +251,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [filters, setFilters] = useState({
         search: '',
         sector: '',
+        country: '',
+        verified: 'all' as 'all' | 'verified' | 'pending',
         publication_status: '',
         assistant_bucket: 'all' as AssistantBucket,
     });
@@ -264,6 +267,9 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         const params: any = { limit: 200 };
         if (filters.search.trim()) params.search = filters.search.trim();
         if (filters.sector) params.sector = filters.sector;
+        if (filters.country.trim()) params.country = filters.country.trim().toUpperCase();
+        if (filters.verified === 'verified') params.verified = true;
+        if (filters.verified === 'pending') params.verified = false;
         if (filters.publication_status) params.publication_status = filters.publication_status;
         if (filters.assistant_bucket !== 'all') params.assistant_bucket = filters.assistant_bucket;
 
@@ -306,6 +312,15 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const dominantSector = Object.entries(stats?.by_sector || {}).sort((a: any, b: any) => Number(b[1]) - Number(a[1]))[0]?.[0];
     const assistantStats = stats?.assistant || {};
     const assistantSuggestions = assistant?.suggestions || {};
+    const availableCountries = useMemo(() => {
+        const fromStats = Object.keys(stats?.by_country || {});
+        const fromItems = Array.from(
+            new Set(
+                items.flatMap((item) => (item.country_codes || []).map((code) => String(code || '').trim().toUpperCase())).filter(Boolean),
+            ),
+        );
+        return Array.from(new Set([...fromStats, ...fromItems])).sort();
+    }, [items, stats]);
 
     const openCreate = async () => {
         setEditingEntry(null);
@@ -641,11 +656,17 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
                     <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Nom, tag, code-barres..." className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
                     <select value={filters.sector} onChange={(event) => setFilters((current) => ({ ...current, sector: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="">Tous les secteurs</option>{BUSINESS_SECTORS.map((sector) => <option key={sector.key} value={sector.key}>{sector.label}</option>)}</select>
+                    <input list="admin-catalog-country-options" value={filters.country} onChange={(event) => setFilters((current) => ({ ...current, country: event.target.value.toUpperCase() }))} placeholder="Pays (SN, CI, FR...)" className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
+                    <datalist id="admin-catalog-country-options">
+                        {availableCountries.map((country) => <option key={country} value={country} />)}
+                    </datalist>
+                    <select value={filters.verified} onChange={(event) => setFilters((current) => ({ ...current, verified: event.target.value as 'all' | 'verified' | 'pending' }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="all">Tous les statuts de vérification</option><option value="verified">Vérifiés</option><option value="pending">À relire</option></select>
                     <select value={filters.publication_status} onChange={(event) => setFilters((current) => ({ ...current, publication_status: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="">Tous les workflows</option>{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
                     <select value={filters.assistant_bucket} onChange={(event) => setFilters((current) => ({ ...current, assistant_bucket: event.target.value as AssistantBucket }))} className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary"><option value="all">Vue globale</option><option value="incomplete">Produits incomplets</option><option value="missing_image">Sans image</option><option value="missing_category">Sans catégorie</option><option value="missing_price">Sans prix</option><option value="missing_unit">Sans unité</option><option value="missing_marketplace_link">Sans lien marketplace</option><option value="published">Publiés</option><option value="needs_review">À corriger</option></select>
+                    <button type="button" onClick={() => setFilters({ search: '', sector: '', country: '', verified: 'all', publication_status: '', assistant_bucket: 'all' })} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 font-semibold text-white transition-all hover:bg-white/10">Réinitialiser</button>
                 </div>
             </div>
 
@@ -668,6 +689,13 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
             <div className="glass-card p-6">
                 {loading ? (
                     <div className="py-16 text-center text-slate-400">Chargement du catalogue…</div>
+                ) : items.length === 0 ? (
+                    <div className="py-16 text-center">
+                        <p className="text-lg font-black text-white">Aucun produit catalogue trouvé</p>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Vérifie les filtres actifs ou réinitialise la recherche pour revoir tout le catalogue.
+                        </p>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[1280px]">
@@ -702,6 +730,9 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                                             <div className="font-bold text-white">{entry.display_name}</div>
                                             <div className="text-sm text-slate-400">{entry.category || 'Sans catégorie'} • {getBusinessSectorLabel(entry.sector)}</div>
                                             <div className="mt-1 text-xs text-slate-500">{(entry.country_codes || []).join(', ') || 'Sans pays'} • {formatDate(entry.updated_at || entry.created_at)}</div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Alias : {entry.aliases?.length ? entry.aliases.join(', ') : 'Aucun'} • Ajouts : {entry.added_by_count ?? 0}
+                                            </div>
                                         </td>
                                         <td className="py-4 pr-4">
                                             <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${statusClass(entry.publication_status)}`}>{PUBLICATION_OPTIONS.find((option) => option.value === (entry.publication_status || 'draft'))?.label || 'Brouillon'}</span>

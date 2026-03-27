@@ -2070,16 +2070,19 @@ export const settings = {
 
 // Marketplace
 export const marketplace = {
-    searchSuppliers: (params?: { q?: string; category?: string; city?: string; min_rating?: number; verified_only?: boolean }) => {
+    searchSuppliers: (params?: { q?: string; category?: string; city?: string; country_code?: string; min_rating?: number; verified_only?: boolean }) => {
         const qs = new URLSearchParams();
         if (params?.q) qs.append('q', params.q);
         if (params?.category) qs.append('category', params.category);
         if (params?.city) qs.append('city', params.city);
+        if (params?.country_code) qs.append('country_code', params.country_code);
         if (params?.min_rating) qs.append('min_rating', params.min_rating.toString());
         if (params?.verified_only) qs.append('verified_only', 'true');
         return request<MarketplaceSupplier[]>(`/marketplace/suppliers?${qs.toString()}`);
     },
     getSupplier: (supplierUserId: string) => request<MarketplaceSupplierDetail>(`/marketplace/suppliers/${supplierUserId}`),
+    connectSupplier: (supplierUserId: string) =>
+        request<any>(`/marketplace/suppliers/${supplierUserId}/connect`, { method: 'POST' }),
     searchProducts: (params?: { q?: string; category?: string; price_min?: number; price_max?: number; min_supplier_rating?: number }) => {
         const qs = new URLSearchParams();
         if (params?.q) qs.append('q', params.q || '');
