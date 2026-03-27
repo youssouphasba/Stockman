@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "Walaa ngalu heɓaa e ndee sahaa.",
     "not_enough_data": "Kabaruuji njeeygu mbeebaa ngam taskagol ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Merchant Account",
       "supplierAccount": "Supplier Account",
       "shopkeeper": "Merchant",
-      "shopkeeperDesc": "Saytu stock maa, komand e fournisseurs",
+      "shopkeeperDesc": "Gérez votre commerce, suivez vos stocks et vos ventes, et gérez vos fournisseurs et vos clients en toute simplicité. Votre business dans votre poche.",
       "supplier": "Supplier",
-      "supplierDesc": "Winndu katalog maa, jaɓo komandji",
+      "supplierDesc": "Publiez votre catalogue, développez votre visibilité auprès des commerçants et recevez plus de commandes.",
       "alreadyHaveAccount": "A amii compte?",
       "changeProfile": "Waylu profil",
       "name": "Innde",

@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     'tarif logiciel gestion stock', 'prix Stockman', 'abonnement gestion boutique',
-    'logiciel commercant Afrique prix', 'Stockman Enterprise tarif', 'tarif supermarche', 'tarif restaurant',
+    'logiciel business Afrique prix', 'Stockman Enterprise tarif', 'tarif supermarche', 'tarif restaurant',
   ],
 };
 

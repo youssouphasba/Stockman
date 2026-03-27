@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No gain during this period.",
     "not_enough_data": "Not enough sales data for ABC analysis."
@@ -401,6 +401,13 @@
       "errorFillFields": "Please fill in all fields",
       "errorLogin": "Login error",
       "or": "or",
+      "orContinue": "Or continue with",
+      "continueGoogle": "Continue with Google",
+      "continueApple": "Continue with Apple",
+      "socialError": "Social sign-in is unavailable right now.",
+      "socialMissingToken": "Missing sign-in token.",
+      "googleConfigMissing": "Google configuration is missing.",
+      "appleUnavailable": "Apple sign-in is unavailable on this device.",
       "tryDemo": "Try the free demo",
       "demoRetail": "Shop",
       "demoRestaurant": "Restaurant",
@@ -417,9 +424,9 @@
       "shopkeeperAccount": "Merchant Account",
       "supplierAccount": "Supplier Account",
       "shopkeeper": "Merchant",
-      "shopkeeperDesc": "Manage your stock, order from suppliers",
+      "shopkeeperDesc": "Manage your business, track your stock and sales, and manage your suppliers and customers with ease. Your business in your pocket.",
       "supplier": "Supplier",
-      "supplierDesc": "Publish your catalog, receive orders",
+      "supplierDesc": "Publish your catalog, grow your visibility among merchants, and receive more orders.",
       "alreadyHaveAccount": "Already have an account?",
       "changeProfile": "Change profile",
       "name": "Name",
@@ -1645,6 +1652,14 @@
     "reset": "Reset",
     "search_product": "Search product...",
     "search_supplier": "Search supplier...",
+    "product_placeholder": "e.g. Rice, Oil, Sugar...",
+    "city_suggestions": "Suggested cities",
+    "category_suggestions": "Suggested categories",
+    "same_country_only": "Only my account country ({{country}})",
+    "max_delivery_days": "Maximum delivery delay (days)",
+    "max_delivery_days_placeholder": "e.g. 3",
+    "min_catalog_products": "Minimum catalog products",
+    "min_catalog_products_placeholder": "e.g. 10",
     "see_more_products": "See {{count}} more products",
     "send_invitation": "Send invitation",
     "star": "⭐",
@@ -2452,7 +2467,7 @@
       "whatsapp_2h": "Priority WhatsApp (2h)"
     },
     "free_trial": "Free trial",
-    "iap_not_available": "In-app purchases are not available. Use Mobile Money.",
+    "iap_not_available": "In-app purchases are not available on this device right now.",
     "mm_providers": "Orange Money, Wave, MTN Money, Moov Money",
     "mobile_money_label": " (Mobile Money)",
     "mobile_only": "Application mobile",
@@ -2465,13 +2480,27 @@
     "plan_premium": "Premium",
     "plan_pro": "Pro",
     "plan_starter": "Starter",
+    "plan_enterprise": "Enterprise",
     "popular": "Popular",
+    "billing_country_title": "Billing country and currency",
+    "change_plan": "Change plan",
+    "enterprise_contact_desc": "To access the Enterprise plan, please contact us from the web app.",
+    "enterprise_web_only": "This plan is managed from the web application.",
+    "external_payment_notice": "You can also pay using a secure link sent by email or notification.",
+    "billing_country_locked": "Your billing country is set during sign-up and cannot be changed from this screen.",
+    "billing_region": "Pricing region: {{region}}",
+    "billing_country_support": "If a correction is needed, please contact support before billing.",
+    "in_app_summary": "Monthly {{plan}} subscription at {{price}} through {{store}}. Auto-renews until cancelled from your payment account.",
+    "legal_links_hint": "Review the Terms of Use and Privacy Policy before confirming your subscription.",
+    "purchase_not_ready": "The selected subscription is not yet available for purchase on this device. Check App Store Connect and RevenueCat, then try again.",
     "premium_active_text": "Your Premium subscription is active. Thank you for your trust!",
     "renewal": "Renewal: {{date}}",
     "restore_error": "Could not restore purchases.",
     "restore_purchase": "Recover my subscription",
     "restored": "Restored",
     "restored_success": "Your subscription has been restored.",
+    "store_app_store": "the App Store",
+    "store_google_play": "Google Play",
     "title": "My Subscription",
     "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
     "trial_remaining": "{{count}} days left of free trial"
@@ -2672,6 +2701,7 @@
     "key_indicators": "Key Indicators",
     "later": "Later",
     "link": "Link",
+    "link_supplier_action": "Link supplier",
     "link_hint": "Link your products to track prices and facilitate ordering",
     "link_product": "Link Product",
     "linked_products": "Linked Products ({{count}})",
@@ -2742,6 +2772,8 @@
     "suggestion_ai_notes": "AI suggested order (Speed: {{velocity}}/day)",
     "suggestion_order_desc": "{{product}}: Current stock {{current}}. Suggestion: order {{suggested}} units from {{supplier}}.",
     "suggestion_order_title": "Order Suggestion",
+    "suggestion_missing_supplier_title": "Missing supplier",
+    "suggestion_missing_supplier_desc": "{{product}} does not have a linked supplier yet. Open the product record to link a supplier before creating the order.",
     "supplier_count": "{{count}} supplier(s)",
     "supplier_email_label": "Supplier email",
     "supplier_no_phone_error": "No supplier linked to this product",
@@ -2758,7 +2790,8 @@
     "whatsapp_not_installed": "WhatsApp is not installed on this device",
     "with_email": "With email",
     "with_phone": "With phone",
-    "no_supplier_linked": "This product has no linked supplier. Add a supplier to the product first."
+    "no_supplier_linked": "This product has no linked supplier. Add a supplier to the product first.",
+    "open_products_cta": "Open Products"
   },
   "tabs": {
     "accounting": "Accounting",
@@ -3064,3 +3097,4 @@
     "not_available": "Unavailable"
   }
 }
+

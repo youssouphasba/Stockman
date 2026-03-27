@@ -875,6 +875,8 @@ export type SupplierProduct = {
     supplier_id: string;
     product_id: string;
     supplier_price: number;
+    supplier_sku?: string;
+    is_preferred?: boolean;
     user_id?: string;
     created_at?: string;
 };
@@ -883,6 +885,14 @@ export type SupplierProductCreate = {
     supplier_id: string;
     product_id: string;
     supplier_price: number;
+    supplier_sku?: string;
+    is_preferred?: boolean;
+};
+
+export type SupplierProductUpdate = {
+    supplier_price?: number;
+    supplier_sku?: string;
+    is_preferred?: boolean;
 };
 
 export type SupplierProductLink = SupplierProduct & {
@@ -1975,8 +1985,16 @@ export const procurementAnalytics = {
 };
 
 export const supplierProducts = {
+    list: (productId?: string) => {
+        const qs = new URLSearchParams();
+        if (productId) qs.set('product_id', productId);
+        const suffix = qs.toString() ? `?${qs.toString()}` : '';
+        return request<SupplierProduct[]>(`/supplier-products${suffix}`);
+    },
     link: (data: SupplierProductCreate) =>
         request<SupplierProduct>('/supplier-products', { method: 'POST', body: data }),
+    update: (linkId: string, data: SupplierProductUpdate) =>
+        request<SupplierProduct>(`/supplier-products/${linkId}`, { method: 'PUT', body: data }),
     unlink: (linkId: string) =>
         request<{ message: string }>(`/supplier-products/${linkId}`, { method: 'DELETE' }),
 };

@@ -8,7 +8,7 @@ import { smartReminders, SmartReminder, SmartRemindersResponse } from '../servic
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
 
 type Props = {
-  onNavigate?: (route: string) => void;
+  onNavigate?: (route: string, data?: Record<string, any>, reminderType?: string) => void;
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
@@ -157,7 +157,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
               {reminder.action_label && reminder.action_route && (
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onNavigate?.(reminder.action_route!)}
+                  onPress={() => onNavigate?.(reminder.action_route!, reminder.data, reminder.type)}
                 >
                   <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>
                     {reminder.action_label}

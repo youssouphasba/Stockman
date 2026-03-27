@@ -100,6 +100,9 @@ export default function Suppliers() {
     // UI States
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showSuggestionLinkModal, setShowSuggestionLinkModal] = useState(false);
+    const [pendingSuggestion, setPendingSuggestion] = useState<any | null>(null);
+    const [selectedSuggestionSupplierId, setSelectedSuggestionSupplierId] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
 
@@ -135,6 +138,9 @@ export default function Suppliers() {
     const [contextMenuSupplierId, setContextMenuSupplierId] = useState<string | null>(null);
     const [regionFilter, setRegionFilter] = useState('');
     const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+    const [productFilter, setProductFilter] = useState('');
+    const [priceMinFilter, setPriceMinFilter] = useState('');
+    const [priceMaxFilter, setPriceMaxFilter] = useState('');
     const [automating, setAutomating] = useState(false);
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
@@ -311,7 +317,11 @@ export default function Suppliers() {
                 const res = await replenishmentApi.getSuggestions();
                 setSuggestions(res);
             } else if (activeTab === 'marketplace') {
-                const res = await marketplaceApi.searchSuppliers();
+                const marketplaceQuery = [search.trim(), productFilter.trim()].filter(Boolean).join(' ').trim();
+                const res = await marketplaceApi.searchSuppliers({
+                    q: marketplaceQuery || undefined,
+                    city: regionFilter || undefined,
+                });
                 const normalized = (Array.isArray(res) ? res : []).map((supplier: any) => ({
                     ...supplier,
                     name: supplier.company_name || supplier.name,
@@ -668,6 +678,60 @@ export default function Suppliers() {
         }
     };
 
+    const openSuggestionLinkModal = (suggestion: any) => {
+        if (!Array.isArray(manualSuppliers) || manualSuppliers.length === 0) {
+            setSuccess("Ajoutez d'abord un fournisseur pour associer ce produit.");
+            setTimeout(() => setSuccess(null), 3000);
+            return;
+        }
+        const ranked = [...manualSuppliers]
+            .map((supplier: any) => {
+                const supplied = normalizeMatchText(supplier?.products_supplied || '');
+                const tokens = normalizeMatchText(suggestion?.product_name || '')
+                    .split(' ')
+                    .filter((token) => token.length >= 3);
+                const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+                return { supplier, score };
+            })
+            .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+            });
+        setPendingSuggestion(suggestion);
+        setSelectedSuggestionSupplierId(ranked[0]?.supplier?.supplier_id || manualSuppliers[0]?.supplier_id || '');
+        setShowSuggestionLinkModal(true);
+    };
+
+    const handleLinkSuggestionSupplier = async () => {
+        if (!pendingSuggestion || !selectedSuggestionSupplierId) return;
+        setSubmitting(true);
+        try {
+            await supplierProductsApi.link({
+                supplier_id: selectedSuggestionSupplierId,
+                product_id: pendingSuggestion.product_id,
+                supplier_price: 0,
+            });
+            setShowSuggestionLinkModal(false);
+            setSuccess("Fournisseur associé au produit.");
+            setTimeout(() => setSuccess(null), 3000);
+            const supplier = manualSuppliers.find((item: any) => item.supplier_id === selectedSuggestionSupplierId);
+            openManualOrderDraft(supplier, [{
+                product_id: pendingSuggestion.product_id,
+                name: pendingSuggestion.product_name,
+                quantity: pendingSuggestion.suggested_quantity,
+                unit_price: 0
+            }]);
+            setPendingSuggestion(null);
+            setSelectedSuggestionSupplierId('');
+        } catch (err) {
+            console.error("Link suggestion supplier error", err);
+            setSuccess("Impossible d'associer ce fournisseur pour le moment.");
+            setTimeout(() => setSuccess(null), 3000);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
@@ -680,15 +744,78 @@ export default function Suppliers() {
         }
     };
 
+    const normalizeMatchText = (value?: string | null) =>
+        (value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
     const filteredManualSuppliers = (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter(s =>
         s?.name?.toLowerCase()?.includes(search.toLowerCase()) ||
         s?.contact_name?.toLowerCase()?.includes(search.toLowerCase())
     );
 
-    const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter(s =>
-        (s.name || s.company_name || '')?.toLowerCase().includes(search.toLowerCase()) ||
-        (s.city || '')?.toLowerCase().includes(search.toLowerCase())
-    );
+    const marketplaceCitySuggestions = Array.from(
+        new Set(
+            (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
+                .map((supplier: any) => (supplier?.city || '').trim())
+                .filter((city: string) => city.length > 0),
+        ),
+    ).sort((a, b) => a.localeCompare(b));
+
+    const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter((s) => {
+        const q = search.trim().toLowerCase();
+        const productQuery = productFilter.trim().toLowerCase();
+        const matchSearch =
+            !q ||
+            (s.name || s.company_name || '').toLowerCase().includes(q) ||
+            (s.city || '').toLowerCase().includes(q) ||
+            (s.category || '').toLowerCase().includes(q) ||
+            (Array.isArray(s.categories) ? s.categories.join(' ') : '').toLowerCase().includes(q);
+
+        const matchProduct =
+            !productQuery ||
+            (s.category || '').toLowerCase().includes(productQuery) ||
+            (Array.isArray(s.categories) ? s.categories.join(' ') : '').toLowerCase().includes(productQuery) ||
+            (s.name || s.company_name || '').toLowerCase().includes(productQuery);
+
+        const matchCity = !regionFilter || (s.city || '').toLowerCase().includes(regionFilter.toLowerCase());
+
+        const minOrderAmount = Number(s.min_order_amount || 0);
+        const minPrice = Number(priceMinFilter || 0);
+        const maxPrice = Number(priceMaxFilter || 0);
+        const matchMinPrice = !priceMinFilter || (!Number.isNaN(minPrice) && minOrderAmount >= minPrice);
+        const matchMaxPrice = !priceMaxFilter || (!Number.isNaN(maxPrice) && minOrderAmount <= maxPrice);
+
+        return matchSearch && matchProduct && matchCity && matchMinPrice && matchMaxPrice;
+    });
+
+    useEffect(() => {
+        if (activeTab !== 'marketplace') return;
+        const timer = window.setTimeout(() => {
+            loadData();
+        }, 250);
+        return () => window.clearTimeout(timer);
+    }, [activeTab, search, regionFilter, productFilter]);
+
+    const suggestionSupplierCandidates = pendingSuggestion
+        ? [...(Array.isArray(manualSuppliers) ? manualSuppliers : [])]
+            .map((supplier: any) => {
+                const supplied = normalizeMatchText(supplier?.products_supplied || '');
+                const tokens = normalizeMatchText(pendingSuggestion?.product_name || '')
+                    .split(' ')
+                    .filter((token) => token.length >= 3);
+                const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+                return { supplier, score };
+            })
+            .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+            })
+        : [];
 
     const isMarketplaceOrder = Boolean(orderForm.supplier_user_id && !orderForm.supplier_id);
     const marketplaceOrderSupplier = isMarketplaceOrder
@@ -1073,7 +1200,11 @@ export default function Suppliers() {
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    const supplier = manualSuppliers.find(ms => ms.name === s.supplier_name);
+                                                    const supplier = manualSuppliers.find((ms: any) => ms.supplier_id === s.supplier_id);
+                                                    if (!supplier) {
+                                                        openSuggestionLinkModal(s);
+                                                        return;
+                                                    }
                                                     openManualOrderDraft(supplier, [{
                                                         product_id: s.product_id,
                                                         name: s.product_name,
@@ -1083,7 +1214,7 @@ export default function Suppliers() {
                                                 }}
                                                 className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
                                             >
-                                                Commander
+                                                {s.supplier_id ? 'Commander' : 'Associer fournisseur'}
                                             </button>
                                         </div>
                                     </div>
@@ -1427,18 +1558,21 @@ export default function Suppliers() {
                                 </button>
                                 {isRegionDropdownOpen && (
                                     <div className="absolute top-full right-0 mt-2 w-40 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
-                                        {['Dakar', 'Abidjan', 'Douala', 'Lagos', 'Accra'].map(region => (
+                                        {marketplaceCitySuggestions.map(region => (
                                             <button
                                                 key={region}
-                                                onClick={() => { setRegionFilter(region === regionFilter ? '' : region); setIsRegionDropdownOpen(false); setSearch(region === regionFilter ? '' : region); }}
+                                                onClick={() => { setRegionFilter(region === regionFilter ? '' : region); setIsRegionDropdownOpen(false); }}
                                                 className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${regionFilter === region ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 {region}
                                             </button>
                                         ))}
+                                        {marketplaceCitySuggestions.length === 0 && (
+                                            <div className="px-3 py-2 text-xs text-slate-500">Aucune ville</div>
+                                        )}
                                         {regionFilter && (
                                             <button
-                                                onClick={() => { setRegionFilter(''); setIsRegionDropdownOpen(false); setSearch(''); }}
+                                                onClick={() => { setRegionFilter(''); setIsRegionDropdownOpen(false); }}
                                                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all mt-1 border-t border-white/5"
                                             >
                                                 Effacer le filtre
@@ -1448,6 +1582,65 @@ export default function Suppliers() {
                                 )}
                             </div>
                         </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                            <input
+                                type="text"
+                                value={productFilter}
+                                onChange={(e) => setProductFilter(e.target.value)}
+                                placeholder="Produit (ex: Riz)"
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
+                            />
+                            <input
+                                type="number"
+                                min={0}
+                                value={priceMinFilter}
+                                onChange={(e) => setPriceMinFilter(e.target.value)}
+                                placeholder="Prix min (commande min)"
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
+                            />
+                            <input
+                                type="number"
+                                min={0}
+                                value={priceMaxFilter}
+                                onChange={(e) => setPriceMaxFilter(e.target.value)}
+                                placeholder="Prix max (commande min)"
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                            <button
+                                onClick={() => {
+                                    setProductFilter('');
+                                    setPriceMinFilter('');
+                                    setPriceMaxFilter('');
+                                    setRegionFilter('');
+                                    setSearch('');
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all md:col-span-3"
+                            >
+                                Réinitialiser les filtres
+                            </button>
+                        </div>
+
+                        {marketplaceCitySuggestions.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {marketplaceCitySuggestions.slice(0, 12).map((city) => (
+                                    <button
+                                        key={city}
+                                        onClick={() => setRegionFilter(city === regionFilter ? '' : city)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                            regionFilter === city
+                                                ? 'bg-primary/10 border-primary/30 text-primary'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                                        }`}
+                                    >
+                                        {city}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {loading && marketplaceSuppliers.length === 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1591,6 +1784,71 @@ export default function Suppliers() {
                                 Enregistrer le fournisseur
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Link Supplier To Suggestion */}
+            {showSuggestionLinkModal && pendingSuggestion && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#1E293B] shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-white/10 p-6">
+                            <div>
+                                <h2 className="text-lg font-black text-white">Associer un fournisseur</h2>
+                                <p className="mt-1 text-xs text-slate-400">{pendingSuggestion.product_name}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowSuggestionLinkModal(false);
+                                    setPendingSuggestion(null);
+                                    setSelectedSuggestionSupplierId('');
+                                }}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 p-6">
+                            <p className="text-sm text-slate-300">
+                                Ce produit n'a pas encore de fournisseur lié. Choisissez un fournisseur pour enregistrer la relation durablement.
+                            </p>
+                            <select
+                                value={selectedSuggestionSupplierId}
+                                onChange={(e) => setSelectedSuggestionSupplierId(e.target.value)}
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-primary/50"
+                            >
+                                <option value="" className="bg-slate-800">Sélectionner un fournisseur...</option>
+                                {suggestionSupplierCandidates.map(({ supplier, score }) => (
+                                    <option key={supplier.supplier_id} value={supplier.supplier_id} className="bg-slate-800">
+                                        {supplier.name} {score > 0 ? '• match' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex justify-end gap-3 border-t border-white/10 p-6">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowSuggestionLinkModal(false);
+                                    setPendingSuggestion(null);
+                                    setSelectedSuggestionSupplierId('');
+                                }}
+                                className="rounded-xl px-5 py-2 text-sm font-bold text-slate-300 hover:text-white"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleLinkSuggestionSupplier}
+                                disabled={submitting || !selectedSuggestionSupplierId}
+                                className="btn-primary rounded-xl px-6 py-2 text-sm font-bold disabled:opacity-50"
+                            >
+                                {submitting ? 'Association...' : 'Associer et commander'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

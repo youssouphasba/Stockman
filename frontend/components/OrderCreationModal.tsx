@@ -51,6 +51,7 @@ type Props = {
   onOrderCreated: () => void;
   preSelectedSupplier?: SelectedSupplier | null;
   preLoadedCatalog?: CatalogProductData[];
+  preSelectedProductId?: string | null;
 };
 
 const STEP_LABELS = [
@@ -66,6 +67,7 @@ export default function OrderCreationModal({
   onOrderCreated,
   preSelectedSupplier,
   preLoadedCatalog,
+  preSelectedProductId,
 }: Props) {
   const { colors, glassStyle } = useTheme();
   const { t } = useTranslation();
@@ -117,6 +119,16 @@ export default function OrderCreationModal({
       setNoLinkedProducts(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !preSelectedProductId || products.length === 0) return;
+    const targetExists = products.some((product) => product.id === preSelectedProductId);
+    if (!targetExists) return;
+    setQuantities((prev) => {
+      if (prev[preSelectedProductId]) return prev;
+      return { ...prev, [preSelectedProductId]: 1 };
+    });
+  }, [visible, preSelectedProductId, products]);
 
   // ── Data loaders ──
   async function loadSuppliers() {

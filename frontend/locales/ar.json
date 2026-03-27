@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "حساب تاجر",
       "supplierAccount": "حساب مورد",
       "shopkeeper": "تاجر",
-      "shopkeeperDesc": "إدارة مخزونك، الطلب من الموردين",
+      "shopkeeperDesc": "أدر تجارتك، وتابع مخزونك ومبيعاتك، وأدر مورديك وعملاءك بكل سهولة. تجارتك في جيبك.",
       "supplier": "مورد",
-      "supplierDesc": "نشر الكتالوج الخاص بك، تلقي الطلبات",
+      "supplierDesc": "انشر كتالوجك، وزد ظهورك لدى التجار، واستقبل المزيد من الطلبات.",
       "alreadyHaveAccount": "لديك حساب بالفعل؟",
       "changeProfile": "تغيير الملف الشخصي",
       "name": "الاسم",

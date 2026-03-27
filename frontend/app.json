@@ -24,7 +24,10 @@
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Stockman utilise la caméra pour scanner les codes-barres des produits, prendre des photos d’articles et joindre des images aux produits, ventes ou documents.",
+        "NSPhotoLibraryUsageDescription": "Stockman accède à votre photothèque pour vous permettre d’ajouter une image existante à une fiche produit, un reçu ou un document.",
+        "NSPhotoLibraryAddUsageDescription": "Stockman peut enregistrer dans votre photothèque une image ou un document généré, par exemple un reçu ou une photo de produit."
       }
     },
     "icon": "./assets/icon.png",
@@ -43,12 +46,24 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-camera",
+      "expo-apple-authentication",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Stockman utilise la caméra pour scanner les codes-barres des produits, prendre des photos d’articles et joindre des images aux produits, ventes ou documents."
+        }
+      ],
       "expo-notifications",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "expo-localization",
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Stockman utilise la caméra pour prendre une photo de produit, scanner un article ou joindre une image à une fiche ou à un document.",
+          "photosPermission": "Stockman accède à votre photothèque pour sélectionner une image existante et l’ajouter à un produit, un reçu ou un document."
+        }
+      ],
       "expo-local-authentication",
       "expo-updates",
       ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],

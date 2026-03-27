@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
   Modal,
   Alert,
   Share,
@@ -145,6 +146,10 @@ export default function DashboardScreen() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [showAllCritical, setShowAllCritical] = useState(false);
+  const [showInventoryCountModal, setShowInventoryCountModal] = useState(false);
+  const [inventoryTaskToCount, setInventoryTaskToCount] = useState<InventoryTask | null>(null);
+  const [inventoryActualQty, setInventoryActualQty] = useState('');
+  const [inventoryCountSubmitting, setInventoryCountSubmitting] = useState(false);
 
   // Notifications
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -231,6 +236,27 @@ export default function DashboardScreen() {
     loadingRef.current = false; // Reset guard so refresh always triggers a load
     loadData();
   }
+
+  const handleSmartReminderNavigate = useCallback(
+    (route: string, data?: Record<string, any>, reminderType?: string) => {
+      const params: Record<string, string> = {};
+      if (data?.product_id) params.product_id = String(data.product_id);
+      if (data?.order_id) params.order_id = String(data.order_id);
+      if (data?.customer_id) params.customer_id = String(data.customer_id);
+      if (reminderType) params.reminder_type = String(reminderType);
+
+      if (Object.keys(params).length === 0) {
+        router.push(route as any);
+        return;
+      }
+
+      router.push({
+        pathname: route as any,
+        params,
+      } as any);
+    },
+    [router]
+  );
 
   async function updateDashboardLayout(layout: NonNullable<UserSettings['dashboard_layout']>) {
     if (!userSettings) return;
@@ -457,6 +483,34 @@ export default function DashboardScreen() {
       setStatsError(t('common.generic_error'));
     } finally {
       setStatsLoading(false);
+    }
+  }
+
+  function openInventoryCountModal(task: InventoryTask) {
+    setInventoryTaskToCount(task);
+    setInventoryActualQty(String(task.expected_quantity ?? 0));
+    setShowInventoryCountModal(true);
+  }
+
+  async function submitInventoryCount() {
+    if (!inventoryTaskToCount) return;
+    const parsedQuantity = Number.parseInt(inventoryActualQty, 10);
+    if (Number.isNaN(parsedQuantity) || parsedQuantity < 0) {
+      Alert.alert(t('common.error'), t('dashboard.invalid_quantity', { defaultValue: 'Saisissez une quantité valide.' }));
+      return;
+    }
+
+    setInventoryCountSubmitting(true);
+    try {
+      await inventory.submitResult(inventoryTaskToCount.task_id, parsedQuantity);
+      setShowInventoryCountModal(false);
+      setInventoryTaskToCount(null);
+      setInventoryActualQty('');
+      await loadData();
+    } catch {
+      Alert.alert(t('common.error'), t('dashboard.count_error', { defaultValue: "Impossible d'enregistrer ce comptage." }));
+    } finally {
+      setInventoryCountSubmitting(false);
     }
   }
 
@@ -770,7 +824,7 @@ export default function DashboardScreen() {
 
         {/* Smart Reminders */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (
-          <SmartRemindersCard onNavigate={(route) => router.push(route as any)} />
+          <SmartRemindersCard onNavigate={handleSmartReminderNavigate} />
         )}
 
         {/* Sales Forecast */}
@@ -961,7 +1015,13 @@ export default function DashboardScreen() {
                   <Text style={styles.reorderSuggest}>{t('dashboard.reorder_suggested', { qty: item.suggested_quantity })}</Text>
                   <TouchableOpacity
                     style={styles.orderButton}
-                    onPress={() => router.push('/orders')}
+                    onPress={() => router.push({
+                      pathname: '/orders' as any,
+                      params: {
+                        product_id: item.product_id,
+                        reminder_type: 'replenishment',
+                      },
+                    } as any)}
                   >
                     <Ionicons name="cart-outline" size={16} color="#FFF" />
                     <Text style={styles.orderButtonText}>{t('dashboard.order_btn')}</Text>
@@ -990,26 +1050,7 @@ export default function DashboardScreen() {
                   </View>
                   <TouchableOpacity
                     style={styles.countButton}
-                    onPress={() => {
-                      Alert.prompt(
-                        t('dashboard.count_stock'),
-                        t('dashboard.enter_actual_qty', { name: task.product_name }),
-                        [
-                          { text: t('common.cancel'), style: 'cancel' },
-                          {
-                            text: t('common.validate'),
-                            onPress: async (val: string | undefined) => {
-                              if (val) {
-                                await inventory.submitResult(task.task_id, parseInt(val));
-                                loadData();
-                              }
-                            }
-                          }
-                        ],
-                        'plain-text',
-                        task.expected_quantity.toString()
-                      );
-                    }}
+                    onPress={() => openInventoryCountModal(task)}
                   >
                     <Text style={styles.countButtonText}>{t('dashboard.count_btn')}</Text>
                   </TouchableOpacity>
@@ -1072,6 +1113,71 @@ export default function DashboardScreen() {
 
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
+
+      <Modal
+        visible={showInventoryCountModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (inventoryCountSubmitting) return;
+          setShowInventoryCountModal(false);
+          setInventoryTaskToCount(null);
+          setInventoryActualQty('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '55%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('dashboard.count_stock')}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (inventoryCountSubmitting) return;
+                  setShowInventoryCountModal(false);
+                  setInventoryTaskToCount(null);
+                  setInventoryActualQty('');
+                }}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              {t('dashboard.enter_actual_qty', { name: inventoryTaskToCount?.product_name || '' })}
+            </Text>
+            <TextInput
+              style={styles.countInput}
+              value={inventoryActualQty}
+              onChangeText={setInventoryActualQty}
+              keyboardType="numeric"
+              placeholder={String(inventoryTaskToCount?.expected_quantity ?? 0)}
+              placeholderTextColor={colors.textMuted}
+            />
+            <View style={styles.countModalActions}>
+              <TouchableOpacity
+                style={styles.countModalCancelButton}
+                onPress={() => {
+                  if (inventoryCountSubmitting) return;
+                  setShowInventoryCountModal(false);
+                  setInventoryTaskToCount(null);
+                  setInventoryActualQty('');
+                }}
+              >
+                <Text style={styles.countModalCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.countModalValidateButton, inventoryCountSubmitting && { opacity: 0.7 }]}
+                onPress={submitInventoryCount}
+                disabled={inventoryCountSubmitting}
+              >
+                {inventoryCountSubmitting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.countModalValidateText}>{t('common.validate')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* History Modal */}
       <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
@@ -1482,6 +1588,50 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   modalContent: { backgroundColor: colors.bgMid, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.lg, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   modalTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+  modalSubtitle: { fontSize: FontSize.sm, color: colors.textSecondary, marginBottom: Spacing.md },
+  countInput: {
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.inputBg,
+    color: colors.text,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize.md,
+    marginBottom: Spacing.md,
+  },
+  countModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  countModalCancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    backgroundColor: colors.glass,
+  },
+  countModalCancelText: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  countModalValidateButton: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    backgroundColor: colors.primary,
+  },
+  countModalValidateText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+  },
   modalScroll: { maxHeight: 600 },
   emptyText: { fontSize: FontSize.sm, color: colors.textMuted, textAlign: 'center', paddingVertical: Spacing.xl },
   filterRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },

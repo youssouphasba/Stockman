@@ -32,7 +32,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "repeat-outline",
                 title: "Réapprovisionnement Intelligent",
-                description: "Le système analyse vos ventes et suggère les produits à commander. Appuyez sur 'Commander' pour créer directement une commande fournisseur."
+                description: "Le système analyse vos ventes et suggère les produits à commander. Si un fournisseur est déjà lié au produit, vous pouvez créer directement une commande. Sinon, ouvrez la fiche produit pour associer le bon fournisseur avant de commander."
             },
             {
                 icon: "bar-chart-outline",
@@ -287,7 +287,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cart-outline",
                 title: "Commandes & Réappro",
-                description: "Créez vos bons de commande. Validez la réception (complète ou partielle) pour incrémenter votre stock automatiquement."
+                description: "Créez vos bons de commande. Depuis les suggestions IA, vous pouvez associer un fournisseur au produit avant d'envoyer la commande. Validez la réception (complète ou partielle) pour incrémenter votre stock automatiquement."
             },
             {
                 icon: "link-outline",
@@ -297,7 +297,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "globe-outline",
                 title: "Marketplace Pro",
-                description: "Accédez à un réseau de fournisseurs vérifiés. Commandez depuis le catalogue fournisseur pour une intégration directe en stock."
+                description: "Accédez à un réseau de fournisseurs vérifiés. Lors d'une commande marketplace, le fournisseur est ajouté automatiquement dans votre liste locale pour un suivi durable."
             },
             {
                 icon: "chatbubble-outline",
@@ -456,48 +456,38 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "person-outline",
-                title: "Commencer par le bon bloc",
-                description: "L'écran Paramètres regroupe plusieurs sections. Ouvrez toujours la section qui correspond exactement à votre besoin avant de modifier quoi que ce soit : profil, boutiques, documents, notifications, sécurité ou données."
+                title: "Commencer par la bonne rubrique",
+                description: "L'écran Paramètres est désormais organisé en grandes rubriques. Commencez toujours par celle qui correspond à votre besoin réel : compte, boutique active, organisation, alertes, aide ou sécurité."
             },
             {
                 icon: "language-outline",
-                title: "Profil, langue et apparence",
-                description: "Servez-vous de cette zone pour relire vos informations de compte, changer la langue et ajuster l'apparence de l'application. Faites ces réglages en premier pour travailler dans un environnement confortable."
+                title: "Compte et application",
+                description: "Cette rubrique sert à régler l'apparence, la langue, les préférences de votre compte et certains paramètres de fonctionnement de l'application sur votre appareil."
             },
             {
                 icon: "storefront-outline",
-                title: "Boutiques et organisation",
-                description: "Cette partie sert à gérer vos boutiques, leurs informations et certains réglages d'organisation. Revenez-y quand vous ajoutez une nouvelle boutique ou quand vous devez corriger une information structurelle."
+                title: "Boutique active",
+                description: "Retrouvez ici les réglages liés au point de vente sélectionné : identité, documents de vente et informations pratiques de la boutique active."
             },
             {
-                icon: "toggle-outline",
-                title: "Modules et affichage",
-                description: "Activez uniquement les modules dont vous avez besoin pour garder une interface claire. Si un onglet disparaît ou apparaît, vérifiez ici si son activation a changé."
-            },
-            {
-                icon: "document-text-outline",
-                title: "Documents de vente et fiscalité",
-                description: "Utilisez cette section pour personnaliser les tickets, les factures, les informations légales et les réglages de TVA. Relisez bien les mentions avant d'émettre des documents vers vos clients."
+                icon: "business-outline",
+                title: "Organisation et pilotage",
+                description: "Cette zone regroupe l'équipe, les accès, les modules visibles et les réglages de gestion avancés. Utilisez-la quand vous pilotez l'activité ou coordonnez plusieurs utilisateurs."
             },
             {
                 icon: "notifications-outline",
-                title: "Notifications et alertes",
-                description: "Définissez ici les rappels et alertes que vous voulez recevoir. Activez seulement celles qui comptent vraiment pour éviter le bruit et garder l'attention sur l'essentiel."
-            },
-            {
-                icon: "lock-closed-outline",
-                title: "Sécurité de l'accès",
-                description: "Le code PIN, la biométrie et les options de protection servent à sécuriser l'application sur votre appareil. Activez-les surtout si plusieurs personnes peuvent manipuler le téléphone ou la tablette."
+                title: "Alertes, rappels et facturation",
+                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et où retrouver les informations d'abonnement."
             },
             {
                 icon: "help-circle-outline",
-                title: "Aide, support et guides",
-                description: "Si vous hésitez sur un écran, un bouton ou une action, commencez par le centre d'aide. Il est là pour expliquer comment utiliser l'application avant de passer par le support."
+                title: "Aide et support",
+                description: "Le centre d'aide, l'assistant, le contact support et le signalement d'un problème sont regroupés au même endroit pour éviter de chercher plusieurs entrées différentes."
             },
             {
-                icon: "download-outline",
-                title: "Données et opérations sensibles",
-                description: "Les exports et suppressions doivent être réalisés avec prudence. Vérifiez toujours ce que vous exportez, conservez vos fichiers si nécessaire et ne supprimez un compte qu'après une vraie validation."
+                icon: "lock-closed-outline",
+                title: "Sécurité et données",
+                description: "Le code PIN, la biométrie, les informations légales, l'export et la suppression du compte sont réunis ici. Prenez toujours le temps de relire avant une action sensible."
             }
         ]
     },
@@ -517,7 +507,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "phone-portrait-outline",
                 title: "Choisir le bon mode de paiement",
-                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre situation. Utilisez le canal proposé dans l'application plutôt que de chercher un autre écran pour éviter les erreurs de paiement."
+                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichée à l'écran et relisez les informations avant de confirmer."
             },
             {
                 icon: "refresh-outline",
@@ -530,9 +520,9 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Avant l'échéance, des rappels peuvent être envoyés pour éviter une coupure. Revenez dans cet écran si vous avez un doute après un paiement ou si vous devez confirmer la date du prochain renouvellement."
             },
             {
-                icon: "person-circle-outline",
-                title: "Relire les informations de facturation",
-                description: "Vérifiez régulièrement le contact de facturation, la devise appliquée et les informations affichées dans cet écran. Elles doivent correspondre à votre situation avant toute action sur l'abonnement."
+                icon: "shield-checkmark-outline",
+                title: "Vérifier les liens légaux",
+                description: "Depuis l'écran d'abonnement, ouvrez toujours les conditions d'utilisation et la politique de confidentialité si vous voulez relire les règles de renouvellement, d'annulation et de traitement des données."
             }
         ]
     },
@@ -639,6 +629,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Connexion",
         steps: [
             { icon: "log-in-outline", title: "Se connecter", description: "Saisissez votre email et mot de passe. L'app vous redirige automatiquement vers votre espace selon votre rôle." },
+            { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Utilisez le bouton affiché sur votre écran, puis validez l'autorisation demandée." },
             { icon: "eye-outline", title: "Mot de passe oublié", description: "Touchez 'Mot de passe oublié' pour recevoir un email de réinitialisation." },
             { icon: "flask-outline", title: "Mode Démo", description: "Testez l'app sans inscription avec des données pré-remplies. La session expire après un délai limité." }
         ]

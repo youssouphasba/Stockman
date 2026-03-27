@@ -32,9 +32,9 @@ export const BUSINESS_TYPE_GROUPS: Array<{
 }> = [
     {
         slug: "commerce",
-        title: "Commerce",
+        title: "Business",
         overview: "Pour les boutiques, epiceries, superettes et points de vente avec pilotage stock et caisse.",
-        description: "Stocks, ventes, caisse et alertes pour les commerces de proximite et multi-points de vente.",
+        description: "Stocks, ventes, caisse et alertes pour les business de proximite et multi-points de vente.",
         tags: ["Boutique", "Epicerie", "Superette", "POS"],
     },
     {
@@ -76,7 +76,7 @@ export const PLAN_MARKETING: MarketingPlan[] = [
         name: "Pro",
         priceXOF: "4 900 FCFA",
         priceEUR: "9,99 EUR",
-        description: "Pour les commerces en croissance qui gerent plusieurs equipes et deux boutiques.",
+        description: "Pour les business en croissance qui gerent plusieurs equipes et deux boutiques.",
         ctaLabel: "Passer sur mobile",
         ctaKind: "mobile",
         href: MOBILE_APP_URL,

@@ -88,7 +88,7 @@ export default function PricingPageClient() {
                     <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Tarifs transparents</p>
                     <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
                         Un plan pour chaque<br />
-                        <span className="text-primary">taille de commerce</span>
+                        <span className="text-primary">taille de business</span>
                     </h1>
                     <p className="text-slate-400 max-w-2xl mx-auto text-base">
                         Starter et Pro se gerent depuis l&apos;application mobile. Enterprise ajoute le back-office web complet. Essai gratuit 1 mois.

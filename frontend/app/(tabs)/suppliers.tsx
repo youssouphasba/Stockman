@@ -64,6 +64,9 @@ export default function SuppliersScreen() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [replenishAdvice, setReplenishAdvice] = useState<string | null>(null);
   const [adviceLoading, setAdviceLoading] = useState(false);
+  const [showSuggestionLinkModal, setShowSuggestionLinkModal] = useState(false);
+  const [pendingSuggestion, setPendingSuggestion] = useState<ReplenishmentSuggestion | null>(null);
+  const [selectedSuggestionSupplierId, setSelectedSuggestionSupplierId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [filterSort, setFilterSort] = useState<'name' | 'recent' | 'delay'>('name');
@@ -76,6 +79,7 @@ export default function SuppliersScreen() {
   const [mpSuppliers, setMpSuppliers] = useState<MarketplaceSupplier[]>([]);
   const [mpProducts, setMpProducts] = useState<MarketplaceCatalogProduct[]>([]);
   const [mpSearch, setMpSearch] = useState('');
+  const [mpProduct, setMpProduct] = useState('');
   const [mpCity, setMpCity] = useState('');
   const [mpCategory, setMpCategory] = useState('');
   const [mpMinRating, setMpMinRating] = useState(0);
@@ -83,6 +87,9 @@ export default function SuppliersScreen() {
   const [mpPriceMin, setMpPriceMin] = useState('');
   const [mpPriceMax, setMpPriceMax] = useState('');
   const [mpSearchType, setMpSearchType] = useState<'suppliers' | 'products'>('suppliers');
+  const [mpCountryScopeOnly, setMpCountryScopeOnly] = useState(true);
+  const [mpMaxDeliveryDays, setMpMaxDeliveryDays] = useState('');
+  const [mpMinCatalogCount, setMpMinCatalogCount] = useState('');
   const [mpLoading, setMpLoading] = useState(false);
   const [showMpFilters, setShowMpFilters] = useState(false);
   const [showMpDetail, setShowMpDetail] = useState(false);
@@ -175,6 +182,119 @@ export default function SuppliersScreen() {
     loadData();
   }
 
+  function openProductsForSupplierLink() {
+    router.push('/(tabs)/products');
+  }
+
+  function handleSuggestionPress(sug: ReplenishmentSuggestion) {
+    if (!sug.supplier_id) {
+      if (!supplierList.length) {
+        Alert.alert(
+          t('suppliers.suggestion_missing_supplier_title'),
+          t('suppliers.suggestion_missing_supplier_desc', {
+            product: sug.product_name,
+          }),
+          [
+            { text: t('suppliers.later'), style: 'cancel' },
+            {
+              text: t('suppliers.new_supplier'),
+              onPress: openAddModal,
+            },
+            {
+              text: t('suppliers.open_products_cta'),
+              onPress: openProductsForSupplierLink,
+            },
+          ]
+        );
+        return;
+      }
+
+      setPendingSuggestion(sug);
+      const ranked = [...supplierList]
+        .map((supplier) => {
+          const supplied = normalizeMatchText(supplier.products_supplied);
+          const productText = normalizeMatchText(`${sug.product_name}`);
+          const tokens = productText.split(' ').filter((token) => token.length >= 3);
+          const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+          return { supplier, score };
+        })
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return (a.supplier.name || '').localeCompare(b.supplier.name || '');
+        });
+      setSelectedSuggestionSupplierId((ranked[0]?.supplier.supplier_id ?? supplierList[0]?.supplier_id) || null);
+      setShowSuggestionLinkModal(true);
+      return;
+    }
+
+    Alert.alert(
+      t('suppliers.suggestion_order_title'),
+      t('suppliers.suggestion_order_desc', {
+        product: sug.product_name,
+        current: sug.current_quantity,
+        suggested: sug.suggested_quantity,
+        supplier: sug.supplier_name || t('common.unknown')
+      }),
+      [
+        { text: t('suppliers.later'), style: 'cancel' },
+        {
+          text: t('suppliers.order_action'),
+          onPress: async () => {
+            try {
+              await ordersApi.create({
+                supplier_id: sug.supplier_id!,
+                items: [{
+                  product_id: sug.product_id,
+                  quantity: sug.suggested_quantity,
+                  unit_price: 0
+                }],
+                notes: `Commande suggérée par IA (Vitesse: ${sug.daily_velocity}/jour)`
+              });
+              Alert.alert(t('common.success'), t('suppliers.draft_success'));
+              loadData();
+            } catch {
+              Alert.alert(t('common.error'), t('modals.error'));
+            }
+          }
+        }
+      ]
+    );
+  }
+
+  async function handleSuggestionLinkSupplier() {
+    if (!pendingSuggestion || !selectedSuggestionSupplierId) return;
+    setFormLoading(true);
+    try {
+      const links = await spApi.list(pendingSuggestion.product_id);
+      const existing = links.find((link) => link.supplier_id === selectedSuggestionSupplierId);
+
+      if (existing) {
+        await spApi.update(existing.link_id, { is_preferred: true });
+      } else {
+        await spApi.link({
+          supplier_id: selectedSuggestionSupplierId,
+          product_id: pendingSuggestion.product_id,
+          is_preferred: true,
+        });
+      }
+
+      const linkedSupplier = supplierList.find((supplier) => supplier.supplier_id === selectedSuggestionSupplierId);
+      setShowSuggestionLinkModal(false);
+      setPendingSuggestion(null);
+      setSelectedSuggestionSupplierId(null);
+      Alert.alert(
+        t('common.success'),
+        `${pendingSuggestion.product_name} -> ${linkedSupplier?.name || t('common.unknown')}`
+      );
+      await loadData();
+    } catch (error) {
+      console.error('Suggestion link supplier error', error);
+      Alert.alert(t('common.error'), t('suppliers.product_link_error'));
+    } finally {
+      setFormLoading(false);
+    }
+  }
+
   // Fuzzy matching: tolerates typos, missing letters, transpositions
   function fuzzyMatch(text: string, query: string): boolean {
     if (!query) return true;
@@ -245,9 +365,62 @@ export default function SuppliersScreen() {
     });
   }, [supplierList, search, filterProduct, filterHasPhone, filterHasEmail, filterSort]);
 
+  const suggestionSupplierCandidates = useMemo(() => {
+    if (!pendingSuggestion) return [];
+    const productText = normalizeMatchText(pendingSuggestion.product_name);
+    const tokens = productText.split(' ').filter((token) => token.length >= 3);
+    return [...supplierList]
+      .map((supplier) => {
+        const supplied = normalizeMatchText(supplier.products_supplied);
+        const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+        return { supplier, score };
+      })
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (a.supplier.name || '').localeCompare(b.supplier.name || '');
+      });
+  }, [pendingSuggestion, supplierList]);
+
   const activeFilterCount = (filterHasPhone ? 1 : 0) + (filterHasEmail ? 1 : 0) + (filterSort !== 'name' ? 1 : 0) + (filterProduct ? 1 : 0);
 
-  const activeMpFilterCount = (mpCity ? 1 : 0) + (mpCategory ? 1 : 0) + (mpMinRating > 0 ? 1 : 0) + (mpVerifiedOnly ? 1 : 0) + (mpPriceMin ? 1 : 0) + (mpPriceMax ? 1 : 0);
+  const activeMpFilterCount =
+    (mpProduct ? 1 : 0) +
+    (mpCity ? 1 : 0) +
+    (mpCategory ? 1 : 0) +
+    (mpMinRating > 0 ? 1 : 0) +
+    (mpVerifiedOnly ? 1 : 0) +
+    (mpPriceMin ? 1 : 0) +
+    (mpPriceMax ? 1 : 0) +
+    (mpMaxDeliveryDays ? 1 : 0) +
+    (mpMinCatalogCount ? 1 : 0);
+
+  const marketplaceCityOptions = useMemo(() => {
+    const cities = new Set<string>();
+    mpSuppliers.forEach((supplier) => {
+      const city = (supplier.city || '').trim();
+      if (city) cities.add(city);
+    });
+    mpProducts.forEach((product) => {
+      const city = (product.supplier_city || '').trim();
+      if (city) cities.add(city);
+    });
+    return Array.from(cities).sort((a, b) => a.localeCompare(b));
+  }, [mpSuppliers, mpProducts]);
+
+  const marketplaceCategoryOptions = useMemo(() => {
+    const categories = new Set<string>();
+    mpSuppliers.forEach((supplier) => {
+      (supplier.categories || []).forEach((category) => {
+        const value = (category || '').trim();
+        if (value) categories.add(value);
+      });
+    });
+    mpProducts.forEach((product) => {
+      const value = (product.category || '').trim();
+      if (value) categories.add(value);
+    });
+    return Array.from(categories).sort((a, b) => a.localeCompare(b));
+  }, [mpSuppliers, mpProducts]);
 
   function resetForm() {
     setFormName('');
@@ -455,8 +628,38 @@ export default function SuppliersScreen() {
     }
   }
 
+  function normalizeMatchText(value?: string | null) {
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   async function handleLinkProduct() {
     if (!detailSupplier || !selectedProductId) return;
+    const selectedProduct = allProducts.find((product) => product.product_id === selectedProductId);
+    const suppliedText = normalizeMatchText(detailSupplier.products_supplied);
+    if (selectedProduct && suppliedText) {
+      const productTokens = normalizeMatchText(
+        [selectedProduct.name, selectedProduct.subcategory, selectedProduct.category_id].filter(Boolean).join(' ')
+      )
+        .split(' ')
+        .filter((token) => token.length >= 3);
+      const hasMatch = productTokens.some((token) => suppliedText.includes(token));
+      if (!hasMatch) {
+        Alert.alert(
+          t('common.error'),
+          t(
+            'suppliers.product_not_sold_error',
+            "Ce fournisseur ne semble pas vendre ce produit. Mettez à jour 'Produits fournis' ou choisissez un autre produit."
+          )
+        );
+        return;
+      }
+    }
     setFormLoading(true);
     try {
       await spApi.link({
@@ -492,23 +695,37 @@ export default function SuppliersScreen() {
   async function loadMarketplace() {
     setMpLoading(true);
     try {
+      const mergedSearch = [mpSearch.trim(), mpProduct.trim()].filter(Boolean).join(' ').trim();
       if (mpSearchType === 'suppliers') {
-        const result = await marketplaceApi.searchSuppliers({
-          q: mpSearch || undefined,
+        let result = await marketplaceApi.searchSuppliers({
+          q: mergedSearch || undefined,
           city: mpCity || undefined,
           category: mpCategory || undefined,
           min_rating: mpMinRating || undefined,
           verified_only: mpVerifiedOnly || undefined,
+          country_code: mpCountryScopeOnly ? (user?.country_code || undefined) : undefined,
         });
+        const maxDeliveryDays = parseInt(mpMaxDeliveryDays || '', 10);
+        if (!Number.isNaN(maxDeliveryDays) && maxDeliveryDays > 0) {
+          result = result.filter((supplier) => (supplier.average_delivery_days || 0) <= maxDeliveryDays);
+        }
+        const minCatalogCount = parseInt(mpMinCatalogCount || '', 10);
+        if (!Number.isNaN(minCatalogCount) && minCatalogCount > 0) {
+          result = result.filter((supplier) => (supplier.catalog_count || 0) >= minCatalogCount);
+        }
         setMpSuppliers(result);
       } else {
-        const result = await marketplaceApi.searchProducts({
-          q: mpSearch || undefined,
+        let result = await marketplaceApi.searchProducts({
+          q: mergedSearch || undefined,
           category: mpCategory || undefined,
           price_min: parseFloat(mpPriceMin) || undefined,
           price_max: parseFloat(mpPriceMax) || undefined,
           min_supplier_rating: mpMinRating || undefined,
         });
+        if (mpCity.trim()) {
+          const cityFilter = mpCity.trim().toLowerCase();
+          result = result.filter((product) => (product.supplier_city || '').toLowerCase().includes(cityFilter));
+        }
         setMpProducts(result);
       }
     } catch {
@@ -798,44 +1015,7 @@ export default function SuppliersScreen() {
                           styles.suggestionCard,
                           sug.priority === 'critical' && { borderColor: colors.danger, borderWidth: 1 }
                         ]}
-                        onPress={() => {
-                          Alert.alert(
-                            t('suppliers.suggestion_order_title'),
-                            t('suppliers.suggestion_order_desc', {
-                              product: sug.product_name,
-                              current: sug.current_quantity,
-                              suggested: sug.suggested_quantity,
-                              supplier: sug.supplier_name || t('common.unknown')
-                            }),
-                            [
-                              { text: t('suppliers.later'), style: 'cancel' },
-                              {
-                                text: t('suppliers.order_action'),
-                                onPress: async () => {
-                                  if (!sug.supplier_id) {
-                                    Alert.alert(t('common.error'), t('suppliers.no_supplier_linked'));
-                                    return;
-                                  }
-                                  try {
-                                    await ordersApi.create({
-                                      supplier_id: sug.supplier_id,
-                                      items: [{
-                                        product_id: sug.product_id,
-                                        quantity: sug.suggested_quantity,
-                                        unit_price: 0
-                                      }],
-                                      notes: `Commande suggérée par IA (Vitesse: ${sug.daily_velocity}/jour)`
-                                    });
-                                    Alert.alert(t('common.success'), t('suppliers.draft_success'));
-                                    loadData();
-                                  } catch {
-                                    Alert.alert(t('common.error'), t('modals.error'));
-                                  }
-                                }
-                              }
-                            ]
-                          );
-                        }}
+                        onPress={() => handleSuggestionPress(sug)}
                       >
                         <View style={[styles.priorityBadge, { backgroundColor: sug.priority === 'critical' ? colors.danger : colors.warning }]}>
                           <Text style={styles.priorityText}>{sug.priority === 'critical' ? t('suppliers.critical_alert') : t('suppliers.alert')}</Text>
@@ -848,7 +1028,11 @@ export default function SuppliersScreen() {
                           </Text>
                         </View>
                         <View style={styles.recommendationBox}>
-                          <Text style={styles.recommendationText}>{t('suppliers.order_commander', { count: sug.suggested_quantity })}</Text>
+                          <Text style={styles.recommendationText}>
+                            {sug.supplier_id
+                              ? t('suppliers.order_commander', { count: sug.suggested_quantity })
+                              : t('suppliers.link_supplier_action')}
+                          </Text>
                           <Ionicons name="arrow-forward" size={12} color={colors.primary} />
                         </View>
                       </TouchableOpacity>
@@ -1758,6 +1942,78 @@ export default function SuppliersScreen() {
           </View>
         </Modal>
 
+        <Modal visible={showSuggestionLinkModal} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: '75%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('suppliers.link_supplier_action')}</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowSuggestionLinkModal(false);
+                    setPendingSuggestion(null);
+                    setSelectedSuggestionSupplierId(null);
+                  }}
+                >
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {pendingSuggestion ? (
+                <Text style={{ color: colors.textMuted, marginBottom: Spacing.md }}>
+                  {t('suppliers.suggestion_missing_supplier_desc', { product: pendingSuggestion.product_name })}
+                </Text>
+              ) : null}
+
+              <Text style={styles.formLabel}>{t('suppliers.supplier')}</Text>
+              <ScrollView style={{ maxHeight: 280 }}>
+                {suggestionSupplierCandidates.map(({ supplier, score }) => (
+                  <TouchableOpacity
+                    key={supplier.supplier_id}
+                    style={[
+                      styles.productSelect,
+                      selectedSuggestionSupplierId === supplier.supplier_id && styles.productSelectActive,
+                    ]}
+                    onPress={() => setSelectedSuggestionSupplierId(supplier.supplier_id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.productSelectText,
+                          selectedSuggestionSupplierId === supplier.supplier_id && styles.productSelectTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {supplier.name || t('common.unknown')}
+                      </Text>
+                      <Text style={styles.productSelectQty} numberOfLines={1}>
+                        {supplier.products_supplied || '-'}
+                      </Text>
+                    </View>
+                    {score > 0 ? (
+                      <Text style={{ color: colors.success, fontWeight: '700', fontSize: 12 }}>Match</Text>
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+                {suggestionSupplierCandidates.length === 0 ? (
+                  <Text style={styles.emptyLinked}>{t('suppliers.no_suppliers')}</Text>
+                ) : null}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={[styles.submitBtn, (!selectedSuggestionSupplierId || formLoading) && styles.submitBtnDisabled]}
+                onPress={handleSuggestionLinkSupplier}
+                disabled={!selectedSuggestionSupplierId || formLoading}
+              >
+                {formLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>{t('suppliers.link')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         {/* Link Product Modal */}
         <Modal visible={showLinkModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
@@ -1834,7 +2090,101 @@ export default function SuppliersScreen() {
               </View>
               <ScrollView style={styles.modalScroll}>
                 <FormField label={t('common.city')} value={mpCity} onChangeText={setMpCity} placeholder={t('marketplace.city_placeholder')} colors={colors} styles={styles} />
+                <FormField label={t('common.product')} value={mpProduct} onChangeText={setMpProduct} placeholder={t('marketplace.product_placeholder')} colors={colors} styles={styles} />
+                {marketplaceCityOptions.length > 0 && (
+                  <>
+                    <Text style={styles.formLabel}>{t('marketplace.city_suggestions')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+                      <View style={{ flexDirection: 'row', gap: 8, paddingRight: 4 }}>
+                        {marketplaceCityOptions.slice(0, 16).map((cityOption) => (
+                          <TouchableOpacity
+                            key={cityOption}
+                            onPress={() => setMpCity(cityOption)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              borderColor: mpCity === cityOption ? colors.primary : colors.glassBorder,
+                              backgroundColor: mpCity === cityOption ? `${colors.primary}22` : colors.glass,
+                            }}
+                          >
+                            <Text style={{ color: mpCity === cityOption ? colors.primary : colors.text, fontSize: 12, fontWeight: '600' }}>
+                              {cityOption}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </>
+                )}
                 <FormField label={t('common.category')} value={mpCategory} onChangeText={setMpCategory} placeholder={t('marketplace.category_placeholder')} colors={colors} styles={styles} />
+                {marketplaceCategoryOptions.length > 0 && (
+                  <>
+                    <Text style={styles.formLabel}>{t('marketplace.category_suggestions')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+                      <View style={{ flexDirection: 'row', gap: 8, paddingRight: 4 }}>
+                        {marketplaceCategoryOptions.slice(0, 16).map((categoryOption) => (
+                          <TouchableOpacity
+                            key={categoryOption}
+                            onPress={() => setMpCategory(categoryOption)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              borderColor: mpCategory === categoryOption ? colors.primary : colors.glassBorder,
+                              backgroundColor: mpCategory === categoryOption ? `${colors.primary}22` : colors.glass,
+                            }}
+                          >
+                            <Text style={{ color: mpCategory === categoryOption ? colors.primary : colors.text, fontSize: 12, fontWeight: '600' }}>
+                              {categoryOption}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </>
+                )}
+
+                {mpSearchType === 'suppliers' && (
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md }}>
+                      <Text style={styles.formLabel}>
+                        {t('marketplace.same_country_only', { country: user?.country_code || '--' })}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setMpCountryScopeOnly(!mpCountryScopeOnly)}
+                        style={{
+                          width: 48, height: 26, borderRadius: 13, padding: 2,
+                          backgroundColor: mpCountryScopeOnly ? colors.success : colors.divider
+                        }}
+                      >
+                        <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignSelf: mpCountryScopeOnly ? 'flex-end' : 'flex-start' }} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.formLabel}>{t('marketplace.max_delivery_days')}</Text>
+                    <TextInput
+                      style={[styles.logInput, { marginBottom: Spacing.md }]}
+                      placeholder={t('marketplace.max_delivery_days_placeholder')}
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                      value={mpMaxDeliveryDays}
+                      onChangeText={setMpMaxDeliveryDays}
+                    />
+
+                    <Text style={styles.formLabel}>{t('marketplace.min_catalog_products')}</Text>
+                    <TextInput
+                      style={[styles.logInput, { marginBottom: Spacing.md }]}
+                      placeholder={t('marketplace.min_catalog_products_placeholder')}
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                      value={mpMinCatalogCount}
+                      onChangeText={setMpMinCatalogCount}
+                    />
+                  </>
+                )}
 
                 <Text style={styles.formLabel}>{t('marketplace.min_rating_supplier')}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: Spacing.md }}>
@@ -1901,11 +2251,15 @@ export default function SuppliersScreen() {
                     style={[styles.submitBtn, { backgroundColor: colors.divider, flex: 1 }]}
                     onPress={() => {
                       setMpCity('');
+                      setMpProduct('');
                       setMpCategory('');
                       setMpMinRating(0);
                       setMpVerifiedOnly(false);
                       setMpPriceMin('');
                       setMpPriceMax('');
+                      setMpCountryScopeOnly(true);
+                      setMpMaxDeliveryDays('');
+                      setMpMinCatalogCount('');
                       loadMarketplace();
                       setShowMpFilters(false);
                     }}

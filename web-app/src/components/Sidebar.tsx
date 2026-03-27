@@ -227,8 +227,6 @@ export default function Sidebar({
         orders: 'orders',
         accounting: 'accounting',
         reports: 'accounting',
-        suppliers_group: 'suppliers',
-        suppliers: 'suppliers',
         inventory: 'stock_management',
         inventory_counting: 'stock_management',
         locations: 'stock_management',

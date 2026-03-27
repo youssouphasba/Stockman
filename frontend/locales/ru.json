@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Аккаунт торговца",
       "supplierAccount": "Аккаунт поставщика",
       "shopkeeper": "Торговец",
-      "shopkeeperDesc": "Управляйте запасами, заказывайте у поставщиков",
+      "shopkeeperDesc": "Управляйте своим бизнесом, отслеживайте запасы и продажи, а также легко управляйте поставщиками и клиентами. Ваш бизнес в вашем кармане.",
       "supplier": "Поставщик",
-      "supplierDesc": "Публикуйте каталог, принимайте заказы",
+      "supplierDesc": "Публикуйте свой каталог, повышайте узнаваемость среди торговцев и получайте больше заказов.",
       "alreadyHaveAccount": "Уже есть аккаунт?",
       "changeProfile": "Сменить профиль",
       "name": "Имя",

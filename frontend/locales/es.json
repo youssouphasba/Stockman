@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No se generaron ingresos durante este período.",
     "not_enough_data": "No hay suficientes datos de ventas para el análisis ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Cuenta de comerciante",
       "supplierAccount": "Cuenta de proveedor",
       "shopkeeper": "Comerciante",
-      "shopkeeperDesc": "Gestione su stock, realice pedidos a proveedores",
+      "shopkeeperDesc": "Gestiona tu negocio, sigue tu inventario y tus ventas, y gestiona a tus proveedores y clientes con total facilidad. Tu negocio en tu bolsillo.",
       "supplier": "Proveedor",
-      "supplierDesc": "Publique su catálogo, reciba pedidos",
+      "supplierDesc": "Publica tu catálogo, aumenta tu visibilidad entre comercios y recibe más pedidos.",
       "alreadyHaveAccount": "¿Ya tiene cuenta?",
       "changeProfile": "Cambiar perfil",
       "name": "Nombre",

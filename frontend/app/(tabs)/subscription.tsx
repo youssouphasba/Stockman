@@ -96,8 +96,18 @@ export default function SubscriptionScreen() {
     const userCurrency = data?.currency || user?.currency || 'XOF';
     const useMobileMoney = data?.use_mobile_money ?? ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
     const isNative = Platform.OS !== 'web';
+    const isIOS = Platform.OS === 'ios';
+    const availablePlans = React.useMemo(
+        () => (isIOS ? PLANS.filter((plan) => plan.key !== 'enterprise') : PLANS),
+        [isIOS],
+    );
 
     useEffect(() => { fetchSubscription(); }, []);
+    useEffect(() => {
+        if (!availablePlans.some((plan) => plan.key === selectedPlan)) {
+            setSelectedPlan('pro');
+        }
+    }, [availablePlans, selectedPlan]);
 
     const fetchSubscription = async () => {
         try {
@@ -113,7 +123,7 @@ export default function SubscriptionScreen() {
 
     const handleRevenueCatPurchase = async (plan: PlanKey) => {
         if (plan === 'enterprise') {
-            Alert.alert(t('common.info'), t('subscription.enterprise_contact_desc') || 'Le plan Enterprise se gere sur le web.');
+            Alert.alert(t('common.info'), t('subscription.enterprise_web_only'));
             return;
         }
         if (!isPurchasesAvailable()) {
@@ -123,11 +133,17 @@ export default function SubscriptionScreen() {
         try {
             setPayLoading(true);
             const result = plan === 'pro' ? await purchasePro() : await purchaseStarter();
-            if (result.success) {
-                await subscription.sync();
-                fetchSubscription();
-                Alert.alert(t('common.success'), t('subscription.activated_success'));
+            if (!result.success) {
+                if (result.reason === 'cancelled') return;
+                const message = result.reason === 'offerings_unavailable' || result.reason === 'package_not_found'
+                    ? t('subscription.purchase_not_ready')
+                    : t('subscription.payment_failed');
+                Alert.alert(t('common.error'), message);
+                return;
             }
+            await subscription.sync();
+            fetchSubscription();
+            Alert.alert(t('common.success'), t('subscription.activated_success'));
         } catch (e: any) {
             if (!e.userCancelled) {
                 Alert.alert(t('common.error'), t('subscription.payment_failed'));
@@ -150,8 +166,10 @@ export default function SubscriptionScreen() {
                 await subscription.sync();
                 fetchSubscription();
                 Alert.alert(t('subscription.restored'), t('subscription.restored_success'));
-            } else {
+            } else if (!result.success && result.reason === 'no_active_purchase') {
                 Alert.alert(t('common.info'), t('subscription.no_purchase_found'));
+            } else {
+                Alert.alert(t('common.error'), t('subscription.restore_error'));
             }
         } catch (e) {
             Alert.alert(t('common.error'), t('subscription.restore_error'));
@@ -178,11 +196,12 @@ export default function SubscriptionScreen() {
     const remainingDays = data?.remaining_days || 0;
     const accessPhase = data?.subscription_access_phase || 'active';
     const activePlanConfig = PLANS.find(p => p.key === currentPlan);
-    const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan)!;
+    const selectedPlanConfig = PLANS.find(p => p.key === selectedPlan) ?? PLANS[1];
     const billingCountry = COUNTRIES.find((country) => country.code === (data?.country_code || user?.country_code)) || COUNTRIES[0];
     const selectedPrice = data?.effective_prices?.[selectedPlan]?.display_price || (
         useMobileMoney ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}` : selectedPlanConfig.priceEUR
     );
+    const storeLabel = isIOS ? t('subscription.store_app_store') : t('subscription.store_google_play');
 
     const headerGradient: [string, string] = activePlanConfig
         ? activePlanConfig.gradient
@@ -249,7 +268,7 @@ export default function SubscriptionScreen() {
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>{t('subscription.billing_country_title') || 'Pays et devise'}</Text>
                     <Text style={styles.cardSubtitle}>
-                        Le pays de facturation est defini lors de l inscription et ne peut pas etre modifie depuis cet ecran.
+                        {t('subscription.billing_country_locked')}
                     </Text>
                     <View style={styles.pickerWrapper}>
                         <Ionicons name="globe-outline" size={18} color="#94A3B8" />
@@ -257,17 +276,17 @@ export default function SubscriptionScreen() {
                         <Text style={styles.pickerValue}>{billingCountry.name} ({billingCountry.currency})</Text>
                     </View>
                     <Text style={styles.helperText}>
-                        {`Region tarifaire : ${data?.pricing_region || 'fallback'}`}
+                        {t('subscription.billing_region', { region: data?.pricing_region || 'fallback' })}
                     </Text>
                     <Text style={styles.helperText}>
-                        Si une correction est necessaire, elle doit passer par le support avant facturation.
+                        {t('subscription.billing_country_support')}
                     </Text>
                 </View>
 
                 {/* Plan Cards */}
                 {(!isActive || isFreeTrial) && (
                     <View style={styles.planCards}>
-                        {PLANS.map(plan => {
+                        {availablePlans.map(plan => {
                             const price = data?.effective_prices?.[plan.key]?.display_price || (
                                 useMobileMoney ? `${plan.priceXOF} ${t('common.currency_default')}` : plan.priceEUR
                             );
@@ -320,6 +339,13 @@ export default function SubscriptionScreen() {
                                 ? (t('subscription.change_plan') || 'Changer de plan')
                                 : t('subscription.choose_plan', { plan: t(selectedPlanConfig.labelKey) })}
                         </Text>
+                        <Text style={styles.cardSubtitle}>
+                            {t('subscription.in_app_summary', {
+                                plan: t(selectedPlanConfig.labelKey),
+                                price: selectedPrice,
+                                store: storeLabel,
+                            })}
+                        </Text>
 
                         {isNative && (
                             <TouchableOpacity
@@ -341,14 +367,26 @@ export default function SubscriptionScreen() {
                                 )}
                             </TouchableOpacity>
                         )}
-                        <Text style={styles.helperText}>
-                            Vous pouvez aussi régler par lien sécurisé (carte ou Mobile Money) envoyé par e‑mail ou notification.
-                        </Text>
+                        <Text style={styles.legalHint}>{t('subscription.legal_links_hint')}</Text>
+                        <View style={styles.legalLinksRow}>
+                            <TouchableOpacity onPress={() => router.push('/terms')}>
+                                <Text style={styles.legalLink}>{t('common.terms')}</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.legalSeparator}>•</Text>
+                            <TouchableOpacity onPress={() => router.push('/privacy')}>
+                                <Text style={styles.legalLink}>{t('common.privacy')}</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {!isIOS ? (
+                            <Text style={styles.helperText}>
+                                {t('subscription.external_payment_notice')}
+                            </Text>
+                        ) : null}
                     </View>
                 )}
 
                 {/* Enterprise contact CTA */}
-                {selectedPlan === 'enterprise' && (
+                {selectedPlan === 'enterprise' && !isIOS && (
                     <View style={styles.card}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                             <Ionicons name="business-outline" size={24} color="#7C3AED" />
@@ -460,6 +498,10 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
     cardSubtitle: { fontSize: 14, color: '#6B7280', lineHeight: 20, marginBottom: 12 },
     helperText: { fontSize: 12, color: '#92400E', marginTop: 6 },
+    legalHint: { fontSize: 12, color: '#6B7280', marginTop: 4, textAlign: 'center' },
+    legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 10 },
+    legalLink: { color: '#2563EB', fontSize: 13, fontWeight: '600' },
+    legalSeparator: { color: '#94A3B8', fontSize: 13 },
     pickerWrapper: {
         flexDirection: 'row',
         alignItems: 'center',

@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "商家账户",
       "supplierAccount": "供应商账户",
       "shopkeeper": "商家",
-      "shopkeeperDesc": "管理库存，向供应商订货",
+      "shopkeeperDesc": "管理您的生意，跟踪库存和销售，并轻松管理供应商与客户。您的生意尽在掌中。",
       "supplier": "供应商",
-      "supplierDesc": "发布您的目录，接收订单",
+      "supplierDesc": "发布您的商品目录，提升您在商家中的曝光，并接收更多订单。",
       "alreadyHaveAccount": "已有账户？",
       "changeProfile": "更改个人资料",
       "name": "姓名",

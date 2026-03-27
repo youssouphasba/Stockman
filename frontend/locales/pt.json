@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "Nenhuma receita gerada neste período.",
     "not_enough_data": "Dados de vendas insuficientes para a análise ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Conta de Comerciante",
       "supplierAccount": "Conta de Fornecedor",
       "shopkeeper": "Comerciante",
-      "shopkeeperDesc": "Gira os seus stocks, encomende a fornecedores",
+      "shopkeeperDesc": "Gira o seu negócio, acompanhe os seus stocks e vendas e gira os seus fornecedores e clientes com toda a simplicidade. O seu negócio no seu bolso.",
       "supplier": "Fornecedor",
-      "supplierDesc": "Publique o seu catálogo, receba encomendas",
+      "supplierDesc": "Publique o seu catálogo, aumente a sua visibilidade junto dos comerciantes e receba mais encomendas.",
       "alreadyHaveAccount": "Já tem conta?",
       "changeProfile": "Mudar de perfil",
       "name": "Last Namee",

@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Compte Jaaykat",
       "supplierAccount": "Supplier Account",
       "shopkeeper": "Jaaykat",
-      "shopkeeperDesc": "Saytu sa stock, komànd ci fournisseur yi",
+      "shopkeeperDesc": "Gérez votre commerce, suivez vos stocks et vos ventes, et gérez vos fournisseurs et vos clients en toute simplicité. Votre business dans votre poche.",
       "supplier": "Supplier",
-      "supplierDesc": "Samp sa catalogue, jàngal komànd yi",
+      "supplierDesc": "Publiez votre catalogue, développez votre visibilité auprès des commerçants et recevez plus de commandes.",
       "alreadyHaveAccount": "Am nga compte?",
       "changeProfile": "Soppi profil",
       "name": "Tur",

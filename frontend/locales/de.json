@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "In diesem Zeitraum wurde kein Umsatz erzielt.",
     "not_enough_data": "Nicht genügend Verkaufsdaten für die ABC-Analyse vorhanden."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Händlerkonto",
       "supplierAccount": "Lieferantenkonto",
       "shopkeeper": "Händler",
-      "shopkeeperDesc": "Verwalten Sie Ihre Bestände, bestellen Sie bei Lieferanten",
+      "shopkeeperDesc": "Verwalten Sie Ihr Geschäft, verfolgen Sie Ihre Bestände und Verkäufe und verwalten Sie Ihre Lieferanten und Kunden ganz einfach. Ihr Geschäft in Ihrer Tasche.",
       "supplier": "Lieferant",
-      "supplierDesc": "Veröffentlichen Sie Ihren Katalog, erhalten Sie Bestellungen",
+      "supplierDesc": "Veröffentlichen Sie Ihren Katalog, erhöhen Sie Ihre Sichtbarkeit bei Händlern und erhalten Sie mehr Bestellungen.",
       "alreadyHaveAccount": "Bereits ein Konto?",
       "changeProfile": "Profil ändern",
       "name": "Name",

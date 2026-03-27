@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Merchant Account",
       "supplierAccount": "Supplier Account",
       "shopkeeper": "Merchant",
-      "shopkeeperDesc": "Manage your stock, order from suppliers",
+      "shopkeeperDesc": "Gestionează-ți afacerea, urmărește stocurile și vânzările și gestionează cu ușurință furnizorii și clienții. Afacerea ta în buzunar.",
       "supplier": "Supplier",
-      "supplierDesc": "Publish your catalog, receive orders",
+      "supplierDesc": "Publică-ți catalogul, crește-ți vizibilitatea în rândul comercianților și primește mai multe comenzi.",
       "alreadyHaveAccount": "Already have an account?",
       "changeProfile": "Change profile",
       "name": "Name",

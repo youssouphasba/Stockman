@@ -10,14 +10,14 @@ import { BUSINESS_TYPE_GROUPS, ENTERPRISE_SIGNUP_URL, PUBLIC_BUSINESS_TYPES_URL,
 export const metadata: Metadata = {
   title: "Fonctionnalites Enterprise - app web de gestion stock, POS, CRM et comptabilite",
   description:
-    "Stockman Enterprise : 12 modules web pour supermarches, commerces, restaurants, boulangeries et activites de production.",
+    "Stockman Enterprise : 12 modules web pour supermarches, business, restaurants, boulangeries et activites de production.",
   alternates: { canonical: "https://app.stockman.pro/features" },
   openGraph: {
     type: "website",
     url: "https://app.stockman.pro/features",
     title: "Fonctionnalites Stockman Enterprise - Back-Office Web Professionnel",
     description:
-      "12 modules pour piloter commerce, restauration et production depuis le web. Stock, CRM, compta et multi-boutiques.",
+      "12 modules pour piloter business, restauration et production depuis le web. Stock, CRM, compta et multi-boutiques.",
     images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630 }],
     locale: "fr_FR",
   },
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     images: ["https://app.stockman.pro/og-image.png"],
   },
   keywords: [
-    "back-office web commerce", "logiciel gestion boutique", "caisse enregistreuse web",
-    "comptabilite commercant", "CRM fidelite", "multi-boutiques", "gestion stock Afrique",
+    "back-office web business", "logiciel gestion boutique", "caisse enregistreuse web",
+    "comptabilite business", "CRM fidelite", "multi-boutiques", "gestion stock Afrique",
     "Stockman fonctionnalites", "logiciel supermarche", "logiciel restaurant", "logiciel boulangerie",
   ],
 };
@@ -127,7 +127,7 @@ export default function FeaturesPage() {
             <span className="text-primary">pour piloter votre activite</span>
           </h1>
           <p className="text-slate-400 max-w-2xl mx-auto text-base mb-8">
-            Stockman Enterprise debloque l&apos;application web complete pour les commerces, restaurants, boulangeries, grossistes et activites de production.
+            Stockman Enterprise debloque l&apos;application web complete pour les business, restaurants, boulangeries, grossistes et activites de production.
           </p>
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {BUSINESS_TYPE_GROUPS.map((group) => (

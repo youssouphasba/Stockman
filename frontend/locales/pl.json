@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "Brak przychodów w tym okresie.",
     "not_enough_data": "Niewystarczająca ilość danych do analizy ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "Merchant Account",
       "supplierAccount": "Supplier Account",
       "shopkeeper": "Merchant",
-      "shopkeeperDesc": "Manage your stock, order from suppliers",
+      "shopkeeperDesc": "Prowadź swój biznes, śledź stany magazynowe i sprzedaż oraz łatwo zarządzaj dostawcami i klientami. Twój biznes w Twojej kieszeni.",
       "supplier": "Supplier",
-      "supplierDesc": "Publish your catalog, receive orders",
+      "supplierDesc": "Publikuj swój katalog, zwiększ swoją widoczność wśród handlowców i otrzymuj więcej zamówień.",
       "alreadyHaveAccount": "Already have an account?",
       "changeProfile": "Change profile",
       "name": "Name",

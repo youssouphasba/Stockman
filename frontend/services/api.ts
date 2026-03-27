@@ -978,8 +978,16 @@ export const suppliers = {
 
 // Supplier-Product links
 export const supplierProducts = {
+  list: (productId?: string) => {
+    const qs = new URLSearchParams();
+    if (productId) qs.set('product_id', productId);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<SupplierProduct[]>(`/supplier-products${suffix}`);
+  },
   link: (data: SupplierProductCreate) =>
     request<SupplierProduct>('/supplier-products', { method: 'POST', body: data }),
+  update: (linkId: string, data: SupplierProductUpdate) =>
+    request<SupplierProduct>(`/supplier-products/${linkId}`, { method: 'PUT', body: data }),
   unlink: (linkId: string) =>
     request<{ message: string }>(`/supplier-products/${linkId}`, { method: 'DELETE' }),
 };
@@ -1111,13 +1119,14 @@ export const notifications = {
 
 // Marketplace (CAS 1)
 export const marketplace = {
-  searchSuppliers: (params?: { q?: string; category?: string; city?: string; min_rating?: number; verified_only?: boolean }) => {
+  searchSuppliers: (params?: { q?: string; category?: string; city?: string; min_rating?: number; verified_only?: boolean; country_code?: string }) => {
     const qs = new URLSearchParams();
     if (params?.q) qs.append('q', params.q);
     if (params?.category) qs.append('category', params.category);
     if (params?.city) qs.append('city', params.city);
     if (params?.min_rating) qs.append('min_rating', params.min_rating.toString());
     if (params?.verified_only) qs.append('verified_only', 'true');
+    if (params?.country_code) qs.append('country_code', params.country_code);
     return request<MarketplaceSupplier[]>(`/marketplace/suppliers?${qs.toString()}`);
   },
   getSupplier: (supplierUserId: string) => request<MarketplaceSupplierDetail>(`/marketplace/suppliers/${supplierUserId}`),
@@ -2534,6 +2543,12 @@ export type SupplierProduct = {
 export type SupplierProductCreate = {
   supplier_id: string;
   product_id: string;
+  supplier_price?: number;
+  supplier_sku?: string;
+  is_preferred?: boolean;
+};
+
+export type SupplierProductUpdate = {
   supplier_price?: number;
   supplier_sku?: string;
   is_preferred?: boolean;

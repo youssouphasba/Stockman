@@ -33,6 +33,8 @@ import { exportInventory } from '../utils/ExportService';
 import {
     products as productsApi,
     categories as categoriesApi,
+    suppliers as suppliersApi,
+    supplierProducts as supplierProductsApi,
     ai as aiApi,
     auth,
     catalog as catalogApi,
@@ -132,6 +134,11 @@ export default function Inventory() {
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
     const [stockHealthLoading, setStockHealthLoading] = useState(true);
     const [pendingInventorySummary, setPendingInventorySummary] = useState(() => getPendingInventorySummary());
+    const [suppliersList, setSuppliersList] = useState<any[]>([]);
+    const [supplierLinksByProduct, setSupplierLinksByProduct] = useState<Record<string, any[]>>({});
+    const [formSupplierIds, setFormSupplierIds] = useState<string[]>([]);
+    const [formPrimarySupplierId, setFormPrimarySupplierId] = useState('');
+    const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
 
     // AI Replenishment advice
     const [replenishAdvice, setReplenishAdvice] = useState<{ advice: string; priority_count: number } | null>(null);
@@ -207,10 +214,12 @@ export default function Inventory() {
                 : (selectedLocation || undefined);
             const offlineLocationKey = locationFilter !== undefined ? locationFilter : selectedLocation;
             let partialError = false;
-            const [prodsRes, catsRes, locsRes] = await Promise.allSettled([
+            const [prodsRes, catsRes, locsRes, suppliersRes, linksRes] = await Promise.allSettled([
                 productsApi.list(undefined, 0, 500, resolvedLocation),
                 categoriesApi.list(),
-                hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([])
+                hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([]),
+                suppliersApi.list(),
+                supplierProductsApi.list(),
             ]);
 
             if (prodsRes.status !== 'fulfilled') {
@@ -236,6 +245,29 @@ export default function Inventory() {
             } else {
                 partialError = true;
                 console.warn('Inventory locations unavailable', locsRes.reason);
+            }
+
+            if (suppliersRes.status === 'fulfilled') {
+                const supplierRows = Array.isArray(suppliersRes.value)
+                    ? suppliersRes.value
+                    : (suppliersRes.value as any)?.items || [];
+                setSuppliersList(supplierRows);
+            } else {
+                partialError = true;
+                console.warn('Inventory suppliers unavailable', suppliersRes.reason);
+            }
+
+            if (linksRes.status === 'fulfilled') {
+                const grouped = (Array.isArray(linksRes.value) ? linksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
+                    if (!link?.product_id) return acc;
+                    if (!acc[link.product_id]) acc[link.product_id] = [];
+                    acc[link.product_id].push(link);
+                    return acc;
+                }, {});
+                setSupplierLinksByProduct(grouped);
+            } else {
+                partialError = true;
+                console.warn('Inventory supplier links unavailable', linksRes.reason);
             }
             if (partialError) {
                 setError(t('inventory.partial_load_error', { defaultValue: 'Certaines données annexes du stock sont temporairement indisponibles.' }));
@@ -298,6 +330,8 @@ export default function Inventory() {
     const handleOpenAddModal = () => {
         setShowCreateMenu(false);
         setEditingProduct(null);
+        setFormSupplierIds([]);
+        setFormPrimarySupplierId('');
         setForm({
             name: '',
             sku: '',
@@ -345,6 +379,9 @@ export default function Inventory() {
 
     const handleOpenEditModal = (product: any) => {
         setEditingProduct(product);
+        const productLinks = supplierLinksByProduct[product.product_id] || [];
+        setFormSupplierIds(productLinks.map((link) => link.supplier_id).filter(Boolean));
+        setFormPrimarySupplierId(productLinks.find((link) => link.is_preferred)?.supplier_id || '');
         setForm({
             name: product.name,
             sku: product.sku || '',
@@ -504,14 +541,46 @@ export default function Inventory() {
                 allows_fractional_sale: measurement.allows_fractional_sale,
                 quantity_precision: measurement.quantity_precision,
             };
+            let savedProductId = editingProduct?.product_id;
             if (editingProduct) {
-                await productsApi.update(editingProduct.product_id, payload);
+                const updated = await productsApi.update(editingProduct.product_id, payload);
+                savedProductId = updated?.product_id || editingProduct.product_id;
             } else {
-                await productsApi.create(payload);
+                const created = await productsApi.create(payload);
+                savedProductId = created?.product_id;
+            }
+
+            if (savedProductId) {
+                const existingLinks = supplierLinksByProduct[savedProductId] || [];
+                const selectedIds = Array.from(new Set(formSupplierIds.filter(Boolean)));
+                const selectedSet = new Set(selectedIds);
+
+                for (const link of existingLinks) {
+                    if (!selectedSet.has(link.supplier_id)) {
+                        await supplierProductsApi.unlink(link.link_id);
+                    }
+                }
+
+                for (const supplierId of selectedIds) {
+                    const existing = existingLinks.find((link) => link.supplier_id === supplierId);
+                    if (existing) {
+                        await supplierProductsApi.update(existing.link_id, {
+                            is_preferred: formPrimarySupplierId === supplierId,
+                            supplier_price: Number(form.purchase_price) || existing.supplier_price || 0,
+                        });
+                    } else {
+                        await supplierProductsApi.link({
+                            supplier_id: supplierId,
+                            product_id: savedProductId,
+                            supplier_price: Number(form.purchase_price) || 0,
+                            is_preferred: formPrimarySupplierId === supplierId,
+                        });
+                    }
+                }
             }
             setIsProductModalOpen(false);
-            fetchProducts();
-            loadStockHealth();
+            await fetchProducts();
+            await loadStockHealth();
         } catch (err) {
             console.error('Error saving product', err);
         } finally {
@@ -595,10 +664,59 @@ export default function Inventory() {
         }));
     };
 
-    const filteredProducts = (Array.isArray(products) ? products : []).filter(p =>
-        (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase())
-    );
+    const normalizeMatchText = (value?: string | null) =>
+        (value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    const toggleFormSupplier = (supplierId: string) => {
+        setFormSupplierIds((prev) => {
+            if (prev.includes(supplierId)) {
+                const next = prev.filter((id) => id !== supplierId);
+                if (formPrimarySupplierId === supplierId) {
+                    setFormPrimarySupplierId(next[0] || '');
+                }
+                return next;
+            }
+            const next = [...prev, supplierId];
+            if (!formPrimarySupplierId) {
+                setFormPrimarySupplierId(supplierId);
+            }
+            return next;
+        });
+    };
+
+    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+        .map((supplier: any) => {
+            const supplied = normalizeMatchText(supplier?.products_supplied || '');
+            const tokens = normalizeMatchText(`${form.name} ${form.category_id}`)
+                .split(' ')
+                .filter((token) => token.length >= 3);
+            const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+            return { supplier, score };
+        })
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+        });
+
+    const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
+        const matchesSearch =
+            (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
+            p.sku?.toLowerCase().includes(search.toLowerCase());
+        if (!matchesSearch) return false;
+
+        const links = supplierLinksByProduct[p.product_id] || [];
+        if (supplierCoverageFilter === 'all') return true;
+        if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
+        if (supplierCoverageFilter === 'multi_supplier') return links.length > 1;
+        if (supplierCoverageFilter === 'missing_primary') return links.length > 0 && !links.some((link) => link.is_preferred);
+        return true;
+    });
 
     if (loading && products.length === 0 && !error) {
         return (
@@ -907,6 +1025,33 @@ export default function Inventory() {
                 </div>
             )}
 
+            <div className="mb-6 flex flex-wrap gap-2">
+                <button
+                    onClick={() => setSupplierCoverageFilter('all')}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'all' ? 'border-primary bg-primary text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
+                >
+                    Tous
+                </button>
+                <button
+                    onClick={() => setSupplierCoverageFilter('no_supplier')}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'no_supplier' ? 'border-rose-500 bg-rose-500 text-white' : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:text-white'}`}
+                >
+                    Sans fournisseur
+                </button>
+                <button
+                    onClick={() => setSupplierCoverageFilter('multi_supplier')}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'multi_supplier' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:text-white'}`}
+                >
+                    Plusieurs fournisseurs
+                </button>
+                <button
+                    onClick={() => setSupplierCoverageFilter('missing_primary')}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'missing_primary' ? 'border-sky-500 bg-sky-500 text-white' : 'border-sky-500/40 bg-sky-500/10 text-sky-300 hover:text-white'}`}
+                >
+                    Principal manquant
+                </button>
+            </div>
+
             {/* Products Table */}
             <div className="glass-card overflow-x-auto">
                 <table className="w-full min-w-[600px] text-left border-collapse">
@@ -914,6 +1059,7 @@ export default function Inventory() {
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
                             <th className="py-4 px-6 font-semibold">Catégorie</th>
+                            <th className="py-4 px-6 font-semibold">Fournisseurs</th>
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold">Prix</th>
                             <th className="py-4 px-6 font-semibold text-right">Actions</th>
@@ -923,6 +1069,8 @@ export default function Inventory() {
                         {filteredProducts.map((p) => {
                             const matchesMin = p.quantity <= p.min_stock;
                             const isOut = p.quantity === 0;
+                            const productLinks = supplierLinksByProduct[p.product_id] || [];
+                            const hasPrimary = productLinks.some((link) => link.is_preferred);
 
                             return (
                                 <tr key={p.product_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
@@ -957,6 +1105,20 @@ export default function Inventory() {
                                         <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
                                             {categoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
                                         </span>
+                                    </td>
+                                    <td className="py-4 px-6">
+                                        {productLinks.length === 0 ? (
+                                            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300">
+                                                Aucun
+                                            </span>
+                                        ) : (
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-xs font-bold text-white">{productLinks.length} lié(s)</span>
+                                                {!hasPrimary && (
+                                                    <span className="text-[10px] font-bold uppercase text-sky-300">Principal manquant</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col items-center gap-1">
@@ -1233,6 +1395,50 @@ export default function Inventory() {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                            )}
+
+                            {rankedSuppliersForForm.length > 0 && (
+                                <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300">Fournisseurs liés</label>
+                                        <p className="mt-1 text-xs text-slate-400">Cochez un ou plusieurs fournisseurs, puis définissez un fournisseur principal.</p>
+                                    </div>
+                                    <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                                        {rankedSuppliersForForm.map(({ supplier, score }) => {
+                                            const selected = formSupplierIds.includes(supplier.supplier_id);
+                                            return (
+                                                <div key={supplier.supplier_id} className={`rounded-lg border px-3 py-2 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-transparent'}`}>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <label className="flex items-center gap-2 text-sm text-white">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selected}
+                                                                onChange={() => toggleFormSupplier(supplier.supplier_id)}
+                                                            />
+                                                            <span className="font-semibold">{supplier.name}</span>
+                                                        </label>
+                                                        {score > 0 && (
+                                                            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300">
+                                                                Match
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {selected && (
+                                                        <label className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="radio"
+                                                                name="primary_supplier"
+                                                                checked={formPrimarySupplierId === supplier.supplier_id}
+                                                                onChange={() => setFormPrimarySupplierId(supplier.supplier_id)}
+                                                            />
+                                                            Fournisseur principal
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 

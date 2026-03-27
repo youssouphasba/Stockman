@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   orders as ordersApi,
@@ -155,6 +155,17 @@ export default function OrdersScreen() {
   const [returnDetail, setReturnDetail] = useState<ReturnData | null>(null);
   const [completingReturn, setCompletingReturn] = useState(false);
   const [sharingPdf, setSharingPdf] = useState(false);
+  const [preSelectedProductId, setPreSelectedProductId] = useState<string | null>(null);
+  const handledReminderRef = useRef<string | null>(null);
+  const {
+    order_id: orderIdParam,
+    product_id: productIdParam,
+    reminder_type: reminderTypeParam,
+  } = useLocalSearchParams<{
+    order_id?: string;
+    product_id?: string;
+    reminder_type?: string;
+  }>();
 
   const confirmDiscardChanges = (onConfirm: () => void) => {
     Alert.alert(
@@ -282,6 +293,30 @@ export default function OrdersScreen() {
       loadReturns();
     }, [loadData, loadSuppliers, loadReturns])
   );
+
+  useEffect(() => {
+    const orderId = typeof orderIdParam === 'string' ? orderIdParam : undefined;
+    const productId = typeof productIdParam === 'string' ? productIdParam : undefined;
+    const reminderType = typeof reminderTypeParam === 'string' ? reminderTypeParam : undefined;
+
+    if (!orderId && !productId) return;
+
+    const reminderKey = `${orderId || ''}|${productId || ''}|${reminderType || ''}`;
+    if (handledReminderRef.current === reminderKey) return;
+    handledReminderRef.current = reminderKey;
+
+    setActiveTab('orders');
+
+    if (orderId) {
+      openDetailModal(orderId);
+      return;
+    }
+
+    if (productId && reminderType === 'replenishment') {
+      setPreSelectedProductId(productId);
+      setShowCreateModal(true);
+    }
+  }, [orderIdParam, productIdParam, reminderTypeParam]);
 
   function onRefresh() {
     setRefreshing(true);
@@ -713,7 +748,14 @@ export default function OrdersScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.addBtn}
-                onPress={() => activeTab === 'orders' ? setShowCreateModal(true) : openCreateReturn()}
+                onPress={() => {
+                  if (activeTab === 'orders') {
+                    setPreSelectedProductId(null);
+                    setShowCreateModal(true);
+                    return;
+                  }
+                  openCreateReturn();
+                }}
               >
                 <Ionicons name="add" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -1049,11 +1091,16 @@ export default function OrdersScreen() {
         {/* Order Creation Modal (3-step flow) */}
         <OrderCreationModal
           visible={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setPreSelectedProductId(null);
+          }}
           onOrderCreated={() => {
             setShowCreateModal(false);
+            setPreSelectedProductId(null);
             loadData();
           }}
+          preSelectedProductId={preSelectedProductId}
         />
 
         {/* AI Invoice Scan Result Modal */}

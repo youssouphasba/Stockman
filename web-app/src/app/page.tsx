@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: "Stockman",
     title: "Stockman - Back-Office Enterprise",
     description:
-      "Starter et Pro sur mobile. Enterprise ajoute le back-office web pour commerce, restauration et activites de production.",
+      "Starter et Pro sur mobile. Enterprise ajoute le back-office web pour business, restauration et activites de production.",
     images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630, alt: "Stockman Back-Office" }],
     locale: "fr_FR",
   },
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   keywords: [
-    "gestion de stock", "logiciel caisse", "back-office commercant",
-    "comptabilite commerce", "CRM boutique", "Stockman Enterprise",
-    "logiciel inventaire Afrique", "gestion boutique en ligne", "application web gestion commerce",
+    "gestion de stock", "logiciel caisse", "back-office business",
+    "comptabilite business", "CRM boutique", "Stockman Enterprise",
+    "logiciel inventaire Afrique", "gestion boutique en ligne", "application web gestion business",
     "logiciel supermarche", "logiciel restaurant",
   ],
 };

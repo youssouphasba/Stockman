@@ -9,11 +9,15 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
@@ -26,6 +30,26 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useTranslation } from 'react-i18next';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
+const GOOGLE_CLIENT_ID_KEYS = [
+  'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+  'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID',
+  'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+] as const;
+const GOOGLE_CLIENT_ID_PLACEHOLDER = 'google-auth-not-configured';
+
+function getGoogleClientId(envKey: (typeof GOOGLE_CLIENT_ID_KEYS)[number]) {
+  const value = process.env[envKey]?.trim();
+  return value ? value : undefined;
+}
+
+function getGoogleNativeRedirectUri(clientId?: string) {
+  if (!clientId) return undefined;
+  const normalizedClientId = clientId.replace(/\.apps\.googleusercontent\.com$/, '');
+  if (!normalizedClientId) return undefined;
+  return `com.googleusercontent.apps.${normalizedClientId}:/oauthredirect`;
+}
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -41,17 +65,40 @@ export default function LoginScreen() {
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
   const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
 
   React.useEffect(() => {
     loadSavedCredentials();
     checkBiometrics();
+    checkAppleAvailability();
+  }, []);
+
+  const googleClientIds = React.useMemo(() => {
+    const webClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID');
+    const androidClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID');
+    const iosClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID');
+    const platformClientId = Platform.select({
+      ios: iosClientId,
+      android: androidClientId,
+      default: webClientId,
+    });
+    const fallbackClientId = platformClientId || webClientId || androidClientId || iosClientId || GOOGLE_CLIENT_ID_PLACEHOLDER;
+
+    return {
+      webClientId: webClientId || fallbackClientId,
+      androidClientId: androidClientId || fallbackClientId,
+      iosClientId: iosClientId || fallbackClientId,
+      nativeRedirectUri: getGoogleNativeRedirectUri(platformClientId),
+      hasConfig: Boolean(platformClientId),
+    };
   }, []);
 
   const [googleRequest, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: googleClientIds.webClientId,
+    iosClientId: googleClientIds.iosClientId,
+    androidClientId: googleClientIds.androidClientId,
+    redirectUri: Platform.OS === 'web' ? undefined : googleClientIds.nativeRedirectUri,
   });
 
   React.useEffect(() => {
@@ -69,6 +116,19 @@ export default function LoginScreen() {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
     setIsBiometricAvailable(hasHardware && isEnrolled && isBiometricsEnabled);
+  }
+
+  async function checkAppleAvailability() {
+    if (Platform.OS !== 'ios') {
+      setIsAppleAvailable(false);
+      return;
+    }
+    try {
+      const available = await AppleAuthentication.isAvailableAsync();
+      setIsAppleAvailable(available);
+    } catch {
+      setIsAppleAvailable(false);
+    }
   }
 
   async function loadSavedCredentials() {
@@ -146,9 +206,12 @@ export default function LoginScreen() {
   }
 
   async function handleGoogleLogin() {
-    if (!googleRequest) return;
-    if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID && !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID && !process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+    if (!googleClientIds.hasConfig) {
       setError(t('auth.login.googleConfigMissing'));
+      return;
+    }
+    if (!googleRequest) {
+      setError(t('auth.login.socialError'));
       return;
     }
     setError('');
@@ -182,11 +245,78 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleAppleLogin() {
+    if (!isAppleAvailable) {
+      setError(t('auth.login.appleUnavailable'));
+      return;
+    }
+    setError('');
+    setSocialLoading('apple');
+    try {
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+
+      const appleCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (!appleCredential.identityToken) {
+        setError(t('auth.login.socialMissingToken'));
+        return;
+      }
+
+      const firebaseAuthModule: any = require('@react-native-firebase/auth');
+      const provider = new firebaseAuthModule.OAuthProvider('apple.com');
+      const credential = provider.credential(
+        appleCredential.identityToken,
+        rawNonce,
+      );
+      const firebaseUser = await auth().signInWithCredential(credential);
+      const firebaseIdToken = await firebaseUser.user.getIdToken();
+      const loggedInUser = await loginWithSocial(firebaseIdToken, 'mobile');
+      await auth().signOut();
+
+      if (loggedInUser.required_verification === 'email' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-email');
+      } else if (loggedInUser.required_verification === 'phone' && !loggedInUser.can_access_app) {
+        router.replace('/(auth)/verify-phone');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (e: any) {
+      if (e?.code === 'ERR_REQUEST_CANCELED') {
+        setSocialLoading(null);
+        return;
+      }
+      setError(e instanceof ApiError ? e.message : t('auth.login.socialError'));
+    } finally {
+      setSocialLoading(null);
+    }
+  }
+
 
   const [demoType, setDemoType] = useState<string | null>(null);
 
   async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
     if (type === 'enterprise') {
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Démo Enterprise',
+          'Utilisez un ordinateur pour tester pleinement cet outil',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
+          ]
+        );
+        return;
+      }
       await Linking.openURL(ENTERPRISE_DEMO_URL);
       return;
     }
@@ -330,6 +460,24 @@ export default function LoginScreen() {
                 </>
               )}
             </TouchableOpacity>
+
+            {Platform.OS === 'ios' && isAppleAvailable ? (
+              <View style={styles.appleButtonWrapper}>
+                {socialLoading === 'apple' ? (
+                  <View style={styles.appleLoadingButton}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                ) : (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                    cornerRadius={BorderRadius.md}
+                    style={styles.appleButton}
+                    onPress={handleAppleLogin}
+                  />
+                )}
+              </View>
+            ) : null}
 
             
 
@@ -555,6 +703,20 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.text,
     fontSize: FontSize.sm,
     fontWeight: '600',
+  },
+  appleButtonWrapper: {
+    marginBottom: Spacing.sm,
+  },
+  appleButton: {
+    width: '100%',
+    height: 46,
+  },
+  appleLoadingButton: {
+    height: 46,
+    borderRadius: BorderRadius.md,
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   demoTitle: {
     color: colors.textSecondary,

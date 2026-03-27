@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -382,9 +382,9 @@
       "shopkeeperAccount": "दुकानदार खाता",
       "supplierAccount": "आपूर्तिकर्ता खाता",
       "shopkeeper": "दुकानदार",
-      "shopkeeperDesc": "अपना स्टॉक प्रबंधित करें, आपूर्तिकर्ताओं से ऑर्डर करें",
+      "shopkeeperDesc": "अपने व्यवसाय को चलाएँ, अपने स्टॉक और बिक्री को ट्रैक करें, और अपने सप्लायर व ग्राहकों को आसानी से प्रबंधित करें। आपका व्यवसाय आपकी जेब में।",
       "supplier": "आपूर्तिकर्ता",
-      "supplierDesc": "अपना कैटलॉग प्रकाशित करें, ऑर्डर प्राप्त करें",
+      "supplierDesc": "अपना कैटलॉग प्रकाशित करें, व्यापारियों के बीच अपनी पहचान बढ़ाएँ और अधिक ऑर्डर प्राप्त करें।",
       "alreadyHaveAccount": "पहले से खाता है?",
       "changeProfile": "प्रोफ़ाइल बदलें",
       "name": "नाम",

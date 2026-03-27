@@ -57,6 +57,7 @@ import {
   suppliers as suppliersApi,
   supplierProducts as spApi,
   Supplier,
+  SupplierProduct,
 } from '../../services/api';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
@@ -92,7 +93,15 @@ export default function ProductsScreen() {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
   const router = useRouter();
-  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  const {
+    filter: filterParam,
+    product_id: productIdParam,
+    reminder_type: reminderTypeParam,
+  } = useLocalSearchParams<{
+    filter?: string;
+    product_id?: string;
+    reminder_type?: string;
+  }>();
   const { user, hasPermission, hasProduction, isRestaurant } = useAuth();
   const effectivePlan = user?.effective_plan || user?.plan;
   const hasEnterpriseLocations = effectivePlan === 'enterprise';
@@ -112,6 +121,8 @@ export default function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock'>('all');
+  const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
+  const handledReminderProductRef = useRef<string | null>(null);
 
   // Apply filter from notification deep-link
   useEffect(() => {
@@ -119,6 +130,18 @@ export default function ProductsScreen() {
       setFilterType(filterParam);
     }
   }, [filterParam]);
+
+  useEffect(() => {
+    if (!productIdParam || productList.length === 0) return;
+    const reminderKey = `${String(productIdParam)}:${String(reminderTypeParam || '')}`;
+    if (handledReminderProductRef.current === reminderKey) return;
+
+    const targetProduct = productList.find((product) => product.product_id === String(productIdParam));
+    if (!targetProduct) return;
+
+    handledReminderProductRef.current = reminderKey;
+    openHistoryModal(targetProduct);
+  }, [productIdParam, reminderTypeParam, productList]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -168,9 +191,11 @@ export default function ProductsScreen() {
   const [formCategoryName, setFormCategoryName] = useState('');
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formRfidTag, setFormRfidTag] = useState('');
-  const [formSupplierId, setFormSupplierId] = useState<string | null>(null);
+  const [formSupplierIds, setFormSupplierIds] = useState<string[]>([]);
+  const [formPrimarySupplierId, setFormPrimarySupplierId] = useState<string | null>(null);
   const [formLocationId, setFormLocationId] = useState('');
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
+  const [supplierLinksByProduct, setSupplierLinksByProduct] = useState<Record<string, SupplierProduct[]>>({});
   const [imageUploading, setImageUploading] = useState(false);
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -258,7 +283,8 @@ export default function ProductsScreen() {
     categoryName: formCategoryName,
     image: formImage || '',
     rfidTag: formRfidTag,
-    supplierId: formSupplierId || '',
+    supplierIds: [...formSupplierIds].sort(),
+    primarySupplierId: formPrimarySupplierId || '',
     locationId: formLocationId,
     expiryDate: formExpiryDate,
     hasVariants: formHasVariants,
@@ -450,6 +476,19 @@ export default function ProductsScreen() {
           setAllSuppliers((supRes.items ?? supRes) as Supplier[]);
         } catch { /* silent */ }
 
+        try {
+          const links = await spApi.list();
+          const grouped: Record<string, SupplierProduct[]> = {};
+          for (const link of links || []) {
+            if (!link?.product_id) continue;
+            if (!grouped[link.product_id]) grouped[link.product_id] = [];
+            grouped[link.product_id].push(link);
+          }
+          setSupplierLinksByProduct(grouped);
+        } catch {
+          setSupplierLinksByProduct({});
+        }
+
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
         setCategoryList(cats);
@@ -492,6 +531,7 @@ export default function ProductsScreen() {
       }
       const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
       if (cachedCats) setCategoryList(cachedCats);
+      setSupplierLinksByProduct({});
       if (!hasEnterpriseLocations) setLocationList([]);
     } finally {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -655,6 +695,60 @@ export default function ProductsScreen() {
     loadData();
   }
 
+  function normalizeText(value?: string | null) {
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getSupplierMatchScore(supplier: Supplier) {
+    const supplierText = normalizeText([
+      supplier.name,
+      supplier.products_supplied,
+      supplier.notes,
+    ].filter(Boolean).join(' '));
+    if (!supplierText) return 0;
+
+    const productTokens = normalizeText([
+      formName,
+      formCategoryName,
+      formSubcategory,
+    ].join(' ')).split(' ').filter((token) => token.length >= 3);
+    if (productTokens.length === 0) return 0;
+
+    let score = 0;
+    for (const token of productTokens) {
+      if (supplierText.includes(token)) score += 1;
+    }
+    return score;
+  }
+
+  const rankedSuppliers = useMemo(() => {
+    return [...allSuppliers].sort((a, b) => {
+      const scoreA = getSupplierMatchScore(a);
+      const scoreB = getSupplierMatchScore(b);
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return (a.name || '').localeCompare(b.name || '', 'fr');
+    });
+  }, [allSuppliers, formName, formCategoryName, formSubcategory]);
+
+  function toggleFormSupplier(supplierId: string) {
+    setFormSupplierIds((current) => {
+      const exists = current.includes(supplierId);
+      const next = exists ? current.filter((id) => id !== supplierId) : [...current, supplierId];
+      if (exists && formPrimarySupplierId === supplierId) {
+        setFormPrimarySupplierId(next[0] || null);
+      } else if (!exists && !formPrimarySupplierId) {
+        setFormPrimarySupplierId(supplierId);
+      }
+      return next;
+    });
+  }
+
   const filtered = useMemo(() => {
     if (!productList || !Array.isArray(productList)) return [];
     return productList.filter((p) => {
@@ -667,9 +761,17 @@ export default function ProductsScreen() {
       else if (filterType === 'low_stock') matchesFilter = p.min_stock > 0 && p.quantity <= p.min_stock;
       else if (filterType === 'overstock') matchesFilter = p.max_stock > 0 && p.quantity >= p.max_stock;
 
-      return matchesSearch && matchesFilter;
+      const productLinks = supplierLinksByProduct[p.product_id] || [];
+      const hasSupplier = productLinks.length > 0;
+      const hasPrimarySupplier = productLinks.some((link) => link.is_preferred);
+      let matchesSupplierCoverage = true;
+      if (supplierCoverageFilter === 'no_supplier') matchesSupplierCoverage = !hasSupplier;
+      else if (supplierCoverageFilter === 'multi_supplier') matchesSupplierCoverage = productLinks.length > 1;
+      else if (supplierCoverageFilter === 'missing_primary') matchesSupplierCoverage = hasSupplier && !hasPrimarySupplier;
+
+      return matchesSearch && matchesFilter && matchesSupplierCoverage;
     });
-  }, [productList, search, filterType]);
+  }, [productList, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct]);
 
   const serviceRecipes = useMemo(
     () => recipeList.filter((recipe) => recipe.recipe_type !== 'prep'),
@@ -886,7 +988,8 @@ export default function ProductsScreen() {
     setAiPriceReasoning('');
     setFormHasVariants(false);
     setFormVariants([]);
-    setFormSupplierId(null);
+    setFormSupplierIds([]);
+    setFormPrimarySupplierId(null);
     setFormLocationId('');
   }
 
@@ -974,7 +1077,11 @@ export default function ProductsScreen() {
     setFormLinkedRecipeId(product.linked_recipe_id || '');
     setFormHasVariants(product.has_variants || false);
     setFormVariants(product.variants || []);
-    setFormSupplierId(null);
+    const existingLinks = supplierLinksByProduct[product.product_id] || [];
+    const supplierIds = existingLinks.map((link) => link.supplier_id);
+    const preferred = existingLinks.find((link) => link.is_preferred)?.supplier_id || supplierIds[0] || null;
+    setFormSupplierIds(supplierIds);
+    setFormPrimarySupplierId(preferred);
     setShowAddModal(true);
   }
 
@@ -1092,11 +1199,46 @@ export default function ProductsScreen() {
           const created = await productsApi.create(data);
           savedProductId = created.product_id;
         }
-        // Link supplier if selected
-        if (formSupplierId && savedProductId) {
-          try {
-            await spApi.link({ supplier_id: formSupplierId, product_id: savedProductId, is_preferred: true });
-          } catch { /* link may already exist, ignore */ }
+        // Sync supplier links (multi-suppliers + primary supplier)
+        if (savedProductId && !isRestaurant) {
+          const desiredSupplierIds = Array.from(new Set(formSupplierIds));
+          const existingLinks = supplierLinksByProduct[savedProductId] || [];
+          const existingBySupplierId = new Map(existingLinks.map((link) => [link.supplier_id, link]));
+
+          for (const existingLink of existingLinks) {
+            if (!desiredSupplierIds.includes(existingLink.supplier_id)) {
+              try {
+                await spApi.unlink(existingLink.link_id);
+              } catch {
+                // Keep going if one unlink fails.
+              }
+            }
+          }
+
+          for (const supplierId of desiredSupplierIds) {
+            const shouldBePrimary = formPrimarySupplierId === supplierId;
+            const existingLink = existingBySupplierId.get(supplierId);
+            if (!existingLink) {
+              try {
+                await spApi.link({
+                  supplier_id: supplierId,
+                  product_id: savedProductId,
+                  is_preferred: shouldBePrimary,
+                });
+              } catch {
+                // Ignore duplicate/race edge cases.
+              }
+              continue;
+            }
+
+            if (existingLink.is_preferred !== shouldBePrimary) {
+              try {
+                await spApi.update(existingLink.link_id, { is_preferred: shouldBePrimary });
+              } catch {
+                // Keep going; a later reload will reconcile server state.
+              }
+            }
+          }
         }
         // Reload data from server
         await loadData();
@@ -1891,6 +2033,40 @@ export default function ProductsScreen() {
                 <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
               </TouchableOpacity>
             </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity
+                style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]}
+                onPress={() => setSupplierCoverageFilter('all')}
+              >
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'all' && styles.filterChipTextActive]}>
+                  {t('products.supplier_filter_all', 'Tous fournisseurs')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, supplierCoverageFilter === 'no_supplier' && styles.filterChipActive, { borderColor: colors.danger }]}
+                onPress={() => setSupplierCoverageFilter('no_supplier')}
+              >
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'no_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'no_supplier' ? '#fff' : colors.danger }]}>
+                  {t('products.supplier_filter_none', 'Sans fournisseur')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, supplierCoverageFilter === 'multi_supplier' && styles.filterChipActive, { borderColor: colors.warning }]}
+                onPress={() => setSupplierCoverageFilter('multi_supplier')}
+              >
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'multi_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'multi_supplier' ? '#fff' : colors.warning }]}>
+                  {t('products.supplier_filter_multiple', 'Plusieurs fournisseurs')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterChip, supplierCoverageFilter === 'missing_primary' && styles.filterChipActive, { borderColor: colors.info }]}
+                onPress={() => setSupplierCoverageFilter('missing_primary')}
+              >
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'missing_primary' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'missing_primary' ? '#fff' : colors.info }]}>
+                  {t('products.supplier_filter_missing_primary', 'Principal manquant')}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         )}
 
@@ -2549,23 +2725,50 @@ export default function ProductsScreen() {
                 {!isRestaurant && allSuppliers.length > 0 && (
                   <View style={{ marginBottom: Spacing.sm }}>
                     <Text style={styles.formLabel}>{t('products.supplier')}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
+                      {t('products.supplier_select_help', 'Associez un ou plusieurs fournisseurs. Définissez un fournisseur principal pour le réapprovisionnement.')}
+                    </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
                       <TouchableOpacity
-                        style={[styles.filterChip, !formSupplierId && styles.filterChipActive]}
-                        onPress={() => setFormSupplierId(null)}
+                        style={[styles.filterChip, formSupplierIds.length === 0 && styles.filterChipActive]}
+                        onPress={() => {
+                          setFormSupplierIds([]);
+                          setFormPrimarySupplierId(null);
+                        }}
                       >
-                        <Text style={[styles.filterChipText, !formSupplierId && styles.filterChipTextActive]}>{t('products.no_supplier')}</Text>
+                        <Text style={[styles.filterChipText, formSupplierIds.length === 0 && styles.filterChipTextActive]}>
+                          {t('products.no_supplier')}
+                        </Text>
                       </TouchableOpacity>
-                      {allSuppliers.map(sup => (
+                      {rankedSuppliers.map((sup) => {
+                        const isSelected = formSupplierIds.includes(sup.supplier_id);
+                        const isPrimary = formPrimarySupplierId === sup.supplier_id;
+                        const score = getSupplierMatchScore(sup);
+                        return (
                         <TouchableOpacity
                           key={sup.supplier_id}
-                          style={[styles.filterChip, formSupplierId === sup.supplier_id && styles.filterChipActive]}
-                          onPress={() => setFormSupplierId(sup.supplier_id)}
+                          style={[styles.filterChip, isSelected && styles.filterChipActive]}
+                          onPress={() => toggleFormSupplier(sup.supplier_id)}
+                          onLongPress={() => {
+                            if (!isSelected) {
+                              toggleFormSupplier(sup.supplier_id);
+                            }
+                            setFormPrimarySupplierId(sup.supplier_id);
+                          }}
                         >
-                          <Text style={[styles.filterChipText, formSupplierId === sup.supplier_id && styles.filterChipTextActive]}>{sup.name}</Text>
+                          <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
+                            {sup.name}
+                            {isPrimary ? ` ${t('products.primary_supplier_badge', '(principal)')}` : ''}
+                            {score > 0 ? ` · ${t('products.match_badge', 'match')} ${score}` : ''}
+                          </Text>
                         </TouchableOpacity>
-                      ))}
+                      )})}
                     </ScrollView>
+                    {formSupplierIds.length > 1 && (
+                      <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
+                        {t('products.long_press_primary_help', 'Appui long sur un fournisseur pour le définir comme principal.')}
+                      </Text>
+                    )}
                   </View>
                 )}
 

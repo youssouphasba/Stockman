@@ -14,16 +14,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://app.stockman.pro"),
   title: {
-    default: "Stockman — Back-Office Enterprise",
+    default: "Stockman - Back-Office Enterprise",
     template: "%s | Stockman",
   },
-  description: "Le back-office web pour commerçants : stock, caisse, comptabilité, CRM. Plan Enterprise — essai gratuit 1 mois.",
+  description: "Le back-office web pour business : stock, caisse, comptabilite, CRM. Plan Enterprise - essai gratuit 1 mois.",
   manifest: "/manifest.json",
   icons: {
     apple: "/apple-touch-icon.png",
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-    ],
+    icon: [{ url: "/icon.png", type: "image/png" }],
   },
   openGraph: {
     siteName: "Stockman",
@@ -41,7 +39,7 @@ const structuredData = {
   operatingSystem: "Web, iOS, Android",
   url: "https://app.stockman.pro",
   description:
-    "Logiciel de gestion de stock et back-office professionnel pour commerçants. Dashboard, Caisse POS, Comptabilité P&L, CRM, Multi-boutiques.",
+    "Logiciel de gestion de stock et back-office professionnel pour business. Dashboard, Caisse POS, Comptabilite P&L, CRM, Multi-boutiques.",
   offers: {
     "@type": "AggregateOffer",
     priceCurrency: "XOF",

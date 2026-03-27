@@ -41,7 +41,7 @@ function RootLayoutNav() {
     const onVerificationScreen = inAuthGroup && (segments[1] === 'verify-phone' || segments[1] === 'verify-email');
 
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
-      router.replace('/(auth)/login');
+      router.replace('/(auth)' as any);
     } else if (isAuthenticated && inAuthGroup && !needsVerification) {
       // Verified user still on auth screens — redirect to main app
       if (isSuperAdmin) {
