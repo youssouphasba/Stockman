@@ -320,6 +320,7 @@ export default function Suppliers() {
                 const marketplaceQuery = [search.trim(), productFilter.trim()].filter(Boolean).join(' ').trim();
                 const res = await marketplaceApi.searchSuppliers({
                     q: marketplaceQuery || undefined,
+                    category: productFilter.trim() || undefined,
                     city: regionFilter || undefined,
                 });
                 const normalized = (Array.isArray(res) ? res : []).map((supplier: any) => ({
@@ -767,21 +768,6 @@ export default function Suppliers() {
     ).sort((a, b) => a.localeCompare(b));
 
     const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter((s) => {
-        const q = search.trim().toLowerCase();
-        const productQuery = productFilter.trim().toLowerCase();
-        const matchSearch =
-            !q ||
-            (s.name || s.company_name || '').toLowerCase().includes(q) ||
-            (s.city || '').toLowerCase().includes(q) ||
-            (s.category || '').toLowerCase().includes(q) ||
-            (Array.isArray(s.categories) ? s.categories.join(' ') : '').toLowerCase().includes(q);
-
-        const matchProduct =
-            !productQuery ||
-            (s.category || '').toLowerCase().includes(productQuery) ||
-            (Array.isArray(s.categories) ? s.categories.join(' ') : '').toLowerCase().includes(productQuery) ||
-            (s.name || s.company_name || '').toLowerCase().includes(productQuery);
-
         const matchCity = !regionFilter || (s.city || '').toLowerCase().includes(regionFilter.toLowerCase());
 
         const minOrderAmount = Number(s.min_order_amount || 0);
@@ -790,7 +776,7 @@ export default function Suppliers() {
         const matchMinPrice = !priceMinFilter || (!Number.isNaN(minPrice) && minOrderAmount >= minPrice);
         const matchMaxPrice = !priceMaxFilter || (!Number.isNaN(maxPrice) && minOrderAmount <= maxPrice);
 
-        return matchSearch && matchProduct && matchCity && matchMinPrice && matchMaxPrice;
+        return matchCity && matchMinPrice && matchMaxPrice;
     });
 
     useEffect(() => {

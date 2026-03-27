@@ -21,6 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
+      "buildNumber": "2",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
