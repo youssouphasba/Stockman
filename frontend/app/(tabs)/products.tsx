@@ -749,6 +749,42 @@ export default function ProductsScreen() {
     });
   }
 
+  function getSupplierNameById(supplierId?: string | null) {
+    return allSuppliers.find((supplier) => supplier.supplier_id === supplierId)?.name || t('products.supplier', 'Fournisseur');
+  }
+
+  function getProductSupplyMeta(productId?: string | null) {
+    const links = productId ? (supplierLinksByProduct[productId] || []) : [];
+    const primaryLink = links.find((link) => link.is_preferred) || null;
+    const primaryName = primaryLink ? getSupplierNameById(primaryLink.supplier_id) : '';
+
+    if (links.length === 0) {
+      return {
+        tone: colors.danger,
+        status: t('products.supplier_none_status', 'Aucun fournisseur'),
+        subtitle: t('products.supplier_none_subtitle', 'Ajoutez un fournisseur pour préparer le réapprovisionnement.'),
+      };
+    }
+
+    if (!primaryLink) {
+      return {
+        tone: colors.info,
+        status: t('products.supplier_missing_primary_status', 'Principal manquant'),
+        subtitle: t('products.supplier_missing_primary_subtitle', { count: links.length, defaultValue: '{{count}} fournisseur(s) lié(s), mais aucun principal défini.' }),
+      };
+    }
+
+    return {
+      tone: colors.success,
+      status: links.length > 1
+        ? t('products.supplier_ready_multi_status', 'Approvisionnement sécurisé')
+        : t('products.supplier_ready_status', 'Approvisionnement prêt'),
+      subtitle: links.length > 1
+        ? t('products.supplier_ready_multi_subtitle', { primary: primaryName, count: links.length - 1, defaultValue: 'Principal : {{primary}} · {{count}} alternative(s)' })
+        : t('products.supplier_ready_subtitle', { primary: primaryName, defaultValue: 'Principal : {{primary}}' }),
+    };
+  }
+
   const filtered = useMemo(() => {
     if (!productList || !Array.isArray(productList)) return [];
     return productList.filter((p) => {
@@ -1168,12 +1204,20 @@ export default function ProductsScreen() {
         selling_price: parseFloat(formSellingPrice) || 0,
         min_stock: parseFloat(formMinStock) || 0,
         max_stock: parseFloat(formMaxStock) || 100,
-        category_id: formCategory,
-        subcategory: formSubcategory || undefined,
+        category_id: formCategory || undefined,
+        subcategory: formSubcategory.trim() || undefined,
         image: formImage || undefined,
         rfid_tag: formRfidTag || undefined,
         expiry_date: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
-        variants: formHasVariants ? formVariants : [],
+        variants: formHasVariants
+          ? formVariants
+              .filter((variant) => String(variant?.name || '').trim())
+              .map((variant) => ({
+                ...variant,
+                name: String(variant.name || '').trim(),
+                sku: String(variant.sku || '').trim() || undefined,
+              }))
+          : [],
         has_variants: formHasVariants,
         location_id: hasEnterpriseLocations && !isRestaurant ? (formLocationId || undefined) : undefined,
         is_menu_item: isRestaurant || undefined,
@@ -1204,13 +1248,16 @@ export default function ProductsScreen() {
           const desiredSupplierIds = Array.from(new Set(formSupplierIds));
           const existingLinks = supplierLinksByProduct[savedProductId] || [];
           const existingBySupplierId = new Map(existingLinks.map((link) => [link.supplier_id, link]));
+          const supplierSyncErrors: string[] = [];
 
           for (const existingLink of existingLinks) {
             if (!desiredSupplierIds.includes(existingLink.supplier_id)) {
               try {
                 await spApi.unlink(existingLink.link_id);
-              } catch {
-                // Keep going if one unlink fails.
+              } catch (error: any) {
+                supplierSyncErrors.push(
+                  error?.message || `Impossible de retirer ${getSupplierNameById(existingLink.supplier_id)}.`
+                );
               }
             }
           }
@@ -1225,8 +1272,10 @@ export default function ProductsScreen() {
                   product_id: savedProductId,
                   is_preferred: shouldBePrimary,
                 });
-              } catch {
-                // Ignore duplicate/race edge cases.
+              } catch (error: any) {
+                supplierSyncErrors.push(
+                  error?.message || `Impossible de lier ${getSupplierNameById(supplierId)}.`
+                );
               }
               continue;
             }
@@ -1234,10 +1283,19 @@ export default function ProductsScreen() {
             if (existingLink.is_preferred !== shouldBePrimary) {
               try {
                 await spApi.update(existingLink.link_id, { is_preferred: shouldBePrimary });
-              } catch {
-                // Keep going; a later reload will reconcile server state.
+              } catch (error: any) {
+                supplierSyncErrors.push(
+                  error?.message || `Impossible de mettre à jour ${getSupplierNameById(supplierId)}.`
+                );
               }
             }
+          }
+
+          if (supplierSyncErrors.length > 0) {
+            Alert.alert(
+              t('common.warning', 'Attention'),
+              `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`
+            );
           }
         }
         // Reload data from server
@@ -1285,8 +1343,8 @@ export default function ProductsScreen() {
       setShowAddModal(false);
       setEditingProduct(null);
       resetForm();
-    } catch {
-      Alert.alert(t('common.error'), editingProduct ? t('products.create_error') : t('products.create_error'));
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.message || t('products.create_error'));
     } finally {
       setFormLoading(false);
     }
@@ -2347,6 +2405,26 @@ export default function ProductsScreen() {
                     </View>
                     )}
 
+                    {!isRestaurant && (() => {
+                      const supplyMeta = getProductSupplyMeta(product.product_id);
+                      return (
+                        <View style={[styles.supplyCard, { borderColor: supplyMeta.tone + '35', backgroundColor: supplyMeta.tone + '12' }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.supplyTitle, { color: supplyMeta.tone }]}>{supplyMeta.status}</Text>
+                            <Text style={styles.supplySubtitle}>{supplyMeta.subtitle}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[styles.supplyManageBtn, { borderColor: supplyMeta.tone + '45' }]}
+                            onPress={() => openEditModal(product)}
+                          >
+                            <Text style={[styles.supplyManageBtnText, { color: supplyMeta.tone }]}>
+                              {t('products.manage_supply_cta', 'Gérer')}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })()}
+
                     {/* Variants display */}
                     {!isRestaurant && product.has_variants && product.variants && product.variants.length > 0 && (
                       <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
@@ -2721,54 +2799,129 @@ export default function ProductsScreen() {
                   </TouchableOpacity>
                 )}
 
-                {/* Supplier selector */}
                 {!isRestaurant && allSuppliers.length > 0 && (
-                  <View style={{ marginBottom: Spacing.sm }}>
-                    <Text style={styles.formLabel}>{t('products.supplier')}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
-                      {t('products.supplier_select_help', 'Associez un ou plusieurs fournisseurs. Définissez un fournisseur principal pour le réapprovisionnement.')}
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
-                      <TouchableOpacity
-                        style={[styles.filterChip, formSupplierIds.length === 0 && styles.filterChipActive]}
-                        onPress={() => {
-                          setFormSupplierIds([]);
-                          setFormPrimarySupplierId(null);
-                        }}
-                      >
-                        <Text style={[styles.filterChipText, formSupplierIds.length === 0 && styles.filterChipTextActive]}>
-                          {t('products.no_supplier')}
+                  <View style={styles.supplySection}>
+                    <View style={styles.supplySectionHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.formLabel}>{t('products.supply_section_title', 'Approvisionnement')}</Text>
+                        <Text style={styles.supplySectionHelp}>
+                          {t('products.supply_section_help', 'Définissez un fournisseur principal, puis ajoutez si besoin des alternatives pour sécuriser vos commandes.')}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
+                      <View
+                        style={[
+                          styles.supplyStatusPill,
+                          {
+                            borderColor: formSupplierIds.length === 0 ? colors.danger + '45' : (!formPrimarySupplierId ? colors.info + '45' : colors.success + '45'),
+                            backgroundColor: formSupplierIds.length === 0 ? colors.danger + '14' : (!formPrimarySupplierId ? colors.info + '14' : colors.success + '14'),
+                          }
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.supplyStatusPillText,
+                            { color: formSupplierIds.length === 0 ? colors.danger : (!formPrimarySupplierId ? colors.info : colors.success) }
+                          ]}
+                        >
+                          {formSupplierIds.length === 0
+                            ? t('products.no_supplier', 'Aucun fournisseur')
+                            : !formPrimarySupplierId
+                              ? t('products.primary_missing_short', 'Principal à définir')
+                              : t('products.primary_supplier_named', { name: getSupplierNameById(formPrimarySupplierId), defaultValue: 'Principal : {{name}}' })}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {formSupplierIds.length > 0 && (
+                      <View style={{ marginTop: 10, gap: 8 }}>
+                        {formSupplierIds.map((supplierId) => {
+                          const supplier = allSuppliers.find((item) => item.supplier_id === supplierId);
+                          if (!supplier) return null;
+                          const isPrimary = formPrimarySupplierId === supplierId;
+                          return (
+                            <View
+                              key={supplierId}
+                              style={[
+                                styles.supplySelectedCard,
+                                {
+                                  borderColor: isPrimary ? colors.success + '45' : colors.glassBorder,
+                                  backgroundColor: isPrimary ? colors.success + '12' : colors.glass,
+                                }
+                              ]}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.supplySelectedName}>{supplier.name}</Text>
+                                <Text style={styles.supplySelectedSubtitle}>
+                                  {isPrimary
+                                    ? t('products.primary_supplier_help', 'Fournisseur principal utilisé pour le réapprovisionnement.')
+                                    : t('products.alt_supplier_help', 'Fournisseur alternatif disponible pour ce produit.')}
+                                </Text>
+                              </View>
+                              <View style={styles.supplySelectedActions}>
+                                {!isPrimary && (
+                                  <TouchableOpacity
+                                    style={[styles.supplyActionBtn, { borderColor: colors.success + '45' }]}
+                                    onPress={() => setFormPrimarySupplierId(supplierId)}
+                                  >
+                                    <Text style={[styles.supplyActionBtnText, { color: colors.success }]}>
+                                      {t('products.set_primary', 'Définir principal')}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                <TouchableOpacity
+                                  style={[styles.supplyActionBtn, { borderColor: colors.danger + '45' }]}
+                                  onPress={() => toggleFormSupplier(supplierId)}
+                                >
+                                  <Text style={[styles.supplyActionBtnText, { color: colors.danger }]}>
+                                    {t('common.remove', 'Retirer')}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    <Text style={[styles.formLabel, { marginTop: 14, marginBottom: 8 }]}>
+                      {t('products.supplier_suggestions', 'Suggestions fournisseurs')}
+                    </Text>
+                    <View style={{ gap: 8 }}>
                       {rankedSuppliers.map((sup) => {
                         const isSelected = formSupplierIds.includes(sup.supplier_id);
-                        const isPrimary = formPrimarySupplierId === sup.supplier_id;
+                        if (isSelected) return null;
                         const score = getSupplierMatchScore(sup);
                         return (
-                        <TouchableOpacity
-                          key={sup.supplier_id}
-                          style={[styles.filterChip, isSelected && styles.filterChipActive]}
-                          onPress={() => toggleFormSupplier(sup.supplier_id)}
-                          onLongPress={() => {
-                            if (!isSelected) {
-                              toggleFormSupplier(sup.supplier_id);
-                            }
-                            setFormPrimarySupplierId(sup.supplier_id);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
-                            {sup.name}
-                            {isPrimary ? ` ${t('products.primary_supplier_badge', '(principal)')}` : ''}
-                            {score > 0 ? ` · ${t('products.match_badge', 'match')} ${score}` : ''}
-                          </Text>
-                        </TouchableOpacity>
-                      )})}
-                    </ScrollView>
-                    {formSupplierIds.length > 1 && (
-                      <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
-                        {t('products.long_press_primary_help', 'Appui long sur un fournisseur pour le définir comme principal.')}
-                      </Text>
-                    )}
+                          <View key={sup.supplier_id} style={styles.supplySuggestionCard}>
+                            <View style={{ flex: 1 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <Text style={styles.supplySelectedName}>{sup.name}</Text>
+                                {score > 0 && (
+                                  <View style={[styles.supplyMatchBadge, { backgroundColor: colors.success + '14', borderColor: colors.success + '45' }]}>
+                                    <Text style={[styles.supplyMatchBadgeText, { color: colors.success }]}>
+                                      {t('products.match_badge', 'Match')} {score}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={styles.supplySelectedSubtitle}>
+                                {score > 0
+                                  ? t('products.supplier_match_help', 'Correspondance détectée avec ce produit ou sa catégorie.')
+                                  : t('products.supplier_available_help', 'Disponible dans votre base fournisseurs.')}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              style={[styles.supplyActionBtn, { borderColor: colors.primary + '45' }]}
+                              onPress={() => toggleFormSupplier(sup.supplier_id)}
+                            >
+                              <Text style={[styles.supplyActionBtnText, { color: colors.primary }]}>
+                                {t('common.add', 'Ajouter')}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
                 )}
 
@@ -3697,6 +3850,36 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  supplyCard: {
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  supplyTitle: {
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  supplySubtitle: {
+    fontSize: 11,
+    color: colors.text,
+    lineHeight: 16,
+  },
+  supplyManageBtn: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  supplyManageBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   productActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -3752,6 +3935,90 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '600',
     marginBottom: Spacing.xs,
+  },
+  supplySection: {
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  supplySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  supplySectionHelp: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  supplyStatusPill: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  supplyStatusPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  supplySelectedCard: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  supplySelectedName: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  supplySelectedSubtitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  supplySelectedActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  supplyActionBtn: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: colors.bgMid,
+  },
+  supplyActionBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  supplySuggestionCard: {
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.md,
+    backgroundColor: colors.bgMid,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  supplyMatchBadge: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  supplyMatchBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   formInput: {
     backgroundColor: colors.inputBg,

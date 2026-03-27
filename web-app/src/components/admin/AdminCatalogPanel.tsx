@@ -83,6 +83,15 @@ function inputToList(value: string) {
         .filter(Boolean);
 }
 
+function normalizeCatalogText(value: string) {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function makeFormState(entry?: AdminCatalogEntry | null): CatalogFormState {
     if (!entry) return DEFAULT_FORM;
     return {
@@ -216,14 +225,45 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
         event.preventDefault();
         setSaving(true);
         try {
+            const displayName = form.display_name.trim();
+            const category = form.category.trim();
+            const imageUrl = form.image_url.trim() || undefined;
+            const barcodes = Array.from(new Set(inputToList(form.barcodes)));
+            const aliases = Array.from(new Set(inputToList(form.aliases)));
+            const countryCodes = Array.from(new Set(inputToList(form.country_codes).map((item) => item.toUpperCase())));
+
+            if (!displayName) {
+                showToast('Le nom du produit est obligatoire.', 'error');
+                return;
+            }
+
+            const normalizedName = normalizeCatalogText(displayName);
+            const duplicate = items.find((entry) => {
+                if (editingEntry && entry.catalog_id === editingEntry.catalog_id) return false;
+                const sameSector = (entry.sector || 'autre') === (form.sector || 'autre');
+                if (!sameSector) return false;
+                const entryName = normalizeCatalogText(entry.display_name || '');
+                if (entryName && entryName === normalizedName) return true;
+                const entryBarcodes = (entry.barcodes || []).map((item) => String(item).trim()).filter(Boolean);
+                return barcodes.some((barcode) => entryBarcodes.includes(barcode));
+            });
+
+            if (duplicate) {
+                showToast(
+                    `Un produit catalogue similaire existe déjà (${duplicate.display_name}).`,
+                    'error',
+                );
+                return;
+            }
+
             const payload = {
-                display_name: form.display_name.trim(),
-                category: form.category.trim(),
+                display_name: displayName,
+                category: category || undefined,
                 sector: form.sector,
-                barcodes: inputToList(form.barcodes),
-                aliases: inputToList(form.aliases),
-                country_codes: inputToList(form.country_codes).map((item) => item.toUpperCase()),
-                image_url: form.image_url.trim() || undefined,
+                barcodes,
+                aliases,
+                country_codes: countryCodes,
+                image_url: imageUrl,
                 verified: form.verified,
                 added_by_count: Math.max(1, Number(form.added_by_count || '1')),
             };
@@ -239,7 +279,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: AdminCata
             closeEditor();
             await loadData(filters);
         } catch (error: any) {
-            const message = typeof error?.message === 'string' ? error.message : "Impossible d'enregistrer ce produit catalogue.";
+            const rawMessage = typeof error?.message === 'string' ? error.message : '';
+            const message = rawMessage || "Impossible d'enregistrer ce produit catalogue.";
             showToast(message, 'error');
         } finally {
             setSaving(false);

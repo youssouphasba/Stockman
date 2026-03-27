@@ -534,12 +534,27 @@ export default function Inventory() {
             });
             const payload = {
                 ...form,
+                name: form.name.trim(),
+                sku: form.sku.trim() || undefined,
+                description: form.description.trim() || undefined,
+                category_id: form.category_id || undefined,
+                location_id: form.location_id || undefined,
+                image: form.image || undefined,
                 unit: measurement.unit,
                 measurement_type: measurement.measurement_type,
                 display_unit: measurement.display_unit,
                 pricing_unit: measurement.pricing_unit,
                 allows_fractional_sale: measurement.allows_fractional_sale,
                 quantity_precision: measurement.quantity_precision,
+                variants: form.has_variants
+                    ? form.variants
+                        .filter((variant: any) => String(variant?.name || '').trim())
+                        .map((variant: any) => ({
+                            ...variant,
+                            name: String(variant.name || '').trim(),
+                            sku: String(variant.sku || '').trim() || undefined,
+                        }))
+                    : [],
             };
             let savedProductId = editingProduct?.product_id;
             if (editingProduct) {
@@ -554,35 +569,61 @@ export default function Inventory() {
                 const existingLinks = supplierLinksByProduct[savedProductId] || [];
                 const selectedIds = Array.from(new Set(formSupplierIds.filter(Boolean)));
                 const selectedSet = new Set(selectedIds);
+                const supplierSyncErrors: string[] = [];
 
                 for (const link of existingLinks) {
                     if (!selectedSet.has(link.supplier_id)) {
-                        await supplierProductsApi.unlink(link.link_id);
+                        try {
+                            await supplierProductsApi.unlink(link.link_id);
+                        } catch (err: any) {
+                            supplierSyncErrors.push(
+                                err?.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`,
+                            );
+                        }
                     }
                 }
 
                 for (const supplierId of selectedIds) {
                     const existing = existingLinks.find((link) => link.supplier_id === supplierId);
                     if (existing) {
-                        await supplierProductsApi.update(existing.link_id, {
-                            is_preferred: formPrimarySupplierId === supplierId,
-                            supplier_price: Number(form.purchase_price) || existing.supplier_price || 0,
-                        });
+                        try {
+                            await supplierProductsApi.update(existing.link_id, {
+                                is_preferred: formPrimarySupplierId === supplierId,
+                                supplier_price: Number(form.purchase_price) || existing.supplier_price || 0,
+                            });
+                        } catch (err: any) {
+                            supplierSyncErrors.push(
+                                err?.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`,
+                            );
+                        }
                     } else {
-                        await supplierProductsApi.link({
-                            supplier_id: supplierId,
-                            product_id: savedProductId,
-                            supplier_price: Number(form.purchase_price) || 0,
-                            is_preferred: formPrimarySupplierId === supplierId,
-                        });
+                        try {
+                            await supplierProductsApi.link({
+                                supplier_id: supplierId,
+                                product_id: savedProductId,
+                                supplier_price: Number(form.purchase_price) || 0,
+                                is_preferred: formPrimarySupplierId === supplierId,
+                            });
+                        } catch (err: any) {
+                            supplierSyncErrors.push(
+                                err?.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`,
+                            );
+                        }
                     }
+                }
+
+                if (supplierSyncErrors.length > 0) {
+                    alert(
+                        `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`,
+                    );
                 }
             }
             setIsProductModalOpen(false);
             await fetchProducts();
             await loadStockHealth();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error saving product', err);
+            alert(err?.message || "Impossible d'enregistrer ce produit pour le moment.");
         } finally {
             setFormLoading(false);
         }
@@ -703,6 +744,48 @@ export default function Inventory() {
             if (b.score !== a.score) return b.score - a.score;
             return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
         });
+
+    const getSupplierName = (supplierId?: string | null) =>
+        (Array.isArray(suppliersList) ? suppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId)?.name || 'Fournisseur';
+
+    const getProductSupplyMeta = (productId?: string | null) => {
+        const links = productId ? (supplierLinksByProduct[productId] || []) : [];
+        const primaryLink = links.find((link) => link.is_preferred) || null;
+        const primaryName = primaryLink ? getSupplierName(primaryLink.supplier_id) : '';
+
+        if (links.length === 0) {
+            return {
+                tone: 'rose',
+                status: 'Aucun fournisseur',
+                subtitle: 'Ajoutez un fournisseur pour préparer le réapprovisionnement.',
+            };
+        }
+
+        if (!primaryLink) {
+            return {
+                tone: 'sky',
+                status: 'Principal manquant',
+                subtitle: `${links.length} fournisseur(s) lié(s), aucun principal défini.`,
+            };
+        }
+
+        return {
+            tone: 'emerald',
+            status: links.length > 1 ? 'Approvisionnement sécurisé' : 'Approvisionnement prêt',
+            subtitle: links.length > 1
+                ? `Principal : ${primaryName} · ${links.length - 1} alternative(s)`
+                : `Principal : ${primaryName}`,
+        };
+    };
+
+    const supplierCoverageStats = {
+        noSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
+        multiSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
+        missingPrimary: (Array.isArray(products) ? products : []).filter((product) => {
+            const links = supplierLinksByProduct[product.product_id] || [];
+            return links.length > 0 && !links.some((link) => link.is_preferred);
+        }).length,
+    };
 
     const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
         const matchesSearch =
@@ -1025,6 +1108,36 @@ export default function Inventory() {
                 </div>
             )}
 
+            <div className="grid gap-3 mb-4 md:grid-cols-3">
+                <button
+                    type="button"
+                    onClick={() => setSupplierCoverageFilter('no_supplier')}
+                    className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-left transition-colors hover:bg-rose-500/15"
+                >
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">À traiter</p>
+                    <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.noSupplier}</p>
+                    <p className="mt-1 text-sm text-slate-300">Produits sans fournisseur</p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setSupplierCoverageFilter('multi_supplier')}
+                    className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-left transition-colors hover:bg-amber-500/15"
+                >
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-300">Couverture</p>
+                    <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.multiSupplier}</p>
+                    <p className="mt-1 text-sm text-slate-300">Produits avec alternatives</p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setSupplierCoverageFilter('missing_primary')}
+                    className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition-colors hover:bg-sky-500/15"
+                >
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">À compléter</p>
+                    <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.missingPrimary}</p>
+                    <p className="mt-1 text-sm text-slate-300">Produits sans principal</p>
+                </button>
+            </div>
+
             <div className="mb-6 flex flex-wrap gap-2">
                 <button
                     onClick={() => setSupplierCoverageFilter('all')}
@@ -1069,6 +1182,7 @@ export default function Inventory() {
                         {filteredProducts.map((p) => {
                             const matchesMin = p.quantity <= p.min_stock;
                             const isOut = p.quantity === 0;
+                            const supplyMeta = getProductSupplyMeta(p.product_id);
                             const productLinks = supplierLinksByProduct[p.product_id] || [];
                             const hasPrimary = productLinks.some((link) => link.is_preferred);
 
@@ -1093,6 +1207,9 @@ export default function Inventory() {
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
+                                                <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' ? 'text-rose-300' : supplyMeta.tone === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}>
+                                                    {supplyMeta.status}
+                                                </span>
                                                 {hasEnterpriseLocations && p.location_id && (
                                                     <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
                                                         <MapPin size={9} /> {getLocationLabel(p.location_id)}
@@ -1108,14 +1225,17 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         {productLinks.length === 0 ? (
-                                            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300">
-                                                Aucun
-                                            </span>
+                                            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2">
+                                                <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
+                                                <p className="mt-1 text-[11px] text-slate-300">Produit non préparé pour le réapprovisionnement.</p>
+                                            </div>
                                         ) : (
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-bold text-white">{productLinks.length} lié(s)</span>
+                                            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                                                <span className="text-xs font-bold text-white">
+                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) · principal défini` : `${productLinks.length} fournisseur(s) · principal manquant`}
+                                                </span>
                                                 {!hasPrimary && (
-                                                    <span className="text-[10px] font-bold uppercase text-sky-300">Principal manquant</span>
+                                                    <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
                                                 )}
                                             </div>
                                         )}
@@ -1401,8 +1521,21 @@ export default function Inventory() {
                             {rankedSuppliersForForm.length > 0 && (
                                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-300">Fournisseurs liés</label>
-                                        <p className="mt-1 text-xs text-slate-400">Cochez un ou plusieurs fournisseurs, puis définissez un fournisseur principal.</p>
+                                        <label className="block text-sm font-medium text-slate-300">Approvisionnement</label>
+                                        <p className="mt-1 text-xs text-slate-400">Définissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
+                                        <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
+                                            formSupplierIds.length === 0
+                                                ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                                : !formPrimarySupplierId
+                                                    ? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
+                                                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                                        }`}>
+                                            {formSupplierIds.length === 0
+                                                ? 'Aucun fournisseur'
+                                                : !formPrimarySupplierId
+                                                    ? 'Principal à définir'
+                                                    : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
+                                        </div>
                                     </div>
                                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
