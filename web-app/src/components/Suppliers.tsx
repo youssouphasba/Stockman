@@ -185,8 +185,8 @@ export default function Suppliers() {
     };
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
-        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrÃ©es' });
-        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrÃ©es. Voulez-vous quitter sans enregistrer ?' });
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
         if (window.confirm(`${title}\n\n${message}`)) {
             onConfirm();
         }
@@ -293,7 +293,7 @@ export default function Suppliers() {
         setAutomating(true);
         try {
             await replenishmentApi.automate();
-            setSuccess("RÃ©approvisionnement automatique lancÃ© avec succÃ¨s !");
+            setSuccess("Réapprovisionnement automatique lancé avec succès !");
             loadData();
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -307,7 +307,7 @@ export default function Suppliers() {
         if (!confirm('Supprimer ce fournisseur ?')) return;
         try {
             await suppliersApi.delete(supplierId);
-            setSuccess("Fournisseur supprimÃ©.");
+            setSuccess("Fournisseur supprimé.");
             setContextMenuSupplierId(null);
             loadData();
             setTimeout(() => setSuccess(null), 3000);
@@ -662,7 +662,7 @@ export default function Suppliers() {
             setSupplierLogs((current) => [created, ...current]);
             setLogForm({ type: 'other', subject: '', content: '' });
             setShowLogModal(false);
-            setSuccess("Note fournisseur ajoutÃ©e.");
+            setSuccess("Note fournisseur ajoutée.");
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Supplier log create error", err);
@@ -695,7 +695,7 @@ export default function Suppliers() {
                 notes: '',
                 file_url: '',
             });
-            setSuccess('Facture fournisseur ajoutÃ©e.');
+            setSuccess('Facture fournisseur ajoutée.');
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error('Supplier invoice create error', err);
@@ -732,7 +732,7 @@ export default function Suppliers() {
             const base64 = await readFileAsBase64(file);
             const result = await aiApi.scanInvoice(base64, 'fr');
             if (result?.error || !result?.items?.length) {
-                setSuccess("Aucune ligne exploitable n'a Ã©tÃ© dÃ©tectÃ©e dans cette facture.");
+                setSuccess("Aucune ligne exploitable n'a été détectée dans cette facture.");
                 setTimeout(() => setSuccess(null), 3500);
                 return;
             }
@@ -746,12 +746,12 @@ export default function Suppliers() {
                 amount: result.total_amount != null ? String(result.total_amount) : current.amount,
                 notes: [
                     current.notes.trim(),
-                    `Facture importÃ©e : ${file.name}`,
-                    result.supplier_name ? `Fournisseur dÃ©tectÃ© : ${result.supplier_name}` : '',
-                    result.date ? `Date dÃ©tectÃ©e : ${result.date}` : '',
+                    `Facture importée : ${file.name}`,
+                    result.supplier_name ? `Fournisseur détecté : ${result.supplier_name}` : '',
+                    result.date ? `Date détectée : ${result.date}` : '',
                 ].filter(Boolean).join('\n'),
             }));
-            setSuccess('Facture importÃ©e. VÃ©rifiez les champs avant de valider.');
+            setSuccess('Facture importée. Vérifiez les champs avant de valider.');
             setTimeout(() => setSuccess(null), 3500);
         } catch (err) {
             console.error('Invoice import error', err);
@@ -785,7 +785,7 @@ export default function Suppliers() {
                 })
                 .filter(Boolean);
             if (matchedItems.length === 0) {
-                setSuccess("Aucun produit importÃ© n'a pu Ãªtre rapprochÃ© avec votre catalogue.");
+                setSuccess("Aucun produit importé n'a pu être rapproché avec votre catalogue.");
                 setTimeout(() => setSuccess(null), 3500);
                 return;
             }
@@ -794,14 +794,14 @@ export default function Suppliers() {
                 supplier_user_id: '',
                 expected_delivery: '',
                 notes: importedInvoicePreview.invoice_number
-                    ? `PrÃ©parÃ© depuis la facture ${importedInvoicePreview.invoice_number}`
-                    : 'PrÃ©parÃ© depuis une facture importÃ©e',
+                    ? `Préparé depuis la facture ${importedInvoicePreview.invoice_number}`
+                    : 'Préparé depuis une facture importée',
                 items: matchedItems,
             });
             setShowSupplierDetails(false);
             setShowOrderModal(true);
             if (matchedItems.length < importedInvoicePreview.items.length) {
-                setSuccess('Les lignes reconnues ont Ã©tÃ© prÃ©parÃ©es. VÃ©rifiez les produits non rapprochÃ©s avant validation.');
+                setSuccess('Les lignes reconnues ont été préparées. Vérifiez les produits non rapprochés avant validation.');
                 setTimeout(() => setSuccess(null), 3500);
             }
         } catch (err) {
@@ -814,7 +814,7 @@ export default function Suppliers() {
         setSubmitting(true);
         try {
             await suppliersApi.create(newSupplier);
-            setSuccess("Fournisseur ajoutÃ© avec succÃ¨s !");
+            setSuccess("Fournisseur ajouté avec succès !");
             setShowSupplierModal(false);
             setNewSupplier({ name: '', contact_name: '', email: '', phone: '', address: '', notes: '' });
             loadData();
@@ -842,7 +842,7 @@ export default function Suppliers() {
                     unit_price: Number(item.unit_price) || 0,
                 })),
             });
-            setSuccess("Bon de commande crÃ©Ã© avec succÃ¨s !");
+            setSuccess("Bon de commande créé avec succès !");
             setShowOrderModal(false);
             resetOrderForm();
             loadData();
@@ -873,7 +873,7 @@ export default function Suppliers() {
                     reason: item.reason.trim() || undefined,
                 })),
             });
-            setSuccess('Retour fournisseur crÃ©Ã© avec succÃ¨s.');
+            setSuccess('Retour fournisseur créé avec succès.');
             setShowReturnModal(false);
             resetReturnForm();
             await loadReturns();
@@ -887,10 +887,10 @@ export default function Suppliers() {
     };
 
     const handleCompleteReturn = async (returnId: string) => {
-        if (!window.confirm('Finaliser ce retour et gÃ©nÃ©rer lâ€™avoir correspondant ?')) return;
+        if (!window.confirm("Finaliser ce retour et générer l'avoir correspondant ?")) return;
         try {
             await returnsApi.complete(returnId);
-            setSuccess('Retour finalisÃ© et avoir gÃ©nÃ©rÃ©.');
+            setSuccess('Retour finalisé et avoir généré.');
             await loadReturns();
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -901,7 +901,7 @@ export default function Suppliers() {
     const handleUpdateOrderStatus = async (orderId: string, status: string) => {
         try {
             await ordersApi.updateStatus(orderId, status);
-            setSuccess(`Statut mis Ã  jour : ${status.toUpperCase()}`);
+            setSuccess(`Statut mis à jour : ${status.toUpperCase()}`);
             loadData();
             if (selectedOrder?.order_id === orderId) {
                 const updated = await ordersApi.get(orderId);
@@ -921,7 +921,7 @@ export default function Suppliers() {
                 item_id: item.item_id,
                 received_quantity: item.received_quantity,
             })));
-            setSuccess("RÃ©ception partielle enregistrÃ©e. Le stock a Ã©tÃ© mis Ã  jour.");
+            setSuccess("Réception partielle enregistrée. Le stock a été mis à jour.");
             loadData();
             const updated = await ordersApi.get(orderId);
             setSelectedOrder(updated);
@@ -1069,7 +1069,7 @@ export default function Suppliers() {
                 supplier_price: 0,
             });
             setShowSuggestionLinkModal(false);
-            setSuccess("Fournisseur associÃ© au produit.");
+            setSuccess("Fournisseur associé au produit.");
             setTimeout(() => setSuccess(null), 3000);
             const supplier = manualSuppliers.find((item: any) => item.supplier_id === selectedSuggestionSupplierId);
             openManualOrderDraft(supplier, [{
@@ -1295,7 +1295,7 @@ export default function Suppliers() {
             <header className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Fournisseurs & Commandes</h1>
-                    <p className="text-slate-400">GÃ©rez vos approvisionnements et dÃ©couvrez de nouveaux partenaires.</p>
+                    <p className="text-slate-400">Gérez vos approvisionnements et découvrez de nouveaux partenaires.</p>
                 </div>
                 <div className="flex gap-3">
                     {activeTab === 'manual' && (
@@ -1347,7 +1347,7 @@ export default function Suppliers() {
                 {[
                     { id: 'manual', label: 'Mes Fournisseurs', icon: StoreIcon },
                     { id: 'orders', label: 'Bons de Commande', icon: ClipboardList },
-                    { id: 'replenishment', label: 'RÃ©approvisionnement', icon: RefreshCcw },
+                    { id: 'replenishment', label: 'Réapprovisionnement', icon: RefreshCcw },
                     { id: 'insights', label: 'Pilotage', icon: TrendingUp },
                     { id: 'marketplace', label: 'Marketplace', icon: GlobeIcon },
                 ].map((tab) => (
@@ -1387,7 +1387,7 @@ export default function Suppliers() {
                         ) : filteredManualSuppliers.length === 0 ? (
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <UserPlus size={64} className="mx-auto mb-4 opacity-10" />
-                                <p className="text-xl mb-4">Vous n'avez pas encore de fournisseurs enregistrÃ©s.</p>
+                                <p className="text-xl mb-4">Vous n'avez pas encore de fournisseurs enregistrés.</p>
                                 <button onClick={() => setShowSupplierModal(true)} className="text-primary font-bold hover:underline">
                                     Ajouter mon premier fournisseur
                                 </button>
@@ -1419,7 +1419,7 @@ export default function Suppliers() {
                                                             onClick={() => { openSupplierDetails(s, 'manual'); setContextMenuSupplierId(null); }}
                                                             className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
                                                         >
-                                                            Voir les dÃ©tails
+                                                            Voir les détails
                                                         </button>
                                                         <button
                                                             onClick={() => { handleDeleteSupplier(s.supplier_id); }}
@@ -1458,7 +1458,7 @@ export default function Suppliers() {
                                                 onClick={() => openSupplierDetails(s, 'manual')}
                                                 className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 text-sm font-bold hover:bg-white/10 transition-colors"
                                             >
-                                                Dï¿½tails
+                                                Dtails
                                             </button>
                                             <button
                                                 onClick={() => void openLinkProductForSupplier(s)}
@@ -1517,14 +1517,14 @@ export default function Suppliers() {
                         ) : ordersView === 'orders' && orders.length === 0 ? (
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <ClipboardList size={64} className="mx-auto mb-4 opacity-10" />
-                                <p className="text-xl">Aucun bon de commande trouvÃ©.</p>
+                                <p className="text-xl">Aucun bon de commande trouvé.</p>
                             </div>
                         ) : ordersView === 'orders' ? (
                             <div className="overflow-hidden glass-card">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-white/5 border-b border-white/10">
-                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">RÃ©fÃ©rence</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Référence</th>
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fournisseur</th>
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
@@ -1682,7 +1682,7 @@ export default function Suppliers() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Analyse de Stock Intelligente</h3>
-                                    <p className="text-sm text-slate-400">Ces suggestions sont basÃ©es sur votre vÃ©locitÃ© de vente des 30 derniers jours.</p>
+                                    <p className="text-sm text-slate-400">Ces suggestions sont basées sur votre vélocité de vente des 30 derniers jours.</p>
                                 </div>
                             </div>
                             <button
@@ -1726,7 +1726,7 @@ export default function Suppliers() {
                                                 <div className="text-white font-bold">{s.current_quantity}</div>
                                             </div>
                                             <div className="bg-white/5 p-2 rounded-lg text-center">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">VÃ©locitÃ©</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Vélocité</div>
                                                 <div className="text-white font-bold">{s.daily_velocity}/j</div>
                                             </div>
                                             <div className="bg-white/5 p-2 rounded-lg text-center">
@@ -1739,7 +1739,7 @@ export default function Suppliers() {
 
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="text-xs font-bold text-emerald-400">
-                                                Suggestion: +{s.suggested_quantity} unitÃ©s
+                                                Suggestion: +{s.suggested_quantity} unités
                                             </div>
                                             <button
                                                 onClick={() => {
@@ -1926,7 +1926,7 @@ export default function Suppliers() {
                                                 <p className="text-2xl font-black text-rose-400 mt-2">{productsToSecure.length}</p>
                                             </div>
                                             <div className="bg-white/5 rounded-2xl p-4">
-                                                <p className="text-[10px] uppercase font-black text-slate-500">Opportunités d’économie</p>
+                                                <p className="text-[10px] uppercase font-black text-slate-500">Opportunités d'économie</p>
                                                 <p className="text-2xl font-black text-primary mt-2">{procurementOverview.kpis.group_opportunities || 0}</p>
                                             </div>
                                         </div>
@@ -1977,7 +1977,7 @@ export default function Suppliers() {
                                                     <div>
                                                         <p className="text-sm font-bold text-white">{supplier.supplier_name}</p>
                                                         <p className="text-xs text-slate-400 mt-1">
-                                                            {supplier.orders_count} commande(s) • {Math.round(supplier.on_time_rate || 0)}% à l’heure
+                                                            {supplier.orders_count} commande(s) • {Math.round(supplier.on_time_rate || 0)}% à l'heure
                                                         </p>
                                                     </div>
                                                     <div className="text-right">
@@ -2189,7 +2189,7 @@ export default function Suppliers() {
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div>
                                                             <p className="text-sm font-bold text-white">{suggestion.product_name}</p>
-                                                            <p className="text-xs text-slate-400 mt-1">{suggestion.store_name} Â· {suggestion.supplier_name}</p>
+                                                            <p className="text-xs text-slate-400 mt-1">{suggestion.store_name} · {suggestion.supplier_name}</p>
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-sm font-black text-primary">{formatCurrency(suggestion.estimated_total || 0)}</p>
@@ -2276,7 +2276,7 @@ export default function Suppliers() {
                                     className={`px-6 py-4 rounded-2xl border flex items-center gap-2 transition-all ${regionFilter ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
                                 >
                                     <FilterIcon size={20} />
-                                    <span>{regionFilter || 'RÃ©gion'}</span>
+                                    <span>{regionFilter || 'Région'}</span>
                                 </button>
                                 {isRegionDropdownOpen && (
                                     <div className="absolute top-full right-0 mt-2 w-40 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
@@ -2355,7 +2355,7 @@ export default function Suppliers() {
                                 }}
                                 className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all md:col-span-4"
                             >
-                                RÃ©initialiser les filtres
+                                Réinitialiser les filtres
                             </button>
                         </div>
 
@@ -2397,7 +2397,7 @@ export default function Suppliers() {
                         ) : filteredMarketplace.length === 0 ? (
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <GlobeIcon size={64} className="mx-auto mb-4 opacity-10" />
-                                <p className="text-xl">Aucun fournisseur trouvÃ©.</p>
+                                <p className="text-xl">Aucun fournisseur trouvé.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2447,14 +2447,14 @@ export default function Suppliers() {
 
                                             {leadMatch && (
                                                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs">
-                                                    <p className="font-bold text-emerald-300">Produit trouvÃ© chez ce fournisseur</p>
+                                                    <p className="font-bold text-emerald-300">Produit trouvé chez ce fournisseur</p>
                                                     <p className="mt-1 font-semibold text-white">{leadMatch.name}</p>
                                                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
                                                         <span className="rounded-full border border-white/10 px-2 py-0.5">
                                                             Prix : {formatCurrency(leadMatch.price || 0)}
                                                         </span>
                                                         <span className="rounded-full border border-white/10 px-2 py-0.5">
-                                                            UnitÃ© : {leadMatch.unit || 'unitÃ©'}
+                                                            Unité : {leadMatch.unit || 'unité'}
                                                         </span>
                                                         <span className="rounded-full border border-white/10 px-2 py-0.5">
                                                             Stock : {leadMatch.stock_available || 0}
@@ -2465,7 +2465,7 @@ export default function Suppliers() {
                                                     </div>
                                                     {productMatches.length > 1 && (
                                                         <p className="mt-2 text-[11px] text-slate-400">
-                                                            {productMatches.length} rÃ©fÃ©rences correspondantes dans son catalogue.
+                                                            {productMatches.length} références correspondantes dans son catalogue.
                                                         </p>
                                                     )}
                                                 </div>
@@ -2537,7 +2537,7 @@ export default function Suppliers() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">TÃ©lÃ©phone</label>
+                                    <label className="block text-sm font-bold text-slate-400 mb-1">Téléphone</label>
                                     <input
                                         type="tel"
                                         value={newSupplier.phone}
@@ -2601,17 +2601,17 @@ export default function Suppliers() {
 
                         <div className="space-y-4 p-6">
                             <p className="text-sm text-slate-300">
-                                Ce produit n'a pas encore de fournisseur liÃ©. Choisissez un fournisseur pour enregistrer la relation durablement.
+                                Ce produit n'a pas encore de fournisseur lié. Choisissez un fournisseur pour enregistrer la relation durablement.
                             </p>
                             <select
                                 value={selectedSuggestionSupplierId}
                                 onChange={(e) => setSelectedSuggestionSupplierId(e.target.value)}
                                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-primary/50"
                             >
-                                <option value="" className="bg-slate-800">SÃ©lectionner un fournisseur...</option>
+                                <option value="" className="bg-slate-800">Sélectionner un fournisseur...</option>
                                 {suggestionSupplierCandidates.map(({ supplier, score }) => (
                                     <option key={supplier.supplier_id} value={supplier.supplier_id} className="bg-slate-800">
-                                        {supplier.name} {score > 0 ? 'â€¢ match' : ''}
+                                        {supplier.name} {score > 0 ? '· match' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -2647,7 +2647,7 @@ export default function Suppliers() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white">{t('suppliers.order_modal.title', 'CrÃ©er un Bon de Commande')}</h2>
+                            <h2 className="text-xl font-bold text-white">{t('suppliers.order_modal.title', 'Créer un Bon de Commande')}</h2>
                             <button onClick={requestCloseOrderModal} className="p-2 text-slate-400 hover:text-white">
                                 <X size={24} />
                             </button>
@@ -2674,7 +2674,7 @@ export default function Suppliers() {
                                             onChange={e => setOrderForm({ ...orderForm, supplier_id: e.target.value, supplier_user_id: '' })}
                                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
                                         >
-                                            <option value="" className="bg-slate-800">{t('suppliers.order_modal.select', 'SÃ©lectionner...')}</option>
+                                            <option value="" className="bg-slate-800">{t('suppliers.order_modal.select', 'Sélectionner...')}</option>
                                             {(Array.isArray(manualSuppliers) ? manualSuppliers : []).map((s) => (
                                                 <option key={s.supplier_id} value={s.supplier_id} className="bg-slate-800">
                                                     {s.name}
@@ -2684,7 +2684,7 @@ export default function Suppliers() {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-1">{t('suppliers.order_modal.expected_delivery', 'Livraison PrÃ©vue')}</label>
+                                    <label className="block text-sm font-bold text-slate-400 mb-1">{t('suppliers.order_modal.expected_delivery', 'Livraison Prévue')}</label>
                                     <input
                                         type="date"
                                         value={orderForm.expected_delivery}
@@ -2741,7 +2741,7 @@ export default function Suppliers() {
                                                 value={isMarketplaceOrder ? p.catalog_id : p.product_id}
                                             >
                                                 {p.name}
-                                                {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unitÃ©'}` : ''}
+                                                {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unité'}` : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -2751,7 +2751,7 @@ export default function Suppliers() {
                                     <>
                                         <div className="grid grid-cols-12 gap-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                             <div className="col-span-5">{t('suppliers.order_modal.col_product', 'Produit')}</div>
-                                            <div className="col-span-2 text-center">{t('suppliers.order_modal.col_qty', 'QtÃ©')}</div>
+                                            <div className="col-span-2 text-center">{t('suppliers.order_modal.col_qty', 'Qté')}</div>
                                             <div className="col-span-3 text-right">{t('suppliers.order_modal.col_price', 'Prix unit.')}</div>
                                             <div className="col-span-2 text-right">{t('suppliers.order_modal.col_total', 'Total')}</div>
                                         </div>
@@ -2794,7 +2794,7 @@ export default function Suppliers() {
                                 )}
 
                                 {orderForm.items.length === 0 && (
-                                    <p className="text-center text-sm text-slate-500 py-4">{t('suppliers.order_modal.empty', 'Aucun produit ajoutÃ©')}</p>
+                                    <p className="text-center text-sm text-slate-500 py-4">{t('suppliers.order_modal.empty', 'Aucun produit ajouté')}</p>
                                 )}
                             </div>
 
@@ -2810,7 +2810,7 @@ export default function Suppliers() {
                                         className="btn-primary px-8 flex items-center gap-2"
                                     >
                                         {submitting ? <RefreshCcw size={18} className="animate-spin" /> : <ClipboardList size={18} />}
-                                        {t('suppliers.order_modal.create', 'CrÃ©er le Bon')}
+                                        {t('suppliers.order_modal.create', 'Créer le Bon')}
                                     </button>
                                 </div>
                             </div>
@@ -2825,7 +2825,7 @@ export default function Suppliers() {
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <div>
                                 <h2 className="text-xl font-bold text-white">Créer un retour fournisseur</h2>
-                                <p className="text-sm text-slate-400 mt-1">Sélectionnez une commande, indiquez les quantités retournées, puis générez l’avoir.</p>
+                                <p className="text-sm text-slate-400 mt-1">Sélectionnez une commande, indiquez les quantités retournées, puis générez l'avoir.</p>
                             </div>
                             <button onClick={requestCloseReturnModal} className="p-2 text-slate-400 hover:text-white">
                                 <X size={24} />
@@ -2858,7 +2858,7 @@ export default function Suppliers() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fournisseur</label>
                                     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
-                                        {returnOrderDetail?.supplier_name || 'Sélectionnez d’abord une commande'}
+                                        {returnOrderDetail?.supplier_name || "Sélectionnez d'abord une commande"}
                                     </div>
                                 </div>
                             </div>
@@ -2965,7 +2965,7 @@ export default function Suppliers() {
                                     onClick={() => selectedOrder && generateOrderPDF(selectedOrder)}
                                     disabled={!selectedOrder}
                                     className="p-2 text-primary hover:text-white bg-primary/10 rounded-xl transition-all disabled:opacity-40"
-                                    title="TÃ©lÃ©charger PDF"
+                                    title="Télécharger PDF"
                                 >
                                     <FileText size={20} />
                                 </button>
@@ -3005,7 +3005,7 @@ export default function Suppliers() {
                                         onClick={() => handleUpdateOrderStatus(selectedOrder.order_id, 'shipped')}
                                         className="flex-1 py-3 bg-purple-500 text-white font-bold rounded-xl hover:bg-purple-600 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <Truck size={20} /> Marquer comme expÃ©diÃ©e
+                                        <Truck size={20} /> Marquer comme expédiée
                                     </button>
                                 )}
                                 {(['shipped', 'partially_delivered'].includes(selectedOrder.status)) && (
@@ -3013,7 +3013,7 @@ export default function Suppliers() {
                                         onClick={() => selectedOrder.is_connected ? setDeliveryOrderId(selectedOrder.order_id) : handleUpdateOrderStatus(selectedOrder.order_id, 'delivered')}
                                         className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <PackageIcon size={20} /> RÃ©ception Finale (Total)
+                                        <PackageIcon size={20} /> Réception Finale (Total)
                                     </button>
                                 )}
                                 {selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled' && (
@@ -3030,15 +3030,15 @@ export default function Suppliers() {
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                     <PackageIcon size={20} className="text-primary" />
-                                    Articles commandÃ©s
+                                    Articles commandés
                                 </h3>
                                 <div className="glass-card overflow-hidden">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-white/5 text-slate-500 font-bold">
                                             <tr>
                                                 <th className="px-4 py-3">Produit</th>
-                                                <th className="px-4 py-3 text-center">CommandÃ©</th>
-                                                <th className="px-4 py-3 text-center">ReÃ§u</th>
+                                                <th className="px-4 py-3 text-center">Commandé</th>
+                                                <th className="px-4 py-3 text-center">Reçu</th>
                                                 <th className="px-4 py-3 text-right">Prix</th>
                                             </tr>
                                         </thead>
@@ -3065,11 +3065,11 @@ export default function Suppliers() {
                                     <div className="flex justify-between items-center">
                                         <h3 className="font-bold text-white flex items-center gap-2">
                                             <Truck size={18} className="text-indigo-400" />
-                                            RÃ©ception Partielle
+                                            Réception Partielle
                                         </h3>
-                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">Mise Ã  jour stock</span>
+                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">Mise à jour stock</span>
                                     </div>
-                                    <p className="text-xs text-slate-500">Saisissez les quantitÃ©s rÃ©ellement reÃ§ues pour mettre Ã  jour votre stock immÃ©diatement.</p>
+                                    <p className="text-xs text-slate-500">Saisissez les quantités réellement reçues pour mettre à jour votre stock immédiatement.</p>
 
                                     <div className="space-y-3">
                                         {selectedOrder.items?.map((item: any, idx: number) => {
@@ -3105,7 +3105,7 @@ export default function Suppliers() {
                                         disabled={submitting || partialItems.length === 0}
                                         className="w-full py-3 bg-indigo-500 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all disabled:opacity-50"
                                     >
-                                        Valider la rÃ©ception partielle
+                                        Valider la réception partielle
                                     </button>
                                 </div>
                             )}
@@ -3113,7 +3113,7 @@ export default function Suppliers() {
                             {/* Summary Card */}
                             <div className="bg-white/5 p-6 rounded-2xl border border-white/5">
                                 <div className="flex justify-between items-center mb-4">
-                                    <span className="text-slate-500 font-bold text-xs uppercase">RÃ©sumÃ© financier</span>
+                                    <span className="text-slate-500 font-bold text-xs uppercase">Résumé financier</span>
                                     <History size={16} className="text-slate-500" />
                                 </div>
                                 <div className="space-y-2">
@@ -3122,7 +3122,7 @@ export default function Suppliers() {
                                         <span className="text-white font-bold">{selectedOrder.total_amount.toLocaleString()} F</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Date de crÃ©ation</span>
+                                        <span className="text-slate-400">Date de création</span>
                                         <span className="text-white">{new Date(selectedOrder.created_at).toLocaleDateString()}</span>
                                     </div>
                                     {selectedOrder.expected_delivery && (
@@ -3191,26 +3191,26 @@ export default function Suppliers() {
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
                                     <p className="text-white font-bold">{marketplaceSupplierDetail?.profile?.company_name || selectedSupplier.name}</p>
-                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail?.profile?.description || "Ce fournisseur n'a pas encore ajoutÃ© de description dÃ©taillÃ©e."}</p>
+                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail?.profile?.description || "Ce fournisseur n'a pas encore ajouté de description détaillée."}</p>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.city || '-'}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierDetail?.profile?.min_order_amount || 0)}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.average_delivery_days || 0} jours</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail?.profile?.delivery_zones || []).join(', ') || 'Non renseignÃ©es'}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.average_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail?.profile?.delivery_zones || []).join(', ') || 'Non renseignées'}</span></div>
                                 </div>
                             </div>
                         ) : supplierTab === 'perf' && selectedSupplier.kind !== 'marketplace' ? (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Commandes</p><p className="text-2xl font-black text-white">{supplierStats?.orders_count || 0}</p></div>
-                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Total livrÃ©</p><p className="text-xl font-black text-white">{formatCurrency(supplierStats?.total_spent || 0)}</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Total livré</p><p className="text-xl font-black text-white">{formatCurrency(supplierStats?.total_spent || 0)}</p></div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">En attente</p><p className="text-xl font-black text-amber-400">{formatCurrency(supplierStats?.pending_spent || 0)}</p></div>
                                     <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl"><p className="text-[10px] font-black text-emerald-500/50 uppercase">Taux de service</p><p className="text-xl font-black text-emerald-400">{supplierStats?.orders_count ? Math.round(((supplierStats?.delivered_count || 0) / supplierStats.orders_count) * 100) : 0}%</p></div>
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes livrÃ©es</span><span className="text-white font-bold">{supplierStats?.delivered_count || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes livrées</span><span className="text-white font-bold">{supplierStats?.delivered_count || 0}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats?.pending_orders || 0}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseignÃ©'}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseigné'}</span></div>
                                 </div>
                                 {/* Invitation section */}
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3">
@@ -3496,7 +3496,7 @@ export default function Suppliers() {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-black text-primary">{formatCurrency(product.price || 0)}</p>
-                                                <p className="text-[10px] text-slate-500 uppercase">{product.unit || 'unitÃ©'}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">{product.unit || 'unité'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase">
@@ -3513,7 +3513,7 @@ export default function Suppliers() {
                         ) : supplierTab === 'logs' && selectedSupplier.kind !== 'marketplace' ? (
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center px-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des Ã©changes</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des échanges</label>
                                     <button onClick={() => { setLogForm({ type: 'other', subject: '', content: '' }); setShowLogModal(true); }} className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline">
                                         <Plus size={12} /> Ajouter une note
                                     </button>
@@ -3533,7 +3533,7 @@ export default function Suppliers() {
                                                 <div className="space-y-1">
                                                     <p className="text-xs text-white leading-relaxed font-bold">{log.subject || log.content}</p>
                                                     {log.subject && <p className="text-xs text-slate-400 leading-relaxed">{log.content}</p>}
-                                                    <p className="text-[10px] text-slate-600 font-bold uppercase">{new Date(log.created_at).toLocaleDateString()} â€¢ {log.type}</p>
+                                                    <p className="text-[10px] text-slate-600 font-bold uppercase">{new Date(log.created_at).toLocaleDateString()} · {log.type}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -3545,7 +3545,7 @@ export default function Suppliers() {
                                 {(marketplaceSupplierDetail?.ratings || []).length === 0 ? (
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <StarIcon size={40} className="mx-auto text-slate-700 mb-3" />
-                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publiÃ©</p>
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publié</p>
                                     </div>
                                 ) : (marketplaceSupplierDetail?.ratings || []).map((rating: any) => (
                                     <div key={rating.rating_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-2">
@@ -3576,7 +3576,7 @@ export default function Suppliers() {
                                     <div className="flex items-center justify-between gap-4">
                                         <div>
                                             <p className="text-xs font-black uppercase tracking-widest text-slate-500">Nouvelle facture fournisseur</p>
-                                            <p className="text-sm text-slate-400 mt-1">Enregistrez une facture, rattachez-la Ã  une commande si besoin et suivez son statut.</p>
+                                            <p className="text-sm text-slate-400 mt-1">Enregistrez une facture, rattachez-la à une commande si besoin et suivez son statut.</p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
@@ -3631,7 +3631,7 @@ export default function Suppliers() {
                                     )}
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">NumÃ©ro</label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Numéro</label>
                                             <input
                                                 type="text"
                                                 value={invoiceForm.invoice_number}
@@ -3659,13 +3659,13 @@ export default function Suppliers() {
                                                 onChange={(e) => setInvoiceForm((current) => ({ ...current, status: e.target.value as 'paid' | 'unpaid' | 'partial' }))}
                                                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
                                             >
-                                                <option value="unpaid">ImpayÃ©e</option>
+                                                <option value="unpaid">Impayée</option>
                                                 <option value="partial">Partielle</option>
-                                                <option value="paid">PayÃ©e</option>
+                                                <option value="paid">Payée</option>
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Ã‰chÃ©ance</label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Échéance</label>
                                             <input
                                                 type="date"
                                                 value={invoiceForm.due_date}
@@ -3674,7 +3674,7 @@ export default function Suppliers() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Commande liÃ©e</label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Commande liée</label>
                                             <select
                                                 value={invoiceForm.order_id}
                                                 onChange={(e) => setInvoiceForm((current) => ({ ...current, order_id: e.target.value }))}
@@ -3683,7 +3683,7 @@ export default function Suppliers() {
                                                 <option value="">Aucune</option>
                                                 {supplierOrderHistory.map((order: any) => (
                                                     <option key={order.order_id} value={order.order_id}>
-                                                        {`#${order.order_id.substring(0, 8)} â€¢ ${new Date(order.created_at).toLocaleDateString()}`}
+                                                        {`#${order.order_id.substring(0, 8)} · ${new Date(order.created_at).toLocaleDateString()}`}
                                                     </option>
                                                 ))}
                                             </select>
@@ -3695,7 +3695,7 @@ export default function Suppliers() {
                                                 value={invoiceForm.file_url}
                                                 onChange={(e) => setInvoiceForm((current) => ({ ...current, file_url: e.target.value }))}
                                                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all focus:border-primary/40"
-                                                placeholder="https://â€¦"
+                                                placeholder="https://…"
                                             />
                                         </div>
                                     </div>
@@ -3706,7 +3706,7 @@ export default function Suppliers() {
                                             onChange={(e) => setInvoiceForm((current) => ({ ...current, notes: e.target.value }))}
                                             rows={3}
                                             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all resize-none focus:border-primary/40"
-                                            placeholder="Conditions, rÃ©fÃ©rence interne, commentaire de rÃ©ceptionâ€¦"
+                                            placeholder="Conditions, référence interne, commentaire de réception…"
                                         />
                                     </div>
                                 </form>
@@ -3714,7 +3714,7 @@ export default function Suppliers() {
                                 <table className="w-full text-left text-xs">
                                     <thead className="bg-white/10 text-slate-500 font-bold">
                                         <tr>
-                                            <th className="px-4 py-3">NumÃ©ro</th>
+                                            <th className="px-4 py-3">Numéro</th>
                                             <th className="px-4 py-3">Date</th>
                                             <th className="px-4 py-3 text-right">Montant</th>
                                             <th className="px-4 py-3 text-center">Statut</th>
@@ -3734,7 +3734,7 @@ export default function Suppliers() {
                                                 <td className="px-4 py-3 text-slate-400">
                                                     <div className="space-y-1">
                                                         <p>{new Date(invoice.created_at).toLocaleDateString()}</p>
-                                                        {invoice.due_date && <p className="text-[10px] text-slate-500">Ã‰chÃ©ance {new Date(invoice.due_date).toLocaleDateString()}</p>}
+                                                        {invoice.due_date && <p className="text-[10px] text-slate-500">Échéance {new Date(invoice.due_date).toLocaleDateString()}</p>}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-bold text-white">{formatCurrency(invoice.amount || 0)}</td>
@@ -3755,7 +3755,7 @@ export default function Suppliers() {
                                         <p className="text-2xl font-black text-white">12</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl space-y-1">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase">Total CommandÃ©</p>
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Total Commandé</p>
                                         <p className="text-xl font-black text-white">450,000 F</p>
                                     </div>
                                     <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl space-y-1">
@@ -3784,7 +3784,7 @@ export default function Suppliers() {
                         ) : supplierTab === 'logs' ? (
                             <div className="animate-in fade-in duration-300 space-y-4">
                                 <div className="flex justify-between items-center px-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des Ã©changes</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des échanges</label>
                                     <button className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline">
                                         <Plus size={12} /> Ajouter une note
                                     </button>
@@ -3792,7 +3792,7 @@ export default function Suppliers() {
                                 <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
                                     {[
                                         { date: '2024-02-15', msg: 'Appel pour retard de livraison sur commande #A4B2', type: 'call' },
-                                        { date: '2024-02-10', msg: 'Devis reÃ§u pour nouveaux arrivages bijoux', type: 'mail' },
+                                        { date: '2024-02-10', msg: 'Devis reçu pour nouveaux arrivages bijoux', type: 'mail' },
                                         { date: '2024-01-28', msg: 'Visite au showroom, discussion tarifs gros', type: 'visit' }
                                     ].map((l, i) => (
                                         <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-start gap-4">
@@ -3813,7 +3813,7 @@ export default function Suppliers() {
                                     <table className="w-full text-left text-xs">
                                         <thead className="bg-white/10 text-slate-500 font-bold">
                                             <tr>
-                                                <th className="px-4 py-3">NumÃ©ro</th>
+                                                <th className="px-4 py-3">Numéro</th>
                                                 <th className="px-4 py-3">Date</th>
                                                 <th className="px-4 py-3 text-right">Montant</th>
                                                 <th className="px-4 py-3 text-center">Status</th>
@@ -3826,7 +3826,7 @@ export default function Suppliers() {
                                                     <td className="px-4 py-3 text-slate-400">12/02/2024</td>
                                                     <td className="px-4 py-3 text-right font-bold text-white">45,000 F</td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase">PayÃ©e</span>
+                                                        <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase">Payée</span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -3926,8 +3926,8 @@ export default function Suppliers() {
                 <div className="space-y-4">
                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
                         {selectedSupplier?.name
-                            ? `Choisissez un produit de votre stock Ã  associer durablement au fournisseur ${selectedSupplier.name}.`
-                            : "Choisissez un produit de votre stock Ã  associer durablement Ã  ce fournisseur."}
+                            ? `Choisissez un produit de votre stock à associer durablement au fournisseur ${selectedSupplier.name}.`
+                            : "Choisissez un produit de votre stock à associer durablement à ce fournisseur."}
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-400 mb-1">Produit interne</label>
@@ -3986,12 +3986,12 @@ export default function Suppliers() {
             <Modal
                 isOpen={showBenchmarkModal}
                 onClose={() => setShowBenchmarkModal(false)}
-                title={benchmarkProduct ? `Benchmark â€¢ ${benchmarkProduct.name}` : 'Benchmark produit'}
+                title={benchmarkProduct ? `Benchmark · ${benchmarkProduct.name}` : 'Benchmark produit'}
                 maxWidth="xl"
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-400">
-                        Comparez les offres disponibles pour ce produit, puis prÃ©parez directement une commande vers le fournisseur le plus intÃ©ressant.
+                        Comparez les offres disponibles pour ce produit, puis préparez directement une commande vers le fournisseur le plus intéressant.
                     </p>
                     {benchmarkLoading ? (
                         <div className="py-16 flex justify-center">
@@ -4000,7 +4000,7 @@ export default function Suppliers() {
                     ) : benchmarkResults.length === 0 ? (
                         <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                             <SearchIcon size={40} className="mx-auto text-slate-700 mb-3" />
-                            <p className="text-sm text-slate-500 font-bold uppercase">Aucun rÃ©sultat comparable trouvÃ©</p>
+                            <p className="text-sm text-slate-500 font-bold uppercase">Aucun résultat comparable trouvé</p>
                         </div>
                     ) : (
                         <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
@@ -4013,11 +4013,11 @@ export default function Suppliers() {
                                                 {index === 0 && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase">Meilleur prix</span>}
                                             </div>
                                             <p className="text-xs text-slate-400 mt-1">{result.name}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase mt-1">{result.supplier_city || 'Marketplace'} â€¢ note {(result.supplier_rating || 0).toFixed(1)}/5</p>
+                                            <p className="text-[10px] text-slate-500 uppercase mt-1">{result.supplier_city || 'Marketplace'} · note {(result.supplier_rating || 0).toFixed(1)}/5</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-lg font-black text-primary">{formatCurrency(result.price || 0)}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase">{result.unit || 'unitÃ©'}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">{result.unit || 'unité'}</p>
                                         </div>
                                     </div>
                                     <div className="mt-4 flex gap-2">

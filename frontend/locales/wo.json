@@ -1,7 +1,7 @@
 {
   "abc": {
     "no_revenue": "No revenue generated during this period.",
-    "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
+    "not_enough_data": "Pas assez de données de vente pour l'analyse ABC."
   },
   "accounting": {
     "amount": "Lim bi",
@@ -211,7 +211,7 @@
       "comms": "Waxtaan",
       "security": "Aaral",
       "logs": "Jaar-jaaru Liggéey",
-      "settings": "ParamÃ¨tres",
+      "settings": "Paramètres",
       "cgu": "TOS",
       "privacy": "Sutura",
       "sales": "Sales"
