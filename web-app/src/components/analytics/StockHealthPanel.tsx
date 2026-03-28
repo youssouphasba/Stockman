@@ -105,7 +105,7 @@ export default function StockHealthPanel({
     return (
         <>
         <div className="mb-8 space-y-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <KpiCard
                     icon={Boxes}
                     label="Stock valorise"

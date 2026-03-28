@@ -203,13 +203,18 @@ body {
 /* --- Backgrounds: overlays --- */
 [data-theme="light"] .bg-black\/60,
 [data-theme="light"] .bg-black\/70,
-[data-theme="light"] .bg-black\/40,
-[data-theme="light"] .bg-black\/20 {
+[data-theme="light"] .bg-black\/40 {
   background-color: var(--overlay) !important;
+}
+
+/* bg-black/20 — light tinted surface (e.g. POS quantity controls) */
+[data-theme="light"] .bg-black\/20 {
+  background-color: rgba(15, 23, 42, 0.06) !important;
 }
 
 /* --- Backgrounds: white-alpha (subtle surfaces in dark mode) --- */
 [data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/\[0\.02\],
 [data-theme="light"] .bg-white\/\[0\.03\],
 [data-theme="light"] .bg-white\/\[0\.04\],
 [data-theme="light"] .bg-white\/\[0\.05\] {
@@ -501,7 +506,95 @@ body {
 [data-theme="light"] .bg-rose-500\/20 { background-color: rgba(225, 29, 72, 0.12) !important; }
 [data-theme="light"] .bg-amber-500\/20 { background-color: rgba(217, 119, 6, 0.12) !important; }
 [data-theme="light"] .bg-indigo-500\/20 { background-color: rgba(79, 70, 229, 0.12) !important; }
+[data-theme="light"] .bg-rose-400\/10 { background-color: rgba(225, 29, 72, 0.08) !important; }
+[data-theme="light"] .bg-sky-500\/20 { background-color: rgba(2, 132, 199, 0.12) !important; }
 
 /* --- Primary alpha backgrounds --- */
 [data-theme="light"] .bg-primary\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+[data-theme="light"] .bg-primary\/15 { background-color: rgba(5, 150, 105, 0.10) !important; }
 [data-theme="light"] .bg-primary\/20 { background-color: rgba(5, 150, 105, 0.12) !important; }
+
+/* --- Hardcoded dark backgrounds missed --- */
+[data-theme="light"] .bg-\[\#101826\] {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* --- Colored text -300 (orange, sky for restaurant/POS) --- */
+[data-theme="light"] .text-orange-300 { color: #EA580C !important; }
+[data-theme="light"] .text-sky-300 { color: #0284C7 !important; }
+
+/* --- Placeholder text in dark containers --- */
+[data-theme="light"] .placeholder\:text-slate-600::placeholder,
+[data-theme="light"] .placeholder\:text-slate-700::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* --- Hover background color fixes --- */
+[data-theme="light"] .hover\:bg-slate-800:hover,
+[data-theme="light"] .hover\:bg-slate-700:hover {
+  background-color: #F1F5F9 !important;
+}
+
+/* --- Group-hover text --- */
+[data-theme="light"] .group-hover\:text-primary:hover,
+[data-theme="light"] .group:hover .group-hover\:text-primary {
+  color: #059669 !important;
+}
+
+/* --- Bg-opacity used in StatCard icons --- */
+[data-theme="light"] .bg-opacity-10 {
+  --tw-bg-opacity: 0.08 !important;
+}
+
+[data-theme="light"] .bg-opacity-20 {
+  --tw-bg-opacity: 0.12 !important;
+}
+
+/* --- Colored alpha backgrounds: /5 variants (very subtle in dark, need slight boost) --- */
+[data-theme="light"] .bg-emerald-500\/5 { background-color: rgba(5, 150, 105, 0.05) !important; }
+[data-theme="light"] .bg-blue-500\/5 { background-color: rgba(37, 99, 235, 0.05) !important; }
+[data-theme="light"] .bg-purple-500\/5 { background-color: rgba(124, 58, 237, 0.05) !important; }
+[data-theme="light"] .bg-rose-500\/5 { background-color: rgba(225, 29, 72, 0.05) !important; }
+[data-theme="light"] .bg-amber-500\/5 { background-color: rgba(217, 119, 6, 0.05) !important; }
+[data-theme="light"] .bg-orange-500\/5 { background-color: rgba(234, 88, 12, 0.05) !important; }
+
+/* --- Orange alpha backgrounds (restaurant mode) --- */
+[data-theme="light"] .bg-orange-500\/20 { background-color: rgba(234, 88, 12, 0.12) !important; }
+[data-theme="light"] .bg-orange-500\/30 { background-color: rgba(234, 88, 12, 0.15) !important; }
+
+/* --- Colored border alpha --- */
+[data-theme="light"] .border-emerald-500\/10,
+[data-theme="light"] .border-blue-500\/10,
+[data-theme="light"] .border-purple-500\/10,
+[data-theme="light"] .border-rose-500\/10,
+[data-theme="light"] .border-amber-500\/10,
+[data-theme="light"] .border-orange-500\/10 {
+  border-color: rgba(100, 116, 139, 0.15) !important;
+}
+
+[data-theme="light"] .border-emerald-500\/20,
+[data-theme="light"] .border-blue-500\/20,
+[data-theme="light"] .border-purple-500\/20,
+[data-theme="light"] .border-rose-500\/20,
+[data-theme="light"] .border-primary\/20,
+[data-theme="light"] .border-orange-500\/40 {
+  border-color: rgba(100, 116, 139, 0.2) !important;
+}
+
+/* --- Shadow colored variants --- */
+[data-theme="light"] .shadow-emerald-500\/10,
+[data-theme="light"] .shadow-amber-500\/10,
+[data-theme="light"] .shadow-indigo-500\/10 {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* --- Dark gradient endpoints --- */
+[data-theme="light"] .from-blue-500\/5 { --tw-gradient-from: rgba(37, 99, 235, 0.05) !important; }
+[data-theme="light"] .from-primary\/10 { --tw-gradient-from: rgba(5, 150, 105, 0.08) !important; }
+[data-theme="light"] .to-transparent { --tw-gradient-to: transparent !important; }
+
+/* --- Opacity fix for empty cart icon --- */
+[data-theme="light"] .text-slate-800.opacity-50 {
+  color: #94A3B8 !important;
+}

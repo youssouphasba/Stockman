@@ -22,12 +22,12 @@ export default function KpiCard({ icon: Icon, label, value, hint, delta, onClick
             type="button"
             onClick={onClick}
             disabled={!clickable}
-            className={`w-full rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-left shadow-[0_24px_80px_-48px_rgba(15,23,42,0.95)] ${clickable ? 'cursor-pointer transition hover:border-primary/30 hover:bg-white/[0.06]' : 'cursor-default'}`}
+            className={`w-full min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-left shadow-[0_24px_80px_-48px_rgba(15,23,42,0.95)] ${clickable ? 'cursor-pointer transition hover:border-primary/30 hover:bg-white/[0.06]' : 'cursor-default'}`}
         >
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">{label}</p>
-                    <p className="mt-3 text-3xl font-black tracking-tight text-white">{value}</p>
+                <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500 truncate">{label}</p>
+                    <p className="mt-3 text-2xl font-black tracking-tight text-white truncate">{value}</p>
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
                     <Icon size={18} />
