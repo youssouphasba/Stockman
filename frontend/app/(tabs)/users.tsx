@@ -405,7 +405,7 @@ export default function UsersScreen() {
 
             {/* modal create/edit */}
             {modalVisible && (
-                {modalVisible && <Modal visible={modalVisible} animationType="slide" transparent>
+                <Modal visible={modalVisible} animationType="slide" transparent>
                     <View style={styles.modalOverlay}>
                         <LinearGradient colors={[colors.bgDark, colors.bgMid]} style={styles.modalContent}>
                             <View style={styles.modalHeader}>
@@ -549,7 +549,7 @@ export default function UsersScreen() {
                             </ScrollView>
                         </LinearGradient>
                     </View>
-                </Modal>}
+                </Modal>
             )}
         </LinearGradient>
     );

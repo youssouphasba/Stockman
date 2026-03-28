@@ -44,7 +44,7 @@ const PLANS: PlanConfig[] = [
         stores: '1',
         users: '1',
         web: false,
-        priceEUR: '6,99 �',
+        priceEUR: '6,99 €',
         priceXOF: '2 500',
     },
     {
@@ -55,7 +55,7 @@ const PLANS: PlanConfig[] = [
         stores: '2',
         users: '5',
         web: false,
-        priceEUR: '9,99 �',
+        priceEUR: '9,99 €',
         priceXOF: '4 900',
     },
     {
@@ -66,7 +66,7 @@ const PLANS: PlanConfig[] = [
         stores: '8',
         users: '8',
         web: true,
-        priceEUR: '14,99 �',
+        priceEUR: '14,99 €',
         priceXOF: '9 900',
     },
 ];
@@ -239,12 +239,12 @@ export default function SubscriptionScreen() {
             <View style={styles.content}>
                 {accessPhase !== 'active' && (
                     <View style={[styles.card, styles.attentionCard]}>
-                        <Text style={styles.sectionTitle}>Continuit� d&apos;activit�</Text>
+                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
                         <Text style={styles.cardSubtitle}>
-                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer � utiliser l&apos;application sans perdre vos donn�es, puis r�gulariser le paiement d�s que possible.
+                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement d€s que possible.
                         </Text>
                         {data?.grace_until ? (
-                            <Text style={styles.helperText}>Fin de gr�ce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}</Text>
+                            <Text style={styles.helperText}>Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}</Text>
                         ) : null}
                         {data?.read_only_after ? (
                             <Text style={styles.helperText}>Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}</Text>
@@ -259,11 +259,11 @@ export default function SubscriptionScreen() {
                             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Session demo active</Text>
                         </View>
                         <Text style={styles.cardSubtitle}>
-                            Type: {formatDemoTypeLabel(data.demo_type, t)} � Surface: {data.demo_surface || 'mobile'}
+                            Type: {formatDemoTypeLabel(data.demo_type, t)} € Surface: {data.demo_surface || 'mobile'}
                         </Text>
                         {Platform.OS !== 'ios' && (
                             <Text style={styles.helperText}>
-                            Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '�'}
+                            Expiration: {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : '—'}
                             </Text>
                         )}
                     </View>
@@ -322,7 +322,7 @@ export default function SubscriptionScreen() {
                                     <View style={styles.planCardDetails}>
                                         <Text style={styles.planCardDetail}>?? {plan.stores} {t('subscription.features.stores')}</Text>
                                         <Text style={styles.planCardDetail}>?? {plan.users} {t('subscription.features.users')}</Text>
-                                        {plan.web && <Text style={styles.planCardDetail}>?? {t('subscription.features.web_access') || 'Acc�s Web'}</Text>}
+                                        {plan.web && <Text style={styles.planCardDetail}>?? {t('subscription.features.web_access') || 'Accès Web'}</Text>}
                                     </View>
                                     {isSelected && (
                                         <View style={styles.selectedCheck}>
@@ -383,7 +383,7 @@ export default function SubscriptionScreen() {
                         >
                             <Text style={styles.legalLink}>{t('common.terms')}</Text>
                         </TouchableOpacity>
-                            <Text style={styles.legalSeparator}>�</Text>
+                            <Text style={styles.legalSeparator}>€</Text>
                         <TouchableOpacity
                             onPress={() =>
                                 router.push({
@@ -413,14 +413,14 @@ export default function SubscriptionScreen() {
                             </Text>
                         </View>
                         <Text style={styles.enterpriseDesc}>
-                            {t('subscription.enterprise_contact_desc') || 'Pour acc�der au plan Enterprise (Web + Mobile avanc�), contactez-nous.'}
+                            {t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise (Web + Mobile avancé), contactez-nous.'}
                         </Text>
                         <TouchableOpacity
                             style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
                             onPress={handleEnterpriseContact}
                         >
                             <Ionicons name="open-outline" size={22} color="white" />
-                            <Text style={styles.payButtonText}>{'Acc�der au plan Enterprise'}</Text>
+                            <Text style={styles.payButtonText}>{'Accéder au plan Enterprise'}</Text>
                         </TouchableOpacity>
                     </View>
                 )}

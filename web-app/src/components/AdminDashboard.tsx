@@ -48,18 +48,18 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 function formatAdminMoney(amount: any, currency?: string) {
-    if (amount === null || amount === undefined || amount === '') return '�';
+    if (amount === null || amount === undefined || amount === '') return '—';
     const numeric = Number(amount);
     if (!Number.isFinite(numeric)) return `${amount} ${currency || ''}`.trim();
-    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} �`;
+    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
 
 function formatAdminDate(value?: string | Date | null) {
-    if (!value) return '�';
+    if (!value) return '—';
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return '�';
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
@@ -80,7 +80,7 @@ function formatAccessPhaseLabel(phase?: string | null) {
         case 'read_only':
             return 'Lecture seule';
         default:
-            return phase || '�';
+            return phase || '—';
     }
 }
 
@@ -105,7 +105,7 @@ function formatSubscriptionEventType(eventType?: string | null) {
         case 'subscription_cancelled':
             return 'Abonnement annul?';
         default:
-            return eventType || '�';
+            return eventType || '—';
     }
 }
 
@@ -118,7 +118,7 @@ function formatDemoTypeLabel(demoType?: string | null) {
         case 'enterprise':
             return 'Enterprise';
         default:
-            return demoType || '�';
+            return demoType || '—';
     }
 }
 
@@ -131,12 +131,12 @@ function formatDemoSessionStatus(status?: string | null) {
         case 'cleaned':
             return 'Nettoy?e';
         default:
-            return status || '�';
+            return status || '—';
     }
 }
 
 function formatRemainingDuration(seconds?: number | null) {
-    if (seconds === null || seconds === undefined) return '�';
+    if (seconds === null || seconds === undefined) return '—';
     if (seconds <= 0) return 'Expir?e';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -445,7 +445,7 @@ export default function AdminDashboard() {
         try {
             await adminApi.toggleUser(userId);
             setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, is_active: !currentStatus } : u));
-            showToast(currentStatus ? 'Utilisateur banni.' : 'Utilisateur r�activ�.');
+            showToast(currentStatus ? 'Utilisateur banni.' : 'Utilisateur réactivé.');
         } catch {
             showToast('Erreur lors de la modification.', 'error');
         } finally {
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
         try {
             await adminApi.deleteUser(confirmDeleteUser.email);
             setUsers(prev => prev.filter(u => u.user_id !== confirmDeleteUser.user_id));
-            showToast(`Compte "${confirmDeleteUser.name}" supprim� avec toutes ses donn�es.`);
+            showToast(`Compte "${confirmDeleteUser.name}" supprimé avec toutes ses données.`);
         } catch {
             showToast('Erreur lors de la suppression.', 'error');
         } finally {
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
             setReplyTicketId(null);
             setReplyContent('');
             loadTickets();
-            showToast('R�ponse envoy�e.');
+            showToast('Réponse envoyée.');
         } catch {
             showToast('Erreur lors de l\'envoi.', 'error');
         } finally {
@@ -684,7 +684,7 @@ export default function AdminDashboard() {
         );
 
         const byCountry = Object.entries(accounts.reduce((acc: Record<string, number>, account: any) => {
-            const country = String(account.country_code || '�');
+            const country = String(account.country_code || '—');
             acc[country] = (acc[country] || 0) + 1;
             return acc;
         }, {}))
@@ -726,7 +726,7 @@ export default function AdminDashboard() {
         { id: 'products', icon: Package, label: 'Produits' },
         { id: 'catalog', icon: BarChart2, label: 'Catalogue' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
-        { id: 'security', icon: Shield, label: 'S�curit�' },
+        { id: 'security', icon: Shield, label: 'Sécurité' },
         { id: 'support', icon: MessageSquare, label: 'Support' },
         { id: 'broadcast', icon: Bell, label: 'Broadcast' },
         { id: 'legal', icon: Newspaper, label: 'L?gal' },
@@ -748,10 +748,10 @@ export default function AdminDashboard() {
                             <h3 className="text-lg font-black text-white">Supprimer ce compte ?</h3>
                         </div>
                         <p className="text-slate-400 text-sm mb-2">
-                            Cette action est <span className="text-red-400 font-bold">irr�versible</span>. Toutes les donn�es seront supprim�es :
+                            Cette action est <span className="text-red-400 font-bold">irréversible</span>. Toutes les données seront supprimées :
                         </p>
                         <ul className="text-xs text-slate-500 mb-4 list-disc list-inside">
-                            <li>Produits, ventes, clients, d�penses</li>
+                            <li>Produits, ventes, clients, dépenses</li>
                             <li>Boutiques, alertes, fournisseurs</li>
                             <li>Sous-utilisateurs (staff)</li>
                         </ul>
@@ -771,7 +771,7 @@ export default function AdminDashboard() {
                                 disabled={!!deletingUser}
                                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/30 transition-all disabled:opacity-40"
                             >
-                                {deletingUser ? 'Suppression...' : 'Supprimer d�finitivement'}
+                                {deletingUser ? 'Suppression...' : 'Supprimer définitivement'}
                             </button>
                         </div>
                     </div>
@@ -781,12 +781,12 @@ export default function AdminDashboard() {
             <header className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-black text-white mb-1 uppercase tracking-tighter">Backoffice Admin</h1>
-                    <p className="text-slate-400 text-sm">Supervision globale du syst�me Stockman.</p>
+                    <p className="text-slate-400 text-sm">Supervision globale du système Stockman.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                         <Activity size={16} />
-                        {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Op�rationnel' : 'Erreur'}
+                        {['ok', 'online', 'healthy'].includes(String(health?.status || '')) ? 'Opérationnel' : 'Erreur'}
                     </div>
                     <button onClick={() => {
                         if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
@@ -835,7 +835,7 @@ export default function AdminDashboard() {
                         <StatCard label="Pays Couverts" value={Object.keys(stats?.users_by_country || {}).length} icon={Globe} color="bg-blue-400" sub={`${stats?.recent_signups || 0} inscrits (7j)`} />
                     </div>
 
-                    {/* KPI Row 2 � Plans & Trials */}
+                    {/* KPI Row 2 — Plans & Trials */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Enterprise" value={stats?.users_by_plan?.enterprise || 0} icon={Crown} color="bg-purple-500" />
                         <StatCard label="Pro" value={stats?.users_by_plan?.pro || 0} icon={Zap} color="bg-blue-500" />
@@ -845,15 +845,15 @@ export default function AdminDashboard() {
                             value={stats?.trials_expiring_soon || 0}
                             icon={Clock}
                             color={stats?.trials_expiring_soon > 0 ? 'bg-rose-500' : 'bg-slate-500'}
-                            sub="Relance recommand�e"
+                            sub="Relance recommandée"
                         />
                     </div>
 
-                    {/* G�ographie + Top Boutiques */}
+                    {/* Géographie + Top Boutiques */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="glass-card p-6">
                             <h3 className="text-base font-black text-white mb-5 flex items-center gap-2 uppercase tracking-tighter">
-                                <Globe size={18} className="text-primary" /> Distribution G�ographique
+                                <Globe size={18} className="text-primary" /> Distribution Géographique
                             </h3>
                             <div className="space-y-3">
                                 {Object.entries(stats?.users_by_country || {})
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-slate-600 text-sm text-center py-8">Aucune donn�e de vente</p>
+                                <p className="text-slate-600 text-sm text-center py-8">Aucune donnée de vente</p>
                             )}
                         </div>
                     </div>
@@ -1011,7 +1011,7 @@ export default function AdminDashboard() {
                                 <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-300">Pilotage financier</p>
                                 <h2 className="mt-2 text-2xl font-black text-white tracking-tight">Vue finance admin</h2>
                                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
-                                    Cette vue regroupe le revenu plateforme, la sant� des abonnements, le recouvrement et les comptes � surveiller.
+                                    Cette vue regroupe le revenu plateforme, la santé des abonnements, le recouvrement et les comptes à surveiller.
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1028,17 +1028,17 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <StatCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : '�'} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr?.currency || 'Aucune devise'} />
-                        <StatCard label="ARR estim�" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : '�'} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
+                        <StatCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : '—'} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr?.currency || 'Aucune devise'} />
+                        <StatCard label="ARR estimé" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : '—'} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
                         <StatCard label="Comptes payants" value={subscriptionOverview?.active_paid_accounts || 0} icon={Wallet} color="bg-primary" sub="Actifs" />
                         <StatCard label="Trials actifs" value={subscriptionOverview?.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview?.trials_expiring_3d || 0} expirent sous 3 jours`} />
-                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : '�'} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
+                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : '—'} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
                         <StatCard label="Alertes recouvrement" value={subscriptionAlerts?.summary?.total || 0} icon={Bell} color={(subscriptionAlerts?.summary?.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts?.summary?.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div className="glass-card p-6">
-                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">R�partition abonnements</h3>
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Répartition abonnements</h3>
                             <div className="space-y-5">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Par plan</p>
@@ -1048,7 +1048,7 @@ export default function AdminDashboard() {
                                                 <span className="text-slate-300 capitalize">{plan}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donn�e.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnée.</p>}
                                     </div>
                                 </div>
                                 <div>
@@ -1059,7 +1059,7 @@ export default function AdminDashboard() {
                                                 <span className="text-slate-300 capitalize">{provider || 'none'}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donn�e.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnée.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1076,7 +1076,7 @@ export default function AdminDashboard() {
                                                 <span className="text-slate-300">{row.currency}</span>
                                                 <strong className="text-white">{formatAdminMoney(row.amount, row.currency)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucun paiement confirm� sur la fen�tre.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucun paiement confirmé sur la fenêtre.</p>}
                                     </div>
                                 </div>
                                 <div>
@@ -1087,30 +1087,30 @@ export default function AdminDashboard() {
                                                 <span className="text-slate-300">{country}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donn�e pays.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnée pays.</p>}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="glass-card p-6">
-                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Sant� du recouvrement</h3>
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Santé du recouvrement</h3>
                             <div className="space-y-3">
                                 <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-300">Comptes � risque</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-300">Comptes à risque</p>
                                     <p className="mt-2 text-3xl font-black text-white">{financeSummary.accountsAtRisk.length}</p>
-                                    <p className="mt-1 text-xs text-slate-300">Gr�ce, lecture seule, expir�s ou annul�s.</p>
+                                    <p className="mt-1 text-xs text-slate-300">Grâce, lecture seule, expirés ou annulés.</p>
                                 </div>
                                 <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-sky-300">Relances possibles</p>
                                     <p className="mt-2 text-3xl font-black text-white">{financeSummary.reminderCandidates.length}</p>
-                                    <p className="mt-1 text-xs text-slate-300">Comptes avec lien de paiement d�j� g�n�r�.</p>
+                                    <p className="mt-1 text-xs text-slate-300">Comptes avec lien de paiement déjà généré.</p>
                                 </div>
                                 <button
                                     onClick={() => setActiveSection('subscriptions')}
                                     className="w-full rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all"
                                 >
-                                    Ouvrir la vue abonnements d�taill�e
+                                    Ouvrir la vue abonnements détaillée
                                 </button>
                             </div>
                         </div>
@@ -1120,11 +1120,11 @@ export default function AdminDashboard() {
                         <div className="glass-card overflow-hidden">
                             <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between gap-3">
                                 <div>
-                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Comptes � surveiller</h3>
-                                    <p className="mt-1 text-xs text-slate-500">Priorit� au recouvrement et aux risques d�acc�s.</p>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Comptes à surveiller</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Priorité au recouvrement et aux risques d'accès.</p>
                                 </div>
                                 <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-rose-300">
-                                    {financeSummary.accountsAtRisk.length} � traiter
+                                    {financeSummary.accountsAtRisk.length} à traiter
                                 </span>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
@@ -1133,9 +1133,9 @@ export default function AdminDashboard() {
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="space-y-1">
                                                 <p className="text-sm font-bold text-white">{account.display_name || account.owner_name || account.account_id}</p>
-                                                <p className="text-xs text-slate-500">{account.owner_email || account.billing_contact_email || '�'}</p>
+                                                <p className="text-xs text-slate-500">{account.owner_email || account.billing_contact_email || '—'}</p>
                                                 <p className="text-xs text-slate-400">
-                                                    {account.country_code || '�'} � {account.currency || '�'} � {formatAccessPhaseLabel(account.subscription_access_phase || 'active')}
+                                                    {account.country_code || '—'} · {account.currency || '—'} · {formatAccessPhaseLabel(account.subscription_access_phase || 'active')}
                                                 </p>
                                             </div>
                                             <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${account.manual_read_only_enabled ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
@@ -1155,7 +1155,7 @@ export default function AdminDashboard() {
                                                 disabled={refreshingPaymentLinksAccountId === account.account_id}
                                                 className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
                                             >
-                                                {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'R�g�n�rer lien'}
+                                                {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Régénérer lien'}
                                             </button>
                                             <button
                                                 onClick={() => setActiveSection('subscriptions')}
@@ -1166,7 +1166,7 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun compte � risque pour les filtres en cours.</div>
+                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun compte à risque pour les filtres en cours.</div>
                                 )}
                             </div>
                         </div>
@@ -1174,11 +1174,11 @@ export default function AdminDashboard() {
                         <div className="glass-card overflow-hidden">
                             <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between gap-3">
                                 <div>
-                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Flux de paiement r�cents</h3>
-                                    <p className="mt-1 text-xs text-slate-500">Paiements, renouvellements, �checs et checkouts.</p>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Flux de paiement récents</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Paiements, renouvellements, échecs et checkouts.</p>
                                 </div>
                                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-300">
-                                    {financeSummary.recentPaymentEvents.length} �v�nements
+                                    {financeSummary.recentPaymentEvents.length} événements
                                 </span>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
@@ -1187,20 +1187,20 @@ export default function AdminDashboard() {
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
                                                 <p className="text-sm font-bold text-white">{formatSubscriptionEventType(event.event_type)}</p>
-                                                <p className="mt-1 text-xs text-slate-500">{event.account_id || '�'} � {event.provider || '�'} � {event.status || '�'}</p>
+                                                <p className="mt-1 text-xs text-slate-500">{event.account_id || '—'} · {event.provider || '—'} · {event.status || '—'}</p>
                                             </div>
                                             <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${event.status === 'failed' ? 'bg-rose-500/10 text-rose-300' : event.event_type === 'checkout_created' ? 'bg-sky-500/10 text-sky-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
                                                 {formatAdminMoney(event.amount, event.currency)}
                                             </span>
                                         </div>
                                         <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                                            <span>{event.plan || '�'}</span>
+                                            <span>{event.plan || '—'}</span>
                                             <span>{formatAdminDate(event.created_at)}</span>
                                         </div>
                                         {event.message ? <p className="mt-2 text-xs text-slate-500">{event.message}</p> : null}
                                     </div>
                                 )) : (
-                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun flux de paiement r�cent.</div>
+                                    <div className="p-12 text-center text-slate-600 text-sm">Aucun flux de paiement récent.</div>
                                 )}
                             </div>
                         </div>
@@ -1220,7 +1220,7 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard
                             label="MRR estime"
-                            value={subscriptionOverview?.mrr_estimate?.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0]?.amount, subscriptionOverview.mrr_estimate[0]?.currency) : '�'}
+                            value={subscriptionOverview?.mrr_estimate?.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0]?.amount, subscriptionOverview.mrr_estimate[0]?.currency) : '—'}
                             icon={TrendingUp}
                             color="bg-primary"
                             sub={subscriptionOverview?.mrr_estimate?.length > 1 ? `+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
@@ -1306,17 +1306,17 @@ export default function AdminDashboard() {
                                             <div className="flex items-start justify-between gap-3 mb-2">
                                                 <div>
                                                     <p className="text-sm font-black text-white">{formatSubscriptionEventType(event.event_type)}</p>
-                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} � {event.source}</p>
+                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} · {event.source}</p>
                                                 </div>
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${event.status === 'failed' ? 'bg-rose-500/20 text-rose-300' : event.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-slate-300'}`}>
-                                                    {event.status || '�'}
+                                                    {event.status || '—'}
                                                 </span>
                                             </div>
                                             <div className="space-y-1 text-xs text-slate-300">
-                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '�'}</p>
-                                                <p><span className="text-slate-500">Plan :</span> {event.plan || '�'}</p>
+                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '—'}</p>
+                                                <p><span className="text-slate-500">Plan :</span> {event.plan || '—'}</p>
                                                 <p><span className="text-slate-500">Montant :</span> {formatAdminMoney(event.amount, event.currency)}</p>
-                                                <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '�'}</p>
+                                                <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '—'}</p>
                                                 <p><span className="text-slate-500">Date :</span> {formatAdminDate(event.created_at)}</p>
                                             </div>
                                             {event.message && <p className="text-xs text-slate-400 mt-3">{event.message}</p>}
@@ -1392,7 +1392,7 @@ export default function AdminDashboard() {
                                                 <div>
                                                     <p className="text-white font-bold">{account.display_name}</p>
                                                     <p className="text-[11px] text-slate-500">{account.account_id}</p>
-                                                    <p className="text-[11px] text-slate-500">{account.owner_email || account.billing_contact_email || '�'}</p>
+                                                    <p className="text-[11px] text-slate-500">{account.owner_email || account.billing_contact_email || '—'}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -1412,8 +1412,8 @@ export default function AdminDashboard() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300">
-                                                <p>{account.country_code || '�'} / {account.currency || '�'}</p>
-                                                <p className="text-[11px] text-slate-500">{account.stores_count || 0} boutiques � {account.users_count || 0} utilisateurs</p>
+                                                <p>{account.country_code || '—'} / {account.currency || '—'}</p>
+                                                <p className="text-[11px] text-slate-500">{account.stores_count || 0} boutiques · {account.users_count || 0} utilisateurs</p>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300">
                                                 <p>{formatAccessPhaseLabel(account.subscription_access_phase || 'active')}</p>
@@ -1443,7 +1443,7 @@ export default function AdminDashboard() {
                                                             Stripe
                                                         </a>
                                                     ) : (
-                                                        <span className="text-slate-600">Stripe: �</span>
+                                                        <span className="text-slate-600">Stripe: —</span>
                                                     )}
                                                     {account.last_payment_links?.flutterwave_url ? (
                                                         <a
@@ -1455,7 +1455,7 @@ export default function AdminDashboard() {
                                                             Mobile Money
                                                         </a>
                                                     ) : (
-                                                        <span className="text-slate-600">Mobile Money: �</span>
+                                                        <span className="text-slate-600">Mobile Money: —</span>
                                                     )}
                                                     {account.last_payment_links_generated_at ? (
                                                         <span className="text-[10px] text-slate-500">
@@ -1534,7 +1534,7 @@ export default function AdminDashboard() {
                                 type="text"
                                 value={userSearch}
                                 onChange={e => setUserSearch(e.target.value)}
-                                placeholder="Nom, email, pays, plan�"
+                                placeholder="Nom, email, pays, plané"
                                 className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                             {userSearch && (
@@ -1574,7 +1574,7 @@ export default function AdminDashboard() {
                                                 {user.plan || 'starter'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '�'}</td>
+                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '—'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${user.is_active !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
                                                 {user.is_active !== false ? 'Actif' : 'Banni'}
@@ -1585,7 +1585,7 @@ export default function AdminDashboard() {
                                                 onClick={() => handleToggleUser(user.user_id, user.is_active !== false)}
                                                 disabled={togglingUser === user.user_id}
                                                 className={`p-2 rounded-lg transition-all ${user.is_active !== false ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'} disabled:opacity-40`}
-                                                title={user.is_active !== false ? 'Bannir' : 'R�activer'}
+                                                title={user.is_active !== false ? 'Bannir' : 'Réactiver'}
                                             >
                                                 {togglingUser === user.user_id
                                                     ? <RefreshCw size={15} className="animate-spin" />
@@ -1607,7 +1607,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 ))}
                                 {filteredUsers.length === 0 && (
-                                    <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouv�</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouvé</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -1631,7 +1631,7 @@ export default function AdminDashboard() {
                             <thead>
                                 <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
                                     <th className="px-6 py-4">Boutique</th>
-                                    <th className="px-6 py-4">Propri�taire</th>
+                                    <th className="px-6 py-4">Propriétaire</th>
                                     <th className="px-6 py-4">Pays</th>
                                     <th className="px-6 py-4">Produits</th>
                                     <th className="px-6 py-4">CA Total</th>
@@ -1644,10 +1644,10 @@ export default function AdminDashboard() {
                                             <p className="text-white font-bold">{store.name}</p>
                                             <p className="text-[10px] text-slate-500 font-mono">{store.store_id?.slice(-8)}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400">{store.owner_name || '�'}</td>
-                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '�'}</td>
-                                        <td className="px-6 py-4 text-white font-bold">{store.product_count ?? '�'}</td>
-                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null ? `${store.total_revenue.toLocaleString()} F` : '�'}</td>
+                                        <td className="px-6 py-4 text-slate-400">{store.owner_name || '—'}</td>
+                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '—'}</td>
+                                        <td className="px-6 py-4 text-white font-bold">{store.product_count ?? '—'}</td>
+                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null ? `${store.total_revenue.toLocaleString()} F` : '—'}</td>
                                     </tr>
                                 ))}
                                 {stores.length === 0 && (
@@ -1684,7 +1684,7 @@ export default function AdminDashboard() {
                                     onClick={() => setDisputeFilter(f)}
                                     className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${disputeFilter === f ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : 'R�solus'}
+                                    {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : 'Résolus'}
                                 </button>
                             ))}
                         </div>
@@ -1732,7 +1732,7 @@ export default function AdminDashboard() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button className="text-primary hover:underline font-black text-xs uppercase tracking-widest">G�rer</button>
+                                                <button className="text-primary hover:underline font-black text-xs uppercase tracking-widest">Gérer</button>
                                             </td>
                                         </tr>
                                     ))}
@@ -1865,17 +1865,17 @@ export default function AdminDashboard() {
                                         <tr key={session.demo_session_id} className="hover:bg-white/[0.03]">
                                             <td className="px-6 py-4">
                                                 <div className="text-white font-semibold text-sm">{session.demo_session_id}</div>
-                                                <div className="text-slate-500 text-xs">{session.account_id || '�'}</div>
+                                                <div className="text-slate-500 text-xs">{session.account_id || '—'}</div>
                                             </td>
                                             <td className="px-6 py-4 text-slate-300 text-sm">{formatDemoTypeLabel(session.demo_type)}</td>
                                             <td className="px-6 py-4">
                                                 <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-slate-300 text-xs capitalize">
-                                                    {session.surface || '�'}
+                                                    {session.surface || '—'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-white text-sm">{session.contact_email || '�'}</div>
-                                                <div className="text-slate-500 text-xs">{session.country_code || '�'} � {session.currency || '�'}</div>
+                                                <div className="text-white text-sm">{session.contact_email || '—'}</div>
+                                                <div className="text-slate-500 text-xs">{session.country_code || '—'} · {session.currency || '—'}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full border text-xs font-bold ${
@@ -2235,13 +2235,13 @@ export default function AdminDashboard() {
                                                 {ticket.type || 'Assistance'}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-500">De <span className="text-slate-400 font-semibold">{ticket.user_name}</span> � {new Date(ticket.created_at).toLocaleDateString()}</p>
+                                        <p className="text-xs text-slate-500">De <span className="text-slate-400 font-semibold">{ticket.user_name}</span> · {new Date(ticket.created_at).toLocaleDateString()}</p>
                                     </div>
                                     <button
                                         onClick={() => { setReplyTicketId(replyTicketId === ticket.ticket_id ? null : ticket.ticket_id); setReplyContent(''); }}
                                         className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${replyTicketId === ticket.ticket_id ? 'bg-primary text-white border-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-primary hover:text-white hover:border-primary'}`}
                                     >
-                                        R�pondre
+                                        Répondre
                                     </button>
                                 </div>
                                 {replyTicketId === ticket.ticket_id && (
@@ -2251,7 +2251,7 @@ export default function AdminDashboard() {
                                             value={replyContent}
                                             onChange={e => setReplyContent(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && handleReplyTicket()}
-                                            placeholder="Votre r�ponse�"
+                                            placeholder="Votre réponse"
                                             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
                                             autoFocus
                                         />
@@ -2328,8 +2328,8 @@ export default function AdminDashboard() {
                         <div className="p-5 border-b border-white/5 bg-white/5">
                             <div className="flex items-center gap-3">
                                 <Newspaper size={20} className="text-emerald-400" />
-                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Abonn�s newsletter</h4>
-                                <span className="text-xs text-slate-500 ml-auto">{leadSubscribers.length} abonn�(s)</span>
+                                <h4 className="text-base font-black text-white uppercase tracking-tighter">Abonnés newsletter</h4>
+                                <span className="text-xs text-slate-500 ml-auto">{leadSubscribers.length} abonné(s)</span>
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
@@ -2342,7 +2342,7 @@ export default function AdminDashboard() {
                                 </div>
                             )) : !leadsLoading ? (
                                 <div className="p-12 text-center text-slate-600 text-sm">
-                                    Aucun abonn� newsletter pour le moment.
+                                    Aucun abonné newsletter pour le moment.
                                 </div>
                             ) : null}
                         </div>
@@ -2365,7 +2365,7 @@ export default function AdminDashboard() {
                                     value={broadcastForm.title}
                                     onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
-                                    placeholder="Ex: Nouvelle mise � jour disponible !"
+                                    placeholder="Ex: Nouvelle mise à jour disponible !"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -2375,7 +2375,7 @@ export default function AdminDashboard() {
                                     onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
                                     rows={5}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all resize-none"
-                                    placeholder="Contenu du message�"
+                                    placeholder="Contenu du messagé"
                                 />
                             </div>
                             <button
@@ -2384,7 +2384,7 @@ export default function AdminDashboard() {
                                     setSaving(true);
                                     try {
                                         await adminApi.broadcast(broadcastForm.message, broadcastForm.title);
-                                        showToast('Message diffus� � tous les utilisateurs.');
+                                        showToast('Message diffusé à tous les utilisateurs.');
                                         setBroadcastForm({ title: '', message: '' });
                                         await loadBroadcastHistory();
                                     } catch {
@@ -2396,7 +2396,7 @@ export default function AdminDashboard() {
                                 disabled={saving || !broadcastForm.message.trim()}
                                 className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
                             >
-                                {saving ? 'Envoi en cours�' : 'Diffuser � tous les utilisateurs'}
+                                {saving ? 'Envoi en cours…' : 'Diffuser à tous les utilisateurs'}
                             </button>
                         </div>
                     </div>
@@ -2405,15 +2405,15 @@ export default function AdminDashboard() {
                         <div className="glass-card p-6 border-amber-500/20 bg-amber-500/5">
                             <h4 className="text-amber-400 font-black uppercase tracking-widest text-xs mb-3">? Attention</h4>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Les messages seront envoy�s instantan�ment � <strong className="text-white">tous les utilisateurs</strong> (Shopkeepers et Suppliers) via push notification. V�rifiez le contenu avant d'envoyer.
+                                Les messages seront envoyés instantanément à <strong className="text-white">tous les utilisateurs</strong> (Shopkeepers et Suppliers) via push notification. Vérifiez le contenu avant d'envoyer.
                             </p>
                         </div>
                         <div className="glass-card p-6">
-                            <h4 className="text-slate-400 font-black uppercase tracking-widest text-xs mb-4">Aper�u mobile</h4>
+                            <h4 className="text-slate-400 font-black uppercase tracking-widest text-xs mb-4">Aperçu mobile</h4>
                             <div className="bg-[#020617] rounded-2xl p-6 border border-white/10 flex flex-col items-center justify-center text-center gap-3 min-h-[180px]">
                                 <Bell size={24} className="text-primary" />
                                 <p className="text-white font-black text-sm">{broadcastForm.title || 'Titre du message'}</p>
-                                <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu appara�tra ici.'}</p>
+                                <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu apparaîtra ici.'}</p>
                             </div>
                         </div>
                         <div className="glass-card overflow-hidden">
@@ -2457,7 +2457,7 @@ export default function AdminDashboard() {
                                             <div className="min-w-[180px] space-y-1 text-right">
                                                 <p className="text-xs text-slate-500">Cible</p>
                                                 <p className="text-sm font-semibold text-white">{message.target || 'all'}</p>
-                                                <p className="text-xs text-slate-500">Envoy� par {message.sent_by || 'admin'}</p>
+                                                <p className="text-xs text-slate-500">Envoyé par {message.sent_by || 'admin'}</p>
                                             </div>
                                         </div>
                                     </div>

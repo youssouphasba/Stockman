@@ -790,7 +790,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <main className="min-h-screen bg-[#0F172A] md:pl-64 flex">
+          <main className="min-h-screen bg-[#0F172A] flex">
             <Sidebar
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -807,7 +807,7 @@ export default function Home() {
               unreadNotifications={unreadNotifications}
             />
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+            <div className="flex-1 flex flex-col h-screen overflow-auto min-w-0">
               <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
               {/* Mobile top bar */}
               <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
@@ -830,7 +830,7 @@ export default function Home() {
               )}
 
               {/* Page content */}
-              <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-auto flex flex-col">
                 {activeTab === 'dashboard' && (
                   isRestaurantBusiness
                     ? <Dashboard onNavigate={setActiveTab} features={features} />

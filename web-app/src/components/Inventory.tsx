@@ -178,7 +178,7 @@ export default function Inventory() {
             current = current.parent_id ? locationMap.get(current.parent_id) : undefined;
             guard += 1;
         }
-        if (parts.length === 0) return 'Emplacement supprim�';
+        if (parts.length === 0) return 'Emplacement supprimé';
         return parts.reverse().join(' / ');
     };
 
@@ -191,7 +191,7 @@ export default function Inventory() {
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
-                reason: stockMovReason || (stockMovType === 'in' ? 'Entr�e stock' : 'Sortie stock'),
+                reason: stockMovReason || (stockMovType === 'in' ? 'Entrée stock' : 'Sortie stock'),
             });
             setProducts(prev => prev.map(p =>
                 p.product_id === stockModalProduct.product_id
@@ -275,7 +275,7 @@ export default function Inventory() {
                 console.warn('Inventory supplier links unavailable', linksRes.reason);
             }
             if (partialError) {
-                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines donn�es annexes du stock sont temporairement indisponibles.' }));
+                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines données annexes du stock sont temporairement indisponibles.' }));
             }
         } catch (err) {
             console.error('Error fetching inventory data', err);
@@ -365,18 +365,18 @@ export default function Inventory() {
     const handleImportCatalog = async () => {
         const sector = currentFeatures?.sector;
         if (!sector) {
-            alert("Aucun type d'activit� n'est d�fini pour ce compte.");
+            alert("Aucun type d'activité n'est défini pour ce compte.");
             return;
         }
         setShowCreateMenu(false);
         setCatalogImportLoading(true);
         try {
             const result = await catalogApi.importAll(sector, currentUser?.country_code);
-            alert(`${result.imported || 0} produits ont �t� import�s pour ${currentFeatures?.sector_label || sector}.`);
+            alert(`${result.imported || 0} produits ont été importés pour ${currentFeatures?.sector_label || sector}.`);
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err?.message || "Erreur lors de l'import du catalogue m�tier");
+            alert(err?.message || "Erreur lors de l'import du catalogue métier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -602,7 +602,7 @@ export default function Inventory() {
         if (!product?.product_id || deletingProductId) return;
 
         const confirmed = window.confirm(
-            `Supprimer d�finitivement le produit "${product.name}" ?`,
+            `Supprimer définitivement le produit "${product.name}" ?`,
         );
 
         if (!confirmed) {
@@ -696,7 +696,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err?.message || `Impossible de mettre � jour le fournisseur ${getSupplierName(supplierId)}.`,
+                                err?.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     } else {
@@ -717,7 +717,7 @@ export default function Inventory() {
 
                 if (supplierSyncErrors.length > 0) {
                     alert(
-                        `Le produit a bien �t� enregistr�, mais certaines liaisons fournisseurs ont �chou�.\n\n${supplierSyncErrors[0]}`,
+                        `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`,
                     );
                 }
             }
@@ -875,7 +875,7 @@ export default function Inventory() {
             return {
                 tone: 'rose',
                 status: 'Aucun fournisseur',
-                subtitle: 'Ajoutez un fournisseur pour pr�parer le r�approvisionnement.',
+                subtitle: 'Ajoutez un fournisseur pour préparer le réapprovisionnement.',
             };
         }
 
@@ -883,15 +883,15 @@ export default function Inventory() {
             return {
                 tone: 'sky',
                 status: 'Principal manquant',
-                subtitle: `${links.length} fournisseur(s) li�(s), aucun principal d�fini.`,
+                subtitle: `${links.length} fournisseur(s) lié(s), aucun principal défini.`,
             };
         }
 
         return {
             tone: 'emerald',
-            status: links.length > 1 ? 'Approvisionnement s�curis�' : 'Approvisionnement pr�t',
+            status: links.length > 1 ? 'Approvisionnement sécurisé' : 'Approvisionnement prêt',
             subtitle: links.length > 1
-                ? `Principal : ${primaryName} � ${links.length - 1} alternative(s)`
+                ? `Principal : ${primaryName} « ${links.length - 1} alternative(s)`
                 : `Principal : ${primaryName}`,
         };
     };
@@ -940,7 +940,7 @@ export default function Inventory() {
                         onClick={() => void fetchProducts()}
                         className="btn-primary px-6 py-3"
                     >
-                        {t('common.retry', { defaultValue: 'R�essayer' })}
+                        {t('common.retry', { defaultValue: 'Réessayer' })}
                     </button>
                 </div>
             </div>
@@ -1038,13 +1038,13 @@ export default function Inventory() {
                         </div>
                     )}
                     <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                        Cr�ation disponible : manuel, texte IA, import CSV et catalogue m�tier
+                        Création disponible : manuel, texte IA, import CSV et catalogue métier
                     </p>
                     {pendingInventorySummary.pendingTotal > 0 && (
                         <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
                             <AlertCircle size={14} />
                             <span>
-                                {pendingInventorySummary.pendingProducts} produit(s), {pendingInventorySummary.pendingUpdates} mise(s) � jour et {pendingInventorySummary.pendingStockMovements} mouvement(s) de stock attendent encore la synchronisation.
+                                {pendingInventorySummary.pendingProducts} produit(s), {pendingInventorySummary.pendingUpdates} mise(s) à jour et {pendingInventorySummary.pendingStockMovements} mouvement(s) de stock attendent encore la synchronisation.
                             </span>
                         </div>
                     )}
@@ -1085,7 +1085,7 @@ export default function Inventory() {
                             className="btn-primary py-2 px-6 flex items-center gap-2"
                         >
                             <Plus size={20} />
-                            Cr�er / importer
+                            Créer / importer
                             <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
@@ -1096,7 +1096,7 @@ export default function Inventory() {
                                 >
                                     <Plus size={16} className="text-primary" />
                                     <div>
-                                        <p className="font-bold">Cr�er manuellement</p>
+                                        <p className="font-bold">Créer manuellement</p>
                                         <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
                                     </div>
                                 </button>
@@ -1110,7 +1110,7 @@ export default function Inventory() {
                                     <Sparkles size={16} className="text-violet-400" />
                                     <div>
                                         <p className="font-bold">Importer depuis un texte</p>
-                                        <p className="text-xs text-slate-400">Colle une liste libre, l�IA structure et cr�e les produits.</p>
+                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et crée les produits.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1135,10 +1135,10 @@ export default function Inventory() {
                                     <div>
                                         <p className="font-bold">
                                             {catalogImportLoading
-                                                ? 'Import du catalogue�'
-                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du m�tier'}`}
+                                                ? 'Import du catalogue…'
+                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du métier'}`}
                                         </p>
-                                        <p className="text-xs text-slate-400">Pr�charge un catalogue adapt� � ton type d�activit�.</p>
+                                        <p className="text-xs text-slate-400">Précharge un catalogue adapté à ton type d'activité.</p>
                                     </div>
                                 </button>
                             </div>
@@ -1157,7 +1157,7 @@ export default function Inventory() {
                         className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         <Sparkles size={16} />
-                        {replenishLoading ? 'Analyse...' : 'IA R�appro'}
+                        {replenishLoading ? 'Analyse...' : 'IA Réappro'}
                     </button>
                 </div>
             </header>
@@ -1172,7 +1172,7 @@ export default function Inventory() {
                             <Sparkles size={20} className="text-violet-400 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="text-violet-300 font-bold text-sm mb-1">
-                                    IA � Conseils de r�approvisionnement
+                                    IA · Conseils de réapprovisionnement
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
                                 {replenishLoading ? (
@@ -1237,7 +1237,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
                     className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-left transition-colors hover:bg-rose-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">� traiter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">à traiter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.noSupplier}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans fournisseur</p>
                 </button>
@@ -1255,7 +1255,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
                     className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition-colors hover:bg-sky-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">� compl�ter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">à compléter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.missingPrimary}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans principal</p>
                 </button>
@@ -1294,7 +1294,7 @@ export default function Inventory() {
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
-                            <th className="py-4 px-6 font-semibold">Cat�gorie</th>
+                            <th className="py-4 px-6 font-semibold">Catégorie</th>
                             <th className="py-4 px-6 font-semibold">Fournisseurs</th>
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold">Prix</th>
@@ -1404,7 +1404,7 @@ export default function Inventory() {
                                             <button
                                                 onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
                                                 className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
-                                                title="Entr�e stock"
+                                                title="Entrée stock"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -1428,7 +1428,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenLocationTransfer(p)}
                                                         className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                                                        title="Transf�rer d'emplacement"
+                                                        title="Transférer d'emplacement"
                                                     >
                                                         <MapPin size={18} />
                                                     </button>
@@ -1437,7 +1437,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenTransfer(p)}
                                                         className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
-                                                        title="Transf�rer vers une autre boutique"
+                                                        title="Transférer vers une autre boutique"
                                                     >
                                                         <ArrowLeftRight size={18} />
                                                     </button>
@@ -1471,7 +1471,7 @@ export default function Inventory() {
             <Modal
                 isOpen={stockModalOpen}
                 onClose={() => setStockModalOpen(false)}
-                title={stockMovType === 'in' ? '?? Entr�e de stock' : '?? Sortie de stock'}
+                title={stockMovType === 'in' ? '?? Entrée de stock' : '?? Sortie de stock'}
                 maxWidth="sm"
             >
                 {stockModalProduct && (
@@ -1489,7 +1489,7 @@ export default function Inventory() {
 
                         {/* Quantity */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Quantit� *</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Quantité *</label>
                             <input
                                 type="number"
                                 min="0.001"
@@ -1507,7 +1507,7 @@ export default function Inventory() {
                                         {stockMovType === 'in'
                                             ? stockModalProduct.quantity + parseFloat(stockMovQty)
                                             : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
-                                    </span> {stockModalProduct.unit || 'unit�(s)'}
+                                    </span> {stockModalProduct.unit || 'unité(s)'}
                                 </p>
                             )}
                         </div>
@@ -1519,7 +1519,7 @@ export default function Inventory() {
                                 type="text"
                                 value={stockMovReason}
                                 onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' ? 'Ex: R�approvisionnement' : 'Ex: Casse, vol, correction'}
+                                placeholder={stockMovType === 'in' ? 'Ex: Réapprovisionnement' : 'Ex: Casse, vol, correction'}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
@@ -1532,7 +1532,7 @@ export default function Inventory() {
                         >
                             {stockMovLoading
                                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entr�e</> : <><Minus size={18} /> Valider la sortie</>
+                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entrée</> : <><Minus size={18} /> Valider la sortie</>
                             }
                         </button>
                     </div>
@@ -1716,7 +1716,7 @@ export default function Inventory() {
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                 >
                                     <option value="standard">Produit fini / Plat</option>
-                                    <option value="raw_material">Ingr�dient / Mati�re premi�re</option>
+                                    <option value="raw_material">Ingrédient / Matière première</option>
                                 </select>
                             </div>
 
@@ -1731,7 +1731,7 @@ export default function Inventory() {
                                         <option value="">Aucun emplacement</option>
                                         {formLocationOptions.map(loc => (
                                             <option key={loc.location_id} value={loc.location_id}>
-                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archiv�)' : ''}
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archivé)' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -1742,7 +1742,7 @@ export default function Inventory() {
                                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300">Approvisionnement</label>
-                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs � ce produit. D�finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
+                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs à ce produit. Définissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
                                         <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
                                             formSupplierIds.length === 0
                                                 ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
@@ -1753,12 +1753,12 @@ export default function Inventory() {
                                             {formSupplierIds.length === 0
                                                 ? 'Aucun fournisseur'
                                                 : !formPrimarySupplierId
-                                                    ? 'Principal � d�finir'
+                                                    ? 'Principal · définir'
                                                     : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
                                         </div>
                                     </div>
                                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
-                                        Cochez les fournisseurs � associer � ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de r�approvisionnement et aux commandes.
+                                        Cochez les fournisseurs à associer à ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de réapprovisionnement et aux commandes.
                                     </div>
                                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
@@ -1810,7 +1810,7 @@ export default function Inventory() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">Unit� de prix / stock</label>
+                                    <label className="block text-sm font-medium text-slate-300">Unité de prix / stock</label>
                                     <select
                                         value={form.unit}
                                         onChange={(e) => {
@@ -1964,7 +1964,7 @@ export default function Inventory() {
                                 className="text-xs text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
                                 <Sparkles size={14} className={aiLoading.description ? 'animate-pulse' : ''} />
-                                G�n�rer par IA
+                                Générer par IA
                             </button>
                         </div>
                         <textarea
@@ -2126,7 +2126,7 @@ export default function Inventory() {
                             </div>
                             <div>
                                 <label className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 block">
-                                    Quantit� (stock dispo : {transferProduct.quantity})
+                                    Quantité (stock dispo : {transferProduct.quantity})
                                 </label>
                                 <input
                                     type="number"
@@ -2202,8 +2202,8 @@ export default function Inventory() {
                                                     {tr.from_store_name} ? {tr.to_store_name}
                                                 </p>
                                                 <p className="text-[10px] text-slate-600 mt-1">
-                                                    {new Date(tr.created_at).toLocaleString()} � {tr.transferred_by}
-                                                    {tr.note ? ` � ${tr.note}` : ''}
+                                                    {new Date(tr.created_at).toLocaleString()} · {tr.transferred_by}
+                                                    {tr.note ? ` · ${tr.note}` : ''}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">

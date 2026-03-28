@@ -439,7 +439,7 @@ export default function Sidebar({
             )}
 
             <aside
-                className={`w-64 h-screen theme-sidebar border-r flex flex-col p-4 fixed left-0 top-0 z-50 transition-all duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                className={`w-64 h-screen theme-sidebar border-r flex flex-col p-4 shrink-0 transition-all duration-300 fixed left-0 top-0 z-50 md:sticky md:top-0 md:z-auto ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
                     }`}
             >
                 {/* Logo + Theme Toggle */}
