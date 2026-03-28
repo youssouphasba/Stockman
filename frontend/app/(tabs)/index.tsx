@@ -1,4 +1,4 @@
-import {
+﻿import {
   View,
   Text,
   StyleSheet,
@@ -216,7 +216,7 @@ export default function DashboardScreen() {
     } catch { /* ignore */ }
   }, []);
 
-  // Initial load on mount (safety net — useFocusEffect may not fire reliably on web)
+  // Initial load on mount (safety net â€” useFocusEffect may not fire reliably on web)
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -354,7 +354,7 @@ export default function DashboardScreen() {
       </style></head><body>
         <div class="header">
           <h1>${storeName}</h1>
-          <p>${t('dashboard.daily_report')} — ${date}</p>
+          <p>${t('dashboard.daily_report')} â€” ${date}</p>
         </div>
         <div class="metrics">
           <div class="metric">
@@ -370,10 +370,10 @@ export default function DashboardScreen() {
         </div>
         <h3 style="font-size:14px;margin-bottom:8px;">${t('dashboard.top_products_today')}</h3>
         <table>
-          <thead><tr><th>#</th><th>${t('common.name') || 'Produit'}</th><th style="text-align:right;">${t('dashboard.units') || 'Qté'}</th></tr></thead>
+          <thead><tr><th>#</th><th>${t('common.name') || 'Produit'}</th><th style="text-align:right;">${t('dashboard.units') || 'QtÃ©'}</th></tr></thead>
           <tbody>${topProds}</tbody>
         </table>
-        <div class="footer">Généré par Stockman — ${new Date().toLocaleString('fr-FR')}</div>
+        <div class="footer">GÃ©nÃ©rÃ© par Stockman â€” ${new Date().toLocaleString('fr-FR')}</div>
       </body></html>`;
 
     try {
@@ -496,7 +496,7 @@ export default function DashboardScreen() {
     if (!inventoryTaskToCount) return;
     const parsedQuantity = Number.parseInt(inventoryActualQty, 10);
     if (Number.isNaN(parsedQuantity) || parsedQuantity < 0) {
-      Alert.alert(t('common.error'), t('dashboard.invalid_quantity', { defaultValue: 'Saisissez une quantité valide.' }));
+      Alert.alert(t('common.error'), t('dashboard.invalid_quantity', { defaultValue: 'Saisissez une quantitÃ© valide.' }));
       return;
     }
 
@@ -668,7 +668,7 @@ export default function DashboardScreen() {
 
         {renderKPIs()}
 
-        {/* Rapport du Jour — Enterprise */}
+        {/* Rapport du Jour â€” Enterprise */}
         {(user?.plan === 'enterprise' || hasPermission('accounting', 'read')) && data && (
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -737,7 +737,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Profitability Analysis — NEW */}
+        {/* Profitability Analysis â€” NEW */}
         {userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboard.profitability_analysis')}</Text>
@@ -832,7 +832,7 @@ export default function DashboardScreen() {
           <ForecastCard />
         )}
 
-        {/* Alertes récentes */}
+        {/* Alertes rÃ©centes */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboard.recent_alerts')}</Text>
@@ -867,7 +867,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Ventes Récentes */}
+        {/* Ventes RÃ©centes */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_sales) && data?.recent_sales && data.recent_sales.length > 0 && (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
@@ -938,7 +938,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Répartition par Catégorie */}
+        {/* RÃ©partition par CatÃ©gorie */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_category_chart) && stats?.stock_by_category && stats.stock_by_category.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboard.category_distribution')}</Text>
@@ -997,7 +997,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Réapprovisionnement Intelligent */}
+        {/* RÃ©approvisionnement Intelligent */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_reorder) && stats?.reorder_recommendations && stats.reorder_recommendations.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -1070,7 +1070,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Alertes Péremption */}
+        {/* Alertes PÃ©remption */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_expiry_alerts) && stats?.expiry_alerts && stats.expiry_alerts.length > 0 && (
           <View style={[styles.section, { marginTop: Spacing.md }]}>
             <View style={styles.sectionHeader}>
@@ -1246,7 +1246,7 @@ export default function DashboardScreen() {
                             {mov.product_name || t('common.unknown_product')}
                           </Text>
                           <Text style={styles.movementQty}>
-                            {mov.type === 'in' ? '+' : '-'}{mov.quantity} ({mov.previous_quantity} → {mov.new_quantity})
+                            {mov.type === 'in' ? '+' : '-'}{mov.quantity} ({mov.previous_quantity} â†’ {mov.new_quantity})
                           </Text>
                           {mov.reason ? <Text style={styles.movementReason}>{t(mov.reason)}</Text> : null}
                           <Text style={styles.movementDate}>{formatDate(mov.created_at)}</Text>
@@ -1480,7 +1480,7 @@ export default function DashboardScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>}}
+        </Modal>}
 
       <DashboardSettingsModal
         visible={showDashboardSettings}
@@ -1687,4 +1687,5 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   reorderMeta: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
   reorderSuggest: { fontSize: 14, color: colors.primaryLight, fontWeight: '600', marginBottom: Spacing.md },
 });
+
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -56,7 +56,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
     };
 
     return (
-        {visible && <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.overlay}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -134,7 +134,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                     </View>
                 </KeyboardAvoidingView>
             </View>
-        </Modal>}
+        </Modal>
     );
 }
 

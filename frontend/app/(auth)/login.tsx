@@ -277,7 +277,7 @@ export default function LoginScreen() {
         return;
       }
 
-      const credential = auth.AppleAuthProvider.credential(
+      const credential = (auth as any).AppleAuthProvider.credential(
         appleCredential.identityToken,
         rawNonce,
       );

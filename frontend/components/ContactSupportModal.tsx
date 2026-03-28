@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { support, SupportTicket } from '../services/api';
@@ -93,7 +93,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
     // Ticket detail view
     if (selectedTicket) {
         return (
-            {visible && <Modal visible={visible} animationType="slide" transparent>
+            <Modal visible={visible} animationType="slide" transparent>
                 <View style={styles.overlay}>
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -164,7 +164,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                         )}
                     </KeyboardAvoidingView>
                 </View>
-            </Modal>}
+            </Modal>
         );
     }
 

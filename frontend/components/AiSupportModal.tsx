@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -242,7 +242,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     };
 
     return (
-        {visible && <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>
@@ -326,7 +326,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                     </KeyboardAvoidingView>
                 </View>
             </View>
-        </Modal>}
+        </Modal>
     );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
@@ -55,7 +55,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
     };
 
     return (
-        {visible && <Modal visible={visible} animationType="fade" transparent>
+        <Modal visible={visible} animationType="fade" transparent>
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.bgMid, borderColor: colors.glassBorder }]}>
                     <View style={styles.modalHeader}>
@@ -106,7 +106,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                     </TouchableOpacity>
                 </View>
             </View>
-        </Modal>}
+        </Modal>
     );
 }
 
