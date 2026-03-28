@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -90,6 +90,8 @@ export default function OrdersScreen() {
 
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [returnStatusFilter, setReturnStatusFilter] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(30);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -655,6 +657,41 @@ export default function OrdersScreen() {
     });
   }
 
+  const filteredOrders = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    if (!q) return orderList;
+    return orderList.filter((order) => {
+      const haystack = [
+        order.order_id,
+        order.supplier_name,
+        order.notes,
+        ...(order.items_preview || []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [orderList, orderSearch]);
+
+  const filteredReturns = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    return returnsList.filter((ret) => {
+      const matchesStatus = !returnStatusFilter || ret.status === returnStatusFilter;
+      const haystack = [
+        ret.return_id,
+        ret.supplier_name,
+        ret.notes,
+        ...(ret.items || []).map((item) => item.product_name),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      const matchesSearch = !q || haystack.includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [returnsList, orderSearch, returnStatusFilter]);
+
   function openRating(order: OrderFull) {
     if (!order.supplier_user_id) return;
     setRatingOrderId(order.order_id);
@@ -795,6 +832,34 @@ export default function OrdersScreen() {
             </TouchableOpacity>
           </View>
 
+          <View
+            style={[
+              styles.formInput,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: Spacing.md,
+                paddingVertical: 0,
+                height: 48,
+              },
+            ]}
+          >
+            <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+            <TextInput
+              style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
+              value={orderSearch}
+              onChangeText={setOrderSearch}
+              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
+              placeholderTextColor={colors.textMuted}
+            />
+            {orderSearch.length > 0 && (
+              <TouchableOpacity onPress={() => setOrderSearch('')}>
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
           {activeTab === 'orders' && (<>
             {/* Date Filter */}
             <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
@@ -854,11 +919,11 @@ export default function OrdersScreen() {
             )}
 
             {/* Supplier Summary Card */}
-            {supplierFilter && orderList.length > 0 && (
+            {supplierFilter && filteredOrders.length > 0 && (
               <View style={[styles.summaryCard, { backgroundColor: colors.primary + '10' }]}>
                 <View style={styles.summaryHeader}>
                   <View>
-                    <Text style={styles.summaryTitle}>{t('orders.summary_synthesis', { name: orderList[0].supplier_name })}</Text>
+                    <Text style={styles.summaryTitle}>{t('orders.summary_synthesis', { name: filteredOrders[0].supplier_name })}</Text>
                     <Text style={styles.summarySubtitle}>{t('orders.summary_desc')}</Text>
                   </View>
                   <TouchableOpacity
@@ -873,19 +938,19 @@ export default function OrdersScreen() {
                   <View style={styles.summaryStatItem}>
                     <Text style={styles.summaryStatLabel}>{t('orders.summary_volume')}</Text>
                     <Text style={[styles.summaryStatValue, { color: colors.primaryLight }]}>
-                      {formatCurrency(orderList.reduce((acc, o) => acc + o.total_amount, 0), user?.currency)}
+                      {formatCurrency(filteredOrders.reduce((acc, o) => acc + o.total_amount, 0), user?.currency)}
                     </Text>
                   </View>
                   <View style={styles.summaryStatDivider} />
                   <View style={styles.summaryStatItem}>
                     <Text style={styles.summaryStatLabel}>{t('orders.summary_orders')}</Text>
-                    <Text style={styles.summaryStatValue}>{orderList.length}</Text>
+                    <Text style={styles.summaryStatValue}>{filteredOrders.length}</Text>
                   </View>
                   <View style={styles.summaryStatDivider} />
                   <View style={styles.summaryStatItem}>
                     <Text style={styles.summaryStatLabel}>{t('orders.summary_last_act')}</Text>
                     <Text style={styles.summaryStatValue}>
-                      {new Date(Math.max(...orderList.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                      {new Date(Math.max(...filteredOrders.map(o => new Date(o.created_at).getTime()))).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                     </Text>
                   </View>
                 </View>
@@ -900,18 +965,20 @@ export default function OrdersScreen() {
               </View>
             )}
 
-            {orderList.length === 0 ? (
+            {filteredOrders.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="cart-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>{t('orders.no_orders')}</Text>
+                <Text style={styles.emptyTitle}>{orderSearch ? t('common.no_results', 'Aucun résultat') : t('orders.no_orders')}</Text>
                 <Text style={styles.emptyText}>
-                  {activeTab === 'orders'
+                  {orderSearch
+                    ? t('orders.no_orders_search_desc', 'Essayez un autre mot-clé ou supprimez un filtre.')
+                    : activeTab === 'orders'
                     ? t('orders.no_orders_desc')
                     : t('orders.no_orders_bulk_desc')}
                 </Text>
               </View>
             ) : (
-              orderList.map((order) => {
+              filteredOrders.map((order) => {
                 const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                 const canAdvance = !!NEXT_STATUS[order.status];
                 const canCancel = order.status === 'pending' || order.status === 'confirmed';
@@ -997,6 +1064,23 @@ export default function OrdersScreen() {
           {/* Returns Tab */}
           {activeTab === 'returns' && (
             <>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
+                {['all', 'pending', 'approved', 'completed', 'rejected'].map((status) => {
+                  const isActive = status === 'all' ? returnStatusFilter === null : returnStatusFilter === status;
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      style={[styles.filterChip, isActive && styles.filterChipActive]}
+                      onPress={() => setReturnStatusFilter(status === 'all' ? null : status)}
+                    >
+                      <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                        {status === 'all' ? t('common.all') : t(`orders.${status}`, status)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
               {/* Credit Notes Summary */}
               {creditNotesList.length > 0 && (
                 <View style={[styles.summaryCard, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}>
@@ -1019,14 +1103,14 @@ export default function OrdersScreen() {
 
               {returnsLoading ? (
                 <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.xl }} />
-              ) : returnsList.length === 0 ? (
+              ) : filteredReturns.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="return-down-back-outline" size={64} color={colors.textMuted} />
-                  <Text style={styles.emptyTitle}>{t('orders.no_returns')}</Text>
-                  <Text style={styles.emptyText}>{t('orders.no_returns_desc')}</Text>
+                  <Text style={styles.emptyTitle}>{orderSearch || returnStatusFilter ? t('common.no_results', 'Aucun résultat') : t('orders.no_returns')}</Text>
+                  <Text style={styles.emptyText}>{orderSearch || returnStatusFilter ? t('orders.no_returns_search_desc', 'Essayez un autre mot-clé ou changez le filtre de statut.') : t('orders.no_returns_desc')}</Text>
                 </View>
               ) : (
-                returnsList.map((ret) => {
+                filteredReturns.map((ret) => {
                   const statusMap: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
                     pending: { label: t('orders.pending'), color: colors.warning, icon: 'time-outline' },
                     approved: { label: t('orders.approved'), color: colors.info, icon: 'checkmark-outline' },

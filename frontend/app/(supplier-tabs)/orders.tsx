@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+﻿import React, { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -356,6 +356,11 @@ export default function SupplierOrdersScreen() {
                   <Text style={styles.orderDate}>
                     {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''}
                   </Text>
+                  {order.expected_delivery ? (
+                    <Text style={styles.orderExpectedDate}>
+                      {t('orders.expected_delivery')}: {new Date(order.expected_delivery).toLocaleDateString(i18n.language)}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
                   <Text style={[styles.statusText, { color }]}>
@@ -395,7 +400,7 @@ export default function SupplierOrdersScreen() {
         )}
         </>
         ) : (
-        /* ── INVOICES VIEW ── */
+        /* â”€â”€ INVOICES VIEW â”€â”€ */
         <>
           <View style={styles.headerRow}>
             <Text style={styles.pageTitle}>{t('supplier.invoice_title')}</Text>
@@ -479,27 +484,50 @@ export default function SupplierOrdersScreen() {
 
             {selectedOrder && (
               <ScrollView style={styles.modalScroll}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.client')}</Text>
-                  <Text style={styles.detailText}>{selectedOrder.shopkeeper_name}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) + '20', alignSelf: 'flex-start' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status) }]}>
-                      {getStatusLabel(selectedOrder.status)}
+                <View style={styles.deliveryInfoCard}>
+                  <Text style={styles.deliveryInfoTitle}>
+                    {t('supplier.delivery_information', { defaultValue: 'Informations de livraison' })}
+                  </Text>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.client')}</Text>
+                    <Text style={styles.deliveryInfoValue}>{selectedOrder.shopkeeper_name}</Text>
+                  </View>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) + '20', alignSelf: 'flex-start', marginTop: 6 }]}>
+                      <Text style={[styles.statusText, { color: getStatusColor(selectedOrder.status) }]}>
+                        {getStatusLabel(selectedOrder.status)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('common.date')}</Text>
+                    <Text style={styles.deliveryInfoValue}>
+                      {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString(i18n.language, {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                      } ) : '-'}
                     </Text>
                   </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('common.date')}</Text>
-                  <Text style={styles.detailText}>
-                    {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString(i18n.language, {
-                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                    }) : ''}
-                  </Text>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.expected_delivery')}</Text>
+                    <Text style={[styles.deliveryInfoValue, selectedOrder.expected_delivery ? styles.deliveryInfoHighlight : null]}>
+                      {selectedOrder.expected_delivery
+                        ? new Date(selectedOrder.expected_delivery).toLocaleDateString(i18n.language, {
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                          })
+                        : t('common.not_specified')}
+                    </Text>
+                  </View>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('orders.items')}</Text>
+                    <Text style={styles.deliveryInfoValue}>{selectedOrder.items_count || selectedOrder.items?.length || 0}</Text>
+                  </View>
+                  <View style={styles.deliveryInfoItem}>
+                    <Text style={styles.detailSectionTitle}>{t('common.total')}</Text>
+                    <Text style={[styles.deliveryInfoValue, styles.deliveryInfoHighlight]}>
+                      {formatNumber(selectedOrder.total_amount)} {t('common.currency_default')}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.detailSection}>
@@ -598,7 +626,7 @@ export default function SupplierOrdersScreen() {
                         {order.shopkeeper_name}
                       </Text>
                       <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
-                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
+                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} â€” {getStatusLabel(order.status)}
                       </Text>
                     </View>
                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
@@ -880,6 +908,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  orderExpectedDate: {
+    fontSize: FontSize.xs,
+    color: colors.warning,
+    marginTop: 4,
+    fontWeight: '600',
+  },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -973,6 +1007,36 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalScroll: {
     padding: Spacing.md,
   },
+  deliveryInfoCard: {
+    backgroundColor: colors.glass,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  deliveryInfoTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: Spacing.xs,
+  },
+  deliveryInfoItem: {
+    backgroundColor: colors.inputBg || colors.glass,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  deliveryInfoValue: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 6,
+  },
+  deliveryInfoHighlight: {
+    color: colors.warning,
+  },
   detailSection: {
     marginBottom: Spacing.md,
   },
@@ -1050,3 +1114,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: FontSize.md,
   },
 });
+

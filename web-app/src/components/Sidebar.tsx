@@ -33,11 +33,15 @@ import {
     Bell,
     HelpCircle,
     MapPin,
+    Sun,
+    Moon,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
 import type { UserPermissions } from '../services/api';
 import { stores as storesApi, type Store as StoreRecord } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SidebarProps {
     activeTab: string;
@@ -104,6 +108,7 @@ export default function Sidebar({
     modules = {},
 }: SidebarProps) {
     const { t } = useTranslation();
+    const { isDark, toggleTheme } = useTheme();
 
     const isRestaurant = features?.is_restaurant || ['restaurant', 'traiteur'].includes(features?.sector || '');
     const isProductionOnly = features?.has_production && !isRestaurant;
@@ -434,18 +439,29 @@ export default function Sidebar({
             )}
 
             <aside
-                className={`w-64 h-screen bg-[#0F172A] border-r border-white/10 flex flex-col p-4 fixed left-0 top-0 z-50 transition-transform duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                className={`w-64 h-screen theme-sidebar border-r flex flex-col p-4 fixed left-0 top-0 z-50 transition-all duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
                     }`}
             >
-                {/* Logo */}
-                <div className="flex items-center gap-3 mb-6 px-1">
-                    <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-                        <Package className="text-white" size={18} />
-                    </div>
+                {/* Logo + Theme Toggle */}
+                <div className="flex items-center gap-2.5 mb-6 px-1">
+                    <Image
+                        src="/icon.png"
+                        alt="Stockman"
+                        width={36}
+                        height={36}
+                        className="rounded-lg shrink-0"
+                    />
                     <h2 className="text-xl text-gradient tracking-tight flex-1">Stockman</h2>
                     <button
+                        onClick={toggleTheme}
+                        className="p-1.5 rounded-lg hover:bg-white/5 transition-colors theme-text-muted"
+                        title={isDark ? 'Mode clair' : 'Mode sombre'}
+                    >
+                        {isDark ? <Sun size={16} /> : <Moon size={16} />}
+                    </button>
+                    <button
                         onClick={onMobileClose}
-                        className="md:hidden text-slate-400 hover:text-white transition-colors p-1"
+                        className="md:hidden theme-text-muted hover:text-foreground transition-colors p-1"
                     >
                         <X size={18} />
                     </button>

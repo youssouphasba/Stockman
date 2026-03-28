@@ -1457,8 +1457,7 @@ export default function DashboardScreen() {
       )}
 
       {/* Notifications Modal */}
-      {showNotifModal && (
-        {showNotifModal && <Modal visible={showNotifModal} animationType="fade" transparent>
+      {showNotifModal && <Modal visible={showNotifModal} animationType="fade" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { height: '60%', marginTop: 'auto' }]}>
               <View style={styles.modalHeader}>
@@ -1481,8 +1480,7 @@ export default function DashboardScreen() {
               </ScrollView>
             </View>
           </View>
-        </Modal>}
-      )}
+        </Modal>}}
 
       <DashboardSettingsModal
         visible={showDashboardSettings}

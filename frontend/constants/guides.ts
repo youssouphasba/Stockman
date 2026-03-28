@@ -57,7 +57,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "pricetag-outline",
                 title: "Trouver rapidement un article",
-                description: "Utilisez la recherche par nom, SKU ou code-barres puis complétez avec les catégories. Cette méthode est la plus rapide pour retrouver un article précis avant une modification, une vente ou un contrôle."
+                description: "Utilisez la recherche par nom, SKU ou code-barres, puis complétez avec les catégories. Cette méthode est la plus rapide pour retrouver un article précis avant une correction, une vente ou un contrôle."
             },
             {
                 icon: "add-circle-outline",
@@ -67,7 +67,12 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "create-outline",
                 title: "Créer ou modifier une fiche produit",
-                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, le fournisseur, la catégorie et les informations utiles au suivi. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
+                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
+            },
+            {
+                icon: "link-outline",
+                title: "Préparer l'approvisionnement",
+                description: "Quand un produit doit être réapprovisionné, cherchez d'abord le bon fournisseur ou gérez les fournisseurs déjà liés. Cette étape permet ensuite de commander plus vite et d'améliorer les suggestions intelligentes."
             },
             {
                 icon: "swap-vertical-outline",
@@ -77,7 +82,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cloud-upload-outline",
                 title: "Importer plusieurs produits d'un coup",
-                description: "L'import fichier sert à intégrer un CSV ou un tableur structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Vérifiez ensuite les données importées avant de poursuivre."
+                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Vérifiez toujours le résultat avant de valider la création."
             },
             {
                 icon: "scan-outline",
@@ -95,19 +100,9 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Si cet écran est disponible sur votre compte, vous pouvez rattacher chaque produit à un emplacement précis. Cela aide à ranger, retrouver, compter et transférer plus facilement vos articles."
             },
             {
-                icon: "qr-code-outline",
-                title: "Étiquettes et identification",
-                description: "Le bouton d'étiquette génère une fiche imprimable avec QR code ou code d'identification. Utilisez-la pour vos rayons, vos bacs ou vos contrôles internes."
-            },
-            {
-                icon: "settings-outline",
-                title: "Catégories et structure du catalogue",
-                description: "Gérez vos catégories pour garder un catalogue clair et faciliter la recherche, l'analyse et les imports. Une bonne structure de catégories rend aussi les exports plus utiles."
-            },
-            {
                 icon: "download-outline",
                 title: "Exporter pour vérifier ou partager",
-                description: "Utilisez l'export CSV ou tableur pour contrôler votre catalogue, préparer un partage ou garder une copie de travail. Revenez toujours dans l'application pour vérifier que les dernières modifications ont bien été prises en compte."
+                description: "Utilisez l'export pour contrôler votre catalogue, préparer un partage ou garder une copie de travail. Revenez toujours dans l'application pour vérifier que les dernières modifications ont bien été prises en compte."
             }
         ]
     },
@@ -281,33 +276,33 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             {
                 icon: "people-outline",
-                title: "Annuaire Interactif",
-                description: "Appelez ou envoyez un mail à vos fournisseurs en un clic. Chaque fiche contient les produits liés, le journal et l'historique des commandes."
-            },
-            {
-                icon: "cart-outline",
-                title: "Commandes & Réappro",
-                description: "Créez vos bons de commande. Depuis les suggestions IA, vous pouvez associer un fournisseur au produit avant d'envoyer la commande. Validez la réception (complète ou partielle) pour incrémenter votre stock automatiquement."
-            },
-            {
-                icon: "link-outline",
-                title: "Produits & Prix",
-                description: "Liez des produits à un fournisseur pour suivre l'évolution des prix d'achat et faciliter les commandes futures."
+                title: "Annuaire interactif",
+                description: "Appelez, écrivez ou ouvrez rapidement la fiche d'un fournisseur. Chaque fiche regroupe les produits liés, le journal, les factures et l'historique des commandes."
             },
             {
                 icon: "globe-outline",
-                title: "Marketplace Pro",
-                description: "Accédez à un réseau de fournisseurs vérifiés. Lors d'une commande marketplace, le fournisseur est ajouté automatiquement dans votre liste locale pour un suivi durable."
+                title: "Marketplace et filtres",
+                description: "Recherchez un fournisseur par produit, ville, catégorie ou prix. Les filtres servent à trouver un vendeur plus pertinent avant de commander ou de lier durablement un produit."
             },
             {
-                icon: "chatbubble-outline",
-                title: "Chat & Invitations",
-                description: "Discutez avec vos fournisseurs directement dans l'app. Invitez un nouveau fournisseur à rejoindre la plateforme."
+                icon: "link-outline",
+                title: "Produits liés et fournisseur principal",
+                description: "Liez un ou plusieurs fournisseurs à un produit pour sécuriser votre approvisionnement. Définissez ensuite un principal pour faciliter le réapprovisionnement et les commandes futures."
+            },
+            {
+                icon: "cart-outline",
+                title: "Commandes et réception",
+                description: "Créez des bons de commande, relisez les lignes, puis confirmez la réception complète ou partielle quand la livraison arrive. Le stock est mis à jour selon l'action effectuée."
+            },
+            {
+                icon: "sparkles-outline",
+                title: "Réapprovisionnement intelligent",
+                description: "Les suggestions intelligentes vous aident à voir quel produit commander et auprès de quel fournisseur agir. Elles sont plus fiables quand vos produits sont bien liés et que vos ventes sont correctement enregistrées."
             },
             {
                 icon: "document-text-outline",
-                title: "Factures Fournisseur",
-                description: "Scannez ou créez des factures fournisseur depuis la fiche. Gardez tout l'historique d'achat au même endroit."
+                title: "Factures fournisseur",
+                description: "Ajoutez une facture liée au fournisseur ou à une commande pour garder un historique d'achat plus propre et retrouver plus facilement ce qui a été reçu ou payé."
             }
         ]
     },
@@ -315,34 +310,34 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Commandes Fournisseurs",
         steps: [
             {
+                icon: "search-outline",
+                title: "Recherche et filtres",
+                description: "Recherchez une commande par référence, fournisseur, note ou produit. Utilisez aussi les filtres de statut, de période et de fournisseur pour retrouver plus vite ce que vous cherchez."
+            },
+            {
                 icon: "add-circle",
                 title: "Nouvelle Commande",
-                description: "Créez une commande en choisissant le fournisseur, puis ajoutez les articles avec quantités et prix. Ajoutez des notes si besoin."
+                description: "Créez une commande en choisissant le fournisseur, puis ajoutez les articles avec quantités et prix. Relisez la date de livraison prévue et les notes avant de valider."
             },
             {
                 icon: "time",
-                title: "Suivi par Statut",
-                description: "Filtrez vos commandes par statut : En attente, Confirmée, Expédiée, Livrée, Annulée. Chaque statut a son badge couleur."
+                title: "Suivi par statut",
+                description: "Le statut vous dit où en est la commande : en attente, confirmée, expédiée, livrée ou annulée. Utilisez-le pour relancer, réceptionner ou traiter un retard."
             },
             {
                 icon: "checkbox",
-                title: "Réception & Stock",
-                description: "Validez la réception complète ou partielle (quantités reçues par ligne). Le stock est automatiquement incrémenté."
+                title: "Réception et stock",
+                description: "Validez la réception complète ou partielle selon ce qui a réellement été livré. Le stock est mis à jour à partir des quantités reçues."
             },
             {
                 icon: "arrow-undo-outline",
-                title: "Retours de Marchandise",
-                description: "Après livraison, sélectionnez les articles à retourner avec un motif. Le stock est ajusté en conséquence."
-            },
-            {
-                icon: "star-outline",
-                title: "Noter le Fournisseur",
-                description: "Après livraison, attribuez une note (1 à 5 étoiles) et un commentaire. Les notes sont visibles dans la marketplace."
+                title: "Retours et avoirs",
+                description: "Basculez sur l'onglet de retours pour renvoyer des marchandises, suivre le statut du retour et consulter l'avoir généré après finalisation."
             },
             {
                 icon: "camera-outline",
-                title: "Scanner une Facture",
-                description: "Capturez la facture papier du fournisseur avec la caméra pour l'archiver directement dans la commande."
+                title: "Facture fournisseur",
+                description: "Importez une image de facture depuis la caméra ou la galerie pour l'archiver et préremplir certaines informations utiles au suivi de commande."
             }
         ]
     },

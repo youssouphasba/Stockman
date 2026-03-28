@@ -58,11 +58,31 @@ export default function Home() {
   });
 
   const setActiveTab = useCallback((tab: string) => {
-    setActiveTabRaw(tab);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('stockman_active_tab', tab);
-      window.history.replaceState(null, '', `#${tab}`);
+    setActiveTabRaw((prev) => {
+      if (typeof window !== 'undefined' && tab !== prev) {
+        localStorage.setItem('stockman_active_tab', tab);
+        window.history.pushState({ tab }, '', `#${tab}`);
+      }
+      return tab;
+    });
+  }, []);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        setActiveTabRaw(hash);
+        localStorage.setItem('stockman_active_tab', hash);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    // Seed current state so the first back doesn't leave the SPA
+    if (typeof window !== 'undefined' && !window.history.state?.tab) {
+      const currentTab = window.location.hash.replace('#', '') || 'dashboard';
+      window.history.replaceState({ tab: currentTab }, '', `#${currentTab}`);
     }
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -798,10 +818,8 @@ export default function Home() {
                   <Menu size={20} />
                 </button>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                    <Package className="text-white" size={14} />
-                  </div>
-                  <span className="text-white font-bold text-gradient">Stockman</span>
+                  <img src="/icon.png" alt="Stockman" className="w-7 h-7 rounded-lg" />
+                  <span className="font-bold text-gradient">Stockman</span>
                 </div>
               </div>
 
@@ -900,9 +918,7 @@ export default function Home() {
           {/* Left Side: Brand & Welcome */}
           <div className="flex flex-col gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <Package className="text-white" size={28} />
-              </div>
+              <img src="/icon.png" alt="Stockman" className="w-12 h-12 rounded-xl shadow-lg shadow-primary/20" />
               <h1 className="text-5xl text-gradient tracking-tight">Stockman</h1>
             </div>
 
