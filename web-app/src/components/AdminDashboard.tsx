@@ -5,7 +5,7 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package,
-    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain
 } from 'lucide-react';
 import { admin as adminApi } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
@@ -145,7 +145,7 @@ function formatRemainingDuration(seconds?: number | null) {
 }
 
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads' | 'legal'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads' | 'legal' | 'ai_usage'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -210,6 +210,17 @@ export default function AdminDashboard() {
     const [togglingUser, setTogglingUser] = useState<string | null>(null);
     const [deletingUser, setDeletingUser] = useState<string | null>(null);
     const [confirmDeleteUser, setConfirmDeleteUser] = useState<{ user_id: string; email: string; name: string } | null>(null);
+    const [aiUsageStats, setAiUsageStats] = useState<any>(null);
+    const [aiUsageLoading, setAiUsageLoading] = useState(false);
+
+    const loadAiUsage = async () => {
+        setAiUsageLoading(true);
+        try {
+            const data = await adminApi.getAiUsageStats(30);
+            setAiUsageStats(data);
+        } catch { /* ignore */ }
+        finally { setAiUsageLoading(false); }
+    };
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
@@ -731,6 +742,7 @@ export default function AdminDashboard() {
         { id: 'broadcast', icon: Bell, label: 'Broadcast' },
         { id: 'legal', icon: Newspaper, label: 'L?gal' },
         { id: 'leads', icon: Mail, label: 'Leads' },
+        { id: 'ai_usage', icon: Brain, label: 'IA & Usage' },
     ];
 
     return (
@@ -803,6 +815,7 @@ export default function AdminDashboard() {
                             setLeadsLoading(true);
                             adminApi.getLeads().then(r => { setLeadContacts(r.contacts || []); setLeadSubscribers(r.subscribers || []); }).catch(() => {}).finally(() => setLeadsLoading(false));
                         }
+                        else if (activeSection === 'ai_usage') loadAiUsage();
                         else loadInitialData();
                     }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
@@ -2577,6 +2590,209 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* -- AI USAGE -- */}
+            {activeSection === 'ai_usage' && (
+                <div className="space-y-8">
+                    {!aiUsageStats && !aiUsageLoading && (
+                        <div className="text-center py-20">
+                            <Brain size={48} className="mx-auto mb-4 text-slate-600" />
+                            <p className="text-slate-400 mb-4">Cliquez pour charger les statistiques IA</p>
+                            <button onClick={loadAiUsage} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">
+                                Charger
+                            </button>
+                        </div>
+                    )}
+                    {aiUsageLoading && (
+                        <div className="text-center py-20 text-slate-500">Chargement...</div>
+                    )}
+                    {aiUsageStats && !aiUsageLoading && (() => {
+                        const s = aiUsageStats;
+                        return (
+                            <>
+                                {/* KPIs */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <StatCard label="Appels totaux" value={s.total_calls.toLocaleString('fr-FR')} icon={Activity} color="bg-blue-500" />
+                                    <StatCard label="Cout estime ($)" value={`$${s.total_cost_usd.toFixed(2)}`} icon={Wallet} color="bg-amber-500" />
+                                    <StatCard label="Taux d'echec" value={`${s.failure_rate}%`} icon={AlertTriangle} color={s.failure_rate > 10 ? 'bg-red-500' : 'bg-emerald-500'} />
+                                    <StatCard label="Latence moy." value={`${Math.round(s.avg_latency_ms)}ms`} icon={Clock} color="bg-purple-500" />
+                                </div>
+
+                                {/* Daily chart (simple bar representation) */}
+                                <div className="glass-card p-6">
+                                    <h4 className="text-sm font-black text-white uppercase tracking-widest mb-4">Usage quotidien (30j)</h4>
+                                    <div className="flex items-end gap-1 h-32">
+                                        {(s.daily || []).slice(-30).map((d: any, i: number) => {
+                                            const maxCalls = Math.max(...(s.daily || []).map((dd: any) => dd.calls), 1);
+                                            const h = Math.max((d.calls / maxCalls) * 100, 2);
+                                            return (
+                                                <div key={i} className="flex-1 group relative">
+                                                    <div
+                                                        className="w-full rounded-t bg-primary/60 hover:bg-primary transition-all"
+                                                        style={{ height: `${h}%` }}
+                                                        title={`${d.date}: ${d.calls} appels, $${d.cost_usd.toFixed(3)}`}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="flex justify-between mt-2 text-[10px] text-slate-500">
+                                        <span>{s.daily?.[0]?.date || ''}</span>
+                                        <span>{s.daily?.[s.daily.length - 1]?.date || ''}</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {/* By feature */}
+                                    <div className="glass-card overflow-hidden">
+                                        <div className="p-5 border-b border-white/5 bg-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <Brain size={18} className="text-purple-400" />
+                                                <h4 className="text-sm font-black text-white uppercase tracking-widest">Par feature</h4>
+                                            </div>
+                                        </div>
+                                        <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
+                                            {(s.by_feature || []).map((f: any) => (
+                                                <div key={f.feature} className="p-4 flex items-center justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-white truncate">{f.label}</p>
+                                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">{f.kind} · {f.feature}</p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-sm font-black text-white">{f.calls}</p>
+                                                        <p className="text-[10px] text-slate-500">${f.cost_usd.toFixed(3)}</p>
+                                                    </div>
+                                                    {f.failures > 0 && (
+                                                        <span className="text-[10px] font-black text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">{f.failures} err</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {(s.by_feature || []).length === 0 && (
+                                                <div className="p-8 text-center text-slate-600 text-sm">Aucune donnee</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* By plan */}
+                                    <div className="space-y-6">
+                                        <div className="glass-card overflow-hidden">
+                                            <div className="p-5 border-b border-white/5 bg-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <Crown size={18} className="text-amber-400" />
+                                                    <h4 className="text-sm font-black text-white uppercase tracking-widest">Par plan</h4>
+                                                </div>
+                                            </div>
+                                            <div className="divide-y divide-white/5">
+                                                {(s.by_plan || []).map((p: any) => (
+                                                    <div key={p.plan} className="p-4 flex items-center justify-between">
+                                                        <span className="text-sm font-bold text-white capitalize">{p.plan}</span>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-white">{p.calls} appels</p>
+                                                            <p className="text-[10px] text-slate-500">${p.cost_usd.toFixed(3)}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Quota blocked */}
+                                        {(s.quota_blocked || []).length > 0 && (
+                                            <div className="glass-card overflow-hidden">
+                                                <div className="p-5 border-b border-white/5 bg-red-500/5">
+                                                    <div className="flex items-center gap-3">
+                                                        <AlertCircle size={18} className="text-red-400" />
+                                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Quotas bloques</h4>
+                                                    </div>
+                                                </div>
+                                                <div className="divide-y divide-white/5">
+                                                    {(s.quota_blocked || []).map((q: any, i: number) => (
+                                                        <div key={i} className="p-4 flex items-center justify-between">
+                                                            <div>
+                                                                <p className="text-sm font-bold text-white">{q.feature}</p>
+                                                                <p className="text-[10px] text-slate-500 uppercase">{q.plan}</p>
+                                                            </div>
+                                                            <span className="text-sm font-black text-red-400">{q.count}x</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Top accounts */}
+                                <div className="glass-card overflow-hidden">
+                                    <div className="p-5 border-b border-white/5 bg-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <TrendingUp size={18} className="text-emerald-400" />
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Top comptes consommateurs</h4>
+                                        </div>
+                                    </div>
+                                    <div className="divide-y divide-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        {(s.top_accounts || []).map((a: any, i: number) => (
+                                            <div key={a.owner_id} className="p-4 flex items-center gap-4">
+                                                <span className="text-xs font-black text-slate-500 w-6 text-right">#{i + 1}</span>
+                                                <p className="text-sm font-bold text-white flex-1 truncate">{a.owner_id}</p>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-sm font-black text-white">{a.calls} appels</p>
+                                                    <p className="text-[10px] text-slate-500">${a.cost_usd.toFixed(3)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Feature registry */}
+                                <div className="glass-card overflow-hidden">
+                                    <div className="p-5 border-b border-white/5 bg-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <Zap size={18} className="text-sky-400" />
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Registre des features IA</h4>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="text-left text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                                    <th className="p-4">Feature</th>
+                                                    <th className="p-4">Type</th>
+                                                    <th className="p-4">Periode</th>
+                                                    <th className="p-4">Plan min</th>
+                                                    <th className="p-4">Starter</th>
+                                                    <th className="p-4">Pro</th>
+                                                    <th className="p-4">Enterprise</th>
+                                                    <th className="p-4">Cache</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {Object.entries(s.feature_registry || {}).map(([key, f]: [string, any]) => (
+                                                    <tr key={key} className="hover:bg-white/5 transition-all">
+                                                        <td className="p-4">
+                                                            <p className="font-bold text-white">{f.label}</p>
+                                                            <p className="text-[10px] text-slate-500">{key}</p>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${f.kind === 'algo' ? 'bg-emerald-500/10 text-emerald-400' : f.kind === 'hybrid' ? 'bg-amber-500/10 text-amber-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                                                                {f.kind}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4 text-slate-400">{f.period}</td>
+                                                        <td className="p-4 text-slate-400">{f.min_plan || 'starter'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits?.starter ?? '—'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits?.pro ?? '—'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits?.enterprise ?? '—'}</td>
+                                                        <td className="p-4 text-slate-400">{f.cache_ttl_s ? `${Math.round(f.cache_ttl_s / 3600)}h` : '—'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>

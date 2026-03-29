@@ -2135,7 +2135,7 @@ export const ai = {
     support: (message: string, history: any[], language: string = 'fr') =>
         request<{ response: string }>('/ai/support', {
             method: 'POST',
-            body: { message, history, language },
+            body: { message, history, language, platform: 'web' },
         }),
     plAnalysis: (lang: string = 'fr', days: number = 30) =>
         request<{ analysis: string; kpis: any }>(`/ai/pl-analysis?lang=${lang}&days=${days}`),
@@ -2393,6 +2393,12 @@ export const admin = {
     updateCGU: (content: string) => request<{ message: string }>('/admin/cgu', { method: 'POST', body: { content } }),
     updatePrivacy: (content: string) => request<{ message: string }>('/admin/privacy', { method: 'POST', body: { content } }),
     getLeads: () => request<{ contacts: any[]; subscribers: any[] }>('/public/leads'),
+    // AI Usage
+    getAiUsageStats: (days = 30) => request<any>(`/admin/ai-usage-stats?days=${days}`),
+    getAiUsageDetail: (params?: { days?: number; feature?: string; plan?: string; owner_id?: string; skip?: number; limit?: number }) => {
+        const query = toQueryString(params as Record<string, unknown> | undefined);
+        return request<any>(`/admin/ai-usage-detail?${query}`);
+    },
 };
 
 // ── Chat / Messagerie ────────────────────────────────────────────────────────
