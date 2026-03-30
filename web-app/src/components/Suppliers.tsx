@@ -105,6 +105,14 @@ export default function Suppliers() {
     const [supplierDuplicates, setSupplierDuplicates] = useState<any>(null);
     const [showSupplierDups, setShowSupplierDups] = useState(false);
 
+    // Vague 3: Supplier ratings, optimal order day, auto-draft orders
+    const [supplierRatings, setSupplierRatings] = useState<Record<string, any>>({});
+    const [selectedSupplierRating, setSelectedSupplierRating] = useState<any>(null);
+    const [selectedOptimalDay, setSelectedOptimalDay] = useState<any>(null);
+    const [draftOrders, setDraftOrders] = useState<any>(null);
+    const [draftOrdersLoading, setDraftOrdersLoading] = useState(false);
+    const [showDraftOrders, setShowDraftOrders] = useState(false);
+
     // UI States
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
@@ -268,6 +276,24 @@ export default function Suppliers() {
             if (res?.total_found > 0) setSupplierDuplicates(res);
         }).catch(() => {});
     }, []);
+
+    // Vague 3: load supplier ratings in background
+    useEffect(() => {
+        if (manualSuppliers.length === 0) return;
+        const loadRatings = async () => {
+            const results = await Promise.allSettled(
+                manualSuppliers.map(s => aiApi.supplierRating(s.supplier_id))
+            );
+            const ratingsMap: Record<string, any> = {};
+            results.forEach((r, i) => {
+                if (r.status === 'fulfilled' && r.value?.overall_score != null) {
+                    ratingsMap[manualSuppliers[i].supplier_id] = r.value;
+                }
+            });
+            setSupplierRatings(ratingsMap);
+        };
+        loadRatings();
+    }, [manualSuppliers]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -609,6 +635,8 @@ export default function Suppliers() {
         setSupplierOrderHistory([]);
         setSupplierPriceHistory([]);
         setMarketplaceSupplierDetail(null);
+        setSelectedSupplierRating(null);
+        setSelectedOptimalDay(null);
         setInvoiceForm({
             invoice_number: '',
             amount: '',
@@ -634,6 +662,14 @@ export default function Suppliers() {
                 setSupplierInvoices(Array.isArray(invoices) ? invoices : []);
                 setSupplierLogs(Array.isArray(logs) ? logs : []);
                 setSupplierPriceHistory(Array.isArray(priceHistory) ? priceHistory : []);
+                // Vague 3: load AI rating + optimal order day in background
+                Promise.allSettled([
+                    aiApi.supplierRating(normalizedSupplier.supplier_id),
+                    aiApi.optimalOrderDay(normalizedSupplier.supplier_id),
+                ]).then(([ratingRes, dayRes]) => {
+                    if (ratingRes.status === 'fulfilled') setSelectedSupplierRating(ratingRes.value);
+                    if (dayRes.status === 'fulfilled') setSelectedOptimalDay(dayRes.value);
+                });
             } else if (normalizedSupplier.supplier_user_id) {
                 const detail = await marketplaceApi.getSupplier(normalizedSupplier.supplier_user_id);
                 setMarketplaceSupplierDetail(detail);
@@ -1318,6 +1354,23 @@ export default function Suppliers() {
                             Nouveau Fournisseur
                         </button>
                     )}
+                    {activeTab === 'orders' && ordersView === 'orders' && (
+                        <button
+                            onClick={async () => {
+                                setDraftOrdersLoading(true);
+                                setShowDraftOrders(true);
+                                try {
+                                    const res = await aiApi.autoDraftOrders(14);
+                                    setDraftOrders(res);
+                                } catch { setDraftOrders(null); }
+                                finally { setDraftOrdersLoading(false); }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-bold hover:bg-violet-500/20 transition-all"
+                        >
+                            <Zap size={16} />
+                            {t('suppliers.auto_orders', 'Commandes auto')}
+                        </button>
+                    )}
                     {activeTab === 'orders' && (
                         <button
                             onClick={() => {
@@ -1495,6 +1548,21 @@ export default function Suppliers() {
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Vague 3: AI Rating badge */}
+                                        {supplierRatings[s.supplier_id] && (
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black ${
+                                                    supplierRatings[s.supplier_id].overall_score >= 70 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                                    supplierRatings[s.supplier_id].overall_score >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                    'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                                }`}>
+                                                    <StarIcon size={12} />
+                                                    {supplierRatings[s.supplier_id].overall_score}/100
+                                                </div>
+                                                <span className="text-[10px] text-slate-500">{t('suppliers.ai_rating', 'Score IA')}</span>
+                                            </div>
+                                        )}
 
                                         <div className="pt-4 border-t border-white/5 flex gap-2">
                                             <button
@@ -3255,6 +3323,56 @@ export default function Suppliers() {
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseignÃ©'}</span></div>
                                 </div>
+
+                                {/* Vague 3: AI Score + Optimal Order Day */}
+                                {selectedSupplierRating && (
+                                    <div className="bg-white/5 rounded-3xl p-5 border border-white/5 space-y-3">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                            <StarIcon size={12} className="text-primary" />
+                                            {t('suppliers.ai_score_title', 'Score IA fournisseur')}
+                                        </p>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`text-4xl font-black ${
+                                                selectedSupplierRating.overall_score >= 70 ? 'text-emerald-400' :
+                                                selectedSupplierRating.overall_score >= 40 ? 'text-amber-400' :
+                                                'text-rose-400'
+                                            }`}>{selectedSupplierRating.overall_score}<span className="text-lg text-slate-500">/100</span></div>
+                                            <div className="flex-1 space-y-1.5 text-xs">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400">{t('suppliers.score_delivery', 'Ponctualité')}</span>
+                                                    <span className="text-white font-bold">{selectedSupplierRating.delivery_score}/100</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400">{t('suppliers.score_quantity', 'Quantités')}</span>
+                                                    <span className="text-white font-bold">{selectedSupplierRating.quantity_score}/100</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400">{t('suppliers.score_price', 'Prix')}</span>
+                                                    <span className="text-white font-bold">{selectedSupplierRating.price_score}/100</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {selectedSupplierRating.orders_analyzed > 0 && (
+                                            <p className="text-[10px] text-slate-600">{t('suppliers.score_based_on', 'Basé sur')} {selectedSupplierRating.orders_analyzed} {t('suppliers.score_orders', 'commandes')}</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {selectedOptimalDay && selectedOptimalDay.optimal_order_day && (
+                                    <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <Truck size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('suppliers.optimal_day', 'Meilleur jour pour commander')}</p>
+                                            <p className="text-white font-black text-lg capitalize">{selectedOptimalDay.optimal_order_day}</p>
+                                            {selectedOptimalDay.avg_delivery_days > 0 && (
+                                                <p className="text-[10px] text-slate-500">{t('suppliers.avg_delivery', 'Délai moyen')} : {selectedOptimalDay.avg_delivery_days}j</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Invitation section */}
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3">
                                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('invite_to_stockman')}</p>
@@ -4090,8 +4208,67 @@ export default function Suppliers() {
                     )}
                 </div>
             </Modal>
+
+            {/* Vague 3: Auto Draft Orders Modal */}
+            <Modal
+                isOpen={showDraftOrders}
+                onClose={() => setShowDraftOrders(false)}
+                title={t('suppliers.auto_orders_title', 'Commandes automatiques suggérées')}
+                maxWidth="xl"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-400">{t('suppliers.auto_orders_desc', 'Basé sur la vélocité de vos ventes et votre stock actuel, voici les commandes recommandées pour 14 jours de couverture.')}</p>
+                    {draftOrdersLoading ? (
+                        <div className="py-16 flex justify-center">
+                            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                        </div>
+                    ) : !draftOrders || draftOrders.total_orders === 0 ? (
+                        <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                            <CheckCircle size={40} className="mx-auto text-emerald-500 mb-3" />
+                            <p className="text-sm text-slate-400 font-bold">{t('suppliers.no_orders_needed', 'Votre stock est suffisant — aucune commande nécessaire.')}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/5 rounded-2xl p-4 text-center">
+                                    <p className="text-2xl font-black text-white">{draftOrders.total_orders}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase">{t('suppliers.draft_orders_count', 'Commandes')}</p>
+                                </div>
+                                <div className="bg-primary/5 rounded-2xl p-4 text-center border border-primary/20">
+                                    <p className="text-2xl font-black text-primary">{formatCurrency(draftOrders.total_estimated_cost || 0)}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase">{t('suppliers.draft_total_cost', 'Coût estimé')}</p>
+                                </div>
+                            </div>
+                            {(draftOrders.orders || []).map((order: any, i: number) => (
+                                <div key={i} className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-white font-bold">{order.supplier_name || t('suppliers.unknown_supplier', 'Fournisseur inconnu')}</p>
+                                        <span className="text-xs text-primary font-black">{formatCurrency(order.estimated_cost || 0)}</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {(order.items || []).map((item: any, j: number) => (
+                                            <div key={j} className="flex justify-between items-center text-sm text-slate-400">
+                                                <span className="flex-1 truncate">{item.product_name}</span>
+                                                <span className="shrink-0 ml-3 font-bold text-white">× {item.quantity_to_order}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowDraftOrders(false);
+                                            const supplier = manualSuppliers.find(s => s.supplier_id === order.supplier_id);
+                                            if (supplier) openManualOrderDraft(supplier);
+                                        }}
+                                        className="w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                    >
+                                        {t('suppliers.create_order', 'Créer ce bon de commande')}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 }
-
-

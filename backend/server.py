@@ -8021,6 +8021,407 @@ async def ai_detect_duplicates(
 
 # ===================== END VAGUE 2 =====================
 
+# ===================== VAGUE 3 — INTELLIGENCE FOURNISSEURS =====================
+
+
+@api_router.get("/ai/supplier-rating/{supplier_id}")
+@limiter.limit("30/minute")
+async def ai_supplier_rating(supplier_id: str, request: Request, user: User = Depends(require_operational_access)):
+    """Score fournisseur 0-100 base sur historique commandes. Pro+Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "supplier_rating")
+
+    cache_key_extra = supplier_id
+    cached = ai_governance.cache_get(owner_id, "supplier_rating", cache_key_extra)
+    if cached:
+        return cached
+
+    # Verify supplier belongs to user
+    supplier = await db.suppliers.find_one(
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        {"_id": 0, "supplier_id": 1, "name": 1}
+    )
+    if not supplier:
+        raise HTTPException(404, "Fournisseur non trouve")
+
+    # Get completed orders for this supplier (last 12 months)
+    d365 = datetime.now(timezone.utc) - timedelta(days=365)
+    orders = await db.orders.find(
+        {"user_id": owner_id, "supplier_id": supplier_id, "created_at": {"$gte": d365}},
+        {"_id": 0, "order_id": 1, "status": 1, "created_at": 1, "expected_delivery": 1,
+         "total_amount": 1, "received_at": 1, "notes": 1}
+    ).to_list(500)
+
+    if not orders:
+        result = {
+            "supplier_id": supplier_id,
+            "name": supplier.get("name", ""),
+            "score": 50,
+            "color": "orange",
+            "components": {"delivery": 50, "quantity": 50, "price_stability": 50},
+            "orders_analyzed": 0,
+            "message": "Pas assez d'historique pour noter ce fournisseur",
+        }
+        ai_governance.cache_set(owner_id, "supplier_rating", result, cache_key_extra)
+        return result
+
+    # Get order items for quantity analysis
+    order_ids = [o["order_id"] for o in orders]
+    items = await db.order_items.find(
+        {"order_id": {"$in": order_ids}},
+        {"_id": 0, "order_id": 1, "quantity": 1, "unit_price": 1, "received_quantity": 1, "product_id": 1}
+    ).to_list(5000)
+    items_by_order = {}
+    for it in items:
+        items_by_order.setdefault(it["order_id"], []).append(it)
+
+    # 1) Delivery score (40%) — on-time delivery rate
+    delivery_scores = []
+    for o in orders:
+        if o.get("status") in ("delivered", "completed", "received"):
+            expected = o.get("expected_delivery")
+            received = o.get("received_at")
+            if expected and received:
+                if isinstance(expected, str):
+                    try:
+                        expected = datetime.fromisoformat(expected.replace("Z", "+00:00"))
+                    except Exception:
+                        continue
+                if isinstance(received, str):
+                    try:
+                        received = datetime.fromisoformat(received.replace("Z", "+00:00"))
+                    except Exception:
+                        continue
+                days_late = (received - expected).days
+                if days_late <= 0:
+                    delivery_scores.append(100)
+                elif days_late <= 2:
+                    delivery_scores.append(70)
+                elif days_late <= 5:
+                    delivery_scores.append(40)
+                else:
+                    delivery_scores.append(10)
+
+    delivery_score = sum(delivery_scores) / len(delivery_scores) if delivery_scores else 50
+
+    # 2) Quantity accuracy score (30%) — received vs ordered
+    qty_scores = []
+    for o in orders:
+        oi = items_by_order.get(o["order_id"], [])
+        for it in oi:
+            ordered = it.get("quantity", 0)
+            received = it.get("received_quantity")
+            if received is not None and ordered > 0:
+                ratio = received / ordered
+                if 0.95 <= ratio <= 1.05:
+                    qty_scores.append(100)
+                elif 0.85 <= ratio <= 1.15:
+                    qty_scores.append(60)
+                else:
+                    qty_scores.append(20)
+
+    quantity_score = sum(qty_scores) / len(qty_scores) if qty_scores else 50
+
+    # 3) Price stability score (30%) — variance of unit prices per product
+    price_by_product: dict = {}
+    for o in orders:
+        for it in items_by_order.get(o["order_id"], []):
+            pid = it.get("product_id")
+            price = it.get("unit_price", 0)
+            if pid and price > 0:
+                price_by_product.setdefault(pid, []).append(price)
+
+    price_stabilities = []
+    for pid, prices in price_by_product.items():
+        if len(prices) >= 2:
+            avg = sum(prices) / len(prices)
+            if avg > 0:
+                variance_pct = (max(prices) - min(prices)) / avg * 100
+                if variance_pct <= 5:
+                    price_stabilities.append(100)
+                elif variance_pct <= 15:
+                    price_stabilities.append(60)
+                else:
+                    price_stabilities.append(20)
+
+    price_score = sum(price_stabilities) / len(price_stabilities) if price_stabilities else 50
+
+    # Composite score
+    total_score = round(delivery_score * 0.4 + quantity_score * 0.3 + price_score * 0.3)
+    color = "green" if total_score >= 70 else "orange" if total_score >= 40 else "red"
+
+    result = {
+        "supplier_id": supplier_id,
+        "name": supplier.get("name", ""),
+        "score": total_score,
+        "color": color,
+        "components": {
+            "delivery": round(delivery_score),
+            "quantity": round(quantity_score),
+            "price_stability": round(price_score),
+        },
+        "orders_analyzed": len(orders),
+        "delivery_count": len(delivery_scores),
+        "price_products_tracked": len(price_by_product),
+    }
+
+    ai_governance.cache_set(owner_id, "supplier_rating", result, cache_key_extra)
+    await track_ai_usage(user.user_id, "supplier_rating", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.get("/ai/optimal-order-day/{supplier_id}")
+@limiter.limit("10/minute")
+async def ai_optimal_order_day(supplier_id: str, request: Request, user: User = Depends(require_operational_access)):
+    """Meilleur jour de semaine pour commander chez un fournisseur. Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "optimal_order_day")
+
+    cache_key_extra = supplier_id
+    cached = ai_governance.cache_get(owner_id, "optimal_order_day", cache_key_extra)
+    if cached:
+        return cached
+
+    supplier = await db.suppliers.find_one(
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        {"_id": 0, "supplier_id": 1, "name": 1}
+    )
+    if not supplier:
+        raise HTTPException(404, "Fournisseur non trouve")
+
+    # Get products linked to this supplier
+    links = await db.supplier_products.find(
+        {"supplier_id": supplier_id, "user_id": owner_id},
+        {"_id": 0, "product_id": 1}
+    ).to_list(200)
+    product_ids = [l["product_id"] for l in links]
+
+    if not product_ids:
+        result = {
+            "supplier_id": supplier_id,
+            "name": supplier.get("name", ""),
+            "optimal_day": None,
+            "message": "Aucun produit lie a ce fournisseur",
+        }
+        ai_governance.cache_set(owner_id, "optimal_order_day", result, cache_key_extra)
+        return result
+
+    # Analyze sales velocity by day of week for linked products
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    d90 = datetime.now(timezone.utc) - timedelta(days=90)
+    pipeline = [
+        {"$match": apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d90}})},
+        {"$unwind": "$items"},
+        {"$match": {"items.product_id": {"$in": product_ids}}},
+        {"$group": {
+            "_id": {"$dayOfWeek": "$created_at"},  # 1=Sunday, 7=Saturday
+            "total_qty": {"$sum": "$items.quantity"},
+            "total_revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}},
+            "sale_count": {"$sum": 1},
+        }},
+    ]
+    day_data = {r["_id"]: r for r in await db.sales.aggregate(pipeline).to_list(10)}
+
+    # Get average delivery delay
+    d365 = datetime.now(timezone.utc) - timedelta(days=365)
+    delivered_orders = await db.orders.find(
+        {"user_id": owner_id, "supplier_id": supplier_id,
+         "status": {"$in": ["delivered", "completed", "received"]},
+         "created_at": {"$gte": d365}},
+        {"_id": 0, "created_at": 1, "received_at": 1}
+    ).to_list(100)
+
+    delivery_delays = []
+    for o in delivered_orders:
+        created = o.get("created_at")
+        received = o.get("received_at")
+        if created and received:
+            delay = (received - created).days
+            if 0 < delay < 60:
+                delivery_delays.append(delay)
+
+    avg_delay = round(sum(delivery_delays) / len(delivery_delays)) if delivery_delays else 3
+
+    # Find peak sales day and calculate optimal order day (peak - delay)
+    day_names = {1: "dimanche", 2: "lundi", 3: "mardi", 4: "mercredi", 5: "jeudi", 6: "vendredi", 7: "samedi"}
+    day_names_short = {1: "dim", 2: "lun", 3: "mar", 4: "mer", 5: "jeu", 6: "ven", 7: "sam"}
+
+    if not day_data:
+        result = {
+            "supplier_id": supplier_id,
+            "name": supplier.get("name", ""),
+            "optimal_day": None,
+            "message": "Pas assez de donnees de vente",
+        }
+        ai_governance.cache_set(owner_id, "optimal_order_day", result, cache_key_extra)
+        return result
+
+    # Peak demand day
+    peak_day = max(day_data.keys(), key=lambda d: day_data[d]["total_qty"])
+
+    # Optimal order day = peak_day - avg_delay (mod 7)
+    optimal_day_num = ((peak_day - 1 - avg_delay) % 7) + 1
+
+    sales_by_day = []
+    for d in range(1, 8):
+        dd = day_data.get(d, {"total_qty": 0, "total_revenue": 0, "sale_count": 0})
+        sales_by_day.append({
+            "day": d,
+            "day_name": day_names.get(d, ""),
+            "day_short": day_names_short.get(d, ""),
+            "total_qty": dd["total_qty"],
+            "total_revenue": round(dd["total_revenue"]),
+            "is_peak": d == peak_day,
+        })
+
+    result = {
+        "supplier_id": supplier_id,
+        "name": supplier.get("name", ""),
+        "optimal_day": optimal_day_num,
+        "optimal_day_name": day_names.get(optimal_day_num, ""),
+        "optimal_day_short": day_names_short.get(optimal_day_num, ""),
+        "peak_demand_day": peak_day,
+        "peak_demand_day_name": day_names.get(peak_day, ""),
+        "avg_delivery_delay_days": avg_delay,
+        "sales_by_day": sales_by_day,
+        "reasoning": f"Les ventes culminent le {day_names.get(peak_day, '')}. Avec un delai moyen de {avg_delay}j, commandez le {day_names.get(optimal_day_num, '')}.",
+    }
+
+    ai_governance.cache_set(owner_id, "optimal_order_day", result, cache_key_extra)
+    await track_ai_usage(user.user_id, "optimal_order_day", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.post("/ai/auto-draft-orders")
+@limiter.limit("5/minute")
+async def ai_auto_draft_orders(
+    request: Request,
+    body: dict = Body(default={}),
+    user: User = Depends(require_operational_access),
+):
+    """Generate draft purchase orders based on velocity and coverage days. Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "auto_draft_orders")
+
+    coverage_days = body.get("coverage_days", 14)  # How many days of stock to target
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+    d30 = now - timedelta(days=30)
+
+    # Get all active products with their supplier links
+    products = await db.products.find(
+        {**store_filter, "is_active": {"$ne": False}},
+        {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "min_stock": 1}
+    ).to_list(5000)
+    product_map = {p["product_id"]: p for p in products}
+
+    # Get supplier links (preferred supplier per product)
+    links = await db.supplier_products.find(
+        {"user_id": owner_id},
+        {"_id": 0, "product_id": 1, "supplier_id": 1, "is_preferred": 1, "unit_cost": 1}
+    ).to_list(10000)
+
+    # Build product->preferred supplier mapping
+    product_supplier: dict = {}
+    for link in links:
+        pid = link.get("product_id")
+        if not pid:
+            continue
+        if link.get("is_preferred"):
+            product_supplier[pid] = link
+        elif pid not in product_supplier:
+            product_supplier[pid] = link
+
+    # Get sales velocity (last 30 days)
+    pipeline = [
+        {"$match": apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d30}})},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": "$items.product_id",
+            "total_sold": {"$sum": "$items.quantity"},
+        }},
+    ]
+    sales_data = {r["_id"]: r["total_sold"] for r in await db.sales.aggregate(pipeline).to_list(5000)}
+
+    # Get supplier names
+    supplier_ids = list(set(l["supplier_id"] for l in links if l.get("supplier_id")))
+    suppliers = await db.suppliers.find(
+        {"supplier_id": {"$in": supplier_ids}, "user_id": owner_id},
+        {"_id": 0, "supplier_id": 1, "name": 1}
+    ).to_list(500)
+    supplier_name_map = {s["supplier_id"]: s["name"] for s in suppliers}
+
+    # Calculate needed quantity per product, group by supplier
+    orders_by_supplier: dict = {}  # supplier_id -> list of items
+
+    for pid, prod in product_map.items():
+        link = product_supplier.get(pid)
+        if not link:
+            continue  # No supplier linked
+
+        current_stock = prod.get("quantity", 0)
+        velocity_30d = sales_data.get(pid, 0)
+        velocity_per_day = velocity_30d / 30 if velocity_30d > 0 else 0
+
+        target_stock = velocity_per_day * coverage_days
+        needed = target_stock - current_stock
+
+        if needed <= 0:
+            continue  # Stock sufficient
+
+        needed = max(1, round(needed))
+        unit_cost = link.get("unit_cost") or prod.get("purchase_price", 0)
+        sid = link["supplier_id"]
+
+        orders_by_supplier.setdefault(sid, []).append({
+            "product_id": pid,
+            "product_name": prod.get("name", ""),
+            "current_stock": current_stock,
+            "velocity_per_day": round(velocity_per_day, 2),
+            "quantity_needed": needed,
+            "unit_price": unit_cost,
+            "line_total": round(needed * unit_cost),
+        })
+
+    # Build draft orders
+    drafts = []
+    for sid, items in orders_by_supplier.items():
+        items.sort(key=lambda x: x["line_total"], reverse=True)
+        total = sum(it["line_total"] for it in items)
+        drafts.append({
+            "supplier_id": sid,
+            "supplier_name": supplier_name_map.get(sid, "Fournisseur inconnu"),
+            "items": items,
+            "total_amount": total,
+            "item_count": len(items),
+        })
+
+    drafts.sort(key=lambda d: d["total_amount"], reverse=True)
+
+    result = {
+        "drafts": drafts,
+        "total_suppliers": len(drafts),
+        "total_items": sum(d["item_count"] for d in drafts),
+        "total_amount": sum(d["total_amount"] for d in drafts),
+        "coverage_days": coverage_days,
+    }
+
+    await track_ai_usage(user.user_id, "auto_draft_orders", plan=plan, ai_enhanced=False)
+    return result
+
+
+# ===================== END VAGUE 3 =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

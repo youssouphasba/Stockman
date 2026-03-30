@@ -1453,6 +1453,20 @@ export const ai = {
     request<any>(`/ai/sales-forecast?days=${days}`),
   deadstockAnalysis: () =>
     request<any>('/ai/deadstock-analysis'),
+  // Vague 2
+  seasonalityAlerts: () =>
+    request<any>('/ai/seasonality-alerts'),
+  shrinkageAnalysis: (items: Array<{ product_id: string; counted_quantity: number }>) =>
+    request<any>('/ai/shrinkage-analysis', { method: 'POST', body: { items } }),
+  detectDuplicates: (target: 'products' | 'suppliers' = 'products', threshold: number = 0.7) =>
+    request<any>('/ai/detect-duplicates', { method: 'POST', body: { target, threshold } }),
+  // Vague 3
+  supplierRating: (supplierId: string) =>
+    request<any>(`/ai/supplier-rating/${supplierId}`),
+  optimalOrderDay: (supplierId: string) =>
+    request<any>(`/ai/optimal-order-day/${supplierId}`),
+  autoDraftOrders: (coverageDays: number = 14) =>
+    request<any>('/ai/auto-draft-orders', { method: 'POST', body: { coverage_days: coverageDays } }),
 };
 
 export type InvoiceScanResult = {

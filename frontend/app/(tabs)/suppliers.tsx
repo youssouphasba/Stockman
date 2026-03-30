@@ -60,6 +60,7 @@ export default function SuppliersScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<'manual' | 'marketplace'>('manual');
   const [supplierList, setSupplierList] = useState<Supplier[]>([]);
+  const [supplierStatsMap, setSupplierStatsMap] = useState<Record<string, SupplierStats>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [suggestions, setSuggestions] = useState<ReplenishmentSuggestion[]>([]);
@@ -69,6 +70,8 @@ export default function SuppliersScreen() {
   const [showSuggestionLinkModal, setShowSuggestionLinkModal] = useState(false);
   const [pendingSuggestion, setPendingSuggestion] = useState<ReplenishmentSuggestion | null>(null);
   const [selectedSuggestionSupplierId, setSelectedSuggestionSupplierId] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
   const [search, setSearch] = useState('');
   const [filterSort, setFilterSort] = useState<'name' | 'recent' | 'delay'>('name');
@@ -125,6 +128,10 @@ export default function SuppliersScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null);
   const [detailTab, setDetailTab] = useState<'info' | 'products' | 'history' | 'invoices' | 'logs' | 'performance'>('info');
+  // Vague 3: AI ratings
+  const [supplierAiRatings, setSupplierAiRatings] = useState<Record<string, any>>({});
+  const [selectedAiRating, setSelectedAiRating] = useState<any>(null);
+  const [selectedOptimalDay, setSelectedOptimalDay] = useState<any>(null);
   const [linkedProducts, setLinkedProducts] = useState<SupplierProductLink[]>([]);
   const [detailStats, setDetailStats] = useState<SupplierStats | null>(null);
   const [detailOrders, setDetailOrders] = useState<OrderWithDetails[]>([]);
@@ -165,7 +172,40 @@ export default function SuppliersScreen() {
         suppliersApi.list(),
         replenishmentApi.getSuggestions(),
       ]);
-      if (suppRes.status === 'fulfilled') setSupplierList(suppRes.value.items ?? suppRes.value as any);
+      if (suppRes.status === 'fulfilled') {
+        const suppliers = suppRes.value.items ?? suppRes.value as any;
+        setSupplierList(suppliers);
+        // Vague 3: load AI ratings in background
+        if (Array.isArray(suppliers) && suppliers.length > 0) {
+          Promise.allSettled(suppliers.map((s: Supplier) => aiApi.supplierRating(s.supplier_id)))
+            .then(results => {
+              const ratingsMap: Record<string, any> = {};
+              results.forEach((r, i) => {
+                if (r.status === 'fulfilled' && r.value?.overall_score != null) {
+                  ratingsMap[suppliers[i].supplier_id] = r.value;
+                }
+              });
+              setSupplierAiRatings(ratingsMap);
+            })
+            .catch(() => {});
+        }
+        const statsEntries = await Promise.all(
+          (Array.isArray(suppliers) ? suppliers : []).map(async (supplier: Supplier) => {
+            try {
+              const stats = await suppliersApi.getStats(supplier.supplier_id);
+              return [supplier.supplier_id, stats] as const;
+            } catch {
+              return null;
+            }
+          })
+        );
+        setSupplierStatsMap(
+          statsEntries.reduce<Record<string, SupplierStats>>((acc, entry) => {
+            if (entry) acc[entry[0]] = entry[1];
+            return acc;
+          }, {})
+        );
+      }
       if (sugRes.status === 'fulfilled') setSuggestions(sugRes.value);
     } finally {
       setLoading(false);
@@ -514,6 +554,8 @@ export default function SuppliersScreen() {
     setDetailTab('info');
     setShowDetailModal(true);
     setShowAllLinked(false);
+    setSelectedAiRating(supplierAiRatings[supplier.supplier_id] || null);
+    setSelectedOptimalDay(null);
     setInvoiceNumber('');
     setInvoiceAmount('');
     setInvoiceStatus('unpaid');
@@ -536,6 +578,10 @@ export default function SuppliersScreen() {
       setDetailInvoices(invoices);
       setDetailLogs(logs);
       setDetailPriceHistory(Array.isArray(priceHistory) ? priceHistory : []);
+      // Vague 3: load optimal order day in background
+      aiApi.optimalOrderDay(supplier.supplier_id)
+        .then(res => setSelectedOptimalDay(res))
+        .catch(() => {});
     } catch (err) {
       console.error('Error loading detail data:', err);
       setLinkedProducts([]);
@@ -999,6 +1045,19 @@ export default function SuppliersScreen() {
                     <Ionicons name="sparkles" size={18} color={colors.primary} />
                     <Text style={styles.sectionTitle}>{t('suppliers.ai_suggestions')}</Text>
                     <TouchableOpacity
+                      onPress={() => setShowSuggestions((current) => !current)}
+                      style={styles.sectionHeaderToggle}
+                    >
+                      <Text style={styles.sectionHeaderToggleText}>
+                        {showSuggestions ? 'Masquer' : 'Afficher'}
+                      </Text>
+                      <Ionicons
+                        name={showSuggestions ? 'chevron-up-outline' : 'chevron-down-outline'}
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={async () => {
                         setAdviceLoading(true);
                         try {
@@ -1020,7 +1079,7 @@ export default function SuppliersScreen() {
                       )}
                     </TouchableOpacity>
                   </View>
-                  {replenishAdvice && (
+                  {showSuggestions && replenishAdvice && (
                     <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.sm, marginBottom: Spacing.sm, borderWidth: 1, borderColor: colors.primary + '20' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                         <Ionicons name="sparkles" size={13} color={colors.primary} />
@@ -1032,8 +1091,9 @@ export default function SuppliersScreen() {
                       <Text style={{ fontSize: 12, color: colors.text, lineHeight: 18 }}>{replenishAdvice}</Text>
                     </View>
                   )}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
-                    {suggestions.map((sug) => (
+                  {showSuggestions ? (
+                  <View style={styles.suggestionsList}>
+                    {(showAllSuggestions ? suggestions : suggestions.slice(0, 3)).map((sug) => (
                       <TouchableOpacity
                         key={sug.product_id}
                         style={[
@@ -1045,7 +1105,7 @@ export default function SuppliersScreen() {
                         <View style={[styles.priorityBadge, { backgroundColor: sug.priority === 'critical' ? colors.danger : colors.warning }]}>
                           <Text style={styles.priorityText}>{sug.priority === 'critical' ? t('suppliers.critical_alert') : t('suppliers.alert')}</Text>
                         </View>
-                        <Text style={styles.suggestionName} numberOfLines={1}>{sug.product_name}</Text>
+                        <Text style={styles.suggestionName} numberOfLines={2}>{sug.product_name}</Text>
                         <View style={styles.suggestionDetails}>
                           <Text style={styles.suggestionVelocity}>{t('suppliers.suggestion_ai_notes', { velocity: sug.daily_velocity })}</Text>
                           <Text style={styles.suggestionDays}>
@@ -1062,7 +1122,18 @@ export default function SuppliersScreen() {
                         </View>
                       </TouchableOpacity>
                     ))}
-                  </ScrollView>
+                    {suggestions.length > 3 && (
+                      <TouchableOpacity
+                        style={styles.suggestionsMoreBtn}
+                        onPress={() => setShowAllSuggestions((current) => !current)}
+                      >
+                        <Text style={styles.suggestionsMoreText}>
+                          {showAllSuggestions ? 'Voir moins' : `Voir les ${suggestions.length} suggestions`}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  ) : null}
                 </View>
               )}
 
@@ -1079,6 +1150,7 @@ export default function SuppliersScreen() {
               ) : (
                 filtered.map((supplier) => {
                   const name = supplier.name || t('common.unknown');
+                  const supplierStats = supplierStatsMap[supplier.supplier_id];
                   const initials = name
                     ? name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
                     : '??';
@@ -1125,6 +1197,63 @@ export default function SuppliersScreen() {
                           </View>
                         ) : null}
                       </View>
+
+                      <View style={styles.supplierMetricsRow}>
+                        <View style={styles.supplierMetric}>
+                          <Text style={styles.supplierMetricLabel}>Commandes</Text>
+                          <Text style={styles.supplierMetricValue}>{supplierStats?.orders_count ?? 0}</Text>
+                        </View>
+                        <View style={styles.supplierMetric}>
+                          <Text style={styles.supplierMetricLabel}>Volume</Text>
+                          <Text style={styles.supplierMetricValue}>{formatUserCurrency(supplierStats?.total_spent ?? 0, user)}</Text>
+                        </View>
+                        <View style={styles.supplierMetric}>
+                          <Text style={styles.supplierMetricLabel}>Délai moyen</Text>
+                          <Text style={styles.supplierMetricValue}>
+                            {supplierStats?.avg_delivery_days ? `${Math.round(supplierStats.avg_delivery_days)} j` : '—'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.supplierFootnoteRow}>
+                        <Text style={styles.supplierFootnote}>
+                          {supplierStats?.pending_orders
+                            ? `${supplierStats.pending_orders} commande(s) ouvertes`
+                            : 'Aucune commande ouverte'}
+                        </Text>
+                        <Text style={styles.supplierFootnote}>
+                          {supplierStats?.delivered_count
+                            ? `${supplierStats.delivered_count} livraisons confirmées`
+                            : 'Pas encore de livraison confirmée'}
+                        </Text>
+                      </View>
+
+                      {/* Vague 3: AI Rating badge */}
+                      {supplierAiRatings[supplier.supplier_id] && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 }}>
+                          <View style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3,
+                            borderRadius: 8, backgroundColor: (
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? '#10b98115' :
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? '#f59e0b15' : '#ef444415'
+                            ),
+                          }}>
+                            <Ionicons name="star" size={11} color={
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? '#10b981' :
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? '#f59e0b' : '#ef4444'
+                            } />
+                            <Text style={{
+                              fontSize: 11, fontWeight: '800', color: (
+                                supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? '#10b981' :
+                                supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? '#f59e0b' : '#ef4444'
+                              )
+                            }}>
+                              {supplierAiRatings[supplier.supplier_id].overall_score}/100
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 10, color: colors.textMuted }}>Score IA</Text>
+                        </View>
+                      )}
 
                       {/* Quick actions */}
                       <View style={styles.quickActions}>
@@ -1884,6 +2013,50 @@ export default function SuppliersScreen() {
                               : t('suppliers.warning_supplier')}
                           </Text>
                         </View>
+
+                        {/* Vague 3: AI Score */}
+                        {selectedAiRating && (
+                          <View style={{ marginTop: 20 }}>
+                            <Text style={styles.sectionTitle}>Score IA fournisseur</Text>
+                            <View style={[styles.statsGrid, { marginTop: 8 }]}>
+                              <View style={[styles.statBox, { borderColor: (selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444') + '30', borderWidth: 1 }]}>
+                                <Text style={[styles.statVal, { color: selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444', fontSize: 28 }]}>{selectedAiRating.overall_score}</Text>
+                                <Text style={styles.statLab}>Score /100</Text>
+                              </View>
+                              <View style={styles.statBox}>
+                                <Text style={styles.statVal}>{selectedAiRating.delivery_score}</Text>
+                                <Text style={styles.statLab}>Ponctualité</Text>
+                              </View>
+                            </View>
+                            <View style={[styles.statsGrid, { marginTop: 8 }]}>
+                              <View style={styles.statBox}>
+                                <Text style={styles.statVal}>{selectedAiRating.quantity_score}</Text>
+                                <Text style={styles.statLab}>Quantités</Text>
+                              </View>
+                              <View style={styles.statBox}>
+                                <Text style={styles.statVal}>{selectedAiRating.price_score}</Text>
+                                <Text style={styles.statLab}>Stabilité prix</Text>
+                              </View>
+                            </View>
+                          </View>
+                        )}
+
+                        {/* Vague 3: Optimal Order Day */}
+                        {selectedOptimalDay?.optimal_order_day && (
+                          <View style={[styles.insightCard, { marginTop: 12, borderColor: colors.primary + '30', borderWidth: 1 }]}>
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.insightText, { fontWeight: '700', color: colors.text }]}>
+                                Meilleur jour pour commander : <Text style={{ color: colors.primary, textTransform: 'capitalize' }}>{selectedOptimalDay.optimal_order_day}</Text>
+                              </Text>
+                              {selectedOptimalDay.avg_delivery_days > 0 && (
+                                <Text style={[styles.insightText, { fontSize: 11, marginTop: 2 }]}>
+                                  Délai moyen : {selectedOptimalDay.avg_delivery_days} j
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        )}
 
                         <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historique des prix</Text>
                         {detailPriceHistory.length === 0 ? (
@@ -2712,6 +2885,38 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   quickActions: {
     flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm,
   },
+  supplierMetricsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  supplierMetric: {
+    flex: 1,
+    backgroundColor: colors.inputBg,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  supplierMetricLabel: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  supplierMetricValue: {
+    fontSize: FontSize.sm,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  supplierFootnoteRow: {
+    gap: 4,
+    marginBottom: Spacing.sm,
+  },
+  supplierFootnote: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+  },
   quickBtn: {
     width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
@@ -3134,13 +3339,28 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   // Replenishment Styles
   suggestionsContainer: { marginBottom: Spacing.xl },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.md, paddingHorizontal: 4 },
+  sectionHeaderToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.primary + '14',
+    marginLeft: 'auto',
+  },
+  sectionHeaderToggleText: {
+    color: colors.primary,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
   suggestionsScroll: { paddingBottom: 4 },
+  suggestionsList: { gap: Spacing.sm },
   suggestionCard: {
     ...glassStyle,
-    width: 200,
+    width: '100%',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    marginRight: Spacing.md,
     backgroundColor: colors.bgMid + '30',
   },
   priorityBadge: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginBottom: 8 },
@@ -3149,6 +3369,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   suggestionDetails: { marginBottom: 12, gap: 4 },
   suggestionVelocity: { color: colors.textSecondary, fontSize: 11 },
   suggestionDays: { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
+  suggestionsMoreBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  suggestionsMoreText: {
+    color: colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
   recommendationBox: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -2193,6 +2193,15 @@ export const ai = {
             method: 'POST',
             body: { target, threshold },
         }),
+    supplierRating: (supplierId: string) =>
+        request<any>(`/ai/supplier-rating/${supplierId}`),
+    optimalOrderDay: (supplierId: string) =>
+        request<any>(`/ai/optimal-order-day/${supplierId}`),
+    autoDraftOrders: (coverageDays: number = 14) =>
+        request<any>('/ai/auto-draft-orders', {
+            method: 'POST',
+            body: { coverage_days: coverageDays },
+        }),
 };
 
 export const returns = {
