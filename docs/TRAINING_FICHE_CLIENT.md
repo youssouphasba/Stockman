@@ -1,31 +1,41 @@
-# 📄 Fiche Client : Pourquoi choisir Stockman ?
+# Fiche client - Pourquoi choisir Stockman ?
 
-*Document à montrer ou à laisser au commerçant (format A5 suggéré).*
-
----
-
-## 🔝 LE TOP 5 DES AVANTAGES POUR VOTRE BOUTIQUE
-
-1.  **Zéro Internet** : Enregistrez vos ventes même sans connexion.
-2.  **Parle votre Langue** : Disponible en **Wolof**, Français et 13 autres langues.
-3.  **Adieu le Cahier** : Suivez vos dettes clients et vos bénéfices sur votre téléphone.
-4.  **Alerte Stock** : Votre assistant IA vous prévient avant la rupture de stock.
-5.  **Sécurité Totale** : Même si vous changez de téléphone, vos données sont sauvegardées.
+Document court a montrer ou a laisser au commercant apres un premier echange utile.
 
 ---
 
-## 💡 UN MOIS D'ESSAI GRATUIT (SANS ENGAGEMENT)
+## Les avantages a mettre en avant
 
-Essayez toutes les fonctionnalités pendant 30 jours. On vous aide à démarrer !
+1. **Suivi plus clair**
+   - stock, ventes, depenses et dettes clients sont plus faciles a retrouver
 
-*   **Prix après l'essai** : À partir de **2 500 FCFA / mois**.
+2. **Moins de pertes**
+   - l'application aide a mieux voir les ruptures, les produits a surveiller et les informations importantes
+
+3. **Utilisation simple**
+   - l'objectif est de commencer avec l'essentiel, pas de compliquer le travail du commercant
+
+4. **Suivi sur telephone**
+   - le commercant garde ses informations dans un meme outil, plus facile a consulter au quotidien
+
+5. **Accompagnement**
+   - l'equipe peut aider au demarrage et au suivi apres le premier contact
 
 ---
 
-## 📞 VOTRE CONTACT SUPPORT
-*   **Agent Terrain** : [Nom du Stagiaire]
-*   **Téléphone / WhatsApp** : [Numéro]
-*   **Site Web** : www.stockman.pro
+## Comment presenter cette fiche
+
+Le stagiaire ne doit pas juste lire la fiche.
+
+Il doit :
+- rappeler le besoin principal du commercant ;
+- relier ce besoin a 2 ou 3 avantages maximum ;
+- proposer la prochaine etape utile.
 
 ---
-*Téléchargez l'application sur le Play Store : recherchez **"Stockman"**.*
+
+## Contact de suivi
+
+- Agent terrain : [Nom]
+- Telephone / WhatsApp : [Numero]
+- Prochaine etape proposee : [Installation / rappel / demonstration / suivi]

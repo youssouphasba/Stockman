@@ -5,6 +5,11 @@ from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+
+def is_expo_push_token(token: str) -> bool:
+    value = str(token or "")
+    return value.startswith("ExponentPushToken") or value.startswith("ExpoPushToken")
+
 class NotificationService:
     def __init__(self):
         self.expo_push_url = "https://exp.host/--/api/v2/push/send"
@@ -30,7 +35,7 @@ class NotificationService:
 
         messages = []
         for token in expo_tokens:
-            if not token.startswith("ExponentPushToken"):
+            if not is_expo_push_token(token):
                 logger.warning(f"Invalid Expo Push Token: {token}")
                 continue
                 
@@ -57,6 +62,11 @@ class NotificationService:
                 )
                 response.raise_for_status()
                 result = response.json()
+                data = result.get("data") if isinstance(result, dict) else None
+                if isinstance(data, list):
+                    for item in data:
+                        if item.get("status") != "ok":
+                            logger.warning("Expo push ticket issue: %s", item)
                 logger.info(f"Push notification sent successfully: {result}")
                 return result
         except Exception as e:

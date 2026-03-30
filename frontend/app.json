@@ -25,6 +25,13 @@
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.849468181940-g1s18ifg1phcs1nc2ohqhk16fktogqi8"
+            ]
+          }
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Stockman uses the camera to scan product barcodes at checkout and in inventory, take photos of items to attach to product listings, and capture images of receipts or documents for record-keeping.",
         "NSMicrophoneUsageDescription": "Stockman uses the microphone to let you add products to the cart by speaking in the voice checkout, and to send voice messages in AI support.",

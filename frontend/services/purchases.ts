@@ -20,8 +20,8 @@ export type PurchaseResult =
 
 // RevenueCat product identifiers — à mettre à jour quand les IDs sont confirmés
 const PRODUCT_IDS = {
-    starter: 'prod8c5386b688',
-    pro: 'prod2fdacd46f0',   // ancien 'premium', mappé sur Pro
+    starter: 'prodcff51cdfb5', // starter_monthly
+    pro: 'prod774d196503',     // pro_monthly
 };
 
 const ENTITLEMENTS = {

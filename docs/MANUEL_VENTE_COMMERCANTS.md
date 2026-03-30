@@ -1,150 +1,424 @@
-# Manuel de Vente Stockman (Version Renforcée)
+# Manuel de vente Stockman
 
-Ce document est destiné aux stagiaires commerciaux. Il sert à convaincre les commerçants en mettant l’accent sur leurs problèmes réels, les bénéfices concrets et les résultats visibles.
+Ce document sert de reference aux stagiaires commerciaux qui presentent Stockman a des commercants et, selon le contexte, a des fournisseurs.
 
-## 1. Pitch court (20 secondes)
-Stockman aide les commerçants à mieux gérer leur stock, leurs ventes et leurs dettes clients, sans matériel coûteux.  
-L’application réduit les pertes, améliore la trésorerie et rend les décisions plus rapides.  
-En quelques minutes, le commerçant voit son chiffre, son stock et ce qui lui reste réellement.
+L'objectif n'est pas de reciter une liste de fonctions. L'objectif est de :
 
-## 2. 20 problèmes métier → 20 solutions → bénéfice direct
+1. comprendre le fonctionnement reel du prospect ;
+2. identifier ses problemes concrets ;
+3. relier Stockman a ces problemes ;
+4. obtenir une demonstration, une inscription ou un rendez-vous de suivi ;
+5. accompagner l'activation apres le demarchage, notamment via WhatsApp.
 
-| # | Problème du commerçant | Solution Stockman | Bénéfice direct |
-|---|---|---|---|
-| 1 | Confusion sur les profits réels | Calcul de marge nette et suivi des charges | Il sait enfin s’il gagne ou s’il perd |
-| 2 | Dettes clients oubliées | Registre client + historique de paiements | Récupération rapide de la trésorerie |
-| 3 | Ruptures de stock imprévues | Alertes de seuil + prévision | Moins de clients perdus |
-| 4 | Pertes par péremption | Suivi des dates + alertes | Moins de marchandises jetées |
-| 5 | Erreurs de caisse | Vente enregistrée instantanément | Comptes justes en fin de journée |
-| 6 | Vol ou détournement | Traçabilité des actions par utilisateur | Meilleur contrôle du personnel |
-| 7 | Inventaire long et pénible | Inventaire tournant rapide | Magasin toujours à jour |
-| 8 | Prix d’achat instables | Historique des prix fournisseurs | Meilleures négociations |
-| 9 | Carnet de notes perdu | Données sauvegardées automatiquement | Rien n’est perdu |
-| 10 | Factures difficiles | Factures PDF et envoi facile | Image professionnelle |
-| 11 | Multi-boutiques difficiles | Tableau de bord centralisé | Pilotage global en un endroit |
-| 12 | Rabais mal évalués | Prix de revient visible | Ne pas vendre à perte |
-| 13 | Stocks qui dorment | Analyse des ventes (Top/Flop) | Libérer du cash |
-| 14 | Commandes fournisseurs en désordre | Bons de commande et suivi | Approvisionnement maîtrisé |
-| 15 | Client qui oublie son solde | Historique client clair | Confiance et transparence |
-| 16 | Catalogue complexe | Variantes (taille, couleur) | Stock propre et rapide |
-| 17 | Formation des vendeurs lente | Interface simple et guidée | Prise en main rapide |
-| 18 | Dépenses non suivies | Module dépenses et charges | Rentabilité maîtrisée |
-| 19 | Catalogue à partager | Catalogue digital partageable | Vente possible même hors boutique |
-| 20 | Besoin de conseils | Assistant IA intégré | Aide décisionnelle rapide |
+---
 
-## 3. 50 arguments de vente solides
+## 1. Principe de vente Stockman
 
-1. **Fonctionne sans Internet** : le commerce continue même sans réseau.
-2. **Langues locales** : l’application parle au commerçant.
-3. **Essai gratuit** : le commerçant teste sans risque.
-4. **Pas de matériel cher** : un smartphone suffit.
-5. **Anti-vol** : chaque mouvement de stock est tracé.
-6. **IA utile** : conseils sur stock, ventes et décisions.
-7. **Sauvegarde automatique** : téléphone perdu, données intactes.
-8. **WhatsApp intégré** : reçus et catalogues envoyés au client.
-9. **Multi-boutiques** : gérer plusieurs magasins avec un seul compte.
-10. **Coût très faible** : moins cher qu’un café par jour.
-11. **Localisation des produits** : savoir où est le stock.
-12. **Notifications intelligentes** : alerte quand il faut réapprovisionner.
-13. **Professionnalisation** : image sérieuse auprès des clients.
-14. **Support local** : aide rapide et proche.
-15. **Export Excel** : données récupérables quand il veut.
-16. **Application légère** : ne ralentit pas le téléphone.
-17. **Multi-appareils** : téléphone, tablette, ordinateur.
-18. **Alerte péremption** : vendre avant de perdre.
-19. **Comparaison fournisseurs** : choisir le meilleur prix.
-20. **Mises à jour incluses** : amélioration continue sans surcoût.
-21. **Stock visible en temps réel** : pas besoin de refaire les comptes.
-22. **Ventes rapides** : encaissement simple, sans calculs manuels.
-23. **Traçabilité des actions** : qui a fait quoi, quand, et pourquoi.
-24. **Clarté sur les dettes** : chaque client a son historique.
-25. **Relance facile** : appeler, WhatsApp ou SMS depuis la fiche client.
-26. **Rapports quotidiens** : un résumé clair en fin de journée.
-27. **Rapports mensuels** : suivi simple pour la rentabilité.
-28. **Alertes de stock bas** : fini les ruptures surprises.
-29. **Top produits** : savoir ce qui vend le plus.
-30. **Produits qui dorment** : identifier les invendus.
-31. **Réassort guidé** : acheter les bons produits au bon moment.
-32. **Gestion des variantes** : tailles, couleurs, formats.
-33. **Catalogue propre** : moins d’erreurs de saisie.
-34. **Factures rapides** : documents propres en quelques secondes.
-35. **Historique des ventes** : retrouver n’importe quelle vente.
-36. **Historique fournisseurs** : comparer les prix dans le temps.
-37. **Suivi des dépenses** : savoir ce que coûte vraiment le commerce.
-38. **Calcul de marge** : voir la vraie rentabilité.
-39. **Données accessibles** : le commerçant garde la main.
-40. **Simplicité d’usage** : interface pensée pour le terrain.
-41. **Formation rapide** : vendeur opérationnel rapidement.
-42. **Moins d’erreurs** : moins de pertes invisibles.
-43. **Gains de temps** : plus de temps pour vendre.
-44. **Image moderne** : impression professionnelle auprès des clients.
-45. **Tableau de bord clair** : tout en un coup d’œil.
-46. **Suivi par boutique** : visibilité si plusieurs points de vente.
-47. **Sécurité des données** : données conservées et protégées.
-48. **Évolutif** : l’outil grandit avec le commerce.
-49. **Assistance disponible** : on ne laisse pas le commerçant seul.
-50. **Décisions plus rapides** : des chiffres, pas des suppositions.
+Stockman ne se vend pas comme un simple logiciel.
 
-## 4. Avant / Après (5 mini scénarios)
+Le bon discours est :
+- partir des pertes, des difficultes et du temps gaspille ;
+- montrer que Stockman aide a vendre, suivre, controler et decider ;
+- adapter la presentation au type de commerce ;
+- ne montrer que les fonctions utiles au besoin reel du commercant.
 
-1. **Avant** : “Je note dans un cahier, je m’y perds.”  
-   **Après** : “Tout est dans l’app, consultable en 10 secondes.”
+Regle simple :
 
-2. **Avant** : “Je ne sais pas où mon argent part.”  
-   **Après** : “Je vois mes ventes, mes charges et mon bénéfice réel.”
+**On ne commence pas par l'application. On commence par les problemes du commercant.**
 
-3. **Avant** : “Je perds des ventes faute de stock.”  
-   **Après** : “L’app m’alerte avant la rupture.”
+---
 
-4. **Avant** : “Les clients oublient leur dette.”  
-   **Après** : “Je vois qui doit quoi, je relance facilement.”
+## 2. Pitchs de presentation
 
-5. **Avant** : “Les vendeurs se trompent souvent.”  
-   **Après** : “Tout est guidé, les erreurs diminuent.”
+### Pitch tres court
 
-## 5. Objections fréquentes et réponses
+`Stockman aide les commercants a mieux gerer leur stock, leurs ventes, leurs depenses, leurs clients et leurs fournisseurs, dans une application simple qui fait gagner du temps et reduit les pertes.`
 
-**Objection 1 : “Je préfère payer une fois pour toutes.”**  
-Réponse : “Un logiciel unique devient vite dépassé. Avec l’abonnement, tu as le support, les nouvelles fonctions et les mises à jour.”
+### Pitch court terrain
 
-**Objection 2 : “Je ne suis pas à l’aise avec la technologie.”**  
-Réponse : “On te montre en quelques minutes. L’interface est simple, même un vendeur peut l’utiliser.”
+`Aujourd'hui, beaucoup de commercants perdent de l'argent sans toujours le voir clairement : ruptures, stock mal suivi, depenses oubliees, dettes clients, commandes fournisseurs mal organisees. Stockman sert a remettre de l'ordre dans tout cela, avec un outil simple pour suivre, controler et mieux decider.`
 
-**Objection 3 : “J’ai déjà un système.”**  
-Réponse : “Si ton système était suffisant, tu n’aurais pas ces pertes de stock ou dettes clients. Stockman règle précisément ça.”
+### Pitch fournisseur
 
-**Objection 4 : “Je n’ai pas le temps de former mon équipe.”**  
-Réponse : “On forme en moins de 30 minutes. Le vendeur suit les icônes et les boutons, tout est intuitif.”
+`Stockman aide aussi les fournisseurs a mieux recevoir, suivre et traiter les commandes des commercants, tout en gagnant en visibilite et en professionnalisme.`
 
-**Objection 5 : “Et si je perds mon téléphone ?”**  
-Réponse : “Tes données sont sauvegardées. Tu te reconnectes sur un autre téléphone et tu continues.”
+### Pitch d'accroche sur le terrain
 
-## 6. Script de démonstration (1 minute)
+`Bonjour, je suis [Prenom] de l'equipe Stockman. On aide les commercants a mieux suivre leur stock, leurs ventes et leurs depenses sans se perdre dans les cahiers. Est-ce que je peux vous poser 2 ou 3 questions pour comprendre comment vous gerez aujourd'hui ?`
 
-1. Créer un produit.
-2. Faire une vente.
-3. Montrer que le stock baisse automatiquement.
-4. Afficher le chiffre du jour.
-5. Ouvrir la fiche client et voir la dette.
+---
 
-## 7. 3 profils de commerçants (exemples rapides)
+## 3. Ce qu'il faut faire avant de presenter l'application
 
-**Épicerie**  
-Problèmes : ruptures de stock, pertes par péremption.  
-Bénéfices : alertes, suivi des dates, réassort intelligent.  
-Phrase de vente : “Vous ne perdez plus d’argent à cause des produits oubliés.”
+Avant toute demonstration, il faut comprendre le prospect.
 
-**Boutique de vêtements**  
-Problèmes : variantes, prix d’achat changeants.  
-Bénéfices : stock clair par taille et couleur, historique fournisseur.  
-Phrase de vente : “Vous savez ce qui se vend et vous ne stockez plus inutilement.”
+Le stagiaire doit poser des questions simples pour identifier :
+- comment le commerce fonctionne aujourd'hui ;
+- ou se trouvent les pertes de temps ;
+- ou se trouvent les pertes d'argent ;
+- qui utilise deja des outils ;
+- quel est le niveau d'organisation du commerce.
 
-**Quincaillerie**  
-Problèmes : nombreux articles, erreurs de caisse.  
-Bénéfices : gestion rapide, caisse fiable.  
-Phrase de vente : “Vous gagnez du temps et vous évitez les pertes.”
+### Questions de decouverte generales
 
-## 8. Résumé final simple à dire
-Stockman aide à mieux vendre, mieux gérer et mieux décider.  
-Le commerçant gagne du temps, réduit les pertes et sécurise son argent.  
-C’est un outil concret, simple et rentable.
+- Comment gerez-vous votre commerce aujourd'hui ?
+- Qu'est-ce qui vous fait perdre le plus de temps au quotidien ?
+- Qu'est-ce qui vous pose le plus de problemes en ce moment ?
+- Comment suivez-vous votre stock aujourd'hui ?
+- Comment suivez-vous vos ventes et vos depenses ?
+- Comment passez-vous vos commandes fournisseurs ?
+- Quel est le point que vous voudriez le plus ameliorer rapidement ?
+
+### Questions sur le stock
+
+- Avez-vous souvent des ruptures ?
+- Savez-vous toujours quels produits sont proches de finir ?
+- Faites-vous des inventaires reguliers ?
+- Avez-vous des produits qui se vendent mal ou qui dorment longtemps ?
+- Perdez-vous des produits a cause d'erreurs, de casse ou de peremption ?
+
+### Questions sur les ventes et la caisse
+
+- Comment encaissez-vous aujourd'hui ?
+- Savez-vous quels produits se vendent le mieux ?
+- Voyez-vous facilement vos ventes du jour ou du mois ?
+- Est-ce que plusieurs personnes encaissent sur le meme point de vente ?
+
+### Questions sur la comptabilite et les depenses
+
+- Suivez-vous vos depenses au jour le jour ?
+- Savez-vous estimer votre vraie marge ?
+- A la fin du mois, est-ce facile de savoir si vous avez vraiment gagne de l'argent ?
+- Avez-vous du mal a rassembler les informations pour faire vos comptes ?
+
+### Questions sur les fournisseurs
+
+- Comment choisissez-vous vos fournisseurs ?
+- Avez-vous des retards ou des erreurs de livraison ?
+- Est-ce facile pour vous de suivre les commandes passees ?
+- Savez-vous toujours quoi recommander et quand recommander ?
+
+### Questions sur l'equipe et l'organisation
+
+- Combien de personnes travaillent avec vous sur ce commerce ?
+- Est-ce que tout le monde doit voir les memes choses ?
+- Gerez-vous une seule boutique ou plusieurs ?
+
+### Questions sur les clients et le developpement
+
+- Suivez-vous vos meilleurs clients ?
+- Avez-vous des dettes clients a surveiller ?
+- Faites-vous des relances ou des promotions ciblees ?
+- Avez-vous du mal a faire revenir certains clients ?
+
+---
+
+## 4. Regle d'or : adapter la presentation
+
+Le stagiaire ne doit pas montrer tout Stockman.
+
+Il doit identifier les 2 ou 3 douleurs principales, puis connecter la demonstration a ces besoins.
+
+### Exemple
+
+Si le commercant souffre surtout de :
+- ruptures ;
+- commandes desorganisees ;
+- depenses mal suivies ;
+
+alors il faut lui parler en priorite de :
+- stock ;
+- alertes ;
+- fournisseurs et commandes ;
+- comptabilite ;
+
+et non pas commencer par le CRM, l'equipe ou les fonctions avancees.
+
+---
+
+## 5. Fonctions a mentionner obligatoirement
+
+Ce sont les fonctions qui doivent presque toujours etre citees, car elles parlent a la majorite des commercants.
+
+### Fonctions coeur a mentionner
+
+1. gestion du stock
+2. alertes de rupture et de stock bas
+3. ventes et caisse
+4. suivi des depenses et de la comptabilite
+5. gestion des commandes fournisseurs
+6. suivi des clients et des dettes
+7. tableau de bord et indicateurs
+8. usage mobile simple au quotidien
+
+### Comment les presenter
+
+Ne pas dire seulement :
+- `on gere le stock`
+- `on fait la comptabilite`
+
+Il faut dire :
+
+- **Stock**
+  - vous savez ce qu'il vous reste vraiment ;
+  - vous evitez les ruptures ;
+  - vous voyez les produits qui dorment.
+
+- **Alertes**
+  - vous etes prevenu avant qu'un probleme ne vous coute de l'argent ;
+  - vous reperez plus vite les produits a surveiller.
+
+- **Ventes / caisse**
+  - vous voyez ce qui se vend ;
+  - vous reduisez les erreurs de caisse ;
+  - vous suivez vos encaissements plus clairement.
+
+- **Depenses / comptabilite**
+  - vous voyez vos charges ;
+  - vous suivez votre chiffre ;
+  - vous comprenez mieux votre marge et votre resultat.
+
+- **Fournisseurs / commandes**
+  - vous commandez plus proprement ;
+  - vous suivez mieux les livraisons ;
+  - vous organisez mieux vos achats.
+
+- **Clients**
+  - vous retrouvez l'historique ;
+  - vous suivez les dettes ;
+  - vous relancez plus facilement.
+
+---
+
+## 6. Fonctions utiles a mentionner selon le contexte
+
+### Si le commerce est deja structure
+
+- gestion d'equipe et permissions
+- plusieurs boutiques
+- suivi plus pousse des performances
+- historique d'activite
+
+### Si le commerce a beaucoup de references
+
+- imports
+- inventaire
+- produits dormants
+- suggestions de reapprovisionnement
+- organisation du catalogue
+
+### Si le prospect veut developper son activite
+
+- suivi clients
+- promotions
+- relances
+- lecture des produits performants
+
+### Si le prospect est un fournisseur
+
+- commandes recues
+- suivi des commandes
+- catalogue
+- relation avec les commercants
+- meilleure visibilite
+
+---
+
+## 7. Script de demonstration court
+
+### Demonstration en 1 minute
+
+1. montrer un produit ;
+2. faire une vente ;
+3. montrer que le stock baisse ;
+4. montrer le chiffre du jour ;
+5. ouvrir une fiche client ou un exemple de commande fournisseur selon le besoin.
+
+### Demonstration en 3 minutes
+
+1. dashboard rapide ;
+2. stock et alertes ;
+3. vente ou commande ;
+4. depenses et comptabilite ;
+5. question finale : `Est-ce que vous voyez deja en quoi cela pourrait vous aider ici ?`
+
+---
+
+## 8. Questions de qualification apres la demonstration
+
+Une fois la demonstration faite, il faut faire parler le prospect.
+
+- Qu'est-ce qui vous parait le plus utile dans ce que vous venez de voir ?
+- Parmi tout cela, qu'est-ce qui vous ferait gagner le plus de temps ?
+- Qu'est-ce qui vous aiderait le plus a ne plus perdre d'argent ?
+- Est-ce qu'il y a un point sur lequel vous auriez besoin d'accompagnement ?
+- Si vous commenciez aujourd'hui, par quoi voudriez-vous demarrer ?
+
+---
+
+## 9. Objections frequentes et reponses
+
+### "Je prefere payer une fois pour toutes."
+`Un outil de gestion a besoin de mises a jour, de support et d'evolutions. L'abonnement permet d'avoir un outil qui continue a s'ameliorer et a rester utile dans le temps.`
+
+### "Je ne suis pas a l'aise avec la technologie."
+`Justement, l'outil est fait pour etre simple. On peut vous montrer les bases rapidement et vous accompagner au debut.`
+
+### "J'ai deja un systeme."
+`L'important n'est pas seulement d'avoir un systeme, c'est de savoir s'il vous aide vraiment a mieux suivre votre stock, vos depenses, vos commandes et vos clients.`
+
+### "Je n'ai pas le temps."
+`Le but est justement de vous faire gagner du temps. On peut vous montrer l'essentiel tres vite et vous aider a demarrer de facon simple.`
+
+### "Et si je perds mon telephone ?"
+`Vos donnees ne disparaissent pas avec le telephone. Vous pouvez vous reconnecter sur un autre appareil.`
+
+### "Je vais reflechir."
+`Pas de probleme. Avant de decider, quel est le point qui vous interesse le plus ou vous fait hesiter le plus ?`
+
+---
+
+## 10. WhatsApp : role exact dans le cycle commercial
+
+WhatsApp ne doit pas etre le point de depart principal du demarchage terrain.
+
+Son meilleur usage est **apres le premier contact**.
+
+### WhatsApp sert a :
+
+- relancer un commercant apres un echange physique ;
+- envoyer un rappel simple ;
+- partager un visuel ou une courte demonstration ;
+- accompagner la creation du compte ;
+- repondre aux premieres questions ;
+- suivre l'activation apres installation ;
+- garder une relation humaine sans lourdeur.
+
+### WhatsApp ne doit pas servir a :
+
+- noyer le prospect sous trop de messages ;
+- remplacer la phase de decouverte ;
+- envoyer une longue fiche commerciale des le debut ;
+- mettre une pression excessive.
+
+### Bon usage apres demarchage
+
+#### Message de relance simple
+
+`Bonjour, c'est [Prenom] de Stockman. Merci pour notre echange de tout a l'heure. Comme convenu, je vous recontacte pour vous aider a demarrer ou repondre a vos questions.`
+
+#### Message d'accompagnement apres installation
+
+`Bonjour, j'espere que tout va bien. Avez-vous pu tester l'application depuis notre passage ? Si vous voulez, on peut revoir ensemble vos premiers produits, vos ventes ou vos alertes.`
+
+#### Message de suivi si pas d'activation
+
+`Bonjour, je me permets de revenir vers vous. Est-ce qu'il y a un point qui vous bloque pour commencer a utiliser Stockman ? Je peux vous aider dessus.`
+
+### Regle simple
+
+Chaque message WhatsApp doit avoir une utilite claire :
+- aider ;
+- relancer ;
+- debloquer ;
+- faire avancer.
+
+---
+
+## 11. Profils types de commercants
+
+### Epicerie
+
+Problemes frequents :
+- ruptures ;
+- peremption ;
+- dettes clients ;
+- suivi de caisse.
+
+Fonctions a mettre en avant :
+- stock ;
+- alertes ;
+- clients ;
+- ventes ;
+- depenses.
+
+Phrase utile :
+`Vous voyez plus vite ce qui manque, ce qui se vend et ce qui vous fait perdre de l'argent.`
+
+### Boutique de vetements
+
+Problemes frequents :
+- variantes ;
+- stock dormant ;
+- changements de prix ;
+- suivi des ventes par produit.
+
+Fonctions a mettre en avant :
+- produits et variantes ;
+- top ventes ;
+- dormants ;
+- fournisseurs.
+
+Phrase utile :
+`Vous savez mieux ce qui tourne, ce qui bloque votre argent et ce qu'il faut recommander.`
+
+### Quincaillerie
+
+Problemes frequents :
+- beaucoup de references ;
+- erreurs de stock ;
+- suivi difficile des ventes ;
+- caisse.
+
+Fonctions a mettre en avant :
+- inventaire ;
+- stock ;
+- ventes ;
+- tableau de bord.
+
+Phrase utile :
+`Vous gagnez du temps sur la gestion et vous reduisez les erreurs sur beaucoup d'articles.`
+
+---
+
+## 12. Resume final a memoriser
+
+Stockman aide le commercant a :
+- mieux suivre ;
+- mieux vendre ;
+- mieux controler ;
+- mieux decider.
+
+Le stagiaire doit retenir ceci :
+
+1. je comprends d'abord le besoin ;
+2. je montre seulement ce qui est utile ;
+3. je propose une action simple ;
+4. je fais le suivi apres le demarchage, surtout via WhatsApp si c'est pertinent.
+
+---
+
+## 13. Checklist commerciale terrain
+
+Avant de partir :
+- telephone charge ;
+- application prete ;
+- compte demo pret ;
+- pitch memorise ;
+- questions de decouverte connues ;
+- objectif du jour defini.
+
+Pendant l'echange :
+- saluer correctement ;
+- poser des questions ;
+- ecouter ;
+- montrer peu, mais bien ;
+- reformuler le benefice ;
+- proposer la suite.
+
+Apres l'echange :
+- noter le profil ;
+- noter les besoins ;
+- noter les objections ;
+- envoyer un message WhatsApp si la personne a accepte le suivi ;
+- planifier la relance ou le retour.

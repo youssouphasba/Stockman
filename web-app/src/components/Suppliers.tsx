@@ -181,7 +181,7 @@ export default function Suppliers() {
     const [importedInvoicePreview, setImportedInvoicePreview] = useState<any | null>(null);
     const invoiceImportRef = useRef<HTMLInputElement | null>(null);
 
-    const applyMarketplaceProductContext = (payload: { productName?: string; category?: string; countryCode?: string; city?: string } | null | undefined) => {
+    const applyMarketplaceProductContext = (payload: { productName: string; category: string; countryCode: string; city: string } | null | undefined) => {
         if (!payload) return;
         const nextProduct = (payload.productName || '').trim();
         const nextCategory = (payload.category || '').trim();
@@ -198,7 +198,7 @@ export default function Suppliers() {
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
         const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrÃ©es' });
-        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrÃ©es. Voulez-vous quitter sans enregistrer ?' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrÃ©es. Voulez-vous quitter sans enregistrer ' });
         if (window.confirm(`${title}\n\n${message}`)) {
             onConfirm();
         }
@@ -273,7 +273,7 @@ export default function Suppliers() {
     // Vague 2: load supplier duplicates in background (once)
     useEffect(() => {
         aiApi.detectDuplicates('suppliers').then(res => {
-            if (res?.total_found > 0) setSupplierDuplicates(res);
+            if (res.total_found > 0) setSupplierDuplicates(res);
         }).catch(() => {});
     }, []);
 
@@ -286,7 +286,7 @@ export default function Suppliers() {
             );
             const ratingsMap: Record<string, any> = {};
             results.forEach((r, i) => {
-                if (r.status === 'fulfilled' && r.value?.overall_score != null) {
+                if (r.status === 'fulfilled' && r.value.overall_score != null) {
                     ratingsMap[manualSuppliers[i].supplier_id] = r.value;
                 }
             });
@@ -310,7 +310,7 @@ export default function Suppliers() {
         }
 
         const handleOpenSupplierMarketplace = (event: Event) => {
-            const customEvent = event as CustomEvent<{ productName?: string; category?: string }>;
+            const customEvent = event as CustomEvent<{ productName: string; category: string }>;
             applyMarketplaceProductContext(customEvent.detail);
         };
 
@@ -320,7 +320,7 @@ export default function Suppliers() {
         };
     }, []);
 
-    const handleWhatsApp = (phone?: string) => {
+    const handleWhatsApp = (phone: string) => {
         if (!phone) return;
         const cleanPhone = phone.replace(/[^\d]/g, '');
         window.open(`https://wa.me/${cleanPhone}`, '_blank');
@@ -341,7 +341,7 @@ export default function Suppliers() {
     };
 
     const handleDeleteSupplier = async (supplierId: string) => {
-        if (!confirm('Supprimer ce fournisseur ?')) return;
+        if (!confirm('Supprimer ce fournisseur ')) return;
         try {
             await suppliersApi.delete(supplierId);
             setSuccess("Fournisseur supprimÃ©.");
@@ -353,7 +353,7 @@ export default function Suppliers() {
         }
     };
 
-    const getScoreStyle = (label?: string) => {
+    const getScoreStyle = (label: string) => {
         switch (label) {
             case 'fiable':
                 return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
@@ -383,7 +383,7 @@ export default function Suppliers() {
     };
 
     const exportProcurementRanking = () => {
-        if (!procurementOverview?.supplier_ranking?.length) return;
+        if (!procurementOverview.supplier_ranking.length) return;
         downloadCsv(
             `procurement-ranking-${procurementOverview.days}j.csv`,
             [
@@ -426,7 +426,7 @@ export default function Suppliers() {
         try {
             if (activeTab === 'manual') {
                 const res: any = await suppliersApi.list();
-                setManualSuppliers(Array.isArray(res) ? res : (res?.items || []));
+                setManualSuppliers(Array.isArray(res) ? res : (res.items || []));
             } else if (activeTab === 'orders') {
                 const res = await ordersApi.list();
                 setOrders(res.items || res);
@@ -456,8 +456,8 @@ export default function Suppliers() {
                         q: marketplaceQuery || undefined,
                         category: productFilter.trim() || undefined,
                     });
-                    const groupedMatches = (Array.isArray(productMatches) ? productMatches : []).reduce((acc: Record<string, any[]>, item: any) => {
-                        const key = item?.supplier_user_id;
+                    const groupedMatches = (Array.isArray(productMatches) aproductMatches : []).reduce((acc: Record<string, any[]>, item: any) => {
+                        const key = item.supplier_user_id;
                         if (!key) return acc;
                         if (!acc[key]) acc[key] = [];
                         acc[key].push(item);
@@ -493,8 +493,8 @@ export default function Suppliers() {
                 returnsApi.list(),
                 creditNotesApi.list(),
             ]);
-            setReturnsList(Array.isArray(returnsRes) ? returnsRes : (returnsRes?.items || []));
-            setCreditNotesList(Array.isArray(creditNotesRes) ? creditNotesRes : (creditNotesRes?.items || []));
+            setReturnsList(Array.isArray(returnsRes) areturnsRes : (returnsRes.items || []));
+            setCreditNotesList(Array.isArray(creditNotesRes) acreditNotesRes : (creditNotesRes.items || []));
         } catch (err) {
             console.error('Error loading returns data', err);
         }
@@ -539,11 +539,11 @@ export default function Suppliers() {
         });
     };
 
-    const openManualOrderDraft = (supplier?: any, presetItems: any[] = []) => {
+    const openManualOrderDraft = (supplier: any, presetItems: any[] = []) => {
         setMarketplaceSupplierDetail(null);
         setShowSupplierDetails(false);
         setOrderForm({
-            supplier_id: supplier?.supplier_id || '',
+            supplier_id: supplier.supplier_id || '',
             supplier_user_id: '',
             items: presetItems,
             notes: '',
@@ -552,7 +552,7 @@ export default function Suppliers() {
         setShowOrderModal(true);
     };
 
-    const openCreateReturn = async (orderId?: string) => {
+    const openCreateReturn = async (orderId: string) => {
         resetReturnForm();
         setShowReturnModal(true);
         if (!orderId) return;
@@ -576,13 +576,13 @@ export default function Suppliers() {
         }
     };
 
-    const openMarketplaceOrderDraft = async (supplier: any, presetItem?: any) => {
-        const supplierUserId = supplier?.supplier_user_id || supplier?.user_id;
+    const openMarketplaceOrderDraft = async (supplier: any, presetItem: any) => {
+        const supplierUserId = supplier.supplier_user_id || supplier.user_id;
         setShowSupplierDetails(false);
         setOrderForm({
             supplier_id: '',
             supplier_user_id: supplierUserId || '',
-            items: presetItem ? [presetItem] : [],
+            items: presetItem a[presetItem] : [],
             notes: '',
             expected_delivery: ''
         });
@@ -602,10 +602,10 @@ export default function Suppliers() {
         setBenchmarkLoading(true);
         try {
             const results = await marketplaceApi.searchProducts({
-                q: product?.name || '',
-                category: product?.category || undefined,
+                q: product.name || '',
+                category: product.category || undefined,
             });
-            const normalized = (Array.isArray(results) ? results : [])
+            const normalized = (Array.isArray(results) aresults : [])
                 .sort((a, b) => (a.price || 0) - (b.price || 0))
                 .slice(0, 20);
             setBenchmarkResults(normalized);
@@ -621,8 +621,8 @@ export default function Suppliers() {
         const normalizedSupplier = {
             ...supplier,
             kind,
-            name: supplier?.name || supplier?.company_name,
-            supplier_user_id: supplier?.supplier_user_id || supplier?.user_id,
+            name: supplier.name || supplier.company_name,
+            supplier_user_id: supplier.supplier_user_id || supplier.user_id,
         };
         setSelectedSupplier(normalizedSupplier);
         setSupplierTab('perf');
@@ -656,12 +656,12 @@ export default function Suppliers() {
                     suppliersApi.getLogs(normalizedSupplier.supplier_id),
                     suppliersApi.getPriceHistory(normalizedSupplier.supplier_id),
                 ]);
-                setLinkedProducts(Array.isArray(products) ? products : []);
+                setLinkedProducts(Array.isArray(products) aproducts : []);
                 setSupplierStats(stats);
-                setSupplierOrderHistory(Array.isArray(ordersHistory) ? ordersHistory : []);
-                setSupplierInvoices(Array.isArray(invoices) ? invoices : []);
-                setSupplierLogs(Array.isArray(logs) ? logs : []);
-                setSupplierPriceHistory(Array.isArray(priceHistory) ? priceHistory : []);
+                setSupplierOrderHistory(Array.isArray(ordersHistory) aordersHistory : []);
+                setSupplierInvoices(Array.isArray(invoices) ainvoices : []);
+                setSupplierLogs(Array.isArray(logs) alogs : []);
+                setSupplierPriceHistory(Array.isArray(priceHistory) apriceHistory : []);
                 // Vague 3: load AI rating + optimal order day in background
                 Promise.allSettled([
                     aiApi.supplierRating(normalizedSupplier.supplier_id),
@@ -698,7 +698,7 @@ export default function Suppliers() {
 
     const handleCreateSupplierLog = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedSupplier?.supplier_id || !logForm.content.trim()) return;
+        if (!selectedSupplier.supplier_id || !logForm.content.trim()) return;
         setSubmitting(true);
         try {
             const created = await suppliersApi.createLog(selectedSupplier.supplier_id, {
@@ -720,14 +720,14 @@ export default function Suppliers() {
 
     const handleCreateSupplierInvoice = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedSupplier?.supplier_id || !invoiceForm.invoice_number.trim() || !invoiceForm.amount) return;
+        if (!selectedSupplier.supplier_id || !invoiceForm.invoice_number.trim() || !invoiceForm.amount) return;
         setInvoiceSaving(true);
         try {
             const created = await suppliersApi.createInvoice(selectedSupplier.supplier_id, {
                 invoice_number: invoiceForm.invoice_number.trim(),
                 amount: Number(invoiceForm.amount),
                 status: invoiceForm.status || 'unpaid',
-                due_date: invoiceForm.due_date ? new Date(invoiceForm.due_date).toISOString() : undefined,
+                due_date: invoiceForm.due_date anew Date(invoiceForm.due_date).toISOString() : undefined,
                 order_id: invoiceForm.order_id || undefined,
                 notes: invoiceForm.notes.trim() || undefined,
                 file_url: invoiceForm.file_url.trim() || undefined,
@@ -759,7 +759,7 @@ export default function Suppliers() {
                 reject(new Error('Impossible de lire le fichier.'));
                 return;
             }
-            const payload = result.includes(',') ? result.split(',')[1] : result;
+            const payload = result.includes(',') aresult.split(',')[1] : result;
             resolve(payload);
         };
         reader.onerror = () => reject(reader.error || new Error('Lecture du fichier impossible.'));
@@ -767,18 +767,18 @@ export default function Suppliers() {
     });
 
     const openInvoiceImport = () => {
-        invoiceImportRef.current?.click();
+        invoiceImportRef.current.click();
     };
 
     const handleInvoiceImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const file = event.target.files.[0];
         event.target.value = '';
         if (!file) return;
         setInvoiceImporting(true);
         try {
             const base64 = await readFileAsBase64(file);
             const result = await aiApi.scanInvoice(base64, 'fr');
-            if (result?.error || !result?.items?.length) {
+            if (result.error || !result.items.length) {
                 setSuccess("Aucune ligne exploitable n'a Ã©tÃ© dÃ©tectÃ©e dans cette facture.");
                 setTimeout(() => setSuccess(null), 3500);
                 return;
@@ -790,12 +790,12 @@ export default function Suppliers() {
             setInvoiceForm((current) => ({
                 ...current,
                 invoice_number: result.invoice_number || current.invoice_number,
-                amount: result.total_amount != null ? String(result.total_amount) : current.amount,
+                amount: result.total_amount != null aString(result.total_amount) : current.amount,
                 notes: [
                     current.notes.trim(),
                     `Facture importÃ©e : ${file.name}`,
-                    result.supplier_name ? `Fournisseur dÃ©tectÃ© : ${result.supplier_name}` : '',
-                    result.date ? `Date dÃ©tectÃ©e : ${result.date}` : '',
+                    result.supplier_name a`Fournisseur dÃ©tectÃ© : ${result.supplier_name}` : '',
+                    result.date a`Date dÃ©tectÃ©e : ${result.date}` : '',
                 ].filter(Boolean).join('\n'),
             }));
             setSuccess('Facture importÃ©e. VÃ©rifiez les champs avant de valider.');
@@ -808,16 +808,16 @@ export default function Suppliers() {
     };
 
     const handlePrepareOrderFromImportedInvoice = async () => {
-        if (!selectedSupplier?.supplier_id || !importedInvoicePreview?.items?.length) return;
+        if (!selectedSupplier.supplier_id || !importedInvoicePreview.items.length) return;
         try {
             const sourceProducts = allProducts.length
-                ? allProducts
-                : ((await productsApi.list(undefined, 0, 500))?.items || []);
+                aallProducts
+                : ((await productsApi.list(undefined, 0, 500)).items || []);
             const matchedItems = importedInvoicePreview.items
                 .map((item: any) => {
                     const normalizedName = normalizeMatchText(item.name);
                     const matchedProduct = sourceProducts.find((product: any) => {
-                        const candidate = normalizeMatchText(product?.name);
+                        const candidate = normalizeMatchText(product.name);
                         return candidate === normalizedName
                             || candidate.includes(normalizedName)
                             || normalizedName.includes(candidate);
@@ -841,7 +841,7 @@ export default function Suppliers() {
                 supplier_user_id: '',
                 expected_delivery: '',
                 notes: importedInvoicePreview.invoice_number
-                    ? `PrÃ©parÃ© depuis la facture ${importedInvoicePreview.invoice_number}`
+                    a`PrÃ©parÃ© depuis la facture ${importedInvoicePreview.invoice_number}`
                     : 'PrÃ©parÃ© depuis une facture importÃ©e',
                 items: matchedItems,
             });
@@ -934,7 +934,7 @@ export default function Suppliers() {
     };
 
     const handleCompleteReturn = async (returnId: string) => {
-        if (!window.confirm("Finaliser ce retour et gÃ©nÃ©rer l'avoir correspondant ?")) return;
+        if (!window.confirm("Finaliser ce retour et gÃ©nÃ©rer l'avoir correspondant ")) return;
         try {
             await returnsApi.complete(returnId);
             setSuccess('Retour finalisÃ© et avoir gÃ©nÃ©rÃ©.');
@@ -950,7 +950,7 @@ export default function Suppliers() {
             await ordersApi.updateStatus(orderId, status);
             setSuccess(`Statut mis Ã  jour : ${status.toUpperCase()}`);
             loadData();
-            if (selectedOrder?.order_id === orderId) {
+            if (selectedOrder.order_id === orderId) {
                 const updated = await ordersApi.get(orderId);
                 setSelectedOrder(updated);
             }
@@ -982,8 +982,8 @@ export default function Suppliers() {
     };
 
     const openLinkProduct = async () => {
-        let supplierId = selectedSupplier?.supplier_id;
-        if (!supplierId && selectedSupplier?.kind === 'marketplace' && selectedSupplier?.supplier_user_id) {
+        let supplierId = selectedSupplier.supplier_id;
+        if (!supplierId && selectedSupplier.kind === 'marketplace' && selectedSupplier.supplier_user_id) {
             try {
                 const connectedSupplier = await marketplaceApi.connectSupplier(selectedSupplier.supplier_user_id);
                 setSelectedSupplier((prev: any) => ({
@@ -991,9 +991,9 @@ export default function Suppliers() {
                     ...connectedSupplier,
                     kind: 'marketplace',
                     supplier_user_id: selectedSupplier.supplier_user_id,
-                    name: prev?.name || connectedSupplier?.name,
+                    name: prev.name || connectedSupplier.name,
                 }));
-                supplierId = connectedSupplier?.supplier_id;
+                supplierId = connectedSupplier.supplier_id;
             } catch (err) {
                 console.error("Marketplace supplier connect error", err);
                 return;
@@ -1008,7 +1008,7 @@ export default function Suppliers() {
             const res = await productsApi.list(undefined, 0, 500);
             const products = res.items || res || [];
             const linkedRes = await suppliersApi.getProducts(supplierId);
-            const nextLinkedProducts = Array.isArray(linkedRes) ? linkedRes : [];
+            const nextLinkedProducts = Array.isArray(linkedRes) alinkedRes : [];
             const linkedIds = nextLinkedProducts.map((link: any) => link.product_id);
             setLinkedProducts(nextLinkedProducts);
             setAllProducts(products.filter((product: any) => !linkedIds.includes(product.product_id)));
@@ -1022,8 +1022,8 @@ export default function Suppliers() {
         const normalizedSupplier = {
             ...supplier,
             kind: 'manual',
-            name: supplier?.name || supplier?.company_name,
-            supplier_user_id: supplier?.supplier_user_id || supplier?.user_id,
+            name: supplier.name || supplier.company_name,
+            supplier_user_id: supplier.supplier_user_id || supplier.user_id,
         };
         setSelectedSupplier(normalizedSupplier);
         setShowLinkModal(true);
@@ -1035,7 +1035,7 @@ export default function Suppliers() {
                 suppliersApi.getProducts(normalizedSupplier.supplier_id),
             ]);
             const products = productsRes.items || productsRes || [];
-            const linked = Array.isArray(linkedRes) ? linkedRes : [];
+            const linked = Array.isArray(linkedRes) alinkedRes : [];
             const linkedIds = linked.map((link: any) => link.product_id);
             setLinkedProducts(linked);
             setAllProducts(products.filter((product: any) => !linkedIds.includes(product.product_id)));
@@ -1047,7 +1047,7 @@ export default function Suppliers() {
     };
 
     const handleLinkProduct = async () => {
-        if (!selectedSupplier?.supplier_id || !selectedProductId) return;
+        if (!selectedSupplier.supplier_id || !selectedProductId) return;
         setSubmitting(true);
         try {
             await supplierProductsApi.link({
@@ -1056,7 +1056,7 @@ export default function Suppliers() {
                 supplier_price: Number(linkPrice) || 0,
             });
             const refreshedProducts = await suppliersApi.getProducts(selectedSupplier.supplier_id);
-            setLinkedProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
+            setLinkedProducts(Array.isArray(refreshedProducts) arefreshedProducts : []);
             setShowLinkModal(false);
             setSelectedProductId(null);
             setLinkPrice('');
@@ -1070,11 +1070,11 @@ export default function Suppliers() {
     };
 
     const handleUnlinkProduct = async (linkId: string) => {
-        if (!selectedSupplier?.supplier_id) return;
+        if (!selectedSupplier.supplier_id) return;
         try {
             await supplierProductsApi.unlink(linkId);
             const refreshedProducts = await suppliersApi.getProducts(selectedSupplier.supplier_id);
-            setLinkedProducts(Array.isArray(refreshedProducts) ? refreshedProducts : []);
+            setLinkedProducts(Array.isArray(refreshedProducts) arefreshedProducts : []);
             setSuccess("Produit delie du fournisseur.");
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -1090,19 +1090,19 @@ export default function Suppliers() {
         }
         const ranked = [...manualSuppliers]
             .map((supplier: any) => {
-                const supplied = normalizeMatchText(supplier?.products_supplied || '');
-                const tokens = normalizeMatchText(suggestion?.product_name || '')
+                const supplied = normalizeMatchText(supplier.products_supplied || '');
+                const tokens = normalizeMatchText(suggestion.product_name || '')
                     .split(' ')
                     .filter((token) => token.length >= 3);
-                const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+                const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
                 return { supplier, score };
             })
             .sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
-                return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+                return (a.supplier.name || '').localeCompare(b.supplier.name || '');
             });
         setPendingSuggestion(suggestion);
-        setSelectedSuggestionSupplierId(ranked[0]?.supplier?.supplier_id || manualSuppliers[0]?.supplier_id || '');
+        setSelectedSuggestionSupplierId(ranked[0].supplier.supplier_id || manualSuppliers[0].supplier_id || '');
         setShowSuggestionLinkModal(true);
     };
 
@@ -1148,7 +1148,7 @@ export default function Suppliers() {
         }
     };
 
-    const normalizeMatchText = (value?: string | null) =>
+    const normalizeMatchText = (value: string | null) =>
         (value || '')
             .toLowerCase()
             .normalize('NFD')
@@ -1157,28 +1157,28 @@ export default function Suppliers() {
             .replace(/\s+/g, ' ')
             .trim();
 
-    const filteredManualSuppliers = (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter(s =>
-        s?.name?.toLowerCase()?.includes(search.toLowerCase()) ||
-        s?.contact_name?.toLowerCase()?.includes(search.toLowerCase())
+    const filteredManualSuppliers = (Array.isArray(manualSuppliers) amanualSuppliers : []).filter(s =>
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.contact_name.toLowerCase().includes(search.toLowerCase())
     );
 
     const marketplaceCitySuggestions = Array.from(
         new Set(
-            (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
-                .map((supplier: any) => (supplier?.city || '').trim())
+            (Array.isArray(marketplaceSuppliers) amarketplaceSuppliers : [])
+                .map((supplier: any) => (supplier.city || '').trim())
                 .filter((city: string) => city.length > 0),
         ),
     ).sort((a, b) => a.localeCompare(b));
 
     const marketplaceCountrySuggestions = Array.from(
         new Set(
-            (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
-                .map((supplier: any) => (supplier?.country_code || '').trim().toUpperCase())
+            (Array.isArray(marketplaceSuppliers) amarketplaceSuppliers : [])
+                .map((supplier: any) => (supplier.country_code || '').trim().toUpperCase())
                 .filter((country: string) => country.length > 0),
         ),
     ).sort((a, b) => a.localeCompare(b));
 
-    const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter((s) => {
+    const filteredMarketplace = (Array.isArray(marketplaceSuppliers) amarketplaceSuppliers : []).filter((s) => {
         const matchCity = !regionFilter || (s.city || '').toLowerCase().includes(regionFilter.toLowerCase());
         const matchCountry = !countryFilter || (s.country_code || '').toUpperCase() === countryFilter.toUpperCase();
 
@@ -1200,23 +1200,23 @@ export default function Suppliers() {
     }, [activeTab, search, regionFilter, countryFilter, productFilter]);
 
     const suggestionSupplierCandidates = pendingSuggestion
-        ? [...(Array.isArray(manualSuppliers) ? manualSuppliers : [])]
+        a[...(Array.isArray(manualSuppliers) amanualSuppliers : [])]
             .map((supplier: any) => {
-                const supplied = normalizeMatchText(supplier?.products_supplied || '');
-                const tokens = normalizeMatchText(pendingSuggestion?.product_name || '')
+                const supplied = normalizeMatchText(supplier.products_supplied || '');
+                const tokens = normalizeMatchText(pendingSuggestion.product_name || '')
                     .split(' ')
                     .filter((token) => token.length >= 3);
-                const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+                const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
                 return { supplier, score };
             })
             .sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
-                return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+                return (a.supplier.name || '').localeCompare(b.supplier.name || '');
             })
         : [];
 
-    const procurementAlerts = procurementOverview ? [
-        ...(procurementOverview.approval?.pending_orders > 0 ? [{
+    const procurementAlerts = procurementOverview a[
+        ...(procurementOverview.approval.pending_orders > 0 a[{
             key: 'pending_approvals',
             label: 'Demandes en attente',
             value: `${procurementOverview.approval.pending_orders}`,
@@ -1246,11 +1246,11 @@ export default function Suppliers() {
     ] : [];
 
     const productsToSecure = procurementOverview
-        ? (procurementOverview.local_suggestions || []).slice(0, 6)
+        a(procurementOverview.local_suggestions || []).slice(0, 6)
         : [];
 
     const topSuppliersPreview = procurementOverview
-        ? (procurementOverview.supplier_ranking || []).slice(0, 3)
+        a(procurementOverview.supplier_ranking || []).slice(0, 3)
         : [];
 
     const activeCreditAmount = (creditNotesList || [])
@@ -1259,17 +1259,17 @@ export default function Suppliers() {
 
     const isMarketplaceOrder = Boolean(orderForm.supplier_user_id && !orderForm.supplier_id);
     const marketplaceOrderSupplier = isMarketplaceOrder
-        ? marketplaceSuppliers.find((supplier: any) => (supplier.supplier_user_id || supplier.user_id) === orderForm.supplier_user_id)
-            || (marketplaceSupplierDetail?.profile ? {
+        amarketplaceSuppliers.find((supplier: any) => (supplier.supplier_user_id || supplier.user_id) === orderForm.supplier_user_id)
+            || (marketplaceSupplierDetail.profile a{
                 ...marketplaceSupplierDetail.profile,
                 name: marketplaceSupplierDetail.profile.company_name,
                 supplier_user_id: marketplaceSupplierDetail.profile.user_id,
-                category: marketplaceSupplierDetail.profile.categories?.[0] || '',
+                category: marketplaceSupplierDetail.profile.categories.[0] || '',
                 rating: marketplaceSupplierDetail.profile.rating_average || 0,
             } : null)
         : null;
     const orderProductOptions = isMarketplaceOrder
-        ? (marketplaceSupplierDetail?.catalog || [])
+        a(marketplaceSupplierDetail.catalog || [])
         : allProducts;
     const orderTotal = orderForm.items.reduce(
         (sum, item) => sum + ((Number(item.unit_price) || 0) * (Number(item.quantity) || 0)),
@@ -1384,10 +1384,10 @@ export default function Suppliers() {
                             className="btn-primary flex items-center gap-2"
                         >
                             <Plus size={18} />
-                            {ordersView === 'returns' ? 'Nouveau retour' : 'Nouvelle Commande'}
+                            {ordersView === 'returns' a'Nouveau retour' : 'Nouvelle Commande'}
                         </button>
                     )}
-                    {activeTab === 'insights' && procurementOverview?.supplier_ranking?.length > 0 && (
+                    {activeTab === 'insights' && procurementOverview.supplier_ranking.length > 0 && (
                         <button
                             onClick={exportProcurementRanking}
                             className="btn-primary flex items-center gap-2"
@@ -1419,7 +1419,7 @@ export default function Suppliers() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as TabType)}
                         className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === tab.id
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                            a'bg-primary text-white shadow-lg shadow-primary/20'
                             : 'text-slate-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
@@ -1457,7 +1457,7 @@ export default function Suppliers() {
                                             onClick={() => setShowSupplierDups(!showSupplierDups)}
                                             className="mt-1 text-violet-200 text-xs font-bold hover:underline"
                                         >
-                                            {showSupplierDups ? 'Masquer' : 'Voir les doublons'}
+                                            {showSupplierDups a'Masquer' : 'Voir les doublons'}
                                         </button>
                                         {showSupplierDups && (
                                             <div className="mt-3 space-y-2">
@@ -1476,11 +1476,11 @@ export default function Suppliers() {
                             </div>
                         )}
 
-                        {loading ? (
+                        {loading a(
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-50">
                                 {[1, 2, 3].map(i => <div key={i} className="h-48 glass-card animate-pulse"></div>)}
                             </div>
-                        ) : filteredManualSuppliers.length === 0 ? (
+                        ) : filteredManualSuppliers.length === 0 a(
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <UserPlus size={64} className="mx-auto mb-4 opacity-10" />
                                 <p className="text-xl mb-4">Vous n'avez pas encore de fournisseurs enregistrÃ©s.</p>
@@ -1495,7 +1495,7 @@ export default function Suppliers() {
                                         <div className="flex justify-between items-start mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                                                    {s.name?.charAt(0)}
+                                                    {s.name.charAt(0)}
                                                 </div>
                                                 <div>
                                                     <h3 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{s.name}</h3>
@@ -1504,7 +1504,7 @@ export default function Suppliers() {
                                             </div>
                                             <div className="relative">
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setContextMenuSupplierId(contextMenuSupplierId === s.supplier_id ? null : s.supplier_id); }}
+                                                    onClick={(e) => { e.stopPropagation(); setContextMenuSupplierId(contextMenuSupplierId === s.supplier_id anull : s.supplier_id); }}
                                                     className="text-slate-500 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all"
                                                 >
                                                     <MoreVertical size={20} />
@@ -1553,8 +1553,8 @@ export default function Suppliers() {
                                         {supplierRatings[s.supplier_id] && (
                                             <div className="flex items-center gap-2 mb-2">
                                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black ${
-                                                    supplierRatings[s.supplier_id].overall_score >= 70 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                                    supplierRatings[s.supplier_id].overall_score >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                    supplierRatings[s.supplier_id].overall_score >= 70 a'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                                    supplierRatings[s.supplier_id].overall_score >= 40 a'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                                                     'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                                                 }`}>
                                                     <StarIcon size={12} />
@@ -1597,7 +1597,7 @@ export default function Suppliers() {
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => setOrdersView('orders')}
-                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${ordersView === 'orders' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${ordersView === 'orders' a'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
                                 >
                                     Bons de commande
                                 </button>
@@ -1606,7 +1606,7 @@ export default function Suppliers() {
                                         setOrdersView('returns');
                                         void loadReturns();
                                     }}
-                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${ordersView === 'returns' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${ordersView === 'returns' a'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
                                 >
                                     Retours et avoirs
                                 </button>
@@ -1621,16 +1621,16 @@ export default function Suppliers() {
                             )}
                         </div>
 
-                        {ordersView === 'orders' && loading ? (
+                        {ordersView === 'orders' && loading a(
                             <div className="space-y-4">
                                 {[1, 2, 3, 4].map(i => <div key={i} className="h-20 glass-card animate-pulse"></div>)}
                             </div>
-                        ) : ordersView === 'orders' && orders.length === 0 ? (
+                        ) : ordersView === 'orders' && orders.length === 0 a(
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <ClipboardList size={64} className="mx-auto mb-4 opacity-10" />
                                 <p className="text-xl">Aucun bon de commande trouvÃ©.</p>
                             </div>
-                        ) : ordersView === 'orders' ? (
+                        ) : ordersView === 'orders' a(
                             <div className="overflow-hidden glass-card">
                                 <table className="w-full text-left">
                                     <thead>
@@ -1711,7 +1711,7 @@ export default function Suppliers() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {returnsList.length === 0 ? (
+                                            {returnsList.length === 0 a(
                                                 <tr>
                                                     <td colSpan={5} className="px-6 py-10 text-center text-slate-500">Aucun retour fournisseur enregistrÃ©.</td>
                                                 </tr>
@@ -1724,12 +1724,12 @@ export default function Suppliers() {
                                                     <td className="px-6 py-4 text-white font-bold">{ret.supplier_name || 'Fournisseur non renseignÃ©'}</td>
                                                     <td className="px-6 py-4 text-primary font-bold">{formatCurrency(ret.total_amount || 0)}</td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${ret.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ret.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-slate-500/10 text-slate-300 border-white/10'}`}>
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${ret.status === 'completed' a'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ret.status === 'pending' a'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-slate-500/10 text-slate-300 border-white/10'}`}>
                                                             {(ret.status || 'pending').replace('_', ' ').toUpperCase()}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        {ret.status !== 'completed' ? (
+                                                        {ret.status !== 'completed' a(
                                                             <button
                                                                 onClick={() => void handleCompleteReturn(ret.return_id)}
                                                                 className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all"
@@ -1757,7 +1757,7 @@ export default function Suppliers() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {creditNotesList.length === 0 ? (
+                                            {creditNotesList.length === 0 a(
                                                 <tr>
                                                     <td colSpan={4} className="px-6 py-10 text-center text-slate-500">Aucun avoir disponible.</td>
                                                 </tr>
@@ -1770,7 +1770,7 @@ export default function Suppliers() {
                                                     <td className="px-6 py-4 text-white font-bold">{note.supplier_name || 'Fournisseur non renseignÃ©'}</td>
                                                     <td className="px-6 py-4 text-primary font-bold">{formatCurrency(note.amount || 0)}</td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${note.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : note.status === 'expired' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${note.status === 'active' a'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : note.status === 'expired' a'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
                                                             {(note.status || 'active').toUpperCase()}
                                                         </span>
                                                     </td>
@@ -1801,16 +1801,16 @@ export default function Suppliers() {
                                 disabled={automating}
                                 className="btn-primary bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2 disabled:opacity-50"
                             >
-                                <RefreshCcw size={18} className={automating ? 'animate-spin' : ''} />
-                                {automating ? 'En cours...' : 'Tout Automatiser'}
+                                <RefreshCcw size={18} className={automating a'animate-spin' : ''} />
+                                {automating a'En cours...' : 'Tout Automatiser'}
                             </button>
                         </div>
 
-                        {loading ? (
+                        {loading a(
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[1, 2, 3, 4].map(i => <div key={i} className="h-32 glass-card animate-pulse"></div>)}
                             </div>
-                        ) : suggestions.length === 0 ? (
+                        ) : suggestions.length === 0 a(
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <CheckCircle size={64} className="mx-auto mb-4 opacity-10 text-emerald-500" />
                                 <p className="text-xl">Votre stock est optimal ! Aucune suggestion pour le moment.</p>
@@ -1818,14 +1818,14 @@ export default function Suppliers() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {suggestions.map((s, idx) => (
-                                    <div key={idx} className={`glass-card p-5 border-l-4 transition-all hover:scale-[1.01] ${s.priority === 'critical' ? 'border-l-rose-500' : 'border-l-amber-500'
+                                    <div key={idx} className={`glass-card p-5 border-l-4 transition-all hover:scale-[1.01] ${s.priority === 'critical' a'border-l-rose-500' : 'border-l-amber-500'
                                         }`}>
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <h4 className="font-bold text-white mb-1">{s.product_name}</h4>
                                                 <p className="text-xs text-slate-500">Fournisseur : <span className="text-slate-300 font-medium">{s.supplier_name}</span></p>
                                             </div>
-                                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${s.priority === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${s.priority === 'critical' a'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
                                                 }`}>
                                                 {s.priority}
                                             </span>
@@ -1842,7 +1842,7 @@ export default function Suppliers() {
                                             </div>
                                             <div className="bg-white/5 p-2 rounded-lg text-center">
                                                 <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Reste</div>
-                                                <div className={`font-bold ${s.days_until_stock_out < 3 ? 'text-rose-400' : 'text-amber-400'}`}>
+                                                <div className={`font-bold ${s.days_until_stock_out < 3 a'text-rose-400' : 'text-amber-400'}`}>
                                                     {s.days_until_stock_out || 'N/A'}j
                                                 </div>
                                             </div>
@@ -1868,7 +1868,7 @@ export default function Suppliers() {
                                                 }}
                                                 className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
                                             >
-                                                {s.supplier_id ? 'Commander' : 'Associer fournisseur'}
+                                                {s.supplier_id a'Commander' : 'Associer fournisseur'}
                                             </button>
                                         </div>
                                     </div>
@@ -1895,7 +1895,7 @@ export default function Suppliers() {
                                             key={days}
                                             onClick={() => setProcurementDays(days)}
                                             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${procurementDays === days
-                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                a'bg-primary text-white shadow-lg shadow-primary/20'
                                                 : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                                                 }`}
                                         >
@@ -1910,7 +1910,7 @@ export default function Suppliers() {
                                         Perimetre : {procurementOverview.scope_label}
                                     </span>
                                     <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
-                                        Workflow approbation : {procurementOverview.approval.workflow_enabled ? 'optionnel actif' : 'non bloque'}
+                                        Workflow approbation : {procurementOverview.approval.workflow_enabled a'optionnel actif' : 'non bloque'}
                                     </span>
                                     <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
                                         {procurementOverview.approval.pending_orders} demande(s) en attente
@@ -1919,13 +1919,13 @@ export default function Suppliers() {
                             )}
                         </div>
 
-                        {loading ? (
+                        {loading a(
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {[1, 2, 3, 4, 5, 6].map((index) => (
                                     <div key={index} className="h-32 glass-card animate-pulse" />
                                 ))}
                             </div>
-                        ) : !procurementOverview ? (
+                        ) : !procurementOverview a(
                             <div className="glass-card p-12 text-center text-slate-500">
                                 <TrendingUp size={56} className="mx-auto mb-4 opacity-10" />
                                 <p className="text-xl">Aucune donnee d'approvisionnement disponible.</p>
@@ -1999,7 +1999,7 @@ export default function Suppliers() {
                                             <p className="text-sm text-slate-400 mt-1">RepÃ©rez vite les commandes en attente, les produits Ã  risque et les fournisseurs Ã  surveiller.</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {procurementAlerts.length === 0 ? (
+                                            {procurementAlerts.length === 0 a(
                                                 <div className="py-10 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                                     <CheckCircle size={30} className="mx-auto text-emerald-500/50 mb-3" />
                                                     <p className="text-sm text-slate-500 font-bold uppercase">Aucune alerte prioritaire</p>
@@ -2007,7 +2007,7 @@ export default function Suppliers() {
                                             ) : procurementAlerts.map((alert) => (
                                                 <div key={alert.key} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                     <div>
-                                                        <p className={`text-sm font-bold ${alert.tone === 'rose' ? 'text-rose-300' : alert.tone === 'amber' ? 'text-amber-300' : 'text-blue-300'}`}>{alert.label}</p>
+                                                        <p className={`text-sm font-bold ${alert.tone === 'rose' a'text-rose-300' : alert.tone === 'amber' a'text-amber-300' : 'text-blue-300'}`}>{alert.label}</p>
                                                         <p className="text-xs text-slate-400 mt-1">{alert.value}</p>
                                                     </div>
                                                     <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
@@ -2081,7 +2081,7 @@ export default function Suppliers() {
                                             </span>
                                         </div>
                                         <div className="space-y-3">
-                                            {topSuppliersPreview.length === 0 ? (
+                                            {topSuppliersPreview.length === 0 a(
                                                 <p className="text-sm text-slate-500">Aucun fournisseur Ã  mettre en avant pour le moment.</p>
                                             ) : topSuppliersPreview.map((supplier: any) => (
                                                 <div key={supplier.supplier_key} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4">
@@ -2111,7 +2111,7 @@ export default function Suppliers() {
                                             </span>
                                         </div>
                                         <div className="space-y-3">
-                                            {productsToSecure.length === 0 ? (
+                                            {productsToSecure.length === 0 a(
                                                 <p className="text-sm text-slate-500">Aucun produit critique Ã  sÃ©curiser actuellement.</p>
                                             ) : productsToSecure.map((suggestion: any) => (
                                                 <div key={`${suggestion.store_id}-${suggestion.product_id}`} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-2">
@@ -2160,7 +2160,7 @@ export default function Suppliers() {
                                             </button>
                                         </div>
                                         <div className="space-y-3">
-                                            {procurementOverview.supplier_ranking.length === 0 ? (
+                                            {procurementOverview.supplier_ranking.length === 0 a(
                                                 <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                                     <StoreIcon size={32} className="mx-auto text-slate-700 mb-3" />
                                                     <p className="text-sm text-slate-500 font-bold uppercase">Aucun fournisseur a classer</p>
@@ -2172,10 +2172,10 @@ export default function Suppliers() {
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <p className="text-sm font-black text-white">{supplier.supplier_name}</p>
                                                                 <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getScoreStyle(supplier.score_label)}`}>
-                                                                    {supplier.score_label?.replace('_', ' ') || 'neutre'}
+                                                                    {supplier.score_label.replace('_', ' ') || 'neutre'}
                                                                 </span>
                                                                 <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-white/5 text-slate-300 border-white/10">
-                                                                    {supplier.kind === 'marketplace' ? 'Marketplace' : 'Manuel'}
+                                                                    {supplier.kind === 'marketplace' a'Marketplace' : 'Manuel'}
                                                                 </span>
                                                             </div>
                                                             <p className="text-xs text-slate-400 mt-2">
@@ -2206,12 +2206,12 @@ export default function Suppliers() {
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-3">
                                                             <p className="text-slate-500 uppercase font-black text-[10px]">Variance prix</p>
-                                                            <p className={`font-bold mt-1 ${(supplier.price_variance_pct || 0) > 8 ? 'text-rose-400' : 'text-white'}`}>
+                                                            <p className={`font-bold mt-1 ${(supplier.price_variance_pct || 0) > 8 a'text-rose-400' : 'text-white'}`}>
                                                                 {Math.round(supplier.price_variance_pct || 0)}%
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    {supplier.recent_incidents?.length > 0 && (
+                                                    {supplier.recent_incidents.length > 0 && (
                                                         <div className="flex flex-wrap gap-2">
                                                             {supplier.recent_incidents.map((incident: string, index: number) => (
                                                                 <span
@@ -2234,7 +2234,7 @@ export default function Suppliers() {
                                                 <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Synthese IA</p>
                                                 <p className="text-sm text-slate-400 mt-1">Recommandations calcules sur la selection en cours.</p>
                                             </div>
-                                            {procurementOverview.recommendations.length === 0 ? (
+                                            {procurementOverview.recommendations.length === 0 a(
                                                 <p className="text-sm text-slate-400">Aucun signal critique detecte. Les boutiques peuvent continuer leurs achats normalement.</p>
                                             ) : (
                                                 <div className="space-y-3">
@@ -2254,7 +2254,7 @@ export default function Suppliers() {
                                                 <p className="text-sm text-slate-400 mt-1">Vue consolidee, sans perturber les responsables locaux.</p>
                                             </div>
                                             <div className="space-y-3">
-                                                {procurementOverview.store_summaries.length === 0 ? (
+                                                {procurementOverview.store_summaries.length === 0 a(
                                                     <p className="text-sm text-slate-500">Aucune boutique active sur ce perimetre.</p>
                                                 ) : procurementOverview.store_summaries.map((store: any) => (
                                                     <div key={store.store_id} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-2">
@@ -2290,7 +2290,7 @@ export default function Suppliers() {
                                             <p className="text-sm text-slate-400 mt-1">Aides a l'appro par boutique, jamais forcees.</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {procurementOverview.local_suggestions.length === 0 ? (
+                                            {procurementOverview.local_suggestions.length === 0 a(
                                                 <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                                     <CheckCircle size={32} className="mx-auto text-emerald-500/50 mb-3" />
                                                     <p className="text-sm text-slate-500 font-bold uppercase">Aucun besoin local critique</p>
@@ -2332,7 +2332,7 @@ export default function Suppliers() {
                                             <p className="text-sm text-slate-400 mt-1">Suggestions consolidees pour gagner du volume, sans imposer une commande centrale.</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {procurementOverview.group_opportunities.length === 0 ? (
+                                            {procurementOverview.group_opportunities.length === 0 a(
                                                 <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                                     <Truck size={32} className="mx-auto text-slate-700 mb-3" />
                                                     <p className="text-sm text-slate-500 font-bold uppercase">Aucune opportunite groupee detectee</p>
@@ -2384,7 +2384,7 @@ export default function Suppliers() {
                             <div className="relative">
                                 <button
                                     onClick={() => setIsRegionDropdownOpen(prev => !prev)}
-                                    className={`px-6 py-4 rounded-2xl border flex items-center gap-2 transition-all ${regionFilter ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
+                                    className={`px-6 py-4 rounded-2xl border flex items-center gap-2 transition-all ${regionFilter a'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
                                 >
                                     <FilterIcon size={20} />
                                     <span>{regionFilter || 'RÃ©gion'}</span>
@@ -2394,8 +2394,8 @@ export default function Suppliers() {
                                         {marketplaceCitySuggestions.map(region => (
                                             <button
                                                 key={region}
-                                                onClick={() => { setRegionFilter(region === regionFilter ? '' : region); setIsRegionDropdownOpen(false); }}
-                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${regionFilter === region ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                                onClick={() => { setRegionFilter(region === regionFilter a'' : region); setIsRegionDropdownOpen(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${regionFilter === region a'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 {region}
                                             </button>
@@ -2475,10 +2475,10 @@ export default function Suppliers() {
                                 {marketplaceCountrySuggestions.slice(0, 8).map((country) => (
                                     <button
                                         key={country}
-                                        onClick={() => setCountryFilter(country === countryFilter ? '' : country)}
+                                        onClick={() => setCountryFilter(country === countryFilter a'' : country)}
                                         className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                                             countryFilter === country
-                                                ? 'bg-primary/10 border-primary/30 text-primary'
+                                                a'bg-primary/10 border-primary/30 text-primary'
                                                 : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
@@ -2488,10 +2488,10 @@ export default function Suppliers() {
                                 {marketplaceCitySuggestions.slice(0, 12).map((city) => (
                                     <button
                                         key={city}
-                                        onClick={() => setRegionFilter(city === regionFilter ? '' : city)}
+                                        onClick={() => setRegionFilter(city === regionFilter a'' : city)}
                                         className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                                             regionFilter === city
-                                                ? 'bg-primary/10 border-primary/30 text-primary'
+                                                a'bg-primary/10 border-primary/30 text-primary'
                                                 : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
@@ -2501,11 +2501,11 @@ export default function Suppliers() {
                             </div>
                         )}
 
-                        {loading && marketplaceSuppliers.length === 0 ? (
+                        {loading && marketplaceSuppliers.length === 0 a(
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-64 glass-card animate-pulse"></div>)}
                             </div>
-                        ) : filteredMarketplace.length === 0 ? (
+                        ) : filteredMarketplace.length === 0 a(
                             <div className="py-20 text-center text-slate-500 glass-card">
                                 <GlobeIcon size={64} className="mx-auto mb-4 opacity-10" />
                                 <p className="text-xl">Aucun fournisseur trouvÃ©.</p>
@@ -2521,11 +2521,11 @@ export default function Suppliers() {
                                         <div className="h-20 bg-gradient-to-r from-primary/20 to-primary/5 relative">
                                             <div className="absolute -bottom-4 left-4">
                                                 <div className="w-12 h-12 rounded-xl bg-[#0F172A] border-2 border-[#0F172A] shadow-lg flex items-center justify-center text-white overflow-hidden">
-                                                    {s.logo_url ? (
+                                                    {s.logo_url a(
                                                         <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <div className="bg-primary/20 w-full h-full flex items-center justify-center text-lg font-bold text-primary">
-                                                            {s.name?.charAt(0)}
+                                                            {s.name.charAt(0)}
                                                         </div>
                                                     )}
                                                 </div>
@@ -2587,7 +2587,7 @@ export default function Suppliers() {
                                                     onClick={() => openMarketplaceOrderDraft(
                                                         s,
                                                         leadMatch
-                                                            ? {
+                                                            a{
                                                                 product_id: leadMatch.catalog_id,
                                                                 name: leadMatch.name,
                                                                 quantity: leadMatch.min_order_quantity || 1,
@@ -2680,7 +2680,7 @@ export default function Suppliers() {
                                 disabled={submitting}
                                 className="w-full btn-primary py-4 mt-2 font-bold flex justify-center items-center gap-2"
                             >
-                                {submitting ? <RefreshCcw size={20} className="animate-spin" /> : <UserPlus size={20} />}
+                                {submitting a<RefreshCcw size={20} className="animate-spin" /> : <UserPlus size={20} />}
                                 Enregistrer le fournisseur
                             </button>
                         </form>
@@ -2722,7 +2722,7 @@ export default function Suppliers() {
                                 <option value="" className="bg-slate-800">SÃ©lectionner un fournisseur...</option>
                                 {suggestionSupplierCandidates.map(({ supplier, score }) => (
                                     <option key={supplier.supplier_id} value={supplier.supplier_id} className="bg-slate-800">
-                                        {supplier.name} {score > 0 ? 'Â· match' : ''}
+                                        {supplier.name} {score > 0 a'Â· match' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -2746,7 +2746,7 @@ export default function Suppliers() {
                                 disabled={submitting || !selectedSuggestionSupplierId}
                                 className="btn-primary rounded-xl px-6 py-2 text-sm font-bold disabled:opacity-50"
                             >
-                                {submitting ? 'Association...' : 'Associer et commander'}
+                                {submitting a'Association...' : 'Associer et commander'}
                             </button>
                         </div>
                     </div>
@@ -2767,14 +2767,14 @@ export default function Suppliers() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-400 mb-1">{t('suppliers.order_modal.supplier', 'Fournisseur')}</label>
-                                    {isMarketplaceOrder && marketplaceOrderSupplier ? (
+                                    {isMarketplaceOrder && marketplaceOrderSupplier a(
                                         <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3">
                                             <div className="text-sm font-bold text-white">
                                                 {marketplaceOrderSupplier.name || marketplaceOrderSupplier.company_name}
                                             </div>
                                             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
                                                 <span>{marketplaceOrderSupplier.city || 'Marketplace'}</span>
-                                                <span>{t('suppliers.order_modal.catalog_count', 'Catalogue')}: {(marketplaceSupplierDetail?.catalog || []).length} {t('suppliers.order_modal.products', 'produits')}</span>
+                                                <span>{t('suppliers.order_modal.catalog_count', 'Catalogue')}: {(marketplaceSupplierDetail.catalog || []).length} {t('suppliers.order_modal.products', 'produits')}</span>
                                                 <span>{t('suppliers.order_modal.rating', 'Note')}: {(marketplaceOrderSupplier.rating || 0).toFixed(1)}/5</span>
                                             </div>
                                         </div>
@@ -2786,7 +2786,7 @@ export default function Suppliers() {
                                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none"
                                         >
                                             <option value="" className="bg-slate-800">{t('suppliers.order_modal.select', 'SÃ©lectionner...')}</option>
-                                            {(Array.isArray(manualSuppliers) ? manualSuppliers : []).map((s) => (
+                                            {(Array.isArray(manualSuppliers) amanualSuppliers : []).map((s) => (
                                                 <option key={s.supplier_id} value={s.supplier_id} className="bg-slate-800">
                                                     {s.name}
                                                 </option>
@@ -2815,26 +2815,26 @@ export default function Suppliers() {
                                             const prodId = e.target.value;
                                             if (!prodId) return;
                                             const product = isMarketplaceOrder
-                                                ? orderProductOptions.find((p: any) => p.catalog_id === prodId)
+                                                aorderProductOptions.find((p: any) => p.catalog_id === prodId)
                                                 : orderProductOptions.find((p: any) => p.product_id === prodId);
                                             if (product) {
                                                 const existing = orderForm.items.find(i => i.product_id === prodId);
                                                 const nextQuantity = isMarketplaceOrder
-                                                    ? Number(product.min_order_quantity) || 1
+                                                    aNumber(product.min_order_quantity) || 1
                                                     : 1;
                                                 const unitPrice = isMarketplaceOrder
-                                                    ? Number(product.price) || 0
+                                                    aNumber(product.price) || 0
                                                     : Number(product.cost_price) || 0;
                                                 if (existing) {
                                                     setOrderForm({
                                                         ...orderForm,
-                                                        items: orderForm.items.map(i => i.product_id === prodId ? { ...i, quantity: i.quantity + nextQuantity } : i)
+                                                        items: orderForm.items.map(i => i.product_id === prodId a{ ...i, quantity: i.quantity + nextQuantity } : i)
                                                     });
                                                 } else {
                                                     setOrderForm({
                                                         ...orderForm,
                                                         items: [...orderForm.items, {
-                                                            product_id: isMarketplaceOrder ? product.catalog_id : product.product_id,
+                                                            product_id: isMarketplaceOrder aproduct.catalog_id : product.product_id,
                                                             name: product.name,
                                                             quantity: nextQuantity,
                                                             unit_price: unitPrice
@@ -2848,11 +2848,11 @@ export default function Suppliers() {
                                         <option value="">{t('suppliers.order_modal.select_product', 'Ajouter un produit...')}</option>
                                         {orderProductOptions.map((p: any) => (
                                             <option
-                                                key={isMarketplaceOrder ? p.catalog_id : p.product_id}
-                                                value={isMarketplaceOrder ? p.catalog_id : p.product_id}
+                                                key={isMarketplaceOrder ap.catalog_id : p.product_id}
+                                                value={isMarketplaceOrder ap.catalog_id : p.product_id}
                                             >
                                                 {p.name}
-                                                {isMarketplaceOrder ? ` - ${formatCurrency(p.price || 0)}/${p.unit || 'unitÃ©'}` : ''}
+                                                {isMarketplaceOrder a` - ${formatCurrency(p.price || 0)}/${p.unit || 'unitÃ©'}` : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -2877,7 +2877,7 @@ export default function Suppliers() {
                                                             value={item.quantity}
                                                             onChange={e => setOrderForm({
                                                                 ...orderForm,
-                                                                items: orderForm.items.map((it, i) => i === idx ? { ...it, quantity: parseInt(e.target.value) || 0 } : it)
+                                                                items: orderForm.items.map((it, i) => i === idx a{ ...it, quantity: parseInt(e.target.value) || 0 } : it)
                                                             })}
                                                             className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-primary/50 outline-none"
                                                         />
@@ -2920,7 +2920,7 @@ export default function Suppliers() {
                                         disabled={submitting || orderForm.items.length === 0}
                                         className="btn-primary px-8 flex items-center gap-2"
                                     >
-                                        {submitting ? <RefreshCcw size={18} className="animate-spin" /> : <ClipboardList size={18} />}
+                                        {submitting a<RefreshCcw size={18} className="animate-spin" /> : <ClipboardList size={18} />}
                                         {t('suppliers.order_modal.create', 'CrÃ©er le Bon')}
                                     </button>
                                 </div>
@@ -2969,7 +2969,7 @@ export default function Suppliers() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fournisseur</label>
                                     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
-                                        {returnOrderDetail?.supplier_name || "SÃ©lectionnez d'abord une commande"}
+                                        {returnOrderDetail.supplier_name || "SÃ©lectionnez d'abord une commande"}
                                     </div>
                                 </div>
                             </div>
@@ -2977,11 +2977,11 @@ export default function Suppliers() {
                             <div className="rounded-2xl border border-white/5 bg-white/5 p-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">Articles Ã  retourner</p>
-                                    {returnOrderDetail?.expected_delivery && (
+                                    {returnOrderDetail.expected_delivery && (
                                         <span className="text-xs text-slate-400">Livraison prÃ©vue : {formatDate(returnOrderDetail.expected_delivery)}</span>
                                     )}
                                 </div>
-                                {returnForm.items.length === 0 ? (
+                                {returnForm.items.length === 0 a(
                                     <p className="py-6 text-center text-sm text-slate-500">Choisissez une commande pour charger les articles concernÃ©s.</p>
                                 ) : (
                                     <div className="space-y-3">
@@ -3000,7 +3000,7 @@ export default function Suppliers() {
                                                             const nextValue = Number(e.target.value) || 0;
                                                             setReturnForm((current) => ({
                                                                 ...current,
-                                                                items: current.items.map((currentItem, currentIdx) => currentIdx === idx ? { ...currentItem, quantity: nextValue } : currentItem),
+                                                                items: current.items.map((currentItem, currentIdx) => currentIdx === idx a{ ...currentItem, quantity: nextValue } : currentItem),
                                                             }));
                                                         }}
                                                         className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-primary/40"
@@ -3014,7 +3014,7 @@ export default function Suppliers() {
                                                             const nextReason = e.target.value;
                                                             setReturnForm((current) => ({
                                                                 ...current,
-                                                                items: current.items.map((currentItem, currentIdx) => currentIdx === idx ? { ...currentItem, reason: nextReason } : currentItem),
+                                                                items: current.items.map((currentItem, currentIdx) => currentIdx === idx a{ ...currentItem, reason: nextReason } : currentItem),
                                                             }));
                                                         }}
                                                         placeholder="Motif du retour"
@@ -3047,7 +3047,7 @@ export default function Suppliers() {
                                     disabled={returnSaving || !returnForm.order_id || !returnForm.items.some((item) => Number(item.quantity) > 0)}
                                     className="px-6 py-2 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all disabled:opacity-50"
                                 >
-                                    {returnSaving ? 'CrÃ©ationâ€¦' : 'CrÃ©er le retour'}
+                                    {returnSaving a'CrÃ©ationâ€¦' : 'CrÃ©er le retour'}
                                 </button>
                             </div>
                         </form>
@@ -3062,14 +3062,14 @@ export default function Suppliers() {
                         <div className="p-8 border-b border-white/10 flex justify-between items-center">
                             <div>
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    {selectedOrder ? `Bon de Commande #${selectedOrder.order_id.substring(0, 8)}` : 'Chargement du bon'}
+                                    {selectedOrder a`Bon de Commande #${selectedOrder.order_id.substring(0, 8)}` : 'Chargement du bon'}
                                     {selectedOrder && (
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(selectedOrder.status)}`}>
                                             {selectedOrder.status.replace('_', ' ').toUpperCase()}
                                         </span>
                                     )}
                                 </h2>
-                                <p className="text-slate-500 mt-1">Fournisseur : <span className="text-white">{selectedOrder?.supplier_name || '...'}</span></p>
+                                <p className="text-slate-500 mt-1">Fournisseur : <span className="text-white">{selectedOrder.supplier_name || '...'}</span></p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
@@ -3087,7 +3087,7 @@ export default function Suppliers() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
-                            {orderDetailLoading || !selectedOrder ? (
+                            {orderDetailLoading || !selectedOrder a(
                                 <div className="flex items-center justify-center py-24">
                                     <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                                 </div>
@@ -3121,7 +3121,7 @@ export default function Suppliers() {
                                 )}
                                 {(['shipped', 'partially_delivered'].includes(selectedOrder.status)) && (
                                     <button
-                                        onClick={() => selectedOrder.is_connected ? setDeliveryOrderId(selectedOrder.order_id) : handleUpdateOrderStatus(selectedOrder.order_id, 'delivered')}
+                                        onClick={() => selectedOrder.is_connected asetDeliveryOrderId(selectedOrder.order_id) : handleUpdateOrderStatus(selectedOrder.order_id, 'delivered')}
                                         className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                                     >
                                         <PackageIcon size={20} /> RÃ©ception Finale (Total)
@@ -3154,8 +3154,8 @@ export default function Suppliers() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {selectedOrder.items?.map((item: any, idx: number) => {
-                                                const receivedQuantity = selectedOrder.received_items?.[item.item_id] ?? item.received_quantity ?? 0;
+                                            {selectedOrder.items.map((item: any, idx: number) => {
+                                                const receivedQuantity = selectedOrder.received_items.[item.item_id]  item.received_quantity  0;
                                                 return (
                                                     <tr key={idx}>
                                                         <td className="px-4 py-3 font-bold text-white">{item.product_name}</td>
@@ -3183,8 +3183,8 @@ export default function Suppliers() {
                                     <p className="text-xs text-slate-500">Saisissez les quantitÃ©s rÃ©ellement reÃ§ues pour mettre Ã  jour votre stock immÃ©diatement.</p>
 
                                     <div className="space-y-3">
-                                        {selectedOrder.items?.map((item: any, idx: number) => {
-                                            const receivedQuantity = selectedOrder.received_items?.[item.item_id] ?? item.received_quantity ?? 0;
+                                        {selectedOrder.items.map((item: any, idx: number) => {
+                                            const receivedQuantity = selectedOrder.received_items.[item.item_id]  item.received_quantity  0;
                                             const remaining = item.quantity - receivedQuantity;
                                             if (remaining <= 0) return null;
                                             return (
@@ -3254,7 +3254,7 @@ export default function Suppliers() {
             <Modal
                 isOpen={showSupplierDetails}
                 onClose={() => setShowSupplierDetails(false)}
-                title={selectedSupplier?.name || "Fournisseur"}
+                title={selectedSupplier.name || "Fournisseur"}
                 maxWidth="xl"
             >
                 {selectedSupplier && (
@@ -3262,65 +3262,65 @@ export default function Suppliers() {
                         <div className="flex p-1 bg-white/5 rounded-xl border border-white/5 w-fit mx-auto">
                             <button
                                 onClick={() => setSupplierTab('perf')}
-                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'perf' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'perf' a'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
                                 Performance
                             </button>
                             <button
                                 onClick={() => setSupplierTab('logs')}
-                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'logs' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'logs' a'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
-                                {selectedSupplier.kind === 'marketplace' ? 'Catalogue' : 'Journal de Bord'}
+                                {selectedSupplier.kind === 'marketplace' a'Catalogue' : 'Journal de Bord'}
                             </button>
                             <button
                                 onClick={() => setSupplierTab('invoices')}
-                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'invoices' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${supplierTab === 'invoices' a'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
-                                {selectedSupplier.kind === 'marketplace' ? 'Avis' : 'Factures'}
+                                {selectedSupplier.kind === 'marketplace' a'Avis' : 'Factures'}
                             </button>
                         </div>
 
-                        {supplierDetailLoading ? (
+                        {supplierDetailLoading a(
                             <div className="py-16 flex justify-center">
                                 <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                             </div>
-                        ) : supplierTab === 'perf' && selectedSupplier.kind === 'marketplace' ? (
+                        ) : supplierTab === 'perf' && selectedSupplier.kind === 'marketplace' a(
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Note moyenne</p>
-                                        <p className="text-2xl font-black text-white">{Number(marketplaceSupplierDetail?.profile?.rating_average || 0).toFixed(1)}/5</p>
+                                        <p className="text-2xl font-black text-white">{Number(marketplaceSupplierDetail.profile.rating_average || 0).toFixed(1)}/5</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Avis</p>
-                                        <p className="text-2xl font-black text-white">{marketplaceSupplierDetail?.profile?.rating_count || 0}</p>
+                                        <p className="text-2xl font-black text-white">{marketplaceSupplierDetail.profile.rating_count || 0}</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Catalogue</p>
-                                        <p className="text-2xl font-black text-white">{(marketplaceSupplierDetail?.catalog || []).length}</p>
+                                        <p className="text-2xl font-black text-white">{(marketplaceSupplierDetail.catalog || []).length}</p>
                                     </div>
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
-                                    <p className="text-white font-bold">{marketplaceSupplierDetail?.profile?.company_name || selectedSupplier.name}</p>
-                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail?.profile?.description || "Ce fournisseur n'a pas encore ajoutÃ© de description dÃ©taillÃ©e."}</p>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.city || '-'}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierDetail?.profile?.min_order_amount || 0)}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail?.profile?.average_delivery_days || 0} jours</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail?.profile?.delivery_zones || []).join(', ') || 'Non renseignÃ©es'}</span></div>
+                                    <p className="text-white font-bold">{marketplaceSupplierDetail.profile.company_name || selectedSupplier.name}</p>
+                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail.profile.description || "Ce fournisseur n'a pas encore ajoutÃ© de description dÃ©taillÃ©e."}</p>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierDetail.profile.city || '-'}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierDetail.profile.min_order_amount || 0)}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail.profile.average_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail.profile.delivery_zones || []).join(', ') || 'Non renseignÃ©es'}</span></div>
                                 </div>
                             </div>
-                        ) : supplierTab === 'perf' && selectedSupplier.kind !== 'marketplace' ? (
+                        ) : supplierTab === 'perf' && selectedSupplier.kind !== 'marketplace' a(
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Commandes</p><p className="text-2xl font-black text-white">{supplierStats?.orders_count || 0}</p></div>
-                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Total livrÃ©</p><p className="text-xl font-black text-white">{formatCurrency(supplierStats?.total_spent || 0)}</p></div>
-                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">En attente</p><p className="text-xl font-black text-amber-400">{formatCurrency(supplierStats?.pending_spent || 0)}</p></div>
-                                    <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl"><p className="text-[10px] font-black text-emerald-500/50 uppercase">Taux de service</p><p className="text-xl font-black text-emerald-400">{supplierStats?.orders_count ? Math.round(((supplierStats?.delivered_count || 0) / supplierStats.orders_count) * 100) : 0}%</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Commandes</p><p className="text-2xl font-black text-white">{supplierStats.orders_count || 0}</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">Total livrÃ©</p><p className="text-xl font-black text-white">{formatCurrency(supplierStats.total_spent || 0)}</p></div>
+                                    <div className="p-5 bg-white/5 border border-white/5 rounded-3xl"><p className="text-[10px] font-black text-slate-500 uppercase">En attente</p><p className="text-xl font-black text-amber-400">{formatCurrency(supplierStats.pending_spent || 0)}</p></div>
+                                    <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl"><p className="text-[10px] font-black text-emerald-500/50 uppercase">Taux de service</p><p className="text-xl font-black text-emerald-400">{supplierStats.orders_count aMath.round(((supplierStats.delivered_count || 0) / supplierStats.orders_count) * 100) : 0}%</p></div>
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes livrÃ©es</span><span className="text-white font-bold">{supplierStats?.delivered_count || 0}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats?.pending_orders || 0}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{supplierStats?.avg_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes livrÃ©es</span><span className="text-white font-bold">{supplierStats.delivered_count || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commandes ouvertes</span><span className="text-white font-bold">{supplierStats.pending_orders || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">DÃ©lai moyen</span><span className="text-white font-bold">{supplierStats.avg_delivery_days || 0} jours</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-slate-400">Contact</span><span className="text-white font-bold text-right">{selectedSupplier.contact_name || selectedSupplier.phone || 'Non renseignÃ©'}</span></div>
                                 </div>
 
@@ -3333,8 +3333,8 @@ export default function Suppliers() {
                                         </p>
                                         <div className="flex items-center gap-4">
                                             <div className={`text-4xl font-black ${
-                                                selectedSupplierRating.overall_score >= 70 ? 'text-emerald-400' :
-                                                selectedSupplierRating.overall_score >= 40 ? 'text-amber-400' :
+                                                selectedSupplierRating.overall_score >= 70 a'text-emerald-400' :
+                                                selectedSupplierRating.overall_score >= 40 a'text-amber-400' :
                                                 'text-rose-400'
                                             }`}>{selectedSupplierRating.overall_score}<span className="text-lg text-slate-500">/100</span></div>
                                             <div className="flex-1 space-y-1.5 text-xs">
@@ -3408,25 +3408,25 @@ export default function Suppliers() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                     <div className="p-5 bg-primary/5 border border-primary/20 rounded-3xl">
                                         <p className="text-[10px] font-black text-primary/60 uppercase">Score fournisseur</p>
-                                        <p className="text-xl font-black text-white">{supplierStats?.score || 0}/100</p>
-                                        <span className={`inline-flex mt-3 px-2 py-1 rounded-full text-[10px] font-bold border ${getScoreStyle(supplierStats?.score_label)}`}>
-                                            {supplierStats?.score_label?.replace('_', ' ') || 'non classe'}
+                                        <p className="text-xl font-black text-white">{supplierStats.score || 0}/100</p>
+                                        <span className={`inline-flex mt-3 px-2 py-1 rounded-full text-[10px] font-bold border ${getScoreStyle(supplierStats.score_label)}`}>
+                                            {supplierStats.score_label.replace('_', ' ') || 'non classe'}
                                         </span>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">A l'heure</p>
-                                        <p className="text-xl font-black text-emerald-400">{Math.round(supplierStats?.on_time_rate || 0)}%</p>
-                                        <p className="text-xs text-slate-400 mt-2">Livraison complete: {Math.round(supplierStats?.full_delivery_rate || 0)}%</p>
+                                        <p className="text-xl font-black text-emerald-400">{Math.round(supplierStats.on_time_rate || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Livraison complete: {Math.round(supplierStats.full_delivery_rate || 0)}%</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Livraison partielle</p>
-                                        <p className="text-xl font-black text-amber-400">{Math.round(supplierStats?.partial_delivery_rate || 0)}%</p>
-                                        <p className="text-xs text-slate-400 mt-2">Annulation: {Math.round(supplierStats?.cancel_rate || 0)}%</p>
+                                        <p className="text-xl font-black text-amber-400">{Math.round(supplierStats.partial_delivery_rate || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Annulation: {Math.round(supplierStats.cancel_rate || 0)}%</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Variance prix</p>
-                                        <p className={`text-xl font-black ${(supplierStats?.price_variance_pct || 0) > 8 ? 'text-rose-400' : 'text-white'}`}>{Math.round(supplierStats?.price_variance_pct || 0)}%</p>
-                                        <p className="text-xs text-slate-400 mt-2">Panier moyen: {formatCurrency(supplierStats?.average_order_value || 0)}</p>
+                                        <p className={`text-xl font-black ${(supplierStats.price_variance_pct || 0) > 8 a'text-rose-400' : 'text-white'}`}>{Math.round(supplierStats.price_variance_pct || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Panier moyen: {formatCurrency(supplierStats.average_order_value || 0)}</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -3435,7 +3435,7 @@ export default function Suppliers() {
                                             <p className="text-xs font-black uppercase tracking-widest text-slate-500">Incidents recents</p>
                                             <p className="text-sm text-slate-400 mt-1">Retards, annulations ou livraisons partielles detectes sur ce fournisseur.</p>
                                         </div>
-                                        {supplierStats?.recent_incidents?.length ? (
+                                        {supplierStats.recent_incidents.length a(
                                             <div className="flex flex-wrap gap-2">
                                                 {supplierStats.recent_incidents.map((incident: string, index: number) => (
                                                     <span key={index} className="px-3 py-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
@@ -3456,7 +3456,7 @@ export default function Suppliers() {
                                             <p className="text-sm text-slate-400 mt-1">Pour piloter sans casser l'autonomie des responsables locaux.</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {supplierStats?.store_breakdown?.length ? supplierStats.store_breakdown.map((store: any) => (
+                                            {supplierStats.store_breakdown.length asupplierStats.store_breakdown.map((store: any) => (
                                                 <div key={store.store_id || store.store_name} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <p className="text-sm font-bold text-white">{store.store_name}</p>
@@ -3488,7 +3488,7 @@ export default function Suppliers() {
                                         <p className="text-xs font-black uppercase tracking-widest text-slate-500">Historique de prix</p>
                                         <p className="text-sm text-slate-400 mt-1">Suivez les variations recentes et comparez avec les autres fournisseurs lies.</p>
                                     </div>
-                                    {supplierPriceHistory.length === 0 ? (
+                                    {supplierPriceHistory.length === 0 a(
                                         <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                             <History size={32} className="mx-auto text-slate-700 mb-3" />
                                             <p className="text-sm text-slate-500 font-bold uppercase">Pas encore d'historique de prix exploitable</p>
@@ -3500,7 +3500,7 @@ export default function Suppliers() {
                                                     <div className="flex items-start justify-between gap-4">
                                                         <div>
                                                             <p className="text-sm font-bold text-white">{item.product_name}</p>
-                                                            <p className="text-xs text-slate-500 mt-1">Derniere commande: {item.last_ordered_at ? formatDate(item.last_ordered_at) : 'jamais'}</p>
+                                                            <p className="text-xs text-slate-500 mt-1">Derniere commande: {item.last_ordered_at aformatDate(item.last_ordered_at) : 'jamais'}</p>
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-sm font-black text-primary">{formatCurrency(item.current_supplier_price || 0)}</p>
@@ -3526,10 +3526,10 @@ export default function Suppliers() {
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-3">
                                                             <p className="text-slate-500 uppercase font-black text-[10px]">Variation</p>
-                                                            <p className={`font-bold mt-1 ${(item.latest_change_pct || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{Math.round(item.latest_change_pct || 0)}%</p>
+                                                            <p className={`font-bold mt-1 ${(item.latest_change_pct || 0) > 0 a'text-rose-400' : 'text-emerald-400'}`}>{Math.round(item.latest_change_pct || 0)}%</p>
                                                         </div>
                                                     </div>
-                                                    {item.competitor_prices?.length > 0 && (
+                                                    {item.competitor_prices.length > 0 && (
                                                         <div className="flex flex-wrap gap-2">
                                                             {item.competitor_prices.slice(0, 4).map((competitor: any, index: number) => (
                                                                 <span key={`${item.product_id}-${index}`} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
@@ -3556,7 +3556,7 @@ export default function Suppliers() {
                                             <Plus size={14} className="inline mr-1" /> Lier un produit
                                         </button>
                                     </div>
-                                    {linkedProducts.length === 0 ? (
+                                    {linkedProducts.length === 0 a(
                                         <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                             <PackageIcon size={32} className="mx-auto text-slate-700 mb-3" />
                                             <p className="text-sm text-slate-500 font-bold uppercase">Aucun produit lie</p>
@@ -3567,9 +3567,9 @@ export default function Suppliers() {
                                                 <div key={link.link_id} className="bg-slate-950/30 border border-white/5 p-4 rounded-2xl space-y-3">
                                                     <div className="flex items-start justify-between gap-4">
                                                         <div>
-                                                            <p className="text-sm font-bold text-white">{link.product?.name || 'Produit'}</p>
+                                                            <p className="text-sm font-bold text-white">{link.product.name || 'Produit'}</p>
                                                             <p className="text-xs text-slate-500 mt-1">
-                                                                Stock: {link.product?.quantity ?? 0} {link.product?.unit || 'unite'}
+                                                                Stock: {link.product.quantity  0} {link.product.unit || 'unite'}
                                                             </p>
                                                         </div>
                                                         <div className="text-right">
@@ -3609,7 +3609,7 @@ export default function Suppliers() {
                                             Voir tout
                                         </button>
                                     </div>
-                                    {supplierOrderHistory.length === 0 ? (
+                                    {supplierOrderHistory.length === 0 a(
                                         <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                             <ClipboardList size={32} className="mx-auto text-slate-700 mb-3" />
                                             <p className="text-sm text-slate-500 font-bold uppercase">Aucune commande pour ce fournisseur</p>
@@ -3632,7 +3632,7 @@ export default function Suppliers() {
                                                         </span>
                                                     </div>
                                                     <div className="mt-3 flex items-center justify-between text-sm">
-                                                        <span className="text-slate-400">{order.items_count || order.items?.length || 0} articles</span>
+                                                        <span className="text-slate-400">{order.items_count || order.items.length || 0} articles</span>
                                                         <span className="text-white font-bold">{formatCurrency(order.total_amount || 0)}</span>
                                                     </div>
                                                 </button>
@@ -3641,14 +3641,14 @@ export default function Suppliers() {
                                     )}
                                 </div>
                             </div>
-                        ) : supplierTab === 'logs' && selectedSupplier.kind === 'marketplace' ? (
+                        ) : supplierTab === 'logs' && selectedSupplier.kind === 'marketplace' a(
                             <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                                {(marketplaceSupplierDetail?.catalog || []).length === 0 ? (
+                                {(marketplaceSupplierDetail.catalog || []).length === 0 a(
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <PackageIcon size={40} className="mx-auto text-slate-700 mb-3" />
                                         <p className="text-sm text-slate-500 font-bold uppercase">Catalogue vide pour le moment</p>
                                     </div>
-                                ) : (marketplaceSupplierDetail?.catalog || []).map((product: any) => (
+                                ) : (marketplaceSupplierDetail.catalog || []).map((product: any) => (
                                     <div key={product.catalog_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
@@ -3671,7 +3671,7 @@ export default function Suppliers() {
                                     </div>
                                 ))}
                             </div>
-                        ) : supplierTab === 'logs' && selectedSupplier.kind !== 'marketplace' ? (
+                        ) : supplierTab === 'logs' && selectedSupplier.kind !== 'marketplace' a(
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center px-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des Ã©changes</label>
@@ -3679,7 +3679,7 @@ export default function Suppliers() {
                                         <Plus size={12} /> Ajouter une note
                                     </button>
                                 </div>
-                                {supplierLogs.length === 0 ? (
+                                {supplierLogs.length === 0 a(
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <History size={40} className="mx-auto text-slate-700 mb-3" />
                                         <p className="text-sm text-slate-500 font-bold uppercase">Aucune note fournisseur</p>
@@ -3689,7 +3689,7 @@ export default function Suppliers() {
                                         {supplierLogs.map((log: any) => (
                                             <div key={log.log_id} className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-start gap-4">
                                                 <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500">
-                                                    {log.type === 'call' ? <Phone size={14} /> : log.type === 'email' ? <Mail size={14} /> : log.type === 'visit' ? <MapPinIcon size={14} /> : <MessageSquare size={14} />}
+                                                    {log.type === 'call' a<Phone size={14} /> : log.type === 'email' a<Mail size={14} /> : log.type === 'visit' a<MapPinIcon size={14} /> : <MessageSquare size={14} />}
                                                 </div>
                                                 <div className="space-y-1">
                                                     <p className="text-xs text-white leading-relaxed font-bold">{log.subject || log.content}</p>
@@ -3701,14 +3701,14 @@ export default function Suppliers() {
                                     </div>
                                 )}
                             </div>
-                        ) : supplierTab === 'invoices' && selectedSupplier.kind === 'marketplace' ? (
+                        ) : supplierTab === 'invoices' && selectedSupplier.kind === 'marketplace' a(
                             <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                                {(marketplaceSupplierDetail?.ratings || []).length === 0 ? (
+                                {(marketplaceSupplierDetail.ratings || []).length === 0 a(
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <StarIcon size={40} className="mx-auto text-slate-700 mb-3" />
                                         <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publiÃ©</p>
                                     </div>
-                                ) : (marketplaceSupplierDetail?.ratings || []).map((rating: any) => (
+                                ) : (marketplaceSupplierDetail.ratings || []).map((rating: any) => (
                                     <div key={rating.rating_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-2">
                                         <div className="flex items-center justify-between gap-4">
                                             <div>
@@ -3724,7 +3724,7 @@ export default function Suppliers() {
                                     </div>
                                 ))}
                             </div>
-                        ) : supplierTab === 'invoices' && selectedSupplier.kind !== 'marketplace' ? (
+                        ) : supplierTab === 'invoices' && selectedSupplier.kind !== 'marketplace' a(
                             <div className="space-y-4">
                                 <form onSubmit={handleCreateSupplierInvoice} className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
                                     <input
@@ -3746,14 +3746,14 @@ export default function Suppliers() {
                                                 disabled={invoiceImporting}
                                                 className="px-4 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all disabled:opacity-50"
                                             >
-                                                {invoiceImporting ? 'Importâ€¦' : 'Importer une facture'}
+                                                {invoiceImporting a'Importâ€¦' : 'Importer une facture'}
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={invoiceSaving || !invoiceForm.invoice_number.trim() || !invoiceForm.amount}
                                                 className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
                                             >
-                                                {invoiceSaving ? 'Enregistrementâ€¦' : 'Ajouter la facture'}
+                                                {invoiceSaving a'Enregistrementâ€¦' : 'Ajouter la facture'}
                                             </button>
                                         </div>
                                     </div>
@@ -3764,9 +3764,9 @@ export default function Suppliers() {
                                                     <p className="text-xs font-black uppercase tracking-widest text-primary">Facture importÃ©e</p>
                                                     <p className="text-sm text-white font-bold mt-1">{importedInvoicePreview.fileName}</p>
                                                     <p className="text-xs text-slate-400 mt-1">
-                                                        {importedInvoicePreview.invoice_number ? `NÂ° ${importedInvoicePreview.invoice_number}` : 'NumÃ©ro non dÃ©tectÃ©'}
-                                                        {importedInvoicePreview.date ? ` â€¢ ${importedInvoicePreview.date}` : ''}
-                                                        {importedInvoicePreview.supplier_name ? ` â€¢ ${importedInvoicePreview.supplier_name}` : ''}
+                                                        {importedInvoicePreview.invoice_number a`NÂ° ${importedInvoicePreview.invoice_number}` : 'NumÃ©ro non dÃ©tectÃ©'}
+                                                        {importedInvoicePreview.date a` â€¢ ${importedInvoicePreview.date}` : ''}
+                                                        {importedInvoicePreview.supplier_name a` â€¢ ${importedInvoicePreview.supplier_name}` : ''}
                                                     </p>
                                                 </div>
                                                 <button
@@ -3882,7 +3882,7 @@ export default function Suppliers() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {supplierInvoices.length === 0 ? (
+                                        {supplierInvoices.length === 0 a(
                                             <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Aucune facture fournisseur</td></tr>
                                         ) : supplierInvoices.map((invoice: any) => (
                                             <tr key={invoice.invoice_id} className="hover:bg-white/5">
@@ -3900,7 +3900,7 @@ export default function Suppliers() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-bold text-white">{formatCurrency(invoice.amount || 0)}</td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${invoice.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : invoice.status === 'partial' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>{invoice.status}</span>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${invoice.status === 'paid' a'bg-emerald-500/10 text-emerald-400' : invoice.status === 'partial' a'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>{invoice.status}</span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -3908,7 +3908,7 @@ export default function Suppliers() {
                                 </table>
                             </div>
                             </div>
-                        ) : supplierTab === 'perf' ? (
+                        ) : supplierTab === 'perf' a(
                             <div className="animate-in fade-in duration-300 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl space-y-1">
@@ -3942,7 +3942,7 @@ export default function Suppliers() {
                                     </div>
                                 </div>
                             </div>
-                        ) : supplierTab === 'logs' ? (
+                        ) : supplierTab === 'logs' a(
                             <div className="animate-in fade-in duration-300 space-y-4">
                                 <div className="flex justify-between items-center px-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Journal des Ã©changes</label>
@@ -3958,7 +3958,7 @@ export default function Suppliers() {
                                     ].map((l, i) => (
                                         <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-start gap-4">
                                             <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500">
-                                                {l.type === 'call' ? <Phone size={14} /> : <MessageSquare size={14} />}
+                                                {l.type === 'call' a<Phone size={14} /> : <MessageSquare size={14} />}
                                             </div>
                                             <div>
                                                 <p className="text-xs text-white leading-relaxed">{l.msg}</p>
@@ -4015,7 +4015,7 @@ export default function Suppliers() {
                                 </button>
                             )}
                             <button
-                                onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierDetail?.profile?.phone)}
+                                onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierDetail.profile.phone)}
                                 className="flex-1 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm uppercase tracking-wider"
                             >
                                 <MessageSquare size={18} /> WhatsApp
@@ -4074,7 +4074,7 @@ export default function Suppliers() {
                             Annuler
                         </button>
                         <button type="submit" disabled={submitting} className="flex-1 btn-primary py-3 font-bold">
-                            {submitting ? '...' : 'Enregistrer'}
+                            {submitting a'...' : 'Enregistrer'}
                         </button>
                     </div>
                 </form>
@@ -4086,8 +4086,8 @@ export default function Suppliers() {
             >
                 <div className="space-y-4">
                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
-                        {selectedSupplier?.name
-                            ? `Choisissez un produit de votre stock Ã  associer durablement au fournisseur ${selectedSupplier.name}.`
+                        {selectedSupplier.name
+                            a`Choisissez un produit de votre stock Ã  associer durablement au fournisseur ${selectedSupplier.name}.`
                             : "Choisissez un produit de votre stock Ã  associer durablement Ã  ce fournisseur."}
                     </div>
                     <div>
@@ -4122,7 +4122,7 @@ export default function Suppliers() {
                             Annuler
                         </button>
                         <button type="button" onClick={handleLinkProduct} disabled={submitting || !selectedProductId} className="flex-1 btn-primary py-3 font-bold disabled:opacity-50">
-                            {submitting ? '...' : 'Lier le produit'}
+                            {submitting a'...' : 'Lier le produit'}
                         </button>
                     </div>
                 </div>
@@ -4147,18 +4147,18 @@ export default function Suppliers() {
             <Modal
                 isOpen={showBenchmarkModal}
                 onClose={() => setShowBenchmarkModal(false)}
-                title={benchmarkProduct ? `Benchmark Â· ${benchmarkProduct.name}` : 'Benchmark produit'}
+                title={benchmarkProduct a`Benchmark Â· ${benchmarkProduct.name}` : 'Benchmark produit'}
                 maxWidth="xl"
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-400">
                         Comparez les offres disponibles pour ce produit, puis prÃ©parez directement une commande vers le fournisseur le plus intÃ©ressant.
                     </p>
-                    {benchmarkLoading ? (
+                    {benchmarkLoading a(
                         <div className="py-16 flex justify-center">
                             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
-                    ) : benchmarkResults.length === 0 ? (
+                    ) : benchmarkResults.length === 0 a(
                         <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                             <SearchIcon size={40} className="mx-auto text-slate-700 mb-3" />
                             <p className="text-sm text-slate-500 font-bold uppercase">Aucun rÃ©sultat comparable trouvÃ©</p>
@@ -4166,7 +4166,7 @@ export default function Suppliers() {
                     ) : (
                         <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
                             {benchmarkResults.map((result: any, index: number) => (
-                                <div key={`${result.catalog_id}-${index}`} className={`border rounded-2xl p-4 ${index === 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/5 bg-white/5'}`}>
+                                <div key={`${result.catalog_id}-${index}`} className={`border rounded-2xl p-4 ${index === 0 a'border-emerald-500/30 bg-emerald-500/5' : 'border-white/5 bg-white/5'}`}>
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-2">
@@ -4218,11 +4218,11 @@ export default function Suppliers() {
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-400">{t('suppliers.auto_orders_desc', 'Basé sur la vélocité de vos ventes et votre stock actuel, voici les commandes recommandées pour 14 jours de couverture.')}</p>
-                    {draftOrdersLoading ? (
+                    {draftOrdersLoading a(
                         <div className="py-16 flex justify-center">
                             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
-                    ) : !draftOrders || draftOrders.total_orders === 0 ? (
+                    ) : !draftOrders || draftOrders.total_orders === 0 a(
                         <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                             <CheckCircle size={40} className="mx-auto text-emerald-500 mb-3" />
                             <p className="text-sm text-slate-400 font-bold">{t('suppliers.no_orders_needed', 'Votre stock est suffisant — aucune commande nécessaire.')}</p>

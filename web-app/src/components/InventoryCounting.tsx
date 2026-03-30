@@ -62,7 +62,7 @@ export default function InventoryCounting() {
         try {
             await inventoryApi.submitResult(taskId, countedQty);
             // Track counted items for shrinkage analysis
-            if (task?.product_id) {
+            if (task.product_id) {
                 setCountedItems(prev => [...prev, { product_id: task.product_id, counted_quantity: countedQty }]);
             }
             await loadTasks();
@@ -202,7 +202,7 @@ export default function InventoryCounting() {
 
                             {/* Discrepancy details */}
                             <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {shrinkageResult.discrepancies?.slice(0, 15).map((d: any) => (
+                                {shrinkageResult.discrepancies.slice(0, 15).map((d: any) => (
                                     <div key={d.product_id} className={`flex items-center justify-between p-3 rounded-lg border ${d.status === 'loss' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-emerald-500/5 border-emerald-500/10'}`}>
                                         <div className="min-w-0 flex-1">
                                             <span className="text-white text-sm font-semibold truncate block">{d.name}</span>
@@ -211,8 +211,8 @@ export default function InventoryCounting() {
                                             </span>
                                         </div>
                                         <div className="flex flex-col items-end shrink-0 ml-3">
-                                            <span className={`text-sm font-black ${d.status === 'loss' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                                {d.difference > 0 ? '+' : ''}{d.difference}
+                                            <span className={`text-sm font-black ${d.status === 'loss' a'text-rose-400' : 'text-emerald-400'}`}>
+                                                {d.difference > 0 a'+' : ''}{d.difference}
                                             </span>
                                             <span className="text-[10px] text-slate-500">{formatCurrency(d.value_impact)}</span>
                                         </div>
@@ -221,7 +221,7 @@ export default function InventoryCounting() {
                             </div>
 
                             {/* Suspects */}
-                            {shrinkageResult.suspects?.length > 0 && (
+                            {shrinkageResult.suspects.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-white/5">
                                     <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">{t('inventory_counting.suspects', 'Produits suspects (>10% d\'écart)')}</p>
                                     <div className="flex flex-wrap gap-2">
@@ -268,7 +268,7 @@ export default function InventoryCounting() {
                                     disabled={submitting === task.task_id}
                                     className="w-full btn-primary py-4 rounded-xl font-black flex items-center justify-center gap-2 group shadow-xl shadow-primary/20"
                                 >
-                                    {submitting === task.task_id ? (
+                                    {submitting === task.task_id a(
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                     ) : (
                                         <>

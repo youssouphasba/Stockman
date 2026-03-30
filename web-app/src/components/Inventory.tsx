@@ -127,7 +127,7 @@ export default function Inventory() {
     const [locationTransferring, setLocationTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
-    const hasEnterpriseLocations = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || (currentUser?.effective_plan || currentUser?.plan) === 'enterprise';
+    const hasEnterpriseLocations = currentUser.role === 'admin' || currentUser.role === 'superadmin' || (currentUser.effective_plan || currentUser.plan) === 'enterprise';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
@@ -178,7 +178,7 @@ export default function Inventory() {
     const formLocationOptions = selectedFormLocation && selectedFormLocation.is_active === false
         ? [...activeLocationsList, selectedFormLocation]
         : activeLocationsList;
-    const getLocationLabel = (locationId?: string | null) => {
+    const getLocationLabel = (locationId: string | null) => {
         if (!locationId) return '';
         const parts: string[] = [];
         let current = locationMap.get(locationId);
@@ -188,7 +188,7 @@ export default function Inventory() {
             current = current.parent_id ? locationMap.get(current.parent_id) : undefined;
             guard += 1;
         }
-        if (parts.length === 0) return 'Emplacement supprimÃ©';
+        if (parts.length === 0) return 'Emplacement supprime';
         return parts.reverse().join(' / ');
     };
 
@@ -201,11 +201,11 @@ export default function Inventory() {
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
-                reason: stockMovReason || (stockMovType === 'in' ? 'EntrÃ©e stock' : 'Sortie stock'),
+                reason: stockMovReason || (stockMovType === 'in' a'EntrÃ©e stock' : 'Sortie stock'),
             });
             setProducts(prev => prev.map(p =>
                 p.product_id === stockModalProduct.product_id
-                    ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
+                    a{ ...p, quantity: stockMovType === 'in' ap.quantity + qty : Math.max(0, p.quantity - qty) }
                     : p
             ));
             setPendingInventorySummary(getPendingInventorySummary());
@@ -220,19 +220,19 @@ export default function Inventory() {
         }
     };
 
-    const fetchProducts = async (locationFilter?: string) => {
+    const fetchProducts = async (locationFilter: string) => {
         setLoading(true);
         setError(null);
         try {
             const resolvedLocation = locationFilter !== undefined
-                ? (locationFilter || undefined)
+                a(locationFilter || undefined)
                 : (selectedLocation || undefined);
-            const offlineLocationKey = locationFilter !== undefined ? locationFilter : selectedLocation;
+            const offlineLocationKey = locationFilter !== undefined alocationFilter : selectedLocation;
             let partialError = false;
             const [prodsRes, catsRes, locsRes, suppliersRes, linksRes] = await Promise.allSettled([
                 productsApi.list(undefined, 0, 500, resolvedLocation),
                 categoriesApi.list(),
-                hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([]),
+                hasEnterpriseLocations alocationsApi.list() : Promise.resolve([]),
                 suppliersApi.list(),
                 supplierProductsApi.list(),
             ]);
@@ -264,8 +264,8 @@ export default function Inventory() {
 
             if (suppliersRes.status === 'fulfilled') {
                 const supplierRows = Array.isArray(suppliersRes.value)
-                    ? suppliersRes.value
-                    : (suppliersRes.value as any)?.items || [];
+                    asuppliersRes.value
+                    : (suppliersRes.value as any).items || [];
                 setSuppliersList(supplierRows);
             } else {
                 partialError = true;
@@ -273,8 +273,8 @@ export default function Inventory() {
             }
 
             if (linksRes.status === 'fulfilled') {
-                const grouped = (Array.isArray(linksRes.value) ? linksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
-                    if (!link?.product_id) return acc;
+                const grouped = (Array.isArray(linksRes.value) alinksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
+                    if (!link.product_id) return acc;
                     if (!acc[link.product_id]) acc[link.product_id] = [];
                     acc[link.product_id].push(link);
                     return acc;
@@ -329,7 +329,7 @@ export default function Inventory() {
             aiApi.seasonalityAlerts(),
             aiApi.detectDuplicates('products'),
         ]).then(([forecastRes, deadstockRes, seasonRes, dupsRes]) => {
-            if (forecastRes.status === 'fulfilled' && forecastRes.value?.forecasts) {
+            if (forecastRes.status === 'fulfilled' && forecastRes.value.forecasts) {
                 const map: Record<string, any> = {};
                 for (const f of forecastRes.value.forecasts) {
                     map[f.product_id] = f;
@@ -337,7 +337,7 @@ export default function Inventory() {
                 setSalesForecastMap(map);
             }
             if (deadstockRes.status === 'fulfilled') setDeadstockData(deadstockRes.value);
-            if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
+            if (seasonRes.status === 'fulfilled' && seasonRes.value.alerts) {
                 const map: Record<string, any> = {};
                 for (const a of seasonRes.value.alerts) {
                     map[a.product_id] = a;
@@ -351,7 +351,7 @@ export default function Inventory() {
     useEffect(() => {
         if (!currentUser) return;
         void fetchProducts();
-    }, [currentUser?.effective_plan, currentUser?.plan, currentUser?.role]);
+    }, [currentUser.effective_plan, currentUser.plan, currentUser.role]);
 
     const handleReplenishAdvice = async () => {
         setReplenishLoading(true);
@@ -397,7 +397,7 @@ export default function Inventory() {
     };
 
     const handleImportCatalog = async () => {
-        const sector = currentFeatures?.sector;
+        const sector = currentFeatures.sector;
         if (!sector) {
             alert("Aucun type d'activitÃ© n'est dÃ©fini pour ce compte.");
             return;
@@ -405,12 +405,12 @@ export default function Inventory() {
         setShowCreateMenu(false);
         setCatalogImportLoading(true);
         try {
-            const result = await catalogApi.importAll(sector, currentUser?.country_code);
-            alert(`${result.imported || 0} produits ont Ã©tÃ© importÃ©s pour ${currentFeatures?.sector_label || sector}.`);
+            const result = await catalogApi.importAll(sector, currentUser.country_code);
+            alert(`${result.imported || 0} produits ont Ã©tÃ© importÃ©s pour ${currentFeatures.sector_label || sector}.`);
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err?.message || "Erreur lors de l'import du catalogue mÃ©tier");
+            alert(err.message || "Erreur lors de l'import du catalogue mÃ©tier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -420,7 +420,7 @@ export default function Inventory() {
         setEditingProduct(product);
         const productLinks = supplierLinksByProduct[product.product_id] || [];
         setFormSupplierIds(productLinks.map((link) => link.supplier_id).filter(Boolean));
-        setFormPrimarySupplierId(productLinks.find((link) => link.is_preferred)?.supplier_id || '');
+        setFormPrimarySupplierId(productLinks.find((link) => link.is_preferred).supplier_id || '');
         setForm({
             name: product.name,
             sku: product.sku || '',
@@ -439,7 +439,7 @@ export default function Inventory() {
             measurement_type: product.measurement_type || inferMeasurementType(product.unit),
             display_unit: product.display_unit || product.unit || 'piece',
             pricing_unit: product.pricing_unit || product.unit || 'piece',
-            allows_fractional_sale: product.allows_fractional_sale ?? inferMeasurementType(product.unit) !== 'unit',
+            allows_fractional_sale: product.allows_fractional_sale  inferMeasurementType(product.unit) !== 'unit',
             has_variants: product.has_variants || false,
             variants: product.variants || []
         });
@@ -449,11 +449,11 @@ export default function Inventory() {
     const handleOpenSupplierMarketplace = (product: any) => {
         if (typeof window !== 'undefined') {
             window.sessionStorage.setItem('stockman_supplier_marketplace_context', JSON.stringify({
-                productName: product?.name || '',
-                category: product?.category_name || product?.category_id || '',
-                productId: product?.product_id || '',
-                countryCode: currentUser?.country_code || '',
-                city: currentUser?.city || '',
+                productName: product.name || '',
+                category: product.category_name || product.category_id || '',
+                productId: product.product_id || '',
+                countryCode: currentUser.country_code || '',
+                city: currentUser.city || '',
             }));
             window.dispatchEvent(new CustomEvent('stockman:navigate-tab', {
                 detail: { tab: 'suppliers' },
@@ -466,7 +466,7 @@ export default function Inventory() {
         const productLinks = supplierLinksByProduct[product.product_id] || [];
         setSupplierPickerProduct(product);
         setPickerSupplierIds(productLinks.map((link) => link.supplier_id).filter(Boolean));
-        setPickerPrimarySupplierId(productLinks.find((link) => link.is_preferred)?.supplier_id || '');
+        setPickerPrimarySupplierId(productLinks.find((link) => link.is_preferred).supplier_id || '');
         setIsSupplierPickerOpen(true);
     };
 
@@ -502,7 +502,7 @@ export default function Inventory() {
                     try {
                         await supplierProductsApi.unlink(link.link_id);
                     } catch (err: any) {
-                        syncErrors.push(err?.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`);
+                        syncErrors.push(err.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`);
                     }
                 }
             }
@@ -516,7 +516,7 @@ export default function Inventory() {
                             supplier_price: Number(supplierPickerProduct.purchase_price) || existing.supplier_price || 0,
                         });
                     } catch (err: any) {
-                        syncErrors.push(err?.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`);
+                        syncErrors.push(err.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`);
                     }
                 } else {
                     try {
@@ -527,7 +527,7 @@ export default function Inventory() {
                             is_preferred: pickerPrimarySupplierId === supplierId,
                         });
                     } catch (err: any) {
-                        syncErrors.push(err?.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`);
+                        syncErrors.push(err.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`);
                     }
                 }
             }
@@ -552,15 +552,15 @@ export default function Inventory() {
     const handleOpenTransfer = (product: any) => {
         setTransferProduct(product);
         setTransferQty(1);
-        const otherStores = storeList.filter(s => s.store_id !== currentUser?.active_store_id);
-        setTransferDest(otherStores[0]?.store_id || '');
+        const otherStores = storeList.filter(s => s.store_id !== currentUser.active_store_id);
+        setTransferDest(otherStores[0].store_id || '');
         setIsTransferOpen(true);
     };
 
     const handleOpenLocationTransfer = (product: any) => {
         setLocationTransferProduct(product);
         const availableLocations = activeLocationsList.filter((loc) => loc.location_id !== product.location_id);
-        setLocationTransferDest(availableLocations[0]?.location_id || '');
+        setLocationTransferDest(availableLocations[0].location_id || '');
         setLocationTransferNote('');
         setIsLocationTransferOpen(true);
     };
@@ -571,7 +571,7 @@ export default function Inventory() {
         try {
             await storesApi.transferStock({
                 product_id: transferProduct.product_id,
-                from_store_id: currentUser?.active_store_id,
+                from_store_id: currentUser.active_store_id,
                 to_store_id: transferDest,
                 quantity: transferQty,
             });
@@ -579,7 +579,7 @@ export default function Inventory() {
             fetchProducts();
             loadStockHealth();
         } catch (err: any) {
-            alert(err?.message || 'Erreur lors du transfert');
+            alert(err.message || 'Erreur lors du transfert');
         } finally {
             setTransferring(false);
         }
@@ -596,7 +596,7 @@ export default function Inventory() {
             setIsLocationTransferOpen(false);
             await fetchProducts();
         } catch (err: any) {
-            alert(err?.message || "Erreur lors du transfert d'emplacement");
+            alert(err.message || "Erreur lors du transfert d'emplacement");
         } finally {
             setLocationTransferring(false);
         }
@@ -628,15 +628,15 @@ export default function Inventory() {
             loadTransferHistory();
             fetchProducts();
         } catch (err: any) {
-            alert(err?.message || t('inventory.reverse_transfer_error'));
+            alert(err.message || t('inventory.reverse_transfer_error'));
         }
     };
 
     const handleDeleteProduct = async (product: any) => {
-        if (!product?.product_id || deletingProductId) return;
+        if (!product.product_id || deletingProductId) return;
 
         const confirmed = window.confirm(
-            `Supprimer dÃ©finitivement le produit "${product.name}" ?`,
+            `Supprimer dÃ©finitivement le produit "${product.name}" `,
         );
 
         if (!confirmed) {
@@ -651,7 +651,7 @@ export default function Inventory() {
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err?.message || 'Erreur lors de la suppression du produit');
+            alert(err.message || 'Erreur lors de la suppression du produit');
         } finally {
             setDeletingProductId(null);
         }
@@ -684,8 +684,8 @@ export default function Inventory() {
                 allows_fractional_sale: measurement.allows_fractional_sale,
                 quantity_precision: measurement.quantity_precision,
                 variants: form.has_variants
-                    ? form.variants
-                        .filter((variant: any) => String(variant?.name || '').trim())
+                    aform.variants
+                        .filter((variant: any) => String(variant.name || '').trim())
                         .map((variant: any) => ({
                             ...variant,
                             name: String(variant.name || '').trim(),
@@ -693,13 +693,13 @@ export default function Inventory() {
                         }))
                     : [],
             };
-            let savedProductId = editingProduct?.product_id;
+            let savedProductId = editingProduct.product_id;
             if (editingProduct) {
                 const updated = await productsApi.update(editingProduct.product_id, payload);
-                savedProductId = updated?.product_id || editingProduct.product_id;
+                savedProductId = updated.product_id || editingProduct.product_id;
             } else {
                 const created = await productsApi.create(payload);
-                savedProductId = created?.product_id;
+                savedProductId = created.product_id;
             }
 
             if (savedProductId) {
@@ -714,7 +714,7 @@ export default function Inventory() {
                             await supplierProductsApi.unlink(link.link_id);
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err?.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`,
+                                err.message || `Impossible de retirer le fournisseur ${getSupplierName(link.supplier_id)}.`,
                             );
                         }
                     }
@@ -730,7 +730,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err?.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`,
+                                err.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     } else {
@@ -743,7 +743,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err?.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`,
+                                err.message || `Impossible de lier le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     }
@@ -760,7 +760,7 @@ export default function Inventory() {
             await loadStockHealth();
         } catch (err: any) {
             console.error('Error saving product', err);
-            alert(err?.message || "Impossible d'enregistrer ce produit pour le moment.");
+            alert(err.message || "Impossible d'enregistrer ce produit pour le moment.");
         } finally {
             setFormLoading(false);
         }
@@ -809,7 +809,7 @@ export default function Inventory() {
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const file = e.target.files.[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -842,7 +842,7 @@ export default function Inventory() {
         }));
     };
 
-    const normalizeMatchText = (value?: string | null) =>
+    const normalizeMatchText = (value: string | null) =>
         (value || '')
             .toLowerCase()
             .normalize('NFD')
@@ -868,42 +868,42 @@ export default function Inventory() {
         });
     };
 
-    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) asuppliersList : [])]
         .map((supplier: any) => {
-            const supplied = normalizeMatchText(supplier?.products_supplied || '');
+            const supplied = normalizeMatchText(supplier.products_supplied || '');
             const tokens = normalizeMatchText(`${form.name} ${form.category_id}`)
                 .split(' ')
                 .filter((token) => token.length >= 3);
-            const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+            const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
             return { supplier, score };
         })
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
-            return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+            return (a.supplier.name || '').localeCompare(b.supplier.name || '');
         });
 
-    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) asuppliersList : [])]
         .map((supplier: any) => {
-            const supplied = normalizeMatchText(supplier?.products_supplied || '');
-            const tokens = normalizeMatchText(`${supplierPickerProduct?.name || ''} ${supplierPickerProduct?.category_id || ''}`)
+            const supplied = normalizeMatchText(supplier.products_supplied || '');
+            const tokens = normalizeMatchText(`${supplierPickerProduct.name || ''} ${supplierPickerProduct.category_id || ''}`)
                 .split(' ')
                 .filter((token) => token.length >= 3);
-            const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+            const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
             return { supplier, score };
         })
         .filter(({ supplier, score }) => score > 0 || pickerSupplierIds.includes(supplier.supplier_id))
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
-            return (a.supplier?.name || '').localeCompare(b.supplier?.name || '');
+            return (a.supplier.name || '').localeCompare(b.supplier.name || '');
         });
 
-    const getSupplierName = (supplierId?: string | null) =>
-        (Array.isArray(suppliersList) ? suppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId)?.name || 'Fournisseur';
+    const getSupplierName = (supplierId: string | null) =>
+        (Array.isArray(suppliersList) asuppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId).name || 'Fournisseur';
 
-    const getProductSupplyMeta = (productId?: string | null) => {
-        const links = productId ? (supplierLinksByProduct[productId] || []) : [];
+    const getProductSupplyMeta = (productId: string | null) => {
+        const links = productId a(supplierLinksByProduct[productId] || []) : [];
         const primaryLink = links.find((link) => link.is_preferred) || null;
-        const primaryName = primaryLink ? getSupplierName(primaryLink.supplier_id) : '';
+        const primaryName = primaryLink agetSupplierName(primaryLink.supplier_id) : '';
 
         if (links.length === 0) {
             return {
@@ -923,26 +923,26 @@ export default function Inventory() {
 
         return {
             tone: 'emerald',
-            status: links.length > 1 ? 'Approvisionnement sÃ©curisÃ©' : 'Approvisionnement prÃªt',
+            status: links.length > 1 a'Approvisionnement sÃ©curisÃ©' : 'Approvisionnement prÃªt',
             subtitle: links.length > 1
-                ? `Principal : ${primaryName} Â« ${links.length - 1} alternative(s)`
+                a`Principal : ${primaryName} Â« ${links.length - 1} alternative(s)`
                 : `Principal : ${primaryName}`,
         };
     };
 
     const supplierCoverageStats = {
-        noSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
-        multiSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
-        missingPrimary: (Array.isArray(products) ? products : []).filter((product) => {
+        noSupplier: (Array.isArray(products) aproducts : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
+        multiSupplier: (Array.isArray(products) aproducts : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
+        missingPrimary: (Array.isArray(products) aproducts : []).filter((product) => {
             const links = supplierLinksByProduct[product.product_id] || [];
             return links.length > 0 && !links.some((link) => link.is_preferred);
         }).length,
     };
 
-    const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
+    const filteredProducts = (Array.isArray(products) aproducts : []).filter((p) => {
         const matchesSearch =
             (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
-            p.sku?.toLowerCase().includes(search.toLowerCase());
+            p.sku.toLowerCase().includes(search.toLowerCase());
         if (!matchesSearch) return false;
 
         const links = supplierLinksByProduct[p.product_id] || [];
@@ -1067,7 +1067,7 @@ export default function Inventory() {
                                 onClick={() => void fetchProducts()}
                                 className="rounded-full border border-amber-400/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-100 hover:bg-amber-500/10"
                             >
-                                {t('common.retry', { defaultValue: 'R?essayer' })}
+                                {t('common.retry', { defaultValue: 'Ressayer' })}
                             </button>
                         </div>
                     )}
@@ -1092,7 +1092,7 @@ export default function Inventory() {
                         >
                             <Download size={16} />
                             Exporter
-                            <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={14} className={`transition-transform ${showExportMenu a'rotate-180' : ''}`} />
                         </button>
                         {showExportMenu && (
                             <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
@@ -1120,7 +1120,7 @@ export default function Inventory() {
                         >
                             <Plus size={20} />
                             CrÃ©er / importer
-                            <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={14} className={`transition-transform ${showCreateMenu a'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
                             <div className="absolute right-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B] shadow-2xl">
@@ -1162,15 +1162,15 @@ export default function Inventory() {
                                 </button>
                                 <button
                                     onClick={handleImportCatalog}
-                                    disabled={catalogImportLoading || !currentFeatures?.sector}
+                                    disabled={catalogImportLoading || !currentFeatures.sector}
                                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <Layers size={16} className="text-amber-400" />
                                     <div>
                                         <p className="font-bold">
                                             {catalogImportLoading
-                                                ? 'Import du catalogueâ€¦'
-                                                : `Importer le catalogue ${currentFeatures?.sector_label || 'du mÃ©tier'}`}
+                                                a'Import du catalogueâ€¦'
+                                                : `Importer le catalogue ${currentFeatures.sector_label || 'du mÃ©tier'}`}
                                         </p>
                                         <p className="text-xs text-slate-400">PrÃ©charge un catalogue adaptÃ© Ã  ton type d'activitÃ©.</p>
                                     </div>
@@ -1191,7 +1191,7 @@ export default function Inventory() {
                         className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         <Sparkles size={16} />
-                        {replenishLoading ? 'Analyse...' : 'IA RÃ©appro'}
+                        {replenishLoading a'Analyse...' : 'IA RÃ©appro'}
                     </button>
                 </div>
             </header>
@@ -1209,13 +1209,13 @@ export default function Inventory() {
                                     IA Â· Conseils de rÃ©approvisionnement
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
-                                {replenishLoading ? (
+                                {replenishLoading a(
                                     <div className="flex items-center gap-2 text-slate-400 text-sm">
                                         <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
                                         Analyse en cours...
                                     </div>
                                 ) : (
-                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice?.advice}</p>
+                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice.advice}</p>
                                 )}
                             </div>
                         </div>
@@ -1227,7 +1227,7 @@ export default function Inventory() {
             )}
 
             {/* Deadstock Banner */}
-            {deadstockData && deadstockData.deadstock?.length > 0 && (
+            {deadstockData && deadstockData.deadstock.length > 0 && (
                 <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 flex-1">
@@ -1245,15 +1245,15 @@ export default function Inventory() {
                                     {t('inventory.deadstock_immobilized', { value: (deadstockData.total_value_blocked || 0).toLocaleString('fr-FR'), defaultValue: 'Valeur immobilisée : {{value}} F' })}
                                 </p>
                                 <div className="flex gap-3 mt-2 text-xs text-slate-400">
-                                    <span className="text-amber-300">{deadstockData.by_severity?.warning || 0} modéré</span>
-                                    <span className="text-rose-400">{deadstockData.by_severity?.critical || 0} critique</span>
+                                    <span className="text-amber-300">{deadstockData.by_severity.warning || 0} modéré</span>
+                                    <span className="text-rose-400">{deadstockData.by_severity.critical || 0} critique</span>
                                 </div>
                                 <button
                                     onClick={() => setShowDeadstock(!showDeadstock)}
                                     className="mt-2 text-amber-200 text-xs font-bold hover:underline flex items-center gap-1"
                                 >
-                                    {showDeadstock ? t('common.hide', 'Masquer') : t('inventory.show_deadstock', 'Voir les produits dormants')}
-                                    {showDeadstock ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    {showDeadstock at('common.hide', 'Masquer') : t('inventory.show_deadstock', 'Voir les produits dormants')}
+                                    {showDeadstock a<ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                                 {showDeadstock && (
                                     <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
@@ -1264,7 +1264,7 @@ export default function Inventory() {
                                                     <span className="text-[10px] text-slate-500">{d.category || t('common.uncategorized', 'Non catégorisé')} · {d.current_stock} unités</span>
                                                 </div>
                                                 <div className="flex flex-col items-end shrink-0 ml-3">
-                                                    <span className={`text-xs font-bold ${d.severity === 'critical' ? 'text-rose-400' : 'text-amber-300'}`}>
+                                                    <span className={`text-xs font-bold ${d.severity === 'critical' a'text-rose-400' : 'text-amber-300'}`}>
                                                         {d.days_since_last_sale}j sans vente
                                                     </span>
                                                     <span className="text-[10px] text-slate-500">{(d.stock_value || 0).toLocaleString('fr-FR')} F</span>
@@ -1301,8 +1301,8 @@ export default function Inventory() {
                                     onClick={() => setShowDuplicates(!showDuplicates)}
                                     className="mt-2 text-violet-200 text-xs font-bold hover:underline flex items-center gap-1"
                                 >
-                                    {showDuplicates ? t('common.hide', 'Masquer') : t('inventory.show_duplicates', 'Voir les doublons')}
-                                    {showDuplicates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    {showDuplicates at('common.hide', 'Masquer') : t('inventory.show_duplicates', 'Voir les doublons')}
+                                    {showDuplicates a<ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                                 {showDuplicates && (
                                     <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
@@ -1353,7 +1353,7 @@ export default function Inventory() {
                 <div className="flex flex-wrap gap-2 mb-6">
                     <button
                         onClick={() => { setSelectedLocation(''); fetchProducts(''); }}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === '' ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === '' a'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
                     >
                         <MapPin size={12} /> Tous
                     </button>
@@ -1361,7 +1361,7 @@ export default function Inventory() {
                         <button
                             key={loc.location_id}
                             onClick={() => { setSelectedLocation(loc.location_id); fetchProducts(loc.location_id); }}
-                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id a'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
                         >
                             <MapPin size={12} /> {getLocationLabel(loc.location_id)}
                         </button>
@@ -1402,25 +1402,25 @@ export default function Inventory() {
             <div className="mb-6 flex flex-wrap gap-2">
                 <button
                     onClick={() => setSupplierCoverageFilter('all')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'all' ? 'border-primary bg-primary text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'all' a'border-primary bg-primary text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
                 >
                     Tous
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'no_supplier' ? 'border-rose-500 bg-rose-500 text-white' : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'no_supplier' a'border-rose-500 bg-rose-500 text-white' : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:text-white'}`}
                 >
                     Sans fournisseur
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('multi_supplier')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'multi_supplier' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'multi_supplier' a'border-amber-500 bg-amber-500 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:text-white'}`}
                 >
                     Plusieurs fournisseurs
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'missing_primary' ? 'border-sky-500 bg-sky-500 text-white' : 'border-sky-500/40 bg-sky-500/10 text-sky-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'missing_primary' a'border-sky-500 bg-sky-500 text-white' : 'border-sky-500/40 bg-sky-500/10 text-sky-300 hover:text-white'}`}
                 >
                     Principal manquant
                 </button>
@@ -1452,11 +1452,11 @@ export default function Inventory() {
                                 <tr key={p.product_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-4">
-                                            {p.image ? (
+                                            {p.image a(
                                                 <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt={p.name} />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-primary font-bold">
-                                                    {(p.name || '?').charAt(0)}
+                                                    {(p.name || '').charAt(0)}
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
@@ -1469,7 +1469,7 @@ export default function Inventory() {
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
-                                                <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' ? 'text-rose-300' : supplyMeta.tone === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}>
+                                                <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' a'text-rose-300' : supplyMeta.tone === 'sky' a'text-sky-300' : 'text-emerald-300'}`}>
                                                     {supplyMeta.status}
                                                 </span>
                                                 {hasEnterpriseLocations && p.location_id && (
@@ -1482,11 +1482,11 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-                                            {categoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
+                                            {categoriesList.find(c => c.category_id === p.category_id).name || t('common.uncategorized')}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
-                                        {productLinks.length === 0 ? (
+                                        {productLinks.length === 0 a(
                                             <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2">
                                                 <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
                                                 <button
@@ -1502,7 +1502,7 @@ export default function Inventory() {
                                         ) : (
                                             <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                                                 <span className="text-xs font-bold text-white">
-                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) â€¢ principal dÃ©fini` : `${productLinks.length} fournisseur(s) â€¢ principal manquant`}
+                                                    {hasPrimary a`${productLinks.length} fournisseur(s) â€¢ principal dÃ©fini` : `${productLinks.length} fournisseur(s) â€¢ principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
                                                     <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
@@ -1520,7 +1520,7 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col items-center gap-1">
-                                            <span className={`text-lg font-bold ${isOut ? 'text-red-400' : matchesMin ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                            <span className={`text-lg font-bold ${isOut a'text-red-400' : matchesMin a'text-amber-400' : 'text-emerald-400'}`}>
                                                 {formatMeasurementQuantity(p.quantity, p.display_unit || p.unit)}
                                             </span>
                                             {matchesMin && (
@@ -1537,16 +1537,16 @@ export default function Inventory() {
                                             const season = seasonalityMap[p.product_id];
                                             return (
                                                 <div className="flex flex-col items-center gap-0.5">
-                                                    {fc ? (
+                                                    {fc a(
                                                         <>
                                                             <span className="text-sm font-bold text-emerald-400">+{fc.forecast_7d}</span>
-                                                            <span className="text-[10px] text-slate-500">{fc.velocity_per_day?.toFixed(1)}/j</span>
+                                                            <span className="text-[10px] text-slate-500">{fc.velocity_per_day.toFixed(1)}/j</span>
                                                             {fc.alert && (
-                                                                <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' ? '⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
+                                                                <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' a'⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
                                                             )}
                                                         </>
                                                     ) : <span className="text-slate-600 text-xs">—</span>}
-                                                    {season?.urgency === 'high' && (
+                                                    {season.urgency === 'high' && (
                                                         <span className="text-[9px] text-amber-400 font-bold uppercase mt-0.5" title={`Pic saisonnier ${season.upcoming_peak_name} — prévoir ${season.expected_demand} unités`}>
                                                             🔥 {t('inventory.season_peak', 'Pic')} {season.upcoming_peak_name}
                                                         </span>
@@ -1634,15 +1634,15 @@ export default function Inventory() {
             <Modal
                 isOpen={stockModalOpen}
                 onClose={() => setStockModalOpen(false)}
-                title={stockMovType === 'in' ? '?? EntrÃ©e de stock' : '?? Sortie de stock'}
+                title={stockMovType === 'in' a' EntrÃ©e de stock' : ' Sortie de stock'}
                 maxWidth="sm"
             >
                 {stockModalProduct && (
                     <div className="space-y-5">
                         {/* Product info */}
-                        <div className={`p-4 rounded-xl flex items-center gap-3 ${stockMovType === 'in' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
-                            <div className={`p-2 rounded-lg ${stockMovType === 'in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>
-                                {stockMovType === 'in' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                        <div className={`p-4 rounded-xl flex items-center gap-3 ${stockMovType === 'in' a'bg-emerald-500/10 border border-emerald-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
+                            <div className={`p-2 rounded-lg ${stockMovType === 'in' a'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                                {stockMovType === 'in' a<TrendingUp size={20} /> : <TrendingDown size={20} />}
                             </div>
                             <div>
                                 <p className="font-bold text-white text-sm">{stockModalProduct.name}</p>
@@ -1666,9 +1666,9 @@ export default function Inventory() {
                             {stockMovQty && !isNaN(parseFloat(stockMovQty)) && (
                                 <p className="text-xs mt-1.5 text-slate-400">
                                     Nouveau stock :{' '}
-                                    <span className={`font-bold ${stockMovType === 'in' ? 'text-emerald-400' : 'text-orange-400'}`}>
+                                    <span className={`font-bold ${stockMovType === 'in' a'text-emerald-400' : 'text-orange-400'}`}>
                                         {stockMovType === 'in'
-                                            ? stockModalProduct.quantity + parseFloat(stockMovQty)
+                                            astockModalProduct.quantity + parseFloat(stockMovQty)
                                             : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
                                     </span> {stockModalProduct.unit || 'unitÃ©(s)'}
                                 </p>
@@ -1682,7 +1682,7 @@ export default function Inventory() {
                                 type="text"
                                 value={stockMovReason}
                                 onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' ? 'Ex: RÃ©approvisionnement' : 'Ex: Casse, vol, correction'}
+                                placeholder={stockMovType === 'in' a'Ex: RÃ©approvisionnement' : 'Ex: Casse, vol, correction'}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
@@ -1691,11 +1691,11 @@ export default function Inventory() {
                         <button
                             onClick={handleStockMovement}
                             disabled={stockMovLoading || !stockMovQty || parseFloat(stockMovQty) <= 0}
-                            className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+                            className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' a'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
                         >
                             {stockMovLoading
-                                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entrÃ©e</> : <><Minus size={18} /> Valider la sortie</>
+                                a<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                : stockMovType === 'in' a<><Plus size={18} /> Valider l'entrÃ©e</> : <><Minus size={18} /> Valider la sortie</>
                             }
                         </button>
                     </div>
@@ -1710,19 +1710,19 @@ export default function Inventory() {
                     setIsSupplierPickerOpen(false);
                     setSupplierPickerProduct(null);
                 }}
-                title={supplierPickerProduct ? `Fournisseurs pour ${supplierPickerProduct.name}` : 'Associer un fournisseur'}
+                title={supplierPickerProduct a`Fournisseurs pour ${supplierPickerProduct.name}` : 'Associer un fournisseur'}
                 maxWidth="lg"
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300">
                         Choisis ici les fournisseurs qui vendent ce produit, puis dÃ©finis le fournisseur principal.
                     </p>
-                    {rankedSuppliersForPicker.length > 0 ? (
+                    {rankedSuppliersForPicker.length > 0 a(
                         <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
                             {rankedSuppliersForPicker.map(({ supplier, score }) => {
                                 const selected = pickerSupplierIds.includes(supplier.supplier_id);
                                 return (
-                                    <div key={supplier.supplier_id} className={`rounded-xl border px-4 py-3 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-white/5'}`}>
+                                    <div key={supplier.supplier_id} className={`rounded-xl border px-4 py-3 ${selected a'border-primary/60 bg-primary/10' : 'border-white/10 bg-white/5'}`}>
                                         <div className="flex items-center justify-between gap-3">
                                             <label className="flex items-center gap-3 text-sm text-white">
                                                 <input
@@ -1739,7 +1739,7 @@ export default function Inventory() {
                                             )}
                                         </div>
                                         <div className="mt-2 text-xs text-slate-400">
-                                            {supplier.city || 'Ville non renseignÃ©e'}{supplier.products_supplied ? ` â€¢ ${supplier.products_supplied}` : ''}
+                                            {supplier.city || 'Ville non renseignÃ©e'}{supplier.products_supplied a` â€¢ ${supplier.products_supplied}` : ''}
                                         </div>
                                         {selected && (
                                             <label className="mt-3 flex items-center gap-2 text-xs text-slate-300">
@@ -1778,7 +1778,7 @@ export default function Inventory() {
                             disabled={supplierPickerSaving}
                             className="rounded-lg bg-primary px-5 py-2 font-medium text-white disabled:opacity-60"
                         >
-                            {supplierPickerSaving ? 'Enregistrement...' : 'Enregistrer les liaisons'}
+                            {supplierPickerSaving a'Enregistrement...' : 'Enregistrer les liaisons'}
                         </button>
                     </div>
                 </div>
@@ -1787,7 +1787,7 @@ export default function Inventory() {
             <Modal
                 isOpen={isProductModalOpen}
                 onClose={() => setIsProductModalOpen(false)}
-                title={editingProduct ? t('catalog.edit_product') : t('catalog.add_product')}
+                title={editingProduct at('catalog.edit_product') : t('catalog.add_product')}
                 maxWidth="2xl"
             >
                 <form onSubmit={handleSubmitProduct} className="space-y-6">
@@ -1796,7 +1796,7 @@ export default function Inventory() {
                         <div className="md:col-span-1 space-y-4">
                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Image du produit</label>
                             <div className="aspect-square rounded-2xl bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center relative overflow-hidden group">
-                                {form.image ? (
+                                {form.image a(
                                     <>
                                         <img src={form.image} className="w-full h-full object-cover" alt="Preview" />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -1833,7 +1833,7 @@ export default function Inventory() {
                                     className="p-2 glass-card text-primary hover:bg-white/10 disabled:opacity-50"
                                     title="IA Categorisation"
                                 >
-                                    <Sparkles size={20} className={aiLoading.category ? 'animate-pulse' : ''} />
+                                    <Sparkles size={20} className={aiLoading.category a'animate-pulse' : ''} />
                                 </button>
                             </div>
 
@@ -1894,7 +1894,7 @@ export default function Inventory() {
                                         <option value="">Aucun emplacement</option>
                                         {formLocationOptions.map(loc => (
                                             <option key={loc.location_id} value={loc.location_id}>
-                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archivÃ©)' : ''}
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false a' (archivÃ©)' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -1908,15 +1908,15 @@ export default function Inventory() {
                                         <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs Ã  ce produit. DÃ©finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
                                         <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
                                             formSupplierIds.length === 0
-                                                ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                                a'border-rose-500/40 bg-rose-500/10 text-rose-300'
                                                 : !formPrimarySupplierId
-                                                    ? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
+                                                    a'border-sky-500/40 bg-sky-500/10 text-sky-300'
                                                     : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
                                         }`}>
                                             {formSupplierIds.length === 0
-                                                ? 'Aucun fournisseur'
+                                                a'Aucun fournisseur'
                                                 : !formPrimarySupplierId
-                                                    ? 'Principal Â· dÃ©finir'
+                                                    a'Principal Â· dÃ©finir'
                                                     : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
                                         </div>
                                     </div>
@@ -1927,7 +1927,7 @@ export default function Inventory() {
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
                                             const selected = formSupplierIds.includes(supplier.supplier_id);
                                             return (
-                                                <div key={supplier.supplier_id} className={`rounded-lg border px-3 py-2 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-transparent'}`}>
+                                                <div key={supplier.supplier_id} className={`rounded-lg border px-3 py-2 ${selected a'border-primary/60 bg-primary/10' : 'border-white/10 bg-transparent'}`}>
                                                     <div className="flex items-center justify-between gap-2">
                                                         <label className="flex items-center gap-2 text-sm text-white">
                                                             <input
@@ -1991,7 +1991,7 @@ export default function Inventory() {
                                         }}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                     >
-                                        {['pi?ce', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'Bo?te', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
+                                        {['pice', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'Bote', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
                                             <option key={unit} value={unit}>{unit}</option>
                                         ))}
                                     </select>
@@ -2054,7 +2054,7 @@ export default function Inventory() {
                                     <label className="block text-sm font-medium text-slate-300 flex justify-between">
                                         {t('common.selling_price')}
                                         <button type="button" onClick={handleAiSuggestPrice} disabled={aiLoading.price} className="text-primary hover:underline text-[10px] flex items-center gap-1 font-bold italic">
-                                            <Sparkles size={10} className={aiLoading.price ? 'animate-pulse' : ''} /> Suggestion IA
+                                            <Sparkles size={10} className={aiLoading.price a'animate-pulse' : ''} /> Suggestion IA
                                         </button>
                                     </label>
                                     <input
@@ -2126,7 +2126,7 @@ export default function Inventory() {
                                 disabled={aiLoading.description}
                                 className="text-xs text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
-                                <Sparkles size={14} className={aiLoading.description ? 'animate-pulse' : ''} />
+                                <Sparkles size={14} className={aiLoading.description a'animate-pulse' : ''} />
                                 GÃ©nÃ©rer par IA
                             </button>
                         </div>
@@ -2249,7 +2249,7 @@ export default function Inventory() {
                                 className="btn-primary px-6 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
                             >
                                 {locationTransferring && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                                {locationTransferring ? 'Transfert...' : 'Confirmer'}
+                                {locationTransferring a'Transfert...' : 'Confirmer'}
                             </button>
                         </div>
                     </div>
@@ -2280,7 +2280,7 @@ export default function Inventory() {
                                     onChange={e => setTransferDest(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                                 >
-                                    {storeList.filter(s => s.store_id !== currentUser?.active_store_id).map(s => (
+                                    {storeList.filter(s => s.store_id !== currentUser.active_store_id).map(s => (
                                         <option key={s.store_id} value={s.store_id} className="bg-[#1a1f2e]">
                                             {s.name}
                                         </option>
@@ -2315,7 +2315,7 @@ export default function Inventory() {
                                 disabled={!transferDest || transferQty <= 0 || transferring}
                                 className="flex-1 py-2 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                             >
-                                {transferring ? 'Transfert...' : 'Confirmer'}
+                                {transferring a'Transfert...' : 'Confirmer'}
                             </button>
                         </div>
                         <button
@@ -2345,11 +2345,11 @@ export default function Inventory() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
-                            {transferHistoryLoading ? (
+                            {transferHistoryLoading a(
                                 <div className="flex justify-center py-10">
                                     <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                                 </div>
-                            ) : transferHistory.length === 0 ? (
+                            ) : transferHistory.length === 0 a(
                                 <div className="text-center py-10">
                                     <ArrowLeftRight size={40} className="mx-auto text-slate-700 mb-3" />
                                     <p className="text-sm text-slate-500 font-bold">{t('inventory.no_transfers')}</p>
@@ -2362,11 +2362,11 @@ export default function Inventory() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white truncate">{tr.product_name}</p>
                                                 <p className="text-xs text-slate-400 mt-1">
-                                                    {tr.from_store_name} ? {tr.to_store_name}
+                                                    {tr.from_store_name} a{tr.to_store_name}
                                                 </p>
                                                 <p className="text-[10px] text-slate-600 mt-1">
                                                     {new Date(tr.created_at).toLocaleString()} Â· {tr.transferred_by}
-                                                    {tr.note ? ` Â· ${tr.note}` : ''}
+                                                    {tr.note a` Â· ${tr.note}` : ''}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">

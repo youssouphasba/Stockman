@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type { User as AppUser } from '../services/api';
 import SettingsWorkspace from './SettingsWorkspace';
@@ -11,14 +11,14 @@ type SettingsProps = {
 const settingsSteps: GuideStep[] = [
     {
         title: 'Rôle des paramètres',
-        content: "Cet écran centralise les réglages du compte, de l'organisation, des notifications, des documents, des boutiques et de la sécurité. Commencez toujours par choisir le bon onglet selon ce que vous voulez modifier.",
+        content: "Cet écran centralise les réglages du compte, de l'organisation, des notifications, des documents, des boutiques et de la sécurité. Commencez toujours par choisir le bon onglet selon ce que vous voulez réellement modifier.",
     },
     {
         title: 'Lire les onglets correctement',
-        content: "Les onglets en haut divisent les réglages par famille. Ouvrez l'onglet concerné avant de modifier un champ, puis relisez les explications de portée pour savoir si vous agissez au niveau du compte, de l'organisation ou de la boutique.",
+        content: "Les onglets en haut divisent les réglages par famille. Ouvrez d'abord l'onglet concerné avant de modifier un champ, puis relisez les explications de portée pour savoir si vous agissez au niveau du compte, de l'organisation ou de la boutique.",
         details: [
             { label: 'Compte', description: "Profil, langue, devise et informations de facturation.", type: 'filter' },
-            { label: 'Organisation', description: "Modules actifs et rappels partagés pour votre structure.", type: 'filter' },
+            { label: 'Organisation', description: "Modules actifs, droits étendus et rappels partagés pour votre structure.", type: 'filter' },
             { label: 'Notifications', description: "Préférences personnelles et destinataires de notifications.", type: 'filter' },
             { label: 'Documents', description: "Tickets, factures, taxes et terminaux.", type: 'filter' },
             { label: 'Boutiques', description: "Fiche des boutiques et informations associées.", type: 'filter' },
@@ -51,3 +51,5 @@ export default function Settings({ user }: SettingsProps) {
         </>
     );
 }
+
+
