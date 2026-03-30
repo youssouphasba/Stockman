@@ -3,16 +3,20 @@
 import React, { useEffect, useState } from 'react';
 import {
     AlertTriangle,
+    Activity,
     Boxes,
     CircleDollarSign,
     Clock3,
     Package,
     Repeat,
+    Search,
     ShoppingCart,
     Store,
+    Target,
     TrendingUp,
+    Zap,
 } from 'lucide-react';
-import { analytics, AnalyticsExecutiveOverview, AnalyticsKpiDetail } from '../services/api';
+import { analytics, AnalyticsExecutiveOverview, AnalyticsKpiDetail, ai as aiApi } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
@@ -45,6 +49,12 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const [healthScore, setHealthScore] = useState<any>(null);
+    const [prediction, setPrediction] = useState<any>(null);
+    const [contextualTips, setContextualTips] = useState<any[]>([]);
+    const [nlQuery, setNlQuery] = useState('');
+    const [nlResult, setNlResult] = useState<any>(null);
+    const [nlLoading, setNlLoading] = useState(false);
     const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
     const analyticsFilters = {
         ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
@@ -69,6 +79,16 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
             } finally {
                 setLoading(false);
             }
+
+            Promise.allSettled([
+                aiApi.businessHealthScore(),
+                aiApi.dashboardPrediction(),
+                aiApi.contextualTips(),
+            ]).then(([healthRes, predictionRes, tipsRes]) => {
+                if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
+                if (predictionRes.status === 'fulfilled') setPrediction(predictionRes.value);
+                if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
+            });
         };
 
         loadOverview();
@@ -111,6 +131,21 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
             });
         } finally {
             setDetailLoading(false);
+        }
+    };
+
+    const handleNaturalQuery = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!nlQuery.trim()) return;
+        setNlLoading(true);
+        setNlResult(null);
+        try {
+            const response = await aiApi.naturalQuery(nlQuery.trim(), filters.storeId || undefined);
+            setNlResult(response);
+        } catch {
+            setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
+        } finally {
+            setNlLoading(false);
         }
     };
 
@@ -209,6 +244,184 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     onClick={() => openDetail('dormant_products_count')}
                 />
             </div>
+
+            <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="rounded-3xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/8 to-transparent p-6">
+                    <div className="flex items-center gap-2">
+                        <Activity size={18} className="text-emerald-400" />
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">Santé business</p>
+                    </div>
+                    {healthScore ? (
+                        <>
+                            <div className="mt-5 flex items-center gap-6">
+                                <div className="relative h-28 w-28 shrink-0">
+                                    <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+                                        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
+                                        <circle
+                                            cx="60"
+                                            cy="60"
+                                            r="52"
+                                            fill="none"
+                                            stroke={healthScore.color === 'green' ? '#10B981' : healthScore.color === 'orange' ? '#F59E0B' : '#EF4444'}
+                                            strokeWidth="10"
+                                            strokeLinecap="round"
+                                            strokeDasharray={`${(healthScore.score / 100) * 327} 327`}
+                                        />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className={`text-2xl font-black ${healthScore.color === 'green' ? 'text-emerald-400' : healthScore.color === 'orange' ? 'text-amber-400' : 'text-rose-400'}`}>
+                                            {healthScore.score}
+                                        </span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">/100</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                    {[
+                                        { key: 'margin', label: 'Marge', max: 30 },
+                                        { key: 'rotation', label: 'Rotation', max: 20 },
+                                        { key: 'debt_recovery', label: 'Recouvrement', max: 20 },
+                                        { key: 'trend', label: 'Tendance CA', max: 30 },
+                                    ].map(({ key, label, max }) => {
+                                        const value = healthScore.components?.[key] ?? 0;
+                                        const percent = max > 0 ? (value / max) * 100 : 0;
+                                        return (
+                                            <div key={key} className="flex items-center gap-3">
+                                                <span className="w-24 truncate text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</span>
+                                                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                                                    <div
+                                                        className={`h-full rounded-full ${percent >= 70 ? 'bg-emerald-500' : percent >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                        style={{ width: `${Math.min(percent, 100)}%` }}
+                                                    />
+                                                </div>
+                                                <span className="w-12 text-right text-xs font-bold text-slate-300">{value.toFixed(0)}/{max}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <p className="mt-5 text-sm text-slate-500">Le score apparaîtra dès que l’analyse pourra être calculée à partir de vos données.</p>
+                    )}
+                </div>
+
+                <div className="rounded-3xl border border-violet-500/15 bg-gradient-to-br from-violet-500/8 to-transparent p-6">
+                    <div className="flex items-center gap-2">
+                        <Target size={18} className="text-violet-400" />
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Projection fin de mois</p>
+                    </div>
+                    {prediction ? (
+                        <div className="mt-5">
+                            <p className="text-3xl font-black text-white">{formatCurrency(prediction.projected_revenue, currency)}</p>
+                            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">Estimé fin de mois</p>
+                            <div className="mt-5">
+                                <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
+                                    <span>Actuel : {formatCurrency(prediction.current_revenue, currency)}</span>
+                                    <span>J{prediction.days_elapsed}/{prediction.days_in_month}</span>
+                                </div>
+                                <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-primary"
+                                        style={{ width: `${Math.min((prediction.current_revenue / Math.max(prediction.projected_revenue, 1)) * 100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ${
+                                prediction.delta_vs_last_month >= 0
+                                    ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                                    : 'border border-rose-500/20 bg-rose-500/10 text-rose-400'
+                            }`}>
+                                <TrendingUp size={14} className={prediction.delta_vs_last_month < 0 ? 'rotate-180' : ''} />
+                                {prediction.delta_vs_last_month >= 0 ? '+' : ''}{prediction.delta_vs_last_month.toFixed(1)}% vs mois dernier
+                            </div>
+                            <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                {prediction.confidence === 'high'
+                                    ? 'Confiance élevée'
+                                    : prediction.confidence === 'medium'
+                                        ? 'Confiance moyenne'
+                                        : 'Confiance faible'}
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="mt-5 text-sm text-slate-500">La projection mensuelle s’affichera dès qu’il y aura assez d’historique pour l’estimation.</p>
+                    )}
+                </div>
+            </section>
+
+            <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <div className="flex items-center gap-2">
+                    <Zap size={16} className="text-primary" />
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Recherche langage naturel</p>
+                </div>
+                <form onSubmit={handleNaturalQuery} className="mt-4 flex flex-col gap-3 lg:flex-row">
+                    <div className="relative flex-1">
+                        <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                            type="text"
+                            value={nlQuery}
+                            onChange={(e) => {
+                                setNlQuery(e.target.value);
+                                setNlResult(null);
+                            }}
+                            placeholder="Posez une question… ex : top produits ce mois, stock bas, dettes clients"
+                            className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white outline-none transition focus:border-primary/40"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={nlLoading || !nlQuery.trim()}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary/15 px-5 py-3 text-sm font-black text-primary transition hover:bg-primary/20 disabled:opacity-40"
+                    >
+                        {nlLoading ? <div className="h-4 w-4 animate-spin rounded-full border border-primary/40 border-t-primary" /> : <Zap size={14} />}
+                        Chercher
+                    </button>
+                </form>
+                {nlResult ? (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-sm font-bold text-white">{nlResult.answer}</p>
+                        {Array.isArray(nlResult.data) && nlResult.data.length > 0 && (
+                            <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                {nlResult.data.slice(0, 12).map((item: any, index: number) => (
+                                    <div key={`${item.label || 'item'}-${index}`} className="rounded-xl border border-white/5 bg-[#111827]/80 p-3">
+                                        <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
+                                        <p className="mt-1 text-sm font-black text-white">{typeof item.value === 'number' ? item.value.toLocaleString('fr-FR') : item.value}</p>
+                                        {item.revenue != null && <p className="mt-1 text-[10px] text-slate-500">{item.revenue.toLocaleString('fr-FR')} CA</p>}
+                                        {item.threshold != null && <p className="mt-1 text-[10px] text-rose-400">Seuil : {item.threshold}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {nlResult.resolved_by === 'llm' && (
+                            <p className="mt-3 text-[10px] italic text-slate-600">Interprété par IA</p>
+                        )}
+                    </div>
+                ) : (
+                    <p className="mt-4 text-sm text-slate-500">Utilise une question libre pour explorer rapidement tes données métier.</p>
+                )}
+            </section>
+
+            <section className="mt-6 rounded-3xl border border-amber-500/15 bg-amber-500/5 p-6">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-amber-400" />
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">Conseils du moment</p>
+                </div>
+                {contextualTips.length > 0 ? (
+                    <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                        {contextualTips.map((tip: any) => (
+                            <div
+                                key={tip.id}
+                                className="rounded-2xl border border-white/10 bg-[#111827]/80 p-4"
+                                style={{ borderLeftColor: `${tip.color}55`, borderLeftWidth: 3 }}
+                            >
+                                <p className="text-sm font-black text-white">{tip.title}</p>
+                                <p className="mt-2 text-xs leading-6 text-slate-400">{tip.message}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="mt-4 text-sm text-slate-500">Les conseils proactifs apparaîtront ici dès qu’une situation utile à signaler sera détectée.</p>
+                )}
+            </section>
 
             {overview.recommendations?.length ? (
                 <section className="mt-6 rounded-3xl border border-primary/20 bg-primary/5 p-6">
