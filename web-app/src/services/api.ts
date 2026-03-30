@@ -2219,6 +2219,16 @@ export const ai = {
             method: 'POST',
             body: { target, threshold },
         }),
+    resolveDuplicate: (target: 'products' | 'suppliers', itemAId: string, itemBId: string, status: 'ignored' | 'different') =>
+        request<any>('/ai/duplicates/resolutions', {
+            method: 'POST',
+            body: {
+                target,
+                item_a_id: itemAId,
+                item_b_id: itemBId,
+                status,
+            },
+        }),
     supplierRating: (supplierId: string) =>
         request<any>(`/ai/supplier-rating/${supplierId}`),
     optimalOrderDay: (supplierId: string) =>

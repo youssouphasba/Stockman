@@ -159,6 +159,7 @@ export default function Inventory() {
     const [seasonalityMap, setSeasonalityMap] = useState<Record<string, any>>({});
     const [duplicatesData, setDuplicatesData] = useState<any>(null);
     const [showDuplicates, setShowDuplicates] = useState(false);
+    const [duplicateActionKey, setDuplicateActionKey] = useState<string | null>(null);
 
     // Stock movement modal
     const [stockModalOpen, setStockModalOpen] = useState(false);
@@ -218,6 +219,41 @@ export default function Inventory() {
         } finally {
             setStockMovLoading(false);
         }
+    };
+
+    const removeDuplicateFromState = (pairKey: string) => {
+        setDuplicatesData((current: any) => {
+            if (!current) return current;
+            const nextDuplicates = (current.duplicates || []).filter((item: any) => item.pair_key !== pairKey);
+            return {
+                ...current,
+                duplicates: nextDuplicates,
+                total_found: Math.max(0, (current.total_found || 0) - 1),
+            };
+        });
+    };
+
+    const handleResolveDuplicate = async (itemAId: string, itemBId: string, status: 'ignored' | 'different') => {
+        const ordered = [itemAId, itemBId].map(String).sort();
+        const pairKey = `${ordered[0]}::${ordered[1]}`;
+        setDuplicateActionKey(pairKey);
+        try {
+            await aiApi.resolveDuplicate('products', itemAId, itemBId, status);
+            removeDuplicateFromState(pairKey);
+        } catch (err: any) {
+            alert(err.message || "Impossible d'enregistrer cette décision.");
+        } finally {
+            setDuplicateActionKey(null);
+        }
+    };
+
+    const handleOpenDuplicateProduct = (productId: string) => {
+        const product = products.find((entry) => entry.product_id === productId);
+        if (!product) {
+            alert("Produit introuvable dans la boutique active.");
+            return;
+        }
+        handleOpenEditModal(product);
     };
 
     const fetchProducts = async (locationFilter?: string) => {
@@ -420,7 +456,7 @@ export default function Inventory() {
         setEditingProduct(product);
         const productLinks = supplierLinksByProduct[product.product_id] || [];
         setFormSupplierIds(productLinks.map((link) => link.supplier_id).filter(Boolean));
-        setFormPrimarySupplierId(productLinks.find((link) => link.is_preferred).supplier_id || '');
+        setFormPrimarySupplierId(productLinks.find((link) => link.is_preferred)?.supplier_id || '');
         setForm({
             name: product.name,
             sku: product.sku || '',
@@ -1329,6 +1365,34 @@ export default function Inventory() {
                                                 <div className="flex-1 min-w-0 text-right">
                                                     <span className="text-white text-sm font-semibold truncate block">{d.item_b.name}</span>
                                                     <span className="text-[10px] text-slate-500">{d.item_b.sku || 'Sans REF'} · {d.item_b.quantity} unités · {d.item_b.price} F</span>
+                                                </div>
+                                                <div className="shrink-0 flex flex-col gap-1 min-w-[150px]">
+                                                    <button
+                                                        onClick={() => handleOpenDuplicateProduct(d.item_a.id)}
+                                                        className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/10"
+                                                    >
+                                                        Ouvrir A
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenDuplicateProduct(d.item_b.id)}
+                                                        className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/10"
+                                                    >
+                                                        Ouvrir B
+                                                    </button>
+                                                    <button
+                                                        onClick={() => void handleResolveDuplicate(d.item_a.id, d.item_b.id, 'ignored')}
+                                                        disabled={duplicateActionKey === d.pair_key}
+                                                        className="rounded-lg border border-white/10 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                                                    >
+                                                        Ignorer
+                                                    </button>
+                                                    <button
+                                                        onClick={() => void handleResolveDuplicate(d.item_a.id, d.item_b.id, 'different')}
+                                                        disabled={duplicateActionKey === d.pair_key}
+                                                        className="rounded-lg border border-white/10 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+                                                    >
+                                                        Marquer différent
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}

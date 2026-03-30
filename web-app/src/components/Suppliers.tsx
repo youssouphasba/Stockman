@@ -104,6 +104,7 @@ export default function Suppliers() {
     // Vague 2: Supplier duplicates
     const [supplierDuplicates, setSupplierDuplicates] = useState<any>(null);
     const [showSupplierDups, setShowSupplierDups] = useState(false);
+    const [supplierDuplicateActionKey, setSupplierDuplicateActionKey] = useState<string | null>(null);
 
     // Vague 3: Supplier ratings, optimal order day, auto-draft orders
     const [supplierRatings, setSupplierRatings] = useState<Record<string, any>>({});
@@ -194,6 +195,41 @@ export default function Suppliers() {
         setPriceMinFilter('');
         setPriceMaxFilter('');
         setProductFilter(nextProduct || nextCategory);
+    };
+
+    const removeSupplierDuplicateFromState = (pairKey: string) => {
+        setSupplierDuplicates((current: any) => {
+            if (!current) return current;
+            const nextDuplicates = (current.duplicates || []).filter((item: any) => item.pair_key !== pairKey);
+            return {
+                ...current,
+                duplicates: nextDuplicates,
+                total_found: Math.max(0, (current.total_found || 0) - 1),
+            };
+        });
+    };
+
+    const handleResolveSupplierDuplicate = async (itemAId: string, itemBId: string, status: 'ignored' | 'different') => {
+        const ordered = [itemAId, itemBId].map(String).sort();
+        const pairKey = `${ordered[0]}::${ordered[1]}`;
+        setSupplierDuplicateActionKey(pairKey);
+        try {
+            await aiApi.resolveDuplicate('suppliers', itemAId, itemBId, status);
+            removeSupplierDuplicateFromState(pairKey);
+        } catch (err: any) {
+            alert(err.message || "Impossible d'enregistrer cette décision.");
+        } finally {
+            setSupplierDuplicateActionKey(null);
+        }
+    };
+
+    const handleOpenDuplicateSupplier = (supplierId: string) => {
+        const supplier = manualSuppliers.find((entry) => entry.supplier_id === supplierId);
+        if (!supplier) {
+            alert('Fournisseur introuvable.');
+            return;
+        }
+        void openSupplierDetails(supplier, 'manual');
     };
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
@@ -1481,6 +1517,34 @@ export default function Suppliers() {
                                                         <span className="text-violet-300 text-xs font-bold shrink-0">{Math.round(d.similarity * 100)}%</span>
                                                         <span className="text-white font-semibold flex-1 truncate text-right">{d.item_b.name}</span>
                                                         {d.contact_match && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full shrink-0">Même contact</span>}
+                                                        <div className="shrink-0 flex flex-col gap-1 min-w-[150px]">
+                                                            <button
+                                                                onClick={() => handleOpenDuplicateSupplier(d.item_a.id)}
+                                                                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/10"
+                                                            >
+                                                                Ouvrir A
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleOpenDuplicateSupplier(d.item_b.id)}
+                                                                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/10"
+                                                            >
+                                                                Ouvrir B
+                                                            </button>
+                                                            <button
+                                                                onClick={() => void handleResolveSupplierDuplicate(d.item_a.id, d.item_b.id, 'ignored')}
+                                                                disabled={supplierDuplicateActionKey === d.pair_key}
+                                                                className="rounded-lg border border-white/10 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                                                            >
+                                                                Ignorer
+                                                            </button>
+                                                            <button
+                                                                onClick={() => void handleResolveSupplierDuplicate(d.item_a.id, d.item_b.id, 'different')}
+                                                                disabled={supplierDuplicateActionKey === d.pair_key}
+                                                                className="rounded-lg border border-white/10 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+                                                            >
+                                                                Marquer différent
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

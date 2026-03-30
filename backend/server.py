@@ -565,6 +565,8 @@ async def create_indexes_and_init():
                 await db.customer_invoices.create_index("invoice_id", unique=True)
                 await db.customer_invoices.create_index([("user_id", 1), ("store_id", 1), ("issued_at", -1)])
                 await db.customer_invoices.create_index([("user_id", 1), ("sale_id", 1)], unique=True)
+                await db.duplicate_resolutions.create_index([("user_id", 1), ("target", 1), ("store_id", 1), ("pair_key", 1)], unique=True)
+                await db.duplicate_resolutions.create_index([("user_id", 1), ("target", 1), ("updated_at", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1)])
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
@@ -975,6 +977,26 @@ class PublicReceipt(BaseModel):
     store_name: str
     store_address: Optional[str] = None
     receipt_footer: Optional[str] = None
+
+
+class DuplicateResolution(BaseModel):
+    resolution_id: str = Field(default_factory=lambda: f"dupres_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    store_id: Optional[str] = None
+    target: str
+    pair_key: str
+    item_a_id: str
+    item_b_id: str
+    status: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class DuplicateResolutionRequest(BaseModel):
+    target: str
+    item_a_id: str
+    item_b_id: str
+    status: str
 
 # ===================== PUBLIC ENDPOINTS =====================
 
@@ -6402,6 +6424,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             available_tools["check_inventory_alerts"] = ai_tools.check_inventory_alerts
         if _user_has_module_access(user, "stock") or _user_has_module_access(user, "pos", "accounting"):
             available_tools["get_seasonal_forecast"] = ai_tools.get_seasonal_forecast
+            available_tools["get_metric_methodology"] = ai_tools.get_metric_methodology
         if _user_has_module_access(user, "accounting"):
             available_tools["get_accounting_snapshot"] = ai_tools.get_accounting_snapshot
         if _user_has_module_access(user, "crm"):
@@ -6453,6 +6476,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         - Si une fonctionnalite depend du plan, indique le plan requis, la raison du blocage, puis le benefice concret debloque.
         - N'incite a l'upgrade que si cela repond directement a la demande ou a un blocage constate.
         - Si tu as un doute sur l'acces d'une fonctionnalite selon le plan ou la plateforme, utilise l'outil get_feature_access_guidance.
+        - Si l'utilisateur demande comment une metrique est calculee, quelles donnees elle prend en compte, pourquoi elle ne change pas ou a quoi elle sert, utilise d'abord l'outil get_metric_methodology si disponible.
 
         TU DISPOSES D'OUTILS DE DONNÉES LIMITÉS AUX MODULES AUTORISÉS. UTILISE-LES
         quand la question porte sur des chiffres ou quand tu détectes un problème potentiel.
@@ -8239,16 +8263,17 @@ async def ai_detect_duplicates(
     plan = _resolve_ai_plan(user)
     await check_ai_limit(user, "detect_duplicates")
 
-    cached = ai_governance.cache_get(owner_id, "detect_duplicates", user.active_store_id or "")
-    if cached:
-        return cached
-
     store_filter: dict = {"user_id": owner_id}
     if user.active_store_id:
         store_filter["store_id"] = user.active_store_id
 
     target = body.get("target", "products")  # "products" or "suppliers"
     threshold = body.get("threshold", 0.7)  # similarity threshold 0-1
+    target_store_id = user.active_store_id if target == "products" else None
+    cache_key = f"{target}:{target_store_id or 'all'}:{threshold}"
+    cached = ai_governance.cache_get(owner_id, "detect_duplicates", cache_key)
+    if cached:
+        return cached
 
     def trigrams(s: str) -> set:
         """Generate character trigrams for similarity comparison."""
@@ -8266,6 +8291,18 @@ async def ai_detect_duplicates(
         union = len(ta | tb)
         return intersection / union if union > 0 else 0.0
 
+    resolution_query: Dict[str, Any] = {"user_id": owner_id, "target": target}
+    if target_store_id:
+        resolution_query["store_id"] = target_store_id
+    else:
+        resolution_query["$or"] = [{"store_id": {"$exists": False}}, {"store_id": None}, {"store_id": ""}]
+    resolutions = await db.duplicate_resolutions.find(resolution_query, {"_id": 0, "pair_key": 1}).to_list(5000)
+    resolved_pairs = {doc.get("pair_key") for doc in resolutions if doc.get("pair_key")}
+
+    def build_pair_key(item_a_id: str, item_b_id: str) -> str:
+        ordered = sorted([str(item_a_id), str(item_b_id)])
+        return f"{ordered[0]}::{ordered[1]}"
+
     duplicates = []
 
     if target == "products":
@@ -8278,8 +8315,9 @@ async def ai_detect_duplicates(
         seen_pairs: set = set()
         for i, a in enumerate(products):
             for b in products[i+1:]:
-                pair_key = tuple(sorted([a["product_id"], b["product_id"]]))
-                if pair_key in seen_pairs:
+                pair_tuple = tuple(sorted([a["product_id"], b["product_id"]]))
+                pair_key = build_pair_key(a["product_id"], b["product_id"])
+                if pair_tuple in seen_pairs or pair_key in resolved_pairs:
                     continue
 
                 name_sim = similarity(a.get("name", ""), b.get("name", ""))
@@ -8293,8 +8331,9 @@ async def ai_detect_duplicates(
                         name_sim = max(name_sim, 0.85)
 
                 if name_sim >= threshold:
-                    seen_pairs.add(pair_key)
+                    seen_pairs.add(pair_tuple)
                     duplicates.append({
+                        "pair_key": pair_key,
                         "item_a": {
                             "id": a["product_id"],
                             "name": a.get("name", ""),
@@ -8325,8 +8364,9 @@ async def ai_detect_duplicates(
         seen_pairs = set()
         for i, a in enumerate(suppliers):
             for b in suppliers[i+1:]:
-                pair_key = tuple(sorted([a["supplier_id"], b["supplier_id"]]))
-                if pair_key in seen_pairs:
+                pair_tuple = tuple(sorted([a["supplier_id"], b["supplier_id"]]))
+                pair_key = build_pair_key(a["supplier_id"], b["supplier_id"])
+                if pair_tuple in seen_pairs or pair_key in resolved_pairs:
                     continue
 
                 name_sim = similarity(a.get("name", ""), b.get("name", ""))
@@ -8341,8 +8381,9 @@ async def ai_detect_duplicates(
                     name_sim = max(name_sim, 0.9)
 
                 if name_sim >= threshold:
-                    seen_pairs.add(pair_key)
+                    seen_pairs.add(pair_tuple)
                     duplicates.append({
+                        "pair_key": pair_key,
                         "item_a": {
                             "id": a["supplier_id"],
                             "name": a.get("name", ""),
@@ -8369,9 +8410,81 @@ async def ai_detect_duplicates(
         "threshold": threshold,
     }
 
-    ai_governance.cache_set(owner_id, "detect_duplicates", result, user.active_store_id or "")
+    ai_governance.cache_set(owner_id, "detect_duplicates", result, cache_key)
     await track_ai_usage(user.user_id, "detect_duplicates", plan=plan, ai_enhanced=False)
     return result
+
+
+@api_router.post("/ai/duplicates/resolutions")
+async def save_duplicate_resolution(
+    data: DuplicateResolutionRequest,
+    user: User = Depends(require_operational_access),
+):
+    """Persist a user decision for a duplicate pair so it no longer appears in audits."""
+    owner_id = get_owner_id(user)
+    target = (data.target or "").strip().lower()
+    status = (data.status or "").strip().lower()
+    if target not in {"products", "suppliers"}:
+        raise HTTPException(status_code=400, detail="Cible de doublon invalide")
+    if status not in {"ignored", "different"}:
+        raise HTTPException(status_code=400, detail="Statut de résolution invalide")
+
+    item_a_id = str(data.item_a_id).strip()
+    item_b_id = str(data.item_b_id).strip()
+    if not item_a_id or not item_b_id or item_a_id == item_b_id:
+        raise HTTPException(status_code=400, detail="Paire de doublons invalide")
+
+    ordered_ids = sorted([item_a_id, item_b_id])
+    pair_key = f"{ordered_ids[0]}::{ordered_ids[1]}"
+    store_id = user.active_store_id if target == "products" else None
+    now = datetime.now(timezone.utc)
+
+    resolution = DuplicateResolution(
+        user_id=owner_id,
+        store_id=store_id,
+        target=target,
+        pair_key=pair_key,
+        item_a_id=ordered_ids[0],
+        item_b_id=ordered_ids[1],
+        status=status,
+        updated_at=now,
+        created_at=now,
+    )
+
+    await db.duplicate_resolutions.update_one(
+        {
+            "user_id": owner_id,
+            "target": target,
+            "store_id": store_id,
+            "pair_key": pair_key,
+        },
+        {
+            "$set": {
+                "status": status,
+                "updated_at": now,
+                "item_a_id": ordered_ids[0],
+                "item_b_id": ordered_ids[1],
+            },
+            "$setOnInsert": {
+                "resolution_id": resolution.resolution_id,
+                "user_id": owner_id,
+                "target": target,
+                "store_id": store_id,
+                "pair_key": pair_key,
+                "created_at": now,
+            },
+        },
+        upsert=True,
+    )
+
+    ai_governance.cache_invalidate(owner_id, "detect_duplicates")
+    return {
+        "status": "ok",
+        "resolution": status,
+        "target": target,
+        "pair_key": pair_key,
+        "store_id": store_id,
+    }
 
 
 # ===================== END VAGUE 2 =====================
@@ -21975,6 +22088,142 @@ class AiTools:
             return i18n.t("ai.tools.system_alerts.empty", self.lang)
         return {"system_alerts": alerts, "status": "ATTENTION"}
 
+    async def get_metric_methodology(self, metric: str):
+        """
+        Explain how a business metric is calculated and what data scope it uses.
+        Args:
+            metric: Metric name or keyword, for example 'sante du business', 'projection fin de mois', 'prevision ventes' or 'conseils'.
+        """
+        raw_metric = (metric or "").strip().lower()
+        if not raw_metric:
+            return {
+                "error": "Metrique manquante",
+                "supported_metrics": [
+                    "sante du business",
+                    "projection fin de mois",
+                    "prevision ventes",
+                    "conseils du moment",
+                    "doublons",
+                ],
+            }
+
+        def has_any(*keywords: str) -> bool:
+            return any(keyword in raw_metric for keyword in keywords)
+
+        if has_any("sante", "santé", "business health", "health score", "score sante"):
+            return {
+                "metric": "sante_du_business",
+                "type": "algorithme_metier",
+                "uses_llm": False,
+                "description": "Score composite de 0 a 100 pour evaluer la sante commerciale sur la periode et le perimetre actifs.",
+                "formula": {
+                    "margin": {"weight_pct": 30, "description": "Marge brute de la periode, convertie en score sur 100."},
+                    "rotation": {"weight_pct": 20, "description": "Rotation de stock estimee a partir du cout des ventes et de la valeur du stock courant."},
+                    "debt_recovery": {"weight_pct": 20, "description": "Penalite liee au poids des dettes clients par rapport au chiffre d'affaires de la periode."},
+                    "trend": {"weight_pct": 30, "description": "Evolution du chiffre d'affaires par rapport a la periode precedente de meme duree."},
+                },
+                "score_formula": "score = margin*0.30 + rotation*0.20 + debt_recovery*0.20 + trend*0.30",
+                "data_inputs": [
+                    "ventes terminees sur la periode selectionnee",
+                    "articles vendus et prix d'achat des lignes",
+                    "stock courant de la boutique ou du filtre selectionne",
+                    "dettes clients du perimetre accessible",
+                    "periode precedente de meme duree pour la tendance",
+                ],
+                "scope_rules": {
+                    "store": "prend la boutique active ou le store_id passe explicitement",
+                    "filters": "prend aussi en compte category_id et supplier_id quand ils sont fournis",
+                    "date_range": "prend days ou start_date/end_date selon le contexte de l'ecran",
+                },
+                "refresh_rules": [
+                    "se recalcule apres vente, depense, mouvement de stock ou inventaire grace a l'invalidation du cache",
+                    "le web envoie maintenant les filtres du dashboard a cette metrique",
+                ],
+            }
+
+        if has_any("projection", "fin de mois", "dashboard prediction", "prediction"):
+            return {
+                "metric": "projection_fin_de_mois",
+                "type": "algorithme_metier",
+                "uses_llm": False,
+                "description": "Projection du chiffre d'affaires de fin de mois a partir du rythme courant et d'un historique recent.",
+                "formula": {
+                    "current_month_revenue": "somme du chiffre d'affaires du mois en cours sur le perimetre actif",
+                    "daily_pace": "current_month_revenue / jours_ecoules",
+                    "linear_projection": "daily_pace * nombre_de_jours_du_mois",
+                    "weighted_history": "moyenne ponderee des deux mois precedents, avec plus de poids sur le mois le plus recent",
+                    "final_projection": "combinaison du rythme courant et de l'historique pondere",
+                },
+                "data_inputs": [
+                    "ventes terminees du mois en cours",
+                    "ventes terminees des deux mois precedents",
+                    "produits filtres si category_id ou supplier_id sont fournis",
+                ],
+                "scope_rules": {
+                    "store": "prend la boutique active ou le store_id passe explicitement",
+                    "filters": "prend category_id et supplier_id",
+                    "month_length": "utilise le vrai nombre de jours du mois courant",
+                },
+            }
+
+        if has_any("prevision ventes", "prévision ventes", "forecast", "j+7", "j+30"):
+            return {
+                "metric": "prevision_ventes",
+                "type": "algorithme_metier",
+                "uses_llm": False,
+                "description": "Projection de ventes par produit a horizon court a partir de la velocite de vente recente.",
+                "data_inputs": [
+                    "ventes recentes par produit",
+                    "stock courant",
+                    "tendance recente",
+                ],
+                "scope_rules": {
+                    "store": "alimentee par la boutique active",
+                    "period": "fenetre courte pour estimer J+7 et J+30",
+                },
+            }
+
+        if has_any("conseil", "tips", "conseils du moment", "contextual"):
+            return {
+                "metric": "conseils_du_moment",
+                "type": "moteur_de_regles",
+                "uses_llm": False,
+                "description": "Les conseils du moment sont generes par des regles metier, pas par un LLM.",
+                "data_inputs": [
+                    "stocks bas ou ruptures",
+                    "evolution du chiffre d'affaires",
+                    "marge et depenses",
+                    "clients inactifs ou a risque",
+                ],
+                "scope_rules": {
+                    "store": "prend la boutique active",
+                    "plan": "certaines regles avancees ne s'activent qu'en Pro ou Enterprise",
+                },
+            }
+
+        if has_any("doublon", "duplicate"):
+            return {
+                "metric": "detection_doublons",
+                "type": "algorithme_metier",
+                "uses_llm": False,
+                "description": "Detection de paires tres proches via similarite textuelle et rapprochements de references ou contacts.",
+                "formula": {
+                    "products": "similarite trigramme sur le nom, avec bonus si SKU tres proche",
+                    "suppliers": "similarite trigramme sur le nom, avec bonus si telephone ou email identiques",
+                },
+                "scope_rules": {
+                    "products": "filtre sur la boutique active",
+                    "suppliers": "perimetre compte utilisateur",
+                    "resolutions": "les paires ignorees ou marquees differente ne remontent plus",
+                },
+            }
+
+        return {
+            "known": False,
+            "metric": metric,
+            "message": "Aucune methode explicite n'est definie pour cette metrique. Utiliser le RAG et le code metier pour completer.",
+        }
+
     async def get_data_summary(self):
         """Get a general summary of the business data."""
         return await _get_ai_data_summary(self.user_id, self.store_id, requesting_user=self.requesting_user)
@@ -22728,6 +22977,12 @@ async def _get_ai_data_summary(
                 f"Depenses: {total_expenses:.0f} {currency} | Resultat net: "
                 f"{net_profit:.0f} {currency} ({net_margin_pct}%)\n"
                 f"Modes de paiement: {payment_summary}"
+            )
+            sections.append(
+                "--- METHODES DE CALCUL ---\n"
+                "Sante du business: score algorithmique sur 100, calcule avec 30% marge brute + 20% rotation stock + 20% poids des dettes clients + 30% tendance du chiffre d'affaires vs periode precedente.\n"
+                "Projection fin de mois: projection algorithmique du CA a partir du rythme du mois en cours et d'une moyenne ponderee des deux mois precedents.\n"
+                "Conseils du moment: moteur de regles metier, pas de generation LLM."
             )
 
         if can_read_stock:
