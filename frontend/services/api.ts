@@ -1486,6 +1486,8 @@ export const ai = {
     request<any>('/ai/generate-customer-message', { method: 'POST', body: { customer_id: customerId, message_type: messageType, lang: lang ?? 'fr', context: context ?? '' } }),
   naturalQuery: (query: string, storeId?: string) =>
     request<any>('/ai/natural-query', { method: 'POST', body: { query, store_id: storeId } }),
+  voiceToCart: (audioBase64: string, lang?: string, storeId?: string) =>
+    request<any>('/ai/voice-to-cart', { method: 'POST', body: { audio_base64: audioBase64, lang: lang ?? 'fr', store_id: storeId } }),
 };
 
 export type InvoiceScanResult = {

@@ -1,5 +1,6 @@
 {
   "NSCameraUsageDescription": "Stockman dafay jëfandikoo kaameraa ngir scan-e baarkoodu yi ci produi yi ci kees bi ak ci inventeer bi, jël nataal yi ngir dugal leen ci fis produi yi, te jël nataal resu wala dokumaa yi ngir aar leen.",
   "NSPhotoLibraryUsageDescription": "Stockman dafay jëm ci sa bibliotek nataal yi ngir may la tànn ab nataal bu am ba léegi te dugal ko ci ab fis produi, ab resu wala ab dokumaa.",
-  "NSPhotoLibraryAddUsageDescription": "Stockman dafay denc nataal yu creye ci sa bibliotek nataal yi, ni resu yi, nataal produi yi wala raapoor yu génére."
+  "NSPhotoLibraryAddUsageDescription": "Stockman dafay denc nataal yu creye ci sa bibliotek nataal yi, ni resu yi, nataal produi yi wala raapoor yu génére.",
+  "NSMicrophoneUsageDescription": "Stockman dafay jëfandikoo mikiro bi ngir may la topp sàkk yi ci ndékki bi ak sa baat, te yónnee xabaar yi ak baat ci ndimbelaan IA bi."
 }

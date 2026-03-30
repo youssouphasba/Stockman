@@ -1,5 +1,6 @@
 {
   "NSCameraUsageDescription": "Stockman 使用相机在收银和库存中扫描产品条形码、拍摄商品照片以附加到产品列表，以及拍摄收据或文件图像以供存档。",
   "NSPhotoLibraryUsageDescription": "Stockman 访问您的照片图库，以便您选择现有图片附加到产品列表、收据或商业文档。",
-  "NSPhotoLibraryAddUsageDescription": "Stockman 将生成的图片保存到您的照片图库，例如收据、产品照片或导出的报告。"
+  "NSPhotoLibraryAddUsageDescription": "Stockman 将生成的图片保存到您的照片图库，例如收据、产品照片或导出的报告。",
+  "NSMicrophoneUsageDescription": "Stockman 使用麦克风让您通过语音收银功能说话将产品添加到购物车，以及向 AI 助手发送语音消息。"
 }

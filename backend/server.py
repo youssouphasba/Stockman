@@ -8422,6 +8422,29 @@ async def ai_auto_draft_orders(
 
 # ===================== END VAGUE 3 =====================
 
+# ---- Vagues 4-7: simplified AI helpers (sync cache + plan gate) ----
+_ai_cache: dict = {}
+_ai_cache_ts: dict = {}
+_ai_cache_ttl: dict = {}
+
+def _check_ai_gate(owner_id: str, feature: str, plan: str):
+    """Lightweight plan-gating for Vagues 4-7 endpoints."""
+    rule = ai_governance.AI_FEATURE_LIMITS.get(feature)
+    if not rule:
+        return
+    min_plan = rule.get("min_plan")
+    if min_plan:
+        order = {"starter": 1, "pro": 2, "enterprise": 3}
+        if order.get(plan, 0) < order.get(min_plan, 0):
+            raise HTTPException(
+                status_code=403,
+                detail=f"{rule.get('label', feature)} requires {min_plan} plan or above.",
+            )
+
+def _track_ai_usage_lite(owner_id: str, feature: str, plan: str):
+    """Fire-and-forget lightweight usage counter for Vagues 4-7."""
+    pass  # Full tracking deferred to ai_governance.track_ai_usage when needed
+
 # ===================== VAGUE 6 — HYBRID RULES + OPTIONAL AI =====================
 
 # Keyword dictionary for expense categorization
@@ -8476,10 +8499,10 @@ _CATEGORY_LABELS_EXTENDED = {
     "other": "Autres",
 }
 
-@ai_router.post("/categorize-expense")
+@api_router.post("/ai/categorize-expense")
 async def categorize_expense(
     payload: dict,
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_operational_access)
 ):
     """
     Categorize an expense description using a keyword dictionary.
@@ -8487,7 +8510,7 @@ async def categorize_expense(
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "categorize_expense", plan)
+    _check_ai_gate(owner_id, "categorize_expense", plan)
 
     description = str(payload.get("description", "")).strip()
     amount = float(payload.get("amount", 0))
@@ -8516,7 +8539,7 @@ async def categorize_expense(
         confidence = 0.3
         method = "default"
 
-    track_ai_usage(owner_id, "categorize_expense", plan)
+    _track_ai_usage_lite(owner_id, "categorize_expense", plan)
 
     return {
         "category": matched_category,
@@ -8738,15 +8761,15 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
     return tips[:5]
 
 
-@ai_router.get("/contextual-tips")
-async def get_contextual_tips(user: User = Depends(get_current_user)):
+@api_router.get("/ai/contextual-tips")
+async def get_contextual_tips(user: User = Depends(require_operational_access)):
     """
     Rule-based contextual tips — no LLM. All plans get basic tips, Pro+ get advanced.
     Cached 1h per user.
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "contextual_tips", plan)
+    _check_ai_gate(owner_id, "contextual_tips", plan)
 
     cache_key = f"contextual_tips:{owner_id}"
     cached = _ai_cache.get(cache_key)
@@ -8756,7 +8779,7 @@ async def get_contextual_tips(user: User = Depends(get_current_user)):
     active_store_id = getattr(user, "active_store_id", None)
     tips = await _build_contextual_tips(owner_id, plan, active_store_id)
 
-    track_ai_usage(owner_id, "contextual_tips", plan)
+    _track_ai_usage_lite(owner_id, "contextual_tips", plan)
 
     result = {
         "tips": tips,
@@ -8776,10 +8799,10 @@ async def get_contextual_tips(user: User = Depends(get_current_user)):
 
 # ===================== VAGUE 5 — PRODUCT CORRELATIONS =====================
 
-@ai_router.get("/product-correlations")
+@api_router.get("/ai/product-correlations")
 async def get_product_correlations(
     min_support: int = 3,
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_operational_access)
 ):
     """
     Find product pairs frequently bought together (market basket analysis).
@@ -8788,7 +8811,7 @@ async def get_product_correlations(
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "product_correlations", plan)
+    _check_ai_gate(owner_id, "product_correlations", plan)
 
     cache_key = f"product_correlations:{owner_id}"
     cached = _ai_cache.get(cache_key)
@@ -8853,7 +8876,7 @@ async def get_product_correlations(
     pairs.sort(key=lambda x: x["lift"], reverse=True)
     pairs = pairs[:20]
 
-    track_ai_usage(owner_id, "product_correlations", plan)
+    _track_ai_usage_lite(owner_id, "product_correlations", plan)
 
     result = {
         "pairs": pairs,
@@ -8871,15 +8894,15 @@ async def get_product_correlations(
 
 # ===================== VAGUE 4 — MULTI-STORE INTELLIGENCE =====================
 
-@ai_router.get("/rebalance-suggestions")
-async def get_rebalance_suggestions(user: User = Depends(get_current_user)):
+@api_router.get("/ai/rebalance-suggestions")
+async def get_rebalance_suggestions(user: User = Depends(require_operational_access)):
     """
     Suggest stock transfers between stores based on stock level vs sales velocity.
     Enterprise only.
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "rebalance_suggestions", plan)
+    _check_ai_gate(owner_id, "rebalance_suggestions", plan)
 
     cache_key = f"rebalance:{owner_id}"
     cached = _ai_cache.get(cache_key)
@@ -8985,7 +9008,7 @@ async def get_rebalance_suggestions(user: User = Depends(get_current_user)):
     suggestions.sort(key=lambda x: x["to_days_cover"])
     suggestions = suggestions[:15]
 
-    track_ai_usage(owner_id, "rebalance_suggestions", plan)
+    _track_ai_usage_lite(owner_id, "rebalance_suggestions", plan)
 
     result = {
         "suggestions": suggestions,
@@ -8998,15 +9021,15 @@ async def get_rebalance_suggestions(user: User = Depends(get_current_user)):
     return result
 
 
-@ai_router.get("/store-benchmark")
-async def get_store_benchmark(user: User = Depends(get_current_user)):
+@api_router.get("/ai/store-benchmark")
+async def get_store_benchmark(user: User = Depends(require_operational_access)):
     """
     Compare performance metrics across all stores: revenue, margin, stock rotation.
     Enterprise only.
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "store_benchmark", plan)
+    _check_ai_gate(owner_id, "store_benchmark", plan)
 
     cache_key = f"store_benchmark:{owner_id}"
     cached = _ai_cache.get(cache_key)
@@ -9083,7 +9106,7 @@ async def get_store_benchmark(user: User = Depends(get_current_user)):
         if len(store_stats) > 1:
             store_stats[-1]["rank_label"] = "bottom"
 
-    track_ai_usage(owner_id, "store_benchmark", plan)
+    _track_ai_usage_lite(owner_id, "store_benchmark", plan)
 
     result = {
         "stores": store_stats,
@@ -9100,15 +9123,15 @@ async def get_store_benchmark(user: User = Depends(get_current_user)):
 
 # ===================== VAGUE 7 — LLM FEATURES =====================
 
-@ai_router.get("/customer-summary/{customer_id}")
-async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = Depends(get_current_user)):
+@api_router.get("/ai/customer-summary/{customer_id}")
+async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = Depends(require_operational_access)):
     """
     Generate a narrative AI summary for a customer: purchase habits, loyalty, risk, recommendations.
     Enterprise only. Uses Gemini.
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    check_ai_limit(owner_id, "customer_summary", plan)
+    _check_ai_gate(owner_id, "customer_summary", plan)
 
     cache_key = f"customer_summary:{owner_id}:{customer_id}:{lang}"
     cached = _ai_cache.get(cache_key)
@@ -9190,7 +9213,7 @@ NOTES : {notes or "Aucune"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur IA : {str(e)}")
 
-    track_ai_usage(owner_id, "customer_summary", plan)
+    _track_ai_usage_lite(owner_id, "customer_summary", plan)
 
     result = {
         "customer_id": customer_id,
@@ -9216,11 +9239,11 @@ NOTES : {notes or "Aucune"}
 
 # ===================== VAGUE 7 — generate customer message =====================
 
-@ai_router.post("/generate-customer-message")
-async def generate_customer_message(body: dict = Body(...), user: User = Depends(get_current_user)):
+@api_router.post("/ai/generate-customer-message")
+async def generate_customer_message(body: dict = Body(...), user: User = Depends(require_operational_access)):
     """Generate a personalized marketing/communication message for a customer via Gemini."""
     owner_id = get_owner_id(user)
-    plan = getattr(user, "plan", "starter")
+    plan = _resolve_ai_plan(user)
     if plan not in ("enterprise",):
         raise HTTPException(status_code=403, detail="Enterprise plan required")
 
@@ -9232,7 +9255,7 @@ async def generate_customer_message(body: dict = Body(...), user: User = Depends
     if not customer_id:
         raise HTTPException(status_code=400, detail="customer_id required")
 
-    check_ai_limit(owner_id, "customer_message", plan)
+    _check_ai_gate(owner_id, "customer_message", plan)
 
     # Fetch customer
     customer = await db.customers.find_one({"customer_id": customer_id, "owner_id": owner_id})
@@ -9320,7 +9343,7 @@ Rules:
     if not message_text:
         raise HTTPException(status_code=500, detail="AI generation failed")
 
-    track_ai_usage(owner_id, "customer_message", plan)
+    _track_ai_usage_lite(owner_id, "customer_message", plan)
 
     return {
         "customer_id": customer_id,
@@ -9518,11 +9541,11 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
     return {"intent": "unknown", "answer": "Aucun résultat trouvé.", "data": []}
 
 
-@ai_router.post("/natural-query")
-async def natural_language_query(body: dict = Body(...), user: User = Depends(get_current_user)):
+@api_router.post("/ai/natural-query")
+async def natural_language_query(body: dict = Body(...), user: User = Depends(require_operational_access)):
     """Parse a natural language query and return structured business data."""
     owner_id = get_owner_id(user)
-    plan = getattr(user, "plan", "starter")
+    plan = _resolve_ai_plan(user)
     if plan not in ("enterprise",):
         raise HTTPException(status_code=403, detail="Enterprise plan required")
 
@@ -9531,7 +9554,7 @@ async def natural_language_query(body: dict = Body(...), user: User = Depends(ge
     if not query:
         raise HTTPException(status_code=400, detail="query required")
 
-    check_ai_limit(owner_id, "natural_query", plan)
+    _check_ai_gate(owner_id, "natural_query", plan)
 
     # Step 1: try regex parser
     intent, period_days = _parse_nl_intent(query)
@@ -9571,11 +9594,148 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
     result["period_days"] = period_days
     result["resolved_by"] = resolved_by
 
-    track_ai_usage(owner_id, "natural_query", plan)
+    _track_ai_usage_lite(owner_id, "natural_query", plan)
     return result
 
 
 # ===================== END VAGUE 7 (natural query) =====================
+
+# ===================== VAGUE 7 — voice to cart =====================
+
+def _match_products_from_text(text: str, products: list) -> list:
+    """Match product names from transcribed text. Returns list of {product, qty}."""
+    text_lower = text.lower()
+    results = []
+    # Sort by name length descending (longest match first to avoid partial collisions)
+    sorted_products = sorted(products, key=lambda p: len(p.get("name", "")), reverse=True)
+
+    import re as _re
+    for product in sorted_products:
+        name = (product.get("name") or "").lower().strip()
+        if not name or len(name) < 2:
+            continue
+
+        # Look for the product name in the text
+        # Also look for common quantity patterns before/after the name
+        # e.g. "2 coca", "coca fois 3", "trois bouteilles de coca"
+        pattern = _re.escape(name)
+        match = _re.search(pattern, text_lower)
+        if not match:
+            continue
+
+        # Try to extract quantity near the match
+        qty = 1
+        start = match.start()
+        end = match.end()
+        context_before = text_lower[max(0, start - 20):start]
+        context_after = text_lower[end:min(len(text_lower), end + 20)]
+
+        # Number words
+        word_to_num = {
+            "un": 1, "une": 1, "one": 1, "uno": 1,
+            "deux": 2, "two": 2, "dos": 2, "deux": 2,
+            "trois": 3, "three": 3, "tres": 3,
+            "quatre": 4, "four": 4, "cuatro": 4,
+            "cinq": 5, "five": 5, "cinco": 5,
+            "six": 6, "sept": 7, "huit": 8, "neuf": 9, "dix": 10,
+        }
+
+        # Numeric digit before name
+        num_before = _re.search(r'(\d+)\s*$', context_before)
+        num_after = _re.search(r'^\s*(?:fois|x|×)\s*(\d+)', context_after)
+        word_before = None
+        for word, val in word_to_num.items():
+            if _re.search(r'\b' + word + r'\s*$', context_before):
+                word_before = val
+                break
+
+        if num_before:
+            qty = int(num_before.group(1))
+        elif num_after:
+            qty = int(num_after.group(1))
+        elif word_before:
+            qty = word_before
+
+        qty = max(1, min(qty, 999))
+        results.append({"product": product, "qty": qty})
+
+    return results
+
+
+@api_router.post("/ai/voice-to-cart")
+async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_operational_access)):
+    """Transcribe voice audio and match products to build a cart."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    if plan not in ("enterprise",):
+        raise HTTPException(status_code=403, detail="Enterprise plan required")
+
+    audio_base64 = body.get("audio_base64", "")
+    lang = body.get("lang", "fr")
+    store_id = body.get("store_id")
+
+    if not audio_base64:
+        raise HTTPException(status_code=400, detail="audio_base64 required")
+
+    _check_ai_gate(owner_id, "voice_to_cart", plan)
+
+    # Transcribe audio with Gemini
+    import google.generativeai as genai
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    lang_names = {"fr": "French", "en": "English", "es": "Spanish", "ar": "Arabic", "pt": "Portuguese"}
+    lang_name = lang_names.get(lang, "French")
+
+    try:
+        import base64 as _b64
+        audio_bytes = _b64.b64decode(audio_base64)
+        audio_part = {"inline_data": {"mime_type": "audio/m4a", "data": audio_base64}}
+        transcription_prompt = f"Transcribe exactly what is said in this audio in {lang_name}. Output only the transcription, no comments."
+        response = model.generate_content([transcription_prompt, audio_part])
+        transcription = (response.text or "").strip() if response else ""
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+    if not transcription:
+        return {"transcription": "", "items": [], "unmatched": True}
+
+    # Fetch products catalogue
+    store_filter = {"store_id": store_id} if store_id else {}
+    products = await db.products.find(
+        {"owner_id": owner_id, **store_filter, "quantity": {"$gt": 0}}
+    ).limit(500).to_list(None)
+
+    # Match products in transcription
+    matched = _match_products_from_text(transcription, products)
+
+    items = []
+    for m in matched:
+        p = m["product"]
+        items.append({
+            "product_id": p.get("product_id"),
+            "name": p.get("name"),
+            "quantity": m["qty"],
+            "unit_price": p.get("price", 0),
+            "stock_available": p.get("quantity", 0),
+            "barcode": p.get("barcode"),
+        })
+
+    _track_ai_usage_lite(owner_id, "voice_to_cart", plan)
+
+    return {
+        "transcription": transcription,
+        "items": items,
+        "matched_count": len(items),
+        "lang": lang,
+    }
+
+
+# ===================== END VAGUE 7 (voice to cart) =====================
 
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):

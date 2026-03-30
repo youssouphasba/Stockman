@@ -1,5 +1,6 @@
 {
   "NSCameraUsageDescription": "Stockman huutortoo kameraa ngam scan-de barkodji produits ɗin e kees e e nder inventeer, ƴettude natal produits ɗin ngam hawtude e fis produits ɗin, e ƴettude natal resiwuuji walla dokumentuuji ngam reenude.",
   "NSPhotoLibraryUsageDescription": "Stockman naatata e bibliotek natal maa ngam accude ma suɓaade natal gonɗo ngam hawtude e fis produi, resiwu walla dokumaa.",
-  "NSPhotoLibraryAddUsageDescription": "Stockman danndita natal ɗi cosaa e nder bibliotek natal maa, wa resiwuuji, natal produits walla raapoor ɗi génére."
+  "NSPhotoLibraryAddUsageDescription": "Stockman danndita natal ɗi cosaa e nder bibliotek natal maa, wa resiwuuji, natal produits walla raapoor ɗi génére.",
+  "NSMicrophoneUsageDescription": "Stockman huutortoo mikiro ngam accude ma hawtude produits ɗin e nder kees bi ak daande maa, e neli haala e nder ndimmaari IA."
 }

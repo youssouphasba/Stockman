@@ -60,6 +60,8 @@ const isMobile = screenWidth < 768;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
 import LineDiscountModal from '../../components/LineDiscountModal';
+import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export type CartItem = {
     cartKey: string;
@@ -84,7 +86,7 @@ export type POSSession = {
 
 export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const styles = getStyles(colors, glassStyle);
     const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
@@ -109,6 +111,12 @@ export default function POSScreen() {
     const [isScannerVisible, setIsScannerVisible] = useState(false);
     const [continuousScan, setContinuousScan] = useState(false);
     const [showProductList, setShowProductList] = useState(!isMobile); // Hidden by default on mobile
+    // Voice to cart
+    const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+    const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+    const [showVoiceModal, setShowVoiceModal] = useState(false);
+    const [voiceTranscription, setVoiceTranscription] = useState('');
+    const [voiceItems, setVoiceItems] = useState<any[]>([]);
 
     // Modals
     const [showCalculator, setShowCalculator] = useState(false);
@@ -457,6 +465,68 @@ export default function POSScreen() {
         } catch (error: any) {
             Alert.alert(t('common.error'), error?.message || t('pos.add_quantity_error'));
         }
+    };
+
+    // Voice to cart recorder
+    const voiceRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+    const startVoiceRecording = async () => {
+        try {
+            const { status } = await requestRecordingPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Microphone requis',
+                    'Stockman a besoin d\'accéder à votre microphone pour la caisse vocale. Activez-le dans les réglages.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+            await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+            voiceRecorder.record();
+            setIsVoiceRecording(true);
+            setShowVoiceModal(true);
+            setVoiceTranscription('');
+            setVoiceItems([]);
+        } catch (err) {
+            console.error('Voice recording start failed', err);
+        }
+    };
+
+    const stopVoiceRecording = async () => {
+        if (!isVoiceRecording) return;
+        setIsVoiceRecording(false);
+        setIsVoiceProcessing(true);
+        try {
+            await voiceRecorder.stop();
+            const uri = voiceRecorder.uri;
+            if (!uri) throw new Error('No recording URI');
+            const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const result = await aiApi.voiceToCart(base64, i18n.language, activeSession.storeId || undefined);
+            setVoiceTranscription(result?.transcription || '');
+            setVoiceItems(result?.items || []);
+        } catch (err) {
+            console.error('Voice to cart failed', err);
+            Alert.alert(t('common.error'), 'La reconnaissance vocale a échoué. Réessayez.');
+            setShowVoiceModal(false);
+        } finally {
+            setIsVoiceProcessing(false);
+            await setAudioModeAsync({ allowsRecording: false });
+        }
+    };
+
+    const addVoiceItemsToCart = () => {
+        for (const item of voiceItems) {
+            // Find the product in the full product list by product_id
+            const product = productList.find((p: Product) => p.product_id === item.product_id);
+            if (!product) continue;
+            // Add requested quantity
+            for (let i = 0; i < item.quantity; i++) {
+                addToCart(product);
+            }
+        }
+        setShowVoiceModal(false);
+        setVoiceItems([]);
+        setVoiceTranscription('');
     };
 
     const addToCart = (product: Product) => {
@@ -1205,9 +1275,29 @@ export default function POSScreen() {
                                         </TouchableOpacity>
                                     )}
                                 </View>
-                                <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: openOrderId ? s.cart.filter(item => item.persisted) : [] }))}>
-                                    <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
-                                </TouchableOpacity>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                    {canWrite && (
+                                        <TouchableOpacity
+                                            onPress={isVoiceRecording ? stopVoiceRecording : startVoiceRecording}
+                                            style={{
+                                                width: 32, height: 32, borderRadius: 16,
+                                                backgroundColor: isVoiceRecording ? '#ef444420' : colors.primary + '20',
+                                                alignItems: 'center', justifyContent: 'center',
+                                                borderWidth: 1.5,
+                                                borderColor: isVoiceRecording ? '#ef4444' : colors.primary,
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name={isVoiceRecording ? 'stop' : 'mic-outline'}
+                                                size={16}
+                                                color={isVoiceRecording ? '#ef4444' : colors.primary}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: openOrderId ? s.cart.filter(item => item.persisted) : [] }))}>
+                                        <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <View style={styles.customerSelector}>
@@ -1245,6 +1335,27 @@ export default function POSScreen() {
                                     <View style={styles.emptyCart}>
                                         <Ionicons name="cart-outline" size={48} color={colors.textMuted} />
                                         <Text style={styles.emptyText}>{t('pos.empty_cart')}</Text>
+                                        <Text style={styles.emptyCartHint}>
+                                            Ajoutez un produit, scannez un article ou choisissez un client pour préparer rapidement la vente.
+                                        </Text>
+                                        <View style={styles.emptyCartActions}>
+                                            {isMobile && (
+                                                <TouchableOpacity style={styles.emptyCartAction} onPress={() => setShowProductList(true)}>
+                                                    <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                                                    <Text style={styles.emptyCartActionText}>{t('pos.add_product')}</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            <TouchableOpacity style={styles.emptyCartAction} onPress={() => setIsScannerVisible(true)}>
+                                                <Ionicons name="barcode-outline" size={18} color={colors.info} />
+                                                <Text style={[styles.emptyCartActionText, { color: colors.info }]}>Scanner</Text>
+                                            </TouchableOpacity>
+                                            {canWrite && (
+                                                <TouchableOpacity style={styles.emptyCartAction} onPress={() => setShowCustomerModal(true)}>
+                                                    <Ionicons name="person-add-outline" size={18} color={colors.success} />
+                                                    <Text style={[styles.emptyCartActionText, { color: colors.success }]}>Associer un client</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
                                     </View>
                                 ) : (
                                     cart.map(item => (
@@ -1484,6 +1595,116 @@ export default function POSScreen() {
                     if (!continuousScan) setIsScannerVisible(false);
                 }}
             />
+
+            {/* Voice to Cart Modal */}
+            {showVoiceModal && (
+                <Modal visible={showVoiceModal} animationType="slide" transparent onRequestClose={() => { if (!isVoiceProcessing) setShowVoiceModal(false); }}>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + 16 }]}>
+                            <View style={styles.modalHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <Ionicons name="mic" size={20} color={colors.primary} />
+                                    <Text style={styles.modalTitle}>Caisse vocale</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => { if (!isVoiceProcessing) { setShowVoiceModal(false); setVoiceItems([]); } }}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Recording state */}
+                            {isVoiceRecording && (
+                                <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                                    <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ef444420', borderWidth: 2, borderColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                        <Ionicons name="mic" size={36} color="#ef4444" />
+                                    </View>
+                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>Parlez maintenant…</Text>
+                                    <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20 }}>Exemple : "2 coca, 1 pain, trois bouteilles d'eau"</Text>
+                                    <TouchableOpacity
+                                        onPress={stopVoiceRecording}
+                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ef444420', borderRadius: 14, borderWidth: 1.5, borderColor: '#ef4444' }}
+                                    >
+                                        <Ionicons name="stop" size={18} color="#ef4444" />
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#ef4444' }}>Arrêter l'enregistrement</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {/* Processing state */}
+                            {isVoiceProcessing && (
+                                <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                                    <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 16 }} />
+                                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>Reconnaissance en cours…</Text>
+                                </View>
+                            )}
+
+                            {/* Results */}
+                            {!isVoiceRecording && !isVoiceProcessing && voiceTranscription !== '' && (
+                                <View style={{ paddingHorizontal: 4 }}>
+                                    <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+                                        <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>Vous avez dit</Text>
+                                        <Text style={{ fontSize: 13, color: colors.text, fontStyle: 'italic' }}>"{voiceTranscription}"</Text>
+                                    </View>
+
+                                    {voiceItems.length > 0 ? (
+                                        <>
+                                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 10 }}>
+                                                {voiceItems.length} produit(s) reconnu(s)
+                                            </Text>
+                                            {voiceItems.map((item, i) => (
+                                                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>{item.name}</Text>
+                                                        <Text style={{ fontSize: 11, color: colors.textMuted }}>{formatCurrency(item.unit_price)} · stock : {item.stock_available}</Text>
+                                                    </View>
+                                                    <View style={{ backgroundColor: colors.primary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                                                        <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>×{item.quantity}</Text>
+                                                    </View>
+                                                </View>
+                                            ))}
+                                            <TouchableOpacity
+                                                onPress={addVoiceItemsToCart}
+                                                style={{ marginTop: 20, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                                            >
+                                                <Text style={{ fontSize: 15, fontWeight: '900', color: '#fff' }}>Ajouter au panier</Text>
+                                            </TouchableOpacity>
+                                        </>
+                                    ) : (
+                                        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                                            <Ionicons name="search-outline" size={36} color={colors.textMuted} style={{ marginBottom: 10 }} />
+                                            <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: 'center' }}>Aucun produit reconnu dans votre catalogue.</Text>
+                                            <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 6 }}>Essayez de prononcer les noms exacts de vos produits.</Text>
+                                            <TouchableOpacity onPress={startVoiceRecording} style={{ marginTop: 16, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                                                <Ionicons name="mic-outline" size={16} color={colors.primary} />
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>Réessayer</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+
+                            {/* Initial state — not yet recording */}
+                            {!isVoiceRecording && !isVoiceProcessing && voiceTranscription === '' && (
+                                <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                                    <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary + '20', borderWidth: 2, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                        <Ionicons name="mic-outline" size={36} color={colors.primary} />
+                                    </View>
+                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>Caisse vocale</Text>
+                                    <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 }}>
+                                        Dictez vos produits et quantités. Ex : "2 coca-cola, 1 pain de mie, trois yaourts"
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={startVoiceRecording}
+                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: colors.primary, borderRadius: 14 }}
+                                    >
+                                        <Ionicons name="mic" size={18} color="#fff" />
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Commencer l'enregistrement</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </Modal>
+            )}
 
             {showCustomerModal && <Modal visible={showCustomerModal} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
@@ -1782,6 +2003,37 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     emptyText: {
         color: colors.textMuted,
         marginTop: Spacing.sm,
+    },
+    emptyCartHint: {
+        color: colors.textSecondary,
+        fontSize: FontSize.sm,
+        lineHeight: 20,
+        textAlign: 'center',
+        marginTop: Spacing.sm,
+        maxWidth: 280,
+    },
+    emptyCartActions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        marginTop: Spacing.lg,
+    },
+    emptyCartAction: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        backgroundColor: colors.glass,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    emptyCartActionText: {
+        color: colors.primary,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
     },
     cartItem: {
         flexDirection: 'row',

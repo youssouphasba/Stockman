@@ -1,5 +1,6 @@
 {
   "NSCameraUsageDescription": "Stockman, kasada ve envanterde ürün barkodlarını taramak, ürün kayıtlarına eklemek üzere ürün fotoğrafları çekmek ve makbuz veya belgelerin görüntülerini arşivlemek için kamerayı kullanır.",
   "NSPhotoLibraryUsageDescription": "Stockman, bir ürün kaydına, makbuza veya iş belgesine eklemek üzere mevcut bir resim seçebilmeniz için fotoğraf kitaplığınıza erişir.",
-  "NSPhotoLibraryAddUsageDescription": "Stockman, makbuzlar, ürün fotoğrafları veya dışa aktarılan raporlar gibi oluşturulan görüntüleri fotoğraf kitaplığınıza kaydeder."
+  "NSPhotoLibraryAddUsageDescription": "Stockman, makbuzlar, ürün fotoğrafları veya dışa aktarılan raporlar gibi oluşturulan görüntüleri fotoğraf kitaplığınıza kaydeder.",
+  "NSMicrophoneUsageDescription": "Stockman, sesli kasa aracılığıyla konuşarak ürünleri sepete eklemenizi ve yapay zeka asistanına sesli mesaj göndermenizi sağlamak için mikrofonu kullanır."
 }

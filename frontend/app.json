@@ -27,7 +27,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Stockman uses the camera to scan product barcodes at checkout and in inventory, take photos of items to attach to product listings, and capture images of receipts or documents for record-keeping.",
-        "NSMicrophoneUsageDescription": "Stockman uses the microphone when you record a voice message in AI support, for example to describe a stock, sales, or account issue without typing.",
+        "NSMicrophoneUsageDescription": "Stockman uses the microphone to let you add products to the cart by speaking in the voice checkout, and to send voice messages in AI support.",
         "NSPhotoLibraryUsageDescription": "Stockman accesses your photo library so you can select an existing image to attach to a product listing, a receipt, or a business document.",
         "NSPhotoLibraryAddUsageDescription": "Stockman saves generated images to your photo library, such as receipts, product photos, or exported reports."
       },
@@ -62,6 +62,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "react-native-purchases",
       "expo-router",
       "expo-secure-store",
       "expo-apple-authentication",
@@ -96,7 +97,13 @@
       ],
       "./plugins/withFirebaseModularHeaders",
       "expo-sharing",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Stockman uses the microphone to let you add products to the cart by speaking in the voice checkout, and to send voice messages in AI support."
+        }
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"

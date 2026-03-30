@@ -1,5 +1,6 @@
 {
   "NSCameraUsageDescription": "Stockman utilizza la fotocamera per scansionare i codici a barre dei prodotti alla cassa e nell'inventario, scattare foto degli articoli da allegare alle schede prodotto e acquisire immagini di ricevute o documenti per l'archiviazione.",
   "NSPhotoLibraryUsageDescription": "Stockman accede alla tua libreria foto per consentirti di selezionare un'immagine esistente da allegare a una scheda prodotto, una ricevuta o un documento aziendale.",
-  "NSPhotoLibraryAddUsageDescription": "Stockman salva nella tua libreria foto le immagini generate, come ricevute, foto di prodotti o report esportati."
+  "NSPhotoLibraryAddUsageDescription": "Stockman salva nella tua libreria foto le immagini generate, come ricevute, foto di prodotti o report esportati.",
+  "NSMicrophoneUsageDescription": "Stockman utilizza il microfono per consentirti di aggiungere prodotti al carrello parlando nella cassa vocale e inviare messaggi vocali all'assistente IA."
 }
