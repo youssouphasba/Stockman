@@ -632,6 +632,9 @@ export default function AdminDashboard() {
         });
     }, [activeSessions, normalizedSecuritySearch, securityView]);
 
+    const securityStatsSummary = securityStats || {};
+    const subscriptionAlertsSummary = subscriptionAlerts || { summary: {}, items: [] };
+
     const securityInsights = useMemo(() => {
         const failed = securityEvents.filter((event) => String(event.type || '').toLowerCase().includes('failed'));
         const recentFailuresByUser = new Map<string, number>();
@@ -648,11 +651,11 @@ export default function AdminDashboard() {
             suspiciousAttempts: failed.length,
             riskyActors,
             activeAlerts:
-                (securityStats.blocked_users || 0)
+                (securityStatsSummary.blocked_users || 0)
                 + riskyActors.length
-                + ((securityStats.failed_logins_24h || 0) > 10 ? 1 : 0),
+                + ((securityStatsSummary.failed_logins_24h || 0) > 10 ? 1 : 0),
         };
-    }, [securityEvents, securityStats]);
+    }, [securityEvents, securityStatsSummary]);
 
     const financeSummary = useMemo(() => {
         const overview = subscriptionOverview || {};
@@ -1046,7 +1049,7 @@ export default function AdminDashboard() {
                         <StatCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} color="bg-primary" sub="Actifs" />
                         <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
                         <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : "-"} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
-                        <StatCard label="Alertes recouvrement" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
+                        <StatCard label="Alertes recouvrement" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} color={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -1240,7 +1243,7 @@ export default function AdminDashboard() {
                         />
                         <StatCard label="Annuls" value={subscriptionOverview.cancelled_accounts || 0} icon={X} color="bg-slate-500" sub="Periode active" />
                         <StatCard label="Expirs" value={subscriptionOverview.expired_accounts || 0} icon={Clock} color="bg-rose-500" sub="Periode active" />
-                        <StatCard label="Alertes" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
+                        <StatCard label="Alertes" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} color={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -1290,8 +1293,8 @@ export default function AdminDashboard() {
                         <div className="glass-card p-6 xl:col-span-1">
                             <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Alertes et anomalies</h3>
                             <div className="space-y-3">
-                                {(subscriptionAlerts.items || []).length > 0 ? (
-                                    subscriptionAlerts.items.map((alert: any) => (
+                                {(subscriptionAlertsSummary.items || []).length > 0 ? (
+                                    subscriptionAlertsSummary.items.map((alert: any) => (
                                         <div key={alert.code} className={`rounded-2xl border p-4 ${alert.severity === 'critical' ? 'border-rose-500/30 bg-rose-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                             <div className="flex items-center justify-between gap-3 mb-2">
                                                 <p className="text-sm font-black text-white">{alert.title}</p>
@@ -1928,10 +1931,10 @@ export default function AdminDashboard() {
             {activeSection === 'security' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                        <StatCard label="Echecs connexion (24h)" value={securityStats.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" sub="Dernieres 24h" />
-                        <StatCard label="Connexions reussies" value={securityStats.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Dernieres 24h" />
-                        <StatCard label="Changements MDP (7j)" value={securityStats.password_changes_7d || 0} icon={Lock} color="bg-amber-500" sub="Derniers 7 jours" />
-                        <StatCard label="Utilisateurs bloques" value={securityStats.blocked_users || 0} icon={Trash2} color="bg-primary" sub="Etat actuel" />
+                        <StatCard label="Echecs connexion (24h)" value={securityStatsSummary.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" sub="Dernieres 24h" />
+                        <StatCard label="Connexions reussies" value={securityStatsSummary.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Dernieres 24h" />
+                        <StatCard label="Changements MDP (7j)" value={securityStatsSummary.password_changes_7d || 0} icon={Lock} color="bg-amber-500" sub="Derniers 7 jours" />
+                        <StatCard label="Utilisateurs bloques" value={securityStatsSummary.blocked_users || 0} icon={Trash2} color="bg-primary" sub="Etat actuel" />
                         <StatCard label="Verifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" sub="Volume charge" />
                         <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" sub="Etat actuel" />
                     </div>
