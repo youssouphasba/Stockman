@@ -9098,6 +9098,122 @@ async def get_store_benchmark(user: User = Depends(get_current_user)):
 
 # ===================== END VAGUE 4 =====================
 
+# ===================== VAGUE 7 — LLM FEATURES =====================
+
+@ai_router.get("/customer-summary/{customer_id}")
+async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = Depends(get_current_user)):
+    """
+    Generate a narrative AI summary for a customer: purchase habits, loyalty, risk, recommendations.
+    Enterprise only. Uses Gemini.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "customer_summary", plan)
+
+    cache_key = f"customer_summary:{owner_id}:{customer_id}:{lang}"
+    cached = _ai_cache.get(cache_key)
+    if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 43200:
+        return cached
+
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Clé API IA manquante")
+
+    # Fetch customer
+    customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Client introuvable")
+
+    ninety_days_ago = datetime.now(timezone.utc) - timedelta(days=90)
+
+    # Aggregate customer sales
+    sales_agg = await db.sales.aggregate([
+        {"$match": {"user_id": owner_id, "customer_id": customer_id, "created_at": {"$gte": ninety_days_ago}}},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": None,
+            "total_revenue": {"$sum": "$total_amount"},
+            "sales_count": {"$sum": 1},
+            "top_products": {"$push": "$items.name"},
+            "last_purchase": {"$max": "$created_at"},
+        }}
+    ]).to_list(1)
+
+    # All-time totals from customer document
+    total_spent_lifetime = customer.get("total_spent", 0)
+    visit_count = customer.get("visit_count", 0)
+    current_debt = customer.get("current_debt", 0)
+    loyalty_points = customer.get("loyalty_points", 0)
+    tier = customer.get("tier", "bronze")
+    notes = customer.get("notes", "")
+
+    recent = sales_agg[0] if sales_agg else {}
+    recent_revenue = recent.get("total_revenue", 0)
+    recent_count = recent.get("sales_count", 0)
+    all_products = recent.get("top_products", [])
+    last_purchase = recent.get("last_purchase")
+
+    # Product frequency
+    product_freq: Dict[str, int] = {}
+    for p in all_products:
+        if p:
+            product_freq[p] = product_freq.get(p, 0) + 1
+    top_products = sorted(product_freq.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    days_since_last = None
+    if last_purchase:
+        lp = last_purchase if isinstance(last_purchase, datetime) else datetime.fromisoformat(str(last_purchase).replace("Z", "+00:00"))
+        days_since_last = (datetime.now(timezone.utc) - lp).days
+
+    lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español", "pt": "português"}
+    lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
+
+    prompt = f"""{lang_instr}
+Tu es un assistant CRM expert. Génère un résumé client concis et actionnable (4-6 phrases max).
+Inclus : profil comportemental, fidélité, risques, 1-2 recommandations commerciales concrètes.
+Ne répète pas les chiffres bruts — interprète-les.
+
+CLIENT : {customer.get('name', 'Inconnu')} | Tier : {tier} | Points fidélité : {loyalty_points}
+ACHATS 90j : {recent_count} visites · {recent_revenue:.0f} de CA · Panier moyen {(recent_revenue/recent_count if recent_count else 0):.0f}
+HISTORIQUE : {visit_count} visites total · {total_spent_lifetime:.0f} lifetime
+DERNIÈRE VISITE : {f"il y a {days_since_last} jours" if days_since_last is not None else "inconnue"}
+DETTE ACTUELLE : {current_debt:.0f}
+TOP PRODUITS : {", ".join(f"{p[0]} (x{p[1]})" for p in top_products) or "N/A"}
+NOTES : {notes or "Aucune"}
+"""
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        summary_text = response.text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur IA : {str(e)}")
+
+    track_ai_usage(owner_id, "customer_summary", plan)
+
+    result = {
+        "customer_id": customer_id,
+        "customer_name": customer.get("name"),
+        "summary": summary_text,
+        "stats": {
+            "recent_revenue": round(recent_revenue, 2),
+            "recent_count": recent_count,
+            "days_since_last": days_since_last,
+            "top_products": [p[0] for p in top_products],
+            "current_debt": current_debt,
+            "tier": tier,
+        },
+        "lang": lang,
+    }
+
+    _ai_cache[cache_key] = result
+    _ai_cache_ts[cache_key] = datetime.now(timezone.utc).timestamp()
+    return result
+
+
+# ===================== END VAGUE 7 (customer summary) =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

@@ -2218,6 +2218,9 @@ export const ai = {
         request<any>('/ai/rebalance-suggestions'),
     storeBenchmark: () =>
         request<any>('/ai/store-benchmark'),
+    // Vague 7
+    customerSummary: (customerId: string, lang?: string) =>
+        request<any>(`/ai/customer-summary/${customerId}${lang ? `?lang=${lang}` : ''}`),
 };
 
 export const returns = {

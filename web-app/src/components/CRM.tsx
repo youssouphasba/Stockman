@@ -98,6 +98,9 @@ export default function CRM({ user }: CRMProps) {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
     const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases'>('info');
+    // Vague 7: AI customer summary
+    const [customerSummaryText, setCustomerSummaryText] = useState<string | null>(null);
+    const [customerSummaryLoading, setCustomerSummaryLoading] = useState(false);
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [customerForm, setCustomerForm] = useState({
@@ -1276,6 +1279,48 @@ export default function CRM({ user }: CRMProps) {
                                             )}
                                         </p>
                                     </div>
+                                </div>
+
+                                {/* AI Customer Summary */}
+                                <div className="p-5 bg-violet-500/5 border border-violet-500/20 rounded-3xl space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Zap size={12} className="text-violet-400" />
+                                            Résumé IA
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                setCustomerSummaryLoading(true);
+                                                setCustomerSummaryText(null);
+                                                try {
+                                                    const res = await aiApi.customerSummary(selectedCustomer.customer_id, i18n.language);
+                                                    setCustomerSummaryText(res?.summary || null);
+                                                } catch {
+                                                    setCustomerSummaryText(null);
+                                                } finally {
+                                                    setCustomerSummaryLoading(false);
+                                                }
+                                            }}
+                                            disabled={customerSummaryLoading}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                                        >
+                                            {customerSummaryLoading ? (
+                                                <div className="w-3 h-3 border border-violet-400/40 border-t-violet-400 rounded-full animate-spin" />
+                                            ) : (
+                                                <Zap size={11} />
+                                            )}
+                                            Analyser
+                                        </button>
+                                    </div>
+                                    {customerSummaryLoading && (
+                                        <p className="text-xs text-slate-500 italic">Génération en cours…</p>
+                                    )}
+                                    {customerSummaryText && (
+                                        <p className="text-sm text-slate-300 leading-relaxed">{customerSummaryText}</p>
+                                    )}
+                                    {!customerSummaryLoading && !customerSummaryText && (
+                                        <p className="text-xs text-slate-600 italic">Cliquez sur Analyser pour générer un résumé IA de ce client.</p>
+                                    )}
                                 </div>
                             </div>
                         ) : detailTab === 'history' ? (

@@ -23,6 +23,7 @@ import {
     customers as customersApi,
     promotions as promotionsApi,
     settings as settingsApi,
+    ai as aiApi,
     Customer,
     Promotion,
     LoyaltySettings,
@@ -133,6 +134,8 @@ export default function CRMScreen() {
     const [debtHistoryLoading, setDebtHistoryLoading] = useState(false);
     const [showAllSales, setShowAllSales] = useState(false);
     const [showAllDebt, setShowAllDebt] = useState(false);
+    const [customerSummaryText, setCustomerSummaryText] = useState<string | null>(null);
+    const [customerSummaryLoading, setCustomerSummaryLoading] = useState(false);
 
     // Campaign modal
     const [showCampaignModal, setShowCampaignModal] = useState(false);
@@ -340,6 +343,18 @@ export default function CRMScreen() {
     };
 
     const requestClosePromoModal = () => {
+        const isBlankDraft =
+            !promoForm.title.trim() &&
+            !promoForm.description.trim() &&
+            !promoForm.discount_percentage.trim() &&
+            !promoForm.points_required.trim() &&
+            promoForm.target_tier === 'tous';
+
+        if (isBlankDraft) {
+            setShowPromoModal(false);
+            return;
+        }
+
         if (!hasPromoChanges()) {
             setShowPromoModal(false);
             return;
@@ -518,6 +533,8 @@ export default function CRMScreen() {
         setShowAllSales(false);
         setShowAllDebt(false);
         setCustomerSalesStats({ visit_count: 0, average_basket: 0 });
+        setCustomerSummaryText(null);
+        setCustomerSummaryLoading(false);
         setShowDetailModal(true);
     }
 
@@ -719,6 +736,12 @@ export default function CRMScreen() {
         const d = new Date(c.last_purchase_date);
         return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     }).length;
+    const dormantClients = customerList.filter((customer) => {
+        if (!customer.last_purchase_date) return true;
+        const lastPurchase = new Date(customer.last_purchase_date);
+        return (Date.now() - lastPurchase.getTime()) >= 45 * 24 * 60 * 60 * 1000;
+    }).length;
+    const customersWithDebt = customerList.filter((customer) => (customer.current_debt || 0) > 0).length;
 
     const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
     const accountBalance = detailCustomer?.current_debt || 0;
@@ -762,12 +785,14 @@ export default function CRMScreen() {
                 >
                     <View style={[styles.header, { paddingTop: insets.top }]}>
                         <Text style={styles.title}>{t('crm.title')}</Text>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <TouchableOpacity style={styles.iconBtn} onPress={handleExportPdf}>
+                        <View style={styles.headerActionRow}>
+                            <TouchableOpacity style={styles.headerActionChip} onPress={handleExportPdf}>
                                 <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+                                <Text style={styles.headerActionText}>Exporter en PDF</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.iconBtn} onPress={handleExportCSV}>
+                            <TouchableOpacity style={styles.headerActionChip} onPress={handleExportCSV}>
                                 <Ionicons name="download-outline" size={24} color={colors.primary} />
+                                <Text style={styles.headerActionText}>Exporter en CSV</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -788,6 +813,34 @@ export default function CRMScreen() {
                             <KpiInfoButton info={t('crm.info_active_30d')} />
                             <Text style={styles.statValue}>{activeClients}</Text>
                             <Text style={styles.statLabel}>{t('crm.active_30d')}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickActionsRow}>
+                        <TouchableOpacity style={styles.quickActionCard} onPress={openNewPromo}>
+                            <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
+                            <Text style={styles.quickActionTitle}>{t('crm.create_promotion')}</Text>
+                            <Text style={styles.quickActionDesc}>Créez une offre ciblée pour stimuler les ventes et la fidélité.</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.quickActionCard} onPress={openCampaignModal}>
+                            <Ionicons name="megaphone-outline" size={20} color={colors.success} />
+                            <Text style={styles.quickActionTitle}>{t('crm.whatsapp_campaign')}</Text>
+                            <Text style={styles.quickActionDesc}>Lancez rapidement une campagne vers vos clients les plus pertinents.</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.quickActionsRow}>
+                        <View style={styles.quickInsightCard}>
+                            <Ionicons name="time-outline" size={20} color={colors.warning} />
+                            <Text style={styles.quickActionTitle}>Clients à relancer</Text>
+                            <Text style={styles.quickInsightValue}>{dormantClients}</Text>
+                            <Text style={styles.quickActionDesc}>Aucun achat enregistré depuis au moins 45 jours.</Text>
+                        </View>
+                        <View style={styles.quickInsightCard}>
+                            <Ionicons name="wallet-outline" size={20} color={colors.danger} />
+                            <Text style={styles.quickActionTitle}>Comptes à suivre</Text>
+                            <Text style={styles.quickInsightValue}>{customersWithDebt}</Text>
+                            <Text style={styles.quickActionDesc}>Clients avec un solde débiteur à surveiller.</Text>
                         </View>
                     </View>
 
@@ -1534,6 +1587,40 @@ export default function CRMScreen() {
                                                         </TouchableOpacity>
                                                     )}
                                                 </View>
+
+                                                {/* AI Customer Summary */}
+                                                <View style={{ marginTop: Spacing.lg, padding: Spacing.md, backgroundColor: '#7c3aed15', borderRadius: 16, borderWidth: 1, borderColor: '#7c3aed40' }}>
+                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
+                                                        <Text style={{ fontSize: 10, fontWeight: '900', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1 }}>Résumé IA</Text>
+                                                        <TouchableOpacity
+                                                            onPress={async () => {
+                                                                setCustomerSummaryLoading(true);
+                                                                setCustomerSummaryText(null);
+                                                                try {
+                                                                    const res = await aiApi.customerSummary(detailCustomer.customer_id);
+                                                                    setCustomerSummaryText(res?.summary || null);
+                                                                } catch {
+                                                                    setCustomerSummaryText(null);
+                                                                } finally {
+                                                                    setCustomerSummaryLoading(false);
+                                                                }
+                                                            }}
+                                                            disabled={customerSummaryLoading}
+                                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#7c3aed30', borderRadius: 10, opacity: customerSummaryLoading ? 0.5 : 1 }}
+                                                        >
+                                                            <Ionicons name="flash" size={12} color="#a78bfa" />
+                                                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#a78bfa', textTransform: 'uppercase' }}>Analyser</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                    {customerSummaryLoading && (
+                                                        <ActivityIndicator size="small" color="#a78bfa" />
+                                                    )}
+                                                    {customerSummaryText ? (
+                                                        <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>{customerSummaryText}</Text>
+                                                    ) : !customerSummaryLoading ? (
+                                                        <Text style={{ fontSize: 12, color: colors.textMuted, fontStyle: 'italic' }}>Appuyez sur Analyser pour générer un résumé IA.</Text>
+                                                    ) : null}
+                                                </View>
                                             )}
                                     </ScrollView>
                                 </>
@@ -1868,8 +1955,63 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         padding: Spacing.md,
         alignItems: 'center',
     },
+    quickActionsRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+        marginBottom: Spacing.lg,
+    },
+    quickActionCard: {
+        flex: 1,
+        ...glassStyle,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        gap: Spacing.xs,
+        minHeight: 120,
+    },
+    quickInsightCard: {
+        flex: 1,
+        ...glassStyle,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        gap: Spacing.xs,
+        minHeight: 110,
+    },
+    quickActionTitle: {
+        color: colors.text,
+        fontSize: FontSize.md,
+        fontWeight: '700',
+    },
+    quickActionDesc: {
+        color: colors.textSecondary,
+        fontSize: FontSize.sm,
+        lineHeight: 18,
+    },
+    quickInsightValue: {
+        color: colors.text,
+        fontSize: FontSize.xl,
+        fontWeight: '800',
+    },
     statValue: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
     statLabel: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 },
+    headerActionRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+        gap: Spacing.sm,
+    },
+    headerActionChip: {
+        ...glassStyle,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        minHeight: 42,
+    },
+    headerActionText: {
+        color: colors.primary,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+    },
 
     searchBar: {
         ...glassStyle,
