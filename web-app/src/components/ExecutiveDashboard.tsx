@@ -82,8 +82,12 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
             }
 
             Promise.allSettled([
-                aiApi.businessHealthScore(),
-                aiApi.dashboardPrediction(),
+                aiApi.businessHealthScore(analyticsFilters),
+                aiApi.dashboardPrediction({
+                    store_id: analyticsFilters.store_id,
+                    category_id: analyticsFilters.category_id,
+                    supplier_id: analyticsFilters.supplier_id,
+                }),
                 aiApi.contextualTips(),
             ]).then(([healthRes, predictionRes, tipsRes]) => {
                 if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);

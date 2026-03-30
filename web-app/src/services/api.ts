@@ -57,6 +57,7 @@ type RequestOptions = {
     method?: string;
     body?: unknown;
     headers?: Record<string, string>;
+    params?: Record<string, string | number | boolean | undefined>;
 };
 
 const ONLINE_ONLY_MUTATION_PREFIXES = [
@@ -171,9 +172,22 @@ async function refreshWithMutex(): Promise<boolean> {
     return refreshPromise;
 }
 
+function buildEndpointWithParams(endpoint: string, params?: Record<string, string | number | boolean | undefined>) {
+    if (!params) return endpoint;
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        search.set(key, String(value));
+    });
+    const query = search.toString();
+    if (!query) return endpoint;
+    return `${endpoint}${endpoint.includes('?') ? '&' : '?'}${query}`;
+}
+
 async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, headers = {} } = options;
+    const { method = 'GET', body, headers = {}, params } = options;
     const hasJsonBody = body !== undefined && body !== null && !(body instanceof FormData);
+    const finalEndpoint = buildEndpointWithParams(endpoint, params);
 
     // Attach idempotency key on critical mutations to prevent duplicates on retry
     const extraHeaders: Record<string, string> = {};
@@ -195,14 +209,14 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         config.body = body instanceof FormData ? (body as any) : JSON.stringify(body);
     }
 
-    let response = await fetch(`${API_URL}/api${endpoint}`, config);
+    let response = await fetch(`${API_URL}/api${finalEndpoint}`, config);
 
     if (response.status === 401) {
         const skipRefresh = ['/auth/login', '/auth/refresh', '/auth/me'];
         if (!skipRefresh.includes(endpoint)) {
             const refreshed = await refreshWithMutex();
             if (refreshed) {
-                response = await fetch(`${API_URL}/api${endpoint}`, config);
+                response = await fetch(`${API_URL}/api${finalEndpoint}`, config);
             }
         }
         if (response.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
@@ -237,25 +251,26 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body } = options;
+    const { method = 'GET', body, params } = options;
     const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+    const cacheEndpoint = buildEndpointWithParams(endpoint, params);
 
     if (method === 'GET') {
         if (!online) {
-            const cached = readCachedResponse<T>(endpoint);
+            const cached = readCachedResponse<T>(cacheEndpoint);
             if (cached) return cached;
             throw new ApiError('Mode hors ligne : données non disponibles en cache', 503);
         }
 
         try {
             const data = await performRequest<T>(endpoint, options);
-            writeCachedResponse(endpoint, data);
+            writeCachedResponse(cacheEndpoint, data);
             return data;
         } catch (error) {
-            if (error instanceof AuthError || shouldBypassOfflineCache(endpoint)) {
+            if (error instanceof AuthError || shouldBypassOfflineCache(cacheEndpoint)) {
                 throw error;
             }
-            const cached = readCachedResponse<T>(endpoint);
+            const cached = readCachedResponse<T>(cacheEndpoint);
             if (cached) return cached;
             throw error;
         }
@@ -2146,14 +2161,25 @@ export const ai = {
     replenishmentAdvice: (lang: string = 'fr') =>
         request<{ advice: string; priority_count: number }>(`/ai/replenishment-advice?lang=${lang}`),
     // Vague 1 — algorithmic features
-    businessHealthScore: () =>
+    businessHealthScore: (params?: {
+        days?: number;
+        start_date?: string;
+        end_date?: string;
+        store_id?: string;
+        category_id?: string;
+        supplier_id?: string;
+    }) =>
         request<{
             score: number;
             color: string;
             components: { margin: number; rotation: number; debt_recovery: number; trend: number };
             details: any;
-        }>('/ai/business-health-score'),
-    dashboardPrediction: () =>
+        }>('/ai/business-health-score', { params }),
+    dashboardPrediction: (params?: {
+        store_id?: string;
+        category_id?: string;
+        supplier_id?: string;
+    }) =>
         request<{
             projected_revenue: number;
             current_revenue: number;
@@ -2162,7 +2188,7 @@ export const ai = {
             delta_vs_last_month: number;
             confidence: string;
             method: string;
-        }>('/ai/dashboard-prediction'),
+        }>('/ai/dashboard-prediction', { params }),
     salesForecast: (days: number = 7) =>
         request<{
             forecasts: Array<{

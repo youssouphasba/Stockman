@@ -205,7 +205,8 @@ app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from html import escape
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -1016,6 +1017,199 @@ async def get_public_receipt(public_token: str):
         store_address=store_address,
         receipt_footer=receipt_footer
     )
+
+
+@app.get("/public/receipts/t/{public_token}", response_class=HTMLResponse)
+async def view_public_receipt_page(public_token: str):
+    """Public HTML receipt page for QR scans."""
+    receipt = await get_public_receipt(public_token)
+
+    def fmt_amount(value: float) -> str:
+        try:
+            return f"{float(value):,.0f}".replace(",", " ")
+        except Exception:
+            return str(value)
+
+    created_label = receipt.created_at.astimezone(timezone.utc).strftime("%d/%m/%Y %H:%M UTC") if receipt.created_at else ""
+    items_html = "".join(
+        f"""
+        <tr>
+            <td>{escape(item.product_name)}</td>
+            <td style="text-align:center;">{escape(str(item.sold_quantity_input if item.sold_quantity_input is not None else item.quantity))}{f" {escape(item.sold_unit)}" if item.sold_unit else ""}</td>
+            <td style="text-align:right;">{fmt_amount(item.selling_price)}</td>
+            <td style="text-align:right;">{fmt_amount(item.total)}</td>
+        </tr>
+        """
+        for item in receipt.items
+    )
+
+    return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Reçu {escape(receipt.sale_id)}</title>
+            <style>
+                :root {{
+                    color-scheme: light;
+                    --bg: #f5f1e8;
+                    --card: #fffdf8;
+                    --ink: #1f2937;
+                    --muted: #6b7280;
+                    --line: #eadfcb;
+                    --accent: #2563eb;
+                }}
+                * {{ box-sizing: border-box; }}
+                body {{
+                    margin: 0;
+                    font-family: Arial, sans-serif;
+                    background: linear-gradient(180deg, #f8f4ec 0%, #efe7d8 100%);
+                    color: var(--ink);
+                    padding: 20px;
+                }}
+                .wrap {{
+                    max-width: 760px;
+                    margin: 0 auto;
+                }}
+                .card {{
+                    background: var(--card);
+                    border: 1px solid var(--line);
+                    border-radius: 24px;
+                    padding: 24px;
+                    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+                }}
+                .eyebrow {{
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.12em;
+                    color: var(--accent);
+                    font-weight: 700;
+                }}
+                h1 {{
+                    margin: 8px 0 4px;
+                    font-size: 28px;
+                    line-height: 1.1;
+                }}
+                .meta {{
+                    color: var(--muted);
+                    font-size: 14px;
+                    margin-bottom: 20px;
+                }}
+                .total {{
+                    margin: 20px 0;
+                    padding: 16px 18px;
+                    border-radius: 16px;
+                    background: #eff6ff;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    font-weight: 700;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 8px;
+                }}
+                th, td {{
+                    padding: 12px 8px;
+                    border-bottom: 1px solid var(--line);
+                    font-size: 14px;
+                    vertical-align: top;
+                }}
+                th {{
+                    text-align: left;
+                    color: var(--muted);
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                }}
+                .footer {{
+                    margin-top: 20px;
+                    color: var(--muted);
+                    font-size: 14px;
+                    text-align: center;
+                }}
+                .actions {{
+                    display: flex;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                    margin-top: 20px;
+                }}
+                .btn {{
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 12px 16px;
+                    border-radius: 999px;
+                    text-decoration: none;
+                    font-weight: 700;
+                    border: 1px solid var(--line);
+                    color: var(--ink);
+                    background: white;
+                }}
+                .btn-primary {{
+                    background: var(--accent);
+                    color: white;
+                    border-color: var(--accent);
+                }}
+                @media print {{
+                    body {{
+                        background: white;
+                        padding: 0;
+                    }}
+                    .card {{
+                        box-shadow: none;
+                        border: none;
+                        border-radius: 0;
+                        padding: 0;
+                    }}
+                    .actions {{ display: none; }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="wrap">
+                <div class="card">
+                    <div class="eyebrow">Reçu numérique</div>
+                    <h1>{escape(receipt.store_name)}</h1>
+                    <div class="meta">
+                        {escape(receipt.store_address or "")}<br />
+                        Référence vente : {escape(receipt.sale_id)}<br />
+                        Date : {escape(created_label)}<br />
+                        Paiement : {escape(receipt.payment_method)}
+                    </div>
+
+                    <div class="total">
+                        <span>Total</span>
+                        <span>{fmt_amount(receipt.total_amount)}</span>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th style="text-align:center;">Quantité</th>
+                                <th style="text-align:right;">Prix</th>
+                                <th style="text-align:right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items_html}
+                        </tbody>
+                    </table>
+
+                    <div class="actions">
+                        <a class="btn btn-primary" href="javascript:window.print()">Imprimer / PDF</a>
+                    </div>
+
+                    <div class="footer">{escape(receipt.receipt_footer or "Merci de votre visite.")}</div>
+                </div>
+            </div>
+        </body>
+        </html>
+    """)
 
 # ===================== PUBLIC FORMS MODELS =====================
 class ContactMessage(BaseModel):
@@ -7029,11 +7223,9 @@ async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, use
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
         since = datetime.now(timezone.utc) - timedelta(days=days)
-        query_base = {"user_id": owner_id}
-        if store_id:
-            query_base["store_id"] = store_id
-
-        sales = await db.sales.find({**query_base, "created_at": {"$gte": since}}, {"total_amount": 1, "items": 1, "created_at": 1}).to_list(2000)
+        query_base = apply_accessible_store_scope({"user_id": owner_id}, user, store_id)
+        sales_query = apply_completed_sales_scope({**query_base, "created_at": {"$gte": since}})
+        sales = await db.sales.find(sales_query, {"total_amount": 1, "items": 1, "created_at": 1}).to_list(2000)
         expenses = await db.expenses.find({**query_base, "created_at": {"$gte": since}}, {"amount": 1, "category": 1}).to_list(500)
 
         revenue = sum(s.get("total_amount", 0) for s in sales)
@@ -7103,9 +7295,7 @@ async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = D
     try:
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
-        query = {"user_id": owner_id}
-        if store_id:
-            query["store_id"] = store_id
+        query = apply_accessible_store_scope({"user_id": owner_id}, user, store_id)
 
         customers = await db.customers.find(query, {"_id": 0, "customer_id": 1, "name": 1, "last_purchase_date": 1, "total_spent": 1, "visits": 1, "loyalty_tier": 1}).to_list(500)
         if not customers:
@@ -7190,11 +7380,10 @@ async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Dep
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
         since = datetime.now(timezone.utc) - timedelta(days=30)
-        query = {"user_id": owner_id}
-        if store_id:
-            query["store_id"] = store_id
+        query = apply_accessible_store_scope({"user_id": owner_id}, user, store_id)
 
-        sales = await db.sales.find({**query, "created_at": {"$gte": since}}, {"total_amount": 1, "items": 1}).to_list(3000)
+        sales_query = apply_completed_sales_scope({**query, "created_at": {"$gte": since}})
+        sales = await db.sales.find(sales_query, {"total_amount": 1, "items": 1}).to_list(3000)
         expenses_list = await db.expenses.find({**query, "created_at": {"$gte": since}}, {"amount": 1, "category": 1}).to_list(500)
         products = await db.products.find(query, {"name": 1, "quantity": 1, "min_stock": 1, "selling_price": 1, "purchase_price": 1}).to_list(200)
         customers = await db.customers.find(query, {"last_purchase_date": 1, "total_spent": 1}).to_list(500)
@@ -7215,7 +7404,8 @@ async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Dep
                 pid = item.get("product_id", "")
                 prod_revenue[pid] = prod_revenue.get(pid, 0) + item.get("total_price", 0)
         top_pids = sorted(prod_revenue, key=prod_revenue.get, reverse=True)[:3]
-        prod_names = {p.get("product_id", ""): p.get("name", "") for p in await db.products.find({"product_id": {"$in": top_pids}}, {"product_id": 1, "name": 1}).to_list(3)}
+        prod_name_query = apply_accessible_store_scope({"user_id": owner_id, "product_id": {"$in": top_pids}}, user, store_id)
+        prod_names = {p.get("product_id", ""): p.get("name", "") for p in await db.products.find(prod_name_query, {"product_id": 1, "name": 1}).to_list(3)}
         top_products_str = ", ".join([prod_names.get(pid, pid) for pid in top_pids])
 
         lang_map = {"fr": "franÃƒÂ§ais", "en": "English", "ar": "Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â±Ã˜Â¨Ã™Å Ã˜Â©", "es": "espaÃƒÂ±ol"}
@@ -7314,59 +7504,111 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
 
 @api_router.get("/ai/business-health-score")
 @limiter.limit("20/minute")
-async def ai_business_health_score(request: Request, user: User = Depends(require_operational_access)):
+async def ai_business_health_score(
+    request: Request,
+    days: Optional[int] = 30,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_operational_access),
+):
     """Score sante business 0-100. Algo pur, tous plans."""
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
     await check_ai_limit(user, "business_health_score")
 
-    # Cache
-    cached = ai_governance.cache_get(owner_id, "business_health_score", user.active_store_id or "")
+    effective_store_id = store_id or user.active_store_id
+    cache_key = _build_ai_scope_cache_key(
+        store_id=effective_store_id,
+        days=days,
+        start_date=start_date,
+        end_date=end_date,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    cached = ai_governance.cache_get(owner_id, "business_health_score", cache_key)
     if cached:
         return cached
 
-    store_filter: dict = {"user_id": owner_id}
-    if user.active_store_id:
-        store_filter["store_id"] = user.active_store_id
+    date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
+    current_start = date_range["start"]
+    current_end = date_range["end"]
+    period_duration = max(current_end - current_start, timedelta(days=1))
+    previous_start = current_start - period_duration
+    previous_end = current_start
 
-    now = datetime.now(timezone.utc)
-    d30 = now - timedelta(days=30)
-    d60 = now - timedelta(days=60)
+    products = await load_analytics_products(
+        user,
+        store_id=effective_store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    allowed_product_ids = {product["product_id"] for product in products if product.get("product_id")}
+    filter_on_product_set = bool(category_id or supplier_id)
+
+    def extract_filtered_sale_metrics(sales_docs: List[dict]) -> tuple[float, float]:
+        revenue = 0.0
+        cost = 0.0
+        for sale in sales_docs:
+            items = sale.get("items") or []
+            filtered_items = [
+                item
+                for item in items
+                if not filter_on_product_set or item.get("product_id") in allowed_product_ids
+            ]
+            if not filtered_items:
+                continue
+            revenue += sum(
+                float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * float(item.get("quantity") or 0))
+                for item in filtered_items
+            )
+            cost += sum(
+                float(item.get("purchase_price") or 0) * float(item.get("quantity") or 0)
+                for item in filtered_items
+            )
+        return revenue, cost
+
+    sales_query_current: Dict[str, Any] = {
+        "user_id": owner_id,
+        "created_at": {"$gte": current_start, "$lte": current_end},
+    }
+    sales_query_previous: Dict[str, Any] = {
+        "user_id": owner_id,
+        "created_at": {"$gte": previous_start, "$lt": previous_end},
+    }
+    sales_query_current = apply_accessible_store_scope(sales_query_current, user, effective_store_id)
+    sales_query_previous = apply_accessible_store_scope(sales_query_previous, user, effective_store_id)
 
     # --- 1. Marge brute (30%) ---
-    sales_30d = await db.sales.find(
-        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d30}}),
+    sales_current = await db.sales.find(
+        apply_completed_sales_scope(sales_query_current),
         {"_id": 0, "total_amount": 1, "items": 1}
     ).to_list(5000)
-    revenue_30d = sum(s.get("total_amount", 0) for s in sales_30d)
-    cost_30d = 0
-    for sale in sales_30d:
-        for item in (sale.get("items") or []):
-            cost_30d += (item.get("purchase_price") or 0) * (item.get("quantity") or 0)
+    revenue_30d, cost_30d = extract_filtered_sale_metrics(sales_current)
     margin_pct = ((revenue_30d - cost_30d) / revenue_30d * 100) if revenue_30d > 0 else 0
     margin_score = min(max(margin_pct / 50 * 100, 0), 100)  # 50%+ margin = 100
 
     # --- 2. Rotation stock (20%) ---
-    products = await db.products.find(store_filter, {"_id": 0, "quantity": 1, "purchase_price": 1}).to_list(5000)
     stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
     turnover_ratio = (cost_30d / stock_value) if stock_value > 0 else 0
     rotation_score = min(turnover_ratio / 2 * 100, 100)  # 2x rotation/month = 100
 
     # --- 3. Recouvrement dettes (20%) ---
-    customers = await db.customers.find(
-        {"user_id": owner_id} if not user.active_store_id else {**store_filter},
-        {"_id": 0, "current_debt": 1}
-    ).to_list(5000)
-    total_debt = sum(max(c.get("current_debt", 0), 0) for c in customers)
+    customers_query: Dict[str, Any] = {"user_id": owner_id}
+    customers_query = apply_accessible_store_scope(customers_query, user, effective_store_id)
+    customers = await db.customers.find(customers_query, {"_id": 0, "current_debt": 1}).to_list(5000)
+    total_debt = sum(max(float(c.get("current_debt", 0) or 0), 0) for c in customers)
     debt_ratio = (total_debt / revenue_30d) if revenue_30d > 0 else 0
     debt_score = max(100 - debt_ratio * 200, 0)  # debt = 50% revenue → score 0
 
     # --- 4. Tendance CA (30%) ---
     sales_prev = await db.sales.find(
-        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d60, "$lt": d30}}),
+        apply_completed_sales_scope(sales_query_previous),
         {"_id": 0, "total_amount": 1}
     ).to_list(5000)
-    revenue_prev = sum(s.get("total_amount", 0) for s in sales_prev)
+    revenue_prev, _ = extract_filtered_sale_metrics(sales_prev)
     if revenue_prev > 0:
         trend_pct = ((revenue_30d - revenue_prev) / revenue_prev) * 100
     else:
@@ -7376,10 +7618,18 @@ async def ai_business_health_score(request: Request, user: User = Depends(requir
     # --- Composite ---
     score = round(margin_score * 0.30 + rotation_score * 0.20 + debt_score * 0.20 + trend_score * 0.30)
     score = min(max(score, 0), 100)
+    color = "green" if score >= 70 else "orange" if score >= 40 else "red"
 
     result = {
         "score": score,
+        "color": color,
         "grade": "excellent" if score >= 80 else "bon" if score >= 60 else "moyen" if score >= 40 else "critique",
+        "components": {
+            "margin": round(margin_score),
+            "rotation": round(rotation_score),
+            "debt_recovery": round(debt_score),
+            "trend": round(trend_score),
+        },
         "breakdown": {
             "margin": {"score": round(margin_score), "value": round(margin_pct, 1), "label": "Marge brute", "weight": 30},
             "rotation": {"score": round(rotation_score), "value": round(turnover_ratio, 2), "label": "Rotation stock", "weight": 20},
@@ -7388,56 +7638,127 @@ async def ai_business_health_score(request: Request, user: User = Depends(requir
         },
         "revenue_30d": round(revenue_30d),
         "stock_value": round(stock_value),
+        "scope": {
+            "store_id": effective_store_id,
+            "days": days,
+            "start_date": start_date,
+            "end_date": end_date,
+            "category_id": category_id,
+            "supplier_id": supplier_id,
+        },
     }
 
-    ai_governance.cache_set(owner_id, "business_health_score", result, user.active_store_id or "")
+    ai_governance.cache_set(owner_id, "business_health_score", result, cache_key)
     await track_ai_usage(user.user_id, "business_health_score", plan=plan, ai_enhanced=False)
     return result
 
 
 @api_router.get("/ai/dashboard-prediction")
 @limiter.limit("10/minute")
-async def ai_dashboard_prediction(request: Request, user: User = Depends(require_operational_access)):
+async def ai_dashboard_prediction(
+    request: Request,
+    store_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    user: User = Depends(require_operational_access),
+):
     """Projection CA fin de mois. Algo pur, Pro+Enterprise."""
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
     await check_ai_limit(user, "dashboard_prediction")
 
-    cached = ai_governance.cache_get(owner_id, "dashboard_prediction", user.active_store_id or "")
+    effective_store_id = store_id or user.active_store_id
+    cache_key = _build_ai_scope_cache_key(
+        store_id=effective_store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    cached = ai_governance.cache_get(owner_id, "dashboard_prediction", cache_key)
     if cached:
         return cached
 
-    store_filter: dict = {"user_id": owner_id}
-    if user.active_store_id:
-        store_filter["store_id"] = user.active_store_id
+    products = await load_analytics_products(
+        user,
+        store_id=effective_store_id,
+        category_id=category_id,
+        supplier_id=supplier_id,
+    )
+    allowed_product_ids = {product["product_id"] for product in products if product.get("product_id")}
+    filter_on_product_set = bool(category_id or supplier_id)
 
     now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     days_elapsed = max((now - month_start).days, 1)
-    days_in_month = 30  # simplified
+    next_month = (month_start + timedelta(days=32)).replace(day=1)
+    days_in_month = (next_month - month_start).days
 
     # Current month revenue
+    current_query: Dict[str, Any] = {"user_id": owner_id, "created_at": {"$gte": month_start}}
+    current_query = apply_accessible_store_scope(current_query, user, effective_store_id)
     current_month_sales = await db.sales.find(
-        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": month_start}}),
+        apply_completed_sales_scope(current_query),
         {"_id": 0, "total_amount": 1}
     ).to_list(10000)
-    current_revenue = sum(s.get("total_amount", 0) for s in current_month_sales)
+    current_revenue = 0.0
+    for sale in current_month_sales:
+        items = sale.get("items") or []
+        filtered_items = [
+            item
+            for item in items
+            if not filter_on_product_set or item.get("product_id") in allowed_product_ids
+        ]
+        if not filtered_items:
+            continue
+        current_revenue += sum(
+            float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * float(item.get("quantity") or 0))
+            for item in filtered_items
+        )
 
     # Previous 2 months for weighted average
     m1_start = (month_start - timedelta(days=1)).replace(day=1)
     m2_start = (m1_start - timedelta(days=1)).replace(day=1)
 
+    prev1_query: Dict[str, Any] = {"user_id": owner_id, "created_at": {"$gte": m1_start, "$lt": month_start}}
+    prev1_query = apply_accessible_store_scope(prev1_query, user, effective_store_id)
     prev1_sales = await db.sales.find(
-        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": m1_start, "$lt": month_start}}),
+        apply_completed_sales_scope(prev1_query),
         {"_id": 0, "total_amount": 1}
     ).to_list(10000)
-    prev1_revenue = sum(s.get("total_amount", 0) for s in prev1_sales)
+    prev1_revenue = 0.0
+    for sale in prev1_sales:
+        items = sale.get("items") or []
+        filtered_items = [
+            item
+            for item in items
+            if not filter_on_product_set or item.get("product_id") in allowed_product_ids
+        ]
+        if not filtered_items:
+            continue
+        prev1_revenue += sum(
+            float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * float(item.get("quantity") or 0))
+            for item in filtered_items
+        )
 
+    prev2_query: Dict[str, Any] = {"user_id": owner_id, "created_at": {"$gte": m2_start, "$lt": m1_start}}
+    prev2_query = apply_accessible_store_scope(prev2_query, user, effective_store_id)
     prev2_sales = await db.sales.find(
-        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": m2_start, "$lt": m1_start}}),
+        apply_completed_sales_scope(prev2_query),
         {"_id": 0, "total_amount": 1}
     ).to_list(10000)
-    prev2_revenue = sum(s.get("total_amount", 0) for s in prev2_sales)
+    prev2_revenue = 0.0
+    for sale in prev2_sales:
+        items = sale.get("items") or []
+        filtered_items = [
+            item
+            for item in items
+            if not filter_on_product_set or item.get("product_id") in allowed_product_ids
+        ]
+        if not filtered_items:
+            continue
+        prev2_revenue += sum(
+            float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * float(item.get("quantity") or 0))
+            for item in filtered_items
+        )
 
     # Linear projection from current pace
     daily_pace = current_revenue / days_elapsed
@@ -7460,12 +7781,19 @@ async def ai_dashboard_prediction(request: Request, user: User = Depends(require
         "daily_pace": round(daily_pace),
         "days_elapsed": days_elapsed,
         "days_remaining": days_in_month - days_elapsed,
+        "days_in_month": days_in_month,
         "prev_month_revenue": round(prev1_revenue),
         "delta_pct": round(delta_pct, 1),
+        "delta_vs_last_month": round(delta_pct, 1),
         "confidence": "high" if days_elapsed >= 15 else "medium" if days_elapsed >= 7 else "low",
+        "scope": {
+            "store_id": effective_store_id,
+            "category_id": category_id,
+            "supplier_id": supplier_id,
+        },
     }
 
-    ai_governance.cache_set(owner_id, "dashboard_prediction", result, user.active_store_id or "")
+    ai_governance.cache_set(owner_id, "dashboard_prediction", result, cache_key)
     await track_ai_usage(user.user_id, "dashboard_prediction", plan=plan, ai_enhanced=False)
     return result
 
@@ -9160,7 +9488,8 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
     plan = _resolve_ai_plan(user)
     _check_ai_gate(owner_id, "customer_summary", plan)
 
-    cache_key = f"customer_summary:{owner_id}:{customer_id}:{lang}"
+    effective_store_id = user.active_store_id
+    cache_key = f"customer_summary:{owner_id}:{effective_store_id or 'all'}:{customer_id}:{lang}"
     cached = _ai_cache.get(cache_key)
     if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 43200:
         return cached
@@ -9170,15 +9499,22 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
         raise HTTPException(status_code=503, detail="Clé API IA manquante")
 
     # Fetch customer
-    customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"_id": 0})
+    customer_query = apply_accessible_store_scope({"customer_id": customer_id, "user_id": owner_id}, user, effective_store_id)
+    customer = await db.customers.find_one(customer_query, {"_id": 0})
     if not customer:
         raise HTTPException(status_code=404, detail="Client introuvable")
 
     ninety_days_ago = datetime.now(timezone.utc) - timedelta(days=90)
 
     # Aggregate customer sales
+    sales_match = apply_accessible_store_scope(
+        {"user_id": owner_id, "customer_id": customer_id, "created_at": {"$gte": ninety_days_ago}},
+        user,
+        effective_store_id,
+    )
+    sales_match = apply_completed_sales_scope(sales_match)
     sales_agg = await db.sales.aggregate([
-        {"$match": {"user_id": owner_id, "customer_id": customer_id, "created_at": {"$gte": ninety_days_ago}}},
+        {"$match": sales_match},
         {"$unwind": "$items"},
         {"$group": {
             "_id": None,
@@ -9255,6 +9591,7 @@ NOTES : {notes or "Aucune"}
             "tier": tier,
         },
         "lang": lang,
+        "store_id": effective_store_id,
     }
 
     _ai_cache[cache_key] = result
@@ -9285,7 +9622,9 @@ async def generate_customer_message(body: dict = Body(...), user: User = Depends
     _check_ai_gate(owner_id, "customer_message", plan)
 
     # Fetch customer
-    customer = await db.customers.find_one({"customer_id": customer_id, "owner_id": owner_id})
+    effective_store_id = user.active_store_id
+    customer_query = apply_accessible_store_scope({"customer_id": customer_id, "user_id": owner_id}, user, effective_store_id)
+    customer = await db.customers.find_one(customer_query, {"_id": 0})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
@@ -9297,11 +9636,13 @@ async def generate_customer_message(body: dict = Body(...), user: User = Depends
 
     # Fetch recent purchases (last 90 days)
     since = datetime.now(timezone.utc) - timedelta(days=90)
-    sales = await db.sales.find({
-        "owner_id": owner_id,
-        "customer_id": customer_id,
-        "date": {"$gte": since.isoformat()},
-    }).sort("date", -1).limit(10).to_list(None)
+    sales_query = apply_accessible_store_scope(
+        {"user_id": owner_id, "customer_id": customer_id, "created_at": {"$gte": since}},
+        user,
+        effective_store_id,
+    )
+    sales_query = apply_completed_sales_scope(sales_query)
+    sales = await db.sales.find(sales_query).sort("created_at", -1).limit(10).to_list(None)
 
     top_products = []
     for s in sales:
@@ -9314,12 +9655,14 @@ async def generate_customer_message(body: dict = Body(...), user: User = Depends
         if len(top_products) >= 3:
             break
 
-    last_purchase_date = sales[0].get("date", "")[:10] if sales else None
+    last_purchase_date = sales[0].get("created_at") if sales else None
     days_inactive = None
     if last_purchase_date:
         try:
-            lp = datetime.fromisoformat(last_purchase_date)
-            days_inactive = (datetime.now(timezone.utc) - lp.replace(tzinfo=timezone.utc)).days
+            lp = last_purchase_date if isinstance(last_purchase_date, datetime) else datetime.fromisoformat(str(last_purchase_date).replace("Z", "+00:00"))
+            if lp.tzinfo is None:
+                lp = lp.replace(tzinfo=timezone.utc)
+            days_inactive = (datetime.now(timezone.utc) - lp).days
         except Exception:
             pass
 
@@ -9378,6 +9721,7 @@ Rules:
         "message_type": message_type,
         "message": message_text,
         "lang": lang,
+        "store_id": effective_store_id,
     }
 
 
@@ -9435,14 +9779,16 @@ def _parse_nl_intent(query: str):
     return None, period_days
 
 
-async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store_id: str = None) -> dict:
+async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user: User, store_id: Optional[str] = None) -> dict:
     """Execute MongoDB query for resolved intent."""
-    since = (datetime.now(timezone.utc) - timedelta(days=period_days)).isoformat()
-    store_filter = {"store_id": store_id} if store_id else {}
+    effective_store_id = store_id or user.active_store_id
+    since = datetime.now(timezone.utc) - timedelta(days=period_days)
 
     if intent == "revenue":
+        sales_match = apply_accessible_store_scope({"user_id": owner_id, "created_at": {"$gte": since}}, user, effective_store_id)
+        sales_match = apply_completed_sales_scope(sales_match)
         pipeline = [
-            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$match": sales_match},
             {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "count": {"$sum": 1}}},
         ]
         rows = await db.sales.aggregate(pipeline).to_list(None)
@@ -9455,8 +9801,10 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "top_products":
+        sales_match = apply_accessible_store_scope({"user_id": owner_id, "created_at": {"$gte": since}}, user, effective_store_id)
+        sales_match = apply_completed_sales_scope(sales_match)
         pipeline = [
-            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$match": sales_match},
             {"$unwind": "$items"},
             {"$group": {"_id": {"$ifNull": ["$items.name", "$items.product_name"]}, "qty": {"$sum": "$items.quantity"}, "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}}}},
             {"$sort": {"qty": -1}},
@@ -9470,36 +9818,42 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "low_stock":
-        products = await db.products.find(
-            {"owner_id": owner_id, **store_filter, "$expr": {"$lte": ["$quantity", "$alert_threshold"]}}
-        ).limit(20).to_list(None)
+        product_query = apply_accessible_store_scope({"user_id": owner_id}, user, effective_store_id)
+        products = await db.products.find(product_query).limit(200).to_list(None)
+        low_stock = [
+            p for p in products
+            if (p.get("quantity", p.get("stock_quantity", 0)) or 0)
+            <= (p.get("alert_threshold", p.get("min_stock", 0)) or 0)
+        ][:20]
         return {
             "intent": "low_stock",
-            "answer": f"{len(products)} produit(s) en stock bas ou rupture",
-            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0), "threshold": p.get("alert_threshold", 0)} for p in products],
+            "answer": f"{len(low_stock)} produit(s) en stock bas ou rupture",
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", p.get("stock_quantity", 0)), "threshold": p.get("alert_threshold", p.get("min_stock", 0))} for p in low_stock],
         }
 
     elif intent == "deadstock":
-        since_ds = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+        since_ds = datetime.now(timezone.utc) - timedelta(days=60)
+        sales_match = apply_accessible_store_scope({"user_id": owner_id, "created_at": {"$gte": since_ds}}, user, effective_store_id)
+        sales_match = apply_completed_sales_scope(sales_match)
         sold_ids_cursor = db.sales.aggregate([
-            {"$match": {"owner_id": owner_id, "date": {"$gte": since_ds}, **store_filter}},
+            {"$match": sales_match},
             {"$unwind": "$items"},
             {"$group": {"_id": "$items.product_id"}},
         ])
         sold_ids = {r["_id"] async for r in sold_ids_cursor if r.get("_id")}
-        products = await db.products.find({"owner_id": owner_id, **store_filter}).limit(200).to_list(None)
-        dormant = [p for p in products if p.get("product_id") not in sold_ids and p.get("quantity", 0) > 0]
-        dormant.sort(key=lambda p: p.get("quantity", 0) * p.get("price", 0), reverse=True)
+        product_query = apply_accessible_store_scope({"user_id": owner_id}, user, effective_store_id)
+        products = await db.products.find(product_query).limit(200).to_list(None)
+        dormant = [p for p in products if p.get("product_id") not in sold_ids and (p.get("quantity", p.get("stock_quantity", 0)) or 0) > 0]
+        dormant.sort(key=lambda p: (p.get("quantity", p.get("stock_quantity", 0)) or 0) * (p.get("price", p.get("selling_price", 0)) or 0), reverse=True)
         return {
             "intent": "deadstock",
             "answer": f"{len(dormant)} produit(s) sans vente depuis 60 jours",
-            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0), "stock_value": round(p.get("quantity", 0) * p.get("price", 0), 2)} for p in dormant[:15]],
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", p.get("stock_quantity", 0)), "stock_value": round((p.get("quantity", p.get("stock_quantity", 0)) or 0) * (p.get("price", p.get("selling_price", 0)) or 0), 2)} for p in dormant[:15]],
         }
 
     elif intent == "debt_customers":
-        customers = await db.customers.find(
-            {"owner_id": owner_id, "current_debt": {"$gt": 0}}
-        ).sort("current_debt", -1).limit(15).to_list(None)
+        customer_query = apply_accessible_store_scope({"user_id": owner_id, "current_debt": {"$gt": 0}}, user, effective_store_id)
+        customers = await db.customers.find(customer_query).sort("current_debt", -1).limit(15).to_list(None)
         total_debt = sum(c.get("current_debt", 0) for c in customers)
         return {
             "intent": "debt_customers",
@@ -9508,8 +9862,9 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "expenses":
+        expense_query = apply_accessible_store_scope({"user_id": owner_id, "created_at": {"$gte": since}}, user, effective_store_id)
         pipeline = [
-            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$match": expense_query},
             {"$group": {"_id": "$category", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}},
             {"$sort": {"total": -1}},
         ]
@@ -9522,7 +9877,8 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "orders":
-        orders = await db.orders.find({"owner_id": owner_id, **store_filter}).sort("created_at", -1).limit(10).to_list(None)
+        orders_query = apply_accessible_store_scope({"user_id": owner_id}, user, effective_store_id)
+        orders = await db.orders.find(orders_query).sort("created_at", -1).limit(10).to_list(None)
         return {
             "intent": "orders",
             "answer": f"{len(orders)} commande(s) récente(s)",
@@ -9530,8 +9886,10 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "margin":
+        sales_match = apply_accessible_store_scope({"user_id": owner_id, "created_at": {"$gte": since}}, user, effective_store_id)
+        sales_match = apply_completed_sales_scope(sales_match)
         pipeline = [
-            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$match": sales_match},
             {"$unwind": "$items"},
             {"$group": {"_id": None,
                 "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}},
@@ -9549,7 +9907,8 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "alerts":
-        alerts = await db.alerts.find({"owner_id": owner_id, "is_read": False, **store_filter}).sort("created_at", -1).limit(10).to_list(None)
+        alert_query = apply_accessible_store_scope({"user_id": owner_id, "is_read": False}, user, effective_store_id)
+        alerts = await db.alerts.find(alert_query).sort("created_at", -1).limit(10).to_list(None)
         return {
             "intent": "alerts",
             "answer": f"{len(alerts)} alerte(s) non lue(s)",
@@ -9557,12 +9916,13 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store
         }
 
     elif intent == "inventory":
-        products = await db.products.find({"owner_id": owner_id, **store_filter}).limit(20).to_list(None)
-        total_value = sum(p.get("quantity", 0) * p.get("price", 0) for p in products)
+        product_query = apply_accessible_store_scope({"user_id": owner_id}, user, effective_store_id)
+        products = await db.products.find(product_query).limit(20).to_list(None)
+        total_value = sum((p.get("quantity", p.get("stock_quantity", 0)) or 0) * (p.get("price", p.get("selling_price", 0)) or 0) for p in products)
         return {
             "intent": "inventory",
             "answer": f"Valeur stock estimée : {round(total_value, 2)} ({len(products)} produits)",
-            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0)} for p in products[:15]],
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", p.get("stock_quantity", 0))} for p in products[:15]],
         }
 
     return {"intent": "unknown", "answer": "Aucun résultat trouvé.", "data": []}
@@ -9577,7 +9937,9 @@ async def natural_language_query(body: dict = Body(...), user: User = Depends(re
         raise HTTPException(status_code=403, detail="Enterprise plan required")
 
     query = (body.get("query") or "").strip()
-    store_id = body.get("store_id")
+    store_id = body.get("store_id") or user.active_store_id
+    if store_id:
+        ensure_user_store_access(user, store_id)
     if not query:
         raise HTTPException(status_code=400, detail="query required")
 
@@ -9616,10 +9978,11 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
         return {"query": query, "intent": "unknown", "answer": "Je n'ai pas compris cette question. Essayez : 'top produits ce mois', 'stock bas', 'dettes clients', 'dépenses', etc.", "data": [], "resolved_by": "none"}
 
     resolved_by = "regex" if _parse_nl_intent(query)[0] else "llm"
-    result = await _execute_nl_intent(intent, period_days, owner_id, store_id)
+    result = await _execute_nl_intent(intent, period_days, owner_id, user, store_id)
     result["query"] = query
     result["period_days"] = period_days
     result["resolved_by"] = resolved_by
+    result["store_id"] = store_id
 
     _track_ai_usage_lite(owner_id, "natural_query", plan)
     return result
@@ -12673,6 +13036,7 @@ async def transfer_product_location(
         new_quantity=float(product.get("quantity", 0)),
     )
     await db.stock_movements.insert_one(movement.model_dump())
+    _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
 
     updated = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     return _product_response_for_user(user, updated)
@@ -12725,6 +13089,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
         new_quantity=actual_quantity
     )
     await db.stock_movements.insert_one(movement.model_dump())
+    _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
     
     # Log activity
     await log_activity(
@@ -12836,6 +13201,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         new_quantity=new_quantity
     )
     await db.stock_movements.insert_one(movement.model_dump())
+    _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
 
     # Log activity
     await log_activity(
@@ -14001,6 +14367,7 @@ async def submit_inventory_result(
             new_quantity=actual
         )
         await db.stock_movements.insert_one(movement.model_dump())
+        _invalidate_dashboard_ai_caches(get_owner_id(user), task.get("store_id") or user.active_store_id)
         
         # Update product
         await db.products.update_one(
@@ -15205,6 +15572,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         credit_debt_applied=customer_effects["credit_debt_applied"],
     )
     await db.sales.insert_one(sale.model_dump())
+    _invalidate_dashboard_ai_caches(owner_id, store_id)
 
     # 6. If this is an open order tied to a table, claim the table atomically.
     if is_open_order and sale_data.table_id:
@@ -15255,6 +15623,7 @@ async def create_expense(expense_data: ExpenseCreate, user: User = Depends(requi
         expense.created_at = expense_data.date
         
     await db.expenses.insert_one(expense.model_dump())
+    _invalidate_dashboard_ai_caches(owner_id, expense.store_id or user.active_store_id)
 
     # Log activity
     await log_activity(
@@ -21424,6 +21793,34 @@ def _build_ai_platform_plan_guidance(user: User, client_platform: Optional[str])
     lines.append("Si une fonctionnalite depend du plan, indique le plan requis et le benefice concret debloque.")
     lines.append("Ne pousse un upgrade que s'il repond directement a la demande de l'utilisateur ou au blocage observe.")
     return "\n".join(lines)
+
+
+def _build_ai_scope_cache_key(
+    store_id: Optional[str] = None,
+    days: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    category_id: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+) -> str:
+    return "|".join(
+        [
+            store_id or "",
+            str(days or ""),
+            start_date or "",
+            end_date or "",
+            category_id or "",
+            supplier_id or "",
+        ]
+    )
+
+
+def _invalidate_dashboard_ai_caches(owner_id: str, store_id: Optional[str] = None) -> None:
+    target_store = store_id or ""
+    for feature in ("business_health_score", "dashboard_prediction"):
+        ai_governance.cache_invalidate(owner_id, feature)
+        if target_store:
+            ai_governance.cache_invalidate(owner_id, feature, target_store)
 
 class AiTools:
     def __init__(
