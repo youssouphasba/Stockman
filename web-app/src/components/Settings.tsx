@@ -34,6 +34,10 @@ const settingsSteps: GuideStep[] = [
         content: "Les réglages de notifications servent à choisir qui reçoit quoi et par quel canal. Utilisez-les pour répartir les alertes entre les bonnes personnes sans surcharger toute l'équipe.",
     },
     {
+        title: "Utilisation de l'IA",
+        content: "L'assistant IA peut maintenant expliquer les réglages visibles à votre profil, rappeler la portée réelle d'un paramètre et résumer l'état actuel des notifications, des documents ou des modules actifs. Il respecte les autorisations du compte : il n'affiche pas les réglages organisationnels ou de facturation si votre profil n'y a pas accès.",
+    },
+    {
         title: 'Documents et fiscalité',
         content: "L'onglet Documents sert à personnaliser les tickets, les factures, la TVA et les terminaux. C'est ici que vous adaptez les documents envoyés aux clients à votre manière de travailler.",
     },
