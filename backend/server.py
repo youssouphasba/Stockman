@@ -8422,6 +8422,358 @@ async def ai_auto_draft_orders(
 
 # ===================== END VAGUE 3 =====================
 
+# ===================== VAGUE 6 — HYBRID RULES + OPTIONAL AI =====================
+
+# Keyword dictionary for expense categorization
+_EXPENSE_KEYWORD_MAP = {
+    "rent": ["loyer", "location", "bail", "rent", "immeuble", "local", "bureau", "boutique"],
+    "salary": ["salaire", "salary", "employe", "employe", "personnel", "paie", "wage", "staff", "ouvrier", "vigile", "gardien", "caisse"],
+    "transport": ["transport", "carburant", "essence", "fuel", "livraison", "chauffeur", "taxi", "moto", "vehicule", "camion", "frais route"],
+    "water": ["eau", "electricite", "electric", "energie", "water", "light", "facture", "enel", "senelec", "soname", "sonabel", "cie", "sodeci"],
+    "merchandise": ["marchandise", "achat", "stock", "produit", "fournisseur", "commande", "approvisionnement", "merchandise", "goods", "purchase"],
+    "marketing": ["publicite", "pub", "marketing", "affiche", "flyer", "promo", "promotion", "annonce", "social media", "facebook", "instagram"],
+    "maintenance": ["maintenance", "reparation", "repair", "entretien", "plombier", "electricien", "technicien", "depannage", "panne"],
+    "tax": ["impot", "taxe", "tax", "tva", "cotisation", "cnps", "irpp", "contribution", "fiscal", "douane", "droit"],
+    "telecom": ["telephone", "internet", "wifi", "mobile", "orange", "mtn", "airtel", "moov", "togocel", "wave", "abonnement", "data", "credit"],
+    "food": ["repas", "nourriture", "restaurant", "dejeuner", "diner", "alimentation", "cantine", "eau potable", "boisson"],
+    "insurance": ["assurance", "insurance", "prime", "contrat assurance", "sinistre"],
+    "cleaning": ["nettoyage", "menage", "hygiene", "proprete", "desinfection", "serpillere"],
+    "banking": ["frais bancaires", "virement", "commission bancaire", "agios", "bank", "bancaire"],
+    "training": ["formation", "training", "seminaire", "conference", "cours", "apprentissage"],
+}
+
+def _categorize_by_keywords(description: str) -> Optional[str]:
+    """Match description against keyword dictionary. Returns category key or None."""
+    if not description:
+        return None
+    text = description.lower().strip()
+    best_category = None
+    best_score = 0
+    for category, keywords in _EXPENSE_KEYWORD_MAP.items():
+        for kw in keywords:
+            if kw in text:
+                score = len(kw)  # longer match = more specific
+                if score > best_score:
+                    best_score = score
+                    best_category = category
+    return best_category
+
+_CATEGORY_LABELS_EXTENDED = {
+    "rent": "Loyer / Local",
+    "salary": "Salaires / Personnel",
+    "transport": "Transport / Livraison",
+    "water": "Eau / Electricite",
+    "merchandise": "Achat marchandises",
+    "marketing": "Marketing / Publicite",
+    "maintenance": "Maintenance / Reparations",
+    "tax": "Impots / Taxes",
+    "telecom": "Telephone / Internet",
+    "food": "Alimentation / Repas",
+    "insurance": "Assurance",
+    "cleaning": "Nettoyage / Hygiene",
+    "banking": "Frais bancaires",
+    "training": "Formation",
+    "other": "Autres",
+}
+
+@ai_router.post("/categorize-expense")
+async def categorize_expense(
+    payload: dict,
+    user: User = Depends(get_current_user)
+):
+    """
+    Categorize an expense description using a keyword dictionary.
+    Falls back to 'other' if no match. All plans.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "categorize_expense", plan)
+
+    description = str(payload.get("description", "")).strip()
+    amount = float(payload.get("amount", 0))
+
+    matched_category = _categorize_by_keywords(description)
+    method = "keyword_match"
+    confidence = 0.9 if matched_category else 0.3
+
+    if not matched_category:
+        # Try partial word matching as fallback
+        words = description.lower().split()
+        for word in words:
+            for category, keywords in _EXPENSE_KEYWORD_MAP.items():
+                for kw in keywords:
+                    if word.startswith(kw[:4]) and len(kw) >= 4:
+                        matched_category = category
+                        confidence = 0.6
+                        break
+                if matched_category:
+                    break
+            if matched_category:
+                break
+
+    if not matched_category:
+        matched_category = "other"
+        confidence = 0.3
+        method = "default"
+
+    track_ai_usage(owner_id, "categorize_expense", plan)
+
+    return {
+        "category": matched_category,
+        "category_label": _CATEGORY_LABELS_EXTENDED.get(matched_category, "Autres"),
+        "confidence": confidence,
+        "method": method,
+        "description": description,
+        "amount": amount,
+        "all_categories": _CATEGORY_LABELS_EXTENDED,
+    }
+
+
+# ---- Contextual Tips Engine ----
+
+async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Optional[str]) -> list:
+    """
+    Pure rule engine — generates actionable tips based on business state.
+    No LLM. Templates are hardcoded strings (i18n keys would be added later).
+    Returns list of {id, priority, icon, title, message, action_label, action_type, data}
+    """
+    tips = []
+    now = datetime.now(timezone.utc)
+    store_query = {}
+    if active_store_id:
+        store_query["store_id"] = active_store_id
+
+    base_query = {"user_id": owner_id, **store_query}
+
+    # --- Rule 1: Low stock products (below reorder threshold) ---
+    low_stock_products = await db.products.find(
+        {**base_query, "$expr": {"$lte": ["$stock_quantity", "$reorder_point"]}},
+        {"product_id": 1, "name": 1, "stock_quantity": 1, "reorder_point": 1}
+    ).limit(5).to_list(5)
+    if low_stock_products:
+        critical = [p for p in low_stock_products if p.get("stock_quantity", 0) == 0]
+        names = ", ".join(p["name"] for p in low_stock_products[:3])
+        if critical:
+            tips.append({
+                "id": "low_stock_critical",
+                "priority": 1,
+                "icon": "alert-circle",
+                "color": "#ef4444",
+                "title": f"{len(critical)} produit(s) en rupture",
+                "message": f"{', '.join(p['name'] for p in critical[:3])} est en rupture de stock.",
+                "action_label": "Voir le stock",
+                "action_type": "navigate",
+                "action_target": "inventory",
+            })
+        else:
+            tips.append({
+                "id": "low_stock_warning",
+                "priority": 2,
+                "icon": "warning",
+                "color": "#f59e0b",
+                "title": f"{len(low_stock_products)} produit(s) sous le seuil",
+                "message": f"Stock critique : {names}",
+                "action_label": "Réapprovisionner",
+                "action_type": "navigate",
+                "action_target": "replenishment",
+            })
+
+    # --- Rule 2: Dormant products (no sales > 60 days) ---
+    sixty_days_ago = now - timedelta(days=60)
+    recent_sales_pids = await db.sales.distinct(
+        "items.product_id",
+        {"user_id": owner_id, "created_at": {"$gte": sixty_days_ago}}
+    )
+    all_pids = await db.products.distinct("product_id", base_query)
+    dormant_pids = [p for p in all_pids if p not in recent_sales_pids]
+    dormant_count = len(dormant_pids)
+    if dormant_count >= 3:
+        tips.append({
+            "id": "dormant_products",
+            "priority": 3,
+            "icon": "archive",
+            "color": "#8b5cf6",
+            "title": f"{dormant_count} produit(s) sans vente depuis 60j",
+            "message": "Envisagez une promotion ou un retour fournisseur pour libérer de la trésorerie.",
+            "action_label": "Voir les dormants",
+            "action_type": "navigate",
+            "action_target": "inventory",
+        })
+
+    # --- Rule 3: Revenue trend — last 7 days vs previous 7 days ---
+    seven_days_ago = now - timedelta(days=7)
+    fourteen_days_ago = now - timedelta(days=14)
+    recent_revenue_agg = await db.sales.aggregate([
+        {"$match": {"user_id": owner_id, "created_at": {"$gte": seven_days_ago}}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+    ]).to_list(1)
+    prev_revenue_agg = await db.sales.aggregate([
+        {"$match": {"user_id": owner_id, "created_at": {"$gte": fourteen_days_ago, "$lt": seven_days_ago}}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+    ]).to_list(1)
+    recent_rev = (recent_revenue_agg[0]["total"] if recent_revenue_agg else 0)
+    prev_rev = (prev_revenue_agg[0]["total"] if prev_revenue_agg else 0)
+    if prev_rev > 0:
+        rev_change_pct = ((recent_rev - prev_rev) / prev_rev) * 100
+        if rev_change_pct <= -20:
+            tips.append({
+                "id": "revenue_decline",
+                "priority": 1,
+                "icon": "trending-down",
+                "color": "#ef4444",
+                "title": f"CA en baisse de {abs(rev_change_pct):.0f}%",
+                "message": f"Vos ventes ont baissé de {abs(rev_change_pct):.0f}% par rapport aux 7 derniers jours.",
+                "action_label": "Analyser",
+                "action_type": "navigate",
+                "action_target": "dashboard",
+            })
+        elif rev_change_pct >= 20:
+            tips.append({
+                "id": "revenue_surge",
+                "priority": 4,
+                "icon": "trending-up",
+                "color": "#10b981",
+                "title": f"Excellente semaine +{rev_change_pct:.0f}%",
+                "message": f"Vos ventes progressent de {rev_change_pct:.0f}% ! Vérifiez que votre stock suit la demande.",
+                "action_label": "Vérifier le stock",
+                "action_type": "navigate",
+                "action_target": "inventory",
+            })
+
+    # --- Rule 4: Pending orders (supplier orders not received after expected date) ---
+    overdue_orders = await db.supplier_orders.count_documents({
+        "user_id": owner_id,
+        "status": {"$in": ["pending", "confirmed"]},
+        "expected_delivery": {"$lt": now.isoformat()},
+    })
+    if overdue_orders > 0:
+        tips.append({
+            "id": "overdue_orders",
+            "priority": 2,
+            "icon": "time",
+            "color": "#f59e0b",
+            "title": f"{overdue_orders} commande(s) en retard",
+            "message": "Des commandes fournisseurs dépassent leur date de livraison prévue.",
+            "action_label": "Voir les commandes",
+            "action_type": "navigate",
+            "action_target": "suppliers",
+        })
+
+    # --- Rule 5: Unpaid customer debt ---
+    thirty_days_ago = now - timedelta(days=30)
+    old_debt_agg = await db.sales.aggregate([
+        {"$match": {"user_id": owner_id, "payment_status": "partial", "created_at": {"$lt": thirty_days_ago}}},
+        {"$group": {"_id": None, "total": {"$sum": "$remaining_amount"}, "count": {"$sum": 1}}}
+    ]).to_list(1)
+    if old_debt_agg and old_debt_agg[0]["total"] > 0:
+        debt_total = old_debt_agg[0]["total"]
+        debt_count = old_debt_agg[0]["count"]
+        tips.append({
+            "id": "old_debt",
+            "priority": 2,
+            "icon": "card",
+            "color": "#ef4444",
+            "title": f"{debt_count} dette(s) client > 30j",
+            "message": f"Montant impayé depuis plus de 30 jours : {debt_total:,.0f}",
+            "action_label": "Relancer les clients",
+            "action_type": "navigate",
+            "action_target": "crm",
+        })
+
+    # --- Rule 6: Inactive customers (no purchase > 45 days) - Enterprise/Pro ---
+    if plan in ("pro", "enterprise"):
+        forty_five_days_ago = now - timedelta(days=45)
+        recent_customer_ids = await db.sales.distinct(
+            "customer_id",
+            {"user_id": owner_id, "customer_id": {"$exists": True, "$ne": None}, "created_at": {"$gte": forty_five_days_ago}}
+        )
+        all_customer_ids = await db.sales.distinct(
+            "customer_id",
+            {"user_id": owner_id, "customer_id": {"$exists": True, "$ne": None}}
+        )
+        inactive_count = len([c for c in all_customer_ids if c not in recent_customer_ids])
+        if inactive_count >= 5:
+            tips.append({
+                "id": "inactive_customers",
+                "priority": 3,
+                "icon": "people",
+                "color": "#8b5cf6",
+                "title": f"{inactive_count} client(s) inactifs depuis 45j",
+                "message": "Relancez vos clients dormants avec une promotion ou un message personnalisé.",
+                "action_label": "Voir le CRM",
+                "action_type": "navigate",
+                "action_target": "crm",
+            })
+
+    # --- Rule 7: High expense ratio this month - Pro/Enterprise ---
+    if plan in ("pro", "enterprise"):
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_expenses_agg = await db.expenses.aggregate([
+            {"$match": {"user_id": owner_id, "created_at": {"$gte": month_start}}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]).to_list(1)
+        month_revenue_agg = await db.sales.aggregate([
+            {"$match": {"user_id": owner_id, "created_at": {"$gte": month_start}}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]).to_list(1)
+        month_expenses = month_expenses_agg[0]["total"] if month_expenses_agg else 0
+        month_revenue = month_revenue_agg[0]["total"] if month_revenue_agg else 0
+        if month_revenue > 0:
+            expense_ratio = month_expenses / month_revenue
+            if expense_ratio > 0.6:
+                tips.append({
+                    "id": "high_expense_ratio",
+                    "priority": 2,
+                    "icon": "cash",
+                    "color": "#ef4444",
+                    "title": f"Charges élevées ce mois ({expense_ratio*100:.0f}% du CA)",
+                    "message": "Vos dépenses représentent plus de 60% de votre chiffre d'affaires ce mois-ci.",
+                    "action_label": "Voir la comptabilité",
+                    "action_type": "navigate",
+                    "action_target": "accounting",
+                })
+
+    # Sort by priority (1 = most urgent) and return top 5
+    tips.sort(key=lambda x: x["priority"])
+    return tips[:5]
+
+
+@ai_router.get("/contextual-tips")
+async def get_contextual_tips(user: User = Depends(get_current_user)):
+    """
+    Rule-based contextual tips — no LLM. All plans get basic tips, Pro+ get advanced.
+    Cached 1h per user.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "contextual_tips", plan)
+
+    cache_key = f"contextual_tips:{owner_id}"
+    cached = _ai_cache.get(cache_key)
+    if cached:
+        return cached
+
+    active_store_id = getattr(user, "active_store_id", None)
+    tips = await _build_contextual_tips(owner_id, plan, active_store_id)
+
+    track_ai_usage(owner_id, "contextual_tips", plan)
+
+    result = {
+        "tips": tips,
+        "total": len(tips),
+        "plan": plan,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    _ai_cache[cache_key] = result
+    _ai_cache_ts[cache_key] = datetime.now(timezone.utc).timestamp()
+    _ai_cache_ttl[cache_key] = 3600  # 1h cache
+
+    return result
+
+
+# ===================== END VAGUE 6 =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

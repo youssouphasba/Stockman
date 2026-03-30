@@ -68,6 +68,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [anomalies, setAnomalies] = useState<any[]>([]);
     const [healthScore, setHealthScore] = useState<any>(null);
     const [prediction, setPrediction] = useState<any>(null);
+    const [contextualTips, setContextualTips] = useState<any[]>([]);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -142,12 +143,14 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                 hasProducts ? aiApi.detectAnomalies(i18n.language) : Promise.resolve({ anomalies: [] }),
                 aiApi.businessHealthScore(),
                 aiApi.dashboardPrediction(),
-            ]).then(([aiRes, forecastRes, anomaliesRes, healthRes, predictionRes]) => {
+                aiApi.contextualTips(),
+            ]).then(([aiRes, forecastRes, anomaliesRes, healthRes, predictionRes, tipsRes]) => {
                 if (aiRes.status === 'fulfilled') setAiSummary(aiRes.value.summary);
                 if (forecastRes.status === 'fulfilled') setForecast(forecastRes.value);
                 if (anomaliesRes.status === 'fulfilled') setAnomalies(anomaliesRes.value.anomalies || []);
                 if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
                 if (predictionRes.status === 'fulfilled') setPrediction(predictionRes.value);
+                if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value.tips || []);
             });
         }
         void fetchDashboard();
@@ -565,6 +568,33 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Contextual Tips — rule-based proactive advice */}
+            {contextualTips.length > 0 && (
+                <div className="mb-10">
+                    <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <AlertTriangle size={14} className="text-amber-400" />
+                        {t('dashboard.tips_title', 'Conseils du moment')}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {contextualTips.map((tip: any) => (
+                            <div
+                                key={tip.id}
+                                className="glass-card p-4 flex items-start gap-3 border border-white/5 hover:border-white/10 transition-all"
+                                style={{ borderLeftColor: tip.color + '40', borderLeftWidth: 3 }}
+                            >
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: tip.color + '15' }}>
+                                    <AlertTriangle size={16} style={{ color: tip.color }} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-white font-bold text-sm leading-tight">{tip.title}</p>
+                                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">{tip.message}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

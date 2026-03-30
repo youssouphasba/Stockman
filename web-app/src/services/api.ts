@@ -2202,6 +2202,14 @@ export const ai = {
             method: 'POST',
             body: { coverage_days: coverageDays },
         }),
+    // Vague 6
+    contextualTips: () =>
+        request<any>('/ai/contextual-tips'),
+    categorizeExpense: (description: string, amount?: number) =>
+        request<any>('/ai/categorize-expense', {
+            method: 'POST',
+            body: { description, amount: amount ?? 0 },
+        }),
 };
 
 export const returns = {

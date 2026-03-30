@@ -161,6 +161,8 @@ export default function DashboardScreen() {
   // Vague 1: Health Score + Prediction
   const [healthScore, setHealthScore] = useState<any>(null);
   const [prediction, setPrediction] = useState<any>(null);
+  // Vague 6: Contextual tips
+  const [contextualTips, setContextualTips] = useState<any[]>([]);
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
@@ -224,11 +226,12 @@ export default function DashboardScreen() {
   // Initial load on mount (safety net — useFocusEffect may not fire reliably on web)
   useEffect(() => {
     loadData();
-    // Vague 1: load health score + prediction in background
-    Promise.allSettled([aiApi.businessHealthScore(), aiApi.dashboardPrediction()])
-      .then(([healthRes, predRes]) => {
+    // Vague 1+6: load health score, prediction, and contextual tips in background
+    Promise.allSettled([aiApi.businessHealthScore(), aiApi.dashboardPrediction(), aiApi.contextualTips()])
+      .then(([healthRes, predRes, tipsRes]) => {
         if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
         if (predRes.status === 'fulfilled') setPrediction(predRes.value);
+        if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -771,6 +774,36 @@ export default function DashboardScreen() {
                 </View>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Vague 6: Contextual Tips */}
+        {contextualTips.length > 0 && (
+          <View style={[styles.section, { paddingHorizontal: 0 }]}>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 8 }]}>
+              {t('dashboard.tips_title', 'Conseils du moment')}
+            </Text>
+            {contextualTips.slice(0, 3).map((tip: any) => (
+              <View
+                key={tip.id}
+                style={{
+                  flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 20,
+                  paddingVertical: 10, borderLeftWidth: 3, borderLeftColor: tip.color || colors.warning,
+                  marginBottom: 8, backgroundColor: (tip.color || colors.warning) + '0A',
+                }}
+              >
+                <View style={{
+                  width: 32, height: 32, borderRadius: 8, backgroundColor: (tip.color || colors.warning) + '20',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Ionicons name="alert-circle-outline" size={16} color={tip.color || colors.warning} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{tip.title}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>{tip.message}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 

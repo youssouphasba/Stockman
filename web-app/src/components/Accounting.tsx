@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +91,7 @@ export default function Accounting() {
     const [newExpense, setNewExpense] = useState({ category: 'other', amount: '', description: '' });
     const [saving, setSaving] = useState(false);
     const [customCategories, setCustomCategories] = useState<string[]>([]);
+    const [categorySuggestion, setCategorySuggestion] = useState<{ category: string; label: string; confidence: number } | null>(null);
     const [newCategoryDraft, setNewCategoryDraft] = useState('');
     const expenseFormBaselineRef = useRef('');
 
@@ -131,8 +132,8 @@ export default function Accounting() {
     const { i18n } = useTranslation();
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
-        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
-        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrÃ©es' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrÃ©es. Voulez-vous quitter sans enregistrer ?' });
         if (window.confirm(`${title}\n\n${message}`)) {
             onConfirm();
         }
@@ -201,12 +202,25 @@ export default function Accounting() {
             setExpenses(Array.isArray(expensesRes?.items) ? expensesRes.items : (Array.isArray(expensesRes) ? expensesRes : []));
             setSalesHistory(Array.isArray(salesHistoryRes?.items) ? salesHistoryRes.items : []);
             setInvoiceHistory(Array.isArray(invoicesRes?.items) ? invoicesRes.items : []);
-            // Auto-load AI analysis after data
-            aiApi.plAnalysis(i18n.language, period).then(res => setAiAnalysis(res.analysis)).catch(() => {});
+            setAiAnalysis('');
         } catch (err) {
             console.error("Accounting load error", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateAnalysis = async () => {
+        setAiLoading(true);
+        try {
+            const days = useCustomRange ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1) : period;
+            const res = await aiApi.plAnalysis(i18n.language, days);
+            setAiAnalysis(res.analysis);
+        } catch (err) {
+            console.error('AI analysis error', err);
+            setAiAnalysis("Impossible de generer l'analyse IA pour le moment.");
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -217,7 +231,7 @@ export default function Accounting() {
             const res = await aiApi.monthlyReport(i18n.language);
             setMonthlyReport(res.report);
         } catch (e) {
-            setMonthlyReport('Erreur lors de la génération du rapport.');
+            setMonthlyReport('Erreur lors de la gÃ©nÃ©ration du rapport.');
         } finally {
             setReportLoading(false);
         }
@@ -244,6 +258,7 @@ export default function Accounting() {
         const baseline = { category: 'other', amount: '', description: '' };
         setNewExpense(baseline);
         setNewCategoryDraft('');
+        setCategorySuggestion(null);
         expenseFormBaselineRef.current = JSON.stringify({ ...baseline, newCategoryDraft: '', editingId: '' });
         setShowExpenseModal(true);
     };
@@ -253,6 +268,7 @@ export default function Accounting() {
         const baseline = { category: exp.category, amount: String(exp.amount), description: exp.description || '' };
         setNewExpense(baseline);
         setNewCategoryDraft('');
+        setCategorySuggestion(null);
         expenseFormBaselineRef.current = JSON.stringify({ ...baseline, newCategoryDraft: '', editingId: exp.expense_id || '' });
         setShowExpenseModal(true);
     };
@@ -276,6 +292,18 @@ export default function Accounting() {
             setNewExpense({ ...newExpense, category: name });
             setNewCategoryDraft('');
         }
+    };
+
+    const handleDescriptionBlur = async (description: string) => {
+        if (!description.trim() || description.trim().length < 4) return;
+        try {
+            const res = await aiApi.categorizeExpense(description, parseFloat(newExpense.amount) || 0);
+            if (res?.category && res.category !== 'other' && res.confidence >= 0.6) {
+                setCategorySuggestion({ category: res.category, label: res.category_label, confidence: res.confidence });
+            } else {
+                setCategorySuggestion(null);
+            }
+        } catch { /* silent */ }
     };
 
     const handleSaveExpense = async (e: React.FormEvent) => {
@@ -416,7 +444,7 @@ export default function Accounting() {
             await salesApi.cancel(saleId);
             await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err: any) {
-            alert(err?.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d’annuler cette vente pour le moment.' }));
+            alert(err?.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible dâ€™annuler cette vente pour le moment.' }));
         } finally {
             setCancellingSaleId(null);
         }
@@ -474,10 +502,10 @@ export default function Accounting() {
 
     if (!stats) return null;
 
-    // Chart data — backend returns daily_revenue array; filter out items with missing date
+    // Chart data â€” backend returns daily_revenue array; filter out items with missing date
     const chartData = stats.daily_revenue.filter((d: any) => d?.date != null);
 
-    // Product performance — top 8 by revenue
+    // Product performance â€” top 8 by revenue
     const topProducts = stats.product_performance
         .filter((p: any) => p.revenue > 0)
         .sort((a: any, b: any) => b.revenue - a.revenue)
@@ -490,53 +518,54 @@ export default function Accounting() {
 
     const accountingSteps: GuideStep[] = [
         {
-            title: t('guide.accounting.role_title', "Rôle de la comptabilité"),
-            content: t('guide.accounting.role_content', "Cet écran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dépenses, pertes et résultat. Les données proviennent de vos ventes POS et des dépenses saisies manuellement."),
+            title: t('guide.accounting.role_title', "RÃ´le de la comptabilitÃ©"),
+            content: t('guide.accounting.role_content', "Cet Ã©cran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dÃ©penses, pertes et rÃ©sultat. Les donnÃ©es proviennent de vos ventes POS et des dÃ©penses saisies manuellement."),
         },
         {
-            title: t('guide.accounting.filters_title', "Filtres de période"),
-            content: t('guide.accounting.filters_content', "Toutes les données s'adaptent à la période sélectionnée."),
+            title: t('guide.accounting.filters_title', "Filtres de pÃ©riode"),
+            content: t('guide.accounting.filters_content', "Toutes les donnÃ©es s'adaptent Ã  la pÃ©riode sÃ©lectionnÃ©e."),
             details: [
-                { label: t('guide.accounting.filter_periods', "Boutons de période"), description: t('guide.accounting.filter_periods_desc', "7 jours · 30 jours · 90 jours · 1 an. Cliquez pour changer la période d'analyse."), type: 'filter' },
-                { label: t('guide.accounting.filter_custom', "Icône calendrier — plage personnalisée"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour définir une période sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
+                { label: t('guide.accounting.filter_periods', "Boutons de pÃ©riode"), description: t('guide.accounting.filter_periods_desc', "7 jours Â· 30 jours Â· 90 jours Â· 1 an. Cliquez pour changer la pÃ©riode d'analyse."), type: 'filter' },
+                { label: t('guide.accounting.filter_custom', "IcÃ´ne calendrier â€” plage personnalisÃ©e"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour dÃ©finir une pÃ©riode sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
             ],
         },
         {
-            title: t('guide.accounting.kpi_title', "Cartes KPI financières"),
-            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut résument la performance financière de la période."),
+            title: t('guide.accounting.kpi_title', "Cartes KPI financiÃ¨res"),
+            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut rÃ©sument la performance financiÃ¨re de la pÃ©riode."),
             details: [
-                { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Cliquez pour afficher le détail jour par jour."), type: 'card' },
-                { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "CA − coût d'achat des produits vendus. Exprimée en montant et en %."), type: 'card' },
-                { label: t('guide.accounting.kpi_expenses', "Dépenses"), description: t('guide.accounting.kpi_expenses_desc', "Total des charges enregistrées manuellement (loyer, salaires, etc.)."), type: 'card' },
-                { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Marge brute − dépenses. Positif = bénéfice, négatif = perte."), type: 'card' },
+                { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
+                { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "Différence entre le chiffre d'affaires et le coût d'achat des produits vendus, exprimée en montant et en pourcentage."), type: 'card' },
+                { label: t('guide.accounting.kpi_expenses', "Dépenses"), description: t('guide.accounting.kpi_expenses_desc', "Total des charges enregistrées manuellement, avec détail par catégorie dans le panneau associé."), type: 'card' },
+                { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Marge brute moins dépenses. Positif = bénéfice, négatif = perte."), type: 'card' },
             ],
         },
         {
             title: t('guide.accounting.actions_title', "Boutons d'action globaux"),
             content: t('guide.accounting.actions_content', "Les boutons en haut à droite permettent de générer des rapports et d'exporter."),
             details: [
-                { label: t('guide.accounting.btn_report', "Bouton Rapport IA (violet)"), description: t('guide.accounting.btn_report_desc', "Génère un rapport de rentabilité complet rédigé par l'IA avec analyse et recommandations. Disponible en PDF."), type: 'button' },
-                { label: t('guide.accounting.btn_export', "Exporter XLS / PDF"), description: t('guide.accounting.btn_export_desc', "Exporte les données comptables de la période (ventes, dépenses, marges) en tableur ou en rapport PDF."), type: 'button' },
+                { label: t('guide.accounting.btn_report', "Rapport mensuel IA"), description: t('guide.accounting.btn_report_desc', "Genere, sur clic, un rapport mensuel complet et redige a partir des donnees de la periode. Il sert a relire la performance, les risques et les actions prioritaires."), type: 'button' },
+                { label: t('guide.accounting.btn_analysis', "Diagnostic IA"), description: t('guide.accounting.btn_analysis_desc', "Lance, sur clic, une lecture rapide du P&L de la periode. Il s'agit d'un diagnostic court et actionnable, distinct du rapport mensuel complet."), type: 'button' },
+                { label: t('guide.accounting.btn_export', "Exporter XLS / PDF"), description: t('guide.accounting.btn_export_desc', "Exporte les données comptables de la période en tableur ou en rapport PDF pour archivage et contrôle."), type: 'button' },
             ],
         },
         {
             title: t('guide.accounting.expenses_title', "Gestion des dépenses"),
-            content: t('guide.accounting.expenses_content', "La colonne gauche liste les dépenses enregistrées par catégorie. Les dépenses sont essentielles pour calculer le résultat net réel."),
+            content: t('guide.accounting.expenses_content', "La colonne gauche liste les dépenses enregistrées par catégorie. Elles sont essentielles pour calculer un résultat net fiable."),
             details: [
-                { label: t('guide.accounting.btn_add_expense', "Bouton + Dépense"), description: t('guide.accounting.btn_add_expense_desc', "Saisissez une dépense : catégorie (loyer, salaire, énergie, marketing…), montant, date et description."), type: 'button' },
-                { label: t('guide.accounting.expense_tip', "Astuce"), description: t('guide.accounting.expense_tip_desc', "Enregistrez vos dépenses récurrentes chaque mois pour avoir un résultat net fiable. Sans dépenses, le résultat net = marge brute."), type: 'tip' },
+                { label: t('guide.accounting.btn_add_expense', "Ajouter une dépense"), description: t('guide.accounting.btn_add_expense_desc', "Saisissez une dépense avec sa catégorie, son montant, sa date et son contexte pour améliorer la lecture comptable."), type: 'button' },
+                { label: t('guide.accounting.expense_tip', "Astuce"), description: t('guide.accounting.expense_tip_desc', "Enregistrez vos dépenses récurrentes chaque mois pour éviter de surestimer artificiellement votre résultat net."), type: 'tip' },
             ],
         },
         {
             title: t('guide.accounting.panel_title', "Panneau d'analyse (onglets)"),
             content: t('guide.accounting.panel_content', "La partie droite contient plusieurs onglets d'analyse détaillée."),
             details: [
-                { label: t('guide.accounting.tab_pl', "Onglet P&L"), description: t('guide.accounting.tab_pl_desc', "Compte de résultat visuel : graphique revenus vs dépenses, évolution sur la période."), type: 'info' },
-                { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement (espèces, carte, mobile money) et factures clients en attente."), type: 'info' },
-                { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Produits avec écarts de stock non expliqués. Permet de régulariser ou d'imputer en perte."), type: 'info' },
-                { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par CA généré, marge et quantité vendue sur la période."), type: 'info' },
-                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec possibilité d'annuler une vente (remise en stock automatique)."), type: 'info' },
-                { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients : depuis une vente existante ou librement. Téléchargez en PDF ou imprimez."), type: 'info' },
+                { label: t('guide.accounting.tab_pl', "Onglet P&L"), description: t('guide.accounting.tab_pl_desc', "Compte de résultat visuel : revenus, dépenses et évolution de la période."), type: 'info' },
+                { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement et suivi des factures en attente."), type: 'info' },
+                { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Permet de relire les pertes, leurs motifs et leur poids relatif pour décider où agir en premier."), type: 'info' },
+                { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par chiffre d'affaires, marge et quantité vendue sur la période."), type: 'info' },
+                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
+                { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients, puis téléchargez-les en PDF ou imprimez-les."), type: 'info' },
             ],
         },
     ];
@@ -570,7 +599,7 @@ export default function Accounting() {
                     <button
                         onClick={() => { setUseCustomRange(v => !v); }}
                         className={`p-2 rounded-xl border transition-all ${useCustomRange ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
-                        title="Plage de dates personnalisée"
+                        title="Plage de dates personnalisÃ©e"
                     >
                         <Calendar size={18} />
                     </button>
@@ -583,7 +612,7 @@ export default function Accounting() {
                                 onChange={e => setStartDate(e.target.value)}
                                 className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-primary/50"
                             />
-                            <span className="text-slate-500 text-sm">→</span>
+                            <span className="text-slate-500 text-sm">â†’</span>
                             <input
                                 type="date"
                                 value={endDate}
@@ -604,7 +633,7 @@ export default function Accounting() {
                         onClick={handleGenerateReport}
                         className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-purple-300 hover:text-white hover:bg-purple-500/20 transition-all font-bold"
                     >
-                        <BarChart2 size={18} className="text-purple-400" /> Rapport IA
+                        <BarChart2 size={18} className="text-purple-400" /> Rapport mensuel IA
                     </button>
                     <button
                         onClick={() => setShowReportModal(true)}
@@ -628,23 +657,41 @@ export default function Accounting() {
                         onClick={handleOpenAddExpense}
                         className="btn-primary rounded-xl px-4 py-2 flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
                     >
-                        <Plus size={18} /> Nouvelle Dépense
+                        <Plus size={18} /> Nouvelle DÃ©pense
                     </button>
                 </div>
             </header>
 
             {/* AI P&L Analysis */}
-            {aiAnalysis && (
-                <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <BarChart2 size={16} className="text-purple-400" />
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Analyse IA</p>
-                        <p className="text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
-                    </div>
+            <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <BarChart2 size={16} className="text-purple-400" />
                 </div>
-            )}
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Diagnostic IA</p>
+                            <p className="text-slate-400 text-sm leading-relaxed">
+                                Lecture rapide du P&L sur la periode affichee. Rien ne se lance automatiquement et le contenu est plus court qu'un rapport mensuel IA.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleGenerateAnalysis}
+                            disabled={aiLoading}
+                            className="shrink-0 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-bold text-purple-300 transition-all hover:bg-purple-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {aiLoading ? 'Analyse en cours...' : aiAnalysis ? 'Relancer le diagnostic IA' : 'Lancer le diagnostic IA'}
+                        </button>
+                    </div>
+                    {aiAnalysis ? (
+                        <p className="mt-4 text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
+                    ) : (
+                        <p className="mt-4 text-xs font-medium text-slate-500">
+                            Cliquez sur le bouton pour generer un diagnostic IA court a partir des donnees de la periode.
+                        </p>
+                    )}
+                </div>
+            </div>
 
             {/* Monthly Report Modal */}
             {showMonthlyReport && (
@@ -653,7 +700,7 @@ export default function Accounting() {
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2"><BarChart2 size={20} className="text-purple-400" /> Rapport Mensuel IA</h2>
                             <div className="flex gap-2">
-                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> Télécharger</button>}
+                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> TÃ©lÃ©charger</button>}
                                 <button onClick={() => setShowMonthlyReport(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                             </div>
                         </div>
@@ -661,7 +708,7 @@ export default function Accounting() {
                             {reportLoading ? (
                                 <div className="flex items-center justify-center py-10 gap-3">
                                     <div className="w-6 h-6 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"></div>
-                                    <span className="text-slate-400 text-sm">Génération en cours…</span>
+                                    <span className="text-slate-400 text-sm">GÃ©nÃ©ration en coursâ€¦</span>
                                 </div>
                             ) : (
                                 <pre className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">{monthlyReport}</pre>
@@ -830,7 +877,7 @@ export default function Accounting() {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 <TrendingUp size={18} className="text-primary" />
-                                Évolution Financière
+                                Ã‰volution FinanciÃ¨re
                                 <span className="text-xs text-slate-500 font-normal ml-1">{stats?.period_label}</span>
                             </h3>
                             <div className="flex gap-4 text-xs">
@@ -867,7 +914,7 @@ export default function Accounting() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donnée sur cette période</div>
+                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donnÃ©e sur cette pÃ©riode</div>
                             )}
                         </div>
                     </div>
@@ -877,7 +924,7 @@ export default function Accounting() {
                         <div className="glass-card p-6">
                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                                 <BarChart2 size={18} className="text-primary" />
-                                Top Produits — Performance
+                                Top Produits â€” Performance
                             </h3>
                             <div className="space-y-3">
                                 {topProducts.map((p: any, i: number) => {
@@ -889,7 +936,7 @@ export default function Accounting() {
                                             <span className="text-[10px] font-black text-slate-600 w-5 text-right">#{i + 1}</span>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white font-bold text-sm truncate">{p.name}</p>
-                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unités vendues</p>
+                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unitÃ©s vendues</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-white font-bold text-sm">{formatCurrency(p.revenue)}</p>
@@ -928,7 +975,7 @@ export default function Accounting() {
                                     <div className="absolute top-full right-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
                                         <button onClick={() => { setFilterExpenseCategory('all'); setIsExpenseFilterOpen(false); }}
                                             className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                            Toutes catégories
+                                            Toutes catÃ©gories
                                         </button>
                                         {EXPENSE_CATEGORY_KEYS.map(cat => (
                                             <button key={cat.value} onClick={() => { setFilterExpenseCategory(cat.value); setIsExpenseFilterOpen(false); }}
@@ -948,7 +995,7 @@ export default function Accounting() {
                         </div>
                         <div className="flex flex-col gap-2">
                             {filteredExpenses.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
+                                <div className="text-center py-10 text-slate-500 font-medium">Aucune dÃ©pense sur cette pÃ©riode.</div>
                             ) : (
                                 filteredExpenses.map((exp: any) => (
                                     <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
@@ -959,7 +1006,7 @@ export default function Accounting() {
                                             <div>
                                                 <h4 className="text-white font-bold text-sm">{exp.description || exp.category}</h4>
                                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
-                                                    {formatDate(exp.created_at)} · {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
+                                                    {formatDate(exp.created_at)} Â· {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
                                                 </p>
                                             </div>
                                         </div>
@@ -981,7 +1028,7 @@ export default function Accounting() {
                     </div>
                 </div>
 
-                {/* Right Panel — tabs */}
+                {/* Right Panel â€” tabs */}
                 <div ref={rightPanelRef} className="flex flex-col gap-6">
                     {/* Tab selector */}
                     <div className="glass-card p-1.5 flex gap-1">
@@ -1003,7 +1050,7 @@ export default function Accounting() {
                     {/* P&L Tab */}
                     {rightTab === 'profitability' && (
                         <div className="glass-card p-6 flex flex-col items-center">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">Rentabilité Opérationnelle</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">RentabilitÃ© OpÃ©rationnelle</h3>
                             {/* Marge brute circular */}
                             <div className="relative w-44 h-44 mb-6">
                                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
@@ -1019,7 +1066,7 @@ export default function Accounting() {
                             <div className="w-full space-y-3">
                                 {[
                                     { label: 'Chiffre d\'affaires', value: stats.revenue || 0, color: 'bg-emerald-500', pct: 100 },
-                                    { label: 'Coût des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
+                                    { label: 'CoÃ»t des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
                                     { label: 'Charges fixes', value: stats.expenses || 0, color: 'bg-rose-500', pct: stats.revenue > 0 ? (stats.expenses / stats.revenue) * 100 : 0 },
                                     { label: 'Pertes stock', value: stats.total_losses || 0, color: 'bg-orange-500', pct: stats.revenue > 0 ? (stats.total_losses / stats.revenue) * 100 : 0 },
                                 ].map(row => (
@@ -1035,7 +1082,7 @@ export default function Accounting() {
                                 ))}
                                 <div className="mt-2 p-3 rounded-xl border-2 border-primary/30 bg-primary/5">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-black text-primary uppercase tracking-widest">Bénéfice Net</span>
+                                        <span className="text-xs font-black text-primary uppercase tracking-widest">BÃ©nÃ©fice Net</span>
                                         <span className={`text-sm font-black ${(stats?.net_profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {formatCurrency(stats?.net_profit || 0)}
                                         </span>
@@ -1048,16 +1095,16 @@ export default function Accounting() {
                     {/* Payments Tab */}
                     {rightTab === 'payments' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Méthodes de Paiement</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">MÃ©thodes de Paiement</h3>
                             <div className="space-y-4">
                                 {Object.keys(stats?.payment_breakdown || {}).length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette période.</p>
+                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette pÃ©riode.</p>
                                 ) : (
                                     Object.entries(stats?.payment_breakdown || {}).map(([method, amount]: [string, any]) => (
                                         <div key={method} className="p-4 bg-white/5 rounded-2xl border border-white/5">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                    {method === 'cash' ? '💵 Espèces' : method === 'credit' ? '💳 Crédit' : method === 'mobile_money' ? '📱 Mobile Money' : method}
+                                                    {method === 'cash' ? 'ðŸ’µ EspÃ¨ces' : method === 'credit' ? 'ðŸ’³ CrÃ©dit' : method === 'mobile_money' ? 'ðŸ“± Mobile Money' : method}
                                                 </span>
                                                 <span className="text-sm font-black text-white">{formatCurrency(amount)}</span>
                                             </div>
@@ -1083,7 +1130,7 @@ export default function Accounting() {
                             </h3>
                             <div className="space-y-3">
                                 {Object.keys(stats?.loss_breakdown || {}).length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune perte enregistrée. 🎉</p>
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune perte enregistrÃ©e. ðŸŽ‰</p>
                                 ) : (
                                     Object.entries(stats?.loss_breakdown || {}).map(([reason, amount]: [string, any]) => (
                                         <div key={reason} className="flex justify-between items-center p-3 bg-rose-500/5 rounded-xl border border-rose-500/10">
@@ -1105,10 +1152,10 @@ export default function Accounting() {
                     {/* Charges breakdown Tab */}
                     {rightTab === 'products' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Répartition des Charges</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">RÃ©partition des Charges</h3>
                             <div className="space-y-3">
                                 {Object.keys(stats.expenses_breakdown || {}).length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune dépense sur cette période.</p>
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune dÃ©pense sur cette pÃ©riode.</p>
                                 ) : (
                                     Object.entries(stats.expenses_breakdown || {})
                                         .sort(([, a]: any, [, b]: any) => b - a)
@@ -1147,7 +1194,7 @@ export default function Accounting() {
                                                 <div className="min-w-0">
                                                     <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
                                                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {formatDate(sale.created_at)} · {sale.item_count} article(s)
+                                                        {formatDate(sale.created_at)} Â· {sale.item_count} article(s)
                                                     </p>
                                                     <p className="text-xs text-slate-400 mt-2 truncate">
                                                         {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
@@ -1232,7 +1279,7 @@ export default function Accounting() {
                                                 <div className="min-w-0">
                                                     <p className="text-white font-bold truncate">{invoice.invoice_number}</p>
                                                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {(invoice.invoice_label || 'Facture').toUpperCase()} · {formatDate(invoice.issued_at)}
+                                                        {(invoice.invoice_label || 'Facture').toUpperCase()} Â· {formatDate(invoice.issued_at)}
                                                     </p>
                                                     <p className="text-xs text-slate-400 mt-2 truncate">{invoice.customer_name || 'Client divers'}</p>
                                                 </div>
@@ -1312,7 +1359,7 @@ export default function Accounting() {
                                             </div>
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div>
-                                                    <label className="text-[10px] text-slate-500 mb-1 block">Quantité</label>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">QuantitÃ©</label>
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
@@ -1363,7 +1410,7 @@ export default function Accounting() {
                                         type="text"
                                         value={freeInvPaymentTerms}
                                         onChange={e => setFreeInvPaymentTerms(e.target.value)}
-                                        placeholder="Ex: Paiement à 30 jours"
+                                        placeholder="Ex: Paiement Ã  30 jours"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
                                     />
                                 </div>
@@ -1383,7 +1430,7 @@ export default function Accounting() {
 
                             {/* Total preview */}
                             <div className="flex justify-between items-center bg-primary/10 rounded-xl p-4 border border-primary/20">
-                                <span className="text-sm font-bold text-slate-300">Total estimé</span>
+                                <span className="text-sm font-bold text-slate-300">Total estimÃ©</span>
                                 <span className="text-xl font-black text-primary">{freeInvTotal.toLocaleString('fr-FR')} F</span>
                             </div>
                         </div>
@@ -1398,7 +1445,7 @@ export default function Accounting() {
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <FileText size={18} /> Créer la facture
+                                        <FileText size={18} /> CrÃ©er la facture
                                     </>
                                 )}
                             </button>
@@ -1423,7 +1470,7 @@ export default function Accounting() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={requestCloseExpenseModal} />
                     <div className="glass-card w-full max-w-md relative z-10 p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la dépense' : 'Nouvelle Dépense'}</h2>
+                            <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la dÃ©pense' : 'Nouvelle DÃ©pense'}</h2>
                             <button onClick={requestCloseExpenseModal} className="p-2 text-slate-500 hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
@@ -1446,7 +1493,7 @@ export default function Accounting() {
                                 <div className="flex gap-2 mt-1">
                                     <input
                                         type="text"
-                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catégorie...'}
+                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catÃ©gorie...'}
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
                                         value={newCategoryDraft}
                                         onChange={(e) => setNewCategoryDraft(e.target.value)}
@@ -1476,8 +1523,19 @@ export default function Accounting() {
                                     placeholder="Ex: Facture SDE Janvier..."
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 text-sm"
                                     value={newExpense.description}
-                                    onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                                    onChange={(e) => { setNewExpense({ ...newExpense, description: e.target.value }); setCategorySuggestion(null); }}
+                                    onBlur={(e) => handleDescriptionBlur(e.target.value)}
                                 />
+                                {categorySuggestion && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setNewExpense({ ...newExpense, category: categorySuggestion.category }); setCategorySuggestion(null); }}
+                                        className="flex items-center gap-2 text-xs text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 hover:bg-primary/20 transition-all text-left"
+                                    >
+                                        <span>💡</span>
+                                        <span>Catégorie suggérée : <strong>{categorySuggestion.label}</strong> — Cliquer pour appliquer</span>
+                                    </button>
+                                )}
                             </div>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={requestCloseExpenseModal}
@@ -1496,3 +1554,5 @@ export default function Accounting() {
         </div>
     );
 }
+
+
